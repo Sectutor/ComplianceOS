@@ -1,0 +1,145 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { appRouter, createContext } from './packages/core/src/routers';
+import { authMiddleware } from './packages/core/src/authMiddleware';
+import { getDb } from './packages/core/src/db';
+import { sql } from 'drizzle-orm';
+import { exportRouter } from './packages/core/src/server/routers/export';
+import { uploadRouter } from './packages/core/src/server/routers/upload';
+import { aiRouter } from './packages/core/src/server/routers/ai';
+
+export const app = express();
+const port = process.env.PORT || 3001;
+
+console.log('[Server Start] Environment Check:');
+console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
+console.log(`- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
+
+
+// Configure CORS
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+console.log('[CORS] Allowed Origins:', allowedOrigins);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+            callback(null, true);
+        } else {
+            console.error(`[CORS] Rejected origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
+// Parse JSON bodies (though TRPC handles its own, auth middleware might need it if used for other routes)
+// Parse JSON bodies with increased limit for uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Apply Authentication Middleware to populate req.user
+app.use(authMiddleware);
+
+// Health Check
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Production Diagnostics Endpoint
+app.get('/api/debug/connection', async (req, res) => {
+    try {
+        const db = await getDb();
+        const start = Date.now();
+        // Simple query to verify connection
+        const result = await db.execute(sql`SELECT 1 as connected`);
+        const duration = Date.now() - start;
+
+        res.json({
+            status: 'success',
+            message: 'Database connection successful',
+            duration: `${duration}ms`,
+            env: {
+                has_db_url: !!process.env.DATABASE_URL,
+                db_url_length: process.env.DATABASE_URL?.length || 0,
+                db_url_protocol: process.env.DATABASE_URL?.split('://')[0] || 'unknown',
+                has_supabase_url: !!process.env.VITE_SUPABASE_URL,
+                has_supabase_key: !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY),
+                node_env: process.env.NODE_ENV,
+            },
+            result: result
+        });
+    } catch (error: any) {
+        console.error('[Diagnostics] DB Connection Failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Database connection failed',
+            error_code: error.code,
+            error_message: error.message,
+            env_check: {
+                has_db_url: !!process.env.DATABASE_URL,
+                db_url_start: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 15) + '...' : 'MISSING',
+            }
+        });
+    }
+});
+
+// APIs
+app.use('/api/export', exportRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/ai', aiRouter);
+
+// Global error handler to ensure all errors return JSON
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[Server Error]', {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+    });
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(500).json({
+        message: err.message || 'Internal Server Error',
+        code: 'INTERNAL_SERVER_ERROR',
+        data: null,
+    });
+});
+
+// TRPC Endpoint
+app.use(
+    '/api/trpc',
+    createExpressMiddleware({
+        router: appRouter,
+        createContext,
+        onError: ({ error, type, path, req }) => {
+            console.error(`[TRPC] ${type} error on ${path}:`, {
+                code: error.code,
+                message: error.message,
+                stack: error.stack,
+            });
+        },
+    })
+);
+
+// Add request logging for all /api routes
+app.use('/api', (req, res, next) => {
+    console.log(`[API] ${req.method} ${req.url}`);
+    next();
+});
+
+// Only listen locally, Netlify calls the handler directly
+if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
+    app.listen(port, () => {
+        console.log(`\n🚀 Server listening on port ${port}`);
+        console.log(`-> Health check: http://localhost:${port}/health`);
+        console.log(`-> TRPC endpoint: http://localhost:${port}/api/trpc`);
+    });
+}

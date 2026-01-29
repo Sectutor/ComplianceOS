@@ -1,0 +1,25 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NPM_FLAGS = "--legacy-peer-deps --include=dev"
+  NODE_OPTIONS = "--max_old_space_size=4096"
+  NODE_VERSION = "22.21.1"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY,VITE_SUPABASE_URL"
+  SECRETS_SCAN_ENABLED = "false"
+
+[functions]
+
+[functions.node_bundle]
+  external_node_modules = ["postgres", "pdf-parse", "puppeteer", "docx", "archiver", "xlsx", "turndown", "openai"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,8 @@
+Connected to DB
+Clients: 6
+Users: 4
+Client Controls: 276
+Controls per Client:
+Client 4: 135
+Client 3: 141
+Evidence: 0

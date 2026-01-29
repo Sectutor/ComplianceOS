@@ -1,0 +1,4 @@
+﻿--- LLM PROVIDERS ---
+ID: 1, Name: DeepSeek Production, Provider: deepseek, Model: deepseek-chat, Enabled: true, Priority: 1
+ID: 2, Name: Open AI, Provider: openai, Model: gpt-4o, Enabled: true, Priority: 100
+---------------------

@@ -1,0 +1,1077 @@
+import { useState } from "react";
+import { useRoute } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@complianceos/ui/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
+import { Badge } from "@complianceos/ui/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@complianceos/ui/ui/avatar";
+import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
+import { Separator } from "@complianceos/ui/ui/separator";
+import { Textarea } from "@complianceos/ui/ui/textarea";
+import {
+    CheckCircle2,
+    Circle,
+    Clock,
+    FileText,
+    MessageSquare,
+    AlertCircle,
+    Search,
+    Filter,
+    Download,
+    MoreHorizontal,
+    ArrowLeft,
+    Briefcase,
+    Mail,
+    Shield,
+    LayoutDashboard,
+    AlertTriangle,
+    Check,
+    X,
+    ArrowRight
+} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
+import { Input } from "@complianceos/ui/ui/input";
+import { toast } from "sonner";
+import AuditorLayout from "@/components/AuditorLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@complianceos/ui/ui/dialog";
+
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@complianceos/ui/ui/select";
+
+
+export default function AuditHub() {
+    const [match, params] = useRoute("/clients/:clientId/audit-hub");
+    const clientId = params?.clientId ? parseInt(params.clientId) : 0;
+    const [activeSection, setActiveSection] = useState('pbc'); // 'overview', 'pbc', 'findings'
+    const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+    const [filterStatus, setFilterStatus] = useState<string>('all');
+
+    const { user } = useAuth();
+    // Determine if we should show the Auditor View (Restricted Clean Room)
+    // Check for 'auditor' role or explicit 'view=auditor' query param for testing/admin preview
+    const isAuditorView = user?.user_metadata?.role === 'auditor' || window.location.search.includes('view=auditor');
+    const Layout = isAuditorView ? AuditorLayout : DashboardLayout;
+
+    const [inviteOpen, setInviteOpen] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const inviteMutation = trpc.audit.inviteAuditor.useMutation({
+        onSuccess: () => {
+            toast.success("Invitation sent successfully");
+            setInviteOpen(false);
+            setInviteEmail("");
+        },
+        onError: (err) => {
+            toast.error(err.message);
+        }
+    });
+
+    const handleInvite = () => {
+        if (!inviteEmail) return;
+        inviteMutation.mutate({
+            clientId: clientId,
+            email: inviteEmail
+        });
+    };
+
+    const isAdmin = user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'owner';
+
+    // Live Data Fetching
+    const { data: evidenceData, isLoading: isEvidenceLoading, refetch: refetchList } = trpc.evidence.list.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+
+    // Fetch files for selected request
+    const { data: evidenceFiles, isLoading: isFilesLoading } = trpc.evidence.getFiles.useQuery(
+        { evidenceId: selectedRequest?.original?.id },
+        { enabled: !!selectedRequest?.original?.id }
+    );
+
+    const updateStatusMutation = trpc.evidence.updateStatus.useMutation({
+        onSuccess: () => {
+            toast.success("Audit status updated");
+            refetchList();
+            if (selectedRequest) {
+                // Update local state if needed
+            }
+        },
+        onError: (err) => {
+            toast.error("Failed to update status: " + err.message);
+        }
+    });
+
+    const handleStatusUpdate = (status: 'verified' | 'rejected') => {
+        if (!selectedRequest?.original?.id) return;
+        updateStatusMutation.mutate({
+            evidenceId: selectedRequest.original.id,
+            status
+        });
+
+        // Optimistically update
+        setSelectedRequest({
+            ...selectedRequest,
+            status: status === 'verified' ? 'Accepted' : 'Returned'
+        });
+    };
+
+    const auditRequests = evidenceData?.map((e: any) => ({
+        id: e.id ? `EV-${e.id.toString().padStart(3, '0')}` : (e.evidenceId || `REQ-${Math.random().toString(36).substr(2, 4).toUpperCase()}`),
+        title: e.title || 'Untitled Request',
+        control: e.control?.controlCode || 'General',
+        status: e.status === 'verified' ? 'Accepted' : e.status === 'collected' ? 'In Review' : 'Open',
+        comments: 0,
+        evidence: e.fileCount || 0,
+        dueDate: '2025-12-31',
+        description: e.description,
+        original: e
+    })) || [];
+
+    // Derived State
+    const displayRequests = auditRequests.filter(req =>
+        filterStatus === 'all' || req.status.toLowerCase() === filterStatus.toLowerCase()
+    );
+
+    const stats = {
+        total: auditRequests.length,
+        accepted: auditRequests.filter(r => r.status === 'Accepted').length,
+        review: auditRequests.filter(r => r.status === 'In Review').length,
+        open: auditRequests.filter(r => r.status === 'Open').length,
+    };
+
+    const progress = stats.total > 0 ? Math.round((stats.accepted / stats.total) * 100) : 0;
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Accepted': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'In Review': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'Returned': return 'bg-rose-100 text-rose-700 border-rose-200';
+            case 'Open': return 'bg-slate-100 text-slate-700 border-slate-200';
+            default: return 'bg-slate-100 text-slate-700';
+        }
+    };
+
+    return (
+        <Layout>
+            <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] w-full bg-slate-50/50">
+                {/* 1. Universal Header (Audit Context) - Professionally Redesigned */}
+                <header className="h-16 bg-white border-b flex items-center justify-between px-6 shrink-0 z-40 relative shadow-sm">
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-[#0f172a] h-9 w-9 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-slate-900/5">
+                                <Shield className="h-5 w-5 text-emerald-400" />
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-slate-900 leading-tight tracking-tight">AuditWorkspace™</h1>
+                                <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Secure Clean Room</div>
+                            </div>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200" />
+                        <div className="flex flex-col justify-center">
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-slate-800">ISO 27001 Surveillance Audit</span>
+                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-slate-50 border-slate-200 text-slate-600">FY2025</Badge>
+                            </div>
+                            <span className="text-xs text-slate-500">Client ID: #{clientId}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                        {/* Audit Progress - Refined */}
+                        <div className="flex items-center gap-3 pr-6 border-r border-slate-100">
+                            <div className="text-right">
+                                <div className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Audit Status</div>
+                                <div className="text-sm font-bold text-slate-700">{progress}% Verified</div>
+                            </div>
+                            <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+                            </div>
+                        </div>
+
+                        {isAdmin && (
+                            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-9 gap-2 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium">
+                                        <Mail className="h-4 w-4 text-slate-400" />
+                                        <span>Invite Auditor</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Invite External Auditor</DialogTitle>
+                                        <DialogDescription>
+                                            Send an invitation to an external auditor to access this restricted Clean Room.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid gap-2">
+                                            <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+                                            <Input
+                                                id="email"
+                                                placeholder="auditor@firm.com"
+                                                value={inviteEmail}
+                                                onChange={(e) => setInviteEmail(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                                        <Button onClick={handleInvite} disabled={inviteMutation.isLoading}>
+                                            {inviteMutation.isLoading ? "Sending..." : "Send Invitation"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                        <Button variant="default" size="sm" className="h-9 gap-2 bg-[#0f172a] hover:bg-slate-800 text-white shadow-sm ring-1 ring-slate-900/10">
+                            <Download className="h-4 w-4" />
+                            <span>Export Bundle</span>
+                        </Button>
+                    </div>
+                </header>
+
+                {/* 2. Three-Pane Workspace */}
+                <div className="flex-1 flex overflow-hidden">
+
+                    {/* PANE 1: Navigation Sidebar (240px) */}
+                    <nav className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0 relative z-30">
+                        <div className="p-6">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Workspace</div>
+                            <div className="space-y-1">
+                                <NavButton
+                                    active={activeSection === 'overview'}
+                                    onClick={() => setActiveSection('overview')}
+                                    icon={LayoutDashboard}
+                                    label="Overview"
+                                />
+                                <NavButton
+                                    active={activeSection === 'pbc'}
+                                    onClick={() => setActiveSection('pbc')}
+                                    icon={CheckCircle2}
+                                    label="PBC Inbox"
+                                    count={displayRequests.length}
+                                />
+                                <NavButton
+                                    active={activeSection === 'findings'}
+                                    onClick={() => setActiveSection('findings')}
+                                    icon={AlertCircle}
+                                    label="Findings"
+                                />
+                                <NavButton
+                                    active={activeSection === 'discussions'}
+                                    onClick={() => setActiveSection('discussions')}
+                                    icon={MessageSquare}
+                                    label="Discussions"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Auditor Branding/Contact */}
+                        <div className="mt-auto p-6 border-t border-slate-200">
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                <Avatar className="h-9 w-9 border-2 border-slate-50 bg-slate-100">
+                                    <AvatarFallback className="text-xs font-bold text-slate-600">JS</AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-bold text-slate-900 truncate">James Smith</div>
+                                    <div className="text-[10px] text-slate-500 truncate">Lead Auditor (External)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {activeSection === 'pbc' && (
+                        <div className="w-96 bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
+                            {/* Inbox Toolbar */}
+                            <div className="p-4 border-b border-slate-100 space-y-3 bg-white/50 backdrop-blur-sm sticky top-0">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="font-bold text-slate-800 text-sm tracking-tight">Evidence Requests</h2>
+                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0 text-[10px] h-5">{displayRequests.length}</Badge>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                                        <Input
+                                            placeholder="Search by ID or title..."
+                                            className="pl-8 bg-slate-50 border-slate-200 h-9 text-xs focus-visible:ring-indigo-500"
+                                        />
+                                    </div>
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                        <SelectTrigger className="w-[110px] h-9 text-xs bg-white border-slate-200">
+                                            <div className="flex items-center gap-2">
+                                                <Filter className="h-3 w-3 text-slate-400" />
+                                                <SelectValue />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Status</SelectItem>
+                                            <SelectItem value="Open">Open</SelectItem>
+                                            <SelectItem value="In Review">In Review</SelectItem>
+                                            <SelectItem value="Accepted">Accepted</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <ScrollArea className="flex-1 bg-slate-50/30">
+                                {isEvidenceLoading ? (
+                                    <div className="p-4 space-y-3">
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <div key={i} className="h-16 bg-white border border-slate-100 rounded-lg animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-100">
+                                        {displayRequests.length === 0 ? (
+                                            <div className="p-8 text-center">
+                                                <div className="bg-slate-100 h-10 w-10 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <Search className="h-5 w-5 text-slate-400" />
+                                                </div>
+                                                <p className="text-sm text-slate-500 font-medium">No requests found</p>
+                                                <p className="text-xs text-slate-400 mt-1">Try adjusting your filters</p>
+                                            </div>
+                                        ) : (
+                                            displayRequests.map(req => (
+                                                <div
+                                                    key={req.id}
+                                                    onClick={() => setSelectedRequest(req)}
+                                                    className={cn(
+                                                        "group p-4 cursor-pointer hover:bg-white transition-all border-l-[3px]",
+                                                        selectedRequest?.id === req.id
+                                                            ? "bg-white border-indigo-600 shadow-sm z-10 relative"
+                                                            : "bg-transparent border-transparent hover:border-slate-200"
+                                                    )}
+                                                >
+                                                    <div className="flex justify-between items-start mb-1.5 gap-2">
+                                                        <span className={cn(
+                                                            "font-mono text-[10px] font-semibold",
+                                                            selectedRequest?.id === req.id ? "text-indigo-600" : "text-slate-500"
+                                                        )}>{req.id}</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Due {new Date(req.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                                    </div>
+
+                                                    <div className={cn(
+                                                        "text-sm font-semibold leading-snug mb-2 line-clamp-2",
+                                                        selectedRequest?.id === req.id ? "text-slate-900" : "text-slate-700 group-hover:text-slate-900"
+                                                    )}>
+                                                        {req.title}
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge variant="outline" className={cn("text-[10px] h-5 border px-1.5 font-medium", getStatusColor(req.status))}>
+                                                                {req.status}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-medium">
+                                                            <div className="flex items-center gap-1" title="Evidence Files">
+                                                                <FileText className={cn("h-3 w-3", req.evidence > 0 ? "text-slate-600" : "text-slate-300")} />
+                                                                <span>{req.evidence}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1" title="Comments">
+                                                                <MessageSquare className={cn("h-3 w-3", req.comments > 0 ? "text-slate-600" : "text-slate-300")} />
+                                                                <span>{req.comments}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </div>
+                    )}
+
+                    {/* PANE 3: Workspace / Detail / Overview */}
+                    <div className="flex-1 bg-slate-50/30 flex flex-col h-full min-w-0 overflow-auto">
+                        {activeSection === 'pbc' ? (
+                            selectedRequest ? (
+                                <>
+                                    {/* Workspace Header - Redesigned */}
+                                    <div className="bg-white border-b border-slate-200 px-8 py-6 flex items-start justify-between shrink-0 sticky top-0 z-30 shadow-sm">
+                                        <div className="max-w-2xl">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 font-mono tracking-tight text-[11px]">
+                                                    {selectedRequest.control}
+                                                </Badge>
+                                                <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">Due {new Date(selectedRequest.dueDate).toLocaleDateString()}</span>
+                                            </div>
+                                            <h1 className="text-xl font-bold text-slate-900 mb-3 leading-tight">{selectedRequest.title}</h1>
+                                            <p className="text-slate-600 text-sm leading-relaxed max-w-xl">
+                                                {selectedRequest.description || "Please provide evidence demonstrating compliance with this control requirement. Ensure all documents are recent (within last 12 months) and approved by management."}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-3">
+                                            {/* Status Badge - Big */}
+                                            <Badge variant="outline" className={cn("px-3 py-1 text-xs font-semibold uppercase tracking-wider border", getStatusColor(selectedRequest.status))}>
+                                                {selectedRequest.status}
+                                            </Badge>
+
+                                            {/* Primary Actions - Moved to Header */}
+                                            {selectedRequest.status !== 'Accepted' && (
+                                                <div className="flex gap-2 mt-2">
+                                                    <Button variant="outline" size="sm" className="h-8 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 hover:border-rose-300 gap-2 font-medium" onClick={() => handleStatusUpdate('rejected')} disabled={updateStatusMutation.isLoading}>
+                                                        <AlertCircle className="h-3.5 w-3.5" /> Return
+                                                    </Button>
+                                                    <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-medium shadow-sm" onClick={() => handleStatusUpdate('verified')} disabled={updateStatusMutation.isLoading}>
+                                                        <CheckCircle2 className="h-3.5 w-3.5" /> Verify & Accept
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Workspace Content Tabs */}
+                                    <Tabs defaultValue="evidence" className="flex-1 flex flex-col min-h-0">
+                                        <div className="bg-white border-b px-8 sticky top-[calc(theme(spacing.24)+theme(spacing.10))] z-20">
+                                            <TabsList className="bg-transparent h-12 w-full justify-start p-0 space-x-8">
+                                                <TabsTrigger value="evidence" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Evidence Files</TabsTrigger>
+                                                <TabsTrigger value="activity" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Activity & Discussion</TabsTrigger>
+                                                <TabsTrigger value="audit-log" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Audit Log</TabsTrigger>
+                                            </TabsList>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto bg-slate-50/50">
+                                            <TabsContent value="evidence" className="m-0 p-8 max-w-5xl mx-auto w-full focus-visible:ring-0 outline-none">
+                                                {selectedRequest.evidence === 0 ? (
+                                                    <div className="border border-dashed border-slate-300 rounded-xl p-16 text-center bg-white flex flex-col items-center justify-center">
+                                                        <div className="h-14 w-14 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                                                            <FileText className="h-6 w-6 text-slate-300" />
+                                                        </div>
+                                                        <h3 className="text-base font-semibold text-slate-900 mb-1">No Evidence Provided</h3>
+                                                        <p className="text-sm text-slate-500 mb-6 max-w-sm">The client has not uploaded any documents for this request yet. You can request specific items in the discussion.</p>
+                                                    </div>
+                                                ) : (
+                                                    <Card className="border-slate-200 shadow-sm overflow-hidden">
+                                                        <Table>
+                                                            <TableHeader className="bg-slate-50/50">
+                                                                <TableRow className="hover:bg-transparent border-slate-100">
+                                                                    <TableHead className="w-[40%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Filename</TableHead>
+                                                                    <TableHead className="w-[20%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Date Uploaded</TableHead>
+                                                                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Size</TableHead>
+                                                                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Scan Status</TableHead>
+                                                                    <TableHead className="w-[10%] text-right text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Action</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {isFilesLoading ? (
+                                                                    <TableRow>
+                                                                        <TableCell colSpan={5} className="h-24 text-center text-slate-400">Loading files...</TableCell>
+                                                                    </TableRow>
+                                                                ) : (
+                                                                    evidenceFiles?.map((file: any) => (
+                                                                        <TableRow key={file.id} className="hover:bg-slate-50/50 group border-slate-100 transition-colors">
+                                                                            <TableCell className="font-medium text-slate-700 py-3">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="h-8 w-8 bg-red-50 rounded flex items-center justify-center shrink-0 border border-red-100 text-red-600">
+                                                                                        <FileText className="h-4 w-4" />
+                                                                                    </div>
+                                                                                    <span className="truncate max-w-[240px]" title={file.filename}>{file.filename}</span>
+                                                                                </div>
+                                                                            </TableCell>
+                                                                            <TableCell className="text-slate-500 text-xs">{new Date(file.createdAt).toLocaleDateString()} {new Date(file.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
+                                                                            <TableCell className="text-slate-500 text-xs font-mono">{(file.size / 1024).toFixed(1)} KB</TableCell>
+                                                                            <TableCell>
+                                                                                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-100">
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Safe
+                                                                                </div>
+                                                                            </TableCell>
+                                                                            <TableCell className="text-right">
+                                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => window.open(file.url, '_blank')}>
+                                                                                    <Download className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    ))
+                                                                )}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </Card>
+                                                )}
+                                            </TabsContent>
+
+                                            {/* Activity Tab Content */}
+                                            <TabsContent value="activity" className="m-0 p-8 max-w-4xl mx-auto w-full focus-visible:ring-0">
+                                                <ChatSection request={selectedRequest} />
+                                            </TabsContent>
+                                        </div>
+                                    </Tabs>
+                                </>
+                            ) : (
+                                /* Empty State */
+                                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400 bg-slate-50/50">
+                                    <div className="h-24 w-24 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 border border-slate-100">
+                                        <Briefcase className="h-10 w-10 text-slate-300" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-slate-700 mb-2">Ready to Audit</h2>
+                                    <p className="max-w-xs text-slate-500 text-sm mb-8 leading-relaxed">
+                                        Select a request from the list to view evidence, verify compliance, and leave findings.
+                                    </p>
+                                    <Button variant="outline" className="gap-2 text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 h-9 text-sm">
+                                        <Download className="h-4 w-4" /> Download Audit Methodology
+                                    </Button>
+                                </div>
+                            )
+                        ) : activeSection === 'overview' ? (
+                            <AuditOverview clientId={clientId} />
+                        ) : activeSection === 'findings' ? (
+                            <AuditFindings clientId={clientId} />
+                        ) : activeSection === 'discussions' ? (
+                            <AuditDiscussions clientId={clientId} />
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+        </Layout>
+    );
+}
+
+function ChatSection({ request }: { request: any }) {
+    const [commentText, setCommentText] = useState("");
+    const { user } = useAuth();
+    const utils = trpc.useContext();
+
+    // We need the numeric ID from the backend, assuming request.original.id is it.
+    const evidenceId = request.original.id;
+
+    // Only fetch if we have a valid ID
+    const { data: comments, isLoading } = trpc.evidence.getComments.useQuery(
+        { evidenceId },
+        { enabled: !!evidenceId, refetchInterval: 5000 }
+    );
+
+    const addCommentMutation = trpc.evidence.addComment.useMutation({
+        onSuccess: () => {
+            setCommentText("");
+            utils.evidence.getComments.invalidate({ evidenceId });
+            toast.success("Comment posted");
+        },
+        onError: (err) => {
+            toast.error("Failed to post comment");
+        }
+    });
+
+    const handlePostComment = () => {
+        if (!commentText.trim()) return;
+        addCommentMutation.mutate({
+            evidenceId,
+            content: commentText
+        });
+    };
+
+    return (
+        <div className="max-w-4xl p-0">
+            <div className="flex flex-col gap-6">
+
+                <div className="space-y-6 min-h-[200px]">
+                    {isLoading ? (
+                        <div className="text-center py-8 text-slate-400">Loading comments...</div>
+                    ) : comments?.length === 0 ? (
+                        <div className="p-8 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                            <MessageSquare className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500 italic">No discussion yet. Start a thread below.</p>
+                        </div>
+                    ) : (
+                        comments?.map((comment: any) => {
+                            const isMe = comment.userId === user?.id;
+                            return (
+                                <div key={comment.id} className={cn("flex gap-3", isMe ? "flex-row-reverse" : "flex-row")}>
+                                    <Avatar className="h-8 w-8 shrink-0 mt-1">
+                                        <AvatarFallback className={cn("text-[10px]", isMe ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600")}>
+                                            {(comment.userName || comment.userEmail || "U").substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className={cn("flex flex-col max-w-[80%]", isMe ? "items-end" : "items-start")}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs font-semibold text-slate-700">{comment.userName || comment.userEmail}</span>
+                                            <span className="text-[10px] text-slate-400">{new Date(comment.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        <div className={cn("p-3 rounded-lg text-sm", isMe ? "bg-indigo-600 text-white rounded-tr-none" : "bg-white border rounded-tl-none shadow-sm text-slate-700")}>
+                                            {comment.content}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Chat Input */}
+                <div className="flex gap-4 items-start pt-6 border-t mt-4">
+                    <Avatar className="h-8 w-8 hidden sm:block">
+                        <AvatarFallback className="bg-indigo-50 text-indigo-600">ME</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-2">
+                        <Textarea
+                            placeholder="Leave a comment, request clarification, or approve..."
+                            className="min-h-[80px] bg-white"
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                        />
+                        <div className="flex justify-end">
+                            <Button
+                                size="sm"
+                                className="bg-indigo-600 text-white"
+                                onClick={handlePostComment}
+                                disabled={addCommentMutation.isLoading || !commentText.trim()}
+                            >
+                                {addCommentMutation.isLoading ? "Posting..." : "Post Comment"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function AuditOverview({ clientId }: { clientId: number }) {
+    const { data: evidenceList } = trpc.evidence.list.useQuery({ clientId });
+    const { data: findings } = trpc.findings.list.useQuery({ clientId });
+
+    // Calculate stats
+    const openRequests = evidenceList?.filter(e => e.status === 'open' || e.status === 'collected').length || 0;
+    const verifiedRequests = evidenceList?.filter(e => e.status === 'verified').length || 0;
+    const totalRequests = evidenceList?.length || 1;
+    const completionPercentage = Math.round((verifiedRequests / totalRequests) * 100);
+
+    const openFindings = findings?.filter(f => f.status === 'open').length || 0;
+    const highFindings = findings?.filter(f => f.status === 'open' && (f.severity === 'high' || f.severity === 'critical')).length || 0;
+
+    return (
+        <div className="p-8 space-y-8 h-full flex flex-col">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="p-5 pb-1">
+                        <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">Audit Progress</CardDescription>
+                        <CardTitle className="text-3xl font-bold text-slate-900 tracking-tight">{completionPercentage}%</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-3">
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-600 rounded-full transition-all duration-1000" style={{ width: `${completionPercentage}%` }} />
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-2 font-medium">{verifiedRequests} of {totalRequests} controls verified</p>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="p-5 pb-1">
+                        <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">Open Requests</CardDescription>
+                        <CardTitle className="text-3xl font-bold text-slate-900 tracking-tight">{openRequests}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-3">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 inline-flex px-2 py-0.5 rounded-full border border-amber-100">
+                            <Clock className="h-3 w-3" />
+                            <span>Action Required</span>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="p-5 pb-1">
+                        <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">Open Findings</CardDescription>
+                        <CardTitle className="text-3xl font-bold text-slate-900 tracking-tight">{openFindings}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-3">
+                        {highFindings > 0 ? (
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 bg-red-50 inline-flex px-2 py-0.5 rounded-full border border-red-100">
+                                <AlertTriangle className="h-3 w-3" />
+                                <span>{highFindings} High Severity</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 inline-flex px-2 py-0.5 rounded-full border border-emerald-100">
+                                <Check className="h-3 w-3" />
+                                <span>Risk Low</span>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="p-5 pb-1">
+                        <CardDescription className="text-xs font-semibold uppercase tracking-wider text-slate-500">Audit Phase</CardDescription>
+                        <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">Fieldwork</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-3">
+                        <p className="text-[11px] text-slate-400 font-medium">Est. Completion: Feb 28, 2026</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="lg:col-span-2 shadow-sm border-slate-200 h-full">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <CardTitle className="text-base font-semibold text-slate-900">Priority Action Items</CardTitle>
+                                <CardDescription className="text-xs">Tasks requiring immediate attention to proceed.</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="sm" className="h-8 text-xs">View All Tasks</Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-100">
+                            {/* Dynamic Action Items */}
+                            {highFindings > 0 && (
+                                <div className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer">
+                                    <div className="mt-1 p-2 bg-red-50 text-red-600 rounded-lg border border-red-100 shrink-0">
+                                        <AlertTriangle className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">Resolve Critical Findings</h4>
+                                            <Badge variant="outline" className="border-red-200 text-red-700 bg-red-50 text-[10px]">High Priority</Badge>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">There are {highFindings} high severity findings that impact compliance certification.</p>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100"><ArrowLeft className="h-4 w-4 rotate-180" /></Button>
+                                </div>
+                            )}
+
+                            {openRequests > 0 && (
+                                <div className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer">
+                                    <div className="mt-1 p-2 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 shrink-0">
+                                        <FileText className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">Submit Missing Evidence</h4>
+                                            <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 text-[10px]">Action Required</Badge>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{openRequests} evidence requests are pending submission.</p>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100"><ArrowLeft className="h-4 w-4 rotate-180" /></Button>
+                                </div>
+                            )}
+
+                            <div className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer">
+                                <div className="mt-1 p-2 bg-slate-50 text-slate-500 rounded-lg border border-slate-100 shrink-0">
+                                    <MessageSquare className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">Review Auditor Comments</h4>
+                                        <Badge variant="outline" className="border-slate-200 text-slate-600 text-[10px]">Review</Badge>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1 line-clamp-1">Check discussions for feedback on submitted evidence.</p>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100"><ArrowLeft className="h-4 w-4 rotate-180" /></Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-sm border-slate-200 h-full">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4">
+                        <CardTitle className="text-base font-semibold text-slate-900">Recent Findings</CardTitle>
+                        <CardDescription className="text-xs">Latest observations</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-100">
+                            {findings?.length === 0 ? (
+                                <div className="p-8 text-center text-slate-400 text-xs italic">
+                                    No findings reported.
+                                </div>
+                            ) : (
+                                findings?.slice(0, 5).map((f: any) => (
+                                    <div key={f.id} className="p-3 flex items-start gap-3 hover:bg-slate-50 transition-colors group">
+                                        <div className={cn(
+                                            "mt-0.5 h-2 w-2 rounded-full shrink-0",
+                                            f.severity === 'critical' ? "bg-red-600" :
+                                                f.severity === 'high' ? "bg-red-500" :
+                                                    f.severity === 'medium' ? "bg-orange-500" :
+                                                        "bg-yellow-500"
+                                        )} />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-medium text-slate-900 truncate group-hover:text-indigo-700">{f.title}</p>
+                                            <p className="text-[10px] text-slate-400">{new Date(f.createdAt).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
+function AuditFindings({ clientId }: { clientId: number }) {
+    const [createOpen, setCreateOpen] = useState(false);
+    const utils = trpc.useContext();
+    const { data: findings, isLoading } = trpc.findings.list.useQuery({ clientId });
+
+    // State for new finding
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [severity, setSeverity] = useState<"low" | "medium" | "high" | "critical">("medium");
+
+    const createMutation = trpc.findings.create.useMutation({
+        onSuccess: () => {
+            toast.success("Finding created");
+            setCreateOpen(false);
+            setTitle("");
+            setDescription("");
+            utils.findings.list.invalidate();
+        }
+    });
+
+    const handleCreate = () => {
+        if (!title) return;
+        createMutation.mutate({
+            clientId,
+            title,
+            description,
+            severity
+        });
+    }
+
+    return (
+        <div className="p-8 h-full flex flex-col space-y-6">
+            <div className="flex justify-between items-end border-b border-slate-100 pb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Audit Findings</h1>
+                    <p className="text-sm text-slate-500 mt-1">Official record of non-conformities and audit observations.</p>
+                </div>
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-red-600 hover:bg-red-700 text-white gap-2 h-9 shadow-sm">
+                            <AlertTriangle className="h-4 w-4" /> Report New Finding
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle>Issue Formal Finding</DialogTitle>
+                            <DialogDescription>
+                                Document a non-conformity found during the audit process.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-5 py-6">
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Finding Title</label>
+                                <Input
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="e.g. Lack of Multi-Factor Authentication"
+                                    className="h-10 border-slate-200 focus:ring-red-500/10 focus:border-red-500/50"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Severity Level</label>
+                                <Select value={severity} onValueChange={(v: any) => setSeverity(v)}>
+                                    <SelectTrigger className="h-10 border-slate-200">
+                                        <SelectValue placeholder="Select severity" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="low">Low - Minor Observation</SelectItem>
+                                        <SelectItem value="medium">Medium - Process Issue</SelectItem>
+                                        <SelectItem value="high">High - Security Risk</SelectItem>
+                                        <SelectItem value="critical">Critical - Compliance Blocker</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Detailed Description</label>
+                                <Textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Provide context, evidence references, and impact analysis..."
+                                    className="min-h-[120px] border-slate-200 focus:ring-red-500/10 focus:border-red-500/50"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter className="bg-slate-50/50 p-6 -m-6 mt-0 rounded-b-lg border-t border-slate-100">
+                            <Button variant="ghost" onClick={() => setCreateOpen(false)} className="h-10 font-medium">Cancel</Button>
+                            <Button variant="destructive" onClick={handleCreate} className="h-10 px-8 bg-red-600 hover:bg-red-700 font-semibold uppercase tracking-wide text-xs">Confirm Finding</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <Card className="rounded-xl border-slate-200 overflow-hidden shadow-sm shadow-slate-200/50">
+                <Table>
+                    <TableHeader className="bg-slate-50/80">
+                        <TableRow className="hover:bg-transparent border-slate-100">
+                            <TableHead className="w-[140px] text-[11px] font-bold uppercase tracking-wider text-slate-500">Severity</TableHead>
+                            <TableHead className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Identification & Title</TableHead>
+                            <TableHead className="w-[120px] text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</TableHead>
+                            <TableHead className="w-[120px] text-right text-[11px] font-bold uppercase tracking-wider text-slate-500">Date Issued</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center py-20 text-slate-400">
+                                    <div className="animate-pulse space-y-3">
+                                        <div className="h-4 w-32 bg-slate-100 mx-auto rounded"></div>
+                                        <div className="h-3 w-48 bg-slate-50 mx-auto rounded"></div>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : findings?.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center py-24 text-slate-400">
+                                    <div className="flex flex-col items-center">
+                                        <div className="h-16 w-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 border border-emerald-100">
+                                            <Check className="h-8 w-8" />
+                                        </div>
+                                        <h3 className="text-slate-900 font-semibold mb-1">No Non-Conformities Found</h3>
+                                        <p className="text-sm max-w-xs text-slate-500">The audit has not yielded any formal findings yet. Continue review to maintain this status.</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            findings?.map((finding: any) => (
+                                <TableRow key={finding.id} className="cursor-pointer hover:bg-slate-50/50 transition-colors border-slate-50 group">
+                                    <TableCell>
+                                        <Badge className={cn(
+                                            "capitalize font-bold border-none px-2 py-0.5 text-[10px]",
+                                            finding.severity === 'critical' ? "bg-red-600/10 text-red-700 hover:bg-red-600/20" :
+                                                finding.severity === 'high' ? "bg-red-600/10 text-red-600 hover:bg-red-600/20" :
+                                                    finding.severity === 'medium' ? "bg-orange-600/10 text-orange-700 hover:bg-orange-600/20" :
+                                                        "bg-yellow-600/10 text-yellow-700 hover:bg-yellow-600/20"
+                                        )}>
+                                            {finding.severity}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="py-1">
+                                            <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">{finding.title}</div>
+                                            <div className="text-xs text-slate-500 mt-1 line-clamp-1 font-medium">{finding.description}</div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="uppercase text-[9px] font-black border-slate-200 tracking-tight text-slate-500 bg-white">
+                                            {finding.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right text-slate-400 font-medium text-[11px]">
+                                        {new Date(finding.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </Card>
+        </div>
+    );
+}
+
+function AuditDiscussions({ clientId }: { clientId: number }) {
+    const { data: comments, isLoading } = trpc.evidence.getAllComments.useQuery({ clientId });
+
+    return (
+        <div className="p-8 h-full flex flex-col space-y-6 text-left">
+            <div className="border-b border-slate-100 pb-6">
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Audit Communications</h1>
+                <p className="text-sm text-slate-500 mt-1">Centralized activity feed for all evidence requests and auditor feedback.</p>
+            </div>
+
+            <div className="space-y-4">
+                {isLoading ? (
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-32 w-full bg-slate-50 animate-pulse rounded-xl" />
+                        ))}
+                    </div>
+                ) : comments?.length === 0 ? (
+                    <div className="text-center py-24 bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+                        <MessageSquare className="h-10 w-10 text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-slate-900 font-semibold mb-1">No Active Threads</h3>
+                        <p className="text-sm text-slate-400">Activity across all workspaces will appear here.</p>
+                    </div>
+                ) : (
+                    comments?.map((comment: any) => (
+                        <Card key={comment.id} className="hover:shadow-md transition-all duration-300 border-slate-200 group overflow-hidden">
+                            <CardContent className="p-0">
+                                <div className="flex">
+                                    {/* Accent strip based on role/status? Placeholder for now */}
+                                    <div className="w-1 bg-indigo-500 group-hover:bg-indigo-600 transition-colors" />
+
+                                    <div className="flex-1 p-5 flex gap-5">
+                                        <Avatar className="h-10 w-10 border border-slate-100 shadow-sm shrink-0">
+                                            <AvatarFallback className="bg-slate-50 text-slate-600 text-xs font-bold">
+                                                {(comment.userName || "U").substring(0, 2).toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-900 text-sm">{comment.userName || comment.userEmail}</span>
+                                                    <span className="text-[10px] text-slate-400 font-medium tracking-tight">
+                                                        {new Date(comment.createdAt).toLocaleDateString()} at {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 bg-slate-50 border border-slate-100"
+                                                >
+                                                    View Context <ArrowRight className="ml-1.5 h-3 w-3" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 mb-3">
+                                                <div className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-tight">On Request</div>
+                                                <span className="text-xs font-semibold text-slate-700 truncate hover:text-indigo-600 cursor-pointer transition-colors">
+                                                    {comment.evidenceTitle || `Evidence Request #${comment.evidenceId}`}
+                                                </span>
+                                            </div>
+
+                                            <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 group-hover:border-slate-200 font-medium">
+                                                {comment.content}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+function NavButton({ active, onClick, icon: Icon, label, count }: { active: boolean; onClick: () => void; icon: any; label: string; count?: number }) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all group border-l-2",
+                active
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-600 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent hover:border-slate-200"
+            )}
+        >
+            <Icon className={cn("h-4.5 w-4.5 transition-colors", active ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600")} />
+            <span>{label}</span>
+            {count !== undefined && (
+                <span className={cn(
+                    "ml-auto text-[10px] font-bold py-0.5 px-2 rounded-full",
+                    active ? "bg-indigo-100/50 text-indigo-700" : "bg-slate-100 text-slate-500"
+                )}>
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+}
