@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![ComplianceOS Dashboard](./docs/assets/screenshots/dashboard.png)
+![GRCompliance Dashboard](./docs/assets/screenshots/dashboard.png)
 
 **The Open Source Operating System for Governance, Risk, and Compliance.**
 
@@ -11,7 +11,7 @@
 [![React](https://img.shields.io/badge/React-18.0-61DAFB.svg)](https://reactjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-[Features](#-key-features) • [Getting Started](#-getting-started) • [Architecture](#-architecture) • [Contributing](#-contributing)
+[Features](#-key-features) • [Why GRCompliance?](#-why-grcompliance) • [Getting Started](#-getting-started) • [Architecture](#-architecture) • [Contributing](#-contributing)
 
 </div>
 
@@ -19,9 +19,9 @@
 
 ## 🚀 Overview
 
-**ComplianceOS** is a comprehensive, open-source GRC (Governance, Risk, and Compliance) platform designed to democratize security compliance. It replaces fragmented spreadsheets and expensive enterprise tools with a modern, unified operating system for security teams.
+**GRCompliance** is a comprehensive, open-source GRC (Governance, Risk, and Compliance) platform designed to democratize security compliance. It replaces fragmented spreadsheets and expensive enterprise tools with a modern, unified operating system for security teams.
 
-Whether you are a startup aiming for **SOC 2 Type I** or an enterprise managing complex **ISO 27001** and **GDPR** frameworks, ComplianceOS provides the primitives to build, manage, and automate your compliance program.
+Whether you are a startup aiming for **SOC 2 Type I** or an enterprise managing complex **ISO 27001** and **GDPR** frameworks, GRCompliance provides the primitives to build, manage, and automate your compliance program.
 
 ## ✨ Key Features
 
@@ -82,9 +82,32 @@ Prepare for and respond to cyber incidents.
 - **Cyber Assessments**: Regular maturity assessments against cyber frameworks.
 
 
+## ⚖️ Why GRCompliance?
+
+| Feature | 🚀 GRCompliance | 📉 Spreadsheets | 🏢 Commercial (Vanta/Drata) |
+| :--- | :---: | :---: | :---: |
+| **Cost** | **Free (Open Source)** | Free | $15,000+ / year |
+| **Data Privacy** | **Your Cloud / On-Prem** | Local Files | Third-Party Cloud |
+| **Customization** | **Unlimited (Code access)** | High | Rigid / Restricted |
+| **Extensibility** | **Open Addon System** | None | Closed Ecosystem |
+| **Lock-in** | **None** | None | High (Proprietary Data) |
+| **Automation** | **Automated Evidence** | Manual | Automated |
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    User[User] -->|Browser| UI[React Frontend]
+    UI -->|TRPC| API[Node.js Backend]
+    API -->|SQL| DB[(PostgreSQL)]
+    API -->|Plugins| Addons[Addon System]
+    Addons -->|Integration| Jira[Jira/Slack]
+    Addons -->|Storage| S3[AWS S3/Azure]
+```
+
 ## 🛠️ Tech Stack
 
-ComplianceOS is built with a modern, type-safe stack designed for performance and developer experience.
+GRCompliance is built with a modern, type-safe stack designed for performance and developer experience.
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend**: Node.js, Express
@@ -103,8 +126,8 @@ ComplianceOS is built with a modern, type-safe stack designed for performance an
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/sectutor/ComplianceOS.git
-    cd ComplianceOS
+    git clone https://github.com/sectutor/ComplianceOS.git GRCompliance
+    cd GRCompliance
     ```
 
 2.  **Install dependencies**
@@ -130,7 +153,7 @@ ComplianceOS is built with a modern, type-safe stack designed for performance an
     npm run server
     ```
 
-Visit `http://localhost:5173` to start using ComplianceOS.
+Visit `http://localhost:5173` to start using GRCompliance.
 
 ## 📚 Documentation
 

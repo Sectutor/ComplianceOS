@@ -1,6 +1,6 @@
-# Contributing to ComplianceOS
+# Contributing to GRCompliance
 
-Thank you for your interest in contributing to ComplianceOS! We welcome contributions from the community to help make GRC tools accessible to everyone.
+Thank you for your interest in contributing to GRCompliance! We welcome contributions from the community to help make GRC tools accessible to everyone.
 
 ## Getting Started
 
