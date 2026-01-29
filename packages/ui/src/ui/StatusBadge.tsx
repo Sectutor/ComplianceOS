@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../lib/utils';
 
 interface StatusBadgeProps {
   status: 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'pending';
@@ -10,13 +10,13 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-export function StatusBadge({ 
-  status, 
-  label, 
+export function StatusBadge({
+  status,
+  label,
   withDot = false,
   withPulse = false,
   size = 'md',
-  className 
+  className
 }: StatusBadgeProps) {
   const statusConfig = {
     success: {

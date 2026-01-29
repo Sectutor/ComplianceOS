@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
+import { Button } from "@complianceos/ui/ui/button";
+import { Badge } from "@complianceos/ui/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Plug, ExternalLink, Trash2, CheckCircle2, Settings } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
-import { IntegrationIcon, getBrandConfig } from '@/components/ui/IntegrationIcon';
+import { IntegrationIcon, getBrandConfig } from '@complianceos/ui/ui/IntegrationIcon';
 
 export default function Integrations() {
     const [connectingProvider, setConnectingProvider] = useState<string | null>(null);

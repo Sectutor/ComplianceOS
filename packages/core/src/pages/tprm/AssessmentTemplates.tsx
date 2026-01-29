@@ -2,14 +2,14 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 import { useClientContext } from "@/contexts/ClientContext";
-import { Button } from "@/components/ui/button";
+import { Button } from "@complianceos/ui/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
+} from "@complianceos/ui/ui/card";
 import { Plus, Edit, FileText } from "lucide-react";
 import { Link, useLocation } from "wouter";
 

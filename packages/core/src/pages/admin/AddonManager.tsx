@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@complianceos/ui/ui/button";
+import { Input } from "@complianceos/ui/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { AddonList, AddonStats, AddonSettingsDialog } from "@/components/addons/AddonCard";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import type { AddonInfo } from '@/lib/addons/types';

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -370,69 +370,83 @@ export default function PolicyTemplates() {
           </div>
         ) : filteredTemplates && filteredTemplates.length > 0 ? (
           viewMode === "grid" ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((template) => {
                 const sections = Array.isArray(template.sections) ? template.sections : [];
                 return (
-                  <Card key={template.id} className="card-accent-left accent-warning">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-sm text-muted-foreground">{template.templateId}</span>
-                          </div>
-                          <CardTitle className="text-lg">{template.name}</CardTitle>
-                          <CardDescription>{template.frameworks?.join(' / ')}</CardDescription>
+                  <Card key={template.id} className="card-interactive card-accent-left group cursor-pointer" onClick={() => setViewingTemplate(template.id)}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-tight">{template.templateId}</span>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setViewingTemplate(template.id)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <EditTemplateDialog
-                            template={template}
-                            editingTemplate={editingTemplate}
-                            setEditingTemplate={setEditingTemplate}
-                            updateMutation={updateMutation}
-                            handleUpdate={handleUpdate}
-                            onGenerate={(t: any) => {
-                              setTemplateToGenerate(t);
-                              setIsGenerateOpen(true);
-                            }}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => {
-                              if (confirm(`Delete template "${template.name}"?`)) {
-                                deleteMutation.mutate({ id: template.id });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <CardTitle className="text-xl font-bold">{template.name}</CardTitle>
+                        <CardDescription className="text-xs font-medium text-muted-foreground">{template.frameworks?.join(' / ')}</CardDescription>
                       </div>
+                      <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Sections:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {sections.slice(0, 4).map((section, i) => (
-                            <span key={i} className="text-xs px-2 py-1 bg-muted rounded">
-                              {typeof section === 'object' && section !== null ? (section as { title?: string }).title || 'Section' : String(section)}
-                            </span>
-                          ))}
-                          {sections.length > 4 && (
-                            <span className="text-xs px-2 py-1 bg-muted rounded">
-                              +{sections.length - 4} more
-                            </span>
-                          )}
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-70">Sections Included</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {sections.slice(0, 4).map((section, i) => (
+                              <div key={i} className="bg-secondary px-2 py-1 rounded text-[10px] font-medium border border-transparent group-hover:border-secondary-foreground/20 transition-colors">
+                                {typeof section === 'object' && section !== null ? (section as { title?: string }).title || 'Section' : String(section)}
+                              </div>
+                            ))}
+                            {sections.length > 4 && (
+                              <div className="bg-secondary px-2 py-1 rounded text-[10px] font-medium border border-transparent group-hover:border-secondary-foreground/20 transition-colors">
+                                +{sections.length - 4} more
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                          <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-tighter">
+                            <CheckCircle2 className="h-3 w-3 text-primary" />
+                            Template Ready
+                          </span>
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-destructive/10 group/trash"
+                              onClick={() => {
+                                if (confirm(`Delete template "${template.name}"?`)) {
+                                  deleteMutation.mutate({ id: template.id });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-muted-foreground group-hover/trash:text-destructive transition-colors" />
+                            </Button>
+
+                            <EditTemplateDialog
+                              template={template}
+                              editingTemplate={editingTemplate}
+                              setEditingTemplate={setEditingTemplate}
+                              updateMutation={updateMutation}
+                              handleUpdate={handleUpdate}
+                              onGenerate={(t: any) => {
+                                setTemplateToGenerate(t);
+                                setIsGenerateOpen(true);
+                              }}
+                            />
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all font-semibold text-xs px-3"
+                              onClick={() => {
+                                setTemplateToGenerate(template);
+                                setIsGenerateOpen(true);
+                              }}
+                            >
+                              Generate
+                              <ArrowRight className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

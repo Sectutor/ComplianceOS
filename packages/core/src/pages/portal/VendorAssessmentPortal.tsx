@@ -2,16 +2,17 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useParams } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@complianceos/ui/ui/button";
+import { Input } from "@complianceos/ui/ui/input";
+import { Textarea } from "@complianceos/ui/ui/textarea";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
+    CardFooter,
+} from "@complianceos/ui/ui/card";
 import { toast } from "sonner";
 import { CheckCircle, AlertCircle } from "lucide-react";
 

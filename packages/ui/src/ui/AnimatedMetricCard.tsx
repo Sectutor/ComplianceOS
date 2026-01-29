@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../lib/utils';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface AnimatedMetricCardProps {
@@ -60,11 +60,11 @@ export function AnimatedMetricCard({
   }, [value, isVisible, numericValue]);
 
   // Calculate trend percentage
-  const trendPercentage = previousValue && typeof value === 'number' 
+  const trendPercentage = previousValue && typeof value === 'number'
     ? ((value - previousValue) / previousValue * 100).toFixed(1)
     : null;
 
-  const autoTrend = trendPercentage 
+  const autoTrend = trendPercentage
     ? parseFloat(trendPercentage) > 0 ? 'up' : parseFloat(trendPercentage) < 0 ? 'down' : 'neutral'
     : trend;
 
@@ -83,7 +83,7 @@ export function AnimatedMetricCard({
   };
 
   return (
-    <div 
+    <div
       className={cn(
         'rounded-lg border-2 p-5 transition-all duration-300 hover-lift',
         'animate-slide-up',

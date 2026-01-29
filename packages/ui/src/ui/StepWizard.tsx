@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../lib/utils';
 
 interface StepWizardProps {
   steps: {
@@ -20,8 +20,8 @@ export function StepWizard({ steps, currentStep, onStepChange, className }: Step
       {/* Progress Bar */}
       <div className="relative">
         <div className="progress-bar">
-          <div 
-            className="progress-bar-fill" 
+          <div
+            className="progress-bar-fill"
             style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
           />
         </div>

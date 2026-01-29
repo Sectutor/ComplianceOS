@@ -73,7 +73,7 @@ vi.mock('@/components/DashboardLayout', () => ({
 }));
 
 // Mock the core components that might be problematic
-vi.mock('@/components/ui/tooltip', () => ({
+vi.mock('@complianceos/ui/ui/tooltip', () => ({
     TooltipProvider: ({ children }: any) => <div>{children}</div>,
 }));
 

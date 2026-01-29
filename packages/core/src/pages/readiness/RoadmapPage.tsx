@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
+import { Button } from "@complianceos/ui/ui/button";
+import { Calendar } from "@complianceos/ui/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@complianceos/ui/ui/popover";
 import { format, addMonths } from "date-fns";
 import {
     CalendarIcon, Loader2, ArrowRight, Flag, CheckCircle2, Clock,
@@ -15,10 +15,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useParams, useLocation } from "wouter";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
+import { Badge } from "@complianceos/ui/ui/badge";
+import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
+import { Separator } from "@complianceos/ui/ui/separator";
 import StrategicDashboard from "@/components/roadmap/RoadmapDashboard";
 import ExecutionDashboard from "@/components/roadmap/ExecutionDashboard";
 
