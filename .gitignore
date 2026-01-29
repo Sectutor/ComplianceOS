@@ -51,6 +51,7 @@ brainstorm*.md
 *plan.md
 ROADMAP_IMPLEMENTATION_INTEGRATION.md
 db_plan.md
+docs/features/
 
 # Internal Scripts and Debug Files
 debug_*
