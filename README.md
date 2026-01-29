@@ -1,4 +1,4 @@
-# ComplianceOS
+# GRCompliance
 
 <div align="center">
 
