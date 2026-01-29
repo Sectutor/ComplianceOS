@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![ComplianceOS Banner](https://via.placeholder.com/1200x300?text=ComplianceOS+The+Open+Source+GRC+Platform)
+![ComplianceOS Dashboard](./docs/assets/screenshots/dashboard.png)
 
 **The Open Source Operating System for Governance, Risk, and Compliance.**
 
@@ -61,6 +61,26 @@ Manage your data privacy obligations in one place.
 - **ROPA**: Record of Processing Activities generator.
 - **DSAR Management**: Workflow for handling Data Subject Access Requests.
 - **DPIA**: Data Protection Impact Assessments for high-risk processing.
+
+### 🏛️ Federal & Government Compliance
+Dedicated tools for defense contractors and federal agencies.
+- **NIST 800-171 / CMMC**: Specialized workflows for CMMC readiness.
+- **SSP Editor**: Generator for System Security Plans.
+- **POAM Tracker**: Plan of Action and Milestones tracking for federal audits.
+- **FIPS 199**: Categorization wizard for federal information systems.
+
+### 🤝 Third-Party Risk Management (TPRM)
+End-to-end vendor risk lifecycle management.
+- **Vendor Onboarding**: Workflows for assessing and onboarding new vendors.
+- **Security Reviews**: Automated questionnaires and risk scoring.
+- **Contract Management**: Track DPAs (Data Processing Agreements) and security addendums.
+- **Vendor Catalog**: Centralized database of all third-party suppliers.
+
+### 🛡️ Cyber Resilience
+Prepare for and respond to cyber incidents.
+- **Incident Reporting**: Centralized logging and tracking of security incidents.
+- **Cyber Assessments**: Regular maturity assessments against cyber frameworks.
+
 
 ## 🛠️ Tech Stack
 
