@@ -56,7 +56,7 @@ export default function TrustCenter() {
             <div className="bg-slate-900 text-white pt-20 pb-32 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute right-0 top-0 w-[800px] h-[800px] bg-indigo-500 rounded-full blur-[120px] mix-blend-screen opacity-30 animate-pulse" />
-                    <div className="absolute left-0 bottom-0 w-[600px] h-[600px] bg-blue-500 rounded-full blur-[100px] mix-blend-screen opacity-20" />
+                    <div className="absolute left-0 bottom-0 w-[600px] h-[600px] bg-primary rounded-full blur-[100px] mix-blend-screen opacity-20" />
                 </div>
 
                 <div className="container mx-auto px-6 relative z-10 text-center">
@@ -74,7 +74,7 @@ export default function TrustCenter() {
                     </p>
 
                     <div className="flex justify-center gap-4">
-                        <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white border-0 shadow-lg shadow-blue-900/50">
+                        <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg shadow-primary/20">
                             <Download className="mr-2 h-5 w-5" /> Request Audit Report
                         </Button>
                         <Button size="lg" variant="outline" className="text-black border-white/20 hover:bg-white/10">

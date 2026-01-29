@@ -88,7 +88,7 @@ export default function CompleteSubscription() {
                     </CardHeader>
 
                     <CardContent className="space-y-6 pt-6">
-                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex items-start gap-3">
+                        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
                             <CreditCard className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
                             <div>
                                 <h4 className="font-semibold text-blue-100 text-sm">Payment Required</h4>

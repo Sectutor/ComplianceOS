@@ -100,7 +100,7 @@ export default function ClientSettings() {
 
                 {/* Hero Header */}
                 <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-xl overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 p-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 p-24 bg-indigo-500/10 rounded-full blur-2xl -ml-12 -mb-12 pointer-events-none"></div>
 
                     <CardContent className="p-8 relative z-10">
@@ -116,7 +116,7 @@ export default function ClientSettings() {
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
                                         <h1 className="text-3xl font-bold tracking-tight text-white">{client.name}</h1>
-                                        <Badge variant="secondary" className="bg-blue-500/20 text-blue-100 hover:bg-blue-500/30 border-none">
+                                        <Badge variant="secondary" className="bg-primary/20 text-primary-foreground hover:bg-primary/30 border-none">
                                             Settings
                                         </Badge>
                                     </div>

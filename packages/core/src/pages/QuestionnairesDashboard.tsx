@@ -121,11 +121,11 @@ export default function QuestionnairesDashboard() {
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${q.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        q.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                          'bg-slate-100 text-slate-700'
+                      q.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
                       }`}>
                       {q.status === 'completed' && <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />}
-                      {q.status === 'in_progress' && <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" />}
+                      {q.status === 'in_progress' && <div className="w-2 h-2 rounded-full bg-primary mr-2" />}
                       {q.status === 'open' && <div className="w-2 h-2 rounded-full bg-slate-400 mr-2" />}
                       {q.status?.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </span>

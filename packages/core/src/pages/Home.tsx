@@ -262,7 +262,7 @@ export default function Home() {
           <div className="container">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="order-2 lg:order-1 space-y-6">
-                <div className="inline-flex items-center gap-2 text-blue-500 font-bold bg-blue-500/10 px-3 py-1 rounded-full text-sm">
+                <div className="inline-flex items-center gap-2 text-primary font-bold bg-primary/10 px-3 py-1 rounded-full text-sm">
                   <Globe className="h-4 w-4" /> SCALE
                 </div>
                 <h2 className="text-4xl font-bold text-white">Manage Multiple Workspaces</h2>
@@ -469,7 +469,7 @@ export default function Home() {
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
                 {/* Self-Service Tier */}
                 <Card className="relative overflow-hidden flex flex-col">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
                   <CardHeader>
                     <Badge variant="outline" className="w-fit mb-2 border-blue-200 text-blue-600 bg-blue-50">Best for Startups & SMBs</Badge>
                     <CardTitle className="text-xl flex items-center gap-2">

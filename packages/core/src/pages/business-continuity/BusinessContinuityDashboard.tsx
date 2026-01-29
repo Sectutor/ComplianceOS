@@ -90,7 +90,7 @@ export default function BusinessContinuityDashboard() {
 
                 {/* Workflow Introduction Section */}
                 <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 p-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Shield className="w-6 h-6 text-blue-400" />

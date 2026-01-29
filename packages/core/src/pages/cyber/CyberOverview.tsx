@@ -83,7 +83,7 @@ export default function CyberOverview() {
                 {/* Hero Section */}
                 <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-8 md:p-16 text-white shadow-2xl">
                     <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
-                    <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl" />
+                    <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
 
                     <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
                         <div className="space-y-6">

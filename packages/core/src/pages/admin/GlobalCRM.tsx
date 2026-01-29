@@ -45,7 +45,7 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 
 const PIPELINE_STAGES = [
-    { key: 'lead', label: 'Leads', color: 'bg-blue-500' },
+    { key: 'lead', label: 'Leads', color: 'bg-primary' },
     { key: 'prospect', label: 'Prospects', color: 'bg-purple-500' },
     { key: 'customer', label: 'Customers', color: 'bg-green-500' },
     { key: 'churned', label: 'Churned', color: 'bg-red-500' },
@@ -326,7 +326,7 @@ export default function GlobalCRM() {
 
     const getStatusBadge = (status: string | null) => {
         const statusColors: Record<string, string> = {
-            lead: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            lead: 'bg-primary/20 text-primary border-primary/30',
             prospect: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
             customer: 'bg-green-500/20 text-green-400 border-green-500/30',
             churned: 'bg-red-500/20 text-red-400 border-red-500/30',

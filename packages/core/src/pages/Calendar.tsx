@@ -147,7 +147,7 @@ export default function Calendar() {
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'control_review':
-        return 'bg-blue-500';
+        return 'bg-primary';
       case 'policy_renewal':
         return 'bg-purple-500';
       case 'evidence_expiration':
@@ -377,7 +377,7 @@ export default function Calendar() {
                 {/* Legend */}
                 <div className="flex items-center gap-4 mt-4 text-sm flex-wrap">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-blue-500"></div>
+                    <div className="w-3 h-3 rounded bg-primary"></div>
                     <span>Control Reviews</span>
                   </div>
                   <div className="flex items-center gap-2">

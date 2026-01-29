@@ -57,7 +57,7 @@ export default function PrivacyDashboard() {
             path: `/clients/${selectedClientId}/privacy/inventory`,
             stats: stats ? `${stats.piiAssetCount} Assets` : "...",
             color: "text-blue-500",
-            bg: "bg-blue-500/10"
+            bg: "bg-primary/10"
         },
         {
             title: "ROPA",

@@ -197,7 +197,7 @@ export default function WorkflowPlayer() {
                                                 <Layers size={120} />
                                             </div>
                                             <div className="relative z-10 space-y-4">
-                                                <Badge className="bg-blue-500 hover:bg-blue-500 text-white border-none text-[10px] font-black tracking-widest uppercase">What's Next?</Badge>
+                                                <Badge className="bg-primary hover:bg-primary text-primary-foreground border-none text-[10px] font-black tracking-widest uppercase">What's Next?</Badge>
                                                 {currentStepIdx < totalSteps - 1 ? (
                                                     <>
                                                         <h3 className="text-2xl font-black tracking-tight">{workflow.steps[currentStepIdx + 1].title}</h3>

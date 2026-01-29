@@ -132,7 +132,7 @@ export default function ManagedServicesPage() {
                 <section id="tiers" className="py-32 relative">
                     {/* Decorative elements */}
                     <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] pointer-events-none" />
-                    <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
 
                     <div className="container relative z-10">
                         <div className="text-center mb-16">
