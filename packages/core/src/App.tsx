@@ -44,6 +44,7 @@ const UserInvitations = lazy(() => import("./pages/admin/UserInvitations"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const CloudIntegrations = lazy(() => import("./pages/admin/CloudIntegrations"));
 const IssueTrackerSettings = lazy(() => import("./pages/admin/IssueTrackerSettings"));
+const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
 const ClientSettings = lazy(() => import("./pages/ClientSettings"));
 const ClientActivity = lazy(() => import("./pages/ClientActivity"));

@@ -146,7 +146,18 @@ import {
   // Privacy
   processDataFlows, InsertProcessDataFlow, ProcessDataFlow,
   dsarRequests, InsertDsarRequest, DsarRequest,
-  privacyAssessments, InsertPrivacyAssessment, PrivacyAssessment
+  privacyAssessments, InsertPrivacyAssessment, PrivacyAssessment,
+
+  // Missing modules for cascade delete
+  roadmaps, roadmapMilestones,
+  implementationPlans, implementationTasks, implementationProgress,
+  gapAssessments, gapResponses, gapQuestionnaireRequests,
+  auditFindings, complianceSnapshots,
+  consents, consentTemplates,
+  dsarTemplates, dpiaTemplates,
+  dataFlowVisualizations, dataFlowNodes, dataFlowConnections,
+  integrations, evidenceRequests,
+  projectTasks
 } from "./schema";
 
 import * as schema from "./schema";
@@ -667,125 +678,100 @@ export async function updateClient(id: number, data: Partial<InsertClient>) {
 
 
 export async function deleteClient(id: number) {
-
   const db = await getDb();
-
-
-
   logger.info(`[deleteClient] Starting deletion for Client ID ${id}`);
 
-
-
   try {
+    await db.transaction(async (tx) => {
+      // Manual Cascade Delete - Ordered to avoid foreign key violations
 
-    // Manual Cascade Delete
+      // 1. Project Management & Roadmaps
+      logger.info(`[deleteClient] Deleting project tasks & roadmaps...`);
+      await tx.delete(projectTasks).where(eq(projectTasks.clientId, id));
 
-    // 1. Delete tasks
-
-    logger.info(`[deleteClient] Deleting tasks...`);
-
-    await db.delete(employeeTaskAssignments).where(eq(employeeTaskAssignments.clientId, id));
-
-
-
-    // 2. Delete mappings
-
-    logger.info(`[deleteClient] Deleting mappings...`);
-
-    await db.delete(controlPolicyMappings).where(eq(controlPolicyMappings.clientId, id));
-
-
-
-    // 3. Delete evidence files (via evidence)
-
-    logger.info(`[deleteClient] Deleting evidence files...`);
-
-    const clientEvidence = await db.select({ id: evidence.id }).from(evidence).where(eq(evidence.clientId, id));
-
-
-
-    if (clientEvidence.length > 0) {
-
-      const evidenceIds = clientEvidence.map(e => e.id);
-
-      for (const ev of clientEvidence) {
-
-        await db.delete(evidenceFiles).where(eq(evidenceFiles.evidenceId, ev.id));
-
+      const clientRoadmaps = await tx.select({ id: roadmaps.id }).from(roadmaps).where(eq(roadmaps.clientId, id));
+      if (clientRoadmaps.length > 0) {
+        const roadmapIds = clientRoadmaps.map(r => r.id);
+        await tx.delete(roadmapMilestones).where(inArray(roadmapMilestones.roadmapId, roadmapIds));
+        await tx.delete(roadmaps).where(eq(roadmaps.clientId, id));
       }
 
-    }
+      // 2. Implementation Plans
+      logger.info(`[deleteClient] Deleting implementation plans...`);
+      const clientPlans = await tx.select({ id: implementationPlans.id }).from(implementationPlans).where(eq(implementationPlans.clientId, id));
+      if (clientPlans.length > 0) {
+        const planIds = clientPlans.map(p => p.id);
+        await tx.delete(implementationTasks).where(inArray(implementationTasks.implementationPlanId, planIds));
+        await tx.delete(implementationProgress).where(inArray(implementationProgress.implementationPlanId, planIds));
+        await tx.delete(implementationPlans).where(eq(implementationPlans.clientId, id));
+      }
 
+      // 3. Assessments & Findings
+      logger.info(`[deleteClient] Deleting assessments & findings...`);
+      await tx.delete(gapResponses).where(eq(gapResponses.clientId, id));
+      await tx.delete(gapQuestionnaireRequests).where(inArray(gapQuestionnaireRequests.assessmentId,
+        tx.select({ id: gapAssessments.id }).from(gapAssessments).where(eq(gapAssessments.clientId, id))
+      ));
+      await tx.delete(gapAssessments).where(eq(gapAssessments.clientId, id));
+      await tx.delete(auditFindings).where(eq(auditFindings.clientId, id));
+      await tx.delete(complianceSnapshots).where(eq(complianceSnapshots.clientId, id));
 
+      // 4. Privacy & Consent
+      logger.info(`[deleteClient] Deleting privacy & consent data...`);
+      await tx.delete(consents).where(eq(consents.clientId, id));
+      await tx.delete(consentTemplates).where(eq(consentTemplates.clientId, id));
+      await tx.delete(dsarTemplates).where(eq(dsarTemplates.clientId, id));
+      await tx.delete(dpiaTemplates).where(eq(dpiaTemplates.clientId, id));
 
-    // Now delete evidence records.
+      // 5. Data Flows
+      logger.info(`[deleteClient] Deleting data flows...`);
+      const clientFlows = await tx.select({ id: dataFlowVisualizations.id }).from(dataFlowVisualizations).where(eq(dataFlowVisualizations.clientId, id));
+      if (clientFlows.length > 0) {
+        const flowIds = clientFlows.map(f => f.id);
+        await tx.delete(dataFlowConnections).where(inArray(dataFlowConnections.flowId, flowIds));
+        await tx.delete(dataFlowNodes).where(inArray(dataFlowNodes.flowId, flowIds));
+        await tx.delete(dataFlowVisualizations).where(eq(dataFlowVisualizations.clientId, id));
+      }
 
-    logger.info(`[deleteClient] Deleting evidence records...`);
+      // 6. Integrations & Notifications
+      logger.info(`[deleteClient] Deleting integrations & notifications...`);
+      await tx.delete(integrations).where(eq(integrations.clientId, id));
+      await tx.delete(notificationSettings).where(eq(notificationSettings.clientId, id));
+      await tx.delete(emailMessages).where(eq(emailMessages.clientId, id));
 
-    await db.delete(evidence).where(eq(evidence.clientId, id));
+      // 7. Core Tasks & Evidence (Existing logic migrated to transaction)
+      logger.info(`[deleteClient] Deleting core tasks & evidence...`);
+      await tx.delete(employeeTaskAssignments).where(eq(employeeTaskAssignments.clientId, id));
+      await tx.delete(evidenceRequests).where(eq(evidenceRequests.clientId, id));
+      await tx.delete(controlPolicyMappings).where(eq(controlPolicyMappings.clientId, id));
 
+      const clientEvidence = await tx.select({ id: evidence.id }).from(evidence).where(eq(evidence.clientId, id));
+      if (clientEvidence.length > 0) {
+        for (const ev of clientEvidence) {
+          await tx.delete(evidenceFiles).where(eq(evidenceFiles.evidenceId, ev.id));
+        }
+        await tx.delete(evidence).where(eq(evidence.clientId, id));
+      }
 
+      // 8. Base Data
+      logger.info(`[deleteClient] Deleting base client data...`);
+      await tx.delete(clientPolicies).where(eq(clientPolicies.clientId, id));
+      await tx.delete(clientControls).where(eq(clientControls.clientId, id));
+      await tx.delete(employees).where(eq(employees.clientId, id));
+      await tx.delete(auditNotes).where(eq(auditNotes.clientId, id));
+      await tx.delete(userClients).where(eq(userClients.clientId, id));
 
-    // 4. Delete policies
+      // 9. Finally delete the client record
+      logger.info(`[deleteClient] Deleting client record...`);
+      await tx.delete(clients).where(eq(clients.id, id));
 
-    logger.info(`[deleteClient] Deleting policies...`);
-
-    await db.delete(clientPolicies).where(eq(clientPolicies.clientId, id));
-
-
-
-    // 5. Delete controls
-
-    logger.info(`[deleteClient] Deleting client controls...`);
-
-    await db.delete(clientControls).where(eq(clientControls.clientId, id));
-
-
-
-    // 6. Delete employees
-
-    logger.info(`[deleteClient] Deleting employees...`);
-
-    await db.delete(employees).where(eq(employees.clientId, id));
-
-
-
-    // 7. Delete audit notes
-
-    logger.info(`[deleteClient] Deleting audit notes...`);
-
-    await db.delete(auditNotes).where(eq(auditNotes.clientId, id));
-
-
-
-    // 8. Delete user access
-
-    logger.info(`[deleteClient] Deleting user access...`);
-
-    await db.delete(userClients).where(eq(userClients.clientId, id));
-
-
-
-    // 9. Finally delete the client
-
-    logger.info(`[deleteClient] Deleting client record...`);
-
-    await db.delete(clients).where(eq(clients.id, id));
-
-
-
-    logger.info(`[deleteClient] Successfully deleted Client ID ${id}`);
-
-
+      logger.info(`[deleteClient] Successfully deleted Client ID ${id}`);
+    });
 
   } catch (error) {
-
     logger.error(`[deleteClient] FAILED at some step:`, error);
-
     throw error;
-
   }
-
 }
 
 

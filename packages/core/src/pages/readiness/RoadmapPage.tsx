@@ -1,26 +1,26 @@
 import React, { useState } from "react";
-import { useClientContext } from "../../contexts/ClientContext";
-import { trpc } from "../../lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import { Calendar } from "../../components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
+import { useClientContext } from "@/contexts/ClientContext";
+import { trpc } from "@/lib/trpc";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addMonths } from "date-fns";
 import {
     CalendarIcon, Loader2, ArrowRight, Flag, CheckCircle2, Clock,
     LayoutDashboard, Kanban, List as ListIcon, TrendingUp, AlertTriangle, Plus,
     MoreHorizontal
 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import DashboardLayout from "../../components/DashboardLayout";
+import DashboardLayout from "@/components/DashboardLayout";
 import { useParams, useLocation } from "wouter";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { Badge } from "../../components/ui/badge";
-import { ScrollArea } from "../../components/ui/scroll-area";
-import { Separator } from "../../components/ui/separator";
-import StrategicDashboard from "../../components/roadmap/RoadmapDashboard";
-import ExecutionDashboard from "../../components/roadmap/ExecutionDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import StrategicDashboard from "@/components/roadmap/RoadmapDashboard";
+import ExecutionDashboard from "@/components/roadmap/ExecutionDashboard";
 
 export default function RoadmapPage() {
     const params = useParams();

@@ -16,8 +16,8 @@ export default defineConfig({
         alias: {
             "@": path.resolve(__dirname, "./src"),
             "@shared": path.resolve(__dirname, "../../shared"),
-            "@complianceos/premium": hasPremium 
-                ? premiumPath 
+            "@complianceos/premium": hasPremium
+                ? premiumPath
                 : path.resolve(__dirname, "./src/mocks/premium"),
         },
     },

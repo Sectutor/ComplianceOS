@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
@@ -10,7 +11,8 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import {
@@ -46,6 +48,8 @@ export default function PolicyTemplates() {
   const [selectedFramework, setSelectedFramework] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [showGuide, setShowGuide] = useState(false);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [templateToGenerate, setTemplateToGenerate] = useState<any>(null);
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
@@ -395,6 +399,10 @@ export default function PolicyTemplates() {
                             setEditingTemplate={setEditingTemplate}
                             updateMutation={updateMutation}
                             handleUpdate={handleUpdate}
+                            onGenerate={(t: any) => {
+                              setTemplateToGenerate(t);
+                              setIsGenerateOpen(true);
+                            }}
                           />
                           <Button
                             variant="ghost"
@@ -481,6 +489,10 @@ export default function PolicyTemplates() {
                               setEditingTemplate={setEditingTemplate}
                               updateMutation={updateMutation}
                               handleUpdate={handleUpdate}
+                              onGenerate={(t: any) => {
+                                setTemplateToGenerate(t);
+                                setIsGenerateOpen(true);
+                              }}
                             />
                             <Button
                               variant="ghost"
@@ -554,12 +566,154 @@ export default function PolicyTemplates() {
             )}
           </div>
         </EnhancedDialog>
+
+        {/* Generate Policy From Template Dialog */}
+        <GeneratePolicyDialog
+          open={isGenerateOpen}
+          onOpenChange={setIsGenerateOpen}
+          template={templateToGenerate}
+        />
       </div>
-    </DashboardLayout >
+    </DashboardLayout>
   );
 }
 
-function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, updateMutation, handleUpdate }: any) {
+function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean, onOpenChange: (open: boolean) => void, template: any }) {
+  const { selectedClientId: contextClientId } = useClientContext();
+  const { user } = useAuth();
+  const [_, setLocation] = useLocation();
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [customInstruction, setCustomInstruction] = useState("");
+  const [tailorToIndustry, setTailorToIndustry] = useState(true);
+
+  const { data: clients, isLoading: isLoadingClients } = trpc.clients.list.useQuery({}, {
+    enabled: open
+  });
+
+  // Effect to default the client ID when dialog opens or context changes
+  useEffect(() => {
+    if (open) {
+      if (contextClientId) {
+        setSelectedClientId(contextClientId);
+      } else if (clients && clients.length === 1) {
+        setSelectedClientId(clients[0].id);
+      }
+    }
+  }, [open, contextClientId, clients]);
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+
+  const generateMutation = trpc.clientPolicies.create.useMutation({
+    onSuccess: (data: any) => {
+      toast.success("Policy generated successfully");
+      onOpenChange(false);
+      // Navigate to the new policy
+      if (data?.id && data?.clientId) {
+        setLocation(`/clients/${data.clientId}/policies/${data.id}`);
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const handleGenerate = () => {
+    if (!selectedClientId) {
+      toast.error("Please select a client");
+      return;
+    }
+
+    generateMutation.mutate({
+      clientId: selectedClientId,
+      templateId: template.id,
+      name: template.name,
+      tailor: tailorToIndustry,
+      instruction: customInstruction || undefined,
+      status: 'draft',
+      module: 'general'
+    });
+  };
+
+  return (
+    <EnhancedDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Generate Client Policy"
+      description={`Create a new policy for a client based on "${template?.name}"`}
+      size="lg"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleGenerate}
+            disabled={generateMutation.isPending || !selectedClientId}
+          >
+            {generateMutation.isPending ? "Generating..." : "Generate Policy"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4 py-4">
+        <div className="grid gap-2">
+          <Label>Select Client *</Label>
+          <Select
+            value={selectedClientId?.toString()}
+            onValueChange={(val) => setSelectedClientId(parseInt(val))}
+            disabled={!isAdmin && !!selectedClientId} // Lock for non-admins if client is already selected
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={isLoadingClients ? "Loading clients..." : "Select a client"} />
+            </SelectTrigger>
+            <SelectContent>
+              {clients?.map((client: any) => (
+                <SelectItem key={client.id} value={client.id.toString()}>
+                  {client.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!isAdmin && selectedClientId && (
+            <p className="text-xs text-muted-foreground italic">
+              Policy will be generated for your active organization.
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="instruction">Custom Instructions (Optional)</Label>
+          <Textarea
+            id="instruction"
+            placeholder="e.g. Include specific requirements for our cloud infrastructure..."
+            value={customInstruction}
+            onChange={(e) => setCustomInstruction(e.target.value)}
+            rows={3}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="tailor"
+            checked={tailorToIndustry}
+            onChange={(e) => setTailorToIndustry(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <Label htmlFor="tailor" className="text-sm font-normal">
+            Tailor content to client's industry and context
+          </Label>
+        </div>
+
+        {generateMutation.isPending && (
+          <div className="p-4 bg-muted rounded-lg animate-pulse text-sm text-center">
+            AI is generating your policy... This may take a few seconds.
+          </div>
+        )}
+      </div>
+    </EnhancedDialog>
+  );
+}
+
+function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, updateMutation, handleUpdate, onGenerate }: any) {
   const sections = Array.isArray(template.sections) ? template.sections : [];
 
   // Convert existing markdown to HTML for RTE
@@ -584,6 +738,15 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
       size="xl"
       footer={
         <div className="flex justify-end gap-2 w-full">
+          <Button
+            type="button"
+            variant="secondary"
+            className="mr-auto bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+            onClick={() => onGenerate(template)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Generate Policy From Template
+          </Button>
           <Button type="button" variant="outline" onClick={() => setEditingTemplate(null)}>
             Cancel
           </Button>

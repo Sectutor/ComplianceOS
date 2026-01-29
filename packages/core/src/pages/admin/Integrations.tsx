@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { trpc } from '../../lib/trpc';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
+import { trpc } from "@/lib/trpc";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Plug, ExternalLink, Trash2, CheckCircle2, Settings } from "lucide-react";
-import AdminLayout from "../../components/layouts/AdminLayout";
-import { IntegrationIcon, getBrandConfig } from '../../components/ui/IntegrationIcon';
+import AdminLayout from "@/components/layouts/AdminLayout";
+import { IntegrationIcon, getBrandConfig } from '@/components/ui/IntegrationIcon';
 
 export default function Integrations() {
     const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export default function Integrations() {
     const availableQuery = trpc.integrations.listAvailable.useQuery();
     const activeQuery = trpc.integrations.listActive.useQuery({ clientId: 1 }); // Hardcoded generic clientId 1 for now or from context
     // Ideally clientId should come from context/auth
-    
+
     // Mutations
     const getAuthUrlMutation = trpc.integrations.getAuthUrl.useMutation();
     const disconnectMutation = trpc.integrations.disconnect.useMutation({
@@ -31,9 +31,9 @@ export default function Integrations() {
         try {
             const { url } = await getAuthUrlMutation.mutateAsync({ clientId: 1, provider: provider as any });
             // Redirect to OAuth
-            window.location.href = url; 
+            window.location.href = url;
         } catch (error: any) {
-            toast.error("Connection Failed", { 
+            toast.error("Connection Failed", {
                 description: error.message || "Could not initiate connection."
             });
             setConnectingProvider(null);
@@ -42,11 +42,11 @@ export default function Integrations() {
 
     const handleDisconnect = async (provider: string) => {
         if (!confirm("Are you sure you want to disconnect? Automations may stop working.")) return;
-        
+
         try {
             await disconnectMutation.mutateAsync({ clientId: 1, provider });
         } catch (error) {
-           console.error(error);
+            console.error(error);
         }
     };
 
@@ -110,7 +110,7 @@ export default function Integrations() {
     return (
         <AdminLayout>
             <div className="space-y-8 p-6 mx-auto w-full">
-                
+
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Integrations Marketplace</h1>
@@ -128,10 +128,10 @@ export default function Integrations() {
                         const brand = getBrandConfig(integration.id);
 
                         return (
-                            <div 
-                                key={integration.id} 
+                            <div
+                                key={integration.id}
                                 className="relative group rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:-translate-y-1 overflow-hidden"
-                                style={{ 
+                                style={{
                                     // Dynamic subtle glow on hover based on brand color
                                     borderColor: isConnected ? brand.color : undefined
                                 }}
@@ -142,7 +142,7 @@ export default function Integrations() {
                                 <div className="p-6">
                                     <div className="flex justify-between items-start mb-4">
                                         <IntegrationIcon provider={integration.id} className="w-12 h-12 shadow-sm" />
-                                        
+
                                         <div className="flex gap-2">
                                             {isConnected ? (
                                                 <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
@@ -151,12 +151,12 @@ export default function Integrations() {
                                             ) : (
                                                 integration.isComingSoon && <Badge variant="outline" className="text-muted-foreground">Soon</Badge>
                                             )}
-                                            
+
                                             {/* Configure Button for Admins */}
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                onClick={() => setEditingProvider(integration.id)} 
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setEditingProvider(integration.id)}
                                                 className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
                                                 <Settings className="h-4 w-4" />
@@ -171,16 +171,16 @@ export default function Integrations() {
 
                                     <div className="mt-4 pt-4 border-t flex items-center justify-between">
                                         {isConnected ? (
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm" 
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 -ml-2 h-8 px-3 text-xs"
                                                 onClick={() => handleDisconnect(integration.id)}
                                             >
                                                 Disconnect
                                             </Button>
                                         ) : (
-                                            <Button 
+                                            <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="w-full justify-center group/btn border-dashed hover:border-solid hover:bg-primary/5 hover:text-primary transition-all rounded-lg"

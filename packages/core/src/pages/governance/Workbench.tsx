@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { trpc } from '../../lib/trpc';
-import { Card } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { trpc } from '@/lib/trpc';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     AlertCircle,
     CheckCircle2,
@@ -18,7 +18,7 @@ import {
     Filter,
     Calendar
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type WorkItemType = 'review' | 'approval' | 'evidence_collection' | 'raci_assignment' | 'risk_treatment' | 'vendor_assessment' | 'bcp_approval' | 'policy_review' | 'control_implementation';
 type WorkItemStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'escalated';
