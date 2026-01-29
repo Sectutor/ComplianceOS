@@ -14,6 +14,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+*.txt
 
 # Env files
 .env
@@ -43,4 +44,25 @@ packages/premium/
 
 # Trae AI
 .trae/documents/
+.agent/
 
+# Internal Documents
+brainstorm*.md
+*plan.md
+ROADMAP_IMPLEMENTATION_INTEGRATION.md
+db_plan.md
+
+# Internal Scripts and Debug Files
+debug_*
+check_*
+analyze_*
+extract_*
+fix_*
+list_*
+append_*
+create_*
+apply_*
+diagnose_*
+*.py
+build_output*
+db_counts*
