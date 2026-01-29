@@ -9,8 +9,20 @@ import { Loader2, Plug, ExternalLink, Trash2, CheckCircle2, Settings } from "luc
 import AdminLayout from "@/components/layouts/AdminLayout";
 import { IntegrationIcon, getBrandConfig } from '@complianceos/ui/ui/IntegrationIcon';
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
+
 export default function Integrations() {
     const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
+    const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
 
     // Fetch data
     const availableQuery = trpc.integrations.listAvailable.useQuery();
@@ -40,15 +52,7 @@ export default function Integrations() {
         }
     };
 
-    const handleDisconnect = async (provider: string) => {
-        if (!confirm("Are you sure you want to disconnect? Automations may stop working.")) return;
 
-        try {
-            await disconnectMutation.mutateAsync({ clientId: 1, provider });
-        } catch (error) {
-            console.error(error);
-        }
-    };
 
 
     // Admin Mutation
@@ -175,7 +179,7 @@ export default function Integrations() {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 -ml-2 h-8 px-3 text-xs"
-                                                onClick={() => handleDisconnect(integration.id)}
+                                                onClick={() => setDisconnectProvider(integration.id)}
                                             >
                                                 Disconnect
                                             </Button>
@@ -263,6 +267,31 @@ export default function Integrations() {
                         </Card>
                     </div>
                 )}
+
+                <AlertDialog open={!!disconnectProvider} onOpenChange={(open) => !open && setDisconnectProvider(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will disconnect the integration. Automations relying on this connection may stop working.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                onClick={() => {
+                                    if (disconnectProvider) {
+                                        disconnectMutation.mutateAsync({ clientId: 1, provider: disconnectProvider });
+                                        setDisconnectProvider(null);
+                                    }
+                                }}
+                            >
+                                Disconnect
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </AdminLayout>
     );

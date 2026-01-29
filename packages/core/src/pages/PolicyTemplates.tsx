@@ -25,6 +25,16 @@ import {
 } from "@complianceos/ui/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@complianceos/ui/ui/toggle-group";
 import { Badge } from "@complianceos/ui/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 import RichTextEditor from "@/components/RichTextEditor";
 import { marked } from "marked";
 import TurndownService from "turndown";
@@ -50,6 +60,7 @@ export default function PolicyTemplates() {
   const [showGuide, setShowGuide] = useState(false);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [templateToGenerate, setTemplateToGenerate] = useState<any>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<any>(null);
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
@@ -80,6 +91,7 @@ export default function PolicyTemplates() {
   const deleteMutation = trpc.policyTemplates.delete.useMutation({
     onSuccess: () => {
       toast.success("Template deleted");
+      setTemplateToDelete(null);
       refetch();
     },
     onError: (error) => toast.error(error.message),
@@ -413,11 +425,7 @@ export default function PolicyTemplates() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 hover:bg-destructive/10 group/trash"
-                              onClick={() => {
-                                if (confirm(`Delete template "${template.name}"?`)) {
-                                  deleteMutation.mutate({ id: template.id });
-                                }
-                              }}
+                              onClick={() => setTemplateToDelete(template)}
                             >
                               <Trash2 className="h-4 w-4 text-muted-foreground group-hover/trash:text-destructive transition-colors" />
                             </Button>
@@ -512,11 +520,7 @@ export default function PolicyTemplates() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => {
-                                if (confirm(`Delete template "${template.name}"?`)) {
-                                  deleteMutation.mutate({ id: template.id });
-                                }
-                              }}
+                              onClick={() => setTemplateToDelete(template)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -580,6 +584,32 @@ export default function PolicyTemplates() {
             )}
           </div>
         </EnhancedDialog>
+
+        <AlertDialog open={!!templateToDelete} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the policy template
+                <span className="font-semibold text-foreground"> "{templateToDelete?.name}"</span>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                onClick={() => {
+                  if (templateToDelete) {
+                    deleteMutation.mutate({ id: templateToDelete.id });
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete Template"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Generate Policy From Template Dialog */}
         <GeneratePolicyDialog

@@ -3,6 +3,16 @@ import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 import { AddonList, AddonStats, AddonSettingsDialog } from "@/components/addons/AddonCard";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import type { AddonInfo } from '@/lib/addons/types';
@@ -16,6 +26,7 @@ export default function AddonManager() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [uninstallAddonId, setUninstallAddonId] = useState<string | null>(null);
 
   useEffect(() => {
     loadAddons();
@@ -118,9 +129,7 @@ export default function AddonManager() {
   };
 
   const handleUninstall = async (addonId: string) => {
-    if (confirm('Are you sure you want to uninstall this addon? This action cannot be undone.')) {
-      setAddons(prev => prev.filter(a => a.id !== addonId));
-    }
+    setUninstallAddonId(addonId);
   };
 
   const handleSaveConfig = async (addonId: string, config: Record<string, unknown>) => {
@@ -207,6 +216,31 @@ export default function AddonManager() {
         >
           <span />
         </AddonSettingsDialog>
+
+        <AlertDialog open={!!uninstallAddonId} onOpenChange={(open) => !open && setUninstallAddonId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently uninstall this addon. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                onClick={() => {
+                  if (uninstallAddonId) {
+                    setAddons(prev => prev.filter(a => a.id !== uninstallAddonId));
+                    setUninstallAddonId(null);
+                  }
+                }}
+              >
+                Uninstall
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );

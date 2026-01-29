@@ -8,6 +8,16 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Loader2, Calendar as CalendarIcon, FileText, ExternalLink, ShieldAlert, CheckCircle, AlertTriangle, User, Phone, Mail, Plus, Trash2, Edit2, Info, Zap, AlertOctagon, History, Send, ScrollText, ChevronDown, Shield } from "lucide-react";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
@@ -488,6 +498,12 @@ export default function VendorDetails() {
     const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false);
     const [documentForm, setDocumentForm] = useState({ name: "", url: "" });
 
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+        type: 'dpa' | 'contact' | 'contract';
+        id: number;
+        name?: string;
+    } | null>(null);
+
     const handleAddDocument = () => {
         if (!documentForm.name || !documentForm.url) return toast.error("Name and URL are required");
 
@@ -681,9 +697,7 @@ export default function VendorDetails() {
                                                             <Edit2 className="h-4 w-4" />
                                                         </Button>
                                                         <Button variant="ghost" size="icon" className="text-rose-500" onClick={() => {
-                                                            if (window.confirm("Are you sure you want to delete this DPA?")) {
-                                                                deleteDpaMutation.mutate({ id: dpa.id, clientId });
-                                                            }
+                                                            setDeleteConfirmation({ type: 'dpa', id: dpa.id, name: dpa.name });
                                                         }}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -1131,7 +1145,9 @@ export default function VendorDetails() {
                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openContactDialog(contact)}>
                                                 <Edit2 className="h-4 w-4 text-slate-500" />
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600" onClick={() => { if (confirm('Delete contact?')) deleteContactMutation.mutate({ id: contact.id }) }}>
+                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600" onClick={() => {
+                                                setDeleteConfirmation({ type: 'contact', id: contact.id, name: contact.name });
+                                            }}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -1249,9 +1265,7 @@ export default function VendorDetails() {
                                                 <Edit2 className="h-4 w-4 text-slate-500" />
                                             </Button>
                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600" onClick={() => {
-                                                if (confirm('Delete contract?')) {
-                                                    deleteContractMutation.mutate({ id: contract.id });
-                                                }
+                                                setDeleteConfirmation({ type: 'contract', id: contract.id, name: contract.title });
                                             }}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -1333,6 +1347,40 @@ export default function VendorDetails() {
 
 
 
+
+            <AlertDialog open={!!deleteConfirmation} onOpenChange={(open) => !open && setDeleteConfirmation(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the
+                            {deleteConfirmation?.type === 'dpa' ? ' DPA' :
+                                deleteConfirmation?.type === 'contract' ? ' contract' :
+                                    ' contact'}
+                            {deleteConfirmation?.name && <span className="font-semibold text-foreground"> "{deleteConfirmation.name}"</span>}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            onClick={() => {
+                                if (!deleteConfirmation) return;
+                                if (deleteConfirmation.type === 'dpa') {
+                                    deleteDpaMutation.mutate({ id: deleteConfirmation.id, clientId });
+                                } else if (deleteConfirmation.type === 'contact') {
+                                    deleteContactMutation.mutate({ id: deleteConfirmation.id });
+                                } else if (deleteConfirmation.type === 'contract') {
+                                    deleteContractMutation.mutate({ id: deleteConfirmation.id });
+                                }
+                                setDeleteConfirmation(null);
+                            }}
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <RequestItemsDialog
                 isOpen={isSendOpen}
