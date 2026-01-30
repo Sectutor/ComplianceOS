@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Database, Search, ArrowLeft, Zap } from 'lucide-react';
+import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { AddAssetDialog } from '@/components/risk/AddAssetDialog';
 import { Button } from '@complianceos/ui/ui/button';
@@ -36,6 +36,35 @@ export default function RiskAssetsPage() {
         { clientId },
         { enabled: !!clientId }
     );
+
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableHeader = ({ label, sortKey }: { label: string, sortKey: string }) => {
+        const isSorted = sortConfig?.key === sortKey;
+        return (
+            <th
+                className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-white/10 transition-colors select-none group"
+                onClick={() => handleSort(sortKey)}
+            >
+                <div className="flex items-center gap-2">
+                    {label}
+                    {isSorted ? (
+                        sortConfig?.direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                    ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    )}
+                </div>
+            </th>
+        );
+    };
 
     const handleOpenAddDialog = () => {
         setLocation(`/clients/${clientId}/risks/assets/new`);
@@ -94,7 +123,14 @@ export default function RiskAssetsPage() {
                 </div>
 
                 <div className="bg-card rounded-xl border shadow-sm min-h-[400px]">
-                    <AssetInventoryTable assets={assets || []} loading={loadingAssets} onEdit={handleEditAsset} />
+                    <AssetInventoryTable
+                        assets={assets || []}
+                        loading={loadingAssets}
+                        onEdit={handleEditAsset}
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                        SortableHeader={SortableHeader}
+                    />
                 </div>
 
                 {/* Asset Editor Dialog removed since it's now a standalone page */}
@@ -103,7 +139,21 @@ export default function RiskAssetsPage() {
     );
 }
 
-function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loading: boolean, onEdit: (asset: any) => void }) {
+function AssetInventoryTable({
+    assets,
+    loading,
+    onEdit,
+    sortConfig,
+    onSort,
+    SortableHeader
+}: {
+    assets: any[],
+    loading: boolean,
+    onEdit: (asset: any) => void,
+    sortConfig: { key: string; direction: 'asc' | 'desc' } | null,
+    onSort: (key: string) => void,
+    SortableHeader: React.FC<{ label: string, sortKey: string }>
+}) {
     const [selectedAssetForThreats, setSelectedAssetForThreats] = useState<any>(null);
     const [_, setLocation] = useLocation();
 
@@ -122,6 +172,52 @@ function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loadi
             return item.techStack.some((tech: string) => assetStr.includes(tech.toLowerCase()));
         });
     };
+
+    const sortedAssets = React.useMemo(() => {
+        if (!assets) return [];
+        let items = [...assets];
+
+        if (sortConfig !== null) {
+            items.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                // Special handling for Active Threats
+                if (sortConfig.key === 'activeThreats') {
+                    aValue = getAssetThreats(a).length;
+                    bValue = getAssetThreats(b).length;
+                }
+                // Special handling for Associated Risks
+                else if (sortConfig.key === 'riskCount') {
+                    aValue = a.riskCount || 0;
+                    bValue = b.riskCount || 0;
+                }
+                // Special handling for CIA Valuation
+                else if (sortConfig.key === 'ciaValuation') {
+                    // Summing up values, assuming Low=1, Medium=2, High=3 logic if they were numbers, but they seem to be numbers 1-3 usually?
+                    // Or maybe just generic numbers. The usage shows `asset.valuationC`
+                    const valA = (Number(a.valuationC) || 0) + (Number(a.valuationI) || 0) + (Number(a.valuationA) || 0);
+                    const valB = (Number(b.valuationC) || 0) + (Number(b.valuationI) || 0) + (Number(b.valuationA) || 0);
+                    aValue = valA;
+                    bValue = valB;
+                }
+                // Default handling for strings to be case-insensitive
+                else if (typeof aValue === 'string') {
+                    aValue = aValue.toLowerCase();
+                    bValue = bValue?.toLowerCase() || '';
+                }
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return items;
+    }, [assets, sortConfig, securityFeeds]);
 
     if (loading) return <div className="p-8 text-center text-muted-foreground">Loading assets...</div>;
     if (assets.length === 0) return (
@@ -142,22 +238,22 @@ function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loadi
                 <table className="min-w-full">
                     <thead>
                         <tr className="bg-[#1C4D8D]">
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Asset ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Asset Name</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Type/Category</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Description</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Owner</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Acquisition Date</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Last Review</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Associated Risks</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Active Threats</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">CIA Valuation</th>
+                            <SortableHeader label="Asset ID" sortKey="id" />
+                            <SortableHeader label="Asset Name" sortKey="name" />
+                            <SortableHeader label="Type/Category" sortKey="type" />
+                            <SortableHeader label="Description" sortKey="description" />
+                            <SortableHeader label="Owner" sortKey="owner" />
+                            <SortableHeader label="Location" sortKey="location" />
+                            <SortableHeader label="Status" sortKey="status" />
+                            <SortableHeader label="Acquisition Date" sortKey="acquisitionDate" />
+                            <SortableHeader label="Last Review" sortKey="lastReviewDate" />
+                            <SortableHeader label="Associated Risks" sortKey="riskCount" />
+                            <SortableHeader label="Active Threats" sortKey="activeThreats" />
+                            <SortableHeader label="CIA Valuation" sortKey="ciaValuation" />
                         </tr>
                     </thead>
                     <tbody>
-                        {assets.map((asset) => (
+                        {sortedAssets.map((asset) => (
                             <tr
                                 key={asset.id}
                                 className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
