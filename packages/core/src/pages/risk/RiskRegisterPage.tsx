@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
 import { RiskRegister } from '@/components/risk/RiskRegister';
@@ -41,6 +41,31 @@ export default function RiskRegisterPage() {
     );
     const exportReportMutation = trpc.risks.exportReport.useMutation();
     const [exporting, setExporting] = useState(false);
+
+    // Check for query params to auto-open wizard (e.g. from Asset Active Threats)
+    useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        const title = searchParams.get('title');
+        const description = searchParams.get('description');
+        const assetId = searchParams.get('assetId');
+
+        if (title || description) {
+            setEditingRisk({
+                riskName: title || '',
+                description: description || '',
+                assetId: assetId ? parseInt(assetId) : undefined,
+                // Add defaults to ensure wizard handles it as a new risk
+                status: 'Open',
+                likelihood: 1,
+                impact: 1
+            });
+            setWizardOpen(true);
+
+            // Optional: Clean up URL to avoid reopening on refresh
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+        }
+    }, []);
 
     if (!clientId) {
         return (

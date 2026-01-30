@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Database, Search, ArrowLeft } from 'lucide-react';
+import { Plus, Database, Search, ArrowLeft, Zap } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { AddAssetDialog } from '@/components/risk/AddAssetDialog';
 import { Button } from '@complianceos/ui/ui/button';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { Badge } from '@complianceos/ui/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@complianceos/ui/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@complianceos/ui/ui/dialog';
+import { ExternalLink, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'wouter/use-browser-location';
+
 
 export default function RiskAssetsPage() {
     const params = useParams();
@@ -98,6 +104,25 @@ export default function RiskAssetsPage() {
 }
 
 function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loading: boolean, onEdit: (asset: any) => void }) {
+    const [selectedAssetForThreats, setSelectedAssetForThreats] = useState<any>(null);
+    const [_, setLocation] = useLocation();
+
+    // Fetch security feeds for asset matching
+    const { data: securityFeeds } = trpc.adversaryIntel.getSecurityFeeds.useQuery(
+        { limit: 200 },
+        { staleTime: 1000 * 60 * 15 }
+    );
+
+    const getAssetThreats = (asset: any) => {
+        if (!securityFeeds?.items) return [];
+        const assetStr = ((asset.name || '') + ' ' + (asset.type || '') + ' ' + (asset.description || '')).toLowerCase();
+
+        return securityFeeds.items.filter(item => {
+            if (!item.techStack) return false;
+            return item.techStack.some((tech: string) => assetStr.includes(tech.toLowerCase()));
+        });
+    };
+
     if (loading) return <div className="p-8 text-center text-muted-foreground">Loading assets...</div>;
     if (assets.length === 0) return (
         <div className="p-12 text-center">
@@ -127,6 +152,7 @@ function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loadi
                             <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Acquisition Date</th>
                             <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Last Review</th>
                             <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Associated Risks</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Active Threats</th>
                             <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">CIA Valuation</th>
                         </tr>
                     </thead>
@@ -162,6 +188,38 @@ function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loadi
                                         {asset.riskCount || 0} Risks
                                     </span>
                                 </td>
+                                <td className="px-6 py-4 text-sm">
+                                    {(() => {
+                                        const activeThreats = getAssetThreats(asset);
+                                        if (activeThreats.length > 0) {
+                                            return (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Badge
+                                                            className="bg-red-100 text-red-700 border-red-200 hover:bg-red-200 cursor-pointer flex w-fit items-center gap-1 transition-transform active:scale-95"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation(); // Prevent row click
+                                                                setSelectedAssetForThreats(asset);
+                                                            }}
+                                                        >
+                                                            <Zap className="w-3 h-3 fill-red-700" />
+                                                            {activeThreats.length} Active
+                                                        </Badge>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-[300px]">
+                                                        <p className="font-semibold mb-1">Click to view details</p>
+                                                        <ul className="list-disc list-inside text-xs space-y-1">
+                                                            {activeThreats.slice(0, 3).map((t, idx) => (
+                                                                <li key={idx} className="line-clamp-1">{t.title}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            );
+                                        }
+                                        return <span className="text-gray-400 text-xs">-</span>;
+                                    })()}
+                                </td>
                                 <td className="px-6 py-4 flex gap-1">
                                     <span className="px-1.5 py-0.5 bg-white text-xs rounded border border-gray-300 text-gray-700" title="Confidentiality">C:{asset.valuationC}</span>
                                     <span className="px-1.5 py-0.5 bg-white text-xs rounded border border-gray-300 text-gray-700" title="Integrity">I:{asset.valuationI}</span>
@@ -172,6 +230,88 @@ function AssetInventoryTable({ assets, loading, onEdit }: { assets: any[], loadi
                     </tbody>
                 </table>
             </div>
-        </div>
+
+
+            <Dialog open={!!selectedAssetForThreats} onOpenChange={(open) => !open && setSelectedAssetForThreats(null)}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ShieldAlert className="w-5 h-5 text-red-600" />
+                            Active Threat Intelligence
+                        </DialogTitle>
+                        <DialogDescription>
+                            The following active threats match the technology stack of <strong>{selectedAssetForThreats?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 mt-4">
+                        {selectedAssetForThreats && getAssetThreats(selectedAssetForThreats).map((threat, idx) => (
+                            <div key={idx} className="p-4 border rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div className="space-y-1">
+                                        <h4 className="font-semibold text-sm text-slate-900">{threat.title}</h4>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span>{new Date(threat.pubDate).toLocaleDateString()}</span>
+                                            <span>•</span>
+                                            <span className="font-medium text-slate-700">{threat.sourceName}</span>
+                                            {threat.severity && (
+                                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold ${threat.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                                                    threat.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {threat.severity}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-slate-600 line-clamp-2 mt-2">{threat.description}</p>
+                                    </div>
+                                    <div className="flex flex-col gap-2 min-w-[120px]">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full text-xs h-8"
+                                            onClick={() => window.open(threat.link, '_blank')}
+                                        >
+                                            <ExternalLink className="w-3 h-3 mr-2" />
+                                            View Source
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            className="w-full text-xs h-8 bg-red-600 hover:bg-red-700"
+                                            onClick={() => {
+                                                // Create a new risk with pre-filled data
+                                                // We can use query params or state, but since the add dialog is a route, 
+                                                // we might need to pass data differently or just navigate to the list and open dialog?
+                                                // For now, let's navigate to the risk creation page with query params if possible, 
+                                                // or just the generic new risk page.
+                                                // Ideally: /clients/Id/risks/new?title=...
+
+                                                const params = new URLSearchParams();
+                                                params.set('title', `Risk: ${threat.title.slice(0, 50)}...`);
+                                                params.set('description', `Derived from active threat: ${threat.title}\n\nSource: ${threat.sourceName}\nLink: ${threat.link}\n\n${threat.description}`);
+                                                params.set('assetId', selectedAssetForThreats.id);
+
+                                                // Assuming we can pass state or params. 
+                                                // If the route doesn't support params yet, it will just open the empty form, which is still a "work on it" step.
+                                                // We'll trust the user to fill it or future improvements to read params.
+                                                // Navigate to Risk Register with query params to auto-open the wizard
+                                                setLocation(`/clients/${selectedAssetForThreats.clientId}/risks/register?${params.toString()}`);
+                                            }}
+                                        >
+                                            <ShieldAlert className="w-3 h-3 mr-2" />
+                                            Create Risk
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setSelectedAssetForThreats(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div >
     );
 }
