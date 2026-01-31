@@ -928,7 +928,7 @@ export async function getControls(framework?: string, clientId?: number) {
 
 
 
-  return standardControls;
+
 
 }
 
@@ -963,9 +963,18 @@ export async function getControlsPaginated(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const [{ count }] = await db.select({ count: sql<number>`count(*)` })
-    .from(controls)
-    .where(whereClause);
+  let totalCount = 0;
+  try {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(controls)
+      .where(whereClause);
+    if (result && result[0]) {
+      totalCount = Number(result[0].count);
+    }
+  } catch (e) {
+    console.error("Error counting controls:", e);
+    totalCount = 0;
+  }
 
   const data = await db.select().from(controls)
     .where(whereClause)
@@ -985,7 +994,7 @@ export async function getControlsPaginated(
 
   return {
     items: enrichedData,
-    total: count ? Number(count) : 0
+    total: totalCount
   };
 }
 

@@ -13,6 +13,8 @@ import { aiRouter } from './packages/core/src/server/routers/ai';
 
 export const app = express();
 const port = process.env.PORT || 3002;
+// Force restart
+console.log('[Server] Initializing...');
 
 console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
