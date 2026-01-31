@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -21,14 +21,30 @@ import {
     Layers,
     Users
 } from "lucide-react";
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    Legend,
+    AreaChart,
+    Area
+} from "recharts";
 
-export default function GovernanceOverview() {
+export default function GovernanceDashboard() {
     const params = useParams();
     const clientId = parseInt(params.id || "0");
 
     // Fetch Data
     const { data: govStats } = trpc.governance.getStats.useQuery({ clientId });
     const { data: readinessData } = trpc.compliance.getReadinessData.useQuery({ clientId });
+    const { data: riskStats } = trpc.risks.getKRIStats.useQuery({ clientId });
+    const { data: activityTrend, isLoading: isLoadingTrend } = trpc.governance.getActivityTrend.useQuery({ clientId }, {
+        enabled: !!clientId
+    });
 
     // Calculate Percentages
     const policyPercentage = readinessData?.coverage?.policyStats?.total
@@ -44,7 +60,7 @@ export default function GovernanceOverview() {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Governance Framework</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Governance Dashboard</h1>
                         <p className="text-muted-foreground mt-2">
                             Establish robust governance, manage policies, and orchestrate compliance workflows.
                         </p>
@@ -84,7 +100,7 @@ export default function GovernanceOverview() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 relative">
                             {/* Connector Line (Desktop) */}
                             <div className="hidden md:block absolute top-6 left-10 right-10 h-0.5 bg-slate-700 -z-10"></div>
 
@@ -92,7 +108,7 @@ export default function GovernanceOverview() {
                                 {
                                     step: "1. Roles",
                                     title: "Define RACI",
-                                    desc: "Assign accountability and roles via RACI matrix.",
+                                    desc: "Assign accountability.",
                                     link: `/clients/${clientId}/raci-matrix`,
                                     icon: Users,
                                     color: "text-blue-400",
@@ -101,8 +117,8 @@ export default function GovernanceOverview() {
                                 },
                                 {
                                     step: "2. Controls",
-                                    title: "Implement Controls",
-                                    desc: "Deploy security controls from frameworks.",
+                                    title: "Implement",
+                                    desc: "Deploy security controls.",
                                     link: `/clients/${clientId}/controls`,
                                     icon: Shield,
                                     color: "text-emerald-400",
@@ -110,9 +126,19 @@ export default function GovernanceOverview() {
                                     isComplete: (readinessData?.controlStats?.implemented || 0) > 0
                                 },
                                 {
-                                    step: "3. Policies",
-                                    title: "Write Policies",
-                                    desc: "Draft and approve organizational policies.",
+                                    step: "3. Risks",
+                                    title: "Assess Risk",
+                                    desc: "Identify & mitigate risks.",
+                                    link: `/clients/${clientId}/risk-register`,
+                                    icon: AlertTriangle,
+                                    color: "text-orange-400",
+                                    bg: "bg-orange-900/50",
+                                    isComplete: (riskStats?.unmitigatedCriticalRisks || 0) === 0 // Logic: no critical unmitigated risks
+                                },
+                                {
+                                    step: "4. Policies",
+                                    title: "Codify",
+                                    desc: "Draft and approve policies.",
                                     link: `/clients/${clientId}/policies`,
                                     icon: FileText,
                                     color: "text-amber-400",
@@ -120,9 +146,9 @@ export default function GovernanceOverview() {
                                     isComplete: (readinessData?.policyStats?.approved || 0) > 0
                                 },
                                 {
-                                    step: "4. Automate",
+                                    step: "5. Automate",
                                     title: "Workflows",
-                                    desc: "Set up automated evidence collection.",
+                                    desc: "Automate evidence.",
                                     link: `/clients/${clientId}/workflows`,
                                     icon: Zap,
                                     color: "text-purple-400",
@@ -130,9 +156,9 @@ export default function GovernanceOverview() {
                                     isComplete: false
                                 },
                                 {
-                                    step: "5. Plan",
+                                    step: "6. Plan",
                                     title: "Roadmap",
-                                    desc: "Build strategic multi-year plans.",
+                                    desc: "Strategic plans.",
                                     link: `/clients/${clientId}/roadmap/dashboard`,
                                     icon: Target,
                                     color: "text-pink-400",
@@ -151,7 +177,7 @@ export default function GovernanceOverview() {
                                             )}
                                         </div>
                                         <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{item.step}</div>
-                                        <div className="font-semibold mb-1 text-white">{item.title}</div>
+                                        <div className="font-semibold mb-1 text-white text-sm">{item.title}</div>
                                         <div className="text-xs text-slate-400 leading-snug">{item.desc}</div>
                                     </div>
                                 </Link>
@@ -202,28 +228,95 @@ export default function GovernanceOverview() {
                         </CardContent>
                     </Card>
 
-                    {/* Open Tasks */}
-                    <Card className="card-enhanced border-l-4 border-l-red-500 bg-red-50/50 cursor-pointer hover:bg-red-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/governance/workbench`}>
+                    {/* Risk Profile Card (NEW) */}
+                    <Card className="card-enhanced border-l-4 border-l-orange-500 bg-orange-50/50 cursor-pointer hover:bg-orange-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/risk-register`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-red-900">Pending Actions</CardTitle>
-                            <ListTodo className="h-4 w-4 text-red-600" />
+                            <CardTitle className="text-sm font-medium text-orange-900">Risk Profile</CardTitle>
+                            <AlertTriangle className="h-4 w-4 text-orange-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-red-700">{govStats?.pending || 0}</div>
-                            <p className="text-xs text-red-600 mt-1">
-                                {govStats?.critical || 0} Critical • {govStats?.overdue || 0} Overdue
+                            <div className="text-3xl font-bold text-orange-700">{riskStats?.unmitigatedCriticalRisks || 0}</div>
+                            <p className="text-xs text-orange-600 mt-1">
+                                Critical Unmitigated Risks
                             </p>
                         </CardContent>
                     </Card>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
-                    {/* Placeholder for future Chart or List */}
-                    <Card className="col-span-1 min-h-[300px] flex items-center justify-center bg-slate-50 border-dashed">
-                        <div className="text-center text-muted-foreground">
-                            <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                            <p>Governance Activity Chart <br /> (Coming Soon)</p>
-                        </div>
+                    {/* Governance Activity Chart */}
+                    <Card className="col-span-1 shadow-md border-none ring-1 ring-slate-200">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4 text-indigo-500" />
+                                Governance Activity
+                            </CardTitle>
+                            <CardDescription>Created vs Completed tasks (Last 30 days)</CardDescription>
+                        </CardHeader>
+                        <CardContent className="h-[300px] mt-4">
+                            {!activityTrend || activityTrend.length === 0 || isLoadingTrend ? (
+                                <div className="h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                                    <Activity className="w-10 h-10 text-slate-300 mb-2 animate-pulse" />
+                                    <p className="text-sm text-slate-400">Loading activity data...</p>
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={activityTrend}>
+                                        <defs>
+                                            <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis
+                                            dataKey="displayDate"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 10, fill: '#64748b' }}
+                                            interval={6}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 10, fill: '#64748b' }}
+                                            allowDecimals={false}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="created"
+                                            name="Created"
+                                            stroke="#4f46e5"
+                                            strokeWidth={2}
+                                            fillOpacity={1}
+                                            fill="url(#colorCreated)"
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="completed"
+                                            name="Completed"
+                                            stroke="#10b981"
+                                            strokeWidth={2}
+                                            fillOpacity={1}
+                                            fill="url(#colorCompleted)"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            )}
+                        </CardContent>
                     </Card>
 
                     <Card className="col-span-1">
@@ -247,6 +340,15 @@ export default function GovernanceOverview() {
                                     <div className="flex flex-col items-start">
                                         <span className="font-semibold">Map Controls</span>
                                         <span className="text-xs text-muted-foreground">Link controls to frameworks</span>
+                                    </div>
+                                </Button>
+                            </Link>
+                            <Link href={`/clients/${clientId}/risk-register`}>
+                                <Button variant="outline" className="w-full justify-start h-auto py-4 px-4 hover:bg-orange-50 hover:border-orange-200">
+                                    <AlertTriangle className="mr-4 h-6 w-6 text-orange-500" />
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-semibold">Risk Register</span>
+                                        <span className="text-xs text-muted-foreground">Manage and mitigate organizational risks</span>
                                     </div>
                                 </Button>
                             </Link>

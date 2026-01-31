@@ -49,10 +49,10 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
             const db = await getDb();
 
             // Safely extract clientId from input
-            const clientId = input && typeof input === 'object' && 'clientId' in input 
-                ? Number(input.clientId) 
+            const clientId = input && typeof input === 'object' && 'clientId' in input
+                ? Number(input.clientId)
                 : undefined;
-            
+
             if (!clientId || isNaN(clientId)) {
                 return {
                     pending: 0,
@@ -180,5 +180,69 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
                 .returning();
 
             return updated[0];
+        }),
+
+    // Get activity trend for the last 30 days
+    getActivityTrend: clientProcedure
+        .input(z.object({
+            clientId: z.number()
+        }))
+        .query(async ({ input }) => {
+            const db = await getDb();
+            const days = 30;
+
+            // Generate last 30 days
+            const trend = [];
+            for (let i = days; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                trend.push({
+                    date: dateStr,
+                    created: 0,
+                    completed: 0
+                });
+            }
+
+            // Fetch created counts
+            const createdActivities = await db.select({
+                date: sql<string>`DATE(${workItems.createdAt})::text`,
+                count: sql<number>`count(*)`
+            })
+                .from(workItems)
+                .where(and(
+                    eq(workItems.clientId, input.clientId),
+                    sql`${workItems.createdAt} > NOW() - INTERVAL '30 days'`
+                ))
+                .groupBy(sql`DATE(${workItems.createdAt})`);
+
+            // Fetch completed counts
+            const completedActivities = await db.select({
+                date: sql<string>`DATE(${workItems.completedAt})::text`,
+                count: sql<number>`count(*)`
+            })
+                .from(workItems)
+                .where(and(
+                    eq(workItems.clientId, input.clientId),
+                    sql`${workItems.completedAt} IS NOT NULL`,
+                    sql`${workItems.completedAt} > NOW() - INTERVAL '30 days'`
+                ))
+                .groupBy(sql`DATE(${workItems.completedAt})`);
+
+            // Merge results
+            createdActivities.forEach(row => {
+                const entry = trend.find(t => t.date === row.date);
+                if (entry) entry.created = Number(row.count);
+            });
+
+            completedActivities.forEach(row => {
+                const entry = trend.find(t => t.date === row.date);
+                if (entry) entry.completed = Number(row.count);
+            });
+
+            return trend.map(t => ({
+                ...t,
+                displayDate: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+            }));
         }),
 });

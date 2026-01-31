@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 
 import { lazy, Suspense } from "react";
+import { trpc } from "@/lib/trpc";
 
 // Lazy Imports
 const Home = lazy(() => import("./pages/Home"));
@@ -65,6 +66,7 @@ const SignUpPage = lazy(() => import("./pages/auth/SignUpPage"));
 const CompleteSubscription = lazy(() => import("./pages/auth/CompleteSubscription"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const UpdatePassword = lazy(() => import("./pages/auth/UpdatePassword"));
+const UpgradeRequired = lazy(() => import("./pages/UpgradeRequired"));
 
 const LearningPage = lazy(() => import("./pages/LearningPage"));
 const ISO27001ReadinessChecklist = lazy(() => import("./pages/learning/ISO27001ReadinessChecklist"));
@@ -78,7 +80,7 @@ const FederalOverview = lazy(() => import("./pages/federal/FederalOverview"));
 const VendorOverview = lazy(() => import("./pages/tprm/VendorOverview"));
 const BusinessContinuityOverview = lazy(() => import("./pages/business-continuity/BusinessContinuityOverview"));
 const CyberOverview = lazy(() => import("./pages/cyber/CyberOverview"));
-const GovernanceOverview = lazy(() => import("./pages/governance/GovernanceOverview"));
+const GovernanceDashboard = lazy(() => import("./pages/governance/GovernanceDashboard"));
 const ComplianceOverview = lazy(() => import("./pages/compliance/ComplianceOverview"));
 const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview"));
 
@@ -111,6 +113,7 @@ const RiskRegisterPage = lazy(() => import("./pages/risk/RiskRegisterPage"));
 const RiskReportEditor = lazy(() => import("./pages/risk/RiskReportEditor"));
 const RiskTreatmentPlanPage = lazy(() => import("./pages/risk/RiskTreatmentPlanPage"));
 const RiskAlignmentPage = lazy(() => import("./pages/risk/RiskAlignmentPage"));
+const AdversaryIntelPage = lazy(() => import("./pages/risk/AdversaryIntelPage"));
 
 const TPRMLayout = lazy(() => import("./pages/tprm/TPRMLayout").then(module => ({ default: module.TPRMLayout })));
 const VendorList = lazy(() => import("./pages/tprm/VendorList"));
@@ -172,6 +175,10 @@ const GovernanceWorkbench = lazy(() => import("./pages/governance/GovernanceWork
 // @ts-ignore
 const GovernanceAlignmentPage = lazy(() => import("./pages/governance/GovernanceAlignmentPage"));
 
+const DevProjectsList = lazy(() => import("./pages/dev/DevProjectsList").then(module => ({ default: module.DevProjectsList })));
+const ProjectDetail = lazy(() => import("./pages/dev/ProjectDetail").then(module => ({ default: module.ProjectDetail })));
+const ThreatModelWizard = lazy(() => import("@/components/threat-modeling/ThreatModelWizard"));
+
 // Federal Compliance
 const FederalHub = lazy(() => import("./pages/federal/FederalHub"));
 const FederalComplianceDashboard = lazy(() => import("./pages/federal/FederalComplianceDashboard"));
@@ -219,6 +226,33 @@ const VendorAssessmentPortal = lazy(() => import("./pages/portal/VendorAssessmen
 const Integrations = lazy(() => import("./pages/admin/Integrations"));
 const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
 
+
+// Premium Guard Component
+function PremiumGuard({ children }: { children: React.ReactNode }) {
+  const { selectedClientId } = useClientContext();
+  const { data: client, isLoading, error } = trpc.clients.get.useQuery(
+    { id: selectedClientId as number },
+    { enabled: !!selectedClientId, retry: false, staleTime: 1000 * 60 * 5 }
+  );
+
+  if (error?.data?.code === 'PRECONDITION_FAILED') {
+    return <Redirect to="/upgrade-required" />;
+  }
+
+  if (error?.data?.code === 'FORBIDDEN' || error?.data?.code === 'NOT_FOUND') {
+    console.log('[PremiumGuard] Client access error, redirecting to list');
+    return <Redirect to="/clients" />;
+  }
+
+  if (isLoading) return <PageLoader />;
+
+  if (client && client.planTier !== 'pro' && client.planTier !== 'enterprise') {
+    console.log('[PremiumGuard] Redirecting due to invalid tier:', client.planTier);
+    return <Redirect to="/upgrade-required" />;
+  }
+
+  return <>{children}</>;
+}
 
 // Wrapper for protected routes
 function ProtectedRoute({ component: Component }: { component: React.ComponentType<any> }) {
@@ -270,6 +304,12 @@ function GapAnalysisAlias() {
 function ComplianceDashboardAlias() {
   const { selectedClientId } = useClientContext();
   if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/compliance`} />;
+  return <Redirect to="/clients" />;
+}
+
+function DevProjectsAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/dev/projects`} />;
   return <Redirect to="/clients" />;
 }
 
@@ -343,6 +383,9 @@ function Router() {
         <Route path="/complete-subscription">
           <ProtectedRoute component={CompleteSubscription} />
         </Route>
+        <Route path="/upgrade-required">
+          <ProtectedRoute component={UpgradeRequired} />
+        </Route>
         <Route path="/auth/callback/jira">
           <ProtectedRoute component={OAuthCallback} />
         </Route>
@@ -381,7 +424,7 @@ function Router() {
           <ProtectedRoute component={ClientOnboarding} />
         </Route>
         <Route path="/clients/:id/governance/overview">
-          <ProtectedRoute component={GovernanceOverview} />
+          <ProtectedRoute component={GovernanceDashboard} />
         </Route>
         <Route path="/clients/:id/governance/workbench">
           <ProtectedRoute component={GovernanceWorkbench} />
@@ -390,7 +433,7 @@ function Router() {
           <ProtectedRoute component={GovernanceAlignmentPage} />
         </Route>
         <Route path="/clients/:id/governance">
-          <ProtectedRoute component={GovernanceOverview} />
+          <ProtectedRoute component={GovernanceDashboard} />
         </Route>
         <Route path="/clients/:id/compliance/overview">
           <ProtectedRoute component={ComplianceOverview} />
@@ -472,6 +515,20 @@ function Router() {
         </Route>
         <Route path="/clients/:id/roadmap/:roadmapId/edit">
           {(_params) => <ProtectedRoute component={RoadmapEditPage} />}
+        </Route>
+
+        {/* Dev Projects routes */}
+        <Route path="/dev/projects">
+          <DevProjectsAlias />
+        </Route>
+        <Route path="/clients/:clientId/dev/projects/:projectId/threat-model/:modelId">
+          {(_params) => <ProtectedRoute component={ThreatModelWizard} />}
+        </Route>
+        <Route path="/clients/:clientId/dev/projects/:projectId">
+          {(_params) => <ProtectedRoute component={ProjectDetail} />}
+        </Route>
+        <Route path="/clients/:clientId/dev/projects">
+          {(_params) => <ProtectedRoute component={DevProjectsList} />}
         </Route>
 
 
@@ -580,6 +637,9 @@ function Router() {
         <Route path="/clients/:id/risks">
           {(_params) => <ProtectedRoute component={RiskDashboard} />}
         </Route>
+        <Route path="/clients/:id/risks/adversary-intel">
+          {(_params) => <PremiumGuard><ProtectedRoute component={AdversaryIntelPage} /></PremiumGuard>}
+        </Route>
         <Route path="/clients/:id/vendors">
           {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
         </Route>
@@ -587,113 +647,143 @@ function Router() {
           {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
         </Route>
         <Route path="/clients/:id/vendors/overview-guide">
-          {(_params) => <ProtectedRoute component={VendorOverview} />}
+          {(_params) => <PremiumGuard><ProtectedRoute component={VendorOverview} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/vendors/alignment-guide">
-          {(_params) => <ProtectedRoute component={VendorAlignmentPage} />}
+          {(_params) => <PremiumGuard><ProtectedRoute component={VendorAlignmentPage} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/vendors/overview">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <VendorDashboard />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <VendorDashboard />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/discovery">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <VendorList mode="discovery" />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <VendorList mode="discovery" />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/reviews">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <SecurityReviews />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <SecurityReviews />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/all">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <VendorList mode="all" />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <VendorList mode="all" />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/catalog">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <GlobalVendorCatalog />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <GlobalVendorCatalog />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/templates">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <AssessmentTemplates />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <AssessmentTemplates />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/templates/new">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <TemplateEditor />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <TemplateEditor />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/contracts">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <ProtectedRoute component={VendorContractTemplates} />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <ProtectedRoute component={VendorContractTemplates} />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/templates/:templateId">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <TemplateEditor />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <TemplateEditor />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/onboard">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <OnboardVendor />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <OnboardVendor />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/dpa-templates">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <ProtectedRoute component={DPAManager} />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <ProtectedRoute component={DPAManager} />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         {/* Privacy routes are handled below in the dedicated section */}
         <Route path="/clients/:id/vendors/:vendorId">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <VendorDetails />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <VendorDetails />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/vendors/dpa-editor/:dpaId">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <ProtectedRoute component={DPAEditor} />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <ProtectedRoute component={DPAEditor} />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/tprm/dpa-editor/:dpaId">
           {(_params) => (
-            <ProtectedRoute component={DPAEditor} />
+            <PremiumGuard>
+              <ProtectedRoute component={DPAEditor} />
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/evaluations/subprocessors">
           {(_params) => (
-            <TPRMLayout clientId={parseInt(_params.id)}>
-              <SubprocessorRegister />
-            </TPRMLayout>
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <SubprocessorRegister />
+              </TPRMLayout>
+            </PremiumGuard>
           )}
         </Route>
         <Route path="/clients/:id/risks/threats">
@@ -1018,6 +1108,8 @@ function Router() {
             <ProtectedRoute component={GlobalCRM} />
           </AdminLayout>
         </Route>
+
+        <Route path="/advisor/workbench" component={AdvisorWorkbench} />
 
         {/* Admin Routes */}
         <Route path="/admin/:rest*">
