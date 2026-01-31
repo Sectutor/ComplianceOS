@@ -23,18 +23,20 @@ import {
   SidebarGroupContent,
 } from "@complianceos/ui/ui/sidebar";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@complianceos/ui/ui/collapsible";
+import { Badge } from "@complianceos/ui/ui/badge";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "@complianceos/ui/ui/button";
+import { Input } from "@complianceos/ui/ui/input";
 import { GlobalSearch } from "./GlobalSearch";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
@@ -43,6 +45,8 @@ import { CopilotPanel } from "@complianceos/premium/components/advisor/CopilotPa
 
 import { CopilotHelpTrigger } from "@complianceos/premium/components/advisor/CopilotHelpTrigger";
 import { TourProvider } from "./TourProvider";
+
+// ... (existing imports)
 
 const globalMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -88,6 +92,7 @@ const clientSpecificMenuItems = [
 
   { icon: ClipboardCheck, label: "Evidence", path: "/evidence" },
   { icon: AlertTriangle, label: "Risk Management", path: "/risks" },
+  { icon: Code, label: "Threat Modeling", path: "/dev/projects" },
   { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
   {
     icon: Building2, label: "Federal Hub", path: "/federal", submenu: [
@@ -143,6 +148,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/gap-analysis") return `/clients/${clientId}/gap-analysis${queryStr}`;
   if (purePath === "/audit-hub") return `/clients/${clientId}/audit-hub${queryStr}`;
   if (purePath === "/reports") return `/clients/${clientId}/reports${queryStr}`;
+  if (purePath === "/trust-center") return `/trust-center/${clientId}${queryStr}`;
 
   // Handle client-specific sub-routes
   const isClientSubRoute = clientSpecificMenuItems.some(cItem => cItem.path === purePath) ||
@@ -297,6 +303,7 @@ function DashboardLayoutContent({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const [menuSearch, setMenuSearch] = useState("");
 
   // Extract client ID from URL if present
   const clientIdMatch = location.match(/\/clients\/(\d+)/);
@@ -324,6 +331,33 @@ function DashboardLayoutContent({
       window.location.reload();
     }
   }, [clientError, persistentClientId]);
+
+  const brandStyles: CSSProperties = {
+    "--sidebar-background": clientInfo?.brandPrimaryColor || "#0f172a",
+    "--sidebar-foreground": "#ffffff",
+    "--sidebar-primary": clientInfo?.brandSecondaryColor || "#0ea5e9",
+    "--sidebar-primary-foreground": "#ffffff",
+    "--sidebar-accent": "rgba(255, 255, 255, 0.1)",
+    "--sidebar-accent-foreground": "#ffffff",
+    "--sidebar-border": "rgba(255, 255, 255, 0.1)",
+    "--sidebar-ring": clientInfo?.brandSecondaryColor || "#0ea5e9",
+  } as CSSProperties;
+
+  const highlightMatch = (text: string, search: string) => {
+    if (!search) return text;
+    const parts = text.split(new RegExp(`(${search})`, 'gi'));
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === search.toLowerCase() ? (
+            <mark key={i} className="bg-blue-500/30 text-white rounded-sm px-0.5 border-b border-blue-400">{part}</mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
 
   const { data: dbUser, isLoading: isUserLoading, refetch: refetchUser } = trpc.users.me.useQuery(undefined, {
     enabled: !!user,
@@ -469,9 +503,9 @@ function DashboardLayoutContent({
       {
         label: "Governance",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/governance" },
+          { icon: LayoutDashboard, label: "Dashboard", path: "/governance", isPremium: true } as any,
           { icon: Shield, label: "Controls", path: "/client-controls" },
-          { icon: ListTodo, label: "Workbench", path: "/governance/workbench" },
+          { icon: ListTodo, label: "Workbench", path: "/governance/workbench", isPremium: true } as any,
           {
             icon: Target,
             label: "Strategic Roadmaps",
@@ -492,6 +526,7 @@ function DashboardLayoutContent({
               { label: "Policy Templates", path: "/policy-templates" },
             ]
           },
+          { icon: Users, label: "People & Org", path: "/people" },
           { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
           { icon: Settings, label: "Settings", path: "/settings" },
         ]
@@ -508,9 +543,38 @@ function DashboardLayoutContent({
           { icon: ClipboardCheck, label: "Assessments", path: "/risks/assessments" },
           { icon: ShieldCheck, label: "Treatment Plan", path: "/risks/treatment-plan" },
           { icon: BookOpen, label: "Alignment Guide", path: "/risks/alignment-guide" },
+          // Premium: Adversary Intelligence (conditionally added below)
         ]
-      },
-      {
+      }
+    );
+
+    // Premium Feature: Adversary Intelligence - Add to Risk Management group
+    const isPremiumClient = clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise';
+    if (isPremiumClient) {
+      const riskManagementGroup = groups.find(g => g.label === 'Risk Management');
+      if (riskManagementGroup) {
+        riskManagementGroup.items.push(
+          { icon: Radar, label: "Adversary Intelligence", path: "/risks/adversary-intel", isPremium: true } as any
+        );
+      }
+    }
+
+    // Premium Feature: Vendor Management
+    // Show when a client is selected (premium check happens at route level)
+    const isPremium = clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise';
+
+
+
+    groups.push({
+      label: "Application Security",
+      items: [
+        { icon: Code, label: "Threat Modeling", path: "/dev/projects" },
+      ]
+    });
+
+    // Always show Vendor Management when a client is selected
+    if (persistentClientId) {
+      groups.push({
         label: "Vendor Management",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/vendors/overview" },
@@ -519,7 +583,10 @@ function DashboardLayoutContent({
           { icon: Search, label: "Discovery", path: "/vendors/discovery" },
           { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
         ]
-      },
+      });
+    }
+
+    groups.push(
 
       {
         label: "Compliance",
@@ -589,6 +656,7 @@ function DashboardLayoutContent({
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: FileBarChart, label: "Reports", path: "/reports" },
           { icon: Bell, label: "Notifications", path: "/notifications" },
+          { icon: Globe, label: "Trust Center", path: "/trust-center" },
         ]
       },
       {
@@ -602,7 +670,7 @@ function DashboardLayoutContent({
       {
         label: "Marketing",
         items: [
-          { icon: Megaphone, label: "CRM Dashboard", path: "/sales" },
+          { icon: Megaphone, label: "CRM Dashboard", path: "/sales", isPremium: true } as any,
         ]
       }
     );
@@ -617,11 +685,38 @@ function DashboardLayoutContent({
       label: "Administration",
       items: [
         adminMenuItem,
-        { icon: Sparkles, label: "Advisor Workbench", path: "/advisor/workbench" },
+        { icon: Sparkles, label: "Advisor Workbench", path: "/advisor/workbench", isPremium: true } as any,
         { icon: History, label: "Activity Log", path: "/activity" },
       ]
     });
   }
+
+  const filteredGroups = groups.map(group => {
+    // If no search, return group as is
+    if (!menuSearch) return group;
+
+    // Filter items
+    const filteredItems = group.items.map((item: any) => {
+      // Check main item
+      const matchMain = item.label.toLowerCase().includes(menuSearch.toLowerCase());
+
+      // Check submenu
+      const filteredSubmenu = item.submenu?.filter((sub: any) =>
+        sub.label.toLowerCase().includes(menuSearch.toLowerCase())
+      );
+
+      if (matchMain) return item;
+      if (filteredSubmenu && filteredSubmenu.length > 0) {
+        return { ...item, submenu: filteredSubmenu };
+      }
+      return null;
+    }).filter(Boolean);
+
+    if (filteredItems.length > 0) {
+      return { ...group, items: filteredItems };
+    }
+    return null;
+  }).filter(Boolean);
 
   const currentSearch = typeof window !== 'undefined' ? window.location.search : '';
 
@@ -691,8 +786,9 @@ function DashboardLayoutContent({
     };
   }, [isResizing, setSidebarWidth]);
 
+
   return (
-    <>
+    <SidebarProvider style={brandStyles}>
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
@@ -708,12 +804,12 @@ function DashboardLayoutContent({
             {/* Client Context Indicator with Switcher */}
             {persistentClientId && (
               isCollapsed ? (
-                <div className="flex flex-col items-center gap-2 py-6 border-b border-white/5 bg-[#001B2B]">
+                <div className="flex flex-col items-center gap-2 py-6 border-b border-white/5 bg-[var(--sidebar-background)]">
                   <div
                     className="h-8 w-8 rounded-md bg-white/10 text-white flex items-center justify-center font-bold text-xs"
-                    title={clientInfo?.name || `Client #${persistentClientId}`}
+                    title={clientInfo?.portalTitle || clientInfo?.name || `Client #${persistentClientId}`}
                   >
-                    {clientInfo?.name?.substring(0, 2).toUpperCase() || "C"}
+                    {(clientInfo?.portalTitle || clientInfo?.name || "C")?.substring(0, 2).toUpperCase()}
                   </div>
                   <Button
                     variant="ghost"
@@ -725,10 +821,10 @@ function DashboardLayoutContent({
                   </Button>
                 </div>
               ) : (
-                <div className="px-5 py-6 border-b border-white/10 bg-[#001B2B]">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.15em] mb-2 opacity-80">Client Context</p>
+                <div className="px-5 py-6 border-b border-white/10 bg-[var(--sidebar-background)]">
+                  <p className="text-[10px] font-bold text-[var(--sidebar-primary)] uppercase tracking-[0.15em] mb-2 opacity-80">Client Context</p>
                   <div className="flex flex-col gap-4">
-                    <p className="text-xl font-bold text-white truncate leading-none">{clientInfo?.name || `Client #${persistentClientId}`}</p>
+                    <p className="text-xl font-bold text-white truncate leading-none">{clientInfo?.portalTitle || clientInfo?.name || `Client #${persistentClientId}`}</p>
                     <Button
                       variant="outline"
                       size="sm"
@@ -744,7 +840,23 @@ function DashboardLayoutContent({
             )}
 
 
-            {groups.map((group, groupIndex) => (
+
+            {/* Search Bar */}
+            {!isCollapsed && (
+              <div className="px-3 py-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Search menu..."
+                    className="pl-8 h-9 text-xs bg-sidebar-accent/5"
+                    value={menuSearch}
+                    onChange={(e) => setMenuSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {filteredGroups.map((group, groupIndex) => (
               <CollapsibleGroup
                 key={group.label || groupIndex}
                 group={group}
@@ -753,6 +865,9 @@ function DashboardLayoutContent({
                 persistentClientId={persistentClientId}
                 isCollapsed={isCollapsed}
                 bestMatchItem={bestMatchItem}
+                forceOpen={menuSearch.length > 0} // Expand groups when searching
+                menuSearch={menuSearch}
+                highlightMatch={highlightMatch}
               />
             ))}
           </SidebarContent>
@@ -839,88 +954,51 @@ function DashboardLayoutContent({
         <CopilotButton clientId={persistentClientId || undefined} />
         <CopilotPanel />
       </SidebarInset>
-    </>
+    </SidebarProvider>
   );
 }
 
-// Reverting to localized state management for groups
 function CollapsibleGroup({
   group,
   location,
   setLocation,
   persistentClientId,
   isCollapsed,
-  bestMatchItem
+  bestMatchItem,
+  forceOpen,
+  menuSearch,
+  highlightMatch
 }: {
   group: any,
   location: string,
   setLocation: any,
   persistentClientId: number | null,
   isCollapsed: boolean,
-  bestMatchItem: any
+  bestMatchItem: any,
+  forceOpen: boolean,
+  menuSearch: string,
+  highlightMatch: any
 }) {
-  const currentSearch = typeof window !== 'undefined' ? window.location.search : '';
+  const [isOpen, setIsOpen] = useState(forceOpen);
 
-  // Helper to check if the group should be expanded
-  const shouldBeExpanded = () => {
-    const hasActiveItem = group.items.some((item: any) => {
-      // Use standard prefix matching for EXPANSION
-      const navPath = resolveNavigationPath(item.path, persistentClientId);
-      if (isPathActive(navPath, location, currentSearch)) return true;
-
-      // Also check submenu items
-      if (item.submenu) {
-        return item.submenu.some((sub: any) => {
-          const subPath = resolveNavigationPath(sub.path, persistentClientId);
-          return isPathActive(subPath, location, currentSearch);
-        });
-      }
-      return false;
-    });
-
-    if (hasActiveItem) return true;
-
-    // Special case for Governance: Keep open when in client context and on a client page
-    if (group.label === "Governance" && persistentClientId && location.includes(`/clients/${persistentClientId}`)) {
-      const isActuallyGovernance = location.includes('/governance') || currentSearch.includes('tab=controls') || currentSearch.includes('tab=policies') || location.includes('/mappings') || location.includes('/people') || location.includes('/raci-matrix');
-      if (isActuallyGovernance) return true;
-    }
-
-    return false;
-  };
-
-  const isExpanded = shouldBeExpanded();
-
-  // Use controlled state but LOCAL to this component (allows multiple groups open)
-  const [isOpen, setIsOpen] = useState(isExpanded);
-
-  // Synchronize state when external conditions change (navigation)
   useEffect(() => {
-    if (isExpanded) {
-      setIsOpen(true);
-    }
-  }, [isExpanded, location, currentSearch]);
+    if (forceOpen) setIsOpen(true);
+  }, [forceOpen]);
 
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className="group/collapsible"
-    >
-      <SidebarGroup>
-        <SidebarGroupLabel asChild className="group/label w-full text-[10px] font-bold text-slate-400/60 uppercase tracking-[0.15em] mb-2 px-4">
-          <CollapsibleTrigger className="flex items-center w-full hover:text-slate-200 transition-colors">
-            {group.label}
-            <ChevronRight className="ml-auto h-3 w-3 transition-transform group-data-[state=open]/collapsible:rotate-90 opacity-60" />
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="group/collapsible">
+      <SidebarGroup className="py-1">
+        <SidebarGroupLabel asChild>
+          <CollapsibleTrigger className="flex w-full items-center text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors px-4 py-2 mt-4">
+            {highlightMatch(group.label, menuSearch)}
+            <ChevronRight className="ml-auto h-3 w-3 transition-transform group-data-[state=open]/collapsible:rotate-90 opacity-40" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
-        <CollapsibleContent>
+        <CollapsibleContent className="mt-1">
           <SidebarGroupContent>
             <SidebarMenu>
               {group.items.map((item: any) => {
                 const navigationPath = resolveNavigationPath(item.path, persistentClientId);
-
-                // Visual Highlight: Only if it IS the best match
                 const isActive = item === bestMatchItem;
 
                 return (
@@ -931,19 +1009,19 @@ function CollapsibleGroup({
                         onClick={() => setLocation(navigationPath)}
                         tooltip={item.label}
                         className={`h-11 px-3 transition-all font-medium rounded-lg mb-1 mx-2 w-[calc(100%-16px)] ${isActive
-                          ? "bg-[#00A3FF] text-white hover:bg-[#00A3FF] hover:text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
+                          ? "bg-[var(--sidebar-primary)] text-white hover:bg-[var(--sidebar-primary)] hover:text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
                           : "text-slate-300 hover:text-white hover:bg-white/5"
                           }`}
-                        data-tour={
-                          item.label === 'Dashboard' ? 'sidebar-dashboard' :
-                            item.label === 'Clients' ? 'sidebar-clients' :
-                              undefined
-                        }
                       >
                         <item.icon
                           className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
                         />
-                        <span className="ml-2">{item.label}</span>
+                        <span className="ml-2 uppercase text-[11px] tracking-wide flex-1">{highlightMatch(item.label, menuSearch)}</span>
+                        {item.isPremium && (
+                          <Badge className="ml-auto bg-indigo-500/20 text-indigo-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
+                            Pro
+                          </Badge>
+                        )}
                       </SidebarMenuButton>
                     ) : (
                       <CollapsibleMenuItem
@@ -951,9 +1029,10 @@ function CollapsibleGroup({
                         location={location}
                         setLocation={setLocation}
                         isCollapsed={isCollapsed}
-                        currentSearch={currentSearch}
+                        currentSearch={menuSearch}
                         cid={persistentClientId}
                         bestMatchItem={bestMatchItem}
+                        highlightMatch={highlightMatch}
                       />
                     )}
                   </SidebarMenuItem>
@@ -967,8 +1046,6 @@ function CollapsibleGroup({
   );
 }
 
-
-
 function CollapsibleMenuItem({
   item,
   location,
@@ -976,7 +1053,8 @@ function CollapsibleMenuItem({
   isCollapsed,
   currentSearch,
   cid,
-  bestMatchItem
+  bestMatchItem,
+  highlightMatch
 }: {
   item: any,
   location: string,
@@ -984,30 +1062,21 @@ function CollapsibleMenuItem({
   isCollapsed: boolean,
   currentSearch: string,
   cid: number | null,
-  bestMatchItem: any
+  bestMatchItem: any,
+  highlightMatch: any
 }) {
   const resolvedPath = resolveNavigationPath(item.path, cid);
-
-  // Logic for Expansion: Use prefix match (isPathActive)
-  const isPrefixActive = isPathActive(resolvedPath, location, currentSearch);
-
-  // Logic for Highlight: Use strict Best Match
   const isVisuallyActive = item === bestMatchItem;
-
-  // Check if any child is active (to expand)
   const isChildActive = item.submenu?.some((sub: any) => {
     const subPath = resolveNavigationPath(sub.path, cid);
     return isPathActive(subPath, location, currentSearch);
   });
-
-  const shouldBeOpen = isPrefixActive || isChildActive;
-
+  const shouldBeOpen = isPathActive(resolvedPath, location, currentSearch) || isChildActive;
   const [isOpen, setIsOpen] = useState(shouldBeOpen);
 
-  // Auto-open if child is active
   useEffect(() => {
     if (shouldBeOpen) setIsOpen(true);
-  }, [shouldBeOpen, location, currentSearch]);
+  }, [shouldBeOpen]);
 
   return (
     <div className="space-y-1">
@@ -1016,13 +1085,13 @@ function CollapsibleMenuItem({
         tooltip={item.label}
         isActive={isVisuallyActive}
         className={`h-11 px-3 transition-all font-medium rounded-lg mb-1 mx-2 w-[calc(100%-16px)] ${isVisuallyActive
-          ? "bg-[#00A3FF] text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
+          ? "bg-[var(--sidebar-primary)] text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
           : "text-slate-300 hover:text-white hover:bg-white/5"
           }`}
       >
         <div className="flex items-center gap-2">
           <item.icon className={`h-4.5 w-4.5 min-w-[1.125rem] ${isVisuallyActive ? "text-white" : "text-slate-400"}`} />
-          <span className="ml-2">{item.label}</span>
+          <span className="ml-2">{highlightMatch(item.label, currentSearch)}</span>
         </div>
         {!isCollapsed && (
           <div className="ml-auto opacity-60">
@@ -1035,7 +1104,6 @@ function CollapsibleMenuItem({
         <div className="pl-4 space-y-1 mt-1 border-l ml-4">
           {item.submenu.map((subItem: any) => {
             const resolvedSubPath = resolveNavigationPath(subItem.path, cid);
-            // Visual Highlight: Best Match reference equality
             const isSubActive = subItem === bestMatchItem;
 
             return (
@@ -1044,13 +1112,13 @@ function CollapsibleMenuItem({
                 isActive={isSubActive}
                 onClick={() => setLocation(resolvedSubPath)}
                 className={`h-9 px-3 transition-all font-medium rounded-lg mx-2 mb-0.5 w-[calc(100%-16px)] ${isSubActive
-                  ? "bg-[#00A3FF] text-white hover:bg-[#00A3FF] hover:text-white"
+                  ? "bg-[var(--sidebar-primary)] text-white hover:bg-[var(--sidebar-primary)] hover:text-white"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
               >
-                <span className="ml-1">{subItem.label}</span>
+                <span className="ml-1">{highlightMatch(subItem.label, currentSearch)}</span>
               </SidebarMenuButton>
-            )
+            );
           })}
         </div>
       )}

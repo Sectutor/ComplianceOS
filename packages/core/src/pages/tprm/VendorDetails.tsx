@@ -39,20 +39,22 @@ export default function VendorDetails() {
 
     const utils = trpc.useContext();
 
-    // Vendor Data
-    const { data: vendor, isLoading } = trpc.vendors.get.useQuery({ id: vId }, { enabled: !!vId });
+    // Optimized consolidated vendor data endpoint
+    const { data: vendorData, isLoading } = trpc.vendorAssessments.getVendorDetails.useQuery(
+        { vendorId: vId, clientId },
+        { enabled: !!vId && !!clientId }
+    );
 
-    // Assessments Data
-    const { data: assessments, refetch: refetchAssessments } = trpc.vendorAssessments.list.useQuery({ vendorId: vId }, { enabled: !!vId });
-
-    // Risk Scan Data
-    const { data: scanResult, refetch: refetchRiskScan } = trpc.vendors.getLatestScan.useQuery({ vendorId: vId }, { enabled: !!vId });
+    // Extract data from consolidated response
+    const vendor = vendorData?.vendor;
+    const assessments = vendorData?.assessments || [];
+    const scanResult = vendorData?.scanResult;
     const cveSuggestions = scanResult?.vulnerabilities || [];
 
     const runScanMutation = trpc.vendors.runRiskScan.useMutation({
         onSuccess: () => {
             toast.success("Risk scan completed");
-            refetchRiskScan();
+            utils.vendorAssessments.getVendorDetails.invalidate({ vendorId: vId, clientId });
         },
         onError: (err) => toast.error("Scan failed: " + err.message)
     });
@@ -318,6 +320,8 @@ export default function VendorDetails() {
     }
 
     const [isDpaOpen, setIsDpaOpen] = useState(false);
+
+
     const [dpaForm, setDpaForm] = useState({
         templateId: "",
         name: ""
@@ -442,7 +446,8 @@ export default function VendorDetails() {
         reviewStatus: "needs_review",
         serviceDescription: "",
         additionalNotes: "",
-        isSubprocessor: false
+        isSubprocessor: false,
+        trustCenterUrl: ""
     });
 
     const updateVendorMutation = trpc.vendors.update.useMutation({
@@ -536,14 +541,31 @@ export default function VendorDetails() {
                 reviewStatus: vendor.reviewStatus || "needs_review",
                 serviceDescription: vendor.serviceDescription || "",
                 additionalNotes: vendor.additionalNotes || "",
-                isSubprocessor: vendor.isSubprocessor || false
+                isSubprocessor: vendor.isSubprocessor || false,
+                trustCenterUrl: vendor.trustCenterUrl || ""
             });
             setIsEditOpen(true);
         }
     };
 
-    if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin" /></div>;
-    if (!vendor) return <div className="flex justify-center py-12 text-muted-foreground">Vendor not found</div>;
+    if (isLoading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (!vendor) {
+        return (
+            <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4">
+                <h2 className="text-xl font-semibold">Vendor not found</h2>
+                <Button onClick={() => setLocation(`/clients/${clientId}/vendors/all`)}>
+                    Return to Vendor List
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-6">
@@ -638,7 +660,7 @@ export default function VendorDetails() {
             </div>
 
 
-// Force Reload: debug-marker-v1
+
             <div className="bg-indigo-600 text-white p-2 rounded text-xs font-bold text-center mb-4">
                 DPA SYSTEM ACTIVE
             </div>
@@ -1495,6 +1517,14 @@ export default function VendorDetails() {
                                 onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
                             />
                         </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Trust Center URL</Label>
+                        <Input
+                            value={editForm.trustCenterUrl}
+                            onChange={(e) => setEditForm({ ...editForm, trustCenterUrl: e.target.value })}
+                            placeholder="https://trust.vendor.com"
+                        />
                     </div>
                     <div className="grid gap-2">
                         <Label>Description</Label>

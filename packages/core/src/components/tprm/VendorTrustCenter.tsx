@@ -55,11 +55,6 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
   React.useEffect(() => {
     if (isPolling && vendor.trustCenterData?.riskSummary) {
       // If we were polling and now we have a summary, we can likely stop
-      // (This assumes the summary was missing or different before, but strictly, just having it suggests success)
-      // For now, let's just let the timer run out or rely on the user seeing the update.
-      // Actually, let's NOT auto-stop based on data presence alone to ensure we get the full update,
-      // but we could add a comparison if we really wanted to be efficient.
-      // For simplicity, the timeout is safe.
     }
   }, [vendor.trustCenterData, isPolling]);
 
@@ -85,6 +80,8 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
       toast.error(`Analysis failed: ${error.message}`);
     }
   });
+
+  const utils = trpc.useContext();
 
   const trustData = vendor.trustCenterData as any;
 
@@ -235,6 +232,7 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
         </Card>
       </div>
 
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Public Discovery Details</CardTitle>
@@ -272,6 +270,83 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
                 <span className="text-xs text-muted-foreground">Checked by ComplianceOS AI Agent</span>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Manual Verification Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <div>
+              <CardTitle>Manual Compliance Verification</CardTitle>
+              <CardDescription>Manually verify compliance artifacts and status.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { id: 'soc2', label: 'SOC 2 Type II', desc: 'AICPA Service Organization Control' },
+              { id: 'iso27001', label: 'ISO 27001', desc: 'Information Security Management' },
+              { id: 'gdpr', label: 'GDPR Compliant', desc: 'General Data Protection Regulation' },
+              { id: 'ccpa', label: 'CCPA/CPRA', desc: 'California Consumer Privacy Act' },
+              { id: 'dpa', label: 'DPA Signed', desc: 'Data Processing Agreement executed' },
+              { id: 'fedramp', label: 'FedRAMP', desc: 'Federal Risk and Authorization Management' },
+              { id: 'hipaa', label: 'HIPAA', desc: 'Health Insurance Portability and Accountability' },
+              { id: 'pci', label: 'PCI DSS', desc: 'Payment Card Industry Data Security' },
+              { id: 'privacyshield', label: 'Privacy Shield', desc: 'Data Privacy Framework' },
+            ].map(check => {
+              const checked = !!trustData?.manual?.[check.id];
+
+              const updateStatus = (isChecked: boolean) => {
+                if (!vendor?.id) return;
+                const currentData = vendor.trustCenterData || {};
+                const newManual = { ...currentData.manual, [check.id]: isChecked };
+
+                // Optimistic update
+                utils.vendors.get.setData({ id: vendor.id }, (old) => old ? { ...old, trustCenterData: { ...currentData, manual: newManual } } : old);
+
+                trpc.vendors.update.mutate({
+                  id: vendor.id,
+                  trustCenterData: { ...currentData, manual: newManual }
+                }).then(() => {
+                  toast.success(`Updated ${check.label}`, { duration: 1500 });
+                  if (onRefresh) onRefresh();
+                }).catch(err => {
+                  console.error("Failed to update vendor trust center:", err);
+                  toast.error("Failed to save: " + (err.message || "Unknown error"));
+                  // Revert optimistic update
+                  utils.vendors.get.invalidate({ id: vendor.id });
+                });
+              };
+
+              return (
+                <div
+                  key={check.id}
+                  className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={(e) => {
+                    // Start toggle if clicking row but NOT input (input handles itself)
+                    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                      updateStatus(!checked);
+                    }
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id={check.id}
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-0.5 cursor-pointer"
+                    checked={checked}
+                    onChange={(e) => updateStatus(e.target.checked)}
+                  />
+                  <div className="space-y-1">
+                    <label htmlFor={check.id} className="font-medium text-sm cursor-pointer select-none pointer-events-none">{check.label}</label>
+                    <p className="text-xs text-muted-foreground select-none pointer-events-none">{check.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

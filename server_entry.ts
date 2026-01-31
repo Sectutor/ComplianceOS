@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter, createContext } from './packages/core/src/routers';
 import { authMiddleware } from './packages/core/src/authMiddleware';
@@ -11,7 +12,7 @@ import { uploadRouter } from './packages/core/src/server/routers/upload';
 import { aiRouter } from './packages/core/src/server/routers/ai';
 
 export const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3002;
 
 console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
@@ -92,6 +93,21 @@ app.get('/api/debug/connection', async (req, res) => {
 app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/ai', aiRouter);
+
+// Serve static files in production (Docker)
+if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
+    console.log('[Server] Serving static files from packages/core/dist');
+    const distPath = path.join(__dirname, 'packages/core/dist');
+    app.use(express.static(distPath));
+
+    // Handle SPA routing - return index.html for any unknown non-API routes
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) {
+            return next();
+        }
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+}
 
 // Global error handler to ensure all errors return JSON
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

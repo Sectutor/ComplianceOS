@@ -12,7 +12,7 @@ interface TPRMLayoutProps {
 
 export function TPRMLayout({ clientId, children }: TPRMLayoutProps) {
     const [location] = useLocation();
-    const { data: stats } = trpc.vendors.getStats.useQuery({ clientId });
+    const { data: stats } = trpc.vendors.getStats.useQuery({ clientId }, { enabled: !!clientId && !isNaN(clientId) });
 
     const navItems = [
         {

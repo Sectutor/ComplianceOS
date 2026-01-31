@@ -230,9 +230,20 @@ const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
 // Premium Guard Component
 function PremiumGuard({ children }: { children: React.ReactNode }) {
   const { selectedClientId } = useClientContext();
-  const { data: client, isLoading, error } = trpc.clients.get.useQuery(
-    { id: selectedClientId as number },
-    { enabled: !!selectedClientId, retry: false, staleTime: 1000 * 60 * 5 }
+  const [location] = useLocation();
+
+  // Extract client ID from URL as fallback
+  const urlClientMatch = location.match(/\/clients\/(\d+)/);
+  const urlClientId = urlClientMatch ? parseInt(urlClientMatch[1], 10) : null;
+  const effectiveClientId = selectedClientId || urlClientId;
+
+  const { data: userMe, isLoading: userLoading } = trpc.users.me.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+    retry: false
+  });
+  const { data: client, isLoading: clientLoading, error } = trpc.clients.get.useQuery(
+    { id: effectiveClientId as number },
+    { enabled: !!effectiveClientId, retry: false, staleTime: 1000 * 60 * 5 }
   );
 
   if (error?.data?.code === 'PRECONDITION_FAILED') {
@@ -244,10 +255,19 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
     return <Redirect to="/clients" />;
   }
 
-  if (isLoading) return <PageLoader />;
+  if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
+  // Case 1: Global page (No client selected) - Check current user's tier
+  if (!effectiveClientId) {
+    if (userMe && userMe.planTier !== 'pro' && userMe.planTier !== 'enterprise' && userMe.role !== 'admin') {
+      console.log('[PremiumGuard] Global redirecting due to user tier:', userMe.planTier);
+      return <Redirect to="/upgrade-required" />;
+    }
+  }
+
+  // Case 2: Client-specific page - Check the selected client's tier
   if (client && client.planTier !== 'pro' && client.planTier !== 'enterprise') {
-    console.log('[PremiumGuard] Redirecting due to invalid tier:', client.planTier);
+    console.log('[PremiumGuard] Client redirecting due to invalid tier:', client.planTier);
     return <Redirect to="/upgrade-required" />;
   }
 
@@ -365,6 +385,12 @@ function PageLoader() {
   );
 }
 
+function TrustCenterAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/trust-center/${selectedClientId}`} />;
+  return <Redirect to="/clients" />;
+}
+
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -400,6 +426,7 @@ function Router() {
 
         {/* Trust Center - Public Facing */}
         <Route path="/trust-center/:clientId" component={TrustCenter} />
+        <Route path="/trust-center" component={TrustCenterAlias} />
 
         {/* Vendor Portals */}
         <Route path="/portal/request/:token" component={ConsolidatedRequestPortal} />
@@ -411,10 +438,10 @@ function Router() {
           <ProtectedRoute component={Dashboard} />
         </Route>
         <Route path="/sales">
-          <ProtectedRoute component={SalesDashboard} />
+          {(_params) => <PremiumGuard><ProtectedRoute component={SalesDashboard} /></PremiumGuard>}
         </Route>
         <Route path="/sales/waitlist">
-          <ProtectedRoute component={WaitlistManagement} />
+          {(_params) => <PremiumGuard><ProtectedRoute component={WaitlistManagement} /></PremiumGuard>}
         </Route>
 
         <Route path="/clients">
@@ -424,16 +451,16 @@ function Router() {
           <ProtectedRoute component={ClientOnboarding} />
         </Route>
         <Route path="/clients/:id/governance/overview">
-          <ProtectedRoute component={GovernanceDashboard} />
+          {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceDashboard} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/governance/workbench">
-          <ProtectedRoute component={GovernanceWorkbench} />
+          {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceWorkbench} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/governance/alignment-guide">
           <ProtectedRoute component={GovernanceAlignmentPage} />
         </Route>
         <Route path="/clients/:id/governance">
-          <ProtectedRoute component={GovernanceDashboard} />
+          {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceDashboard} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/compliance/overview">
           <ProtectedRoute component={ComplianceOverview} />
@@ -1026,7 +1053,7 @@ function Router() {
         </Route>
 
         <Route path="/advisor/workbench">
-          {(_params) => <ProtectedRoute component={AdvisorWorkbench} />}
+          {(_params) => <PremiumGuard><ProtectedRoute component={AdvisorWorkbench} /></PremiumGuard>}
         </Route>
 
         {/* Generic client workspace route - redirect to governance dashboard */}
@@ -1109,7 +1136,6 @@ function Router() {
           </AdminLayout>
         </Route>
 
-        <Route path="/advisor/workbench" component={AdvisorWorkbench} />
 
         {/* Admin Routes */}
         <Route path="/admin/:rest*">

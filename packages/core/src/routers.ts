@@ -1,4 +1,4 @@
-// Force reload 3
+
 import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
@@ -36,6 +36,7 @@ import { llmService } from "./lib/llm/service";
 import { generateGapAnalysisReport } from "./lib/reporting";
 import { suggestControlsForTreatment } from "./lib/ai/controlSuggestions";
 import * as threatIntel from "./lib/threatIntelligence";
+import * as adversaryIntelService from "./lib/adversaryService";
 import { nvdCveCache, cisaKevCache, assetCveMatches, threatIntelSyncLog } from "./schema";
 
 // Initialize tRPC
@@ -50,10 +51,10 @@ import { createRoadmapRouter } from './server/routers/roadmap';
 // Roadmap & Implementation
 import { createRoadmapRouter } from './server/routers/roadmap';
 import { createImplementationRouter } from './server/routers/implementation';
+import { createDevProjectsRouter } from './server/routers/devProjects';
+import { createThreatModelsRouter } from './server/routers/threatModels';
 
 // Add missing imports
-import { createRoadmapRouter } from './server/routers/roadmap';
-import { createImplementationRouter } from './server/routers/implementation';
 import { createChecklistRouter } from './server/routers/checklist';
 import { createBusinessContinuityRouter } from "./server/routers/businessContinuity";
 import { createRisksRouter } from "./server/routers/risks";
@@ -88,6 +89,7 @@ import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
 import { createReportsRouter } from "./server/routers/reports";
 import { createStrategicReportsRouter } from "./server/routers/strategicReports";
 import { createFindingsRouter } from "./server/routers/findings";
+import { createTrustCenterRouter } from "./server/routers/trustCenter";
 
 
 
@@ -183,6 +185,53 @@ const checkClientEditor = t.middleware(({ ctx, next }) => {
 
 const clientEditorProcedure = clientProcedure.use(checkClientEditor);
 
+// Premium Feature Guard - Checks if client has Pro or Enterprise tier
+const checkPremiumAccess = t.middleware(async ({ ctx, next, rawInput }) => {
+  const input = rawInput as any;
+  const clientId = input?.clientId || ctx.clientId;
+
+  // Admin/Owner bypass if no clientId is provided (global view)
+  if (!clientId && (ctx.user?.role === 'admin' || ctx.user?.role === 'owner')) {
+    console.log(`[PremiumGuard] Admin bypass for global query`);
+    return next({ ctx: { ...ctx, isPremium: true } });
+  }
+
+  if (!clientId) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required for premium features' });
+  }
+
+  try {
+    const dbConn = await db.getDb();
+    const [client] = await dbConn.select({ planTier: schema.clients.planTier })
+      .from(schema.clients)
+      .where(eq(schema.clients.id, clientId))
+      .limit(1);
+
+    if (!client) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+    }
+
+    const isPremium = client.planTier === 'pro' || client.planTier === 'enterprise';
+    if (!isPremium) {
+      console.log(`[PremiumGuard] Access denied for client ${clientId} with plan tier: ${client.planTier}`);
+      throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message: 'This feature requires a Pro or Enterprise subscription. Please upgrade to access Vendor Risk Management.'
+      });
+    }
+
+    console.log(`[PremiumGuard] Access granted for client ${clientId} with plan tier: ${client.planTier}`);
+    return next({ ctx: { ...ctx, isPremium: true } });
+  } catch (err) {
+    if (err instanceof TRPCError) throw err;
+    console.error('[PremiumGuard] Error checking premium access:', err);
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify subscription status' });
+  }
+});
+
+// Premium client procedure - requires auth + client access + premium tier
+export const premiumClientProcedure = clientProcedure.use(checkPremiumAccess);
+
 const STANDARD_CONTROLS_CONTEXT = `
 AC-1: Access Control Policy and Procedures
 AC-2: Account Management
@@ -246,8 +295,9 @@ export const appRouter = router({
 
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure),
-
-  // Roadmap & Implementation Module
+  devProjects: createDevProjectsRouter(t, clientProcedure),
+  threatModels: createThreatModelsRouter(t, clientProcedure),
+  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
@@ -269,10 +319,11 @@ export const appRouter = router({
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
   questionnaire: createQuestionnaireRouter(t, clientProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
-  subprocessors: createSubprocessorsRouter(t, clientProcedure, publicProcedure),
-  policyTemplates: createPolicyTemplatesRouter(t, publicProcedure),
+  subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
+  policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
+  trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
 
   ai: router({
     advisor: createAdvisorRouter(t, clientProcedure)
@@ -1050,29 +1101,35 @@ export const appRouter = router({
   }),
 
   vendors: router({
-    list: publicProcedure
+    list: premiumClientProcedure
       .input(z.object({
-        clientId: z.number(),
+        clientId: z.number().optional(), // Make optional since it might come from context
         status: z.string().optional(),
         reviewStatus: z.string().optional()
       }))
-      .query(async ({ input }) => {
-        return await db.getVendors(input.clientId, { status: input.status, reviewStatus: input.reviewStatus });
+      .query(async ({ input, ctx }) => {
+        // Fallback to ctx.clientId if input.clientId is missing
+        const clientId = input.clientId || ctx.clientId;
+        if (!clientId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Client ID required' });
+
+        return await db.getVendors(clientId, { status: input.status, reviewStatus: input.reviewStatus });
       }),
 
-    getStats: publicProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        return await db.getVendorStats(input.clientId);
+    getStats: premiumClientProcedure
+      .input(z.object({ clientId: z.number().optional() }))
+      .query(async ({ input, ctx }) => {
+        const clientId = input.clientId || ctx.clientId;
+        if (!clientId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Client ID required' });
+        return await db.getVendorStats(clientId);
       }),
 
-    get: publicProcedure
+    get: premiumClientProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return await db.getVendorById(input.id);
       }),
 
-    create: adminProcedure
+    create: premiumClientProcedure
       .input(z.object({
         clientId: z.number(),
         name: z.string(),
@@ -1160,6 +1217,8 @@ export const appRouter = router({
         serviceDescription: z.string().optional(),
         additionalNotes: z.string().optional(),
         isSubprocessor: z.boolean().optional(),
+        trustCenterUrl: z.string().optional(),
+        trustCenterData: z.any().optional(),
         additionalDocuments: z.array(z.object({ name: z.string(), url: z.string(), date: z.string().optional() })).optional(),
       }))
       .mutation(async ({ input }) => {
@@ -1477,13 +1536,13 @@ export const appRouter = router({
 
 
   vendorContacts: router({
-    list: publicProcedure
+    list: premiumClientProcedure
       .input(z.object({ vendorId: z.number() }))
       .query(async ({ input }) => {
         const db = await getDb();
         return db.select().from(schema.vendorContacts).where(eq(schema.vendorContacts.vendorId, input.vendorId));
       }),
-    create: adminProcedure
+    create: premiumClientProcedure
       .input(z.object({
         clientId: z.number(),
         vendorId: z.number(),
@@ -1498,7 +1557,7 @@ export const appRouter = router({
         const [contact] = await db.insert(schema.vendorContacts).values(input).returning();
         return contact;
       }),
-    update: adminProcedure
+    update: premiumClientProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -1513,7 +1572,7 @@ export const appRouter = router({
         const [contact] = await db.update(schema.vendorContacts).set(data).where(eq(schema.vendorContacts.id, id)).returning();
         return contact;
       }),
-    delete: adminProcedure
+    delete: premiumClientProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -1523,13 +1582,13 @@ export const appRouter = router({
   }),
 
   vendorContracts: router({
-    list: publicProcedure
+    list: premiumClientProcedure
       .input(z.object({ vendorId: z.number() }))
       .query(async ({ input }) => {
         const db = await getDb();
         return db.select().from(schema.vendorContracts).where(eq(schema.vendorContracts.vendorId, input.vendorId));
       }),
-    create: adminProcedure
+    create: premiumClientProcedure
       .input(z.object({
         clientId: z.number(),
         vendorId: z.number(),
@@ -1552,7 +1611,7 @@ export const appRouter = router({
         }).returning();
         return contract;
       }),
-    update: adminProcedure
+    update: premiumClientProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -1575,7 +1634,7 @@ export const appRouter = router({
         const [contract] = await db.update(schema.vendorContracts).set(updateData).where(eq(schema.vendorContracts.id, id)).returning();
         return contract;
       }),
-    delete: adminProcedure
+    delete: premiumClientProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -1585,9 +1644,9 @@ export const appRouter = router({
   }),
 
   vendorAnalytics: router({
-    getOverdueAssessments: adminProcedure
+    getOverdueAssessments: premiumClientProcedure
       .input(z.object({ clientId: z.number().optional() }).optional())
-      .query(async ({ input = {} }) => {
+      .query(async ({ input = {}, ctx }) => {
         const db = await getDb();
 
         const now = new Date();
@@ -3496,6 +3555,23 @@ ONLY return the JSON. No Markdown formatting.
           .where(eq(riskScenarios.clientId, input.clientId));
       }),
 
+    // --- RISK ASSESSMENTS (Global Register) ---
+    getAssessments: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+        return await dbConn.select({
+          ...getTableColumns(riskAssessments),
+          linkedThreatName: threats.name,
+          linkedVulnerabilityName: vulnerabilities.name
+        })
+          .from(riskAssessments)
+          .leftJoin(threats, eq(riskAssessments.threatId, threats.id))
+          .leftJoin(vulnerabilities, eq(riskAssessments.vulnerabilityId, vulnerabilities.id))
+          .where(eq(riskAssessments.clientId, input.clientId))
+          .orderBy(desc(riskAssessments.createdAt));
+      }),
+
     createScenario: clientEditorProcedure
       .input(z.object({
         clientId: z.number(),
@@ -5138,6 +5214,215 @@ Return JSON:
       }),
   }),
 
+  // ==================== ADVERSARY INTELLIGENCE (PREMIUM) ====================
+  // Live security feeds and MITRE ATT&CK integration
+  adversaryIntel: router({
+    // Get security feeds from CISA, The Hacker News, Bleeping Computer
+    getSecurityFeeds: premiumClientProcedure
+      .input(z.object({
+        limit: z.number().default(100),
+        source: z.string().optional(),
+        forceRefresh: z.boolean().optional(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          if (input.forceRefresh) {
+            console.log('[AdversaryIntel Router] Manual cache clear requested via query');
+            adversaryIntelService.clearCaches();
+          }
+
+          const items = await adversaryIntelService.fetchSecurityFeeds(input.limit);
+
+          // Filter by source if specified
+          let filteredItems = input.source
+            ? items.filter(item => item.source === input.source)
+            : items;
+
+          // Relevance Scoring & Asset Matching
+          let clientAssets: any[] = [];
+          if (input.clientId) {
+            const dbConn = await getDb();
+            clientAssets = await dbConn.select().from(assets).where(eq(assets.clientId, input.clientId));
+          }
+
+          const processedItems = filteredItems.map(item => {
+            let relevanceScore = 0;
+            const impactedAssets: { id: number; name: string; type: string }[] = [];
+
+            // Base score for severity
+            if (item.severity === 'critical') relevanceScore += 10;
+            if (item.severity === 'high') relevanceScore += 5;
+
+            // Tech Stack Matching
+            if (item.techStack && item.techStack.length > 0 && clientAssets.length > 0) {
+              for (const asset of clientAssets) {
+                const assetStr = ((asset.name || '') + ' ' + (asset.type || '') + ' ' + (asset.os || '') + ' ' + (asset.description || '')).toLowerCase();
+                const isMatch = item.techStack.some(tech => assetStr.includes(tech.toLowerCase()));
+
+                if (isMatch) {
+                  impactedAssets.push({ id: asset.id, name: asset.name, type: asset.type || 'Unknown' });
+                }
+              }
+
+              if (impactedAssets.length > 0) {
+                relevanceScore += 20 + (impactedAssets.length * 2); // Boost for hitting assets
+              }
+            }
+
+            return {
+              ...item,
+              pubDate: item.pubDate.toISOString(),
+              relevanceScore,
+              impactedAssets: impactedAssets.slice(0, 5) // Limit matched assets
+            };
+          });
+
+          // Sort by Relevance, then Date
+          processedItems.sort((a, b) => {
+            if (b.relevanceScore !== a.relevanceScore) {
+              return b.relevanceScore - a.relevanceScore;
+            }
+            return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+          });
+
+          return {
+            items: processedItems,
+            lastUpdated: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching feeds:', error);
+          return { items: [], lastUpdated: new Date().toISOString() };
+        }
+      }),
+
+    // Manual refresh to bypass cache
+    refreshFeeds: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }).optional())
+      .mutation(async () => {
+        console.log('[AdversaryIntel Router] Manual cache refresh requested via mutation');
+        adversaryIntelService.clearCaches();
+        const items = await adversaryIntelService.fetchSecurityFeeds(100);
+        return {
+          items: items.map(item => ({
+            ...item,
+            pubDate: item.pubDate.toISOString(),
+          })),
+        };
+      }),
+
+    // Search security feeds
+    searchFeeds: premiumClientProcedure
+      .input(z.object({
+        query: z.string(),
+        limit: z.number().default(20),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const items = await adversaryIntelService.searchSecurityFeeds(input.query, input.limit);
+        return {
+          items: items.map(item => ({
+            ...item,
+            pubDate: item.pubDate.toISOString(),
+          })),
+        };
+      }),
+
+    // Get MITRE ATT&CK data (tactics and techniques)
+    getMitreData: premiumClientProcedure
+      .input(z.object({
+        tacticId: z.string().optional(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          const data = await adversaryIntelService.fetchMitreAttackData();
+
+          let techniques = data.techniques;
+          if (input.tacticId) {
+            techniques = techniques.filter(t => t.tacticId === input.tacticId);
+          }
+
+          return {
+            tactics: data.tactics,
+            techniques: techniques.slice(0, 200), // Limit for performance
+            mitigations: data.mitigations.slice(0, 100),
+            lastUpdated: data.lastUpdated.toISOString(),
+          };
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching MITRE data:', error);
+          return {
+            tactics: [],
+            techniques: [],
+            mitigations: [],
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      }),
+
+    // Search MITRE techniques
+    searchTechniques: premiumClientProcedure
+      .input(z.object({
+        query: z.string(),
+        limit: z.number().default(20),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const techniques = await adversaryIntelService.searchMitreTechniques(input.query, input.limit);
+        return { techniques };
+      }),
+
+    // Get a specific technique by ID
+    getTechnique: premiumClientProcedure
+      .input(z.object({
+        id: z.string(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const technique = await adversaryIntelService.getMitreTechniqueById(input.id);
+        return { technique };
+      }),
+
+    // Get techniques by tactic
+    getTechniquesByTactic: premiumClientProcedure
+      .input(z.object({
+        tacticId: z.string(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const techniques = await adversaryIntelService.getTechniquesByTactic(input.tacticId);
+        return { techniques };
+      }),
+
+    // Get intelligence summary for dashboard
+    getSummary: premiumClientProcedure
+      .query(async () => {
+        const summary = await adversaryIntelService.getIntelligenceSummary();
+        return summary;
+      }),
+
+    // Refresh all caches
+    refreshCaches: premiumClientProcedure
+      .mutation(async () => {
+        adversaryIntelService.clearCaches();
+
+        // Pre-warm caches
+        const [feeds, mitre] = await Promise.all([
+          adversaryIntelService.fetchSecurityFeeds(50),
+          adversaryIntelService.fetchMitreAttackData(),
+        ]);
+
+        return {
+          success: true,
+          feedCount: feeds.length,
+          techniqueCount: mitre.techniques.length,
+          refreshedAt: new Date().toISOString(),
+        };
+      }),
+  }),
+
   gapQuestionnaire: router({
     create: publicProcedure
       .input(z.object({
@@ -5441,11 +5726,13 @@ Return JSON:
   readiness: createReadinessRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure),
-  vendorAssessments: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure),
-  globalVendors: createGlobalVendorsRouter(t, clientProcedure),
-  vendorContracts: createVendorContractsRouter(t, clientProcedure),
-  vendorDpas: createVendorDpasRouter(t, clientProcedure),
-  vendorRequests: createVendorRequestsRouter(t, clientProcedure),
+  // === PREMIUM FEATURE: Vendor Risk Management (VRM) ===
+  // These routers require Pro or Enterprise subscription
+  vendorAssessments: createVendorAssessmentsRouter(t, premiumClientProcedure, publicProcedure),
+  globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
+  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
+  vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
+  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
 
   vendorCommunication: router({
     sendVendorEmail: clientProcedure
@@ -6164,4 +6451,4 @@ Return JSON:
 
 
 export type AppRouter = typeof appRouter;
-// Force reload
+

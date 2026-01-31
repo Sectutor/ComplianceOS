@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text, timestamp, pgEnum, boolean, json, jsonb, serial, index, uniqueIndex, customType } from "drizzle-orm/pg-core";
+﻿import { pgTable, integer, varchar, text, timestamp, pgEnum, boolean, json, jsonb, serial, index, uniqueIndex, customType } from "drizzle-orm/pg-core";
 
 
 
@@ -897,6 +897,11 @@ export const clients = pgTable("clients", {
 
   serviceModel: varchar("service_model", { length: 50 }).default("subscription"), // subscription, guided, managed
 
+  // Branding
+  brandPrimaryColor: varchar("brand_primary_color", { length: 20 }),
+  brandSecondaryColor: varchar("brand_secondary_color", { length: 20 }),
+  portalTitle: varchar("portal_title", { length: 255 }),
+
   weeklyFocus: text("weekly_focus"), // Advisor-set goal for Model 2
 
 
@@ -1282,6 +1287,8 @@ export const controlMappings = pgTable("control_mappings", {
 
 
   createdBy: integer("created_by"), // FK to users
+
+  isAiGenerated: boolean("is_ai_generated").default(false),
 
 }, (table) => {
 
@@ -1801,6 +1808,10 @@ export const policyTemplates = pgTable("policy_templates", {
 
   content: text("content"),
 
+  // Ownership
+  ownerId: integer("owner_id"),
+  isPublic: boolean("is_public").default(false),
+
 
 
   sections: json("sections").$type<{
@@ -2015,6 +2026,10 @@ export const clientPolicies = pgTable("client_policies", {
 
 
 
+  isAiGenerated: boolean("is_ai_generated").default(false),
+
+
+
   updatedAt: timestamp("updated_at").defaultNow(),
 
 
@@ -2080,6 +2095,18 @@ export const controlPolicyMappings = pgTable("control_policy_mappings", {
 
 
   clientPolicyId: integer("client_policy_id").notNull(),
+
+
+
+  evidenceReference: text("evidence_reference"),
+
+
+
+  notes: text("notes"),
+
+
+
+  isAiGenerated: boolean("is_ai_generated").default(false),
 
 
 
@@ -5647,6 +5674,9 @@ export const riskScenarios = pgTable("risk_scenarios", {
 
   vendorId: integer("vendor_id"), // Linked Vendor (if vendor-based)
 
+  devProjectId: integer("dev_project_id"), // Linked Dev Project
+  threatModelId: integer("threat_model_id"), // Linked Threat Model
+
 
 
 
@@ -5718,10 +5748,17 @@ export const riskScenarios = pgTable("risk_scenarios", {
 
 
   likelihood: integer("likelihood").default(1), // 1-5
-
-
-
   impact: integer("impact").default(1), // 1-5
+  inherentScore: integer("inherent_score"), // Likelihood * Impact
+  inherentRisk: varchar("inherent_risk", { length: 50 }),
+  residualLikelihood: integer("residual_likelihood"),
+  residualImpact: integer("residual_impact"),
+  residualScore: integer("residual_score"),
+  residualRisk: varchar("residual_risk", { length: 50 }),
+
+
+
+
 
 
 
@@ -13473,3 +13510,125 @@ export const evidenceComments = pgTable("evidence_comments", {
 
 export type EvidenceComment = typeof evidenceComments.$inferSelect;
 export type InsertEvidenceComment = typeof evidenceComments.$inferInsert;
+
+// Developer Risk Management & Threat Modeling
+// ==========================================
+
+export const devProjects = pgTable("dev_projects", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  repositoryUrl: varchar("repository_url", { length: 500 }),
+  techStack: json("tech_stack").$type<string[]>(), // e.g. ["React", "Node", "Postgres"]
+  owner: varchar("owner", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_dev_proj_client").on(table.clientId),
+  };
+});
+
+export type DevProject = typeof devProjects.$inferSelect;
+export type InsertDevProject = typeof devProjects.$inferInsert;
+
+export const threatModels = pgTable("threat_models", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  devProjectId: integer("dev_project_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  methodology: varchar("methodology", { length: 50 }).default('STRIDE'),
+  status: varchar("status", { length: 50 }).default('draft'), // draft, active, archived
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    projectIdx: index("idx_tm_project").on(table.devProjectId),
+    clientIdx: index("idx_tm_client").on(table.clientId),
+  };
+});
+
+export type ThreatModel = typeof threatModels.$inferSelect;
+export type InsertThreatModel = typeof threatModels.$inferInsert;
+
+export const threatModelComponents = pgTable("threat_model_components", {
+  id: serial("id").primaryKey(),
+  threatModelId: integer("threat_model_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'Web Client', 'API', 'Database', 'External Service', etc.
+  description: text("description"),
+  x: integer("x").default(0),
+  y: integer("y").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    tmIdx: index("idx_tm_comp_tm").on(table.threatModelId),
+  };
+});
+
+export type ThreatModelComponent = typeof threatModelComponents.$inferSelect;
+export type InsertThreatModelComponent = typeof threatModelComponents.$inferInsert;
+
+export const threatModelDataFlows = pgTable("threat_model_data_flows", {
+  id: serial("id").primaryKey(),
+  threatModelId: integer("threat_model_id").notNull(),
+  sourceComponentId: integer("source_component_id").notNull(),
+  targetComponentId: integer("target_component_id").notNull(),
+  protocol: varchar("protocol", { length: 50 }).default('HTTPS'), // HTTPS, HTTP, TCP, JDBC, IPC
+  isEncrypted: boolean("is_encrypted").default(true),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    dfTmIdx: index("idx_tm_df_tm").on(table.threatModelId),
+  };
+});
+
+export type ThreatModelDataFlow = typeof threatModelDataFlows.$inferSelect;
+export type InsertThreatModelDataFlow = typeof threatModelDataFlows.$inferInsert;
+
+// ==========================================
+// TRUST CENTER & NDA GATEKEEPING
+// ==========================================
+
+export const trustCenterVisitors = pgTable("trust_center_visitors", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }),
+  company: varchar("company", { length: 255 }),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const ndaSignatures = pgTable("nda_signatures", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  visitorId: integer("visitor_id").notNull(),
+  ndaVersion: varchar("nda_version", { length: 50 }).default("v1.0"),
+  signedAt: timestamp("signed_at").defaultNow(),
+  signatureText: varchar("signature_text", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 50 }),
+});
+
+export const trustDocuments = pgTable("trust_documents", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  fileUrl: text("file_url").notNull(),
+  isLocked: boolean("is_locked").default(false), // true = NDA required
+  category: varchar("category", { length: 100 }), // Compliance, Security, Privacy
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type TrustCenterVisitor = typeof trustCenterVisitors.$inferSelect;
+export type InsertTrustCenterVisitor = typeof trustCenterVisitors.$inferInsert;
+
+export type NdaSignature = typeof ndaSignatures.$inferSelect;
+export type InsertNdaSignature = typeof ndaSignatures.$inferInsert;
+
+export type TrustDocument = typeof trustDocuments.$inferSelect;
+export type InsertTrustDocument = typeof trustDocuments.$inferInsert;
+
