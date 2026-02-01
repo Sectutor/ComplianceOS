@@ -1,12 +1,34 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import {
     Upload, FileText, CheckCircle2, Clock, AlertCircle,
-    Sparkles, Inbox, Search, Filter, MoreHorizontal
+    Sparkles, Inbox, Search, Filter, MoreHorizontal,
+    Trash2, Link as LinkIcon, Download, ChevronsUpDown, Check
 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@complianceos/ui/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@complianceos/ui/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@complianceos/ui/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@complianceos/ui/ui/popover";
+import { Label } from "@complianceos/ui/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { cn } from "@/lib/utils";
 import { Input } from "@complianceos/ui/ui/input";
 import {
     Table,
@@ -23,7 +45,91 @@ import { useParams } from "wouter";
 export default function EvidenceIntakeBox() {
     const [isDragging, setIsDragging] = useState(false);
     const params = useParams();
-    const clientId = params.id ? parseInt(params.id) : null;
+    const clientId = useMemo(() => {
+        if (!params.id) {
+            console.warn('[EvidenceIntakeBox] No client ID in params');
+            return null;
+        }
+        const id = parseInt(params.id);
+        if (isNaN(id)) {
+            console.error('[EvidenceIntakeBox] Invalid client ID:', params.id);
+            return null;
+        }
+        return id;
+    }, [params.id]);
+
+    const { data: controls, isLoading: isLoadingControls } = trpc.evidence.listOpenRequests.useQuery(
+        { clientId: clientId as number },
+        { enabled: !!clientId }
+    );
+
+    const deleteMutation = trpc.intake.delete.useMutation({
+        onSuccess: () => {
+            toast.success("Item deleted");
+            refetch();
+        }
+    });
+
+    const mapMutation = trpc.intake.mapToEvidence.useMutation({
+        onSuccess: () => {
+            toast.success("Evidence mapped successfully");
+            setMapDialogOpen(false);
+            refetch();
+        },
+        onError: (error) => {
+            console.error('[EvidenceIntakeBox] mapToEvidence mutation failed:', error);
+            toast.error(`Failed to map evidence: ${error.message}`);
+        }
+    });
+
+    const [mapDialogOpen, setMapDialogOpen] = useState(false);
+    const [selectedIntakeItem, setSelectedIntakeItem] = useState<any>(null);
+    const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
+    const [evidenceTitle, setEvidenceTitle] = useState("");
+    const [comboboxOpen, setComboboxOpen] = useState(false);
+    const [selectedFramework, setSelectedFramework] = useState<string>("all");
+
+    const frameworks = useMemo(() => {
+        if (!controls) return [];
+        return Array.from(new Set(controls.map((c: any) => c.framework || c.control?.framework).filter(Boolean)));
+    }, [controls]);
+
+    const filteredControls = useMemo(() => {
+        if (!controls) return [];
+        if (selectedFramework === 'all') return controls;
+        return controls.filter((c: any) => (c.framework || c.control?.framework) === selectedFramework);
+    }, [controls, selectedFramework]);
+
+    const [selectedEvidenceId, setSelectedEvidenceId] = useState<number | null>(null);
+
+    const openMapDialog = (item: any) => {
+        setSelectedIntakeItem(item);
+        setEvidenceTitle(item.filename);
+        setMapDialogOpen(true);
+    };
+
+    const handleMap = () => {
+        // We require selectedIntakeItem and clientId. selectedControlId or selectedEvidenceId must be present.
+        if (!selectedIntakeItem || !clientId) {
+            console.error('[EvidenceIntakeBox] Missing required parameters for mapping:', {
+                selectedIntakeItem: !!selectedIntakeItem,
+                selectedControlId: !!selectedControlId,
+                clientId: !!clientId
+            });
+            toast.error('Missing required parameters for mapping');
+            return;
+        }
+
+        const mutationData = {
+            intakeItemId: selectedIntakeItem.id,
+            clientControlId: selectedControlId || 0, // Fallback if mapping directly to evidence ID
+            evidenceId: selectedEvidenceId, // NEW: Pass the direct Evidence Record ID
+            title: evidenceTitle || selectedIntakeItem.filename
+        };
+
+        console.log('[EvidenceIntakeBox] Calling mapToEvidence with:', mutationData);
+        mapMutation.mutate(mutationData);
+    };
 
     // Real tRPC connections
     const { data: intakeItems, refetch } = trpc.intake.list.useQuery(
@@ -35,6 +141,10 @@ export default function EvidenceIntakeBox() {
         onSuccess: () => {
             toast.success("File added to intake box!");
             refetch();
+        },
+        onError: (error) => {
+            console.error('[EvidenceIntakeBox] intake.create mutation failed:', error);
+            toast.error(`Failed to record upload: ${error.message}`);
         }
     });
 
@@ -45,19 +155,55 @@ export default function EvidenceIntakeBox() {
         }
     });
 
-    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const runTriage = (id: number) => {
+        triageMutation.mutate({
+            id,
+            classification: "Analyzing content...",
+            details: { confidence: 50, date: new Date().toISOString() }
+        });
+    };
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !clientId) return;
 
         const reader = new FileReader();
         reader.onload = async (event) => {
-            const base64 = (event.target?.result as string).split(',')[1];
-            uploadMutation.mutate({
-                clientId,
-                filename: file.name,
-                fileUrl: "https://example.com/mock-upload-" + Date.now(),
-                fileBase64: base64
-            });
+            try {
+                const base64 = (event.target?.result as string).split(',')[1];
+
+                // 1. Physical Upload
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: file.name,
+                        data: base64,
+                        contentType: file.type,
+                        folder: 'uploads/intake'
+                    })
+                });
+
+                if (!uploadRes.ok) throw new Error('Upload failed');
+                const uploadResult = await uploadRes.json();
+                const { url: fileUrl, key: fileKey } = uploadResult;
+
+                // 2. Database Record + AI Triage
+                uploadMutation.mutate({
+                    clientId,
+                    filename: file.name,
+                    fileUrl,
+                    fileKey,
+                    fileBase64: base64
+                });
+            } catch (error: any) {
+                console.error('[EvidenceIntakeBox] Upload error:', error);
+                toast.error('Upload failed: ' + error.message);
+            }
+        };
+        reader.onerror = () => {
+            console.error('[EvidenceIntakeBox] File reading failed');
+            toast.error('Failed to read file');
         };
         reader.readAsDataURL(file);
     };
@@ -66,13 +212,6 @@ export default function EvidenceIntakeBox() {
         document.getElementById("file-upload")?.click();
     };
 
-    const runTriage = (id: number) => {
-        triageMutation.mutate({
-            id,
-            classification: "Financial Record (Auto-detected)",
-            details: { confidence: 98, date: new Date().toISOString() }
-        });
-    };
 
     return (
         <DashboardLayout>
@@ -162,7 +301,12 @@ export default function EvidenceIntakeBox() {
                                                     <FileText className="h-5 w-5" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-semibold text-slate-900">{item.filename}</span>
+                                                    <button
+                                                        onClick={() => window.open(item.fileUrl, '_blank')}
+                                                        className="text-left text-sm font-semibold text-slate-900 hover:text-indigo-600 hover:underline cursor-pointer"
+                                                    >
+                                                        {item.filename}
+                                                    </button>
                                                     <span className="text-xs text-slate-500">{(Math.random() * 5 + 1).toFixed(1)} MB</span>
                                                 </div>
                                             </div>
@@ -204,9 +348,26 @@ export default function EvidenceIntakeBox() {
                                             })}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" className="hover:bg-slate-100">
-                                                <MoreHorizontal className="h-4 w-4 text-slate-400" />
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="hover:bg-slate-100">
+                                                        <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => window.open(item.fileUrl, '_blank')}>
+                                                        <Download className="mr-2 h-4 w-4" /> View / Download
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openMapDialog(item)}>
+                                                        <LinkIcon className="mr-2 h-4 w-4" /> Map to Evidence
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => deleteMutation.mutate({ id: item.id })}>
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -225,6 +386,124 @@ export default function EvidenceIntakeBox() {
                         </Table>
                     </CardContent>
                 </Card>
+
+                {/* Map to Evidence Dialog */}
+                <Dialog open={mapDialogOpen} onOpenChange={setMapDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Map to Control Evidence</DialogTitle>
+                            <DialogDescription>
+                                Link this file to a specific compliance control. This will officially collect it as evidence.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="title">Evidence Title</Label>
+                                <Input
+                                    id="title"
+                                    value={evidenceTitle}
+                                    onChange={(e) => setEvidenceTitle(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Framework</Label>
+                                <Select value={selectedFramework} onValueChange={setSelectedFramework}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select framework..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Frameworks</SelectItem>
+                                        {frameworks.map((fw: any) => (
+                                            <SelectItem key={fw} value={fw}>{fw}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Link to Control</Label>
+                                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={comboboxOpen}
+                                            className="w-full justify-between"
+                                        >
+                                            {selectedControlId || selectedEvidenceId
+                                                ? controls?.find((c: any) => (c.clientControl?.id === selectedControlId) || (c.evidenceId === selectedEvidenceId))?.evidenceLabel || "Selected Control"
+                                                : "Select control..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[400px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search controls..." />
+                                            <CommandList className="max-h-[300px] overflow-y-auto">
+                                                <CommandEmpty>
+                                                    {isLoadingControls ? (
+                                                        <div className="flex items-center justify-center py-4 text-slate-500">
+                                                            <div className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full mr-2"></div>
+                                                            Loading controls...
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-slate-500">No control found.</span>
+                                                    )}
+                                                </CommandEmpty>
+                                                <CommandGroup>
+                                                    {filteredControls?.map((c: any) => {
+                                                        const controlName = c.evidenceLabel || c.control?.name || c.clientControl?.customDescription || "Unknown Control"; // Use evidenceLabel first
+                                                        const controlId = c.control?.id || "Req"; // Fallback ID
+                                                        const searchValue = `${controlName} ${controlId} ${c.framework || ""}`;
+
+                                                        // Use evidenceId as the unique key for selection if clientControlId is 0 or missing
+                                                        const uniqueId = c.evidenceId;
+
+                                                        return (
+                                                            <CommandItem
+                                                                key={uniqueId}
+                                                                value={searchValue}
+                                                                onSelect={() => {
+                                                                    // We prioritize updating the specific Evidence Record ID
+                                                                    setSelectedEvidenceId(c.evidenceId);
+                                                                    // We also track control ID for legacy, if valid
+                                                                    if (c.clientControl?.id) setSelectedControlId(c.clientControl.id);
+                                                                    else setSelectedControlId(0);
+
+                                                                    setComboboxOpen(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        selectedEvidenceId === c.evidenceId ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium">
+                                                                        {controlName}
+                                                                    </span>
+                                                                    {c.control?.name && c.control.name !== controlName && (
+                                                                        <span className="text-muted-foreground text-xs">{c.control.name}</span>
+                                                                    )}
+                                                                </div>
+                                                            </CommandItem>
+                                                        );
+                                                    })}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setMapDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleMap} disabled={mapMutation.isPending || !selectedControlId}>
+                                {mapMutation.isPending ? "Mapping..." : "Confirm & Map"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </DashboardLayout>
     );

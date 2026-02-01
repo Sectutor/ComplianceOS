@@ -10,18 +10,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { ArrowLeft, Save, Eye, FileText, Loader2, History, RotateCcw, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Save, Eye, FileText, Loader2, History, RotateCcw, HelpCircle, ChevronDown, ChevronUp, Sparkles, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@complianceos/ui/ui/dialog";
 import RichTextEditor from "@/components/RichTextEditor";
 import { marked } from "marked";
 import TurndownService from "turndown";
-// @ts-ignore
-import html2pdf from "html2pdf.js";
+
 // @ts-ignore
 import { asBlob } from "html-docx-js-typescript";
 import { saveAs } from "file-saver";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@complianceos/ui/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@complianceos/ui/ui/popover";
+import { Check, X, ShieldAlert, Link as LinkIcon, Unlink, Shield, TrendingDown, TrendingUp, AlertTriangle, ExternalLink, CheckCircle2, Clock, Target, BarChart3 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import ControlDetailsDialog from "@/components/ControlDetailsDialog";
+import { RiskDetailsDialog } from "@/components/risk/RiskDetailsDialog";
+import { CommentsSection } from "@/components/CommentsSection";
+
 export default function PolicyEditor() {
     const params = useParams();
     const clientId = Number(params.id);
@@ -42,6 +49,27 @@ export default function PolicyEditor() {
         { enabled: !!policyId }
     );
 
+    // Integations Data
+    const { data: linkedRisks, refetch: refetchLinkedRisks } = trpc.clientPolicies.getLinkedRisks.useQuery({ policyId }, { enabled: !!policyId });
+    const { data: linkedControls, refetch: refetchLinkedControls } = trpc.clientPolicies.getLinkedControls.useQuery({ policyId }, { enabled: !!policyId });
+    const { data: availableRisks } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: availableControls } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
+
+    const linkRiskMutation = trpc.clientPolicies.linkRisk.useMutation();
+    const unlinkRiskMutation = trpc.clientPolicies.unlinkRisk.useMutation();
+    const linkControlMutation = trpc.clientPolicies.linkControl.useMutation();
+    const unlinkControlMutation = trpc.clientPolicies.unlinkControl.useMutation();
+
+    const sendToIntakeMutation = trpc.intake.createFromPolicy.useMutation({
+        onSuccess: () => {
+            toast.success("Policy sent to evidence intake!");
+        },
+        onError: (err) => {
+            console.error('[PolicyEditor] intake.createFromPolicy mutation failed:', err);
+            toast.error(err.message || "Failed to send to intake");
+        }
+    });
+
     const [name, setName] = useState("");
     const [content, setContent] = useState("");
     const [status, setStatus] = useState("draft");
@@ -53,7 +81,23 @@ export default function PolicyEditor() {
     const [publishNotes, setPublishNotes] = useState("");
     const [publishVersion, setPublishVersion] = useState("");
     const [showPublishDialog, setShowPublishDialog] = useState(false);
+
     const [showGuide, setShowGuide] = useState(false);
+
+    // Integration States
+    const [openLinkRisk, setOpenLinkRisk] = useState(false);
+    const [openLinkControl, setOpenLinkControl] = useState(false);
+    const [selectedRiskIds, setSelectedRiskIds] = useState<number[]>([]);
+    const [selectedControlIds, setSelectedControlIds] = useState<number[]>([]);
+    const [suggestedRiskIds, setSuggestedRiskIds] = useState<number[]>([]);
+    const [suggestedControlIds, setSuggestedControlIds] = useState<number[]>([]);
+    const [isLoadingRiskSuggestions, setIsLoadingRiskSuggestions] = useState(false);
+
+    const [isLoadingControlSuggestions, setIsLoadingControlSuggestions] = useState(false);
+
+    // Detail Dialog States
+    const [selectedRisk, setSelectedRisk] = useState<any>(null);
+    const [selectedControl, setSelectedControl] = useState<any>(null);
 
     // Initialize turndown service for HTML to markdown conversion (matching PolicyTemplates.tsx pattern)
     // Initialize turndown service for HTML to markdown conversion (matching PolicyTemplates.tsx pattern)
@@ -62,6 +106,135 @@ export default function PolicyEditor() {
         const service = new TurndownService({ headingStyle: 'atx' });
         return service;
     }, []);
+
+    // ==================== COMPUTED METRICS FOR INTEGRATIONS ====================
+    // Risk Exposure Metrics
+    const riskMetrics = useMemo(() => {
+        const risks = (linkedRisks || []).filter((item: any) => item?.risk);
+        if (risks.length === 0) return null;
+
+        const totalInherentScore = risks.reduce((sum: number, item: any) => sum + (item.risk?.inherentScore || 0), 0);
+        const totalResidualScore = risks.reduce((sum: number, item: any) => sum + (item.risk?.residualScore || item.risk?.inherentScore || 0), 0);
+        const highRiskCount = risks.filter((item: any) => (item.risk?.inherentScore || 0) >= 15).length;
+        const criticalRiskCount = risks.filter((item: any) => (item.risk?.inherentScore || 0) >= 20).length;
+        const averageInherentScore = Math.round(totalInherentScore / risks.length);
+        const riskReduction = totalInherentScore > 0 ? Math.round(((totalInherentScore - totalResidualScore) / totalInherentScore) * 100) : 0;
+
+        // Risk level distribution
+        const riskLevelCounts = {
+            critical: risks.filter((item: any) => (item.risk?.inherentScore || 0) >= 20).length,
+            high: risks.filter((item: any) => (item.risk?.inherentScore || 0) >= 15 && (item.risk?.inherentScore || 0) < 20).length,
+            medium: risks.filter((item: any) => (item.risk?.inherentScore || 0) >= 9 && (item.risk?.inherentScore || 0) < 15).length,
+            low: risks.filter((item: any) => (item.risk?.inherentScore || 0) < 9).length,
+        };
+
+        return {
+            totalRisks: risks.length,
+            totalInherentScore,
+            totalResidualScore,
+            highRiskCount,
+            criticalRiskCount,
+            averageInherentScore,
+            riskReduction,
+            riskLevelCounts,
+            hasHighRisks: highRiskCount > 0,
+            hasCriticalRisks: criticalRiskCount > 0,
+        };
+    }, [linkedRisks]);
+
+    // Control Coverage Metrics
+    const controlMetrics = useMemo(() => {
+        const controls = (linkedControls || []).filter((item: any) => item?.clientControl);
+        if (controls.length === 0) return null;
+
+        const implementedCount = controls.filter((item: any) =>
+            item.clientControl?.status === 'implemented'
+        ).length;
+        const inProgressCount = controls.filter((item: any) =>
+            item.clientControl?.status === 'in_progress'
+        ).length;
+        const notImplementedCount = controls.filter((item: any) =>
+            item.clientControl?.status === 'not_implemented' || !item.clientControl?.status
+        ).length;
+        const notApplicableCount = controls.filter((item: any) =>
+            item.clientControl?.status === 'not_applicable'
+        ).length;
+
+        const implementationRate = Math.round((implementedCount / controls.length) * 100);
+
+        // Check for gaps: high-risk linked risks without adequate control coverage
+        const linkedRiskIds = new Set((linkedRisks || []).filter((item: any) => item?.risk).map((item: any) => item.risk.id));
+        const hasUnmitigatedHighRisks = riskMetrics?.highRiskCount && implementedCount < riskMetrics.highRiskCount;
+
+        return {
+            totalControls: controls.length,
+            implementedCount,
+            inProgressCount,
+            notImplementedCount,
+            notApplicableCount,
+            implementationRate,
+            hasUnmitigatedHighRisks,
+            allImplemented: implementedCount === controls.length,
+        };
+    }, [linkedControls, linkedRisks, riskMetrics]);
+
+    // Gap Analysis Alerts
+    const gapAlerts = useMemo(() => {
+        const alerts: { type: 'critical' | 'warning' | 'info'; message: string; action?: string; actionType?: 'link_risk' | 'link_control' | 'review_controls' }[] = [];
+
+        // No risks linked
+        if (!linkedRisks || linkedRisks.length === 0) {
+            alerts.push({
+                type: 'info',
+                message: 'No risks linked to this policy',
+                action: 'Consider linking relevant risks to assess policy coverage',
+                actionType: 'link_risk'
+            });
+        }
+
+        // No controls linked
+        if (!linkedControls || linkedControls.length === 0) {
+            alerts.push({
+                type: 'info',
+                message: 'No controls linked to this policy',
+                action: 'Link controls to demonstrate how this policy is enforced',
+                actionType: 'link_control'
+            });
+        }
+
+        // High risks without controls
+        if (riskMetrics?.highRiskCount && (!controlMetrics || controlMetrics.totalControls === 0)) {
+            alerts.push({
+                type: 'critical',
+                message: `${riskMetrics.highRiskCount} high/critical risk(s) with no linked controls`,
+                action: 'Urgent: Link mitigating controls to address high-risk exposures',
+                actionType: 'link_control'
+            });
+        }
+
+        // Controls not implemented
+        if (controlMetrics && controlMetrics.notImplementedCount > 0) {
+            alerts.push({
+                type: 'warning',
+                message: `${controlMetrics.notImplementedCount} of ${controlMetrics.totalControls} controls not yet implemented`,
+                action: 'Review control implementation status',
+                actionType: 'review_controls'
+            });
+        }
+
+        // Critical risks present
+        if (riskMetrics?.criticalRiskCount && riskMetrics.criticalRiskCount > 0) {
+            alerts.push({
+                type: 'critical',
+                message: `${riskMetrics.criticalRiskCount} critical risk(s) affecting this policy`,
+                action: 'Immediate attention required for critical risks',
+                actionType: 'link_control'
+            });
+        }
+
+        return alerts;
+    }, [linkedRisks, linkedControls, riskMetrics, controlMetrics]);
+
 
     // Initialize form with policy data - always parse as Markdown (matching PolicyTemplates.tsx pattern)
     useEffect(() => {
@@ -199,35 +372,200 @@ export default function PolicyEditor() {
         }
     };
 
-    const handleExportPDF = () => {
-        const element = document.createElement("div");
-        element.innerHTML = `
-            <div style="padding: 40px; font-family: Arial, sans-serif; color: #333;">
-                <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px;">
-                    <h1 style="font-size: 24px; margin: 0; text-transform: uppercase;">${name}</h1>
-                    <p style="margin: 10px 0 0; color: #666;">Compliance Policy Document</p>
-                </div>
-                <div class="content" style="font-size: 12pt; line-height: 1.6;">
-                    ${content}
-                </div>
-                <div style="margin-top: 50px; font-size: 10pt; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-                    <p>Generated by ComplianceOS on ${new Date().toLocaleDateString()}</p>
-                    <p>Confidential - Internal Use Only</p>
-                </div>
-            </div>
-        `;
-
-        const opt = {
-            margin: 10,
-            filename: `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(element).save();
-        toast.success("PDF export started");
+    const handleLinkRisk = async () => {
+        if (selectedRiskIds.length === 0 || !policyId) return;
+        try {
+            // Link all selected risks
+            await Promise.all(
+                selectedRiskIds.map(riskId =>
+                    linkRiskMutation.mutateAsync({ policyId, riskId })
+                )
+            );
+            toast.success(`${selectedRiskIds.length} risk(s) linked successfully`);
+            setOpenLinkRisk(false);
+            setSelectedRiskIds([]);
+            setSuggestedRiskIds([]);
+            refetchLinkedRisks();
+        } catch (error: any) {
+            toast.error("Failed to link risks");
+        }
     };
+
+    const handleSuggestRisks = async () => {
+        if (!content || !availableRisks || availableRisks.length === 0) {
+            toast.error("No policy content or risks available");
+            return;
+        }
+
+        setIsLoadingRiskSuggestions(true);
+        try {
+            // Get already linked risk IDs to exclude them
+            const linkedRiskIds = new Set(linkedRisks?.map((item: any) => item.risk?.id).filter(Boolean) || []);
+
+            // Filter available risks that aren't already linked
+            const unlinkedRisks = availableRisks.filter((risk: any) => !linkedRiskIds.has(risk.id));
+
+            if (unlinkedRisks.length === 0) {
+                toast.info("All available risks are already linked");
+                setIsLoadingRiskSuggestions(false);
+                return;
+            }
+
+            // Simple keyword matching for risk suggestion
+            // Extract keywords from policy content (lowercase, remove HTML tags)
+            const cleanContent = content.replace(/<[^>]*>/g, ' ').toLowerCase();
+            const keywords = cleanContent.split(/\s+/).filter((word: string) => word.length > 4);
+
+            // Score each risk based on keyword matches in title and description
+            const scoredRisks = unlinkedRisks.map((risk: any) => {
+                const riskText = `${risk.title || ''} ${risk.description || ''}`.toLowerCase();
+                const score = keywords.reduce((total: number, keyword: string) => {
+                    return total + (riskText.includes(keyword) ? 1 : 0);
+                }, 0);
+                return { risk, score };
+            });
+
+            // Sort by score and take top 5 matches
+            const topRisks = scoredRisks
+                .filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5)
+                .map(item => item.risk.id);
+
+            if (topRisks.length === 0) {
+                toast.info("No matching risks found based on policy content");
+            } else {
+                setSuggestedRiskIds(topRisks);
+                setSelectedRiskIds(topRisks);
+                toast.success(`Found ${topRisks.length} suggested risk(s)`);
+            }
+        } catch (error: any) {
+            console.error("Error suggesting risks:", error);
+            toast.error("Failed to analyze policy for risk suggestions");
+        } finally {
+            setIsLoadingRiskSuggestions(false);
+        }
+    };
+
+    const handleUnlinkRisk = async (riskId: number) => {
+        if (!policyId) return;
+        try {
+            await unlinkRiskMutation.mutateAsync({ policyId, riskId });
+            toast.success("Risk unlinked successfully");
+            refetchLinkedRisks();
+        } catch (error: any) {
+            toast.error("Failed to unlink risk");
+        }
+    };
+
+    const handleLinkControl = async () => {
+        if (selectedControlIds.length === 0 || !policyId) return;
+        try {
+            // Link all selected controls
+            await Promise.all(
+                selectedControlIds.map(controlId =>
+                    linkControlMutation.mutateAsync({ policyId, controlId })
+                )
+            );
+            toast.success(`${selectedControlIds.length} control(s) linked successfully`);
+            setOpenLinkControl(false);
+            setSelectedControlIds([]);
+            setSuggestedControlIds([]);
+            refetchLinkedControls();
+        } catch (error: any) {
+            toast.error("Failed to link controls");
+        }
+    };
+
+    const handleSuggestControls = async () => {
+        if (!content || !availableControls || (availableControls as any[]).length === 0) {
+            toast.error("No policy content or controls available");
+            return;
+        }
+
+        setIsLoadingControlSuggestions(true);
+        try {
+            // Get already linked control IDs to exclude them
+            const linkedControlIds = new Set(linkedControls?.map((item: any) => item.clientControl?.id).filter(Boolean) || []);
+
+            // Filter available controls that aren't already linked
+            const unlinkedControls = (availableControls as any[]).filter((item: any) =>
+                item?.clientControl && !linkedControlIds.has(item.clientControl.id)
+            );
+
+            if (unlinkedControls.length === 0) {
+                toast.info("All available controls are already linked");
+                setIsLoadingControlSuggestions(false);
+                return;
+            }
+
+            // Simple keyword matching for control suggestion
+            // Extract keywords from policy content (lowercase, remove HTML tags)
+            const cleanContent = content.replace(/<[^>]*>/g, ' ').toLowerCase();
+            const keywords = cleanContent.split(/\s+/).filter((word: string) => word.length > 4);
+
+            // Score each control based on keyword matches in control ID and name
+            const scoredControls = unlinkedControls.map((item: any) => {
+                const controlText = `${item.clientControl.clientControlId || ''} ${item.control?.name || ''} ${item.control?.description || ''}`.toLowerCase();
+                const score = keywords.reduce((total: number, keyword: string) => {
+                    return total + (controlText.includes(keyword) ? 1 : 0);
+                }, 0);
+                return { item, score };
+            });
+
+            // Sort by score and take top 5 matches
+            const topControls = scoredControls
+                .filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5)
+                .map(item => item.item.clientControl.id);
+
+            if (topControls.length === 0) {
+                toast.info("No matching controls found based on policy content");
+            } else {
+                setSuggestedControlIds(topControls);
+                setSelectedControlIds(topControls);
+                toast.success(`Found ${topControls.length} suggested control(s)`);
+            }
+        } catch (error: any) {
+            console.error("Error suggesting controls:", error);
+            toast.error("Failed to analyze policy for control suggestions");
+        } finally {
+            setIsLoadingControlSuggestions(false);
+        }
+    };
+
+    const handleUnlinkControl = async (controlId: number) => {
+        if (!policyId) return;
+        try {
+            await unlinkControlMutation.mutateAsync({ policyId, controlId });
+            toast.success("Control unlinked successfully");
+            refetchLinkedControls();
+        } catch (error: any) {
+            toast.error("Failed to unlink control");
+        }
+    };
+
+    const handleSendToIntake = async () => {
+        if (!policyId || !clientId) {
+            console.error('[PolicyEditor] Missing required parameters for intake creation:', {
+                policyId: !!policyId,
+                clientId: !!clientId
+            });
+            toast.error('Cannot send to intake: missing policy or client ID');
+            return;
+        }
+        
+        try {
+            const mutationData = { clientId, policyId };
+            console.log('[PolicyEditor] Calling intake.createFromPolicy with:', mutationData);
+            await sendToIntakeMutation.mutateAsync(mutationData);
+        } catch (e) {
+            // Handled by onError
+        }
+    };
+
+
 
     const handleExportWord = async () => {
         try {
@@ -333,7 +671,15 @@ export default function PolicyEditor() {
 
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Policy Editor</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl font-bold tracking-tight">Policy Editor</h1>
+                            {(policy as any).isAiGenerated && (
+                                <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                                    <Sparkles className="mr-1 h-3 w-3" />
+                                    AI Generated Draft
+                                </Badge>
+                            )}
+                        </div>
                         <p className="text-muted-foreground">Edit and manage your compliance policy</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -358,6 +704,17 @@ export default function PolicyEditor() {
                         >
                             Delete
                         </Button>
+                        {policy.status === 'approved' && (
+                            <Button
+                                variant="outline"
+                                className="text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                                onClick={handleSendToIntake}
+                                disabled={sendToIntakeMutation.isPending}
+                            >
+                                <Send className="mr-2 h-4 w-4" />
+                                {sendToIntakeMutation.isPending ? "Sending..." : "Send to Auditor"}
+                            </Button>
+                        )}
                         <Button
                             onClick={handleSave}
                             disabled={isSaving || updatePolicyMutation.isPending || !isContentReady}
@@ -446,6 +803,7 @@ export default function PolicyEditor() {
                                         <TabsList>
                                             <TabsTrigger value="edit">Edit</TabsTrigger>
                                             <TabsTrigger value="preview">Preview</TabsTrigger>
+                                            <TabsTrigger value="integrations">Integrations</TabsTrigger>
                                             <TabsTrigger value="history">History</TabsTrigger>
                                         </TabsList>
                                     </Tabs>
@@ -482,6 +840,15 @@ export default function PolicyEditor() {
                                         <div className="prose prose-sm max-w-none">
                                             <h1>{name}</h1>
                                             <div dangerouslySetInnerHTML={renderPreview()} />
+
+                                            <div className="mt-8 border-t pt-6">
+                                                <h3 className="text-lg font-medium mb-4">Auditor Comments & Feedback</h3>
+                                                <CommentsSection
+                                                    clientId={clientId}
+                                                    entityType="policy"
+                                                    entityId={policyId}
+                                                />
+                                            </div>
                                         </div>
                                     </TabsContent>
                                     <TabsContent value="history" className="m-0">
@@ -518,6 +885,714 @@ export default function PolicyEditor() {
                                             )}
                                         </div>
                                     </TabsContent>
+                                    <TabsContent value="integrations" className="m-0 space-y-6">
+                                        {/* ==================== POLICY RISK & CONTROL DASHBOARD ==================== */}
+
+                                        {/* Gap Alerts Section */}
+                                        {gapAlerts.length > 0 && (
+                                            <div className="space-y-2">
+                                                {gapAlerts.map((alert, idx) => {
+                                                    let style = { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-900', subtext: 'text-blue-700', iconColor: 'text-blue-600' };
+                                                    let Icon = Shield;
+
+                                                    if (alert.type === 'critical') {
+                                                        style = { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-900', subtext: 'text-red-700', iconColor: 'text-red-600' };
+                                                        Icon = AlertTriangle;
+                                                    } else if (alert.type === 'warning') {
+                                                        style = { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-900', subtext: 'text-amber-700', iconColor: 'text-amber-600' };
+                                                        Icon = Clock;
+                                                    }
+
+                                                    return (
+                                                        <div key={`alert-${idx}`} className={`flex items-start gap-3 p-3 border rounded-lg ${style.bg} ${style.border}`}>
+                                                            <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${style.iconColor}`} />
+                                                            <div className="flex-1">
+                                                                <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+                                                                    <div>
+                                                                        <p className={`font-medium ${style.text}`}>{alert.message}</p>
+                                                                        {alert.action && <p className={`text-sm mt-0.5 ${style.subtext}`}>{alert.action}</p>}
+                                                                    </div>
+                                                                    {alert.actionType && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant={alert.type === 'critical' ? 'destructive' : 'outline'}
+                                                                            className={`shrink-0 ${alert.type !== 'critical' ? 'bg-white/50 hover:bg-white' : ''}`}
+                                                                            onClick={() => {
+                                                                                if (alert.actionType === 'link_risk') setOpenLinkRisk(true);
+                                                                                if (alert.actionType === 'link_control') setOpenLinkControl(true);
+                                                                                if (alert.actionType === 'review_controls') {
+                                                                                    const el = document.getElementById('linked-controls-section');
+                                                                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            {alert.actionType === 'link_risk' ? 'Link Risks' : alert.actionType === 'review_controls' ? 'Review Controls' : 'Link Controls'}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Metrics Summary Cards */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {/* Risk Exposure Score */}
+                                            <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-orange-800">Risk Exposure</span>
+                                                    <ShieldAlert className="h-4 w-4 text-orange-600" />
+                                                </div>
+                                                <div className="text-2xl font-bold text-orange-900">
+                                                    {riskMetrics?.totalInherentScore || 0}
+                                                </div>
+                                                <p className="text-xs text-orange-700 mt-1">
+                                                    {riskMetrics ? `${riskMetrics.totalRisks} linked risk(s)` : 'No risks linked'}
+                                                </p>
+                                                {riskMetrics?.hasCriticalRisks && (
+                                                    <Badge variant="destructive" className="mt-2 text-xs">
+                                                        {riskMetrics.criticalRiskCount} Critical
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            {/* Risk Reduction */}
+                                            <div className="bg-gradient-to-br from-green-50 to-emerald-100/50 border border-emerald-200 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-emerald-800">Risk Reduction</span>
+                                                    <TrendingDown className="h-4 w-4 text-emerald-600" />
+                                                </div>
+                                                <div className="text-2xl font-bold text-emerald-900">
+                                                    {riskMetrics?.riskReduction || 0}%
+                                                </div>
+                                                <p className="text-xs text-emerald-700 mt-1">
+                                                    {riskMetrics ? `Residual: ${riskMetrics.totalResidualScore}` : 'No reduction data'}
+                                                </p>
+                                            </div>
+
+                                            {/* Control Coverage */}
+                                            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-800">Control Coverage</span>
+                                                    <Shield className="h-4 w-4 text-blue-600" />
+                                                </div>
+                                                <div className="text-2xl font-bold text-blue-900">
+                                                    {controlMetrics?.totalControls || 0}
+                                                </div>
+                                                <p className="text-xs text-blue-700 mt-1">
+                                                    {controlMetrics ? `${controlMetrics.implementedCount} implemented` : 'No controls linked'}
+                                                </p>
+                                            </div>
+
+                                            {/* Implementation Rate */}
+                                            <div className="bg-gradient-to-br from-purple-50 to-violet-100/50 border border-purple-200 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-purple-800">Implementation</span>
+                                                    <Target className="h-4 w-4 text-purple-600" />
+                                                </div>
+                                                <div className="text-2xl font-bold text-purple-900">
+                                                    {controlMetrics?.implementationRate || 0}%
+                                                </div>
+                                                <div className="mt-2 h-2 bg-purple-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-purple-600 transition-all duration-500"
+                                                        style={{ width: `${controlMetrics?.implementationRate || 0}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Risk Level Distribution */}
+                                        {riskMetrics && (
+                                            <div className="bg-muted/30 rounded-xl p-4 border">
+                                                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                                                    <BarChart3 className="h-4 w-4" />
+                                                    Risk Distribution
+                                                </h4>
+                                                <div className="flex items-center gap-2 h-8">
+                                                    {riskMetrics.riskLevelCounts.critical > 0 && (
+                                                        <div
+                                                            className="h-full bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            style={{ flex: riskMetrics.riskLevelCounts.critical }}
+                                                            title={`${riskMetrics.riskLevelCounts.critical} Critical`}
+                                                        >
+                                                            {riskMetrics.riskLevelCounts.critical}
+                                                        </div>
+                                                    )}
+                                                    {riskMetrics.riskLevelCounts.high > 0 && (
+                                                        <div
+                                                            className="h-full bg-orange-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            style={{ flex: riskMetrics.riskLevelCounts.high }}
+                                                            title={`${riskMetrics.riskLevelCounts.high} High`}
+                                                        >
+                                                            {riskMetrics.riskLevelCounts.high}
+                                                        </div>
+                                                    )}
+                                                    {riskMetrics.riskLevelCounts.medium > 0 && (
+                                                        <div
+                                                            className="h-full bg-yellow-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            style={{ flex: riskMetrics.riskLevelCounts.medium }}
+                                                            title={`${riskMetrics.riskLevelCounts.medium} Medium`}
+                                                        >
+                                                            {riskMetrics.riskLevelCounts.medium}
+                                                        </div>
+                                                    )}
+                                                    {riskMetrics.riskLevelCounts.low > 0 && (
+                                                        <div
+                                                            className="h-full bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            style={{ flex: riskMetrics.riskLevelCounts.low }}
+                                                            title={`${riskMetrics.riskLevelCounts.low} Low`}
+                                                        >
+                                                            {riskMetrics.riskLevelCounts.low}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500"></span> Critical</span>
+                                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-500"></span> High</span>
+                                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-500"></span> Medium</span>
+                                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-500"></span> Low</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Visual Relationship Diagram */}
+                                        {(riskMetrics || controlMetrics) && (
+                                            <div className="bg-gradient-to-r from-slate-50 via-white to-slate-50 rounded-xl p-6 border">
+                                                <h4 className="text-sm font-medium mb-4 text-center">Policy Relationship Map</h4>
+                                                <div className="flex items-center justify-center gap-4">
+                                                    {/* Risks Side */}
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="bg-orange-100 border-2 border-orange-300 rounded-lg p-3 flex flex-col items-center min-w-[120px]">
+                                                            <ShieldAlert className="h-6 w-6 text-orange-600 mb-1" />
+                                                            <span className="text-sm font-medium text-orange-900">Risks</span>
+                                                            <span className="text-2xl font-bold text-orange-700">{riskMetrics?.totalRisks || 0}</span>
+                                                        </div>
+                                                        {riskMetrics?.hasHighRisks && (
+                                                            <Badge variant="destructive" className="text-xs">
+                                                                {riskMetrics.highRiskCount} High/Critical
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Connection Lines to Policy */}
+                                                    <div className="flex items-center">
+                                                        <div className="w-8 h-0.5 bg-orange-300"></div>
+                                                        <div className="w-0 h-0 border-t-4 border-b-4 border-l-8 border-transparent border-l-orange-400"></div>
+                                                    </div>
+
+                                                    {/* Policy (Center) */}
+                                                    <div className="bg-gradient-to-br from-blue-100 to-indigo-100 border-2 border-blue-400 rounded-xl p-4 flex flex-col items-center min-w-[140px] shadow-md">
+                                                        <FileText className="h-8 w-8 text-blue-600 mb-2" />
+                                                        <span className="text-sm font-bold text-blue-900">This Policy</span>
+                                                        <span className="text-xs text-blue-700 mt-1 text-center truncate max-w-[120px]">{name?.substring(0, 20) || 'Untitled'}</span>
+                                                    </div>
+
+                                                    {/* Connection Lines to Controls */}
+                                                    <div className="flex items-center">
+                                                        <div className="w-0 h-0 border-t-4 border-b-4 border-r-8 border-transparent border-r-emerald-400"></div>
+                                                        <div className="w-8 h-0.5 bg-emerald-300"></div>
+                                                    </div>
+
+                                                    {/* Controls Side */}
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="bg-emerald-100 border-2 border-emerald-300 rounded-lg p-3 flex flex-col items-center min-w-[120px]">
+                                                            <Shield className="h-6 w-6 text-emerald-600 mb-1" />
+                                                            <span className="text-sm font-medium text-emerald-900">Controls</span>
+                                                            <span className="text-2xl font-bold text-emerald-700">{controlMetrics?.totalControls || 0}</span>
+                                                        </div>
+                                                        {controlMetrics && (
+                                                            <div className="flex items-center gap-1 text-xs">
+                                                                <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                                                <span className="text-green-700">{controlMetrics.implementedCount} Implemented</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Quick Stats Summary */}
+                                                <div className="mt-4 pt-4 border-t flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                                                    {riskMetrics && (
+                                                        <span>Total Risk Exposure: <strong className="text-orange-700">{riskMetrics.totalInherentScore}</strong></span>
+                                                    )}
+                                                    {riskMetrics && riskMetrics.riskReduction > 0 && (
+                                                        <span className="flex items-center gap-1">
+                                                            <TrendingDown className="h-3 w-3 text-green-600" />
+                                                            Risk Reduced by <strong className="text-green-700">{riskMetrics.riskReduction}%</strong>
+                                                        </span>
+                                                    )}
+                                                    {controlMetrics && (
+                                                        <span>Control Coverage: <strong className={controlMetrics.implementationRate === 100 ? 'text-green-700' : 'text-amber-700'}>{controlMetrics.implementationRate}%</strong></span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Linked Risks & Controls Grid */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between" id="linked-risks-section">
+                                                    <div>
+                                                        <h3 className="text-lg font-medium flex items-center gap-2">
+                                                            <ShieldAlert className="h-4 w-4 text-orange-600" />
+                                                            Linked Risks
+                                                            {riskMetrics && (
+                                                                <Badge variant="secondary" className="ml-1 text-xs">{riskMetrics.totalRisks}</Badge>
+                                                            )}
+                                                        </h3>
+                                                        <p className="text-sm text-muted-foreground">Risks mitigated by this policy</p>
+                                                    </div>
+                                                    <Dialog open={openLinkRisk} onOpenChange={setOpenLinkRisk}>
+                                                        <DialogTrigger asChild>
+                                                            <Button size="sm" variant="outline">
+                                                                <LinkIcon className="h-3 w-3 mr-2" /> Link Risk
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Link Risks to Policy</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Select one or more risks to link, or use AI to suggest relevant risks based on policy content.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+                                                                {/* AI Suggestion Button */}
+                                                                <div className="flex items-center gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={handleSuggestRisks}
+                                                                        disabled={isLoadingRiskSuggestions}
+                                                                        className="flex-1"
+                                                                    >
+                                                                        {isLoadingRiskSuggestions ? (
+                                                                            <>
+                                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                                Analyzing Policy...
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Sparkles className="h-4 w-4 mr-2" />
+                                                                                AI Suggest Risks
+                                                                            </>
+                                                                        )}
+                                                                    </Button>
+                                                                    {selectedRiskIds.length > 0 && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                setSelectedRiskIds([]);
+                                                                                setSuggestedRiskIds([]);
+                                                                            }}
+                                                                        >
+                                                                            Clear All
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Selected Risks Display */}
+                                                                {selectedRiskIds.length > 0 && (
+                                                                    <div className="bg-muted/30 rounded-lg p-3 border">
+                                                                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                                            {selectedRiskIds.length} risk(s) selected
+                                                                            {suggestedRiskIds.length > 0 && " (AI suggested)"}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {selectedRiskIds.map(riskId => {
+                                                                                const risk = availableRisks?.find((r: any) => r.id === riskId);
+                                                                                return (
+                                                                                    <span
+                                                                                        key={`selected-${riskId}`}
+                                                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-orange-100 text-orange-800 text-xs"
+                                                                                    >
+                                                                                        {risk?.title?.substring(0, 30) || `Risk ${riskId}`}
+                                                                                        {risk?.title?.length > 30 && "..."}
+                                                                                        <button
+                                                                                            onClick={() => setSelectedRiskIds(prev => prev.filter(id => id !== riskId))}
+                                                                                            className="ml-1 hover:text-red-600"
+                                                                                        >
+                                                                                            ×
+                                                                                        </button>
+                                                                                    </span>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Risk List with Checkboxes */}
+                                                                <div className="border rounded-lg flex-1 min-h-0 overflow-y-auto">
+                                                                    <Command shouldFilter={Array.isArray(availableRisks) && availableRisks.length > 0}>
+                                                                        <CommandInput placeholder="Search risks..." />
+                                                                        <CommandList>
+                                                                            <CommandEmpty>No risk found.</CommandEmpty>
+                                                                            <CommandGroup>
+                                                                                {(availableRisks ?? [])
+                                                                                    .filter((risk: any) => risk && risk.id != null)
+                                                                                    .filter((risk: any) => !linkedRisks?.some((lr: any) => lr.risk?.id === risk.id))
+                                                                                    .map((risk: any) => {
+                                                                                        const isSelected = selectedRiskIds.includes(risk.id);
+                                                                                        const isSuggested = suggestedRiskIds.includes(risk.id);
+                                                                                        return (
+                                                                                            <CommandItem
+                                                                                                key={`risk-${risk.id}`}
+                                                                                                value={risk.title || String(risk.id)}
+                                                                                                onSelect={() => {
+                                                                                                    setSelectedRiskIds(prev =>
+                                                                                                        isSelected
+                                                                                                            ? prev.filter(id => id !== risk.id)
+                                                                                                            : [...prev, risk.id]
+                                                                                                    );
+                                                                                                }}
+                                                                                                className={cn(
+                                                                                                    isSuggested && !isSelected && "bg-amber-50"
+                                                                                                )}
+                                                                                            >
+                                                                                                <div className={cn(
+                                                                                                    "mr-2 h-4 w-4 border rounded flex items-center justify-center",
+                                                                                                    isSelected ? "bg-orange-500 border-orange-500" : "border-muted-foreground"
+                                                                                                )}>
+                                                                                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                                                                                </div>
+                                                                                                <div className="flex-1 truncate">
+                                                                                                    <span>{risk.title}</span>
+                                                                                                    {isSuggested && !isSelected && (
+                                                                                                        <span className="ml-2 text-xs text-amber-600">(suggested)</span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </CommandItem>
+                                                                                        );
+                                                                                    })}
+                                                                            </CommandGroup>
+                                                                        </CommandList>
+                                                                    </Command>
+                                                                </div>
+                                                            </div>
+                                                            <DialogFooter>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setOpenLinkRisk(false);
+                                                                        setSelectedRiskIds([]);
+                                                                        setSuggestedRiskIds([]);
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                                <Button
+                                                                    onClick={handleLinkRisk}
+                                                                    disabled={selectedRiskIds.length === 0}
+                                                                >
+                                                                    Link {selectedRiskIds.length > 0 ? `${selectedRiskIds.length} Risk(s)` : "Risks"}
+                                                                </Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </div>
+                                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                                    {linkedRisks && linkedRisks.length > 0 ? (
+                                                        linkedRisks.filter((item: any) => item && item.risk).map((item: any) => {
+                                                            const score = item.risk.inherentScore || 0;
+                                                            const scoreColor = score >= 20 ? 'bg-red-500' : score >= 15 ? 'bg-orange-500' : score >= 9 ? 'bg-yellow-500' : 'bg-green-500';
+                                                            const residualScore = item.risk.residualScore || item.risk.inherentScore || 0;
+                                                            return (
+                                                                <div key={`linked-risk-${item.risk.id}`} className="group flex items-center justify-between p-3 border rounded-lg bg-gradient-to-r from-orange-50/50 to-transparent border-orange-100 hover:border-orange-300 transition-colors">
+                                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                        {/* Risk Score Badge */}
+                                                                        <div className={`${scoreColor} text-white font-bold text-xs w-8 h-8 rounded-lg flex items-center justify-center shrink-0`}>
+                                                                            {score}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <a
+                                                                                href="#"
+                                                                                onClick={(e) => { e.preventDefault(); setSelectedRisk(item.risk); }}
+                                                                                className="font-medium text-sm text-orange-950 hover:text-orange-700 hover:underline flex items-center gap-1 truncate cursor-pointer"
+                                                                            >
+                                                                                {item.risk.title}
+                                                                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                                                                            </a>
+                                                                            <div className="flex items-center gap-2 text-xs text-orange-700/70 mt-0.5">
+                                                                                <span>Inherent: {item.risk.inherentRisk || score}</span>
+                                                                                {residualScore < score && (
+                                                                                    <>
+                                                                                        <span>→</span>
+                                                                                        <span className="text-green-700 flex items-center gap-0.5">
+                                                                                            <TrendingDown className="h-3 w-3" />
+                                                                                            Residual: {residualScore}
+                                                                                        </span>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 shrink-0 transition-colors"
+                                                                        title="Unlink Risk"
+                                                                        onClick={() => handleUnlinkRisk(item.risk.id)}
+                                                                    >
+                                                                        <Unlink className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                                                            <ShieldAlert className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                                            <p className="text-sm">No linked risks</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Controls Section */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between" id="linked-controls-section">
+                                                    <div>
+                                                        <h3 className="text-lg font-medium flex items-center gap-2">
+                                                            <Shield className="h-4 w-4 text-emerald-600" />
+                                                            Linked Controls
+                                                            {controlMetrics && (
+                                                                <Badge variant="secondary" className="ml-1 text-xs">{controlMetrics.totalControls}</Badge>
+                                                            )}
+                                                        </h3>
+                                                        <p className="text-sm text-muted-foreground">Controls enforcing this policy</p>
+                                                    </div>
+                                                    <Dialog open={openLinkControl} onOpenChange={setOpenLinkControl}>
+                                                        <DialogTrigger asChild>
+                                                            <Button size="sm" variant="outline">
+                                                                <LinkIcon className="h-3 w-3 mr-2" /> Link Control
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Link Controls to Policy</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Select one or more controls to link, or use AI to suggest relevant controls based on policy content.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+                                                                {/* AI Suggestion Button */}
+                                                                <div className="flex items-center gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={handleSuggestControls}
+                                                                        disabled={isLoadingControlSuggestions}
+                                                                        className="flex-1"
+                                                                    >
+                                                                        {isLoadingControlSuggestions ? (
+                                                                            <>
+                                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                                Analyzing Policy...
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Sparkles className="h-4 w-4 mr-2" />
+                                                                                AI Suggest Controls
+                                                                            </>
+                                                                        )}
+                                                                    </Button>
+                                                                    {selectedControlIds.length > 0 && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                setSelectedControlIds([]);
+                                                                                setSuggestedControlIds([]);
+                                                                            }}
+                                                                        >
+                                                                            Clear All
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Selected Controls Display */}
+                                                                {selectedControlIds.length > 0 && (
+                                                                    <div className="bg-muted/30 rounded-lg p-3 border">
+                                                                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                                            {selectedControlIds.length} control(s) selected
+                                                                            {suggestedControlIds.length > 0 && " (AI suggested)"}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-1.5">
+                                                                            {selectedControlIds.map(controlId => {
+                                                                                // Search the FULL unfiltered availableControls list
+                                                                                const controlItem = ((availableControls as any[]) ?? []).find(
+                                                                                    (c: any) => c?.clientControl?.id === controlId
+                                                                                );
+                                                                                const displayText = controlItem?.clientControl?.clientControlId || controlItem?.control?.name?.substring(0, 20) || `ID: ${controlId}`;
+                                                                                return (
+                                                                                    <span
+                                                                                        key={`selected-control-${controlId}`}
+                                                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 text-xs"
+                                                                                    >
+                                                                                        <span className="font-mono font-semibold">{displayText}</span>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                setSelectedControlIds(prev => prev.filter(id => id !== controlId));
+                                                                                            }}
+                                                                                            className="ml-0.5 text-emerald-600 hover:text-red-600 font-bold"
+                                                                                        >
+                                                                                            ×
+                                                                                        </button>
+                                                                                    </span>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Control List with Checkboxes */}
+                                                                <div className="border rounded-lg flex-1 min-h-0 overflow-y-auto">
+                                                                    <Command shouldFilter={Array.isArray(availableControls) && availableControls.length > 0}>
+                                                                        <CommandInput placeholder="Search controls..." />
+                                                                        <CommandList>
+                                                                            <CommandEmpty>No control found.</CommandEmpty>
+                                                                            <CommandGroup>
+                                                                                {((availableControls as any[]) ?? [])
+                                                                                    .filter((item: any) => item && item.clientControl && item.clientControl.id != null)
+                                                                                    .filter((item: any) => !linkedControls?.some((lc: any) => lc.clientControl?.id === item.clientControl.id))
+                                                                                    .map((item: any) => {
+                                                                                        const isSelected = selectedControlIds.includes(item.clientControl.id);
+                                                                                        const isSuggested = suggestedControlIds.includes(item.clientControl.id);
+                                                                                        return (
+                                                                                            <CommandItem
+                                                                                                key={`control-${item.clientControl.id}`}
+                                                                                                value={(item.clientControl.clientControlId || "") + " " + (item.control?.name || "")}
+                                                                                                onSelect={() => {
+                                                                                                    setSelectedControlIds(prev =>
+                                                                                                        isSelected
+                                                                                                            ? prev.filter(id => id !== item.clientControl.id)
+                                                                                                            : [...prev, item.clientControl.id]
+                                                                                                    );
+                                                                                                }}
+                                                                                                className={cn(
+                                                                                                    isSuggested && !isSelected && "bg-amber-50"
+                                                                                                )}
+                                                                                            >
+                                                                                                <div className={cn(
+                                                                                                    "mr-2 h-4 w-4 border rounded flex items-center justify-center shrink-0",
+                                                                                                    isSelected ? "bg-emerald-500 border-emerald-500" : "border-muted-foreground"
+                                                                                                )}>
+                                                                                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                                                                                </div>
+                                                                                                <div className="flex-1 min-w-0">
+                                                                                                    <span className="truncate block">
+                                                                                                        {item.clientControl.clientControlId && (
+                                                                                                            <span className="font-mono font-bold text-emerald-700 mr-1.5">{item.clientControl.clientControlId}</span>
+                                                                                                        )}
+                                                                                                        <span className="text-foreground">{item.control?.name || 'Unnamed Control'}</span>
+                                                                                                    </span>
+                                                                                                    {isSuggested && !isSelected && (
+                                                                                                        <span className="text-xs text-amber-600 ml-1">(suggested)</span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </CommandItem>
+                                                                                        );
+                                                                                    })}
+                                                                            </CommandGroup>
+                                                                        </CommandList>
+                                                                    </Command>
+                                                                </div>
+                                                            </div>
+                                                            <DialogFooter>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setOpenLinkControl(false);
+                                                                        setSelectedControlIds([]);
+                                                                        setSuggestedControlIds([]);
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                                <Button
+                                                                    onClick={handleLinkControl}
+                                                                    disabled={selectedControlIds.length === 0}
+                                                                >
+                                                                    Link {selectedControlIds.length > 0 ? `${selectedControlIds.length} Control(s)` : "Controls"}
+                                                                </Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </div>
+                                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                                    {linkedControls && linkedControls.length > 0 ? (
+                                                        linkedControls.filter((item: any) => item && item.clientControl).map((item: any) => {
+                                                            const status = item.clientControl?.status || 'not_implemented';
+                                                            const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
+                                                                'implemented': { color: 'bg-green-500', icon: <CheckCircle2 className="h-3 w-3" />, label: 'Implemented' },
+                                                                'in_progress': { color: 'bg-blue-500', icon: <Clock className="h-3 w-3" />, label: 'In Progress' },
+                                                                'not_implemented': { color: 'bg-gray-400', icon: <Target className="h-3 w-3" />, label: 'Not Implemented' },
+                                                                'not_applicable': { color: 'bg-slate-500', icon: <AlertTriangle className="h-3 w-3" />, label: 'N/A' },
+                                                            };
+                                                            const config = statusConfig[status] || statusConfig['not_implemented'];
+                                                            return (
+                                                                <div key={`linked-control-${item.clientControl.id}`} className="group flex items-center justify-between p-3 border rounded-lg bg-gradient-to-r from-emerald-50/50 to-transparent border-emerald-100 hover:border-emerald-300 transition-colors">
+                                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                        {/* Status Badge */}
+                                                                        <div className={`${config.color} text-white w-8 h-8 rounded-lg flex items-center justify-center shrink-0`}>
+                                                                            {config.icon}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <a
+                                                                                href="#"
+                                                                                onClick={(e) => { e.preventDefault(); setSelectedControl(item); }}
+                                                                                className="font-medium text-sm text-emerald-950 hover:text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                                                                            >
+                                                                                {item.clientControl.clientControlId && (
+                                                                                    <span className="font-mono font-bold text-emerald-700">{item.clientControl.clientControlId}</span>
+                                                                                )}
+                                                                                <span className="truncate">{item.control?.name || 'Unnamed Control'}</span>
+                                                                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                                                                            </a>
+                                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                                <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                                                                    {config.label}
+                                                                                </Badge>
+                                                                                {item.clientControl.owner && (
+                                                                                    <span className="text-xs text-emerald-700/70">Owner: {item.clientControl.owner}</span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 shrink-0 transition-colors"
+                                                                        title="Unlink Control"
+                                                                        onClick={() => handleUnlinkControl(item.clientControl.id)}
+                                                                    >
+                                                                        <Unlink className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                                                            <Shield className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                                            <p className="text-sm">No linked controls</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-8 border-t pt-6">
+                                            <h3 className="text-lg font-medium mb-4">Auditor Comments</h3>
+                                            <CommentsSection
+                                                clientId={clientId}
+                                                entityType="policy"
+                                                entityId={policyId}
+                                            />
+                                        </div>
+                                    </TabsContent>
                                 </Tabs>
                             </CardContent>
                         </Card>
@@ -530,6 +1605,17 @@ export default function PolicyEditor() {
                                 <CardDescription>Manage policy metadata and status</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                {(policy as any).isAiGenerated && (
+                                    <div className="mb-2 p-3 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-900 flex flex-col gap-2">
+                                        <div className="flex items-center font-medium">
+                                            <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                                            Review Required
+                                        </div>
+                                        <p className="text-purple-800/80 text-xs">
+                                            This policy was drafted by AI. Please review carefully before publishing.
+                                        </p>
+                                    </div>
+                                )}
                                 <div>
                                     <Label htmlFor="policy-status">Status</Label>
                                     <Select value={status} onValueChange={setStatus}>
@@ -594,10 +1680,7 @@ export default function PolicyEditor() {
                                 <CardTitle>Quick Actions</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
-                                <Button variant="outline" className="w-full justify-start" onClick={handleExportPDF}>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Export as PDF
-                                </Button>
+
                                 <Button variant="outline" className="w-full justify-start" onClick={handleExportWord}>
                                     <FileText className="mr-2 h-4 w-4" />
                                     Export as Word
@@ -654,6 +1737,24 @@ export default function PolicyEditor() {
                     </div>
                 </div>
             </div>
+
+            <RiskDetailsDialog
+                open={!!selectedRisk}
+                onOpenChange={(open) => !open && setSelectedRisk(null)}
+                risk={selectedRisk}
+                clientId={clientId}
+            />
+
+            {selectedControl && (
+                <ControlDetailsDialog
+                    open={!!selectedControl}
+                    onOpenChange={(open) => !open && setSelectedControl(null)}
+                    clientControl={selectedControl.clientControl}
+                    control={selectedControl.control}
+                    clientId={clientId}
+                    onUpdate={() => refetchLinkedControls()}
+                />
+            )}
         </DashboardLayout>
     );
 }

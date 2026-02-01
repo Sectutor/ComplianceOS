@@ -10,7 +10,7 @@ import {
     analyzeRisk,
     reindexKnowledgeBase
 } from '../../lib/advisor/service';
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { getDb } from '../../db';
 import * as schema from '../../schema';
 

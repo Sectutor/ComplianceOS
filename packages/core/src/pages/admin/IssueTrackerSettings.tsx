@@ -12,11 +12,22 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Plus, Trash2, ExternalLink, CheckCircle2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 
 export default function IssueTrackerSettings() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState<string>("");
     const [selectedClientId, setSelectedClientId] = useState<string>("");
+    const [connectionToDelete, setConnectionToDelete] = useState<any>(null);
 
     const { data: connections, isLoading, refetch } = trpc.issueTrackers.list.useQuery({});
     const { data: clients } = trpc.clients.list.useQuery();
@@ -33,6 +44,7 @@ export default function IssueTrackerSettings() {
     const deleteMutation = trpc.issueTrackers.delete.useMutation({
         onSuccess: () => {
             toast.success("Connection removed");
+            setConnectionToDelete(null);
             refetch();
         },
         onError: (err) => toast.error(err.message),
@@ -173,11 +185,7 @@ export default function IssueTrackerSettings() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
-                                                onClick={() => {
-                                                    if (confirm("Disconnect this integration?")) {
-                                                        deleteMutation.mutate({ id: conn.id });
-                                                    }
-                                                }}
+                                                onClick={() => setConnectionToDelete(conn)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -198,6 +206,32 @@ export default function IssueTrackerSettings() {
 
                 {/* Remediation Tasks Section */}
                 <RemediationTasksSection />
+
+                <AlertDialog open={!!connectionToDelete} onOpenChange={(open) => !open && setConnectionToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Disconnect Issue Tracker?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to disconnect <b>{connectionToDelete?.name}</b>?
+                                Existing synced tasks will remain but no longer update.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => {
+                                    if (connectionToDelete) {
+                                        deleteMutation.mutate({ id: connectionToDelete.id });
+                                    }
+                                }}
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? "Disconnecting..." : "Disconnect"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </DashboardLayout>
     );

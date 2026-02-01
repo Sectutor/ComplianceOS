@@ -13,6 +13,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Loader2, Plus, Trash2, Edit, Play, CheckCircle2, XCircle, Monitor, Network, ServerCog, Cpu, ShieldAlert, FileText, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 
 const FEATURES = [
     { id: 'general_advisor', name: 'General AI Advisor', description: 'Chat and general Q&A', icon: Monitor },
@@ -43,6 +53,8 @@ export default function LLMSettings() {
     // Test State
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [isTesting, setIsTesting] = useState(false);
+
+    const [providerToDelete, setProviderToDelete] = useState<any>(null);
 
     const utils = trpc.useUtils();
     const { data: providers, isLoading } = trpc.llm.list.useQuery();
@@ -80,6 +92,7 @@ export default function LLMSettings() {
     const deleteMutation = trpc.llm.delete.useMutation({
         onSuccess: () => {
             toast.success("Provider deleted");
+            setProviderToDelete(null);
             utils.llm.list.invalidate();
         },
         onError: (err) => toast.error(err.message)
@@ -389,11 +402,7 @@ export default function LLMSettings() {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                    onClick={() => {
-                                                        if (confirm("Are you sure you want to delete this provider?")) {
-                                                            deleteMutation.mutate({ id: provider.id });
-                                                        }
-                                                    }}
+                                                    onClick={() => setProviderToDelete(provider)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -538,6 +547,31 @@ export default function LLMSettings() {
                         </Card>
                     </TabsContent>
                 </Tabs>
+
+                <AlertDialog open={!!providerToDelete} onOpenChange={(open) => !open && setProviderToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete the provider <b>{providerToDelete?.name}</b>.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => {
+                                    if (providerToDelete) {
+                                        deleteMutation.mutate({ id: providerToDelete.id });
+                                    }
+                                }}
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? "Deleting..." : "Delete Provider"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </DashboardLayout>
     );

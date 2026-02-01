@@ -1,27 +1,27 @@
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { controls } from "../../schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import * as db from "../../db";
 import * as XLSX from 'xlsx';
+import { nistAiRmfControls } from '../../data/frameworks/nist_ai_rmf';
 
 export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
     return t.router({
         importCustom: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
-                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301"]),
+                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system"]),
                 fileContent: z.string().optional(), // Base64, optional for system frameworks
             }))
             .mutation(async ({ ctx, input }: any) => {
-                // Parse the file
-                const buffer = Buffer.from(input.fileContent, 'base64');
-                const workbook = XLSX.read(buffer, { type: 'buffer' });
-
                 let newControls: any[] = [];
                 let frameworkName = "";
 
                 if (input.type === "pci_dss_v4") {
+                    const buffer = Buffer.from(input.fileContent || "", 'base64');
+                    const workbook = XLSX.read(buffer, { type: 'buffer' });
                     frameworkName = "PCI DSS v4.0 (Custom)";
                     const sheetNames = workbook.SheetNames.filter(n => n.startsWith('Requirement'));
 
@@ -54,6 +54,8 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         }
                     }
                 } else if (input.type === "cis_v8") {
+                    const buffer = Buffer.from(input.fileContent || "", 'base64');
+                    const workbook = XLSX.read(buffer, { type: 'buffer' });
                     frameworkName = "CIS Controls v8";
                     const sheet = workbook.Sheets[workbook.SheetNames[0]]; // Assume first sheet
                     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -99,6 +101,8 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         });
                     }
                 } else if (input.type === "ccm_v4") {
+                    const buffer = Buffer.from(input.fileContent || "", 'base64');
+                    const workbook = XLSX.read(buffer, { type: 'buffer' });
                     frameworkName = "CSA CCM v4";
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -155,22 +159,164 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         version: 1,
                         grouping: "ISO 22301"
                     }));
+                } else if (input.type === "hitrust") {
+                    frameworkName = "HITRUST-Aligned (Representative)";
+                    const { hitrustControls } = await import('../../data/frameworks/hitrust');
+                    newControls = hitrustControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "HITRUST"
+                    }));
+                } else if (input.type === "fedramp") {
+                    frameworkName = "FedRAMP Moderate";
+                    const { fedrampModerateControls } = await import('../../data/frameworks/fedramp');
+                    newControls = fedrampModerateControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See NIST 800-53 Rev 5 guidance.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "FedRAMP"
+                    }));
+                } else if (input.type === "fedramp_low") {
+                    frameworkName = "FedRAMP Low";
+                    const { fedrampLowControls } = await import('../../data/frameworks/fedramp');
+                    newControls = fedrampLowControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See NIST 800-53 Rev 5 guidance.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "FedRAMP"
+                    }));
+                } else if (input.type === "fedramp_high") {
+                    frameworkName = "FedRAMP High";
+                    const { fedrampHighControls } = await import('../../data/frameworks/fedramp');
+                    newControls = fedrampHighControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See NIST 800-53 Rev 5 guidance.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "FedRAMP"
+                    }));
+                } else if (input.type === "cyber_essentials") {
+                    frameworkName = "Cyber Essentials / Plus";
+                    const { cyberEssentialsControls } = await import('../../data/frameworks/cyberessentials');
+                    newControls = cyberEssentialsControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See NCSC Cyber Essentials Requirements for IT Infrastructure.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "Cyber Essentials"
+                    }));
+                } else if (input.type === "nist_ai_rmf") {
+                    frameworkName = "NIST AI RMF";
+                    newControls = nistAiRmfControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See NIST AI 100-1 for detailed guidance.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "NIST AI RMF"
+                    }));
+                } else if (input.type === "iso27001") {
+                    frameworkName = "ISO 27001:2022";
+                    const { iso27001Controls } = await import('../../data/frameworks/iso27001');
+                    newControls = iso27001Controls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See ISO/IEC 27001:2022 Annex A for detailed guidance.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "ISO 27001"
+                    }));
+                } else if (input.type === "soc2") {
+                    frameworkName = "SOC 2 Type II";
+                    const { soc2Controls } = await import('../../data/frameworks/soc2');
+                    newControls = soc2Controls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See Trust Services Criteria for Security, Availability, Confidentiality, Processing Integrity, and Privacy.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "SOC 2"
+                    }));
+                } else if (input.type === "cis_v8_system") {
+                    frameworkName = "CIS Controls v8";
+                    const { cisControls } = await import('../../data/frameworks/cis');
+                    newControls = cisControls.map(c => ({
+                        controlId: c.id,
+                        name: c.name,
+                        description: c.description,
+                        framework: frameworkName,
+                        category: c.category,
+                        implementationGuidance: "See CIS Critical Security Controls v8 for implementation steps.",
+                        clientId: input.clientId,
+                        status: "active",
+                        version: 1,
+                        grouping: "CIS v8"
+                    }));
                 }
 
-                if (newControls.length > 0) {
-                    const d = await db.getDb();
-                    // Delete existing for this framework/client to avoid duplicates on re-import
-                    await d.delete(controls).where(and(
-                        eq(controls.clientId, input.clientId),
-                        eq(controls.framework, frameworkName)
-                    ));
+                try {
+                    if (newControls.length > 0) {
+                        const d = await db.getDb();
+                        // Delete existing for this framework/client to avoid duplicates on re-import
+                        await d.delete(controls).where(and(
+                            eq(controls.clientId, input.clientId),
+                            eq(controls.framework, frameworkName)
+                        ));
 
-                    await d.insert(controls).values(newControls);
+                        await d.insert(controls).values(newControls);
 
-                    // Force client refresh or cache clear if needed
+                        // Force client refresh or cache clear if needed
+                    }
+
+                    return { success: true, count: newControls.length };
+                } catch (err: any) {
+                    console.error("[FrameworkImport] Mutation failed:", err);
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: err.message || "Failed to import framework controls"
+                    });
                 }
-
-                return { success: true, count: newControls.length };
             }),
 
         list: protectedProcedure

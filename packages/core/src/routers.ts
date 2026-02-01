@@ -90,6 +90,9 @@ import { createReportsRouter } from "./server/routers/reports";
 import { createStrategicReportsRouter } from "./server/routers/strategicReports";
 import { createFindingsRouter } from "./server/routers/findings";
 import { createTrustCenterRouter } from "./server/routers/trustCenter";
+import { createAiSystemsRouter } from "./server/routers/aiSystems";
+import { createCommentsRouter } from "./server/routers/comments";
+
 
 
 
@@ -104,7 +107,7 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => ({
 export type Context = inferAsyncReturnType<typeof createContext>;
 
 const t = initTRPC.context<Context>().create({
-  // transformer: superjson, // DISABLING SUPERJSON TO FIX INPUT MISMATCH
+  // transformer: superjson,
   errorFormatter({ shape, error }) {
     console.error("TRPC Error (Global):", error);
     return shape;
@@ -326,8 +329,12 @@ export const appRouter = router({
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
 
   ai: router({
+    systems: createAiSystemsRouter(t, clientProcedure),
     advisor: createAdvisorRouter(t, clientProcedure)
   }),
+
+  comments: createCommentsRouter(t, clientProcedure),
+
 
   // New and Management Readiness Tools
   // management: createManagementRouter(t, protectedProcedure),
@@ -1146,6 +1153,9 @@ export const appRouter = router({
         serviceDescription: z.string().optional(),
         additionalNotes: z.string().optional(),
         isSubprocessor: z.boolean().optional(),
+        usesAi: z.boolean().optional(),
+        isAiService: z.boolean().optional(),
+        aiDataUsage: z.string().optional(),
         additionalDocuments: z.array(z.object({ name: z.string(), url: z.string(), date: z.string().optional() })).optional(),
       }))
       .mutation(async ({ input }) => {
@@ -1219,6 +1229,9 @@ export const appRouter = router({
         isSubprocessor: z.boolean().optional(),
         trustCenterUrl: z.string().optional(),
         trustCenterData: z.any().optional(),
+        usesAi: z.boolean().optional(),
+        isAiService: z.boolean().optional(),
+        aiDataUsage: z.string().optional(),
         additionalDocuments: z.array(z.object({ name: z.string(), url: z.string(), date: z.string().optional() })).optional(),
       }))
       .mutation(async ({ input }) => {

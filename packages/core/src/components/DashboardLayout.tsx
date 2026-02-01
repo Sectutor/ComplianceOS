@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -94,6 +94,8 @@ const clientSpecificMenuItems = [
   { icon: AlertTriangle, label: "Risk Management", path: "/risks" },
   { icon: Code, label: "Threat Modeling", path: "/dev/projects" },
   { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
+  { icon: Brain, label: "AI Governance", path: "/ai-governance" },
+
   {
     icon: Building2, label: "Federal Hub", path: "/federal", submenu: [
       { label: "FIPS 199 Categorization", path: "/federal/fips-199" },
@@ -140,6 +142,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/intake") return `/clients/${clientId}/intake${queryStr}`;
   if (purePath === "/board-summary") return `/clients/${clientId}/board-summary${queryStr}`;
   if (purePath === "/communication") return `/clients/${clientId}/communication${queryStr}`;
+  if (purePath === "/ai-governance") return `/clients/${clientId}/ai-governance${queryStr}`;
   if (purePath === "/activity") return `/clients/${clientId}/activity${queryStr}`;
   if (purePath === "/readiness/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
   if (purePath === "/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
@@ -159,8 +162,11 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/privacy') ||
     purePath.startsWith('/workflows') ||
     purePath.startsWith('/cyber') ||
+    purePath.startsWith('/ai-governance') ||
     purePath.startsWith('/roadmap') ||
+    purePath.startsWith('/compliance-journey') ||
     purePath.startsWith('/implementation');
+
 
 
   if (isClientSubRoute) {
@@ -501,6 +507,18 @@ function DashboardLayoutContent({
 
     groups.push(
       {
+        label: "Compliance Journey",
+        items: [
+          { icon: Compass, label: "Overview", path: `/clients/${persistentClientId}/compliance-journey` },
+          { icon: Star, label: "Readiness Assessment", path: `/clients/${persistentClientId}/readiness/wizard` },
+          { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
+          { icon: Briefcase, label: "Audit Preparation", path: "/audit-hub" },
+        ]
+      }
+    );
+
+    groups.push(
+      {
         label: "Governance",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/governance", isPremium: true } as any,
@@ -541,6 +559,7 @@ function DashboardLayoutContent({
           { icon: AlertTriangle, label: "Threats", path: "/risks/threats" },
           { icon: Bug, label: "Vulnerabilities", path: "/risks/vulnerabilities" },
           { icon: ClipboardCheck, label: "Assessments", path: "/risks/assessments" },
+          { icon: Compass, label: "Guided Assessment", path: "/risks/guided" },
           { icon: ShieldCheck, label: "Treatment Plan", path: "/risks/treatment-plan" },
           { icon: BookOpen, label: "Alignment Guide", path: "/risks/alignment-guide" },
           // Premium: Adversary Intelligence (conditionally added below)
@@ -566,11 +585,13 @@ function DashboardLayoutContent({
 
 
     groups.push({
-      label: "Application Security",
+      label: "AI & App Security",
       items: [
+        { icon: Brain, label: "AI Governance", path: "/ai-governance" },
         { icon: Code, label: "Threat Modeling", path: "/dev/projects" },
       ]
     });
+
 
     // Always show Vendor Management when a client is selected
     if (persistentClientId) {
@@ -587,17 +608,14 @@ function DashboardLayoutContent({
     }
 
     groups.push(
-
       {
-        label: "Compliance",
+        label: "Control Frameworks",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/compliance" },
-
 
           { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
           { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires" },
           { icon: Link, label: "Mappings", path: "/mappings" },
-          { icon: Star, label: "Audit Readiness Wizard", path: `/clients/${persistentClientId}/readiness/wizard` },
 
         ]
       },
@@ -651,8 +669,6 @@ function DashboardLayoutContent({
         label: "Assurance",
         items: [
           ...(clientInfo?.serviceModel === 'managed' ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
-          { icon: ClipboardCheck, label: "Evidence", path: "/evidence" },
-          { icon: Briefcase, label: "Audit Hub", path: "/audit-hub" },
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: FileBarChart, label: "Reports", path: "/reports" },
           { icon: Bell, label: "Notifications", path: "/notifications" },

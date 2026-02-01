@@ -33,7 +33,10 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         status: clients.status,
                         logoUrl: clients.logoUrl,
                         planTier: clients.planTier, // Added
-                        activeModules: clients.activeModules // Added
+                        activeModules: clients.activeModules, // Added
+                        brandPrimaryColor: clients.brandPrimaryColor,
+                        brandSecondaryColor: clients.brandSecondaryColor,
+                        portalTitle: clients.portalTitle,
                     }).from(clients).orderBy(desc(clients.updatedAt));
                     console.log('[DEBUG] Admin listing clients count:', all.length);
                     // Log first client ID if available to verify data structure
@@ -61,7 +64,10 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     status: clients.status,
                     logoUrl: clients.logoUrl,
                     planTier: clients.planTier, // Added
-                    activeModules: clients.activeModules // Added
+                    activeModules: clients.activeModules, // Added
+                    brandPrimaryColor: clients.brandPrimaryColor,
+                    brandSecondaryColor: clients.brandSecondaryColor,
+                    portalTitle: clients.portalTitle,
                 })
                     .from(userClients)
                     .innerJoin(clients, eq(userClients.clientId, clients.id))
@@ -466,7 +472,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     });
                 }
             }),
-        update: adminProcedure
+        update: publicProcedure.use(isAuthed)
             .input(z.object({
                 id: z.number(),
                 name: z.string().optional(),
@@ -493,9 +499,22 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 // New Plan/Module Fields
                 planTier: z.string().optional(),
                 activeModules: z.array(z.string()).optional(),
+                // Branding
+                brandPrimaryColor: z.string().optional().nullable(),
+                brandSecondaryColor: z.string().optional().nullable(),
+                portalTitle: z.string().optional().nullable(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const { id, ...data } = input;
+
+                // Security Check: Allow Global Admins OR Client Admins
+                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner') {
+                    const isAllowed = await db.isUserAllowedForClient(ctx.user.id, id, 'admin');
+                    if (!isAllowed) {
+                        throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to update this client.' });
+                    }
+                }
+
                 await db.updateClient(id, data);
                 return { success: true };
             }),

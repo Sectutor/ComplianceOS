@@ -24,16 +24,18 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 
 interface CommentsSectionProps {
+    clientId: number;
     entityType: 'control' | 'policy' | 'evidence';
     entityId: number;
 }
 
-export function CommentsSection({ entityType, entityId }: CommentsSectionProps) {
+export function CommentsSection({ clientId, entityType, entityId }: CommentsSectionProps) {
     const { user } = useAuth();
     const [newComment, setNewComment] = useState("");
     const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
 
     const { data: comments, isLoading, refetch } = trpc.comments.list.useQuery({
+        clientId,
         entityType,
         entityId
     });
@@ -64,6 +66,7 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
         if (!newComment.trim()) return;
 
         createMutation.mutate({
+            clientId,
             entityType,
             entityId,
             content: newComment
@@ -76,7 +79,7 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
 
     const confirmDelete = () => {
         if (commentToDelete) {
-            deleteMutation.mutate({ id: commentToDelete });
+            deleteMutation.mutate({ id: commentToDelete, clientId });
             setCommentToDelete(null);
         }
     };

@@ -8,7 +8,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, ArrowLeft } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { usePageHelp } from "@/hooks/usePageHelp";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLocation, Link } from "wouter";
 import { ControlsStats } from "@/components/controls/ControlsStats";
 import { ControlTable } from "@/components/controls/ControlTable";
 import { ControlFilterBar } from "@/components/controls/ControlFilterBar";
@@ -36,6 +37,46 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 
 export default function Controls() {
+  const [, setLocation] = useLocation();
+  // Custom hook to track search params since wouter's useLocation might ignore query-only changes
+  const useSearchParams = () => {
+    const [search, setSearch] = useState(window.location.search);
+
+    useEffect(() => {
+      const onChange = () => setSearch(window.location.search);
+
+      // Listen for popstate
+      window.addEventListener('popstate', onChange);
+
+      // Monkey-patch pushState/replaceState to detect changes
+      const originalPush = window.history.pushState;
+      const originalReplace = window.history.replaceState;
+
+      window.history.pushState = function (...args) {
+        const res = originalPush.apply(this, args);
+        onChange();
+        return res;
+      };
+
+      window.history.replaceState = function (...args) {
+        const res = originalReplace.apply(this, args);
+        onChange();
+        return res;
+      };
+
+      return () => {
+        window.history.pushState = originalPush;
+        window.history.replaceState = originalReplace;
+        window.removeEventListener('popstate', onChange);
+      };
+    }, []);
+
+    return new URLSearchParams(search);
+  };
+
+  const searchParams = useSearchParams();
+  const frameworkParam = searchParams.get('framework') || '';
+
   usePageHelp({
     pageTitle: "Controls Framework",
     description: "Manage master controls, frameworks, and requirements. Define controls, assign owners, and map them to frameworks.",
@@ -52,7 +93,9 @@ export default function Controls() {
   const pageSize = 50;
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const [frameworkFilter, setFrameworkFilter] = useState<string[]>([]);
+  const [frameworkFilter, setFrameworkFilter] = useState<string[]>(
+    frameworkParam ? [frameworkParam] : []
+  );
   const [ownerFilter, setOwnerFilter] = useState<string[]>([]);
   // Other filters could be added here
 
@@ -143,6 +186,15 @@ export default function Controls() {
   useEffect(() => {
     setPage(0);
   }, [frameworkFilter, debouncedSearchQuery, ownerFilter]);
+
+  // Handle framework parameter from URL
+  useEffect(() => {
+    if (frameworkParam) {
+      setFrameworkFilter([frameworkParam]);
+    } else {
+      setFrameworkFilter([]);
+    }
+  }, [frameworkParam]);
 
   const { data: paginatedData, isLoading, refetch } = trpc.controls.listPaginated.useQuery({
     framework: frameworkFilter.length > 0 ? (frameworkFilter.includes("all") ? "all" : frameworkFilter) : "all",
@@ -342,16 +394,39 @@ export default function Controls() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <Breadcrumb
-          items={[
-            { label: "Controls" },
-          ]}
-        />
+        <div className="flex items-center gap-4">
+          {frameworkParam && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation('/frameworks')}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Frameworks
+            </Button>
+          )}
+          <Breadcrumb
+            items={frameworkParam ? [
+              { label: "Frameworks", href: "/frameworks" },
+              { label: `${frameworkParam} Controls` }
+            ] : [
+              { label: "Control Library" }
+            ]}
+          />
+        </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Control Library</h1>
-            <p className="text-muted-foreground mt-1">Manage master controls, frameworks, and requirements.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              {frameworkParam ? `${frameworkParam} Controls` : "Control Library"}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {frameworkParam
+                ? `Manage controls for ${frameworkParam} framework`
+                : "Manage master controls, frameworks, and requirements."
+              }
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={() => setOpenAutoMap(true)}>

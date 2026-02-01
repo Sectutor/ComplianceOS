@@ -29,7 +29,7 @@ import {
 export default function UserManagement() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [selectedRole, setSelectedRole] = useState("user");
-    const [userToDelete, setUserToDelete] = useState<any>(null);
+    const [userToImpersonate, setUserToImpersonate] = useState<any>(null);
 
     const { data: users, isLoading, refetch } = trpc.users.list.useQuery();
 
@@ -68,6 +68,7 @@ export default function UserManagement() {
         },
         onError: (err) => {
             toast.error("Impersonation failed: " + err.message);
+            setUserToImpersonate(null);
         }
     });
 
@@ -219,11 +220,7 @@ export default function UserManagement() {
                                                         className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors duration-200"
                                                         title="Login as User"
                                                         disabled={user.role === 'owner' || impersonateMutation.isPending}
-                                                        onClick={() => {
-                                                            if (confirm(`Login as ${user.name}? You will be signed out of your current account.`)) {
-                                                                impersonateMutation.mutate({ userId: user.id });
-                                                            }
-                                                        }}
+                                                        onClick={() => setUserToImpersonate(user)}
                                                     >
                                                         {impersonateMutation.isPending && impersonateMutation.variables?.userId === user.id ? (
                                                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -272,6 +269,33 @@ export default function UserManagement() {
                             }}
                         >
                             {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Delete Account"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!userToImpersonate} onOpenChange={(open) => !open && setUserToImpersonate(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Impersonation</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to login as <b>{userToImpersonate?.name}</b>?
+                            <br /><br />
+                            You will be signed out of your current account and redirected to a new session as this user.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (userToImpersonate) {
+                                    impersonateMutation.mutate({ userId: userToImpersonate.id });
+                                }
+                            }}
+                            disabled={impersonateMutation.isPending}
+                        >
+                            {impersonateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Login as User"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

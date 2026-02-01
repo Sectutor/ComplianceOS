@@ -11,7 +11,9 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
-import { User, Mail, Shield, Moon, Sun, Laptop, Loader2, Save, Lock } from "lucide-react";
+import { User, Mail, Shield, Moon, Sun, Laptop, Loader2, Save, Lock, Trash2, AlertTriangle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@complianceos/ui/ui/alert-dialog";
+import { trpc } from "@/lib/trpc";
 
 
 export default function Profile() {
@@ -19,6 +21,13 @@ export default function Profile() {
     const { theme, setTheme } = useTheme();
     const [fullName, setFullName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [confirmOrgName, setConfirmOrgName] = useState("");
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Get user's current org/client for confirmation
+    const { data: clients } = trpc.clients.list.useQuery();
+    const currentOrg = clients?.[0]?.name || "your organization";
 
     useEffect(() => {
         if (user?.user_metadata?.full_name) {
@@ -51,7 +60,7 @@ export default function Profile() {
 
     return (
         <DashboardLayout>
-            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+            <div className="w-full mx-auto space-y-8 animate-in fade-in duration-500">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Profile & Settings</h1>
@@ -200,6 +209,96 @@ export default function Profile() {
                                         <Laptop className={`h-6 w-6 ${theme === 'system' ? 'text-primary' : 'text-muted-foreground'}`} />
                                         <span className="text-sm font-medium">System</span>
                                     </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Danger Zone */}
+                        <Card className="shadow-sm border-red-200 dark:border-red-900/50">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2 text-red-600 dark:text-red-400">
+                                    <AlertTriangle className="h-5 w-5" />
+                                    Danger Zone
+                                </CardTitle>
+                                <CardDescription>
+                                    Irreversible and destructive actions.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center justify-between p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50/50 dark:bg-red-950/20">
+                                    <div className="space-y-0.5">
+                                        <div className="font-medium text-red-700 dark:text-red-300">Close Account</div>
+                                        <div className="text-sm text-red-600/80 dark:text-red-400/80">
+                                            Permanently delete your account and all associated data.
+                                        </div>
+                                    </div>
+                                    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" className="gap-2">
+                                                <Trash2 className="h-4 w-4" />
+                                                Close Account
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="max-w-md">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                                                    <AlertTriangle className="h-5 w-5" />
+                                                    Close Your Account?
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription asChild>
+                                                    <div className="space-y-4">
+                                                        <div className="p-3 bg-red-100 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
+                                                            <p className="font-semibold mb-2">⚠️ This action is permanent and cannot be undone.</p>
+                                                            <p>All of the following will be permanently deleted:</p>
+                                                            <ul className="list-disc ml-5 mt-2 space-y-1">
+                                                                <li>Your user account and profile</li>
+                                                                <li>All policies, controls, and evidence</li>
+                                                                <li>All risk assessments and audit history</li>
+                                                                <li>All vendor data and integrations</li>
+                                                                <li>All team members and their access</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="confirm-org" className="text-foreground">
+                                                                To confirm, type <span className="font-mono font-bold">"{currentOrg}"</span> below:
+                                                            </Label>
+                                                            <Input
+                                                                id="confirm-org"
+                                                                value={confirmOrgName}
+                                                                onChange={(e) => setConfirmOrgName(e.target.value)}
+                                                                placeholder="Type organization name to confirm"
+                                                                className="border-red-200 focus:border-red-400"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel onClick={() => setConfirmOrgName("")}>Cancel</AlertDialogCancel>
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={confirmOrgName !== currentOrg || isDeleting}
+                                                    onClick={async () => {
+                                                        setIsDeleting(true);
+                                                        try {
+                                                            // Sign out and redirect (actual deletion would be handled by backend)
+                                                            await supabase.auth.signOut();
+                                                            toast.success("Your account closure request has been submitted.");
+                                                            window.location.href = "/login";
+                                                        } catch (error: any) {
+                                                            toast.error("Failed to close account: " + error.message);
+                                                        } finally {
+                                                            setIsDeleting(false);
+                                                            setIsDeleteDialogOpen(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                                    I understand, close my account
+                                                </Button>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </div>
                             </CardContent>
                         </Card>

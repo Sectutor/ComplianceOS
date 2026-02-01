@@ -167,12 +167,175 @@ export const createFrameworkImportRouter = (t: any, clientProcedure: any) => {
                 }
             }),
 
+        // Custom Framework Import (Premium Feature)
+        importCustomFramework: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                frameworkName: z.string().min(1),
+                frameworkVersion: z.string().optional().default("1.0"),
+                // New format: Record<ExcelColumnName, DBFieldName>
+                columnMappings: z.record(z.string(), z.string()),
+                fileContent: z.string(), // Base64 encoded
+                sheetName: z.string().optional(),
+                headerRow: z.number().optional().default(1)
+            }))
+            .mutation(async ({ input }: any) => {
+                console.log(`[FrameworkImport] Custom import for: ${input.frameworkName}`);
+                console.log(`[FrameworkImport] Sheet: ${input.sheetName}, Header Row: ${input.headerRow}`);
+                console.log(`[FrameworkImport] Column mappings:`, input.columnMappings);
+                try {
+                    const db = await getDb();
+
+                    // Decode file
+                    const buffer = Buffer.from(input.fileContent, 'base64');
+                    const workbook = XLSX.read(buffer, { type: 'buffer' });
+
+                    // Get the specified sheet or default to first
+                    const sheetName = input.sheetName || workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+
+                    if (!sheet) {
+                        throw new TRPCError({ code: 'BAD_REQUEST', message: `Sheet "${sheetName}" not found` });
+                    }
+
+                    // Get headers from specified row
+                    const headerRowIndex = (input.headerRow || 1) - 1;
+                    const sheetRef = sheet['!ref'];
+
+                    if (!sheetRef) {
+                        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Sheet appears to be empty' });
+                    }
+
+                    const range = XLSX.utils.decode_range(sheetRef);
+                    const headers: string[] = [];
+
+                    for (let col = range.s.c; col <= range.e.c; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
+                        const cell = sheet[cellAddress];
+                        if (cell && cell.v !== undefined && cell.v !== null && cell.v !== "") {
+                            headers.push(String(cell.v));
+                        } else {
+                            headers.push(`Column${col + 1}`);
+                        }
+                    }
+
+                    // Parse data with headers starting from header row
+                    const rows: any[] = XLSX.utils.sheet_to_json(sheet, {
+                        header: headers,
+                        range: headerRowIndex
+                    });
+
+                    // Skip header row itself
+                    const dataRows = rows.slice(1);
+
+                    if (dataRows.length === 0) {
+                        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No data found in file' });
+                    }
+
+                    // Build reverse mapping: DB field -> Excel column
+                    const fieldToExcelCol: Record<string, string> = {};
+                    for (const [excelCol, dbField] of Object.entries(input.columnMappings)) {
+                        if (dbField && dbField !== "__SKIP__") {
+                            fieldToExcelCol[dbField as string] = excelCol;
+                        }
+                    }
+
+                    // Validate required fields are mapped
+                    if (!fieldToExcelCol.controlCode || !fieldToExcelCol.title) {
+                        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Control Code and Title must be mapped' });
+                    }
+
+                    const controlsToInsert = dataRows.map((row) => {
+                        const control: any = {
+                            controlCode: row[fieldToExcelCol.controlCode]?.toString() || "",
+                            title: row[fieldToExcelCol.title]?.toString() || "",
+                            originalData: row
+                        };
+
+                        // Map optional fields
+                        if (fieldToExcelCol.description) {
+                            control.description = row[fieldToExcelCol.description]?.toString() || "";
+                        }
+                        if (fieldToExcelCol.grouping) {
+                            control.grouping = row[fieldToExcelCol.grouping]?.toString() || "";
+                        }
+                        if (fieldToExcelCol.owner) {
+                            control.owner = row[fieldToExcelCol.owner]?.toString() || "";
+                        }
+                        if (fieldToExcelCol.status) {
+                            control.status = row[fieldToExcelCol.status]?.toString() || "not_implemented";
+                        }
+                        if (fieldToExcelCol.implementationNotes) {
+                            control.implementationNotes = row[fieldToExcelCol.implementationNotes]?.toString() || "";
+                        }
+                        if (fieldToExcelCol.evidenceLocation) {
+                            control.evidenceLocation = row[fieldToExcelCol.evidenceLocation]?.toString() || "";
+                        }
+                        if (fieldToExcelCol.justification) {
+                            control.justification = row[fieldToExcelCol.justification]?.toString() || "";
+                        }
+
+                        return control;
+                    }).filter(c => c.controlCode && c.title);
+
+                    if (controlsToInsert.length === 0) {
+                        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No valid controls found after mapping' });
+                    }
+
+                    console.log(`[FrameworkImport] Found ${controlsToInsert.length} controls to insert.`);
+
+                    // Create Framework Record
+                    const [framework] = await db.insert(schema.clientFrameworks).values({
+                        clientId: input.clientId,
+                        name: input.frameworkName,
+                        version: input.frameworkVersion,
+                        sourceFileName: 'custom_import.xlsx',
+                        status: 'active'
+                    }).returning();
+
+                    // Bulk Insert Controls
+                    const controlsWithFrameworkId = controlsToInsert.map(c => ({
+                        ...c,
+                        frameworkId: framework.id
+                    }));
+
+                    await db.insert(schema.clientFrameworkControls).values(controlsWithFrameworkId);
+                    console.log(`[FrameworkImport] Custom import complete for framework ${framework.id}`);
+
+                    return { success: true, count: controlsToInsert.length, frameworkId: framework.id };
+                } catch (error: any) {
+                    console.error("[FrameworkImport] Custom import error:", error);
+                    if (error instanceof TRPCError) throw error;
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Import failed: ${error.message || 'Unknown error'}`,
+                        cause: error
+                    });
+                }
+            }),
+
         listFrameworks: clientProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {
                 const db = await getDb();
-                return await db.select().from(schema.clientFrameworks)
-                    .where(eq(schema.clientFrameworks.clientId, input.clientId));
+
+                // Get frameworks with control counts
+                const frameworks = await db.select({
+                    id: schema.clientFrameworks.id,
+                    clientId: schema.clientFrameworks.clientId,
+                    name: schema.clientFrameworks.name,
+                    version: schema.clientFrameworks.version,
+                    sourceFileName: schema.clientFrameworks.sourceFileName,
+                    importedAt: schema.clientFrameworks.importedAt,
+                    status: schema.clientFrameworks.status,
+                    controlCount: sql<number>`count(${schema.clientFrameworkControls.id})`
+                })
+                    .from(schema.clientFrameworks)
+                    .leftJoin(schema.clientFrameworkControls, eq(schema.clientFrameworks.id, schema.clientFrameworkControls.frameworkId))
+                    .where(eq(schema.clientFrameworks.clientId, input.clientId))
+                    .groupBy(schema.clientFrameworks.id);
+
+                return frameworks;
             }),
 
         getFramework: clientProcedure
@@ -196,7 +359,7 @@ export const createFrameworkImportRouter = (t: any, clientProcedure: any) => {
                     .where(eq(schema.clientFrameworkControls.frameworkId, input.frameworkId));
 
                 const total = controls.length;
-                const statusCounts = controls.reduce((acc: Record<string, number>, curr) => {
+                const statusCounts = controls.reduce((acc: Record<string, number>, curr: { status: string | null }) => {
                     const s = curr.status || 'not_implemented';
                     acc[s] = (acc[s] || 0) + 1;
                     return acc;
@@ -218,7 +381,7 @@ export const createFrameworkImportRouter = (t: any, clientProcedure: any) => {
             }),
 
         getFrameworkControls: clientProcedure
-            .input(z.object({ 
+            .input(z.object({
                 frameworkId: z.number(),
                 limit: z.number().min(1).max(100).default(50),
                 cursor: z.number().nullish(), // Use cursor-based pagination or offset? Let's stick to simple offset for table
@@ -233,7 +396,7 @@ export const createFrameworkImportRouter = (t: any, clientProcedure: any) => {
                 const [countResult] = await db.select({ count: sql<number>`count(*)` })
                     .from(schema.clientFrameworkControls)
                     .where(eq(schema.clientFrameworkControls.frameworkId, input.frameworkId));
-                
+
                 const total = Number(countResult.count);
 
                 // Get data

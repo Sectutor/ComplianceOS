@@ -37,16 +37,16 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
   const [isDragActive, setIsDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { data: files, refetch } = trpc.evidenceFiles.list.useQuery({ evidenceId });
-  
+
   const createFileMutation = trpc.evidenceFiles.create.useMutation({
     onSuccess: () => {
       refetch();
     },
     onError: (error) => toast.error(error.message),
   });
-  
+
   const deleteFileMutation = trpc.evidenceFiles.delete.useMutation({
     onSuccess: () => {
       toast.success("File deleted");
@@ -114,7 +114,7 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
       try {
         // Read file as base64
         const reader = new FileReader();
-        
+
         const uploadPromise = new Promise<void>((resolve, reject) => {
           reader.onload = async () => {
             try {
@@ -132,8 +132,8 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
                 prev.map(f => f.id === uploadingFile.id ? { ...f, progress: 30 } : f)
               );
 
-              // Upload to S3 via API
-              const response = await fetch('/api/upload-evidence-file', {
+              // Upload to server side storage via proxy
+              const response = await fetch('/api/upload', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -142,6 +142,7 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
                   filename,
                   data: base64Data,
                   contentType: file.type,
+                  folder: 'evidence'
                 }),
               });
 
@@ -299,11 +300,10 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-          isDragActive
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDragActive
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-        }`}
+          }`}
         onClick={() => fileInputRef.current?.click()}
       >
         <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -392,7 +392,7 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => window.open(file.url, '_blank')}
+                      onClick={() => window.open(file.fileUrl, '_blank')}
                       title="Download file"
                     >
                       <Download className="h-4 w-4" />

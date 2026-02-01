@@ -60,7 +60,12 @@ export default function GovernanceDashboard() {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Governance Dashboard</h1>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                            Governance Dashboard
+                            <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-none px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg shadow-indigo-200 uppercase">
+                                Premium
+                            </Badge>
+                        </h1>
                         <p className="text-muted-foreground mt-2">
                             Establish robust governance, manage policies, and orchestrate compliance workflows.
                         </p>

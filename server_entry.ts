@@ -96,6 +96,9 @@ app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/ai', aiRouter);
 
+// Serve uploads statically for local development
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Serve static files in production (Docker)
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     console.log('[Server] Serving static files from packages/core/dist');
@@ -132,6 +135,20 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 // TRPC Endpoint
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/trpc')) {
+        console.log(`[TRPC Debug] ${req.method} ${req.url}`);
+        console.log(`[TRPC Debug] Content-Type: ${req.headers['content-type']}`);
+        console.log(`[TRPC Debug] Body keys: ${Object.keys(req.body || {})}`);
+        if (req.method === 'POST') {
+            // Safe log for potential base64 data - truncate
+            const bodyStr = JSON.stringify(req.body);
+            console.log(`[TRPC Debug] Body: ${bodyStr.substring(0, 500)}...`);
+        }
+    }
+    next();
+});
+
 app.use(
     '/api/trpc',
     createExpressMiddleware({

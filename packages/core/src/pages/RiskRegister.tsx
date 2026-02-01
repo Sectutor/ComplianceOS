@@ -40,7 +40,7 @@ export default function RiskRegister() {
         { enabled: !!clientId }
     );
 
-    const { data: scenarios, isLoading: loadingScenarios, refetch: refetchScenarios } = trpc.risks.getScenarios.useQuery(
+    const { data: scenarios, isLoading: loadingScenarios, refetch: refetchScenarios } = trpc.risks.getAssessments.useQuery(
         { clientId },
         { enabled: !!clientId }
     );
@@ -98,7 +98,7 @@ export default function RiskRegister() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {[
                         { label: 'Total Risks', value: scenarios?.length || 0, icon: Shield, color: 'blue' },
-                        { label: 'High Risks', value: scenarios?.filter(s => (s.inherentRiskScore || 0) >= 15).length || 0, icon: AlertTriangle, color: 'red' },
+                        { label: 'High Risks', value: scenarios?.filter(s => (s.inherentScore || 0) >= 15).length || 0, icon: AlertTriangle, color: 'red' },
                         { label: 'Mitigated', value: scenarios?.filter(s => s.status === 'treated').length || 0, icon: CheckCircle, color: 'green' },
                         { label: 'Critical Assets', value: assets?.filter(a => (a.valuationA || 0) >= 4).length || 0, icon: Database, color: 'purple' },
                     ].map((stat, i) => (
@@ -219,6 +219,7 @@ function RiskRegisterTable({ scenarios, loading, onTreat, onEdit }: { scenarios:
                 <thead className="bg-gray-50 dark:bg-slate-950">
                     <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Risk Scenarios</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Risk Source</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Threat & Vuln</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Inherent Score</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
@@ -234,16 +235,21 @@ function RiskRegisterTable({ scenarios, loading, onTreat, onEdit }: { scenarios:
                         >
                             <td className="px-6 py-4">
                                 <div className="text-sm font-medium text-gray-900 dark:text-white">{risk.title}</div>
-                                <div className="text-sm text-gray-500 dark:text-slate-400">{risk.description}</div>
+                                <div className="text-sm text-gray-500 dark:text-slate-400">{risk.threatDescription || risk.description}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                                <div className="text-xs font-medium text-gray-700 dark:text-slate-300 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded inline-block">
+                                    {risk.contextSnapshot?.source || 'Manual Assessment'}
+                                </div>
                             </td>
                             <td className="px-6 py-4">
                                 <div className="text-xs text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded inline-block mb-1">
                                     {risk.threatCategory || 'Uncategorized'}
                                 </div>
-                                <div className="text-sm text-gray-600 dark:text-slate-300">{risk.vulnerability}</div>
+                                <div className="text-sm text-gray-600 dark:text-slate-300">{risk.vulnerabilityDescription || risk.vulnerability}</div>
                             </td>
                             <td className="px-6 py-4">
-                                <RiskScoreBadge score={risk.inherentRiskScore || 0} />
+                                <RiskScoreBadge score={risk.inherentScore || 0} />
                             </td>
                             <td className="px-6 py-4">
                                 <span className={`px-2 py-1 text-xs font-medium rounded-full

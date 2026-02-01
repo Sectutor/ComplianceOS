@@ -16,8 +16,7 @@ import { Plus, Cloud, Trash2, RefreshCw, CheckCircle2, AlertCircle, Clock, Serve
 
 export default function CloudIntegrations() {
     const [isAddOpen, setIsAddOpen] = useState(false);
-    const [selectedProvider, setSelectedProvider] = useState<string>("");
-    const [selectedClientId, setSelectedClientId] = useState<string>("");
+    const [connectionToDelete, setConnectionToDelete] = useState<any>(null);
 
     const { data: connections, isLoading, refetch } = trpc.cloudConnections.list.useQuery({});
     const { data: clients } = trpc.clients.list.useQuery();
@@ -34,6 +33,7 @@ export default function CloudIntegrations() {
     const deleteMutation = trpc.cloudConnections.delete.useMutation({
         onSuccess: () => {
             toast.success("Connection removed");
+            setConnectionToDelete(null);
             refetch();
         },
         onError: (err) => toast.error(err.message),
@@ -245,11 +245,7 @@ export default function CloudIntegrations() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
-                                                            onClick={() => {
-                                                                if (confirm("Delete this connection?")) {
-                                                                    deleteMutation.mutate({ id: conn.id });
-                                                                }
-                                                            }}
+                                                            onClick={() => setConnectionToDelete(conn)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -274,6 +270,29 @@ export default function CloudIntegrations() {
                         <AssetsTab />
                     </TabsContent>
                 </Tabs>
+
+                <AlertDialog open={!!connectionToDelete} onOpenChange={(open) => !open && setConnectionToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete the cloud connection <b>{connectionToDelete?.name}</b>.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => {
+                                    if (connectionToDelete) delteMutation.mutate({ id: connectionToDelete.id });
+                                }}
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? "Deleting..." : "Delete Connection"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </DashboardLayout>
     );

@@ -11,7 +11,7 @@ import { Checkbox } from '@complianceos/ui/ui/checkbox';
 import { ScrollArea } from '@complianceos/ui/ui/scroll-area';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
-import { Shield, AlertTriangle, Layers, Building, ArrowRight, Check, Plus, Link as LinkIcon, Sparkles, Loader2 } from 'lucide-react';
+import { Shield, AlertTriangle, Layers, Building, ArrowRight, Check, Plus, Link as LinkIcon, Sparkles, Loader2, Info } from 'lucide-react';
 import { calculateResidualScore, getRiskLevelColor, scoreToRiskLevel, getMatrixScoreLevel, getRiskLevelTextColor } from '@/lib/riskCalculations';
 import { RiskAppetiteCheck } from '@/components/risk/RiskAppetiteCheck';
 
@@ -334,7 +334,25 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                 )}
 
                 {step === 'analysis' && (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
+                            <div className="flex items-start gap-3">
+                                <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                                <div className="text-[11px] space-y-1">
+                                    <h4 className="font-semibold text-slate-900">Risk Calculation Methodology</h4>
+                                    <p className="text-slate-600 leading-relaxed">
+                                        Scores are calculated using a 4x4 matrix: <br />
+                                        <span className="font-mono bg-slate-200 px-1 py-0.5 rounded text-[10px]">Likelihood (1-4) × Impact (1-4) = Risk Score</span>
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-x-2 text-[10px] text-slate-500 font-medium pt-1">
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-600" /> 12-16: Very High</div>
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> 8-11: High</div>
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> 4-7: Medium</div>
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> 1-3: Low</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div className="space-y-4">
                             <div className="flex justify-between">
                                 <Label>Likelihood ({formData.likelihood})</Label>

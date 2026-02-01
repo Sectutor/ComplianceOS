@@ -72,6 +72,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         instruction: z.string().optional(),
         sections: z.array(z.string()).optional(),
         module: z.enum(["general", "privacy", "cyber"]).optional().default("general"),
+        isAiGenerated: z.boolean().optional(),
       }))
       .mutation(async ({ input }: any) => {
         let data = { ...input };
@@ -116,6 +117,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
               });
               data.content = generatedContent;
             }
+            // Mark as AI generated
+            (data as any).isAiGenerated = true;
             console.log(`[PolicyCreate] Generation complete. Length: ${data.content?.length || 0}`);
           } catch (e) {
             console.error("[PolicyCreate] Policy Generation failed:", e);

@@ -8,7 +8,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Plus, Trash2, Link2, Edit2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Link2, Edit2, Sparkles } from "lucide-react";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
@@ -312,7 +312,14 @@ export default function Mappings() {
                     >
                       <TableCell className="py-4">
                         <div>
-                          <p className="font-mono text-sm text-black">{item.clientControl?.clientControlId}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-sm text-black">{item.clientControl?.clientControlId}</p>
+                            {(item.mapping as any).isAiGenerated && (
+                              <div className="p-0.5 rounded bg-purple-100 text-purple-600" title="AI Suggested Mapping">
+                                <Sparkles className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">{item.control?.name}</p>
                         </div>
                       </TableCell>

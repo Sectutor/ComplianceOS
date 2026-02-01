@@ -50,8 +50,8 @@ export default function RACIMatrix() {
     if (!raciMatrix) return [];
 
     let filtered = raciMatrix.filter((emp: any) => {
-      const matchesSearch = emp.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.department?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (emp.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDepartment = filterDepartment === 'all' || emp.department === filterDepartment;
       return matchesSearch && matchesDepartment;
     });
@@ -59,7 +59,7 @@ export default function RACIMatrix() {
     // Sort
     filtered.sort((a: any, b: any) => {
       if (sortBy === 'name') {
-        return a.employeeName.localeCompare(b.employeeName);
+        return (a.employeeName || '').localeCompare(b.employeeName || '');
       } else if (sortBy === 'department') {
         return (a.department || '').localeCompare(b.department || '');
       } else {

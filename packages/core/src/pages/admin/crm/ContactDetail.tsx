@@ -35,6 +35,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@complianceos/ui/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 
 export default function ContactDetail() {
     const params = useParams<{ id: string }>();
@@ -76,6 +86,7 @@ export default function ContactDetail() {
     });
 
     const [editingDeal, setEditingDeal] = useState<any>(null);
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ type: 'activity' | 'note' | 'deal', id: number } | null>(null);
 
     const [editForm, setEditForm] = useState({
         firstName: '',
@@ -137,12 +148,11 @@ export default function ContactDetail() {
         }
     };
 
+    const confirmDeleteActivity = (id: number) => {
+        setDeleteConfirmation({ type: 'activity', id });
+    };
+
     const handleDeleteActivity = async (id: number) => {
-        console.log('handleDeleteActivity called for id:', id);
-        if (!window.confirm('Delete this activity?')) {
-            console.log('Activity deletion cancelled');
-            return;
-        }
         try {
             console.log('Sending delete activity request for id:', id);
             await deleteActivity.mutateAsync({ id });
@@ -186,12 +196,11 @@ export default function ContactDetail() {
         }
     };
 
+    const confirmDeleteNote = (id: number) => {
+        setDeleteConfirmation({ type: 'note', id });
+    };
+
     const handleDeleteNote = async (id: number) => {
-        console.log('handleDeleteNote called for id:', id);
-        if (!window.confirm('Delete this note?')) {
-            console.log('Note deletion cancelled');
-            return;
-        }
         try {
             console.log('Sending delete note request for id:', id);
             await deleteNote.mutateAsync({ id });
@@ -221,12 +230,11 @@ export default function ContactDetail() {
         }
     };
 
+    const confirmDeleteDeal = (id: number) => {
+        setDeleteConfirmation({ type: 'deal', id });
+    };
+
     const handleDeleteDeal = async (id: number) => {
-        console.log('handleDeleteDeal called for id:', id);
-        if (!window.confirm('Delete this deal?')) {
-            console.log('Deal deletion cancelled');
-            return;
-        }
         try {
             console.log('Sending delete deal request for id:', id);
             await deleteDeal.mutateAsync({ id });
@@ -296,6 +304,18 @@ export default function ContactDetail() {
     }
 
     const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Unnamed Contact';
+
+    const performDelete = () => {
+        if (!deleteConfirmation) return;
+        if (deleteConfirmation.type === 'activity') {
+            handleDeleteActivity(deleteConfirmation.id);
+        } else if (deleteConfirmation.type === 'note') {
+            handleDeleteNote(deleteConfirmation.id);
+        } else if (deleteConfirmation.type === 'deal') {
+            handleDeleteDeal(deleteConfirmation.id);
+        }
+        setDeleteConfirmation(null);
+    };
 
     return (
         <div className="p-6 space-y-6">
@@ -504,7 +524,7 @@ export default function ContactDetail() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                                onClick={() => handleDeleteActivity(activity.id)}
+                                                onClick={() => confirmDeleteActivity(activity.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -552,7 +572,7 @@ export default function ContactDetail() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-6 w-6 text-muted-foreground"
-                                                onClick={() => handleDeleteActivity(task.id)}
+                                                onClick={() => confirmDeleteActivity(task.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -603,7 +623,7 @@ export default function ContactDetail() {
                                         <Button variant="ghost" size="sm" onClick={() => { setEditingDeal(deal); setDealForm(deal); setIsDealOpen(true); }}>
                                             <Edit className="h-3.5 w-3.5" />
                                         </Button>
-                                        <Button variant="ghost" size="sm" onClick={() => handleDeleteDeal(deal.id)} className="text-destructive">
+                                        <Button variant="ghost" size="sm" onClick={() => confirmDeleteDeal(deal.id)} className="text-destructive">
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </Button>
                                     </div>
@@ -646,7 +666,7 @@ export default function ContactDetail() {
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                            onClick={() => handleDeleteNote(note.id)}
+                                            onClick={() => confirmDeleteNote(note.id)}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
@@ -843,6 +863,27 @@ export default function ContactDetail() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!deleteConfirmation} onOpenChange={(open) => !open && setDeleteConfirmation(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {deleteConfirmation?.type === 'activity' ? 'Activity' : deleteConfirmation?.type === 'note' ? 'Note' : 'Deal'}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this {deleteConfirmation?.type}? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={performDelete}
+                            disabled={deleteActivity.isPending || deleteNote.isPending || deleteDeal.isPending}
+                        >
+                            {(deleteActivity.isPending || deleteNote.isPending || deleteDeal.isPending) ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

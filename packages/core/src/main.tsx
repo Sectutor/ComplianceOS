@@ -79,7 +79,7 @@ const safeTransformer = {
 };
 
 const trpcClient = trpc.createClient({
-  // transformer: superjson, // DISABLED: Matching server config
+  // transformer: superjson,
   links: [
     httpBatchLink({
       url: "/api/trpc",
@@ -88,13 +88,22 @@ const trpcClient = trpc.createClient({
         const { data: { session } } = await supabase.auth.getSession();
         const reqId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 
+        // Pull selected client ID from localStorage for context preservation
+        const selectedClientId = typeof window !== 'undefined' ? window.localStorage.getItem('selectedClientId') : null;
+
+        const headers: Record<string, string> = {
+          'x-request-id': reqId,
+        };
+
         if (session?.access_token) {
-          return {
-            Authorization: `Bearer ${session.access_token}`,
-            'x-request-id': reqId,
-          };
+          headers.Authorization = `Bearer ${session.access_token}`;
         }
-        return { 'x-request-id': reqId };
+
+        if (selectedClientId) {
+          headers['x-client-id'] = selectedClientId;
+        }
+
+        return headers;
       },
       fetch: (url, options) => {
         return fetch(url, {

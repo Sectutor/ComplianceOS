@@ -27,6 +27,7 @@ export const createUsersRouter = (t: any, adminProcedure: any, publicProcedure: 
                 }
 
                 // Return a plain object with only serializable fields
+                console.log('[users.me] Returning user data for ID:', user.id);
                 return {
                     id: user.id,
                     openId: user.openId,
@@ -200,7 +201,10 @@ export const createUsersRouter = (t: any, adminProcedure: any, publicProcedure: 
                     // Log to file for diagnostics
                     try {
                         const fs = await import('fs');
-                        const logPath = 'server_last_error.txt';
+                        const path = await import('path');
+                        const logsDir = path.join(process.cwd(), 'logs');
+                        if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+                        const logPath = path.join(logsDir, 'server_last_error.txt');
                         const timestamp = new Date().toISOString();
                         const errorMessage = error instanceof Error ? error.stack || error.message : String(error);
                         fs.appendFileSync(logPath, `[${timestamp}] ${logPrefix} FAILED: ${errorMessage}\n`);

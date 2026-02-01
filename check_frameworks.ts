@@ -1,25 +1,38 @@
 
 import "dotenv/config";
-import { getDb } from "./db";
-import { clientFrameworks, clientFrameworkControls, controls } from "./schema";
-import { eq } from "drizzle-orm";
+import { getDb } from "./packages/core/src/db";
+import { evidence, evidenceFiles, clientControls, controls } from "./packages/core/src/schema";
+import { eq, and, sql } from "drizzle-orm";
 
-async function main() {
-    const db = await getDb();
+async function checkFrameworks(clientId: number) {
+    try {
+        const db = await getDb();
 
-    console.log("--- Standard Controls Frameworks ---");
-    const standard = await db.selectDistinct({ framework: controls.framework }).from(controls);
-    console.log(standard.map(c => c.framework));
+        // Check for SOC 2
+        const soc2Count = await db.select({ count: sql<number>`count(*)` })
+            .from(evidence)
+            .where(and(
+                eq(evidence.clientId, clientId),
+                eq(evidence.framework, "SOC 2")
+            ));
 
-    console.log("\n--- Client Frameworks ---");
-    const imported = await db.select().from(clientFrameworks);
-    console.log(imported.map(f => `${f.name} (v${f.version}) - Client ${f.clientId}`));
+        console.log(`[CHECK] Client ${clientId} SOC 2 items: ${soc2Count[0].count}`);
 
-    console.log("\n--- Imported Controls Count ---");
-    for (const f of imported) {
-        const count = await db.select().from(clientFrameworkControls).where(eq(clientFrameworkControls.frameworkId, f.id));
-        console.log(`Framework ${f.name}: ${count.length} controls`);
+        // Check for PCI DSS
+        const pciCount = await db.select({ count: sql<number>`count(*)` })
+            .from(evidence)
+            .where(and(
+                eq(evidence.clientId, clientId),
+                eq(evidence.framework, "PCI DSS")
+            ));
+
+        console.log(`[CHECK] Client ${clientId} PCI DSS items: ${pciCount[0].count}`);
+
+        process.exit(0);
+    } catch (e) {
+        console.error(e);
+        process.exit(1);
     }
 }
 
-main().catch(console.error).then(() => process.exit(0));
+checkFrameworks(3);

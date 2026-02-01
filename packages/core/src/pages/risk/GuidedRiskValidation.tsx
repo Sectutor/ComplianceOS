@@ -56,7 +56,7 @@ export default function GuidedRiskValidation() {
                 </Breadcrumb>
 
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Guided Risk Assessment</h1>
+                    <h1 className="text-3xl font-bold text-blue-600">Guided Risk Assessment</h1>
                     <p className="text-gray-500 mt-2">A step-by-step assistant to identify, analyze, and treat risks standardizing your compliance posture.</p>
                 </div>
 

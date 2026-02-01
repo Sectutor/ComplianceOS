@@ -4,10 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Shield, Settings, Upload, Loader2, Trash2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { FrameworkImportDialog } from "@/components/settings/FrameworkImportDialog";
 import { ControlMappingsAdmin } from "@/components/settings/ControlMappingsAdmin";
+import { CustomFrameworkImportWizard } from "@/components/settings/CustomFrameworkImportWizard";
 
 interface FrameworksSettingsTabProps {
     clientId: number;
@@ -15,15 +26,28 @@ interface FrameworksSettingsTabProps {
 
 export function FrameworksSettingsTab({ clientId }: FrameworksSettingsTabProps) {
     const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+    const [isCustomImportWizardOpen, setIsCustomImportWizardOpen] = useState(false);
+    const [frameworkToDelete, setFrameworkToDelete] = useState<any>(null);
 
     const { data: frameworks, isLoading: frameworksLoading, refetch: refetchFrameworks } = trpc.frameworks.list.useQuery({ clientId });
 
     const deleteFrameworkMutation = trpc.frameworks.delete.useMutation({
         onSuccess: () => {
             toast.success("Framework deleted successfully");
+            setFrameworkToDelete(null);
             refetchFrameworks();
         },
         onError: (err) => toast.error("Failed to delete: " + err.message)
+    });
+
+    // Library Data
+    const { data: libraryFrameworks, isLoading: libraryLoading, refetch: refetchLibrary } = trpc.frameworkImport.listFrameworks.useQuery({ clientId });
+    const deleteLibraryFrameworkMutation = trpc.frameworkImport.deleteFramework.useMutation({
+        onSuccess: () => {
+            toast.success("Framework removed from library");
+            refetchLibrary();
+        },
+        onError: (err) => toast.error(err.message)
     });
 
     return (
@@ -103,11 +127,7 @@ export function FrameworksSettingsTab({ clientId }: FrameworksSettingsTabProps) 
                                             variant="ghost"
                                             size="icon"
                                             className="text-muted-foreground hover:text-destructive"
-                                            onClick={() => {
-                                                if (confirm(`Are you sure you want to delete ${fw.name}? This will remove all associated controls.`)) {
-                                                    deleteFrameworkMutation.mutate({ frameworkName: fw.name, clientId });
-                                                }
-                                            }}
+                                            onClick={() => setFrameworkToDelete(fw)}
                                             disabled={deleteFrameworkMutation.isPending}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -120,9 +140,90 @@ export function FrameworksSettingsTab({ clientId }: FrameworksSettingsTabProps) 
                 </CardContent>
             </Card>
 
+            <AlertDialog open={!!frameworkToDelete} onOpenChange={(open) => !open && setFrameworkToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Framework?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete <b>{frameworkToDelete?.name}</b>?
+                            This will remove all associated controls and mappings. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => {
+                                if (frameworkToDelete) {
+                                    deleteFrameworkMutation.mutate({ frameworkName: frameworkToDelete.name, clientId });
+                                }
+                            }}
+                            disabled={deleteFrameworkMutation.isPending}
+                        >
+                            {deleteFrameworkMutation.isPending ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <div className="pt-8 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Framework Library (Reference)</h3>
+                    <Button variant="outline" onClick={() => setIsCustomImportWizardOpen(true)}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import to Library
+                    </Button>
+                </div>
+
+                <Card className="mb-8">
+                    <CardHeader>
+                        <CardTitle>Imported Frameworks</CardTitle>
+                        <CardDescription>
+                            These frameworks are available for mapping and gap analysis but are not active controls.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {libraryLoading ? (
+                            <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                        ) : libraryFrameworks?.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                No frameworks in library. Import one to get started.
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {libraryFrameworks?.map((fw: any) => (
+                                    <div key={fw.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                                                {fw.name.substring(0, 3).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold">{fw.name} <span className="text-xs font-normal text-muted-foreground">v{fw.version}</span></h4>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {fw.controlCount} controls • Imported: {new Date(fw.importedAt).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200">Reference</Badge>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-muted-foreground hover:text-red-600"
+                                                onClick={() => deleteLibraryFrameworkMutation.mutate({ frameworkId: fw.id })}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 <h3 className="text-lg font-semibold mb-4 text-slate-900">Advanced Harmonization</h3>
-                <ControlMappingsAdmin />
+                <ControlMappingsAdmin clientId={clientId} />
             </div>
 
             <FrameworkImportDialog
@@ -130,6 +231,13 @@ export function FrameworksSettingsTab({ clientId }: FrameworksSettingsTabProps) 
                 onOpenChange={setIsImportDialogOpen}
                 clientId={clientId}
                 onSuccess={() => refetchFrameworks()}
+            />
+
+            <CustomFrameworkImportWizard
+                open={isCustomImportWizardOpen}
+                onOpenChange={setIsCustomImportWizardOpen}
+                clientId={clientId}
+                onSuccess={() => refetchLibrary()}
             />
         </div>
     );

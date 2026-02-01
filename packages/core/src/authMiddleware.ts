@@ -51,10 +51,11 @@ declare global {
     }
 }
 
-// Helper to append to error log
 const logErrorToFile = (message: string, error: any) => {
     try {
-        const logPath = path.join(process.cwd(), 'auth_error.log');
+        const logsDir = path.join(process.cwd(), 'logs');
+        if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+        const logPath = path.join(logsDir, 'auth_error.log');
         const timestamp = new Date().toISOString();
         const logEntry = `[${timestamp}] ${message}\nError: ${error?.message}\nStack: ${error?.stack}\n\n`;
         fs.appendFileSync(logPath, logEntry);
@@ -102,7 +103,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
         // Get DB connection
         const db = await getDb();
-        
+
         // Ensure we don't match deleted users
         const existingUsers = await db.select().from(users)
             .where(and(
@@ -144,15 +145,15 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         // Only count if we need to check for "first user" elevation, but optimization: skip count if admin email matches
         // For simplicity, keep original logic but wrap safely
         if ((dbUser.email && adminEmails.includes(dbUser.email)) && dbUser.role !== 'admin') {
-             await db.update(users).set({ role: 'admin' }).where(eq(users.id, dbUser.id));
-             dbUser.role = 'admin';
+            await db.update(users).set({ role: 'admin' }).where(eq(users.id, dbUser.id));
+            dbUser.role = 'admin';
         } else if (dbUser.role !== 'admin') {
-             // Only check count if not already admin and not in allowlist
-             const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
-             if (Number(userCount?.count || 0) === 1) {
+            // Only check count if not already admin and not in allowlist
+            const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+            if (Number(userCount?.count || 0) === 1) {
                 await db.update(users).set({ role: 'admin' }).where(eq(users.id, dbUser.id));
                 dbUser.role = 'admin';
-             }
+            }
         }
 
         // Cache the user record
@@ -196,8 +197,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     } catch (err: any) {
         logger.error({ message: 'Auth middleware error', error: err, stack: err.stack });
         logErrorToFile('Auth middleware fatal error', err);
-        return res.status(500).json({ 
-            message: 'Internal Authentication Error', 
+        return res.status(500).json({
+            message: 'Internal Authentication Error',
             code: 'AUTH_MIDDLEWARE_ERROR',
             details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });

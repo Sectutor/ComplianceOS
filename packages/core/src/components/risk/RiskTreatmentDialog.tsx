@@ -18,11 +18,19 @@ interface RiskTreatmentDialogProps {
 export function RiskTreatmentDialog({ open, onOpenChange, riskId, clientId, onSuccess }: RiskTreatmentDialogProps) {
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedControlId, setSelectedControlId] = useState<number | null>(null);
+    const [selectedControlIds, setSelectedControlIds] = useState<number[]>([]);
     const [justification, setJustification] = useState('');
 
     // Fetch available controls (simple list for now, ideally paginated search)
     const { data: controls } = trpc.clientControls.list.useQuery({ clientId }, { enabled: open });
+
+    React.useEffect(() => {
+        if (open) {
+            setSelectedControlIds([]);
+            setJustification('');
+            setSearchTerm('');
+        }
+    }, [open]);
 
     // Filter controls locally for this prototype
     const filteredControls = controls?.filter(c =>
@@ -30,26 +38,39 @@ export function RiskTreatmentDialog({ open, onOpenChange, riskId, clientId, onSu
         c.control?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     ).slice(0, 5); // Limit resultss
 
-    const createTreatmentMutation = trpc.risks.createTreatment.useMutation();
+    const createTreatmentMutation = trpc.risks.createRiskTreatment.useMutation();
+    const linkControlMutation = trpc.risks.linkControl.useMutation();
 
     const handleSubmit = async () => {
-        if (!selectedControlId) return;
+        if (selectedControlIds.length === 0) return;
 
         setLoading(true);
         try {
-            // Need to find the actual library control ID from the client control
-            const clientControl = controls?.find(c => c.id === selectedControlId);
-            if (!clientControl) return;
+            // Find selected control details for the strategy description
+            const selectedControls = controls?.filter(c => selectedControlIds.includes(c.clientControl.id)) || [];
+            const strategyName = `Implement controls: ${selectedControls.map(c => c.control?.controlId).join(', ')}`;
 
-            await createTreatmentMutation.mutateAsync({
+            const treatment = await createTreatmentMutation.mutateAsync({
+                clientId,
+                riskAssessmentId: riskId, // Supporting both ID types for now in backend or need careful routing
                 riskScenarioId: riskId,
-                controlId: clientControl.controlId, // Linking to the definition ID
-                treatmentType: 'mitigate', // Default for this UI
+                treatmentType: 'mitigate',
+                strategy: strategyName,
                 justification
-            });
+            } as any);
+
+            // Link all selected controls
+            await Promise.all(selectedControlIds.map(controlId =>
+                linkControlMutation.mutateAsync({
+                    clientId,
+                    treatmentId: treatment.id,
+                    controlId: controlId
+                })
+            ));
+
             onSuccess();
             onOpenChange(false);
-            setSelectedControlId(null);
+            setSelectedControlIds([]);
             setJustification('');
             setSearchTerm('');
         } catch (error) {
@@ -59,17 +80,23 @@ export function RiskTreatmentDialog({ open, onOpenChange, riskId, clientId, onSu
         }
     };
 
+    const toggleSelection = (id: number) => {
+        setSelectedControlIds(prev =>
+            prev.includes(id) ? prev.filter(existingId => existingId !== id) : [...prev, id]
+        );
+    };
+
     return (
         <EnhancedDialog
             open={open}
             onOpenChange={onOpenChange}
-            title="Treat Risk with Control"
-            description="Select a control to mitigate this risk."
+            title="Treat Risk with Controls"
+            description="Select controls to mitigate this risk."
             size="md"
             footer={
                 <>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={loading || !selectedControlId}>
+                    <Button onClick={handleSubmit} disabled={loading || selectedControlIds.length === 0}>
                         {loading ? 'Linking...' : 'Apply Treatment'}
                     </Button>
                 </>
@@ -79,7 +106,7 @@ export function RiskTreatmentDialog({ open, onOpenChange, riskId, clientId, onSu
 
                 {/* Control Search */}
                 <div className="space-y-3">
-                    <Label>Select Control</Label>
+                    <Label>Select Controls</Label>
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
@@ -94,22 +121,25 @@ export function RiskTreatmentDialog({ open, onOpenChange, riskId, clientId, onSu
                         {filteredControls?.length === 0 && (
                             <div className="p-4 text-center text-gray-500 text-sm">No controls found matching "{searchTerm}"</div>
                         )}
-                        {filteredControls?.map(cc => (
-                            <div
-                                key={cc.id}
-                                onClick={() => setSelectedControlId(cc.id)}
-                                className={`p-3 cursor-pointer flex items-start gap-3 hover:bg-blue-50 transition-colors ${selectedControlId === cc.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
-                            >
-                                <div className={`p-1.5 rounded bg-white border ${selectedControlId === cc.id ? 'border-blue-200 text-blue-600' : 'border-gray-200 text-gray-500'}`}>
-                                    <Shield className="w-4 h-4" />
+                        {filteredControls?.map(cc => {
+                            const isSelected = selectedControlIds.includes(cc.clientControl.id);
+                            return (
+                                <div
+                                    key={cc.clientControl.id}
+                                    onClick={() => toggleSelection(cc.clientControl.id)}
+                                    className={`p-3 cursor-pointer flex items-start gap-3 hover:bg-blue-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                                >
+                                    <div className={`p-1.5 rounded bg-white border ${isSelected ? 'border-blue-200 text-blue-600' : 'border-gray-200 text-gray-500'}`}>
+                                        <Shield className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-sm text-gray-900">{cc.control?.code} - {cc.control?.name}</div>
+                                        <div className="text-xs text-gray-500 line-clamp-1">{cc.control?.description}</div>
+                                    </div>
+                                    {isSelected && <Check className="w-4 h-4 text-blue-600 ml-auto mt-1" />}
                                 </div>
-                                <div>
-                                    <div className="font-medium text-sm text-gray-900">{cc.control?.code} - {cc.control?.name}</div>
-                                    <div className="text-xs text-gray-500 line-clamp-1">{cc.control?.description}</div>
-                                </div>
-                                {selectedControlId === cc.id && <Check className="w-4 h-4 text-blue-600 ml-auto mt-1" />}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 

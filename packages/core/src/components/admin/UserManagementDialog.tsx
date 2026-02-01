@@ -10,6 +10,16 @@ import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { toast } from "sonner";
 import { Users, Mail, Plus, Loader2, Trash2, ShieldCheck } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 
 interface UserManagementDialogProps {
     clientId: number;
@@ -21,6 +31,7 @@ export function UserManagementDialog({ clientId, clientName, trigger }: UserMana
     const [isOpen, setIsOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState("viewer");
+    const [userToRemove, setUserToRemove] = useState<any>(null);
 
     const { data: users, isLoading, refetch } = trpc.clients.getUsers.useQuery(
         { clientId },
@@ -33,15 +44,16 @@ export function UserManagementDialog({ clientId, clientName, trigger }: UserMana
             setInviteEmail("");
             refetch();
         },
-        onError: (err) => toast.error(err.message)
+        onError: (err: any) => toast.error(err.message)
     });
 
     const removeUserMutation = trpc.users.removeFromOrganization.useMutation({
         onSuccess: () => {
             toast.success("User removed from organization");
+            setUserToRemove(null);
             refetch();
         },
-        onError: (err) => toast.error(err.message)
+        onError: (err: any) => toast.error(err.message)
     });
 
     const handleInvite = (e: React.FormEvent) => {
@@ -158,11 +170,7 @@ export function UserManagementDialog({ clientId, clientName, trigger }: UserMana
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                    onClick={() => {
-                                                        if (confirm(`Remove ${user.name} from this organization?`)) {
-                                                            removeUserMutation.mutate({ userId: user.id, clientId });
-                                                        }
-                                                    }}
+                                                    onClick={() => setUserToRemove(user)}
                                                     disabled={removeUserMutation.isPending || user.role === 'owner'}
                                                     title={user.role === 'owner' ? "Cannot remove owner" : "Remove user"}
                                                 >
@@ -176,6 +184,32 @@ export function UserManagementDialog({ clientId, clientName, trigger }: UserMana
                         </Table>
                     </div>
                 </div>
+
+                <AlertDialog open={!!userToRemove} onOpenChange={(open) => !open && setUserToRemove(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Remove User from Organization?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to remove <b>{userToRemove?.name}</b> from <b>{clientName}</b>?
+                                They will lose access to all data within this organization.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => {
+                                    if (userToRemove) {
+                                        removeUserMutation.mutate({ userId: userToRemove.id, clientId });
+                                    }
+                                }}
+                                disabled={removeUserMutation.isPending}
+                            >
+                                {removeUserMutation.isPending ? "Removing..." : "Remove User"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </EnhancedDialog>
     );

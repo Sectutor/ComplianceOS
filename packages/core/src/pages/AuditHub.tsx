@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -30,13 +30,17 @@ import {
     AlertTriangle,
     Check,
     X,
-    ArrowRight
+    ArrowRight,
+    RotateCw,
+    Trash2,
+    Plus
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Input } from "@complianceos/ui/ui/input";
 import { toast } from "sonner";
 import AuditorLayout from "@/components/AuditorLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { CircularProgress } from "@complianceos/ui/ui/circular-progress";
 import {
     Dialog,
     DialogContent,
@@ -62,6 +66,7 @@ export default function AuditHub() {
     const [activeSection, setActiveSection] = useState('pbc'); // 'overview', 'pbc', 'findings'
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [activeFramework, setActiveFramework] = useState("ISO 27001");
 
     const { user } = useAuth();
     // Determine if we should show the Auditor View (Restricted Clean Room)
@@ -93,6 +98,9 @@ export default function AuditHub() {
     const isAdmin = user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'owner';
 
     // Live Data Fetching
+    const { data: frameworksData } = trpc.evidence.getFrameworks.useQuery();
+    console.log('[AuditHub] Frameworks Data:', frameworksData);
+
     const { data: evidenceData, isLoading: isEvidenceLoading, refetch: refetchList } = trpc.evidence.list.useQuery(
         { clientId },
         { enabled: !!clientId }
@@ -103,6 +111,70 @@ export default function AuditHub() {
         { evidenceId: selectedRequest?.original?.id },
         { enabled: !!selectedRequest?.original?.id }
     );
+
+    // Fetch counts for sidebar
+    const { data: findings } = trpc.findings.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: comments } = trpc.evidence.getAllComments.useQuery({ clientId }, { enabled: !!clientId });
+
+    const utils = trpc.useContext();
+    const initializeMutation = trpc.evidence.seed.useMutation({
+        onSuccess: () => {
+            toast.success("Audit workspace initialized with request list.");
+            utils.evidence.list.invalidate();
+        }
+    });
+
+    const handleInitialize = () => {
+        initializeMutation.mutate({
+            clientId,
+            framework: activeFramework
+        });
+    };
+
+    const [createRequestOpen, setCreateRequestOpen] = useState(false);
+    const [newRequestData, setNewRequestData] = useState({
+        evidenceId: '',
+        description: '',
+        clientControlId: '',
+        owner: '',
+        dueDate: ''
+    });
+
+    const createEvidenceMutation = trpc.evidence.create.useMutation({
+        onSuccess: () => {
+            toast.success("Evidence request created successfully");
+            setCreateRequestOpen(false);
+            setNewRequestData({
+                evidenceId: '',
+                description: '',
+                clientControlId: '',
+                owner: '',
+                dueDate: ''
+            });
+            refetchList();
+        },
+        onError: (err) => {
+            toast.error("Failed to create request: " + err.message);
+        }
+    });
+
+    const { data: clientControlsList } = trpc.clientControls.list.useQuery({ clientId }, { enabled: createRequestOpen });
+
+    const handleCreateRequest = () => {
+        if (!newRequestData.description || !newRequestData.clientControlId) {
+            toast.error("Description and Control are required");
+            return;
+        }
+
+        createEvidenceMutation.mutate({
+            clientId,
+            clientControlId: parseInt(newRequestData.clientControlId),
+            evidenceId: newRequestData.evidenceId || `MANUAL-${Date.now().toString().slice(-4)}`,
+            description: newRequestData.description,
+            owner: newRequestData.owner,
+            // dueDate: newRequestData.dueDate // Not supported by backend yet, but UI is there
+        });
+    };
 
     const updateStatusMutation = trpc.evidence.updateStatus.useMutation({
         onSuccess: () => {
@@ -116,6 +188,34 @@ export default function AuditHub() {
             toast.error("Failed to update status: " + err.message);
         }
     });
+
+    const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+    const [requestToDelete, setRequestToDelete] = useState<any>(null);
+
+    const deleteMutation = trpc.evidence.delete.useMutation({
+        onSuccess: () => {
+            toast.success("Evidence request deleted");
+            refetchList();
+            setSelectedRequest(null);
+            setDeleteConfirmationOpen(false);
+            setRequestToDelete(null);
+        },
+        onError: (err) => {
+            toast.error("Failed to delete request: " + err.message);
+        }
+    });
+
+    const confirmDelete = (e: React.MouseEvent, req: any) => {
+        e.stopPropagation();
+        setRequestToDelete(req);
+        setDeleteConfirmationOpen(true);
+    };
+
+    const executeDelete = () => {
+        if (requestToDelete) {
+            deleteMutation.mutate({ id: requestToDelete.original.id });
+        }
+    };
 
     const handleStatusUpdate = (status: 'verified' | 'rejected') => {
         if (!selectedRequest?.original?.id) return;
@@ -132,21 +232,43 @@ export default function AuditHub() {
     };
 
     const auditRequests = evidenceData?.map((e: any) => ({
-        id: e.id ? `EV-${e.id.toString().padStart(3, '0')}` : (e.evidenceId || `REQ-${Math.random().toString(36).substr(2, 4).toUpperCase()}`),
+        id: e.evidenceId || `EV-${e.id}`, // Use reliable DB ID reference if possible
         title: e.title || 'Untitled Request',
         control: e.control?.controlCode || 'General',
         status: e.status === 'verified' ? 'Accepted' : e.status === 'collected' ? 'In Review' : 'Open',
         comments: 0,
         evidence: e.fileCount || 0,
-        dueDate: '2025-12-31',
+        dueDate: e.dueDate || null,
         description: e.description,
         original: e
     })) || [];
 
     // Derived State
-    const displayRequests = auditRequests.filter(req =>
-        filterStatus === 'all' || req.status.toLowerCase() === filterStatus.toLowerCase()
-    );
+    const displayRequests = auditRequests.filter(req => {
+        const matchesStatus = filterStatus === 'all' || req.status.toLowerCase() === filterStatus.toLowerCase();
+
+        // Robust framework matching
+        const itemFramework = req.original.framework?.toString().trim().toLowerCase();
+        const targetFramework = activeFramework.trim().toLowerCase();
+
+        const matchesFramework = (!itemFramework && targetFramework === 'iso 27001') ||
+            (itemFramework === targetFramework) ||
+            targetFramework === 'all' ||
+            (itemFramework === 'custom') ||
+            (!itemFramework);
+
+        return matchesStatus && matchesFramework;
+    });
+
+    // Auto-select first item if list is populated and nothing is selected
+    // THIS FIXES THE "I DON'T SEE THE LIST" CONFUSION
+    useEffect(() => {
+        if (displayRequests.length > 0 && !selectedRequest) {
+            setSelectedRequest(displayRequests[0]);
+            // Force view to list if we are auto-selecting
+            setActiveSection('pbc');
+        }
+    }, [displayRequests, selectedRequest]); // Runs when list updates or selection is cleared
 
     const stats = {
         total: auditRequests.length,
@@ -183,67 +305,90 @@ export default function AuditHub() {
                             </div>
                         </div>
                         <div className="h-8 w-px bg-slate-200" />
+
+                        {/* Framework Selector Dropdown */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Compliance Standard</span>
+                            <Select value={activeFramework} onValueChange={setActiveFramework}>
+                                <SelectTrigger className="w-[180px] h-9 bg-slate-50 border-slate-200 text-xs font-semibold text-slate-700">
+                                    <SelectValue placeholder="Select Framework" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {frameworksData?.map((fw: any) => (
+                                        <SelectItem key={fw.id} value={fw.id} className="text-xs">
+                                            {fw.name}
+                                        </SelectItem>
+                                    ))}
+                                    {(!frameworksData || frameworksData.length === 0) && (
+                                        <SelectItem value="ISO 27001" className="text-xs">ISO 27001</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="flex flex-col justify-center">
                             <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-slate-800">ISO 27001 Surveillance Audit</span>
-                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-slate-50 border-slate-200 text-slate-600">FY2025</Badge>
+                                <span className="font-semibold text-sm text-slate-800">{activeFramework} Sync</span>
+                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal bg-slate-50 text-slate-600 border-slate-200">FY2025</Badge>
                             </div>
                             <span className="text-xs text-slate-500">Client ID: #{clientId}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        {/* Audit Progress - Refined */}
-                        <div className="flex items-center gap-3 pr-6 border-r border-slate-100">
-                            <div className="text-right">
-                                <div className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Audit Status</div>
-                                <div className="text-sm font-bold text-slate-700">{progress}% Verified</div>
-                            </div>
-                            <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
-                            </div>
-                        </div>
-
-                        {isAdmin && (
-                            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-9 gap-2 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium">
-                                        <Mail className="h-4 w-4 text-slate-400" />
-                                        <span>Invite Auditor</span>
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Invite External Auditor</DialogTitle>
-                                        <DialogDescription>
-                                            Send an invitation to an external auditor to access this restricted Clean Room.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                        <div className="grid gap-2">
-                                            <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                                            <Input
-                                                id="email"
-                                                placeholder="auditor@firm.com"
-                                                value={inviteEmail}
-                                                onChange={(e) => setInviteEmail(e.target.value)}
-                                            />
-                                        </div>
+                    {/* Readiness Header Progress */}
+                    {(() => {
+                        const total = displayRequests.length;
+                        const accepted = displayRequests.filter(r => r.status === 'Accepted').length;
+                        const score = total > 0 ? Math.round((accepted / total) * 100) : 0;
+                        return (
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-3 pr-6 border-r border-slate-100">
+                                    <div className="text-right">
+                                        <div className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Audit Status</div>
+                                        <div className="text-sm font-bold text-slate-700">{score}% Verified</div>
                                     </div>
-                                    <DialogFooter>
-                                        <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-                                        <Button onClick={handleInvite} disabled={inviteMutation.isLoading}>
-                                            {inviteMutation.isLoading ? "Sending..." : "Send Invitation"}
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        )}
-                        <Button variant="default" size="sm" className="h-9 gap-2 bg-[#0f172a] hover:bg-slate-800 text-white shadow-sm ring-1 ring-slate-900/10">
-                            <Download className="h-4 w-4" />
-                            <span>Export Bundle</span>
-                        </Button>
-                    </div>
+                                    <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: `${score}%` }} />
+                                    </div>
+                                </div>
+
+                                {isAdmin && (
+                                    <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" size="sm" className="h-9 gap-2 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium">
+                                                <Mail className="h-4 w-4 text-slate-400" />
+                                                <span>Invite Auditor</span>
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[425px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Invite External Auditor</DialogTitle>
+                                                <DialogDescription>
+                                                    Send a secure link to an external auditor to review evidence for this client.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="grid gap-4 py-4">
+                                                <div className="grid gap-2">
+                                                    <label htmlFor="email" className="text-sm font-medium">Auditor Email</label>
+                                                    <Input
+                                                        id="email"
+                                                        value={inviteEmail}
+                                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                                        placeholder="auditor@firm.com"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <DialogFooter>
+                                                <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                                                <Button onClick={handleInvite} disabled={inviteMutation.isLoading}>
+                                                    {inviteMutation.isLoading ? "Sending..." : "Send Invitation"}
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </header>
 
                 {/* 2. Three-Pane Workspace */}
@@ -252,7 +397,51 @@ export default function AuditHub() {
                     {/* PANE 1: Navigation Sidebar (240px) */}
                     <nav className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0 relative z-30">
                         <div className="p-6">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Workspace</div>
+                            <div className="flex items-center justify-between mb-4 pr-2">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Workspace</div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 hover:bg-slate-200 rounded-full"
+                                    onClick={() => setCreateRequestOpen(true)}
+                                    title="Add Manual Request"
+                                >
+                                    <Plus className="h-3.5 w-3.5 text-slate-500" />
+                                </Button>
+                            </div>
+
+                            {/* Sidebar Readiness Gauge */}
+                            {(() => {
+                                const total = displayRequests.length;
+                                const accepted = displayRequests.filter(r => r.status === 'Accepted').length;
+                                const score = total > 0 ? Math.round((accepted / total) * 100) : 0;
+
+                                const getPhase = (s: number) => {
+                                    if (s === 0) return "Not Started";
+                                    if (s < 30) return "Planning";
+                                    if (s < 70) return "Evidence Collection";
+                                    if (s < 100) return "Final Review";
+                                    return "Audit Ready";
+                                };
+
+                                return (
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm mb-6 flex flex-col items-center text-center">
+                                        <CircularProgress
+                                            value={score}
+                                            size={72}
+                                            strokeWidth={6}
+                                            color="text-indigo-600"
+                                            className="mb-3"
+                                        />
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Audit Readiness</div>
+                                        <div className="text-sm font-extrabold text-slate-900 mb-1">{getPhase(score)}</div>
+                                        <div className="text-[10px] text-slate-500 font-medium">
+                                            {accepted} / {total} Verified
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             <div className="space-y-1">
                                 <NavButton
                                     active={activeSection === 'overview'}
@@ -272,12 +461,14 @@ export default function AuditHub() {
                                     onClick={() => setActiveSection('findings')}
                                     icon={AlertCircle}
                                     label="Findings"
+                                    count={findings?.length ?? 0}
                                 />
                                 <NavButton
                                     active={activeSection === 'discussions'}
                                     onClick={() => setActiveSection('discussions')}
                                     icon={MessageSquare}
                                     label="Discussions"
+                                    count={comments?.length || 0}
                                 />
                             </div>
                         </div>
@@ -302,7 +493,22 @@ export default function AuditHub() {
                             <div className="p-4 border-b border-slate-100 space-y-3 bg-white/50 backdrop-blur-sm sticky top-0">
                                 <div className="flex items-center justify-between">
                                     <h2 className="font-bold text-slate-800 text-sm tracking-tight">Evidence Requests</h2>
-                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0 text-[10px] h-5">{displayRequests.length}</Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5 text-slate-400 hover:text-indigo-600"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleInitialize();
+                                            }}
+                                            disabled={initializeMutation.isLoading}
+                                            title="Sync Standard Requests"
+                                        >
+                                            <RotateCw className={cn("h-3 w-3", initializeMutation.isLoading && "animate-spin")} />
+                                        </Button>
+                                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-0 text-[10px] h-5">{displayRequests.length}</Badge>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
@@ -328,7 +534,7 @@ export default function AuditHub() {
                                     </Select>
                                 </div>
                             </div>
-                            <ScrollArea className="flex-1 bg-slate-50/30">
+                            <ScrollArea className="flex-1 bg-slate-50/30 mb-1 [&_[data-orientation=vertical]]:w-1.5 [&_[data-orientation=vertical]]:bg-transparent [&_[data-orientation=vertical]_[data-radix-scroll-area-thumb]]:bg-slate-300 [&_[data-orientation=vertical]_[data-radix-scroll-area-thumb]]:rounded-full">
                                 {isEvidenceLoading ? (
                                     <div className="p-4 space-y-3">
                                         {[1, 2, 3, 4, 5].map(i => (
@@ -338,12 +544,36 @@ export default function AuditHub() {
                                 ) : (
                                     <div className="divide-y divide-slate-100">
                                         {displayRequests.length === 0 ? (
-                                            <div className="p-8 text-center">
-                                                <div className="bg-slate-100 h-10 w-10 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                    <Search className="h-5 w-5 text-slate-400" />
+                                            <div className="p-8 text-center bg-slate-50/50 rounded-xl m-4 border border-slate-100">
+                                                <div className="bg-white h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm ring-1 ring-slate-900/5">
+                                                    <Shield className="h-6 w-6 text-indigo-500" />
                                                 </div>
-                                                <p className="text-sm text-slate-500 font-medium">No requests found</p>
-                                                <p className="text-xs text-slate-400 mt-1">Try adjusting your filters</p>
+                                                <h3 className="text-sm font-bold text-slate-900 mb-1">Standard Not Initialized</h3>
+                                                <p className="text-xs text-slate-500 mb-6 max-w-[200px] mx-auto leading-relaxed">
+                                                    No requests found for <span className="font-semibold text-slate-700">{activeFramework}</span>. Would you like to populate the standard request list?
+                                                </p>
+                                                <Button
+                                                    size="sm"
+                                                    variant="default"
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm ring-1 ring-slate-900/10 gap-2 h-9"
+                                                    onClick={handleInitialize}
+                                                    disabled={initializeMutation.isLoading}
+                                                >
+                                                    {initializeMutation.isLoading ? (
+                                                        <>
+                                                            <RotateCw className="h-3.5 w-3.5 animate-spin" />
+                                                            <span>Initializing...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                                            <span>Initialize {activeFramework}</span>
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <p className="text-[10px] text-slate-400 mt-4 italic">
+                                                    This will import verified seed requests for this standard.
+                                                </p>
                                             </div>
                                         ) : (
                                             displayRequests.map(req => (
@@ -362,7 +592,23 @@ export default function AuditHub() {
                                                             "font-mono text-[10px] font-semibold",
                                                             selectedRequest?.id === req.id ? "text-indigo-600" : "text-slate-500"
                                                         )}>{req.id}</span>
-                                                        <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Due {new Date(req.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                                                                {req.dueDate ? (
+                                                                    // If date is "YYYY-MM-DD", format efficiently or just display
+                                                                    `Due ${new Date(req.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                                                                ) : (
+                                                                    <span className="text-slate-300">No Date</span>
+                                                                )}
+                                                            </div>
+                                                            <button
+                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500"
+                                                                onClick={(e) => confirmDelete(e, req)}
+                                                                title="Delete Request"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     <div className={cn(
@@ -395,6 +641,10 @@ export default function AuditHub() {
                                     </div>
                                 )}
                             </ScrollArea>
+                            {/* Temporary Debug Info */}
+                            <div className="p-2 border-t border-slate-100 bg-slate-50 text-[10px] text-slate-400 font-mono">
+                                Total: {evidenceData?.length || 0} | Shown: {displayRequests.length} | Client: {clientId}
+                            </div>
                         </div>
                     )}
 
@@ -441,9 +691,9 @@ export default function AuditHub() {
                                     <Tabs defaultValue="evidence" className="flex-1 flex flex-col min-h-0">
                                         <div className="bg-white border-b px-8 sticky top-[calc(theme(spacing.24)+theme(spacing.10))] z-20">
                                             <TabsList className="bg-transparent h-12 w-full justify-start p-0 space-x-8">
-                                                <TabsTrigger value="evidence" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Evidence Files</TabsTrigger>
-                                                <TabsTrigger value="activity" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Activity & Discussion</TabsTrigger>
-                                                <TabsTrigger value="audit-log" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Audit Log</TabsTrigger>
+                                                <TabsTrigger value="evidence" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Evidence Files</TabsTrigger>
+                                                <TabsTrigger value="activity" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Activity & Discussion</TabsTrigger>
+                                                <TabsTrigger value="audit-log" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 font-medium text-slate-500 hover:text-slate-700">Audit Log</TabsTrigger>
                                             </TabsList>
                                         </div>
 
@@ -482,7 +732,13 @@ export default function AuditHub() {
                                                                                     <div className="h-8 w-8 bg-red-50 rounded flex items-center justify-center shrink-0 border border-red-100 text-red-600">
                                                                                         <FileText className="h-4 w-4" />
                                                                                     </div>
-                                                                                    <span className="truncate max-w-[240px]" title={file.filename}>{file.filename}</span>
+                                                                                    <button
+                                                                                        className="truncate max-w-[240px] hover:text-indigo-600 hover:underline text-left transition-colors"
+                                                                                        title={`Open ${file.filename}`}
+                                                                                        onClick={() => window.open(file.fileUrl, '_blank')}
+                                                                                    >
+                                                                                        {file.filename}
+                                                                                    </button>
                                                                                 </div>
                                                                             </TableCell>
                                                                             <TableCell className="text-slate-500 text-xs">{new Date(file.createdAt).toLocaleDateString()} {new Date(file.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
@@ -493,7 +749,7 @@ export default function AuditHub() {
                                                                                 </div>
                                                                             </TableCell>
                                                                             <TableCell className="text-right">
-                                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => window.open(file.url, '_blank')}>
+                                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => window.open(file.fileUrl, '_blank')}>
                                                                                     <Download className="h-4 w-4" />
                                                                                 </Button>
                                                                             </TableCell>
@@ -519,17 +775,42 @@ export default function AuditHub() {
                                     <div className="h-24 w-24 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 border border-slate-100">
                                         <Briefcase className="h-10 w-10 text-slate-300" />
                                     </div>
-                                    <h2 className="text-lg font-bold text-slate-700 mb-2">Ready to Audit</h2>
+                                    <h2 className="text-lg font-bold text-slate-700 mb-2">
+                                        {displayRequests.length > 0 ? "Select a Request" : "Ready to Audit"}
+                                    </h2>
                                     <p className="max-w-xs text-slate-500 text-sm mb-8 leading-relaxed">
-                                        Select a request from the list to view evidence, verify compliance, and leave findings.
+                                        {displayRequests.length > 0
+                                            ? "Select a request from the list on the left to view evidence, verify compliance, and leave findings."
+                                            : "Initialize the workspace to generate the standard evidence request list for this framework."}
                                     </p>
-                                    <Button variant="outline" className="gap-2 text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 h-9 text-sm">
-                                        <Download className="h-4 w-4" /> Download Audit Methodology
-                                    </Button>
+
+                                    <div className="flex gap-3 mt-8">
+                                        <Button variant="outline" className="gap-2 text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 h-9 text-sm">
+                                            <Download className="h-4 w-4" /> Audit Methodology
+                                        </Button>
+                                        <Button
+                                            className="gap-2 h-9 text-sm"
+                                            onClick={handleInitialize}
+                                            disabled={initializeMutation.isLoading}
+                                        >
+                                            {initializeMutation.isLoading ? "Updating..." : (displayRequests.length > 0 ? "Update Workspace" : "Initialize Workspace")}
+                                        </Button>
+                                    </div>
+                                    {displayRequests.length > 0 && (
+                                        <p className="text-[10px] text-slate-400 mt-4 max-w-sm">
+                                            Tip: Click "Update Workspace" to add any missing standard requests for the selected framework without affecting existing work.
+                                        </p>
+                                    )}
                                 </div>
                             )
                         ) : activeSection === 'overview' ? (
-                            <AuditOverview clientId={clientId} />
+                            <AuditOverview
+                                clientId={clientId}
+                                onNavigate={(section, filter) => {
+                                    setActiveSection(section);
+                                    if (filter) setFilterStatus(filter);
+                                }}
+                            />
                         ) : activeSection === 'findings' ? (
                             <AuditFindings clientId={clientId} />
                         ) : activeSection === 'discussions' ? (
@@ -538,6 +819,98 @@ export default function AuditHub() {
                     </div>
                 </div>
             </div>
+            <Dialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                            <AlertTriangle className="h-6 w-6 text-red-600" />
+                        </div>
+                        <DialogTitle className="text-center text-lg font-bold text-slate-900">Delete Evidence Request?</DialogTitle>
+                        <DialogDescription className="text-center text-sm text-slate-500 max-w-[300px] mx-auto leading-relaxed pt-2">
+                            Are you sure you want to delete <span className="font-semibold text-slate-700">"{requestToDelete?.title}"</span>? This action cannot be undone and will remove all associated findings.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="grid grid-cols-2 gap-3 sm:space-x-0 pt-6">
+                        <Button variant="outline" onClick={() => setDeleteConfirmationOpen(false)} className="h-10 font-medium border-slate-200 hover:bg-slate-50">Cancel</Button>
+                        <Button variant="destructive" onClick={executeDelete} className="h-10 font-semibold bg-red-600 hover:bg-red-700 text-white shadow-sm ring-1 ring-red-700/10">
+                            {deleteMutation.isLoading ? "Deleting..." : "Delete Request"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create Request Dialog */}
+            <Dialog open={createRequestOpen} onOpenChange={setCreateRequestOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Add Manual Evidence Request</DialogTitle>
+                        <DialogDescription>
+                            Create a new evidence request linked to a specific control.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Reference ID *</label>
+                            <Input
+                                value={newRequestData.evidenceId}
+                                onChange={(e) => setNewRequestData({ ...newRequestData, evidenceId: e.target.value })}
+                                placeholder="e.g. MANUAL-001"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Control *</label>
+                            <Select
+                                value={newRequestData.clientControlId}
+                                onValueChange={(val) => setNewRequestData({ ...newRequestData, clientControlId: val })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a control..." />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                    {clientControlsList?.map((item: any) => (
+                                        <SelectItem key={item.clientControl.id} value={item.clientControl.id.toString()}>
+                                            <span className="font-mono text-xs mr-2 text-slate-500">{item.control?.controlId || item.clientControl.clientControlId}</span>
+                                            {item.control?.name || "Unknown Control"}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Description *</label>
+                            <Input
+                                value={newRequestData.description}
+                                onChange={(e) => setNewRequestData({ ...newRequestData, description: e.target.value })}
+                                placeholder="Describe the evidence required..."
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Owner</label>
+                                <Input
+                                    value={newRequestData.owner}
+                                    onChange={(e) => setNewRequestData({ ...newRequestData, owner: e.target.value })}
+                                    placeholder="Optional"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Due Date</label>
+                                <Input
+                                    type="date"
+                                    value={newRequestData.dueDate}
+                                    onChange={(e) => setNewRequestData({ ...newRequestData, dueDate: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCreateRequestOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateRequest} disabled={createEvidenceMutation.isLoading}>
+                            {createEvidenceMutation.isLoading ? "Creating..." : "Create Request"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Layout>
     );
 }
@@ -641,7 +1014,7 @@ function ChatSection({ request }: { request: any }) {
     );
 }
 
-function AuditOverview({ clientId }: { clientId: number }) {
+function AuditOverview({ clientId, onNavigate }: { clientId: number, onNavigate: (section: string, filter?: string) => void }) {
     const { data: evidenceList } = trpc.evidence.list.useQuery({ clientId });
     const { data: findings } = trpc.findings.list.useQuery({ clientId });
 
@@ -653,6 +1026,11 @@ function AuditOverview({ clientId }: { clientId: number }) {
 
     const openFindings = findings?.filter(f => f.status === 'open').length || 0;
     const highFindings = findings?.filter(f => f.status === 'open' && (f.severity === 'high' || f.severity === 'critical')).length || 0;
+
+    // Check for comments (hacky/approximate since we don't have a direct "unread" count yet)
+    // We can show the action if there are ANY comments, or maybe just default to showing it if there are open requests.
+    // For now, let's filter evidenceList for items with comments.
+    const requestsWithComments = evidenceList?.filter(e => (e.commentCount || 0) > 0).length || 0;
 
     return (
         <div className="p-8 space-y-8 h-full flex flex-col">
@@ -721,14 +1099,17 @@ function AuditOverview({ clientId }: { clientId: number }) {
                                 <CardTitle className="text-base font-semibold text-slate-900">Priority Action Items</CardTitle>
                                 <CardDescription className="text-xs">Tasks requiring immediate attention to proceed.</CardDescription>
                             </div>
-                            <Button variant="ghost" size="sm" className="h-8 text-xs">View All Tasks</Button>
+                            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onNavigate('pbc', 'all')}>View All Tasks</Button>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="divide-y divide-slate-100">
                             {/* Dynamic Action Items */}
                             {highFindings > 0 && (
-                                <div className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer">
+                                <div
+                                    className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer"
+                                    onClick={() => onNavigate('findings')}
+                                >
                                     <div className="mt-1 p-2 bg-red-50 text-red-600 rounded-lg border border-red-100 shrink-0">
                                         <AlertTriangle className="h-4 w-4" />
                                     </div>
@@ -744,7 +1125,10 @@ function AuditOverview({ clientId }: { clientId: number }) {
                             )}
 
                             {openRequests > 0 && (
-                                <div className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer">
+                                <div
+                                    className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer"
+                                    onClick={() => onNavigate('pbc', 'open')}
+                                >
                                     <div className="mt-1 p-2 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 shrink-0">
                                         <FileText className="h-4 w-4" />
                                     </div>
@@ -759,19 +1143,32 @@ function AuditOverview({ clientId }: { clientId: number }) {
                                 </div>
                             )}
 
-                            <div className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer">
-                                <div className="mt-1 p-2 bg-slate-50 text-slate-500 rounded-lg border border-slate-100 shrink-0">
-                                    <MessageSquare className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">Review Auditor Comments</h4>
-                                        <Badge variant="outline" className="border-slate-200 text-slate-600 text-[10px]">Review</Badge>
+                            {requestsWithComments > 0 ? (
+                                <div
+                                    className="p-4 hover:bg-slate-50 transition-colors flex gap-4 items-start group cursor-pointer"
+                                    onClick={() => onNavigate('pbc', 'all')} // Go to list, maybe we should filter by 'commented' if we had that filter
+                                >
+                                    <div className="mt-1 p-2 bg-slate-50 text-slate-500 rounded-lg border border-slate-100 shrink-0">
+                                        <MessageSquare className="h-4 w-4" />
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1 line-clamp-1">Check discussions for feedback on submitted evidence.</p>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">Review Auditor Comments</h4>
+                                            <Badge variant="outline" className="border-slate-200 text-slate-600 text-[10px]">Review</Badge>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">Check discussions on evidence requests.</p>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100"><ArrowLeft className="h-4 w-4 rotate-180" /></Button>
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100"><ArrowLeft className="h-4 w-4 rotate-180" /></Button>
-                            </div>
+                            ) : null}
+
+                            {highFindings === 0 && openRequests === 0 && requestsWithComments === 0 && (
+                                <div className="p-8 text-center text-slate-400">
+                                    <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                                    <p className="text-sm font-medium text-slate-700">All caught up!</p>
+                                    <p className="text-xs">No priority actions required at this time.</p>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -902,6 +1299,7 @@ function AuditFindings({ clientId }: { clientId: number }) {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
             </div>
 
             <Card className="rounded-xl border-slate-200 overflow-hidden shadow-sm shadow-slate-200/50">
@@ -970,7 +1368,7 @@ function AuditFindings({ clientId }: { clientId: number }) {
                     </TableBody>
                 </Table>
             </Card>
-        </div>
+        </div >
     );
 }
 

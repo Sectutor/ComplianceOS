@@ -2176,6 +2176,7 @@ export const evidence = pgTable("evidence", {
 
 
 
+  framework: varchar("framework", { length: 50 }).default('ISO 27001'),
   type: varchar("type", { length: 100 }),
 
 
@@ -3760,40 +3761,27 @@ export type InsertCrmEngagement = typeof crmEngagements.$inferInsert;
 
 export const comments = pgTable("comments", {
 
-
-
   id: serial("id").primaryKey(),
-
-
 
   clientId: integer("client_id").notNull(),
 
-
-
   userId: integer("user_id").notNull(),
-
-
 
   entityType: varchar("entity_type", { length: 50 }).notNull(), // 'process', 'bia', 'plan', 'strategy', 'control', 'policy', 'evidence'
 
-
-
   entityId: integer("entity_id").notNull(),
-
-
 
   content: text("content").notNull(),
 
-
-
   createdAt: timestamp("created_at").defaultNow(),
-
-
 
   updatedAt: timestamp("updated_at").defaultNow(),
 
-
-
+}, (table) => {
+  return {
+    entityIdx: index("idx_comments_entity").on(table.entityType, table.entityId),
+    clientIdx: index("idx_comments_client").on(table.clientId),
+  };
 });
 
 
@@ -7547,6 +7535,12 @@ export const vendors = pgTable("vendors", {
 
 
   serviceDescription: text("service_description"),
+
+  // AI Risk Flagging
+  usesAi: boolean("uses_ai").default(false),
+  isAiService: boolean("is_ai_service").default(false),
+  aiDataUsage: text("ai_data_usage"), // e.g., "Inputs used for training", "Zero retention"
+
 
   additionalNotes: text("additional_notes"),
 
@@ -11414,6 +11408,8 @@ export const intakeItems = pgTable("intake_items", {
 
   fileUrl: varchar("file_url", { length: 1024 }).notNull(),
 
+  fileKey: varchar("file_key", { length: 500 }), // S3 Key or local path
+
   status: varchar("status", { length: 50 }).default("pending"), // pending, classified, mapped, rejected
 
   classification: varchar("classification", { length: 255 }), // AI-detected type
@@ -13495,22 +13491,6 @@ export type InsertComplianceCertificate = typeof complianceCertificates.$inferIn
 
 
 
-// ==========================================
-// EVIDENCE COMMENTS (Auditor Chat)
-// ==========================================
-
-export const evidenceComments = pgTable("evidence_comments", {
-  id: serial("id").primaryKey(),
-  evidenceId: integer("evidence_id").notNull(),
-  userId: integer("user_id").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
-});
-
-export type EvidenceComment = typeof evidenceComments.$inferSelect;
-export type InsertEvidenceComment = typeof evidenceComments.$inferInsert;
-
 // Developer Risk Management & Threat Modeling
 // ==========================================
 
@@ -13632,3 +13612,90 @@ export type InsertNdaSignature = typeof ndaSignatures.$inferInsert;
 export type TrustDocument = typeof trustDocuments.$inferSelect;
 export type InsertTrustDocument = typeof trustDocuments.$inferInsert;
 
+export const aiSystemStatusEnum = pgEnum("ai_system_status", ["evaluation", "development", "production", "monitoring", "retired"]);
+export const aiRiskLevelEnum = pgEnum("ai_risk_level", ["low", "medium", "high", "critical", "unacceptable"]);
+
+export const aiSystems = pgTable("ai_systems", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  purpose: text("purpose"), // MAP 1.1
+  intendedUsers: text("intended_users"), // MAP 1.2
+  deploymentContext: text("deployment_context"), // MAP 1.2
+  type: varchar("type", { length: 100 }), // internal, 3rd-party, LLM, etc.
+  riskLevel: aiRiskLevelEnum("risk_level").default("medium"),
+  status: aiSystemStatusEnum("status").default("evaluation"),
+  owner: varchar("owner", { length: 255 }),
+  vendorId: integer("vendor_id"), // Linked to vendors table
+  dataSensitivity: varchar("data_sensitivity", { length: 100 }),
+  technicalConstraints: text("technical_constraints"), // MAP 1.4
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_ais_client").on(table.clientId),
+  };
+});
+
+export const aiImpactAssessments = pgTable("ai_impact_assessments", {
+  id: serial("id").primaryKey(),
+  aiSystemId: integer("ai_system_id").notNull(),
+  assessorId: integer("assessor_id"),
+  status: varchar("status", { length: 50 }).default("draft"), // draft, final, review
+  safetyImpact: text("safety_impact"),
+  biasImpact: text("bias_impact"),
+  privacyImpact: text("privacy_impact"),
+  securityImpact: text("security_impact"),
+  overallRiskScore: integer("overall_risk_score"),
+  assessmentDate: timestamp("assessment_date").defaultNow(),
+  nextReviewDate: timestamp("next_review_date"),
+  recommendations: text("recommendations"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    aiSystemIdx: index("idx_aiia_system").on(table.aiSystemId),
+  };
+});
+
+// Join table to link AI Systems to Controls/Policies
+export const aiSystemControls = pgTable("ai_system_controls", {
+  id: serial("id").primaryKey(),
+  aiSystemId: integer("ai_system_id").notNull(),
+  controlId: integer("control_id").notNull(),
+  status: varchar("status", { length: 50 }).default("mapped"), // mapped, implemented, verified
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    aiSystemIdx: index("idx_aisc_system").on(table.aiSystemId),
+    controlIdx: index("idx_aisc_control").on(table.controlId),
+  };
+});
+
+export type AiSystem = typeof aiSystems.$inferSelect;
+export type InsertAiSystem = typeof aiSystems.$inferInsert;
+
+export type AiImpactAssessment = typeof aiImpactAssessments.$inferSelect;
+export type InsertAiImpactAssessment = typeof aiImpactAssessments.$inferInsert;
+
+export type AiSystemControl = typeof aiSystemControls.$inferSelect;
+export type InsertAiSystemControl = typeof aiSystemControls.$inferInsert;
+
+
+
+export const evidenceComments = pgTable("evidence_comments", {
+  id: serial("id").primaryKey(),
+  evidenceId: integer("evidence_id").notNull(),
+  userId: integer("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    evidenceIdx: index("idx_evidence_comments_evidence").on(table.evidenceId),
+    userIdx: index("idx_evidence_comments_user").on(table.userId),
+  };
+});
+
+export type EvidenceComment = typeof evidenceComments.$inferSelect;
+export type InsertEvidenceComment = typeof evidenceComments.$inferInsert;

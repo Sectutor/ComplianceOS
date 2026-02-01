@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
-import { Check, ChevronRight, ShieldAlert, FileText, Send, Building2, Globe } from "lucide-react";
+import { Check, ChevronRight, ShieldAlert, FileText, Send, Building2, Globe, Brain } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from '@/lib/trpc';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
@@ -29,7 +29,10 @@ export function VendorOnboardingWizard({ clientId, onComplete, onCancel }: Vendo
         dataCategories: [] as string[],
         transferMechanism: "None",
         dpaStatus: "Needed",
-        templateId: null as number | null
+        templateId: null as number | null,
+        usesAi: false,
+        isAiService: false,
+        aiDataUsage: ""
     });
 
     const [createdVendorId, setCreatedVendorId] = useState<number | null>(null);
@@ -70,7 +73,10 @@ export function VendorOnboardingWizard({ clientId, onComplete, onCancel }: Vendo
                 category: formData.category,
                 description: formData.description,
                 criticality: formData.criticality,
-                status: "Onboarding"
+                status: "Onboarding",
+                usesAi: formData.usesAi,
+                isAiService: formData.isAiService,
+                aiDataUsage: formData.aiDataUsage
             });
         } else if (step === 2) {
             // Mock saving data mapping
@@ -174,6 +180,43 @@ export function VendorOnboardingWizard({ clientId, onComplete, onCancel }: Vendo
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
+
+                            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Brain className="h-5 w-5 text-primary" />
+                                    <h4 className="font-bold text-primary">AI-Specific Governance</h4>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.usesAi}
+                                            onChange={e => setFormData({ ...formData, usesAi: e.target.checked })}
+                                            className="rounded border-slate-300"
+                                        />
+                                        <span className="text-sm font-medium">Uses AI in Service</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.isAiService}
+                                            onChange={e => setFormData({ ...formData, isAiService: e.target.checked })}
+                                            className="rounded border-slate-300"
+                                        />
+                                        <span className="text-sm font-medium">Core AI Service Provider</span>
+                                    </label>
+                                </div>
+                                {(formData.usesAi || formData.isAiService) && (
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                                        <Label>AI Data Usage (MAP 1.5)</Label>
+                                        <Input
+                                            value={formData.aiDataUsage}
+                                            onChange={e => setFormData({ ...formData, aiDataUsage: e.target.value })}
+                                            placeholder="e.g. Inputs used for training, Zero retention, etc."
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

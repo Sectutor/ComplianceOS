@@ -1,10 +1,93 @@
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+
+// Shared Framework Seed Data
+export const FRAMEWORK_SEEDS: Record<string, any[]> = {
+    'ISO 27001': [
+        { id: "REQ-ISO-01", title: "Organizational Chart", description: "Current organizational chart showing security reporting lines.", location: "HR/Admin" },
+        { id: "REQ-ISO-02", title: "Information Security Policy", description: "Latest approved version of the InfoSec Policy.", location: "Policy Repo" },
+        { id: "REQ-ISO-03", title: "Asset Inventory", description: "Inventory of all information assets.", location: "IT" },
+        { id: "REQ-ISO-04", title: "Access Control Policy", description: "Policy defining access control rights.", location: "IAM" },
+        { id: "REQ-ISO-05", title: "Risk Assessment Report", description: "Most recent risk assessment methodology and results.", location: "Risk Mgmt" },
+        { id: "REQ-ISO-06", title: "Incident Response Plan", description: "Current incident response plan.", location: "SecOps" },
+        { id: "REQ-ISO-07", title: "Statement of Applicability", description: "SoA document defining control applicability.", location: "Compliance" },
+        { id: "REQ-ISO-08", title: "Acceptable Use Policy", description: "Signed AUPs or policy acknowledgement stats.", location: "HR" },
+        { id: "REQ-ISO-09", title: "Backup Policy & Logs", description: "Backup policy and evidence of successful restoration test.", location: "IT" },
+        { id: "REQ-ISO-10", title: "Business Continuity Plan", description: "Tested BCP including RTO/RPO definitions.", location: "Operations" },
+        { id: "REQ-ISO-11", title: "Disaster Recovery Testing", description: "Report from the most recent DR test.", location: "IT" },
+        { id: "REQ-ISO-12", title: "Supplier Security Policy", description: "Policy for managing supplier information security risks.", location: "Procurement" },
+        { id: "REQ-ISO-13", title: "Physical Security Review", description: "Evidence of physical access controls (badges, cameras).", location: "Facilities" },
+        { id: "REQ-ISO-14", title: "Mobile Device Policy", description: "Policy for BYOD and corporate mobile devices.", location: "IT" },
+        { id: "REQ-ISO-15", title: "Teleworking Policy", description: "Security controls for remote work.", location: "HR" },
+        { id: "REQ-ISO-16", title: "Cryptography Policy", description: "Rules for encryption and key management.", location: "SecOps" },
+        { id: "REQ-ISO-17", title: "Data Retention Policy", description: "Schedule for data retention and disposal.", location: "Legal" },
+        { id: "REQ-ISO-18", title: "Privacy Notice", description: "External privacy policy/notice.", location: "Legal" },
+        { id: "REQ-ISO-19", title: "Corrective Action Log", description: "Log of non-conformities and actions taken.", location: "Compliance" },
+        { id: "REQ-ISO-20", title: "Internal Audit Report", description: "Report from the most recent internal audit.", location: "Internal Audit" },
+        { id: "REQ-ISO-21", title: "Management Review Minutes", description: "Minutes from ISMS management review meetings.", location: "Management" },
+        { id: "REQ-ISO-22", title: "Security Awareness Training", description: "Records of security training completion for staff.", location: "HR" },
+        { id: "REQ-ISO-23", title: "Vulnerability Scan Reports", description: "Quarterly external and internal vulnerability scans.", location: "SecOps" }
+    ],
+    'SOC 2': [
+        { id: "REQ-SOC-01", title: "System Description", description: "Comprehensive system boundaries, components and services.", location: "Engineering" },
+        { id: "REQ-SOC-02", title: "Code of Ethical Conduct", description: "Signed acknowledgments for all personnel.", location: "HR" },
+        { id: "REQ-SOC-03", title: "Change Control Procedures", description: "Evidence of approvals and testing for production changes.", location: "DevOps" },
+        { id: "REQ-SOC-04", title: "Subservice Organization Review", description: "Annual review of SOC reports for critical vendors (AWS, etc).", location: "Governance" },
+        { id: "REQ-SOC-05", title: "External Penetration Test", description: "Annual external pen test report and remediation evidence.", location: "SecOps" },
+        { id: "REQ-SOC-06", title: "Backup & Restore Results", description: "Logs showing successful completion and periodic restoration tests.", location: "IT/Ops" },
+        { id: "REQ-SOC-07", title: "Security Governance Minutes", description: "Evidence of management oversight and risk committee meetings.", location: "Legal" },
+        { id: "REQ-SOC-08", title: "User Access Reviews", description: "Quarterly reviews of system access for all users.", location: "IT/IAM" },
+        { id: "REQ-SOC-09", title: "Onboarding/Offboarding Logs", description: "Evidence of timely access grant/revocation for employees.", location: "HR/IT" },
+        { id: "REQ-SOC-10", title: "Risk Assessment", description: "Formal annual risk assessment documenting threats and mitigations.", location: "Risk Mgmt" },
+        { id: "REQ-SOC-11", title: "Incident Response Testing", description: "Tabletop exercise report or actual incident post-mortem.", location: "SecOps" }
+    ],
+    'HIPAA': [
+        { id: "REQ-HIP-01", title: "Security Risk Analysis", description: "Comprehensive assessment of potential risks to ePHI.", location: "Compliance" },
+        { id: "REQ-HIP-02", title: "Sanction Policy & Records", description: "Policy and evidence of enforcement for security violations.", location: "HR" },
+        { id: "REQ-HIP-03", title: "Notice of Privacy Practices", description: "Copy of the NPP and evidence of distribution to patients.", location: "Legal" },
+        { id: "REQ-HIP-04", title: "Business Associate Agreements", description: "Signed BAAs for all third parties handling ePHI.", location: "Procurement" },
+        { id: "REQ-HIP-05", title: "Contingency Plan Backup", description: "Specific procedures and evidence for ePHI data backup.", location: "IT" },
+        { id: "REQ-HIP-06", title: "Facility Access Controls", description: "Logs or policies for physical access to ePHI areas.", location: "Facilities" },
+        { id: "REQ-HIP-07", title: "Workstation Security", description: "Policy for workstation use and security (locks, screens).", location: "IT" },
+        { id: "REQ-HIP-08", title: "Audit Log Reviews", description: "Evidence of periodic reviews of access to ePHI.", location: "SecOps" },
+        { id: "REQ-HIP-09", title: "Encryption of ePHI", description: "Evidence of encryption for ePHI at rest and in transit.", location: "Engineering" }
+    ],
+    'GDPR': [
+        { id: "REQ-GDPR-01", title: "Record of Processing Activities", description: "Article 30 RoPA document (Data Inventory).", location: "DPO" },
+        { id: "REQ-GDPR-02", title: "DPIA Reports", description: "Impact assessments for high-risk data processing activities.", location: "Compliance" },
+        { id: "REQ-GDPR-03", title: "Privacy Policy (External)", description: "Customer-facing privacy notice explaining data rights.", location: "Legal" },
+        { id: "REQ-GDPR-04", title: "Data Breach Notification Log", description: "Internal register of incidents and notification status.", location: "DPO" },
+        { id: "REQ-GDPR-05", title: "Subject Request (DSAR) Log", description: "Evidence of handling data access/erasure requests.", location: "Support" },
+        { id: "REQ-GDPR-06", title: "Standard Contractual Clauses", description: "Evidence of SCCs for international data transfers.", location: "Legal" },
+        { id: "REQ-GDPR-07", title: "Consent Management", description: "Evidence of valid consent collection where applicable.", location: "Marketing" }
+    ],
+    'NIST CSF': [
+        { id: "REQ-NIST-01", title: "Physical Asset Inventory", description: "Inventory of physical devices and systems (ID.AM-1).", location: "IT" },
+        { id: "REQ-NIST-02", title: "Software Asset Inventory", description: "Inventory of software and applications (ID.AM-2).", location: "IT" },
+        { id: "REQ-NIST-03", title: "Cybersecurity Policy", description: "Documented organizational information security policy (ID.GV-1).", location: "Governance" },
+        { id: "REQ-NIST-04", title: "Maintenance Logs", description: "Evidence of asset maintenance and repair (PR.MA-1).", location: "IT" },
+        { id: "REQ-NIST-05", title: "Incident Response Plan", description: "Documented response plan and roles (RS.RP-1).", location: "SecOps" },
+        { id: "REQ-NIST-06", title: "Recovery Plan", description: "Processes to restore operations after a disaster (RC.RP-1).", location: "SecOps" },
+        { id: "REQ-NIST-07", title: "Continuous Monitoring", description: "Evidence of active network/system monitoring (DE.CM-1).", location: "SecOps" }
+    ],
+    'PCI DSS': [
+        { id: "REQ-PCI-01", title: "Network Diagram", description: "Current diagram showing CDE and connections to other networks.", location: "IT/Ops" },
+        { id: "REQ-PCI-02", title: "Firewall Configurations", description: "Evidence of firewall rule reviews (every 6 months).", location: "IT/Ops" },
+        { id: "REQ-PCI-03", title: "Changing Default Passwords", description: "Evidence that vendor defaults were removed from systems.", location: "IT/Ops" },
+        { id: "REQ-PCI-04", title: "Restricting Access to CDE", description: "Current access list for the Cardholder Data Environment.", location: "IT/IAM" },
+        { id: "REQ-PCI-05", title: "MFA for Remote Access", description: "Evidence of 2FA/MFA for all remote administrative access.", location: "IT/Security" },
+        { id: "REQ-PCI-06", title: "Anti-Virus Scans/Logs", description: "Evidence of active AV and recent scanning results.", location: "IT/Ops" },
+        { id: "REQ-PCI-07", title: "ASV Scanning Reports", description: "Quarterly external vulnerability scans by an ASV.", location: "SecOps" },
+        { id: "REQ-PCI-08", title: "Physical Access to CDE", description: "Log of visitors and visitor badges for the server room/DC.", location: "Facilities" },
+        { id: "REQ-PCI-09", title: "Information Security Policy", description: "Latest version of the annual security policy.", location: "Governance" }
+    ]
+};
 
 export const createEvidenceRouter = (
     t: any,
@@ -13,6 +96,13 @@ export const createEvidenceRouter = (
     protectedProcedure: any
 ) => {
     return t.router({
+        getFrameworks: publicProcedure
+            .query(async () => {
+                return Object.keys(FRAMEWORK_SEEDS).map(name => ({
+                    id: name,
+                    name: name
+                }));
+            }),
         list: publicProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {
@@ -27,9 +117,52 @@ export const createEvidenceRouter = (
                     control: r.control,
                     fileCount: r.fileCount,
                     // Map missing fields expected by frontend
+                    framework: r.framework,
                     title: r.description || r.evidenceId,
                     collectionFrequency: 'On Demand', // Default
                     lastVerificationDate: r.lastVerified
+                }));
+            }),
+
+        listOpenRequests: publicProcedure
+            .input(z.object({
+                clientId: z.number(),
+                framework: z.string().optional()
+            }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                // Fetch pending evidence requests
+                const filters = [
+                    eq(schema.evidence.clientId, input.clientId),
+                    eq(schema.evidence.status, 'pending')
+                ];
+
+                if (input.framework && input.framework !== 'all') {
+                    filters.push(eq(schema.evidence.framework, input.framework));
+                }
+
+                const requests = await dbConn.select({
+                    evidence: schema.evidence,
+                    control: schema.controls
+                })
+                    .from(schema.evidence)
+                    .leftJoin(schema.clientControls, eq(schema.evidence.clientControlId, schema.clientControls.id))
+                    .leftJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
+                    .where(and(...filters));
+
+                return requests.map(r => ({
+                    clientControl: {
+                        id: r.evidence.clientControlId,
+                        controlId: r.control?.id,
+                        customDescription: r.control?.description
+                    },
+                    control: r.control,
+                    // Use evidence framework as fallback
+                    framework: r.evidence.framework || r.control?.framework,
+                    evidenceId: r.evidence.id, // This is the PK we need
+                    evidenceLabel: r.evidence.description || r.evidence.evidenceId, // Friendly label
+                    evidenceDescription: r.evidence.description
                 }));
             }),
 
@@ -161,6 +294,87 @@ Provide a structured JSON response:
                         model: "Error"
                     };
                 }
+            } // Close async function
+            ), // Close mutation
+
+        seed: protectedProcedure
+            .input(z.object({
+                clientId: z.number(),
+                framework: z.string().optional().default('ISO 27001')
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const dbConn = await getDb();
+                const framework = input.framework;
+                console.log(`[Evidence Seed] Called for Client ID: ${input.clientId}, Framework: ${framework}`);
+
+                // Check if evidence requests for this framework already exist
+                // We assume if generic requests (clientControlId: 0) exist with this framework tag, it's already seeded.
+
+
+                const selectedRequests = FRAMEWORK_SEEDS[framework] || FRAMEWORK_SEEDS['ISO 27001'];
+
+                // Fetch ONLY existing IDs for this client/framework to avoid duplicates
+                const existing = await dbConn.select({ evidenceId: schema.evidence.evidenceId }).from(schema.evidence)
+                    .where(and(
+                        eq(schema.evidence.clientId, input.clientId),
+                        eq(schema.evidence.framework, framework)
+                    ));
+
+                const existingIds = new Set(existing.map(e => e.evidenceId));
+                console.log(`[Evidence Seed] Found ${existingIds.size} existing items for framework ${framework}`);
+
+                // Filter out requests that already exist
+                const insertData = selectedRequests
+                    .filter(r => !existingIds.has(r.id))
+                    .map(r => ({
+                        clientId: input.clientId,
+                        clientControlId: 0,
+                        evidenceId: r.id,
+                        title: r.title,
+                        description: r.description,
+                        type: "file",
+                        status: "pending",
+                        owner: ctx.user?.email || "auditor@complianceos.com",
+                        location: r.location,
+                        framework: framework,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }));
+
+                console.log(`[Evidence Seed] Attempting to insert ${insertData.length} new items`);
+
+                try {
+                    if (insertData.length > 0) {
+                        // Map 'title' to 'description' as 'title' column doesn't exist in schema
+                        const insertPayload = insertData.map(r => ({
+                            clientId: r.clientId,
+                            clientControlId: r.clientControlId,
+                            evidenceId: r.evidenceId,
+                            description: r.title, // This is the key fix
+                            type: r.type,
+                            status: r.status,
+                            owner: r.owner,
+                            location: r.location,
+                            framework: r.framework,
+                            createdAt: r.createdAt,
+                            updatedAt: r.updatedAt
+                        }));
+                        await dbConn.insert(schema.evidence).values(insertPayload as any);
+                    }
+                } catch (err: any) {
+                    console.error("[Evidence Seed Error]", err);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to seed evidence: ${err.message}`,
+                        cause: err
+                    });
+                }
+
+                return {
+                    success: true,
+                    count: insertData.length,
+                    message: insertData.length > 0 ? `Added ${insertData.length} new requests for ${framework}` : `All ${framework} requests already exist`
+                };
             }),
 
         suggestions: t.router({

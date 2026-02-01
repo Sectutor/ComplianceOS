@@ -349,7 +349,7 @@ export default function RiskThreatEditor() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto max-w-5xl py-8 px-4 pb-20">
+            <div className="w-full px-6 py-8 pb-20">
                 {/* Breadcrumb */}
                 <div className="mb-6">
                     <Breadcrumb

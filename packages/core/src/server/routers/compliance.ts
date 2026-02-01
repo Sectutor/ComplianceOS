@@ -525,6 +525,7 @@ export const createComplianceRouter = (
                     confidence: sug.confidence.toString(),
                     notes: `Auto-mapped by AI (Similarity: ${sug.confidence}%)`,
                     createdBy: ctx.user?.id,
+                    isAiGenerated: true,
                   });
                 }
               }

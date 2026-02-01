@@ -3,6 +3,7 @@ import React from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
+import { Badge } from "@complianceos/ui/ui/badge";
 import {
     Shield,
     Database,
@@ -16,7 +17,9 @@ import {
     BarChart3,
     AlertTriangle,
     Bug,
-    Stethoscope
+    Stethoscope,
+    Radar,
+    Zap
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -71,6 +74,22 @@ export default function RiskOverview() {
                 "CVE vulnerability tracking",
                 "Threat actor profiling"
             ]
+        },
+        {
+            title: "Adversary Intelligence",
+            headerTitle: "Premium Feature",
+            description: "Live threat feeds from CISA, security news, and a complete MITRE ATT&CK browser. Create risks directly from real-world threat intelligence.",
+            icon: Radar,
+            color: "from-red-600 to-orange-500",
+            textColor: "text-red-600",
+            bgLight: "bg-red-50",
+            path: `/clients/${clientId}/risks/adversary-intel`,
+            benefits: [
+                "Live security news feeds",
+                "MITRE ATT&CK TTP browser",
+                "One-click risk creation from threats"
+            ],
+            isPremium: true
         },
         {
             title: "Risk Assessments",
@@ -196,9 +215,16 @@ export default function RiskOverview() {
                                         <div className={`p-4 rounded-2xl ${section.bgLight} ${section.textColor}`}>
                                             <section.icon className="w-8 h-8" />
                                         </div>
-                                        <Badge variant="outline" className="font-mono text-[10px] opacity-70">
-                                            {section.headerTitle}
-                                        </Badge>
+                                        {section.isPremium ? (
+                                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-semibold">
+                                                <Zap className="w-3 h-3 mr-1" />
+                                                Premium
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="font-mono text-[10px] opacity-70">
+                                                {section.headerTitle}
+                                            </Badge>
+                                        )}
                                     </div>
                                     <h2 className="text-2xl font-bold mb-3">{section.title}</h2>
                                     <p className="text-muted-foreground mb-6 leading-relaxed">
@@ -366,13 +392,5 @@ export default function RiskOverview() {
                 </Card>
             </div>
         </DashboardLayout>
-    );
-}
-
-function Badge({ children, variant, className }: any) {
-    return (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${className} border`}>
-            {children}
-        </span>
     );
 }

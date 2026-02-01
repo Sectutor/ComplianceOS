@@ -2,8 +2,8 @@
 import { getDb } from "../db";
 import { auditLogs } from "../schema";
 
-export type AuditAction = 'create' | 'update' | 'delete' | 'publish' | 'export' | 'sync' | 'restore';
-export type EntityType = 'policy' | 'control' | 'client' | 'user' | 'evidence' | 'mapping' | 'risk' | 'treatment' | 'asset' | 'threat' | 'vulnerability' | 'bcp_plan' | 'roadmap' | 'implementation_plan' | 'stakeholder';
+export type AuditAction = 'create' | 'update' | 'delete' | 'publish' | 'export' | 'sync' | 'restore' | 'import';
+export type EntityType = 'policy' | 'control' | 'client' | 'user' | 'evidence' | 'mapping' | 'risk' | 'treatment' | 'asset' | 'threat' | 'vulnerability' | 'bcp_plan' | 'roadmap' | 'implementation_plan' | 'stakeholder' | 'dev_project' | 'threat_model';
 export type Severity = 'info' | 'warning' | 'critical';
 
 interface LogActivityParams {

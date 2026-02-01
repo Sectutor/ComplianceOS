@@ -655,18 +655,30 @@ export const createRisksRouter = (t: any, procedure: any) => {
         createThreat: procedure
             .input(z.object({
                 clientId: z.number(),
+                threatId: z.string().optional(),
                 name: z.string(),
                 description: z.string().optional(),
                 category: z.string().optional(),
                 source: z.string().optional(),
+                intent: z.string().optional(),
+                likelihood: z.string().optional(),
+                potentialImpact: z.string().optional(),
+                status: z.enum(["active", "mitigated", "archived"]).optional().default("active"),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
                     throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create threats' });
                 }
                 const db = await getDb();
+
+                // If no threatId is provided, generate one
+                const data = {
+                    ...input,
+                    threatId: input.threatId || `THREAT-${Date.now()}`
+                };
+
                 const [threat] = await db.insert(threats)
-                    .values(input)
+                    .values(data)
                     .returning();
 
                 await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "threat", entityId: threat.id, details: { name: threat.name } });
@@ -881,7 +893,8 @@ export const createRisksRouter = (t: any, procedure: any) => {
         createRiskTreatment: procedure
             .input(z.object({
                 clientId: z.number(),
-                riskAssessmentId: z.number(),
+                riskAssessmentId: z.number().optional(),
+                riskScenarioId: z.number().optional(),
                 treatmentType: z.enum(['mitigate', 'transfer', 'accept', 'avoid']),
                 strategy: z.string().optional(),
                 justification: z.string().optional(),
@@ -897,7 +910,7 @@ export const createRisksRouter = (t: any, procedure: any) => {
                     ...input,
                     dueDate: input.dueDate ? new Date(input.dueDate) : null,
                     status: 'planned'
-                }).returning();
+                } as any).returning();
                 await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "treatment", entityId: treatment.id, details: { strategy: treatment.strategy } });
                 return treatment;
             }),
@@ -926,6 +939,22 @@ export const createRisksRouter = (t: any, procedure: any) => {
                     .where(eq(riskTreatments.id, id))
                     .returning();
                 return updated;
+            }),
+
+        deleteRiskTreatment: procedure
+            .input(z.object({
+                id: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete treatments' });
+                const db = await getDb();
+
+                // Delete the treatment
+                await db.delete(riskTreatments)
+                    .where(eq(riskTreatments.id, input.id));
+
+                await logActivity({ userId: ctx.user.id, clientId: ctx.clientId, action: "delete", entityType: "treatment", entityId: input.id });
+                return { success: true };
             }),
 
         linkTreatmentControl: procedure

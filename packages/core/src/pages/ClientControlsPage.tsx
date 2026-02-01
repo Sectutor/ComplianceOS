@@ -14,7 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Shield, Plus, Trash2, Edit, Download, ClipboardList, LayoutGrid, List } from "lucide-react";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
 import { EvidenceSuggestionsPopover } from "@/components/controls/EvidenceSuggestionsPopover";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -60,6 +60,17 @@ export default function ClientControlsPage() {
 
     const clientControls = safeUnwrap(rawClientControls) || [];
     const masterControls = safeUnwrap(rawMasterControls) || [];
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const openId = params.get('openControlId');
+        if (openId && clientControls.length > 0) {
+            const ctrl = clientControls.find((c: any) => c.clientControl.id === parseInt(openId));
+            if (ctrl) {
+                setSelectedControl(ctrl);
+            }
+        }
+    }, [clientControls]);
 
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
     const [frameworkFilter, setFrameworkFilter] = useState<string>("all");

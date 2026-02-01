@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { Button } from '@complianceos/ui/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@complianceos/ui/ui/select';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
+import { RiskDetailsDialog } from './RiskDetailsDialog';
 
 interface RiskRegisterProps {
     clientId: number;
@@ -94,11 +95,19 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
     const createTaskMutation = trpc.actions.create.useMutation();
     const [createdTaskIds, setCreatedTaskIds] = useState<Set<number>>(new Set());
 
-    // Fetch treatments for the selected risk
-    const { data: treatments } = trpc.risks.getRiskTreatments.useQuery(
-        { riskAssessmentId: selectedRisk?.id },
-        { enabled: !!selectedRisk?.id }
-    );
+
+
+    // Auto-open risk from URL param
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const openId = params.get('openRiskId');
+        if (openId && risks) {
+            const risk = risks.find(r => r.id === parseInt(openId));
+            if (risk) {
+                setSelectedRisk(risk);
+            }
+        }
+    }, [risks]);
 
     // Parse affected assets helper
     const parseAffectedAssets = (assets: any): string[] => {
@@ -385,6 +394,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
                                 <SortableHeader field="assessmentId" className="text-left text-white">Risk ID</SortableHeader>
                                 <SortableHeader field="threatDescription" className="text-left max-w-[250px] text-white">Description</SortableHeader>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Source</th>
                                 {/* <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Affected Assets</th> */}
                                 <SortableHeader field="likelihood" className="text-center text-white">Likelihood</SortableHeader>
                                 <SortableHeader field="impact" className="text-center text-white">Impact</SortableHeader>
@@ -434,6 +444,11 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                                 <div className="truncate text-sm text-gray-600" title={risk.contextSnapshot?.description || risk.description || risk.threatDescription || ''}>
                                                     {risk.contextSnapshot?.description || risk.description || risk.threatDescription || '-'}
                                                 </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                                                    {risk.contextSnapshot?.source || 'Manual'}
+                                                </Badge>
                                             </td>
                                             {/* <td className="px-4 py-4">
                                                 <div className="flex flex-wrap gap-1">
@@ -696,151 +711,12 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
             </div >
 
             {/* Detail Dialog */}
-            <EnhancedDialog
+            <RiskDetailsDialog
                 open={!!selectedRisk}
                 onOpenChange={(open) => !open && setSelectedRisk(null)}
-                title={
-                    <div className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-primary" />
-                        Risk Details: {selectedRisk?.assessmentId}
-                    </div>
-                }
-                description="Comprehensive view of identified risk, analysis, and treatment plan."
-                size="xl"
-                className="max-h-[85vh]"
-                footer={
-                    <Button variant="outline" onClick={() => setSelectedRisk(null)}>Close Details</Button>
-                }
-            >
-                {selectedRisk && (
-                    <div className="space-y-6">
-                        {/* Risk Overview */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-muted/50 p-4 rounded-lg">
-                                <p className="text-xs text-muted-foreground uppercase">Inherent Risk</p>
-                                <p className={`text-lg font-bold mt-1 px-2 py-1 rounded inline-block ${riskColors[selectedRisk.inherentRisk || ''] || 'bg-gray-100'}`}>
-                                    {selectedRisk.inherentRisk || '-'}
-                                </p>
-                            </div>
-                            <div className="bg-muted/50 p-4 rounded-lg">
-                                <p className="text-xs text-muted-foreground uppercase">Residual Risk</p>
-                                <p className={`text-lg font-bold mt-1 px-2 py-1 rounded inline-block ${riskColors[selectedRisk.residualRisk || ''] || 'bg-gray-100'}`}>
-                                    {selectedRisk.residualRisk || '-'}
-                                </p>
-                            </div>
-                            <div className="bg-muted/50 p-4 rounded-lg">
-                                <p className="text-xs text-muted-foreground uppercase">Priority</p>
-                                <p className="text-lg font-bold mt-1">{selectedRisk.priority || '-'}</p>
-                            </div>
-                            <div className="bg-muted/50 p-4 rounded-lg">
-                                <p className="text-xs text-muted-foreground uppercase">Status</p>
-                                <p className="text-lg font-bold mt-1 capitalize">{selectedRisk.status || '-'}</p>
-                            </div>
-                        </div>
-
-                        {/* Details Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 className="font-semibold mb-2">Threat Description</h4>
-                                <p className="text-muted-foreground">{selectedRisk.threatDescription || 'Not specified'}</p>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold mb-2">Vulnerability</h4>
-                                <p className="text-muted-foreground">{selectedRisk.vulnerabilityDescription || 'Not specified'}</p>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold mb-2">Affected Assets</h4>
-                                <div className="flex flex-wrap gap-1">
-                                    {parseAffectedAssets(selectedRisk.affectedAssets).map((asset, i) => (
-                                        <Badge key={i} variant="secondary">{asset}</Badge>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold mb-2">Risk Owner</h4>
-                                <p className="text-muted-foreground">{selectedRisk.riskOwner || 'Not assigned'}</p>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold mb-2">Existing Controls</h4>
-                                <p className="text-muted-foreground">{selectedRisk.existingControls || 'None documented'}</p>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold mb-2">Control Effectiveness</h4>
-                                <p className="text-muted-foreground capitalize">{selectedRisk.controlEffectiveness || 'Not evaluated'}</p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <h4 className="font-semibold mb-2">Treatment Option & Recommended Actions</h4>
-                                <p className="text-muted-foreground">
-                                    <strong className="capitalize">{selectedRisk.treatmentOption || 'Not decided'}:</strong> {selectedRisk.recommendedActions || 'No actions specified'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Active Treatments */}
-                        {treatments && treatments.length > 0 && (
-                            <div>
-                                <h4 className="font-semibold mb-3">Active Treatments ({treatments.length})</h4>
-                                <div className="space-y-2">
-                                    {treatments.map((treatment: any) => (
-                                        <div key={treatment.id} className="border rounded-lg p-4 bg-muted/20">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${treatment.treatmentType === 'mitigate' ? 'bg-blue-100 text-blue-800' :
-                                                    treatment.treatmentType === 'transfer' ? 'bg-purple-100 text-purple-800' :
-                                                        treatment.treatmentType === 'accept' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-red-100 text-red-800'
-                                                    }`}>
-                                                    {treatment.treatmentType}
-                                                </span>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${treatment.status === 'implemented' ? 'bg-green-100 text-green-800' :
-                                                    treatment.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-gray-100 text-gray-600'
-                                                    }`}>
-                                                    {treatment.status?.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm">{treatment.strategy}</p>
-                                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                                {treatment.owner && <span>Owner: {treatment.owner}</span>}
-                                                {treatment.dueDate && <span>Due: {new Date(treatment.dueDate).toLocaleDateString()}</span>}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Dates */}
-                        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Date Identified</p>
-                                <p className="font-medium">
-                                    {selectedRisk.createdAt ? new Date(selectedRisk.createdAt).toLocaleDateString() : '-'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">Last Review</p>
-                                <p className="font-medium">
-                                    {selectedRisk.assessmentDate ? new Date(selectedRisk.assessmentDate).toLocaleDateString() : '-'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">Next Review</p>
-                                <p className="font-medium">
-                                    {selectedRisk.nextReviewDate ? new Date(selectedRisk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        {selectedRisk.notes && (
-                            <div className="pt-4 border-t">
-                                <h4 className="font-semibold mb-2">Notes</h4>
-                                <p className="text-muted-foreground">{selectedRisk.notes}</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </EnhancedDialog>
+                risk={selectedRisk}
+                clientId={clientId}
+            />
         </div >
     );
 }

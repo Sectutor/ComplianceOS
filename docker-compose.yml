@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3005:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/complianceos
+      # Supabase Config - Required for Authentication
+      # Replace these with your actual Supabase credentials in a .env file or environment
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-placeholder}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-placeholder}
+    depends_on:
+      - db
+    restart: unless-stopped
+    # Run database migrations before starting the server
+    command: sh -c "npx drizzle-kit push:pg && npx tsx server_entry.ts"
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=complianceos
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db_data:

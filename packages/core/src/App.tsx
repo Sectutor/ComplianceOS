@@ -170,6 +170,7 @@ const ReadinessWizardPage = lazy(() => import("./pages/readiness/ReadinessWizard
 const RoadmapPage = lazy(() => import("./pages/readiness/RoadmapPage"));
 const RoadmapDetailsPage = lazy(() => import("./pages/readiness/RoadmapDetailsPage"));
 const AuditReadinessAlignmentPage = lazy(() => import("./pages/readiness/AuditReadinessAlignmentPage"));
+const ComplianceJourneyDashboard = lazy(() => import("./pages/ComplianceJourneyDashboard"));
 const GovernanceWorkbench = lazy(() => import("./pages/governance/GovernanceWorkbench"));
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -218,7 +219,11 @@ const CyberDocumentation = lazy(() => import("./pages/cyber/CyberDocumentation")
 const CyberIncidentDetail = lazy(() => import("./pages/cyber/CyberIncidentDetail"));
 
 
+const AIGovernance = lazy(() => import("./pages/ai-governance/AIGovernance"));
+
+
 const StartHere = lazy(() => import("./pages/StartHere"));
+
 const UIPatternShowcase = lazy(() => import("./pages/UIPatternShowcase"));
 const ConsolidatedRequestPortal = lazy(() => import("./pages/portal/ConsolidatedRequestPortal"));
 const VendorAssessmentPortal = lazy(() => import("./pages/portal/VendorAssessmentPortal"));
@@ -519,6 +524,9 @@ function Router() {
         <Route path="/clients/:id/management/sign-off">
           {(_params) => <ProtectedRoute component={ManagementSignOffPage} />}
         </Route>
+        <Route path="/clients/:id/compliance-journey">
+          {(_params) => <ProtectedRoute component={ComplianceJourneyDashboard} />}
+        </Route>
         <Route path="/clients/:id/readiness/wizard">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
@@ -778,6 +786,10 @@ function Router() {
             </PremiumGuard>
           )}
         </Route>
+        <Route path="/clients/:id/ai-governance">
+          {(_params) => <ProtectedRoute component={AIGovernance} />}
+        </Route>
+
         {/* Privacy routes are handled below in the dedicated section */}
         <Route path="/clients/:id/vendors/:vendorId">
           {(_params) => (

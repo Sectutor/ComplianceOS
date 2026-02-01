@@ -4,6 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@comp
 import { trpc } from "@/lib/trpc";
 import { Upload, X, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 
 interface ClientLogoUploadProps {
   clientId: number;
@@ -15,9 +25,10 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLogoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   const utils = trpc.useUtils();
-  
+
   const uploadLogoMutation = trpc.clients.uploadLogo.useMutation({
     onSuccess: () => {
       toast.success("Logo uploaded successfully");
@@ -27,10 +38,11 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
       toast.error(error.message || "Failed to upload logo");
     },
   });
-  
+
   const removeLogoMutation = trpc.clients.removeLogo.useMutation({
     onSuccess: () => {
       setPreviewUrl(null);
+      setShowDeleteDialog(false);
       toast.success("Logo removed");
       utils.clients.get.invalidate({ id: clientId });
     },
@@ -42,28 +54,28 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     // Validate file type
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
-    
+
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Image must be less than 2MB");
       return;
     }
-    
+
     setIsUploading(true);
-    
+
     try {
       // Convert to base64
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = reader.result as string;
         const base64Data = base64.split(",")[1];
-        
+
         // Upload to server
         const response = await fetch("/api/upload-client-logo", {
           method: "POST",
@@ -75,34 +87,28 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
             contentType: file.type,
           }),
         });
-        
+
         if (!response.ok) {
           throw new Error("Upload failed");
         }
-        
+
         const { url } = await response.json();
-        
+
         // Update client with logo URL
         await uploadLogoMutation.mutateAsync({ clientId, logoUrl: url });
         setPreviewUrl(url);
         setIsUploading(false);
       };
-      
+
       reader.onerror = () => {
         toast.error("Failed to read file");
         setIsUploading(false);
       };
-      
+
       reader.readAsDataURL(file);
     } catch (error) {
       toast.error("Failed to upload logo");
       setIsUploading(false);
-    }
-  };
-
-  const handleRemoveLogo = () => {
-    if (confirm("Remove company logo?")) {
-      removeLogoMutation.mutate({ clientId });
     }
   };
 
@@ -120,8 +126,8 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
           <div className="relative">
             <div className="w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/50 overflow-hidden">
               {previewUrl ? (
-                <img 
-                  src={previewUrl} 
+                <img
+                  src={previewUrl}
                   alt={`${clientName} logo`}
                   className="w-full h-full object-contain p-2"
                 />
@@ -134,14 +140,14 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
                 variant="destructive"
                 size="icon"
                 className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                onClick={handleRemoveLogo}
+                onClick={() => setShowDeleteDialog(true)}
                 disabled={removeLogoMutation.isPending}
               >
                 <X className="h-3 w-3" />
               </Button>
             )}
           </div>
-          
+
           {/* Upload Controls */}
           <div className="flex-1 space-y-3">
             <input
@@ -175,6 +181,27 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
           </div>
         </div>
       </CardContent>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Logo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove the company logo? This will affect all generated documents.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => removeLogoMutation.mutate({ clientId })}
+              disabled={removeLogoMutation.isPending}
+            >
+              {removeLogoMutation.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

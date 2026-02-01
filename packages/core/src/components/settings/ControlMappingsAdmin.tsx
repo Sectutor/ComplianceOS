@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@complianceos/ui/ui/dialog";
 import { Checkbox } from "@complianceos/ui/ui/checkbox";
 
-export function ControlMappingsAdmin() {
+export function ControlMappingsAdmin({ clientId }: { clientId?: number }) {
     const [sourceControlId, setSourceControlId] = useState<number | null>(null);
     const [targetControlId, setTargetControlId] = useState<number | null>(null);
     const [mappingType, setMappingType] = useState<"equivalent" | "partial" | "related">("equivalent");
@@ -25,8 +25,11 @@ export function ControlMappingsAdmin() {
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
     const [isReviewOpen, setIsReviewOpen] = useState(false);
 
-    // Fetch all controls for selection
-    const { data: controls = [], isLoading: loadingControls } = trpc.controls.list.useQuery({ framework: "all" });
+    // Fetch all controls for selection, including custom library if clientId is present
+    const { data: controls = [], isLoading: loadingControls } = trpc.controls.list.useQuery({
+        framework: "all",
+        clientId
+    });
     const controlsArray = Array.isArray(controls) ? controls : [];
 
     // Extract Unique Frameworks
@@ -137,7 +140,7 @@ export function ControlMappingsAdmin() {
                 }
 
                 toast.dismiss(toastId);
-                
+
                 if (allSuggestions.length > 0) {
                     setSuggestedMappings(allSuggestions);
                     setSelectedSuggestions(new Set(allSuggestions.map((_, i) => i)));

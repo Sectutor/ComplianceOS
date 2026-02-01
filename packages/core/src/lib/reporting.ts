@@ -2,8 +2,9 @@ import PDFDocument from 'pdfkit';
 import archiver from 'archiver';
 import { PassThrough } from 'stream';
 import { getDb } from '../db';
+import * as schema from '../schema';
 import { clients, controls, clientControls, clientPolicies, evidence, reportLogs } from '../schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { nis2 } from '../data/regulations/nis2';
 import { dora } from '../data/regulations/dora';
 import { gdpr } from '../data/regulations/gdpr';
@@ -463,5 +464,180 @@ export async function generateAuditBundle(clientId: number): Promise<Buffer> {
         arch.append(soaDocx, { name: '05_Statement_of_Applicability.docx' });
 
         arch.finalize();
+    });
+}
+
+// ==========================================
+// AI GOVERNANCE REPORTS
+// ==========================================
+export async function generateAIImpactAssessmentPdf(aiSystemId: number): Promise<Buffer> {
+    const dbConn = await getDb();
+    if (!dbConn) throw new Error("Database connection failed");
+
+    // Fetch System Details
+    const system = await dbConn.query.aiSystems.findFirst({
+        where: eq(schema.aiSystems.id, aiSystemId),
+        with: {
+            // vendor: true // Assuming relation is set up, otherwise fetch manual
+        }
+    });
+
+    if (!system) throw new Error("AI System not found");
+
+    // Fetch Vendor manually if needed
+    let vendorName = 'Internal / Unassigned';
+    if (system.vendorId) {
+        const vendor = await dbConn.query.vendors.findFirst({
+            where: eq(schema.vendors.id, system.vendorId)
+        });
+        if (vendor) vendorName = vendor.name;
+    }
+
+    // Fetch Assessments
+    const assessments = await dbConn.query.aiImpactAssessments.findMany({
+        where: eq(schema.aiImpactAssessments.aiSystemId, aiSystemId),
+        orderBy: [desc(schema.aiImpactAssessments.createdAt)]
+    });
+
+    // Fetch Mapped Controls
+    const mappedControls = await dbConn.select({
+        controlId: schema.controls.controlId,
+        name: schema.controls.name,
+        framework: schema.controls.framework
+    })
+        .from(schema.aiSystemControls)
+        .innerJoin(schema.controls, eq(schema.aiSystemControls.controlId, schema.controls.id))
+        .where(eq(schema.aiSystemControls.aiSystemId, aiSystemId));
+
+    const doc = new PDFDocument({ margin: 50 });
+    const buffers: Buffer[] = [];
+    doc.on('data', buffers.push.bind(buffers));
+
+    // 1. Header
+    doc.fontSize(24).fillColor('#1e3a8a').text('AI Algorithm Impact Assessment', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(12).fillColor('grey').text('NIST AI Risk Management Framework (AI RMF 1.0)', { align: 'center' });
+    doc.moveDown(2);
+
+    // 2. System Identity
+    doc.rect(50, doc.y, 500, 100).fill('#f8fafc').stroke('#e2e8f0');
+    doc.fillColor('black');
+
+    let yPos = doc.y - 90;
+    doc.font('Helvetica-Bold').fontSize(14).text(system.name, 65, yPos);
+
+    yPos += 25;
+    doc.font('Helvetica').fontSize(10).text('System Owner:', 65, yPos);
+    doc.font('Helvetica-Bold').text(system.owner || 'Unassigned', 150, yPos);
+
+    doc.font('Helvetica').text('Risk Classification:', 300, yPos);
+    const riskColor = system.riskLevel === 'high' ? 'red' : (system.riskLevel === 'medium' ? 'orange' : 'green');
+    doc.font('Helvetica-Bold').fillColor(riskColor).text((system.riskLevel || 'Unassessed').toUpperCase(), 400, yPos);
+
+    yPos += 20;
+    doc.fillColor('black');
+    doc.font('Helvetica').text('Development Type:', 65, yPos);
+    doc.font('Helvetica-Bold').text(system.type || 'Unknown', 150, yPos);
+
+    doc.font('Helvetica').text('Vendor / Source:', 300, yPos);
+    doc.font('Helvetica-Bold').text(vendorName, 400, yPos);
+
+    doc.moveDown(4);
+
+    // 3. System Description & Purpose
+    doc.font('Helvetica-Bold').fontSize(14).text('1. System Context (MAP Function)');
+    doc.moveDown(0.5);
+
+    doc.font('Helvetica-Bold').fontSize(11).text('Description');
+    doc.font('Helvetica').fontSize(10).text(system.description || 'No description provided.', { align: 'justify' });
+    doc.moveDown();
+
+    doc.font('Helvetica-Bold').fontSize(11).text('Intended Purpose');
+    doc.font('Helvetica').fontSize(10).text(system.purpose || 'No purpose documented.', { align: 'justify' });
+    doc.moveDown();
+
+    doc.font('Helvetica-Bold').fontSize(11).text('Technical Constraints');
+    doc.font('Helvetica').fontSize(10).text(system.technicalConstraints || 'None documented.', { align: 'justify' });
+    doc.moveDown(2);
+
+    // 4. Compliance Status
+    doc.font('Helvetica-Bold').fontSize(14).text('2. Compliance & Governance');
+    doc.moveDown(0.5);
+    doc.fontSize(10).font('Helvetica').text(`This system has ${mappedControls.length} NIST AI RMF controls mapped.`);
+    doc.moveDown();
+
+    if (mappedControls.length > 0) {
+        // Table Header
+        const startX = 50;
+        let currentY = doc.y;
+
+        doc.rect(startX, currentY, 80, 20).fill('#e2e8f0').stroke();
+        doc.fillColor('black').text('Control ID', startX + 5, currentY + 6);
+        doc.rect(startX + 80, currentY, 420, 20).fill('#e2e8f0').stroke();
+        doc.text('Control Name', startX + 85, currentY + 6);
+
+        currentY += 20;
+
+        mappedControls.forEach((ctrl: any) => {
+            if (currentY > 700) {
+                doc.addPage();
+                currentY = 50;
+            }
+
+            doc.rect(startX, currentY, 80, 20).stroke();
+            doc.text(ctrl.controlId, startX + 5, currentY + 6);
+            doc.rect(startX + 80, currentY, 420, 20).stroke();
+            doc.text(ctrl.name, startX + 85, currentY + 6, { width: 410, lineBreak: false, ellipsis: true });
+
+            currentY += 20;
+        });
+    }
+    doc.moveDown(2);
+
+    // 5. Impact Assessments
+    doc.addPage();
+    doc.font('Helvetica-Bold').fontSize(14).text('3. Impact Assessments (MEASURE Function)');
+    doc.moveDown(1);
+
+    if (assessments.length === 0) {
+        doc.font('Helvetica-Oblique').text('No impact assessments have been conducted for this system.');
+    } else {
+        assessments.forEach((assessment: any, i: number) => {
+            doc.rect(50, doc.y, 500, 30).fill('#f1f5f9').stroke();
+            doc.fillColor('black').font('Helvetica-Bold').fontSize(12)
+                .text(`Assessment # ${assessments.length - i} - ${assessment.createdAt?.toLocaleDateString()}`, 60, doc.y - 20);
+
+            doc.moveDown(1.5);
+
+            // Risk Score
+            doc.fontSize(10).font('Helvetica').text('Overall Risk Score: ');
+            doc.font('Helvetica-Bold').text(`${assessment.overallRiskScore || 0}/100`, { continued: false });
+            doc.moveDown(0.5);
+
+            const printDimension = (title: string, content: string | null) => {
+                doc.font('Helvetica-Bold').text(title);
+                doc.font('Helvetica').text(content || 'No observation records.', { align: 'justify' });
+                doc.moveDown(0.5);
+            };
+
+            printDimension('Safety Impact Analysis:', assessment.safetyImpact);
+            printDimension('Algorithmic Bias & Fairness:', assessment.biasImpact);
+            printDimension('Data Privacy Implications:', assessment.privacyImpact);
+            printDimension('Security Vulnerabilities:', assessment.securityImpact);
+
+            doc.moveDown(0.5);
+            doc.font('Helvetica-Bold').text('Recommendations:');
+            doc.font('Helvetica-Oblique').text(assessment.recommendations || 'None provided.');
+
+            doc.moveDown(2);
+            doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#e2e8f0').stroke();
+            doc.moveDown(2);
+        });
+    }
+
+    doc.end();
+
+    return new Promise((resolve) => {
+        doc.on('end', () => resolve(Buffer.concat(buffers)));
     });
 }

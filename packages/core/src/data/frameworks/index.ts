@@ -16,6 +16,13 @@ export const frameworks: Framework[] = [
         logo: "/frameworks/iso27001.svg"
     },
     {
+        id: "hitrust",
+        name: "HITRUST-Aligned (Representative)",
+        description: "Representative control set aligned with HITRUST domains (e1, i1, r2) for readiness and simulation. Not the official licensed CSF text.",
+        type: "Security",
+        logo: "/frameworks/hitrust.svg"
+    },
+    {
         id: "soc-2",
         name: "SOC 2 Type II",
         description: "Service Organization Control 2 - Trust Services Criteria for security, availability, processing integrity, confidentiality and privacy.",
@@ -62,6 +69,27 @@ export const frameworks: Framework[] = [
         name: "NIST SP 800-53 Rev 5",
         description: "Security and Privacy Controls for Information Systems and Organizations.",
         type: "Security",
+        logo: "/frameworks/nist.svg"
+    },
+    {
+        id: "fedramp-moderate",
+        name: "FedRAMP Moderate",
+        description: "Federal Risk and Authorization Management Program - Moderate Baseline (Representative).",
+        type: "Security",
+        logo: "/frameworks/fedramp.svg"
+    },
+    {
+        id: "cyber-essentials",
+        name: "Cyber Essentials / Plus",
+        description: "UK Government-backed scheme focusing on 5 technical control themes.",
+        type: "Security",
+        logo: "/frameworks/cyber_essentials.svg"
+    },
+    {
+        id: "nist-ai-rmf",
+        name: "NIST AI RMF",
+        description: "NIST AI Risk Management Framework (1.0) for trustworthy and responsible AI.",
+        type: "AI & Data",
         logo: "/frameworks/nist.svg"
     }
 ];
