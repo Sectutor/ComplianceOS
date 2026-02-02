@@ -1,19 +1,27 @@
+
 import { z } from "zod";
-import * as db from "../../db";
-import { eq, desc } from "drizzle-orm";
+import { getDb, bulkAssignControls } from "../../db";
+import { eq, and, desc } from "drizzle-orm";
 import { clients, readinessAssessments } from "../../schema";
 
 export const createReadinessRouter = (t: any, clientProcedure: any) => {
     return t.router({
         // Initialize or Get the current assessment state
         getState: clientProcedure
-            .input(z.object({ clientId: z.number() }))
+            .input(z.object({
+                clientId: z.number(),
+                standardId: z.string().optional().default("ISO27001")
+            }))
             .query(async ({ input }: any) => {
-                const dbConn = await db.getDb();
+                const dbConn = await getDb();
+                const standardId = input.standardId;
 
                 try {
                     const assessment = await dbConn.query.readinessAssessments.findFirst({
-                        where: eq(readinessAssessments.clientId, input.clientId),
+                        where: and(
+                            eq(readinessAssessments.clientId, input.clientId),
+                            eq(readinessAssessments.standardId, standardId)
+                        ),
                         orderBy: [desc(readinessAssessments.updatedAt)]
                     });
 
@@ -29,6 +37,8 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
                             existingPolicies: assessment.existingPolicies || {},
                             businessContext: assessment.businessContext || {},
                             maturityExpectations: assessment.maturityExpectations || {},
+                            questionnaireData: assessment.questionnaireData || {},
+                            scopingReport: assessment.scopingReport || null,
                             updatedAt: assessment.updatedAt,
                             createdAt: assessment.createdAt
                         };
@@ -56,13 +66,13 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
                             existingPolicies: {},
                             businessContext: {},
                             maturityExpectations: {},
+                            questionnaireData: {},
                             updatedAt: new Date(),
                             createdAt: new Date()
                         };
                     }
 
                     return null;
-
                 } catch (err) {
                     console.error("ORM Error in getState:", err);
                     throw new Error("Database query failed");
@@ -72,6 +82,7 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
         createOrUpdate: clientProcedure
             .input(z.object({
                 clientId: z.number(),
+                standardId: z.string().optional().default("ISO27001"),
                 step: z.number().optional(),
                 data: z.object({
                     scope: z.any().optional(),
@@ -79,49 +90,113 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
                     existingPolicies: z.any().optional(),
                     context: z.any().optional(),
                     expectations: z.any().optional(),
+                    questionnaireData: z.any().optional(),
+                    scopingReport: z.string().optional(),
                 }).optional()
             }))
             .mutation(async ({ input }: any) => {
-                const dbConn = await db.getDb();
+                try {
+                    const dbConn = await getDb();
 
-                const existing = await dbConn.query.readinessAssessments.findFirst({
+                    const existing = await dbConn.query.readinessAssessments.findFirst({
+                        where: and(
+                            eq(readinessAssessments.clientId, input.clientId),
+                            eq(readinessAssessments.standardId, input.standardId || "ISO27001")
+                        ),
+                        orderBy: [desc(readinessAssessments.updatedAt)]
+                    });
+
+                    if (!existing) {
+                        // INSERT
+                        const name = `ISO 27001 Readiness - ${new Date().getFullYear()}`;
+                        const currentStep = input.step || 1;
+
+                        const [newRow] = await dbConn.insert(readinessAssessments).values({
+                            clientId: input.clientId,
+                            standardId: input.standardId || "ISO27001",
+                            name,
+                            currentStep,
+                            scopeDetails: input.data?.scope || {},
+                            stakeholders: input.data?.stakeholders || {},
+                            existingPolicies: input.data?.existingPolicies || {},
+                            businessContext: input.data?.context || {},
+                            maturityExpectations: input.data?.expectations || {},
+                            questionnaireData: input.data?.questionnaireData || {},
+                            scopingReport: input.data?.scopingReport || null
+                        }).returning();
+
+                        return newRow;
+                    } else {
+                        // UPDATE
+                        const [updatedRow] = await dbConn.update(readinessAssessments)
+                            .set({
+                                currentStep: input.step ?? existing.currentStep,
+                                scopeDetails: input.data?.scope ?? existing.scopeDetails,
+                                stakeholders: input.data?.stakeholders ?? existing.stakeholders,
+                                existingPolicies: input.data?.existingPolicies ?? existing.existingPolicies,
+                                businessContext: input.data?.context ?? existing.businessContext,
+                                maturityExpectations: input.data?.expectations ?? existing.maturityExpectations,
+                                questionnaireData: input.data?.questionnaireData ?? existing.questionnaireData,
+                                scopingReport: input.data?.scopingReport ?? existing.scopingReport,
+                                updatedAt: new Date()
+                            })
+                            .where(eq(readinessAssessments.id, existing.id))
+                            .returning();
+
+                        return updatedRow;
+                    }
+                } catch (error: any) {
+                    console.error("Failed to createOrUpdate readiness assessment:", error);
+                    // Ensure we return a clean error message that TRPC can display
+                    throw new Error(error.message || "Failed to save progress");
+                }
+            }),
+
+        list: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                return await dbConn.query.readinessAssessments.findMany({
                     where: eq(readinessAssessments.clientId, input.clientId),
                     orderBy: [desc(readinessAssessments.updatedAt)]
                 });
+            }),
 
-                if (!existing) {
-                    // INSERT
-                    const name = `ISO 27001 Readiness - ${new Date().getFullYear()}`;
-                    const currentStep = input.step || 1;
+        baseline: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                standardId: z.string(),
+            }))
+            .mutation(async ({ input }: any) => {
+                try {
+                    const dbConn = await getDb();
 
-                    const [newRow] = await dbConn.insert(readinessAssessments).values({
-                        clientId: input.clientId,
-                        name,
-                        currentStep,
-                        scopeDetails: input.data?.scope || {},
-                        stakeholders: input.data?.stakeholders || {},
-                        existingPolicies: input.data?.existingPolicies || {},
-                        businessContext: input.data?.context || {},
-                        maturityExpectations: input.data?.expectations || {}
-                    }).returning();
+                    // 1. Mark assessment as completed
+                    await dbConn.update(readinessAssessments)
+                        .set({ status: 'completed', updatedAt: new Date() })
+                        .where(and(
+                            eq(readinessAssessments.clientId, input.clientId),
+                            eq(readinessAssessments.standardId, input.standardId)
+                        ));
 
-                    return newRow;
-                } else {
-                    // UPDATE
-                    const [updatedRow] = await dbConn.update(readinessAssessments)
-                        .set({
-                            currentStep: input.step ?? existing.currentStep,
-                            scopeDetails: input.data?.scope ?? existing.scopeDetails,
-                            stakeholders: input.data?.stakeholders ?? existing.stakeholders,
-                            existingPolicies: input.data?.existingPolicies ?? existing.existingPolicies,
-                            businessContext: input.data?.context ?? existing.businessContext,
-                            maturityExpectations: input.data?.expectations ?? existing.maturityExpectations,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(readinessAssessments.id, existing.id))
-                        .returning();
+                    // 2. Map standardId to framework name
+                    let framework = input.standardId;
+                    if (framework === 'ISO27001') framework = 'ISO 27001';
+                    if (framework === 'SOC2') framework = 'SOC 2';
+                    if (framework === 'NISTCSF') framework = 'NIST CSF';
+                    if (framework === 'HIPAA') framework = 'HIPAA';
 
-                    return updatedRow;
+                    // 3. Trigger framework activation (Assign controls)
+                    try {
+                        await bulkAssignControls(input.clientId, [framework]);
+                    } catch (e) {
+                        console.error("Failed to assign controls during baseline:", e);
+                    }
+
+                    return { success: true, framework };
+                } catch (error: any) {
+                    console.error("Failed to complete baseline assessment:", error);
+                    throw new Error(`Failed to complete baseline: ${error.message}`);
                 }
             }),
     });

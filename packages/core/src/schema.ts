@@ -2177,8 +2177,6 @@ export const evidence = pgTable("evidence", {
 
   description: text("description"),
 
-  description: text("description"),
-
   framework: varchar("framework", { length: 50 }).default('ISO 27001'),
   type: varchar("type", { length: 100 }),
 
@@ -10410,6 +10408,7 @@ export const readinessAssessments = pgTable("readiness_assessments", {
 
 
   status: varchar("status", { length: 50 }).default("in_progress"), // in_progress, completed
+  standardId: varchar("standard_id", { length: 50 }).notNull().default("ISO27001"),
 
 
 
@@ -10442,6 +10441,12 @@ export const readinessAssessments = pgTable("readiness_assessments", {
 
 
   maturityExpectations: json("maturity_expectations"),
+
+  // AI Generated Executive Report
+  scopingReport: text("scoping_report"),
+
+  // Framework Specific Questionnaire Answers
+  questionnaireData: jsonb("questionnaire_data"),
 
 
 
