@@ -3,17 +3,33 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Checkbox } from "@complianceos/ui/ui/checkbox";
-import { Printer, ArrowLeft, Loader2, Save } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Save, FilePlus, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useClientContext } from "@/contexts/ClientContext";
 import { toast } from "sonner";
-import { useDebounce } from "@/hooks/useDebounce"; // Ensure this hook exists or implement local debounce
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@complianceos/ui/ui/dialog";
+import { Label } from "@complianceos/ui/ui/label";
+import { Input } from "@complianceos/ui/ui/input";
+import { Textarea } from "@complianceos/ui/ui/textarea";
+
+type ItemState = {
+    checked: boolean;
+    evidenceRequestId?: number;
+};
 
 export default function ISO27001ReadinessChecklist() {
     const { selectedClientId } = useClientContext();
-    const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
-    const [hasChanges, setHasChanges] = useState(false);
+    const [checkedItems, setCheckedItems] = useState<Record<string, ItemState | boolean>>({});
+    const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+    const [activeTask, setActiveTask] = useState<{ id: string, title: string } | null>(null);
 
     // Fetch existing state
     const { data: serverState, isLoading } = trpc.checklist.get.useQuery(
@@ -23,25 +39,44 @@ export default function ISO27001ReadinessChecklist() {
 
     useEffect(() => {
         if (serverState?.items) {
-            setCheckedItems(serverState.items as Record<string, boolean>);
+            setCheckedItems(serverState.items as Record<string, ItemState | boolean>);
         }
     }, [serverState]);
 
     const updatemutation = trpc.checklist.update.useMutation({
-        onSuccess: () => {
-            setHasChanges(false);
-        },
         onError: () => {
             toast.error("Failed to save progress");
         }
     });
 
-    // Auto-save debouncer could be added here, but for now manual save or on-change effect
-    // Let's do save on unmount or simple button? 
-    // User requested "automatically updated". So auto-save is better.
+    const linkMutation = trpc.checklist.linkEvidenceRequest.useMutation({
+        onSuccess: () => {
+            utils.checklist.get.invalidate({ clientId: selectedClientId!, checklistId: 'iso-27001-readiness' });
+        }
+    });
 
-    // Simple auto-save implementation
-    const saveProgress = (newItems: Record<string, boolean>) => {
+    const createEvidenceMutation = trpc.evidence.create.useMutation({
+        onSuccess: (data: any) => {
+            if (activeTask && selectedClientId) {
+                linkMutation.mutate({
+                    clientId: selectedClientId,
+                    checklistId: 'iso-27001-readiness',
+                    taskId: activeTask.id,
+                    evidenceRequestId: data.id
+                });
+            }
+            toast.success("Evidence request created and linked");
+            setRequestDialogOpen(false);
+            setActiveTask(null);
+        },
+        onError: () => {
+            toast.error("Failed to create evidence request");
+        }
+    });
+
+    const utils = trpc.useContext();
+
+    const saveProgress = (newItems: Record<string, ItemState | boolean>) => {
         if (!selectedClientId) return;
         updatemutation.mutate({
             clientId: selectedClientId,
@@ -51,9 +86,23 @@ export default function ISO27001ReadinessChecklist() {
     };
 
     const handleCheck = (id: string, checked: boolean) => {
-        const newItems = { ...checkedItems, [id]: checked };
+        const currentState = checkedItems[id];
+        let newState: ItemState | boolean;
+
+        if (typeof currentState === 'object' && currentState !== null) {
+            newState = { ...currentState, checked };
+        } else {
+            newState = checked;
+        }
+
+        const newItems = { ...checkedItems, [id]: newState };
         setCheckedItems(newItems);
         saveProgress(newItems);
+    };
+
+    const handleRequestEvidence = (id: string, title: string) => {
+        setActiveTask({ id, title });
+        setRequestDialogOpen(true);
     };
 
     const handlePrint = () => {
@@ -134,6 +183,8 @@ export default function ISO27001ReadinessChecklist() {
                         items={SECTIONS.BEFORE}
                         checkedItems={checkedItems}
                         onCheck={handleCheck}
+                        onRequestEvidence={handleRequestEvidence}
+                        clientId={selectedClientId!}
                     />
 
                     <Section
@@ -142,6 +193,8 @@ export default function ISO27001ReadinessChecklist() {
                         items={SECTIONS.DURING}
                         checkedItems={checkedItems}
                         onCheck={handleCheck}
+                        onRequestEvidence={handleRequestEvidence}
+                        clientId={selectedClientId!}
                     />
 
                     <Section
@@ -150,14 +203,179 @@ export default function ISO27001ReadinessChecklist() {
                         items={SECTIONS.AFTER}
                         checkedItems={checkedItems}
                         onCheck={handleCheck}
+                        onRequestEvidence={handleRequestEvidence}
+                        clientId={selectedClientId!}
                     />
                 </div>
             </div>
+
+            <EvidenceRequestDialog
+                open={requestDialogOpen}
+                onOpenChange={setRequestDialogOpen}
+                taskTitle={activeTask?.title || ""}
+                isLoading={createEvidenceMutation.isLoading}
+                onSubmit={(data) => {
+                    if (selectedClientId && activeTask) {
+                        createEvidenceMutation.mutate({
+                            clientId: selectedClientId,
+                            clientControlId: 0, // Generic request
+                            evidenceId: `READINESS-${activeTask.id.substring(0, 8).toUpperCase()}`,
+                            description: data.description,
+                            owner: data.owner,
+                            status: 'pending'
+                        });
+                    }
+                }}
+            />
         </DashboardLayout>
     );
 }
 
-// ... Helper Data Structure ...
+function Section({ title, items, color, checkedItems, onCheck, onRequestEvidence, clientId }: {
+    title: string,
+    items: { title: string, tasks: string[] }[],
+    color: string,
+    checkedItems: Record<string, ItemState | boolean>,
+    onCheck: (id: string, checked: boolean) => void,
+    onRequestEvidence: (id: string, title: string) => void,
+    clientId: number
+}) {
+    return (
+        <section className="print:break-inside-avoid">
+            <h2 className={`text-xl font-bold px-4 py-2 rounded-lg mb-4 ${color}`}>{title}</h2>
+            <div className="grid gap-6">
+                {items.map((group, idx) => (
+                    <Card key={idx} className="print:shadow-none print:border-none">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg">{group.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {group.tasks.map((task, tIdx) => {
+                                    const taskId = `iso-chk-${task.substring(0, 10).replace(/[^a-z0-9]/gi, '')}-${idx}-${tIdx}`;
+                                    const itemState = checkedItems[taskId];
+                                    const isChecked = typeof itemState === 'object' ? itemState.checked : !!itemState;
+                                    const evidenceRequestId = typeof itemState === 'object' ? itemState.evidenceRequestId : undefined;
+
+                                    return (
+                                        <div key={tIdx} className="group relative flex items-start justify-between p-2 -m-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-start space-x-3 flex-1">
+                                                <Checkbox
+                                                    id={taskId}
+                                                    className="mt-1"
+                                                    checked={isChecked}
+                                                    onCheckedChange={(c) => onCheck(taskId, c === true)}
+                                                />
+                                                <div className="flex flex-col">
+                                                    <label
+                                                        htmlFor={taskId}
+                                                        className={`text-sm font-medium leading-none cursor-pointer ${isChecked ? 'text-muted-foreground line-through' : ''}`}
+                                                    >
+                                                        {task}
+                                                    </label>
+                                                    {evidenceRequestId && (
+                                                        <Link href={`/clients/${clientId}/audit-hub?request=${evidenceRequestId}`}>
+                                                            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer bg-indigo-50 w-fit px-1.5 py-0.5 rounded shadow-sm border border-indigo-100">
+                                                                <CheckCircle2 className="h-3 w-3" />
+                                                                Evidence Requested
+                                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                            </div>
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                                                {!evidenceRequestId && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                                        onClick={() => onRequestEvidence(taskId, task)}
+                                                    >
+                                                        <FilePlus className="h-4 w-4 mr-1.5" />
+                                                        <span className="text-xs">Request Evidence</span>
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function EvidenceRequestDialog({ open, onOpenChange, taskTitle, isLoading, onSubmit }: {
+    open: boolean,
+    onOpenChange: (open: boolean) => void,
+    taskTitle: string,
+    isLoading: boolean,
+    onSubmit: (data: { description: string, owner: string }) => void
+}) {
+    const [description, setDescription] = useState("");
+    const [owner, setOwner] = useState("");
+
+    useEffect(() => {
+        if (open) {
+            setDescription(`Provide evidence for: ${taskTitle}`);
+            setOwner("");
+        }
+    }, [open, taskTitle]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSubmit({ description, owner });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Request Evidence</DialogTitle>
+                    <DialogDescription>
+                        Create an evidence request in the Audit Hub linked to this readiness task.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="task">Readiness Task</Label>
+                        <Input id="task" value={taskTitle} disabled className="bg-slate-50" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Evidence Description</Label>
+                        <Textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="What evidence is needed?"
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="owner">Assign to (Email/Name)</Label>
+                        <Input
+                            id="owner"
+                            value={owner}
+                            onChange={(e) => setOwner(e.target.value)}
+                            placeholder="e.g. jdoe@company.com"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? "Creating..." : "Create Request"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 const SECTIONS = {
     BEFORE: [
         {
@@ -168,10 +386,6 @@ const SECTIONS = {
                 "Out-of-scope areas clearly documented."
             ]
         },
-        // ... (truncated for brevity, keep existing structure but map properly)
-        // I need to use the full content again or extract it. 
-        // For efficiency, I will try to preserve the existing content structure via a separate constant or inline if I can view it fully first.
-        // Since I'm replacing the whole file logic, I should re-include the content.
         {
             title: "2. Identify Stakeholders",
             tasks: [
@@ -325,52 +539,3 @@ const SECTIONS = {
     ]
 };
 
-function Section({ title, items, color, checkedItems, onCheck }: {
-    title: string,
-    items: { title: string, tasks: string[] }[],
-    color: string,
-    checkedItems: Record<string, boolean>,
-    onCheck: (id: string, checked: boolean) => void
-}) {
-    return (
-        <section className="print:break-inside-avoid">
-            <h2 className={`text-xl font-bold px-4 py-2 rounded-lg mb-4 ${color}`}>{title}</h2>
-            <div className="grid gap-6">
-                {items.map((group, idx) => (
-                    <Card key={idx} className="print:shadow-none print:border-none">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">{group.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {group.tasks.map((task, tIdx) => {
-                                    // Generate a stable ID for the checkbox. 
-                                    // Using a hash or simplified string of the task content + SectionTitle would be better but index works if content is static.
-                                    // Let's use simplified string to be robust against reordering if ever.
-                                    const taskId = `iso-chk-${task.substring(0, 10).replace(/[^a-z0-9]/gi, '')}-${idx}-${tIdx}`;
-
-                                    return (
-                                        <div key={tIdx} className="flex items-start space-x-2">
-                                            <Checkbox
-                                                id={taskId}
-                                                className="mt-1"
-                                                checked={!!checkedItems[taskId]}
-                                                onCheckedChange={(c) => onCheck(taskId, c === true)}
-                                            />
-                                            <label
-                                                htmlFor={taskId}
-                                                className={`text-sm font-medium leading-none cursor-pointer ${checkedItems[taskId] ? 'text-muted-foreground line-through' : ''}`}
-                                            >
-                                                {task}
-                                            </label>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </section>
-    );
-}

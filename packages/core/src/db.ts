@@ -157,6 +157,8 @@ import {
   dsarTemplates, dpiaTemplates,
   dataFlowVisualizations, dataFlowNodes, dataFlowConnections,
   integrations, evidenceRequests,
+
+
   projectTasks
 } from "./schema";
 
@@ -1607,30 +1609,6 @@ export async function createClientControl(data: InsertClientControl) {
 
 
 
-export async function getEvidence(clientId: number) {
-  const db = await getDb();
-
-  const evidenceList = await db.select({
-    id: evidence.id,
-    evidenceId: evidence.evidenceId,
-    description: evidence.description,
-    status: evidence.status,
-    lastVerified: evidence.lastVerified,
-    framework: evidence.framework,
-    createdAt: evidence.createdAt,
-    control: controls.controlId,
-  })
-    .from(evidence)
-    .leftJoin(clientControls, eq(evidence.clientControlId, clientControls.id))
-    .leftJoin(controls, eq(clientControls.controlId, controls.id))
-    .where(eq(evidence.clientId, clientId))
-    .orderBy(desc(evidence.createdAt));
-
-  return evidenceList.map((item: any) => ({
-    ...item,
-    fileCount: 0
-  }));
-}
 
 
 export async function getClientControls(clientId: number) {

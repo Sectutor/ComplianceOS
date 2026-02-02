@@ -157,12 +157,15 @@ export const createEvidenceRouter = (
                         controlId: r.control?.id,
                         customDescription: r.control?.description
                     },
-                    control: r.control,
+                    controlName: r.control?.name,
+                    control: r.control?.controlId || r.evidence.evidenceId, // String ID for UI
                     // Use evidence framework as fallback
                     framework: r.evidence.framework || r.control?.framework,
-                    evidenceId: r.evidence.id, // This is the PK we need
+                    // Standardize ID fields
+                    id: r.evidence.id, // Numeric PK
+                    evidenceId: r.evidence.evidenceId, // String ID (e.g. REQ-ISO-01)
                     evidenceLabel: r.evidence.description || r.evidence.evidenceId, // Friendly label
-                    evidenceDescription: r.evidence.description
+                    evidenceDescription: r.evidence.description || r.control?.description // Use control description as fallback
                 }));
             }),
 
@@ -213,6 +216,32 @@ export const createEvidenceRouter = (
                 return { success: true };
             }),
 
+        linkIntegration: protectedProcedure
+            .input(z.object({
+                evidenceId: z.number(),
+                provider: z.string(), // 'github', 'aws', 'jira'
+                resourceId: z.string(), // e.g. PR URL, S3 ARN
+                metadata: z.record(z.any()).optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                // Update evidence to point to integration
+                await dbConn.update(schema.evidence)
+                    .set({
+                        type: 'api',
+                        location: input.resourceId, // Use location for the resource link
+                        description: `Linked to ${input.provider}: ${input.resourceId}`,
+                        status: 'collected', // Automatically mark as collected
+                        updatedAt: new Date()
+                    } as any)
+                    .where(eq(schema.evidence.id, input.evidenceId));
+
+                // In a real implementation: Trigger a fetch/verify job for this resource
+
+                return { success: true };
+            }),
+
         getFiles: publicProcedure
             .input(z.object({ evidenceId: z.number() }))
             .query(async ({ input }: any) => {
@@ -225,15 +254,49 @@ export const createEvidenceRouter = (
             .input(z.object({
                 evidenceId: z.number(),
                 controlName: z.string().optional(),
-                controlDescription: z.string().optional(),
+                controlDescription: z.string().nullable().optional(), // Allow null
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
+
+                // Get the evidence item to check for existing content
                 const [evidenceItem] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
 
                 if (!evidenceItem) throw new Error("Evidence not found");
 
-                const content = (evidenceItem as any).extractedText || (evidenceItem as any).description || "No extracted content available for this file.";
+                // Check for attached files
+                const files = await dbConn.select().from(schema.evidenceFiles)
+                    .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId))
+                    .orderBy(desc(schema.evidenceFiles.createdAt))
+                    .limit(1);
+
+                let content = "";
+
+                if (files.length > 0) {
+                    const file = files[0];
+                    content = `File Name: ${file.filename}\nContent Type: ${file.contentType}\nFile Size: ${file.fileSize} bytes\n`;
+
+                    // In a real implementation: Fetch file content from S3/Storage and extract text (PDF/DOCX)
+                    // For now, we simulate extraction based on file metadata and description
+                    content += `(Simulated Extraction): This document appears to be a ${file.filename.split('.').pop()} file related to ${input.controlName || 'compliance'}.`;
+                } else if (evidenceItem.description && evidenceItem.description.length > 20) {
+                    content = evidenceItem.description;
+                } else {
+                    content = "No file attached and description is too short.";
+                }
+
+                if (content.includes("No file attached")) {
+                    return {
+                        analysis: {
+                            isCompliant: false,
+                            reasoning: "No evidence file attached or description provided.",
+                            keyFindings: ["Missing documentation"],
+                            confidence: "HIGH"
+                        },
+                        provider: "System",
+                        model: "Validation"
+                    };
+                }
 
                 const systemPrompt = "You are an expert compliance auditor. Analyze the provided evidence content against the control requirements. Be strict but fair.";
                 const userPrompt = `
@@ -275,10 +338,13 @@ Provide a structured JSON response:
                         };
                     }
 
+                    // Save analysis result to evidence (using existing description or metadata if available, but schema doesn't have JSON column yet)
+                    // We'll just return it for UI display for now.
+
                     return {
                         analysis,
-                        provider: "ComplianceOS AI",
-                        model: "Standard"
+                        provider: response.provider,
+                        model: response.model
                     };
                 } catch (error: any) {
                     console.error("Evidence analysis failed:", error);
@@ -295,6 +361,7 @@ Provide a structured JSON response:
                     };
                 }
             } // Close async function
+
             ), // Close mutation
 
         seed: protectedProcedure

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { Label } from "@complianceos/ui/ui/label";
+
 import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -108,8 +110,8 @@ export default function AuditHub() {
 
     // Fetch files for selected request
     const { data: evidenceFiles, isLoading: isFilesLoading } = trpc.evidence.getFiles.useQuery(
-        { evidenceId: selectedRequest?.original?.id },
-        { enabled: !!selectedRequest?.original?.id }
+        { evidenceId: (selectedRequest as any)?.id || -1 },
+        { enabled: !!(selectedRequest as any)?.id }
     );
 
     // Fetch counts for sidebar
@@ -139,6 +141,64 @@ export default function AuditHub() {
         owner: '',
         dueDate: ''
     });
+
+    // AI Analysis State
+    const [analysisOpen, setAnalysisOpen] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const analyzeMutation = trpc.evidence.analyze.useMutation({
+        onSuccess: (data) => {
+            setAnalysisResult(data);
+            toast.success("AI Analysis Complete");
+        },
+        onError: (err) => {
+            toast.error(err.message);
+        }
+    });
+
+    const handleAnalyze = () => {
+        if (!selectedRequest) return;
+        setAnalysisResult(null);
+        setAnalysisOpen(true);
+        analyzeMutation.mutate({
+            evidenceId: (selectedRequest as any).id,
+            controlName: (selectedRequest as any).controlName || selectedRequest.control,
+            controlDescription: selectedRequest.description || (selectedRequest as any).evidenceDescription || "No description provided"
+        });
+    };
+
+    // Link Integration State
+    const [linkOpen, setLinkOpen] = useState(false);
+    const [linkData, setLinkData] = useState({ provider: 'github', resourceId: '' });
+    const linkMutation = trpc.evidence.linkIntegration.useMutation({
+        onSuccess: () => {
+            toast.success("Integration Linked Successfully");
+            setLinkOpen(false);
+            setLinkData({ provider: 'github', resourceId: '' });
+            utils.evidence.list.invalidate(); // Refresh list to show status change
+        },
+        onError: (err) => {
+            toast.error(err.message);
+        }
+    });
+
+    const handleLink = () => {
+        if (!selectedRequest || !linkData.resourceId) return;
+        linkMutation.mutate({
+            evidenceId: selectedRequest.id,
+            provider: linkData.provider,
+            resourceId: linkData.resourceId
+        });
+    };
+
+    // Fetch latest audit for auditor details
+    const { data: audits } = trpc.audit.list.useQuery({ clientId }, { enabled: !!clientId });
+    const activeAudit = audits?.[0]; // Get the latest one
+
+    const getInitials = (name: string) => {
+        return name
+            ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+            : '??';
+    };
 
     const createEvidenceMutation = trpc.evidence.create.useMutation({
         onSuccess: () => {
@@ -291,7 +351,8 @@ export default function AuditHub() {
 
     return (
         <Layout>
-            <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] w-full bg-slate-50/50">
+            <div className="flex flex-col h-[calc(100vh-64px)] w-full bg-slate-50/50 overflow-hidden">
+
                 {/* 1. Universal Header (Audit Context) - Professionally Redesigned */}
                 <header className="h-16 bg-white border-b flex items-center justify-between px-6 shrink-0 z-40 relative shadow-sm">
                     <div className="flex items-center gap-6">
@@ -475,20 +536,38 @@ export default function AuditHub() {
 
                         {/* Auditor Branding/Contact */}
                         <div className="mt-auto p-6 border-t border-slate-200">
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
-                                <Avatar className="h-9 w-9 border-2 border-slate-50 bg-slate-100">
-                                    <AvatarFallback className="text-xs font-bold text-slate-600">JS</AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0">
-                                    <div className="text-xs font-bold text-slate-900 truncate">James Smith</div>
-                                    <div className="text-[10px] text-slate-500 truncate">Lead Auditor (External)</div>
+                            {activeAudit ? (
+                                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                    <Avatar className="h-9 w-9 border-2 border-slate-50 bg-slate-100">
+                                        <AvatarFallback className="text-xs font-bold text-slate-600">
+                                            {getInitials(activeAudit.auditorName || "Unknown")}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                        <div className="text-xs font-bold text-slate-900 truncate">{activeAudit.auditorName || "Auditor Assigned"}</div>
+                                        <div className="text-[10px] text-slate-500 truncate">{activeAudit.auditFirm || "External Audit"}</div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="p-4 bg-slate-50 rounded-lg border border-dashed border-slate-300 text-center">
+                                    <p className="text-[10px] text-slate-400 font-medium mb-2">No active audit detected</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-7 text-[10px] bg-white"
+                                        onClick={() => setInviteOpen(true)}
+                                    >
+                                        Invite Auditor
+                                    </Button>
+                                </div>
+                            )}
                         </div>
+
                     </nav>
 
                     {activeSection === 'pbc' && (
-                        <div className="w-96 bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
+                        <div className="w-96 bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-sm h-full max-h-full overflow-hidden">
+
                             {/* Inbox Toolbar */}
                             <div className="p-4 border-b border-slate-100 space-y-3 bg-white/50 backdrop-blur-sm sticky top-0">
                                 <div className="flex items-center justify-between">
@@ -534,7 +613,9 @@ export default function AuditHub() {
                                     </Select>
                                 </div>
                             </div>
-                            <ScrollArea className="flex-1 bg-slate-50/30 mb-1 [&_[data-orientation=vertical]]:w-1.5 [&_[data-orientation=vertical]]:bg-transparent [&_[data-orientation=vertical]_[data-radix-scroll-area-thumb]]:bg-slate-300 [&_[data-orientation=vertical]_[data-radix-scroll-area-thumb]]:rounded-full">
+                            <div className="flex-1 bg-slate-50/30 overflow-y-auto min-h-0">
+
+
                                 {isEvidenceLoading ? (
                                     <div className="p-4 space-y-3">
                                         {[1, 2, 3, 4, 5].map(i => (
@@ -581,30 +662,39 @@ export default function AuditHub() {
                                                     key={req.id}
                                                     onClick={() => setSelectedRequest(req)}
                                                     className={cn(
-                                                        "group p-4 cursor-pointer hover:bg-white transition-all border-l-[3px]",
+                                                        "group px-4 py-3 cursor-pointer border-b border-slate-100 transition-colors relative",
                                                         selectedRequest?.id === req.id
-                                                            ? "bg-white border-indigo-600 shadow-sm z-10 relative"
-                                                            : "bg-transparent border-transparent hover:border-slate-200"
+                                                            ? "bg-white shadow-sm z-10"
+                                                            : "bg-white/50 hover:bg-white"
                                                     )}
                                                 >
-                                                    <div className="flex justify-between items-start mb-1.5 gap-2">
-                                                        <span className={cn(
-                                                            "font-mono text-[10px] font-semibold",
-                                                            selectedRequest?.id === req.id ? "text-indigo-600" : "text-slate-500"
-                                                        )}>{req.id}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
-                                                                {req.dueDate ? (
-                                                                    // If date is "YYYY-MM-DD", format efficiently or just display
-                                                                    `Due ${new Date(req.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                                                                ) : (
-                                                                    <span className="text-slate-300">No Date</span>
-                                                                )}
-                                                            </div>
+                                                    {selectedRequest?.id === req.id && (
+                                                        <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-indigo-600" />
+                                                    )}
+
+                                                    <div className="flex justify-between items-baseline mb-1">
+                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                            <span className={cn(
+                                                                "font-medium text-xs truncate max-w-[120px]",
+                                                                selectedRequest?.id === req.id ? "text-indigo-700" : "text-slate-900"
+                                                            )}>
+                                                                {req.id}
+                                                            </span>
+                                                            {!req.status || req.status === 'pending' || req.status === 'Open' ? (
+                                                                <span className="h-2 w-2 rounded-full bg-indigo-600 shrink-0" title="Unread" />
+                                                            ) : null}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <span className={cn(
+                                                                "text-[10px] whitespace-nowrap",
+                                                                selectedRequest?.id === req.id ? "text-indigo-600/80" : "text-slate-400 group-hover:text-slate-500"
+                                                            )}>
+                                                                {req.dueDate ? new Date(req.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                                                            </span>
                                                             <button
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500"
+                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500"
                                                                 onClick={(e) => confirmDelete(e, req)}
-                                                                title="Delete Request"
+                                                                title="Delete"
                                                             >
                                                                 <Trash2 className="h-3 w-3" />
                                                             </button>
@@ -612,27 +702,37 @@ export default function AuditHub() {
                                                     </div>
 
                                                     <div className={cn(
-                                                        "text-sm font-semibold leading-snug mb-2 line-clamp-2",
-                                                        selectedRequest?.id === req.id ? "text-slate-900" : "text-slate-700 group-hover:text-slate-900"
+                                                        "text-sm mb-1 leading-tight truncate pr-2",
+                                                        selectedRequest?.id === req.id ? "font-bold text-slate-900" : "font-medium text-slate-700 group-hover:text-slate-900"
                                                     )}>
                                                         {req.title}
                                                     </div>
 
-                                                    <div className="flex items-center justify-between mt-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge variant="outline" className={cn("text-[10px] h-5 border px-1.5 font-medium", getStatusColor(req.status))}>
-                                                                {req.status}
-                                                            </Badge>
-                                                        </div>
-                                                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-medium">
-                                                            <div className="flex items-center gap-1" title="Evidence Files">
-                                                                <FileText className={cn("h-3 w-3", req.evidence > 0 ? "text-slate-600" : "text-slate-300")} />
-                                                                <span>{req.evidence}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1" title="Comments">
-                                                                <MessageSquare className={cn("h-3 w-3", req.comments > 0 ? "text-slate-600" : "text-slate-300")} />
-                                                                <span>{req.comments}</span>
-                                                            </div>
+                                                    <div className="text-xs text-slate-500 line-clamp-1 mb-2.5 pr-4">
+                                                        <span className="text-slate-400 mr-1">{req.framework || "General"}</span>
+                                                        {req.description || "No description provided..."}
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between">
+                                                        <Badge variant="secondary" className={cn(
+                                                            "text-[10px] h-4 px-1.5 font-normal bg-transparent border-0 p-0",
+                                                            getStatusColor(req.status).replace("bg-", "text-").replace("/10", "")
+                                                        )}>
+                                                            {req.status}
+                                                        </Badge>
+                                                        <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                                                            {req.evidence > 0 && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <FileText className="h-3 w-3 text-slate-500" />
+                                                                    <span>{req.evidence}</span>
+                                                                </div>
+                                                            )}
+                                                            {req.comments > 0 && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <MessageSquare className="h-3 w-3 text-slate-500" />
+                                                                    <span>{req.comments}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -640,7 +740,8 @@ export default function AuditHub() {
                                         )}
                                     </div>
                                 )}
-                            </ScrollArea>
+                            </div>
+
                             {/* Temporary Debug Info */}
                             <div className="p-2 border-t border-slate-100 bg-slate-50 text-[10px] text-slate-400 font-mono">
                                 Total: {evidenceData?.length || 0} | Shown: {displayRequests.length} | Client: {clientId}
@@ -699,62 +800,184 @@ export default function AuditHub() {
 
                                         <div className="flex-1 overflow-auto bg-slate-50/50">
                                             <TabsContent value="evidence" className="m-0 p-8 max-w-5xl mx-auto w-full focus-visible:ring-0 outline-none">
-                                                {selectedRequest.evidence === 0 ? (
+
+                                                {/* Evidence Toolbar */}
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h3 className="text-lg font-semibold text-slate-900">Evidence Documentation</h3>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-2"
+                                                            onClick={handleAnalyze}
+                                                            disabled={analyzeMutation.isLoading}
+                                                        >
+                                                            <Shield className="h-4 w-4 text-indigo-500" />
+                                                            {analyzeMutation.isLoading ? "Analyzing..." : "AI Audit Analysis"}
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-2"
+                                                            onClick={() => setLinkOpen(true)}
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            Link Integration
+                                                        </Button>
+                                                        <Button size="sm" className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700">
+                                                            <Plus className="h-4 w-4" /> Upload File
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {/* AI Analysis Result Display */}
+                                                {analysisOpen && (
+                                                    <Card className="mb-6 border-indigo-100 bg-indigo-50/30 overflow-hidden">
+                                                        <CardHeader className="bg-indigo-50/50 py-3 border-b border-indigo-100 flex flex-row items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="bg-indigo-100 p-1.5 rounded-md">
+                                                                    <Shield className="h-4 w-4 text-indigo-600" />
+                                                                </div>
+                                                                <h4 className="text-sm font-semibold text-indigo-900">Preliminary Audit Analysis</h4>
+                                                            </div>
+                                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setAnalysisOpen(false)}><X className="h-4 w-4" /></Button>
+                                                        </CardHeader>
+                                                        <CardContent className="p-4">
+                                                            {analyzeMutation.isLoading ? (
+                                                                <div className="flex flex-col items-center py-6 text-slate-500">
+                                                                    <RotateCw className="h-8 w-8 text-indigo-500 animate-spin mb-3" />
+                                                                    <p className="text-sm font-medium">Analyzing evidence against control requirements...</p>
+                                                                    <p className="text-xs">Extracting content and verifying compliance criteria.</p>
+                                                                </div>
+                                                            ) : analysisResult ? (
+                                                                <div className="space-y-4">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <Badge className={cn(
+                                                                            "text-sm px-3 py-1",
+                                                                            analysisResult.analysis.isCompliant ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-red-100 text-red-700 hover:bg-red-200"
+                                                                        )}>
+                                                                            {analysisResult.analysis.isCompliant ? "COMPLIANT" : "NON-COMPLIANT"}
+                                                                        </Badge>
+                                                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Confidence: {analysisResult.analysis.confidence}</span>
+                                                                        <span className="text-xs text-slate-400">Model: {analysisResult.model}</span>
+                                                                    </div>
+
+                                                                    <div>
+                                                                        <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Reasoning</h5>
+                                                                        <p className="text-sm text-slate-700 leading-relaxed">{analysisResult.analysis.reasoning}</p>
+                                                                    </div>
+
+                                                                    {analysisResult.analysis.keyFindings && (
+                                                                        <div>
+                                                                            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Key Findings</h5>
+                                                                            <ul className="space-y-1">
+                                                                                {analysisResult.analysis.keyFindings.map((finding: string, i: number) => (
+                                                                                    <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                                                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
+                                                                                        {finding}
+                                                                                    </li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center py-4 text-slate-500">
+                                                                    Analysis failed to load.
+                                                                </div>
+                                                            )}
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {selectedRequest.evidence === 0 && !evidenceFiles?.length ? (
                                                     <div className="border border-dashed border-slate-300 rounded-xl p-16 text-center bg-white flex flex-col items-center justify-center">
                                                         <div className="h-14 w-14 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
                                                             <FileText className="h-6 w-6 text-slate-300" />
                                                         </div>
                                                         <h3 className="text-base font-semibold text-slate-900 mb-1">No Evidence Provided</h3>
                                                         <p className="text-sm text-slate-500 mb-6 max-w-sm">The client has not uploaded any documents for this request yet. You can request specific items in the discussion.</p>
+                                                        <Button variant="outline" onClick={() => setLinkOpen(true)} className="gap-2">
+                                                            Link External Evidence
+                                                        </Button>
                                                     </div>
                                                 ) : (
                                                     <Card className="border-slate-200 shadow-sm overflow-hidden">
                                                         <Table>
                                                             <TableHeader className="bg-slate-50/50">
                                                                 <TableRow className="hover:bg-transparent border-slate-100">
-                                                                    <TableHead className="w-[40%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Filename</TableHead>
+                                                                    <TableHead className="w-[40%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Filename / Resource</TableHead>
                                                                     <TableHead className="w-[20%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Date Uploaded</TableHead>
-                                                                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Size</TableHead>
-                                                                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Scan Status</TableHead>
+                                                                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Type</TableHead>
+                                                                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Validation</TableHead>
                                                                     <TableHead className="w-[10%] text-right text-xs font-semibold text-slate-500 uppercase tracking-wider h-10">Action</TableHead>
                                                                 </TableRow>
                                                             </TableHeader>
                                                             <TableBody>
                                                                 {isFilesLoading ? (
                                                                     <TableRow>
-                                                                        <TableCell colSpan={5} className="h-24 text-center text-slate-400">Loading files...</TableCell>
+                                                                        <TableCell colSpan={5} className="h-24 text-center text-slate-400">Loading evidence...</TableCell>
                                                                     </TableRow>
                                                                 ) : (
                                                                     evidenceFiles?.map((file: any) => (
                                                                         <TableRow key={file.id} className="hover:bg-slate-50/50 group border-slate-100 transition-colors">
                                                                             <TableCell className="font-medium text-slate-700 py-3">
                                                                                 <div className="flex items-center gap-3">
-                                                                                    <div className="h-8 w-8 bg-red-50 rounded flex items-center justify-center shrink-0 border border-red-100 text-red-600">
-                                                                                        <FileText className="h-4 w-4" />
+                                                                                    <div className="h-8 w-8 bg-indigo-50 rounded flex items-center justify-center shrink-0 border border-indigo-100 text-indigo-600">
+                                                                                        {file.fileUrl ? <FileText className="h-4 w-4" /> : <MoreHorizontal className="h-4 w-4" />}
                                                                                     </div>
                                                                                     <button
                                                                                         className="truncate max-w-[240px] hover:text-indigo-600 hover:underline text-left transition-colors"
                                                                                         title={`Open ${file.filename}`}
-                                                                                        onClick={() => window.open(file.fileUrl, '_blank')}
+                                                                                        onClick={() => file.fileUrl && window.open(file.fileUrl, '_blank')}
                                                                                     >
                                                                                         {file.filename}
                                                                                     </button>
                                                                                 </div>
                                                                             </TableCell>
                                                                             <TableCell className="text-slate-500 text-xs">{new Date(file.createdAt).toLocaleDateString()} {new Date(file.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
-                                                                            <TableCell className="text-slate-500 text-xs font-mono">{(file.size / 1024).toFixed(1)} KB</TableCell>
+                                                                            <TableCell className="text-slate-500 text-xs font-mono">{file.contentType || 'Integration'}</TableCell>
                                                                             <TableCell>
                                                                                 <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-100">
                                                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Safe
                                                                                 </div>
                                                                             </TableCell>
                                                                             <TableCell className="text-right">
-                                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => window.open(file.fileUrl, '_blank')}>
-                                                                                    <Download className="h-4 w-4" />
-                                                                                </Button>
+                                                                                {file.fileUrl && (
+                                                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => window.open(file.fileUrl, '_blank')}>
+                                                                                        <Download className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                )}
                                                                             </TableCell>
                                                                         </TableRow>
                                                                     ))
+                                                                )}
+                                                                {/* Also show linked integrations if stored differently or merged here */}
+                                                                {selectedRequest.type === 'api' && (
+                                                                    <TableRow className="hover:bg-slate-50/50 group border-slate-100 transition-colors">
+                                                                        <TableCell className="font-medium text-slate-700 py-3">
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className="h-8 w-8 bg-blue-50 rounded flex items-center justify-center shrink-0 border border-blue-100 text-blue-600">
+                                                                                    <RotateCw className="h-4 w-4" />
+                                                                                </div>
+                                                                                <span className="truncate max-w-[240px]">
+                                                                                    Link Integration: {selectedRequest.location}
+                                                                                </span>
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="text-slate-500 text-xs">{new Date(selectedRequest.updatedAt).toLocaleDateString()}</TableCell>
+                                                                        <TableCell className="text-slate-500 text-xs font-mono">API Link</TableCell>
+                                                                        <TableCell>
+                                                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-100">
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> Active
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right">
+                                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                                                                <MoreHorizontal className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    </TableRow>
                                                                 )}
                                                             </TableBody>
                                                         </Table>
@@ -911,6 +1134,145 @@ export default function AuditHub() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Auditor Invite Dialog */}
+            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Invite Auditor</DialogTitle>
+                        <DialogDescription>
+                            This will send an email invitation to the external auditor to access this specific clean room.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right">
+                                Email
+                            </Label>
+                            <Input
+                                id="email"
+                                value={inviteEmail}
+                                onChange={(e) => setInviteEmail(e.target.value)}
+                                className="col-span-3"
+                                placeholder="auditor@firm.com"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                        <Button onClick={handleInvite} disabled={inviteMutation.isLoading || !inviteEmail}>
+                            {inviteMutation.isLoading ? "Sending Invitation..." : "Send Invitation"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Link Integration Dialog */}
+            <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Link Automated Evidence</DialogTitle>
+                        <DialogDescription>
+                            Connect an external integration to automatically collect evidence for this control.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Integration Provider</label>
+                            <Select
+                                value={linkData.provider}
+                                onValueChange={(val) => setLinkData({ ...linkData, provider: val })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select provider" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="github">GitHub (Commits/PRs)</SelectItem>
+                                    <SelectItem value="aws">AWS CloudTrail</SelectItem>
+                                    <SelectItem value="jira">Jira Tickets</SelectItem>
+                                    <SelectItem value="s3">S3 Bucket Policy</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Resource ID / URL</label>
+                            <Input
+                                value={linkData.resourceId}
+                                onChange={(e) => setLinkData({ ...linkData, resourceId: e.target.value })}
+                                placeholder={
+                                    linkData.provider === 'github' ? "https://github.com/org/repo/pull/123" :
+                                        linkData.provider === 'aws' ? "arn:aws:cloudtrail:us-east-1:123456789012:trail/management-events" :
+                                            "Resource Identifier"
+                                }
+                            />
+                            <p className="text-[10px] text-slate-500">
+                                The system will monitor this resource for changes and compliance status.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
+                        <Button onClick={handleLink} disabled={linkMutation.isLoading || !linkData.resourceId}>
+                            {linkMutation.isLoading ? "Linking..." : "Connect Integration"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Link Integration Dialog */}
+            <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Link Evidence Integration</DialogTitle>
+                        <DialogDescription>
+                            Connect this evidence requirement to an external system for automated collection.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Integration Provider</Label>
+                            <Select
+                                value={linkData.provider}
+                                onValueChange={(val) => setLinkData({ ...linkData, provider: val })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select provider" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="github">GitHub</SelectItem>
+                                    <SelectItem value="aws">AWS</SelectItem>
+                                    <SelectItem value="jira">Jira</SelectItem>
+                                    <SelectItem value="s3">S3 Bucket</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Resource Identifier</Label>
+                            <Input
+                                placeholder={
+                                    linkData.provider === 'github' ? "https://github.com/org/repo/pull/123" :
+                                        linkData.provider === 'aws' ? "arn:aws:..." :
+                                            linkData.provider === 's3' ? "s3://bucket-name/path" :
+                                                "ID or URL"
+                                }
+                                value={linkData.resourceId}
+                                onChange={(e) => setLinkData({ ...linkData, resourceId: e.target.value })}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Enter the URL, ARN, or ID of the resource to link.
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
+                        <Button onClick={handleLink} disabled={linkMutation.isLoading || !linkData.resourceId}>
+                            {linkMutation.isLoading ? "Linking..." : "Link Resource"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Layout>
     );
 }
@@ -1012,6 +1374,7 @@ function ChatSection({ request }: { request: any }) {
             </div>
         </div>
     );
+
 }
 
 function AuditOverview({ clientId, onNavigate }: { clientId: number, onNavigate: (section: string, filter?: string) => void }) {

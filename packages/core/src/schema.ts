@@ -1161,10 +1161,13 @@ export const controls = pgTable("controls", {
 
 
 export type Control = typeof controls.$inferSelect;
-
-
-
 export type InsertControl = typeof controls.$inferInsert;
+
+
+
+
+
+
 
 
 
@@ -2174,70 +2177,44 @@ export const evidence = pgTable("evidence", {
 
   description: text("description"),
 
-
+  description: text("description"),
 
   framework: varchar("framework", { length: 50 }).default('ISO 27001'),
   type: varchar("type", { length: 100 }),
 
-
-
   status: evidenceStatusEnum("status").default("pending"),
 
-
+  dueDate: timestamp("due_date"),
+  fileCount: integer("file_count").default(0),
 
   owner: varchar("owner", { length: 255 }),
 
-
-
   location: varchar("location", { length: 1024 }),
-
-
 
   lastVerified: timestamp("last_verified"),
 
-
-
   updatedAt: timestamp("updated_at").defaultNow(),
-
-
 
   createdAt: timestamp("created_at").defaultNow(),
 
-
-
 }, (table) => {
-
-
 
   return {
 
-
-
     clientIdIdx: index("idx_ev_client").on(table.clientId),
-
-
 
     clientStatusIdx: index("idx_ev_client_status").on(table.clientId, table.status),
 
-
-
   };
-
-
 
 });
 
 
 
-
-
-
-
 export type Evidence = typeof evidence.$inferSelect;
 
-
-
 export type InsertEvidence = typeof evidence.$inferInsert;
+
 
 
 
@@ -13699,3 +13676,4 @@ export const evidenceComments = pgTable("evidence_comments", {
 
 export type EvidenceComment = typeof evidenceComments.$inferSelect;
 export type InsertEvidenceComment = typeof evidenceComments.$inferInsert;
+
