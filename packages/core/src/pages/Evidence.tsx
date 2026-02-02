@@ -285,13 +285,14 @@ export default function Evidence() {
                 const extension = file.name.split('.').pop() || '';
                 const generatedFilename = `evidence-${evidence.id}-${timestamp}-${randomSuffix}.${extension}`;
 
-                const res = await fetch('/api/upload-evidence-file', {
+                const res = await fetch('/api/upload', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     filename: generatedFilename,
                     data: base64,
-                    contentType: file.type
+                    contentType: file.type,
+                    folder: 'evidence'
                   })
                 });
 
@@ -778,7 +779,7 @@ export default function Evidence() {
           footer={<Button onClick={() => setViewingFiles(null)}>Close</Button>}
         >
           <div className="py-4 space-y-6">
-            <EvidenceFileUpload evidenceId={viewingFiles} />
+            <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
             <div className="pt-4 border-t border-slate-100">
               <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
               <EvidenceAnalysisButton

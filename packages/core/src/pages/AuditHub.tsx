@@ -5,6 +5,7 @@ import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
+import { EvidenceLibraryDialog } from "@/components/EvidenceLibraryDialog";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -35,7 +36,8 @@ import {
     ArrowRight,
     RotateCw,
     Trash2,
-    Plus
+    Plus,
+    Loader2
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Input } from "@complianceos/ui/ui/input";
@@ -60,7 +62,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@complianceos/ui/ui/select";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
+import { Suspense, lazy } from 'react';
 
+const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
 
 export default function AuditHub() {
     const [match, params] = useRoute("/clients/:clientId/audit-hub");
@@ -109,7 +123,7 @@ export default function AuditHub() {
     );
 
     // Fetch files for selected request
-    const { data: evidenceFiles, isLoading: isFilesLoading } = trpc.evidence.getFiles.useQuery(
+    const { data: evidenceFiles, isLoading: isFilesLoading, refetch: refetchFiles } = trpc.evidence.getFiles.useQuery(
         { evidenceId: (selectedRequest as any)?.original?.id || 0 },
         { enabled: !!(selectedRequest as any)?.original?.id }
     );
@@ -142,6 +156,8 @@ export default function AuditHub() {
         dueDate: ''
     });
 
+    const [fileToDelete, setFileToDelete] = useState<any>(null);
+
     // AI Analysis State
     const [analysisOpen, setAnalysisOpen] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -167,6 +183,8 @@ export default function AuditHub() {
     };
 
     // Link Integration State
+    const [libraryOpen, setLibraryOpen] = useState(false);
+
     const [linkOpen, setLinkOpen] = useState(false);
     const [linkData, setLinkData] = useState({ provider: 'github', resourceId: '' });
     const linkMutation = trpc.evidence.linkIntegration.useMutation({
@@ -175,6 +193,17 @@ export default function AuditHub() {
             setLinkOpen(false);
             setLinkData({ provider: 'github', resourceId: '' });
             utils.evidence.list.invalidate(); // Refresh list to show status change
+        },
+        onError: (err) => {
+            toast.error(err.message);
+        }
+    });
+
+    const deleteFileMutation = trpc.evidenceFiles.delete.useMutation({
+        onSuccess: () => {
+            toast.success("File removed successfully");
+            refetchFiles();
+            utils.evidence.list.invalidate();
         },
         onError: (err) => {
             toast.error(err.message);
@@ -819,6 +848,16 @@ export default function AuditHub() {
                                                             variant="outline"
                                                             size="sm"
                                                             className="gap-2"
+                                                            onClick={() => setLibraryOpen(true)}
+                                                        >
+                                                            <Search className="h-4 w-4" />
+                                                            Select from Library
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-2"
                                                             onClick={() => setLinkOpen(true)}
                                                         >
                                                             <MoreHorizontal className="h-4 w-4" />
@@ -891,15 +930,13 @@ export default function AuditHub() {
                                                 )}
 
                                                 {selectedRequest.evidence === 0 && !evidenceFiles?.length ? (
-                                                    <div className="border border-dashed border-slate-300 rounded-xl p-16 text-center bg-white flex flex-col items-center justify-center">
-                                                        <div className="h-14 w-14 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                                                            <FileText className="h-6 w-6 text-slate-300" />
-                                                        </div>
-                                                        <h3 className="text-base font-semibold text-slate-900 mb-1">No Evidence Provided</h3>
-                                                        <p className="text-sm text-slate-500 mb-6 max-w-sm">The client has not uploaded any documents for this request yet. You can request specific items in the discussion.</p>
-                                                        <Button variant="outline" onClick={() => setLinkOpen(true)} className="gap-2">
-                                                            Link External Evidence
-                                                        </Button>
+                                                    <div className="p-6">
+                                                        <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading uploader...</div>}>
+                                                            <EvidenceFileUpload
+                                                                evidenceId={selectedRequest.original.id}
+                                                                clientId={clientId}
+                                                            />
+                                                        </Suspense>
                                                     </div>
                                                 ) : (
                                                     <Card className="border-slate-200 shadow-sm overflow-hidden">
@@ -948,6 +985,15 @@ export default function AuditHub() {
                                                                                         <Download className="h-4 w-4" />
                                                                                     </Button>
                                                                                 )}
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                                                    onClick={() => setFileToDelete(file)}
+                                                                                    disabled={deleteFileMutation.isLoading}
+                                                                                >
+                                                                                    {deleteFileMutation.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                                                </Button>
                                                                             </TableCell>
                                                                         </TableRow>
                                                                     ))
@@ -1218,6 +1264,45 @@ export default function AuditHub() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <EvidenceLibraryDialog
+                open={libraryOpen}
+                onOpenChange={setLibraryOpen}
+                clientId={clientId}
+                evidenceId={selectedRequest?.original?.id || 0}
+                onSuccess={() => {
+                    refetchFiles();
+                    utils.evidence.list.invalidate();
+                }}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently remove the evidence file "{fileToDelete?.filename}".
+                            This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                            onClick={() => {
+                                if (fileToDelete) {
+                                    deleteFileMutation.mutate({ id: fileToDelete.id });
+                                    setFileToDelete(null);
+                                }
+                            }}
+                        >
+                            {deleteFileMutation.isLoading ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             {/* Link Integration Dialog */}
             <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
                 <DialogContent>

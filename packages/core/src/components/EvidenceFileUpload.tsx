@@ -1,12 +1,18 @@
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Upload, File, Trash2, Download, Loader2, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { Upload, File, Trash2, Download, Loader2, AlertCircle, CheckCircle2, X, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@complianceos/ui/ui/dialog";
+import { Input } from "@complianceos/ui/ui/input";
+import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
+// Force HMR update
+
 interface EvidenceFileUploadProps {
   evidenceId: number;
+  clientId: number;
 }
 
 interface UploadingFile {
@@ -33,12 +39,52 @@ const ALLOWED_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB for bulk upload
 
-export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadProps) {
+export default function EvidenceFileUpload({ evidenceId, clientId }: EvidenceFileUploadProps) {
+  /* Defensive check for props */
+  if (!evidenceId || !clientId) {
+    console.warn("EvidenceFileUpload: Missing props", { evidenceId, clientId });
+    return <div className="p-4 text-red-500 text-sm">Error: Unable to load file uploader. Missing context.</div>;
+  }
+
+  console.log("EvidenceFileUpload mounted with:", { evidenceId, clientId });
+
   const [isDragActive, setIsDragActive] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [linkingFileId, setLinkingFileId] = useState<number | null>(null);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: files, refetch } = trpc.evidenceFiles.list.useQuery({ evidenceId });
+
+  // Library query
+  const { data: libraryFiles } = trpc.evidenceFiles.listAll.useQuery(
+    { clientId, search: searchQuery },
+    { enabled: libraryOpen }
+  );
+
+  const linkMutation = trpc.evidenceFiles.linkExisting.useMutation({
+    onSuccess: () => {
+      toast.success("File linked successfully");
+      setLinkingFileId(null);
+      setLibraryOpen(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setLinkingFileId(null);
+    }
+  });
+
+  const handleLinkFile = (file: any) => {
+    setLinkingFileId(file.id);
+    linkMutation.mutate({
+      targetEvidenceId: evidenceId,
+      sourceFileId: file.id
+    });
+  };
+
+
 
   const createFileMutation = trpc.evidenceFiles.create.useMutation({
     onSuccess: () => {
@@ -282,17 +328,85 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
             accept={ALLOWED_TYPES.join(',')}
             multiple
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={hasUploadingFiles}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Files
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLibraryOpen(true)}
+              disabled={hasUploadingFiles}
+            >
+              <Search className="mr-2 h-4 w-4" />
+              Select from Library
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={hasUploadingFiles}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload New
+            </Button>
+          </div>
         </div>
       </div>
+
+      <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select from Evidence Library</DialogTitle>
+            <DialogDescription>
+              Choose an existing file to link to this request.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 min-h-[300px] border rounded-md p-2">
+            <div className="space-y-2">
+              {libraryFiles?.map((file: any) => (
+                <div
+                  key={file.id}
+                  className="flex items-center justify-between p-2 hover:bg-muted rounded-lg cursor-pointer border border-transparent hover:border-border transition-colors group"
+                  onClick={() => handleLinkFile(file)}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xl">{getFileIcon(file.contentType || 'application/octet-stream')}</span>
+                    <div className="min-w-0 text-left">
+                      <p className="text-sm font-medium truncate">{file.filename}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {formatFileSize(file.fileSize || 0)} • {file.evidenceTitle || 'Uncategorized'} • {new Date(file.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  {linkMutation.isLoading && linkingFileId === file.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  ) : (
+                    <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100">
+                      Select
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {libraryFiles?.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No files found matching your search.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Drag and Drop Area */}
       <div
@@ -301,8 +415,8 @@ export default function EvidenceFileUpload({ evidenceId }: EvidenceFileUploadPro
         onDragOver={handleDrag}
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+          ? 'border-primary bg-primary/5'
+          : 'border-muted-foreground/25 hover:border-muted-foreground/50'
           }`}
         onClick={() => fileInputRef.current?.click()}
       >

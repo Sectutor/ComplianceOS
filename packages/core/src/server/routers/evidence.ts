@@ -186,7 +186,7 @@ export const createEvidenceRouter = (
                 description: z.string().optional(),
                 type: z.string().optional(),
                 status: z.string().optional(),
-                owner: z.string().optional(),
+                owner: z.string().nullable().optional(),
                 location: z.string().optional(),
             }))
             .mutation(async ({ input }: any) => {
