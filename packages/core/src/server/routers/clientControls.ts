@@ -85,6 +85,24 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
           .where(eq(controlMappings.sourceControlId, input.controlId));
         return mappings;
       }),
+
+    getLinkedPolicies: clientProcedure
+      .input(z.object({ controlId: z.number() }))
+      .query(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+        const results = await dbConn.select({
+          mapping: schema.controlPolicyMappings,
+          policy: schema.clientPolicies
+        })
+          .from(schema.controlPolicyMappings)
+          .innerJoin(schema.clientPolicies, eq(schema.controlPolicyMappings.clientPolicyId, schema.clientPolicies.id))
+          .where(eq(schema.controlPolicyMappings.clientControlId, input.controlId));
+
+        return results.map((r: any) => ({
+          ...r.policy,
+          mapping: r.mapping
+        }));
+      }),
     createCustom: clientEditorProcedure
       .input(z.object({
         clientId: z.number(),

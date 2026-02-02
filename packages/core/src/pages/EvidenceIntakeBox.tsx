@@ -194,7 +194,7 @@ export default function EvidenceIntakeBox() {
                     filename: file.name,
                     fileUrl,
                     fileKey,
-                    fileBase64: base64
+                    // fileBase64: base64 // Optimization: content is already uploaded, skip sending again to avoid payload limits. AI Triage currently relies on filename or can read from disk if needed.
                 });
             } catch (error: any) {
                 console.error('[EvidenceIntakeBox] Upload error:', error);
@@ -464,7 +464,7 @@ export default function EvidenceIntakeBox() {
                                                                 value={searchValue}
                                                                 onSelect={() => {
                                                                     // We prioritize updating the specific Evidence Record ID
-                                                                    setSelectedEvidenceId(c.evidenceId);
+                                                                    setSelectedEvidenceId(c.id);
                                                                     // We also track control ID for legacy, if valid
                                                                     if (c.clientControl?.id) setSelectedControlId(c.clientControl.id);
                                                                     else setSelectedControlId(0);
@@ -475,7 +475,7 @@ export default function EvidenceIntakeBox() {
                                                                 <Check
                                                                     className={cn(
                                                                         "mr-2 h-4 w-4",
-                                                                        selectedEvidenceId === c.evidenceId ? "opacity-100" : "opacity-0"
+                                                                        selectedEvidenceId === c.id ? "opacity-100" : "opacity-0"
                                                                     )}
                                                                 />
                                                                 <div className="flex flex-col">
@@ -498,7 +498,7 @@ export default function EvidenceIntakeBox() {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setMapDialogOpen(false)}>Cancel</Button>
-                            <Button onClick={handleMap} disabled={mapMutation.isPending || !selectedControlId}>
+                            <Button onClick={handleMap} disabled={mapMutation.isPending || (!selectedControlId && !selectedEvidenceId)}>
                                 {mapMutation.isPending ? "Mapping..." : "Confirm & Map"}
                             </Button>
                         </DialogFooter>

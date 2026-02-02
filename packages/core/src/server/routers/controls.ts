@@ -139,8 +139,38 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 framework: z.string()
             }))
             .mutation(async ({ input }: any) => {
-                // ... logic ...
-                return { text: "Placeholder" };
+                const control = await db.getControlById(input.controlId);
+                if (!control) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
+                }
+
+                const prompt = `
+You are a senior compliance expert specializing in ${input.framework}.
+Provide clear, actionable, and practical implementation guidance for the following control:
+
+Control ID: ${control.controlId}
+Control Name: ${control.name}
+Description: ${control.description || "N/A"}
+
+Your response should be:
+1. Practical: specific steps an organization needs to take.
+2. Concise: Use bullet points where possible.
+3. Focused: Strictly related to meeting the requirements of this specific control.
+4. Do not include introductory filler ("Here is the guidance..."). Just give the guidance.
+`;
+
+                const completion = await import("../../lib/llm/service").then(m => m.llmService.generate({
+                    userPrompt: prompt,
+                    feature: "control_guidance",
+                    temperature: 0.3
+                }));
+
+                const guidance = completion.text;
+
+                // Update the control
+                await db.updateControl(input.controlId, { implementationGuidance: guidance }, 0, "AI Generated Guidance");
+
+                return { text: guidance };
             })
     });
 };

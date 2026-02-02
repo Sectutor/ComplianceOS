@@ -169,6 +169,15 @@ export const createEvidenceRouter = (
                 }));
             }),
 
+        getByControl: publicProcedure
+            .input(z.object({ clientControlId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                return await dbConn.select().from(schema.evidence)
+                    .where(eq(schema.evidence.clientControlId, input.clientControlId))
+                    .orderBy(desc(schema.evidence.createdAt));
+            }),
+
         create: publicProcedure
             .input(z.object({
                 clientId: z.number(),
@@ -227,11 +236,12 @@ export const createEvidenceRouter = (
                 const dbConn = await getDb();
 
                 // Update evidence to point to integration
+                const safeLocation = input.resourceId ? input.resourceId.substring(0, 1024) : '';
                 await dbConn.update(schema.evidence)
                     .set({
                         type: 'api',
-                        location: input.resourceId, // Use location for the resource link
-                        description: `Linked to ${input.provider}: ${input.resourceId}`,
+                        location: safeLocation, // Use location for the resource link
+                        description: `Linked to ${input.provider}: ${safeLocation}`,
                         status: 'collected', // Automatically mark as collected
                         updatedAt: new Date()
                     } as any)

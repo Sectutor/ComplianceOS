@@ -102,7 +102,16 @@ export default function TrustCenter() {
     // Derived State
     const liveDocs = trustDocsData?.documents || [];
     const displayDocs = liveDocs.length > 0 ? liveDocs : mockDocs;
-    const displayFrameworks = frameworkStats && frameworkStats.length > 0 ? frameworkStats : mockComplianceData;
+
+    // Safety check: ensure frameworkStats is an array
+    const isValidFrameworkStats = Array.isArray(frameworkStats);
+    const displayFrameworks = isValidFrameworkStats && frameworkStats.length > 0 ? frameworkStats : mockComplianceData;
+
+    console.log('[TrustCenter] Render Debug:', {
+        readinessKeys: readinessData ? Object.keys(readinessData) : 'null',
+        frameworkStatsIsArray: Array.isArray(frameworkStats),
+        displayFrameworksLen: displayFrameworks.length
+    });
 
     // TRPC Mutations
     const requestAccessMutation = trpc.trustCenter.requestAccess.useMutation({
@@ -289,7 +298,7 @@ export default function TrustCenter() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-slate-900">{readinessData?.score || 0}% Score</div>
+                            <div className="text-3xl font-black text-slate-900">{readinessData?.complianceScore || 0}% Score</div>
                             <p className="text-slate-500 text-xs mt-1 font-medium">Continuously Audited via ComplianceOS</p>
                         </CardContent>
                     </Card>

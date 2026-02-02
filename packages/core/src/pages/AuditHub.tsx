@@ -110,8 +110,8 @@ export default function AuditHub() {
 
     // Fetch files for selected request
     const { data: evidenceFiles, isLoading: isFilesLoading } = trpc.evidence.getFiles.useQuery(
-        { evidenceId: (selectedRequest as any)?.id || -1 },
-        { enabled: !!(selectedRequest as any)?.id }
+        { evidenceId: (selectedRequest as any)?.original?.id || 0 },
+        { enabled: !!(selectedRequest as any)?.original?.id }
     );
 
     // Fetch counts for sidebar
@@ -184,7 +184,7 @@ export default function AuditHub() {
     const handleLink = () => {
         if (!selectedRequest || !linkData.resourceId) return;
         linkMutation.mutate({
-            evidenceId: selectedRequest.id,
+            evidenceId: selectedRequest.original.id,
             provider: linkData.provider,
             resourceId: linkData.resourceId
         });

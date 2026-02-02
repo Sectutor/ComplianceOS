@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
 import * as db from "../../db";
 import { intakeItems, evidence, clients, clientPolicies, evidenceFiles, clientControls, controls } from "../../schema";
@@ -46,21 +47,52 @@ export const createIntakeRouter = (t: any, clientProcedure: any) => {
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const d = await db.getDb();
+                console.log(`[intake.create] Starting for file: ${input.filename}, clientId: ${input.clientId}`);
+                console.log(`[intake.create] Payload keys: ${Object.keys(input).join(', ')}`);
 
                 let fileBuffer: Buffer | undefined;
                 if (input.fileBase64) {
-                    fileBuffer = Buffer.from(input.fileBase64, 'base64');
+                    try {
+                        fileBuffer = Buffer.from(input.fileBase64, 'base64');
+                        console.log(`[intake.create] Created buffer of size: ${fileBuffer.length} bytes`);
+                    } catch (err) {
+                        console.error('[intake.create] Buffer creation failed:', err);
+                    }
+                } else {
+                    console.log('[intake.create] No fileBase64 provided (optimized flow)');
                 }
 
+                // Truncate fields to match schema limits to prevent crashes
+                const safeFileKey = input.fileKey ? input.fileKey.substring(0, 500) : undefined;
+                const safeFileUrl = input.fileUrl.substring(0, 1024); // Schema limit is 1024
+
                 // 1. Initial Insert
-                const [item] = await d.insert(intakeItems).values({
-                    clientId: input.clientId,
-                    filename: input.filename,
-                    fileUrl: input.fileUrl,
-                    fileKey: input.fileKey,
-                    uploadedBy: ctx.user?.id,
-                    status: 'pending'
-                }).returning();
+                let item: any;
+                try {
+                    const [inserted] = await d.insert(intakeItems).values({
+                        clientId: input.clientId,
+                        filename: input.filename,
+                        fileUrl: safeFileUrl,
+                        fileKey: safeFileKey,
+                        uploadedBy: ctx.user?.id, // Safe as column is nullable integer
+                        status: 'pending'
+                    }).returning();
+                    item = inserted;
+                    console.log(`[intake.create] Initial item inserted: ${item.id}`);
+                } catch (dbError: any) {
+                    console.error("[intake.create] Database Insert Failed:", dbError);
+                    // Check for common errors
+                    if (dbError.code === '23505') { // Unique violation
+                        throw new TRPCError({ code: "CONFLICT", message: "Duplicate intake item." });
+                    }
+                    if (dbError.code === '22001') { // String too long (prevented by substring above, but fallback)
+                        throw new TRPCError({ code: "BAD_REQUEST", message: "File metadata too long for database." });
+                    }
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `Failed to create intake record: ${dbError.message}`
+                    });
+                }
 
                 // 2. Perform AI Triage
                 try {
