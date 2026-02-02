@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Redirect } from "wouter";
+import { useParams, Redirect, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { getRegulation } from "@/data/regulations";
@@ -10,13 +10,14 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { cn } from "@/lib/utils";
-import { ChevronRight, ExternalLink, Activity, CheckCircle2, Link, Shield, Info, PieChart, BarChart3, AlertTriangle, FileText, Sparkles, Wand2, Paperclip, Plus } from "lucide-react";
+import { ChevronRight, ExternalLink, Activity, CheckCircle2, Link, Shield, Info, PieChart, BarChart3, AlertTriangle, FileText, Sparkles, Wand2, Paperclip, Plus, Target, Microscope } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { ReadinessWizard } from "@/components/regulations/ReadinessWizard";
+
 import { LinkComplianceDialog } from "@/components/regulations/LinkComplianceDialog";
 
 export default function RegulationDetail() {
+    const [location, setLocation] = useLocation();
     const params = useParams<{ id: string; regId: string }>();
     const regId = params.regId;
     const clientId = params.id ? parseInt(params.id) : 1;
@@ -30,7 +31,7 @@ export default function RegulationDetail() {
 
     const [activeArticleId, setActiveArticleId] = useState(regulation.articles[0]?.id);
     const activeArticle = regulation.articles.find(a => a.id === activeArticleId);
-    const [readinessScore, setReadinessScore] = useState<number | null>(null);
+
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
     // Direct Links Query
@@ -49,32 +50,32 @@ export default function RegulationDetail() {
         matches: { controlId: string, reason: string }[] | null;
     }>({ loading: false, articleId: null, matches: null });
 
+    /*
     const suggestMutation = trpc.ai.suggestMismatch.useMutation({
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
             setSuggestionState(prev => ({ ...prev, loading: false, matches: data.matches }));
         },
-        onError: (err) => {
+        onError: (err: any) => {
             setSuggestionState(prev => ({ ...prev, loading: false }));
             toast.error("Failed to generate suggestions: " + err.message);
         }
     });
+    */
 
     const handleSuggest = (article: any) => {
         setSuggestionState({ loading: true, articleId: article.id, matches: null });
+        /*
         suggestMutation.mutate({
             articleId: article.numericId,
             title: article.title,
             description: article.description
         });
+        */
+        toast.info("AI suggestions are currently being upgraded. Check back soon!");
+        setSuggestionState(prev => ({ ...prev, loading: false }));
     };
 
-    const handleWizardComplete = (answers: Record<string, string>) => {
-        // Mock scoring logic
-        const yesCount = Object.values(answers).filter(v => v === 'yes').length;
-        const totalBoolean = Object.values(answers).filter(v => v === 'yes' || v === 'no').length;
-        const score = totalBoolean > 0 ? Math.round((yesCount / totalBoolean) * 100) : 0;
-        setReadinessScore(score);
-    };
+
 
     // Mock definitions for the mapped controls
     const controlDefinitions: Record<string, { title: string, description: string, guidance: string }> = {
@@ -267,12 +268,7 @@ export default function RegulationDetail() {
                         </h1>
                         <p className="text-muted-foreground">{regulation.description}</p>
                     </div>
-                    {readinessScore !== null && (
-                        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span className="font-semibold">Readiness: {readinessScore}%</span>
-                        </div>
-                    )}
+
                 </div>
 
                 <Tabs defaultValue="guide" className="h-full flex flex-col overflow-hidden">
@@ -280,10 +276,7 @@ export default function RegulationDetail() {
                         <TabsTrigger value="guide" className="px-4 py-2">
                             Regulation Guide
                         </TabsTrigger>
-                        <TabsTrigger value="wizard" className="px-4 py-2">
-                            Readiness Check
-                            {regulation.questions && <Badge className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">{regulation.questions.length}</Badge>}
-                        </TabsTrigger>
+
                         <TabsTrigger value="crosswalk" className="px-4 py-2">
                             Control Cross-Walk
                         </TabsTrigger>
@@ -394,10 +387,15 @@ export default function RegulationDetail() {
                                                                         <h4 className="text-xs font-semibold text-muted-foreground mb-2">Linked Policies</h4>
                                                                         <div className="space-y-2">
                                                                             {directLinks.policies.map((p: any) => (
-                                                                                <div key={p.id} className="flex items-center gap-2 text-sm p-2 border rounded bg-slate-50">
+                                                                                <div
+                                                                                    key={p.id}
+                                                                                    className="flex items-center gap-2 text-sm p-2 border rounded bg-slate-50 hover:bg-slate-100 cursor-pointer group"
+                                                                                    onClick={() => setLocation(`/clients/${clientId}/privacy/documents/${p.id}`)}
+                                                                                >
                                                                                     <FileText className="h-3 w-3 text-blue-500" />
-                                                                                    <span className="truncate flex-1">{p.name}</span>
-                                                                                    <Badge variant="outline" className="text-[10px]">{p.status}</Badge>
+                                                                                    <span className="truncate flex-1 group-hover:text-blue-600 transition-colors font-medium">{p.name}</span>
+                                                                                    <Badge variant="outline" className="text-[10px] bg-white">{p.status}</Badge>
+                                                                                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                                 </div>
                                                                             ))}
                                                                         </div>
@@ -409,18 +407,42 @@ export default function RegulationDetail() {
                                                                         <h4 className="text-xs font-semibold text-muted-foreground mb-2">Linked Evidence</h4>
                                                                         <div className="space-y-2">
                                                                             {directLinks.evidence.map((e: any) => (
-                                                                                <div key={e.id} className="flex items-center gap-2 text-sm p-2 border rounded bg-slate-50">
+                                                                                <div
+                                                                                    key={e.id}
+                                                                                    className="flex items-center gap-2 text-sm p-2 border rounded bg-slate-50 hover:bg-slate-100 cursor-pointer group"
+                                                                                    onClick={() => setLocation(`/clients/${clientId}/intake`)}
+                                                                                >
                                                                                     <Paperclip className="h-3 w-3 text-orange-500" />
-                                                                                    <span className="truncate flex-1">{e.name}</span>
+                                                                                    <span className="truncate flex-1 group-hover:text-orange-600 transition-colors font-medium">{e.name}</span>
                                                                                     <span className="text-xs text-muted-foreground">({e.fileType})</span>
+                                                                                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                                 </div>
                                                                             ))}
                                                                         </div>
                                                                     </div>
                                                                 )}
 
-                                                                {directLinks.policies.length === 0 && directLinks.evidence.length === 0 && (
-                                                                    <p className="text-sm text-muted-foreground italic">No direct evidence or policies linked to this article.</p>
+                                                                {directLinks.controls.length > 0 && (
+                                                                    <div>
+                                                                        <h4 className="text-xs font-semibold text-muted-foreground mb-2">Linked Client Controls</h4>
+                                                                        <div className="space-y-2">
+                                                                            {directLinks.controls.map((c: any) => (
+                                                                                <div
+                                                                                    key={c.id}
+                                                                                    className="flex items-center gap-2 text-sm p-2 border rounded bg-slate-50 hover:bg-slate-100 cursor-pointer group"
+                                                                                    onClick={() => setLocation(`/clients/${clientId}/controls`)}
+                                                                                >
+                                                                                    <Shield className="h-3 w-3 text-emerald-500" />
+                                                                                    <span className="truncate flex-1 group-hover:text-emerald-600 transition-colors font-medium">{c.clientControlId} - {c.status}</span>
+                                                                                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {directLinks.policies.length === 0 && directLinks.evidence.length === 0 && directLinks.controls.length === 0 && (
+                                                                    <p className="text-sm text-muted-foreground italic">No direct items linked to this article.</p>
                                                                 )}
                                                             </div>
                                                         )}
@@ -438,21 +460,7 @@ export default function RegulationDetail() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="wizard" className="mt-4">
-                        {regulation.questions && regulation.questions.length > 0 ? (
-                            <ReadinessWizard
-                                questions={regulation.questions}
-                                onComplete={handleWizardComplete}
-                                regulationId={regId}
-                                clientId={clientId}
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-lg">
-                                <Activity className="h-8 w-8 mb-4 opacity-50" />
-                                <p>No readiness wizard available for this regulation yet.</p>
-                            </div>
-                        )}
-                    </TabsContent>
+
 
                     <TabsContent value="crosswalk" className="mt-4 flex-1 h-full overflow-y-auto pb-20">
                         <Card>
@@ -609,10 +617,18 @@ export default function RegulationDetail() {
                                             {regulation.articles.filter(a => !a.mappedControls).slice(0, 10).map(a => (
                                                 <div key={a.id} className="p-3 border rounded-md bg-muted/20 flex gap-3">
                                                     <Badge variant="outline" className="h-6 w-8 shrink-0 flex items-center justify-center p-0">{a.numericId}</Badge>
-                                                    <div className="text-sm">
+                                                    <div className="text-sm flex-1">
                                                         <p className="font-medium">{a.title}</p>
-                                                        <p className="text-xs text-muted-foreground truncate">{a.description.substring(0, 80)}...</p>
+                                                        <p className="text-xs text-muted-foreground line-clamp-1">{a.description}</p>
                                                     </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 gap-1 text-[10px]"
+                                                        onClick={() => setLocation(`/clients/${clientId}/implementation`)}
+                                                    >
+                                                        <Plus className="h-3 w-3" /> Remediate
+                                                    </Button>
                                                 </div>
                                             ))}
                                             {unmappedArticles > 10 && (
@@ -625,6 +641,58 @@ export default function RegulationDetail() {
                                 </ScrollArea>
                             </Card>
                         </div>
+
+                        {/* Integration: Risk Alignment */}
+                        <Card className="mt-6">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <div>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Target className="h-5 w-5 text-red-500" /> Risk Alignment
+                                    </CardTitle>
+                                    <CardDescription>Risks mitigated by controls mapped to this regulation.</CardDescription>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={() => setLocation(`/clients/${clientId}/risks`)}>
+                                    View Risk Register
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="p-4 border rounded-xl bg-red-50/50 flex flex-col gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <Badge variant="destructive">High Exposure</Badge>
+                                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                                        </div>
+                                        <h4 className="font-bold text-sm">Regulatory Non-Compliance Risk</h4>
+                                        <p className="text-xs text-muted-foreground">Fines up to 4% of global turnover for Article 32 violations.</p>
+                                        <div className="mt-auto pt-2 flex justify-between items-center">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">Priority: Critical</span>
+                                            <Button variant="link" size="sm" className="h-auto p-0 text-xs text-red-700">Link to Mitigation</Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 border rounded-xl bg-blue-50/50 flex flex-col gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Operational Risk</Badge>
+                                            <Shield className="h-4 w-4 text-blue-600" />
+                                        </div>
+                                        <h4 className="font-bold text-sm">Data Breach Impact</h4>
+                                        <p className="text-xs text-muted-foreground">Reputational damage and customer churn post-breach.</p>
+                                        <div className="mt-auto pt-2 flex justify-between items-center">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Status: Managed</span>
+                                            <Button variant="link" size="sm" className="h-auto p-0 text-xs text-blue-700">View Control</Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 border rounded-xl border-dashed flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 cursor-pointer hover:bg-slate-100/50 transition-colors">
+                                        <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center mb-2">
+                                            <Plus className="h-4 w-4 text-slate-500" />
+                                        </div>
+                                        <p className="text-xs font-medium">Link New Risk Scenario</p>
+                                        <p className="text-[10px] text-muted-foreground">Connect obligation to existing risk</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
 
@@ -674,7 +742,7 @@ export default function RegulationDetail() {
                         </div>
                     }
                     description="The following articles currently have no controls mapped to them."
-                    size="3xl"
+                    size="xl"
                     footer={
                         <Button onClick={() => setShowGapsDialog(false)}>Close</Button>
                     }

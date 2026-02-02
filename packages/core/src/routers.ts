@@ -5,7 +5,7 @@ import { createComplianceRouter } from "./server/routers/compliance";
 import { createEvidenceRouter } from "./server/routers/evidence";
 import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
 import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
-import { createAdvisorRouter } from "./server/routers/advisor";
+// import { createAdvisorRouter } from "./server/routers/advisor";
 import { initTRPC, TRPCError } from "@trpc/server";
 import * as crypto from 'crypto';
 import { z } from "zod";
@@ -14,10 +14,12 @@ import { getDb } from "./db";
 import superjson from "superjson";
 import { policyGenerator } from './lib/policy/policy-generation';
 import { createVendorAssessmentsRouter } from "./server/routers/vendorAssessments";
+import { createRoadmapRouter } from "./server/routers/roadmap";
 import { createVendorContractsRouter } from "./server/routers/vendorContracts";
 import { createVendorDpasRouter } from "./server/routers/vendorDpas";
 import { createVendorRequestsRouter } from "./server/routers/vendorRequests";
-import { createSubprocessorsRouter } from "./server/routers/subprocessors";
+// Premium import placeholders
+// import { createSubprocessorsRouter } from "./server/routers/subprocessors";
 import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
 // import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
 import * as schema from "./schema";
@@ -47,9 +49,7 @@ import { createCrmRouter } from './lib/modules/crm/router';
 import { createSalesRouter } from './lib/modules/crm/sales-router';
 import { createFrameworkImportRouter } from './server/routers/frameworkImport';
 import { createReadinessRouter } from './server/routers/readiness';
-import { createRoadmapRouter } from './server/routers/roadmap';
 // Roadmap & Implementation
-import { createRoadmapRouter } from './server/routers/roadmap';
 import { createImplementationRouter } from './server/routers/implementation';
 import { createDevProjectsRouter } from './server/routers/devProjects';
 import { createThreatModelsRouter } from './server/routers/threatModels';
@@ -87,7 +87,7 @@ import { createQuestionnaireRouter } from "./server/routers/questionnaire";
 import { createTaskAssignmentsRouter } from "./server/routers/taskAssignments";
 import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
 import { createReportsRouter } from "./server/routers/reports";
-import { createStrategicReportsRouter } from "./server/routers/strategicReports";
+// import { createStrategicReportsRouter } from "./server/routers/strategicReports";
 import { createFindingsRouter } from "./server/routers/findings";
 import { createTrustCenterRouter } from "./server/routers/trustCenter";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
@@ -294,7 +294,6 @@ export const appRouter = router({
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
   harmonization: createHarmonizationRouter(t, protectedProcedure),
-  harmonization: createHarmonizationRouter(t, protectedProcedure),
   audit: createAuditRouter(t, protectedProcedure),
   findings: createFindingsRouter(t, protectedProcedure),
 
@@ -303,23 +302,23 @@ export const appRouter = router({
   privacy: createPrivacyRouter(t, clientProcedure),
   cyber: createCyberRouter(t, clientProcedure),
   assets: createAssetsRouter(t, clientProcedure, clientEditorProcedure),
-  integrations: integrationsRouter(t, clientProcedure, isAuthed),
+  integrations: integrationsRouter ? integrationsRouter(t, clientProcedure, isAuthed) : router({}),
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
   employees: createEmployeesRouter(t, clientProcedure),
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
-  questionnaire: createQuestionnaireRouter(t, clientProcedure),
+  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
-  subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
+  // subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
-  strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
+  // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
 
   ai: router({
     systems: createAiSystemsRouter(t, clientProcedure),
-    advisor: createAdvisorRouter(t, clientProcedure)
+    // advisor: createAdvisorRouter(t, clientProcedure)
   }),
 
   comments: createCommentsRouter(t, clientProcedure),
@@ -5282,7 +5281,7 @@ Return JSON:
   }),
 
   autopilot: createAutopilotRouter(router, clientProcedure),
-  advisor: createAdvisorRouter(t, clientProcedure),
+  // advisor: createAdvisorRouter(t, clientProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),

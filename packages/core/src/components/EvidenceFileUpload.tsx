@@ -317,10 +317,11 @@ export default function EvidenceFileUpload({ evidenceId, clientId }: EvidenceFil
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between hidden">
         <h4 className="text-sm font-medium">Attached Files</h4>
         <div>
           <input
+            id="evidence-upload-input"
             ref={fileInputRef}
             type="file"
             className="hidden"
@@ -328,26 +329,6 @@ export default function EvidenceFileUpload({ evidenceId, clientId }: EvidenceFil
             accept={ALLOWED_TYPES.join(',')}
             multiple
           />
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLibraryOpen(true)}
-              disabled={hasUploadingFiles}
-            >
-              <Search className="mr-2 h-4 w-4" />
-              Select from Library
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={hasUploadingFiles}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload New
-            </Button>
-          </div>
         </div>
       </div>
 

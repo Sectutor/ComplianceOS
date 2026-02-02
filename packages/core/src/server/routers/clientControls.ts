@@ -1,4 +1,4 @@
-import { IndexingService } from "../../lib/advisor/indexing";
+// import { IndexingService } from "../../lib/advisor/indexing";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { clientControls, controlMappings, controls, regulationMappings, notificationLog, controlBaselines } from "../../schema";
@@ -181,32 +181,15 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         const newControl = await db.createClientControl(input);
 
         // Index the new client control
-        try {
-          const fullControl = await db.getClientControlById(newControl.id);
-          if (fullControl) {
-            const statusText = fullControl.status === 'implemented' ? 'Implemented' :
-              fullControl.status === 'in_progress' ? 'In Progress' :
-                fullControl.status === 'not_applicable' ? 'Not Applicable' : 'Not Implemented';
-
-            await IndexingService.indexDocument(
-              fullControl.clientId,
-              'control',
-              fullControl.id.toString(),
-              {
-                title: fullControl.control.name,
-                content: `Control: ${fullControl.control.controlId} - ${fullControl.control.name}\nStatus: ${statusText}\nImplementation Notes: ${fullControl.implementationNotes || ''}\nApplicability: ${fullControl.applicability || ''}`,
-                updatedAt: new Date().toISOString()
-              },
-              {
-                title: fullControl.control.name,
-                controlId: fullControl.control.controlId,
-                status: fullControl.status
-              }
-            );
-          }
-        } catch (error) {
-          console.error("Failed to index new client control:", error);
-        }
+        // Indexing removed for Core split
+        // try {
+        //   const fullControl = await db.getClientControlById(newControl.id);
+        //   if (fullControl) {
+        //     // ... indexing logic ...
+        //   }
+        // } catch (error) {
+        //   console.error("Failed to index new client control:", error);
+        // }
         return newControl;
       }),
     update: clientEditorProcedure
@@ -363,30 +346,13 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         }
 
         // Re-index updated control
-        try {
-          const fullControl = await db.getClientControlById(id);
-          if (fullControl) {
-            const statusText = fullControl.status === 'implemented' ? 'Implemented' :
-              fullControl.status === 'in_progress' ? 'In Progress' :
-                fullControl.status === 'not_applicable' ? 'Not Applicable' : 'Not Implemented';
-
-            await IndexingService.indexDocument(
-              fullControl.clientId,
-              'control',
-              fullControl.id.toString(),
-              {
-                title: fullControl.control.name,
-                content: `Control: ${fullControl.control.controlId} - ${fullControl.control.name}\nStatus: ${statusText}\nImplementation Notes: ${fullControl.implementationNotes || ''}\nApplicability: ${fullControl.applicability || ''}`,
-                updatedAt: new Date().toISOString()
-              },
-              {
-                title: fullControl.control.name,
-                controlId: fullControl.control.controlId,
-                status: fullControl.status
-              }
-            );
-          }
-        } catch (e) { console.error("Failed to update control index:", e); }
+        // Indexing removed for Core split
+        // try {
+        //   const fullControl = await db.getClientControlById(id);
+        //   if (fullControl) {
+        //     // ... indexing logic ...
+        //   }
+        // } catch (e) { console.error("Failed to update control index:", e); }
 
         return { success: true };
       }),
@@ -400,7 +366,7 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
 
         if (control) {
           try {
-            await IndexingService.deleteDocumentIndex(control.clientId, 'control', input.id.toString());
+            // await IndexingService.deleteDocumentIndex(control.clientId, 'control', input.id.toString());
           } catch (e) { console.error("Failed to delete control index:", e); }
         }
         return { success: true };

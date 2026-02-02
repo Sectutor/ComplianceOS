@@ -7968,9 +7968,7 @@ export const vendorAssessments = pgTable("vendor_assessments", {
 
 
     vendorAssessmentIdx: index("idx_assessment_vendor").on(table.vendorId),
-
-
-
+    clientAssessmentIdx: index("idx_assessment_client").on(table.clientId),
   };
 
 

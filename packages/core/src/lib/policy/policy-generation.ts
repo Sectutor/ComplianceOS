@@ -1,7 +1,7 @@
 import { getDb } from '../../db';
 import { clients, policyTemplates, Client } from '../../schema';
 import { eq } from 'drizzle-orm';
-import { LLMService } from '../llm/service';
+// import { LLMService } from '../llm/service';
 
 // Language names for prompts
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -21,10 +21,10 @@ interface GenerationOptions {
 }
 
 export class PolicyGenerator {
-    private llmService: LLMService;
+    // private llmService: LLMService;
 
     constructor() {
-        this.llmService = new LLMService();
+        // this.llmService = new LLMService();
     }
 
     /**
@@ -79,7 +79,8 @@ export class PolicyGenerator {
 
         // 4. Industry Tailoring (LLM) with language support
         if ((options.tailorToIndustry || options.customInstruction) && template.sections) {
-            content = await this.tailorContentWithLLM(content, client, template.name, options.customInstruction, language);
+            // AI Tailoring removed for Core split
+            // content = await this.tailorContentWithLLM(content, client, template.name, options.customInstruction, language);
         }
 
         return content;
@@ -185,52 +186,35 @@ export class PolicyGenerator {
         content = `# ${policyName}\n\n${content}`;
 
         // Use LLM to fill it with language support
-        const prompt = `
-You are an expert CISO. Write a comprehensive compliance policy titled "${policyName}" for a ${client.industry || 'general'} company.
+        // Use LLM to fill it with language support - Removed for Core split
+        return content;
 
-IMPORTANT: Write the ENTIRE policy in ${languageName}. All text, headings, and content must be in ${languageName}.
-
-The policy must include the following sections:
-${sections.map(s => `- ${s}`).join('\n')}
-
-${options.customInstruction ? `USER INSTRUCTION: ${options.customInstruction}` : ''}
-
-Directives:
-1. Write professional, actionable content for each section.
-2. Tailor specifically to ${client.industry}.
-3. Write EVERYTHING in ${languageName} language.
-${options.customInstruction ? '4. Strictly follow the USER INSTRUCTION.' : ''}
-5. Return the full policy in Markdown format.
-`;
+        /*
+        const prompt = `...`;
 
         try {
-            const response = await this.llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: `You are a specialized compliance policy writer. You MUST write all content in ${languageName}.`,
-                temperature: 0.4
-            });
+            const response = await this.llmService.generate({ ... });
             return response.text;
         } catch (e) {
             console.error("LLM Generation failed", e);
             return content; // Return skeleton if failed
         }
+        */
     }
 
     async suggestSections(policyName: string, industry?: string): Promise<string[]> {
+        return ["Introduction", "Scope", "Policy Statement", "Roles and Responsibilities", "Compliance"];
+        /*
         const prompt = `Suggest 5-8 common policy section titles for a "${policyName}" policy in the ${industry || 'General'} industry. Return only a JSON array of strings.`;
         try {
-            const response = await this.llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a compliance expert. Return ONLY valid JSON.",
-                temperature: 0.1,
-                feature: 'policy_generation'
-            });
+            const response = await this.llmService.generate({ ... });
             const sections = JSON.parse(response.text);
             return Array.isArray(sections) ? sections : [];
         } catch (e) {
             console.error("Suggest sections failed:", e);
             return ["Introduction", "Scope", "Policy Statement", "Roles and Responsibilities", "Compliance"];
         }
+        */
     }
 
     /**
@@ -303,42 +287,21 @@ ${content}
     }
 
     private async tailorContentWithLLM(content: string, client: Client, policyName: string, customInstruction?: string, language: string = 'en'): Promise<string> {
+        return content;
+        /*
         const languageName = LANGUAGE_NAMES[language] || 'English';
 
         try {
-            const prompt = `
-You are an expert CISO and Compliance Officer specializing in the ${client.industry || 'general'} industry.
-Please review and refine the following policy text for "${policyName}".
-The goal is to make it specifically relevant to a ${client.size || 'mid-sized'} ${client.industry} company.
+            const prompt = `...`;
 
-IMPORTANT: Write the ENTIRE refined policy in ${languageName}. All text must be in ${languageName}.
-
-${customInstruction ? `USER INSTRUCTION: ${customInstruction}` : ''}
-
-Directives:
-1. Maintain the professional tone and structure.
-2. Inject specific security concerns or regulatory references relevant to ${client.industry} (e.g., HIPAA for Health, PCI for Retail, SOC2/ISO for Tech).
-3. Do not remove core requirements, only enhance them.
-4. Write EVERYTHING in ${languageName} language.
-${customInstruction ? '5. PRIORITIZE the USER INSTRUCTION provided above.' : ''}
-6. Return ONLY the updated policy text in Markdown format.
-
-Original Policy:
-${content}
-        `;
-
-            const response = await this.llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: `You are a specialized compliance policy writer. You MUST write all content in ${languageName}.`,
-                temperature: 0.3,
-                feature: 'policy_generation'
-            });
+            const response = await this.llmService.generate({ ... });
 
             return response.text;
         } catch (error) {
             console.error("LLM Tailoring failed:", error);
             return content; // Fallback to untailored content
         }
+        */
     }
 }
 

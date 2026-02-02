@@ -4,7 +4,7 @@ import { regulations } from "@/data/regulations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
-import { ArrowRight, Scale, Shield } from "lucide-react";
+import { ArrowRight, Scale, Shield, Target, Rocket, Activity, AlertCircle } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 
@@ -56,7 +56,7 @@ export default function RegulationsDashboard() {
                     <Button
                         onClick={async (e) => {
                             e.stopPropagation();
-                            toast.promise(generateReport.mutateAsync({ clientId: 1 }), {
+                            toast.promise(generateReport.mutateAsync({ clientId }), {
                                 loading: 'Generating Report...',
                                 success: (data) => {
                                     const link = document.createElement('a');
@@ -73,6 +73,60 @@ export default function RegulationsDashboard() {
                     >
                         Download Gap Analysis
                     </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
+                    <Card
+                        className="p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 border-blue-100 bg-blue-50/20"
+                        onClick={() => setLocation(`/clients/${clientId}/roadmap`)}
+                    >
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <Rocket className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">Compliance Roadmap</p>
+                            <p className="text-[10px] text-muted-foreground">Strategic milestones</p>
+                        </div>
+                    </Card>
+
+                    <Card
+                        className="p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 border-red-100 bg-red-50/20"
+                        onClick={() => setLocation(`/clients/${clientId}/risks`)}
+                    >
+                        <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                            <Target className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">Risk Register</p>
+                            <p className="text-[10px] text-muted-foreground">High-impact threats</p>
+                        </div>
+                    </Card>
+
+                    <Card
+                        className="p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 border-emerald-100 bg-emerald-50/20"
+                        onClick={() => setLocation(`/clients/${clientId}/controls`)}
+                    >
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                            <Shield className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">Internal Controls</p>
+                            <p className="text-[10px] text-muted-foreground">Satisfying obligations</p>
+                        </div>
+                    </Card>
+
+                    <Card
+                        className="p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 border-amber-100 bg-amber-50/20"
+                        onClick={() => setLocation(`/clients/${clientId}/implementation`)}
+                    >
+                        <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                            <Activity className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">Implementation</p>
+                            <p className="text-[10px] text-muted-foreground">Remediation progress</p>
+                        </div>
+                    </Card>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

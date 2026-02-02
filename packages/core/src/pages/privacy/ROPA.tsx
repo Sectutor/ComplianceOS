@@ -163,7 +163,7 @@ function ProcessROPARow({ process, value }: { process: any, value: string }) {
                                 <AddFlowForm
                                     processId={process.id}
                                     assets={assets || []}
-                                    onSubmit={(data) => createFlowMutation.mutate(data)}
+                                    onSubmit={(data) => createFlowMutation.mutate({ ...data, clientId: selectedClientId as number })}
                                     loading={createFlowMutation.isPending}
                                 />
                             </SheetContent>
@@ -197,7 +197,7 @@ function ProcessROPARow({ process, value }: { process: any, value: string }) {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => confirm("Delete this flow?") && deleteFlowMutation.mutate({ flowId: flow.id })}
+                                        onClick={() => confirm("Delete this flow?") && deleteFlowMutation.mutate({ flowId: flow.id, clientId: selectedClientId as number })}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

@@ -11,7 +11,7 @@ import { AdvisorProvider } from "./contexts/AdvisorContext";
 import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 
 // Lazy Imports
@@ -43,7 +43,8 @@ const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const OrganizationManagement = lazy(() => import("./pages/admin/OrganizationManagement"));
 const UserInvitations = lazy(() => import("./pages/admin/UserInvitations"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
-const CloudIntegrations = lazy(() => import("./pages/admin/CloudIntegrations"));
+// Premium components moved to @complianceos/premium
+// const CloudIntegrations = lazy(() => import("./pages/admin/CloudIntegrations"));
 const IssueTrackerSettings = lazy(() => import("./pages/admin/IssueTrackerSettings"));
 const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
@@ -178,7 +179,7 @@ const GovernanceAlignmentPage = lazy(() => import("./pages/governance/Governance
 
 const DevProjectsList = lazy(() => import("./pages/dev/DevProjectsList").then(module => ({ default: module.DevProjectsList })));
 const ProjectDetail = lazy(() => import("./pages/dev/ProjectDetail").then(module => ({ default: module.ProjectDetail })));
-const ThreatModelWizard = lazy(() => import("@/components/threat-modeling/ThreatModelWizard"));
+const ThreatModelWizard = lazy(() => import("@/components/threat-modeling/ThreatModelWizard").then(module => ({ default: module.ThreatModelWizard })));
 
 // Federal Compliance
 const FederalHub = lazy(() => import("./pages/federal/FederalHub"));
@@ -228,13 +229,13 @@ const UIPatternShowcase = lazy(() => import("./pages/UIPatternShowcase"));
 const ConsolidatedRequestPortal = lazy(() => import("./pages/portal/ConsolidatedRequestPortal"));
 const VendorAssessmentPortal = lazy(() => import("./pages/portal/VendorAssessmentPortal"));
 
-const Integrations = lazy(() => import("./pages/admin/Integrations"));
+// const Integrations = lazy(() => import("./pages/admin/Integrations"));
 const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
 
 
 // Premium Guard Component
 function PremiumGuard({ children }: { children: React.ReactNode }) {
-  const { selectedClientId } = useClientContext();
+  const { selectedClientId, setPlanTier } = useClientContext();
   const [location] = useLocation();
 
   // Extract client ID from URL as fallback
@@ -248,31 +249,34 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
   });
   const { data: client, isLoading: clientLoading, error } = trpc.clients.get.useQuery(
     { id: effectiveClientId as number },
-    { enabled: !!effectiveClientId, retry: false, staleTime: 1000 * 60 * 5 }
+    {
+      enabled: !!effectiveClientId,
+      retry: false,
+      staleTime: 1000 * 60 * 5,
+      onSuccess: (data) => {
+        if (data?.planTier) setPlanTier(data.planTier);
+      }
+    }
   );
+
+  useEffect(() => {
+    if (userMe?.planTier) setPlanTier(userMe.planTier);
+  }, [userMe, setPlanTier]);
 
   if (error?.data?.code === 'PRECONDITION_FAILED') {
     return <Redirect to="/upgrade-required" />;
   }
 
   if (error?.data?.code === 'FORBIDDEN' || error?.data?.code === 'NOT_FOUND') {
-    console.log('[PremiumGuard] Client access error, redirecting to list');
     return <Redirect to="/clients" />;
   }
 
   if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
-  // Case 1: Global page (No client selected) - Check current user's tier
-  if (!effectiveClientId) {
-    if (userMe && userMe.planTier !== 'pro' && userMe.planTier !== 'enterprise' && userMe.role !== 'admin') {
-      console.log('[PremiumGuard] Global redirecting due to user tier:', userMe.planTier);
-      return <Redirect to="/upgrade-required" />;
-    }
-  }
+  const tier = client?.planTier || userMe?.planTier;
+  const isPremium = tier === 'pro' || tier === 'enterprise' || userMe?.role === 'admin';
 
-  // Case 2: Client-specific page - Check the selected client's tier
-  if (client && client.planTier !== 'pro' && client.planTier !== 'enterprise') {
-    console.log('[PremiumGuard] Client redirecting due to invalid tier:', client.planTier);
+  if (!isPremium) {
     return <Redirect to="/upgrade-required" />;
   }
 
@@ -390,11 +394,7 @@ function PageLoader() {
   );
 }
 
-function TrustCenterAlias() {
-  const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/trust-center/${selectedClientId}`} />;
-  return <Redirect to="/clients" />;
-}
+
 
 function Router() {
   return (
@@ -429,9 +429,7 @@ function Router() {
         {/* Public Questionnaire Route */}
         <Route path="/questionnaire/:token" component={GapQuestionnaireResponse} />
 
-        {/* Trust Center - Public Facing */}
-        <Route path="/trust-center/:clientId" component={TrustCenter} />
-        <Route path="/trust-center" component={TrustCenterAlias} />
+
 
         {/* Vendor Portals */}
         <Route path="/portal/request/:token" component={ConsolidatedRequestPortal} />
@@ -477,13 +475,13 @@ function Router() {
           <ProtectedRoute component={KnowledgeBase} />
         </Route>
         <Route path="/clients/:id/questionnaires">
-          <ProtectedRoute component={QuestionnairesDashboard} />
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><QuestionnairesDashboard /></PremiumGuard>} />}
         </Route>
         <Route path="/clients/:id/questionnaire-workspace">
-          <ProtectedRoute component={QuestionnaireWorkspace} />
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><QuestionnaireWorkspace /></PremiumGuard>} />}
         </Route>
         <Route path="/clients/:id/questionnaires/:qId">
-          <ProtectedRoute component={QuestionnaireWorkspace} /> {/* Reusing workspace for specific item */}
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><QuestionnaireWorkspace /></PremiumGuard>} />} {/* Reusing workspace for specific item */}
         </Route>
 
         <Route path="/clients/:id/controls">
@@ -527,7 +525,7 @@ function Router() {
         <Route path="/clients/:id/compliance-journey">
           {(_params) => <ProtectedRoute component={ComplianceJourneyDashboard} />}
         </Route>
-        <Route path="/clients/:id/readiness/wizard">
+        <Route path="/clients/:id/readiness/wizard/:standardId?">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
         <Route path="/clients/:id/roadmap/dashboard">
@@ -557,13 +555,13 @@ function Router() {
           <DevProjectsAlias />
         </Route>
         <Route path="/clients/:clientId/dev/projects/:projectId/threat-model/:modelId">
-          {(_params) => <ProtectedRoute component={ThreatModelWizard} />}
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><ThreatModelWizard /></PremiumGuard>} />}
         </Route>
         <Route path="/clients/:clientId/dev/projects/:projectId">
           {(_params) => <ProtectedRoute component={ProjectDetail} />}
         </Route>
         <Route path="/clients/:clientId/dev/projects">
-          {(_params) => <ProtectedRoute component={DevProjectsList} />}
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><DevProjectsList /></PremiumGuard>} />}
         </Route>
 
 
@@ -618,7 +616,7 @@ function Router() {
           {(_params) => <ProtectedRoute component={Reports} />}
         </Route>
         <Route path="/clients/:id/audit-hub">
-          {(_params) => <ProtectedRoute component={AuditHub} />}
+          {(_params) => <PremiumGuard><ProtectedRoute component={AuditHub} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/employees/:employeeId">
           {(_params) => <ProtectedRoute component={EmployeeDetails} />}
@@ -787,7 +785,7 @@ function Router() {
           )}
         </Route>
         <Route path="/clients/:id/ai-governance">
-          {(_params) => <ProtectedRoute component={AIGovernance} />}
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernance /></PremiumGuard>} />}
         </Route>
 
         {/* Privacy routes are handled below in the dedicated section */}
@@ -868,7 +866,7 @@ function Router() {
         <Route path="/clients/:id/privacy/assessment/gdpr">
           {(params) => <GdprAssessmentPage />}
         </Route>
-        <Route path="/clients/:id/privacy-dashboard">
+        <Route path="/clients/:id/readiness/wizard/:standardId?">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
         <Route path="/clients/:id/readiness/roadmap">
@@ -1161,7 +1159,7 @@ function Router() {
               {/* <Route path="/admin/cloud" component={() => <ProtectedRoute component={CloudIntegrations} />} /> */}
               <Route path="/admin/billing" component={() => <ProtectedRoute component={AdminBilling} />} />
               <Route path="/admin/issue-tracker" component={() => <ProtectedRoute component={IssueTrackerSettings} />} />
-              <Route path="/admin/integrations" component={() => <ProtectedRoute component={Integrations} />} />
+              {/* <Route path="/admin/integrations" component={() => <ProtectedRoute component={Integrations} />} /> */}
 
               {/* Default admin route */}
               <Route path="/admin" component={() => <ProtectedRoute component={UserManagement} />} />

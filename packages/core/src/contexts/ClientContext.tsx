@@ -5,6 +5,8 @@ interface ClientContextType {
   selectedClientId: number | null;
   setSelectedClientId: (id: number | null) => void;
   clearSelectedClient: () => void;
+  planTier: string | null;
+  setPlanTier: (tier: string | null) => void;
 }
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined);
@@ -35,8 +37,16 @@ export function ClientContextProvider({ children }: { children: React.ReactNode 
     }
   };
 
+  const [planTier, setPlanTier] = useState<string | null>(null);
+
   return (
-    <ClientContext.Provider value={{ selectedClientId, setSelectedClientId, clearSelectedClient }}>
+    <ClientContext.Provider value={{
+      selectedClientId,
+      setSelectedClientId,
+      clearSelectedClient,
+      planTier,
+      setPlanTier
+    }}>
       {children}
     </ClientContext.Provider>
   );

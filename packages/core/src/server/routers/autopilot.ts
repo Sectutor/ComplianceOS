@@ -1,5 +1,5 @@
 
-import { AutopilotService } from "../../lib/advisor/autopilot";
+// import { AutopilotService } from "../../lib/advisor/autopilot";
 import { getDb } from "../../db";
 import { auditLogs } from "../../schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -10,25 +10,7 @@ export const createAutopilotRouter = (router: any, procedure: any) => {
         trigger: procedure
             .input(z.object({ clientId: z.number() }))
             .mutation(async ({ ctx, input }: any) => {
-                const clientId = input.clientId;
-                const userId = ctx.user.id;
-
-                // 1. Run the checks
-                const results = await AutopilotService.runAllChecks(clientId);
-
-                // 2. Log the run
-                const db = await getDb();
-                await db.insert(auditLogs).values({
-                    clientId,
-                    userId, // The user who triggered it
-                    action: 'autopilot_run',
-                    entityType: 'system',
-                    entityId: 0,
-                    details: results,
-                    severity: 'info'
-                });
-
-                return results;
+                throw new Error("Autopilot is a Premium feature. Please upgrade to use this check.");
             }),
 
         getLastRun: procedure

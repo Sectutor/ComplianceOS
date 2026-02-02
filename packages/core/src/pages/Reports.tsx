@@ -4,14 +4,16 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { ReportsDashboard } from "@/components/reports/ReportsDashboard";
 import { ExecutiveDashboard } from "@/components/reports/ExecutiveDashboard";
+import { PremiumSlot } from "@/components/PremiumSlot";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useParams } from 'wouter';
 
 export default function Reports() {
   const params = useParams();
-  const { selectedClientId } = useClientContext();
+  const { selectedClientId, planTier } = useClientContext();
   const clientId = params.id ? parseInt(params.id, 10) : selectedClientId;
   const [activeTab, setActiveTab] = useState("dashboard");
+  const isPremium = planTier === 'pro' || planTier === 'enterprise';
 
   if (!clientId) return <div>Data error: No client selected</div>;
 
@@ -34,11 +36,25 @@ export default function Reports() {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-0">
-            <ExecutiveDashboard clientId={clientId} />
+            <PremiumSlot
+              featureId="executive_dashboard"
+              title="Executive Dashboard"
+              description="Advanced analytics and trend reporting for board-level insights."
+              isPremiumEnabled={isPremium}
+            >
+              <ExecutiveDashboard clientId={clientId} />
+            </PremiumSlot>
           </TabsContent>
 
           <TabsContent value="reports" className="mt-0">
-            <ReportsDashboard clientId={clientId} />
+            <PremiumSlot
+              featureId="report_builder"
+              title="Advanced Report Builder"
+              description="Generate Gap Analysis, One-Click Audit Packs, and custom PDF reports."
+              isPremiumEnabled={isPremium}
+            >
+              <ReportsDashboard clientId={clientId} />
+            </PremiumSlot>
           </TabsContent>
 
           <TabsContent value="audit-logs" className="mt-0">

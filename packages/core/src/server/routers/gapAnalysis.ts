@@ -5,7 +5,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { generateGapAnalysisDocx } from "../lib/reporting/gapAnalysisReport";
+// import { generateGapAnalysisDocx } from "../lib/reporting/gapAnalysisReport";
 // import { llmService } from "../../lib/llm/service";
 
 
@@ -135,11 +135,7 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
         exportReport: clientProcedure
             .input(z.object({ assessmentId: z.number() }))
             .mutation(async ({ input }: any) => {
-                const buffer = await generateGapAnalysisDocx(input.assessmentId);
-                return {
-                    filename: `Gap_Analysis_Report_${new Date().toISOString().split('T')[0]}.docx`,
-                    base64: buffer.toString('base64')
-                };
+                throw new Error("Gap Analysis Export is a Premium feature.");
             }),
 
         updateReportDetails: clientProcedure
@@ -174,71 +170,12 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
         generateReportContent: clientProcedure
             .input(z.object({ assessmentId: z.number() }))
             .mutation(async ({ input }: any) => {
-                const dbConn = await getDb();
-                // 1. Fetch Context
-                const [assessment] = await dbConn.select().from(schema.gapAssessments).where(eq(schema.gapAssessments.id, input.assessmentId));
-                const responses = await dbConn.select().from(schema.gapResponses).where(eq(schema.gapResponses.assessmentId, input.assessmentId));
-
-                if (!assessment) throw new TRPCError({ code: "NOT_FOUND" });
-
-                // 2. Prepare Prompt
-                const total = responses.length;
-                const implemented = responses.filter((r: any) => r.currentStatus === 'implemented').length;
-                const notImplemented = responses.filter((r: any) => r.currentStatus === 'not_implemented' || r.currentStatus === 'partial').length;
-                const highRisks = responses.filter((r: any) => r.gapSeverity === 'critical' || r.gapSeverity === 'high');
-
-                const prompt = `
-                    Analyze this Gap Analysis for ${assessment.framework}.
-                    Stats: Total Controls: ${total}, Implemented: ${implemented}, Gaps: ${notImplemented}.
-                    High Risk Gaps Count: ${highRisks.length}.
-                    
-                    Please generate report content including:
-                    1. Executive Summary (Maturity, Findings, Readiness, Timeline).
-                    2. Scope: Define plausible ISMS boundaries (e.g. "Corporate HQ, Cloud Infrastructure, HR, IT").
-                    3. Methodology: Describe data collection (interviews, review) and scale (Fully/Partially/Non-Compliant).
-                    4. Assumptions and Limitations: (e.g. "Based on provided evidence; excludes 3rd party audits").
-                    5. References: List relevant standards (${assessment.framework}, ISO 27002, internal policies).
-                    6. Key Strategic Recommendations (5-7 items).
-
-                    Format output as JSON: 
-                    { 
-                        "executiveSummary": "string (markdown)", 
-                        "scope": "string",
-                        "methodology": "string",
-                        "assumptions": "string",
-                        "references": "string",
-                        "recommendations": ["string"...] 
-                    }
-                `;
-
-                // 3. Call LLM
-                try {
-                    const { llmService } = await import("../../lib/llm/service");
-                    const result = await llmService.generate({
-                        userPrompt: prompt,
-                        jsonMode: true,
-                        feature: 'gap_analysis_report'
-                    });
-
-                    const parsed = JSON.parse(result.text);
-                    return {
-                        executiveSummary: parsed.executiveSummary,
-                        scope: parsed.scope,
-                        methodology: parsed.methodology,
-                        assumptions: parsed.assumptions,
-                        references: parsed.references,
-                        keyRecommendations: parsed.recommendations
-                    };
-                } catch (error) {
-                    console.error("LLM Generation failed:", error);
-                    // Fallback
-                    return {
-                        executiveSummary: "Assessment completed. Review findings for details.",
-                        keyRecommendations: ["Review high priority gaps.", "Allocate budget for remediation."]
-                    };
-                }
+                return {
+                    executiveSummary: "Assessment completed. Upgrade to Premium for AI-generated insights.",
+                    keyRecommendations: ["Review high priority gaps.", "Allocate budget for remediation."]
+                };
             }),
- 
+
         convertFindingToTask: clientProcedure
             .input(z.object({
                 assessmentId: z.number(),
@@ -250,7 +187,7 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
-                
+
                 // 1. Verify existence
                 const [assessment] = await dbConn.select().from(schema.gapAssessments).where(eq(schema.gapAssessments.id, input.assessmentId));
                 if (!assessment) throw new TRPCError({ code: "NOT_FOUND" });

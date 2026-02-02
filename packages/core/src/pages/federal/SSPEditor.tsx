@@ -53,6 +53,7 @@ export default function SSPEditor() {
 
     // Fetch controls for NIST 800-172 framework
     const { data: controls, isLoading: loadingControls } = trpc.federal.getControlsByFramework.useQuery({
+        clientId,
         framework: 'NIST 800-172'
     }, {
         enabled: !!currentSSP && frameworkSlug === 'ssp-172'
@@ -60,6 +61,7 @@ export default function SSPEditor() {
 
     // Fetch already selected controls for this SSP
     const { data: sspControls, isLoading: loadingSspControls } = trpc.federal.getSspControls.useQuery({
+        clientId,
         sspId: currentSSP?.id || 0
     }, {
         enabled: !!currentSSP?.id
@@ -132,6 +134,7 @@ export default function SSPEditor() {
             if (checked) {
                 // Add control to SSP
                 await saveSspControlMutation.mutateAsync({
+                    clientId,
                     sspId: currentSSP.id,
                     controlId,
                     implementationStatus: 'planned',
@@ -140,6 +143,7 @@ export default function SSPEditor() {
             } else {
                 // Remove control from SSP
                 await deleteSspControlMutation.mutateAsync({
+                    clientId,
                     sspId: currentSSP.id,
                     controlId,
                 });
@@ -156,6 +160,7 @@ export default function SSPEditor() {
 
         try {
             await saveSspControlMutation.mutateAsync({
+                clientId,
                 sspId: currentSSP.id,
                 controlId,
                 implementationStatus: status,
@@ -175,6 +180,7 @@ export default function SSPEditor() {
 
         try {
             await saveSspControlMutation.mutateAsync({
+                clientId,
                 sspId: currentSSP.id,
                 controlId,
                 [field]: value,
@@ -284,6 +290,7 @@ export default function SSPEditor() {
             };
 
             await trpc.federal.updateSSP.mutate({
+                clientId,
                 id: currentSSP.id,
                 content: JSON.stringify(content)
             });

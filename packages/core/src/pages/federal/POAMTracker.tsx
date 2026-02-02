@@ -105,7 +105,7 @@ export default function POAMTracker() {
     const poamId = selectedPoamId || poams?.[0]?.id;
 
     const { data: poamData, refetch } = trpc.federal.getPoamWithItems.useQuery(
-        { id: poamId! },
+        { id: poamId!, clientId },
         { enabled: !!poamId }
     );
 
@@ -204,6 +204,7 @@ export default function POAMTracker() {
         if (!poamId) return;
         try {
             await addMutation.mutateAsync({
+                clientId,
                 poamId,
                 ...newItem,
                 originalDetectionDate: newItem.originalDetectionDate || undefined,
@@ -272,7 +273,7 @@ export default function POAMTracker() {
 
     const handleExportPoam = () => {
         if (!poamId) return;
-        exportMutation.mutate({ poamId });
+        exportMutation.mutate({ poamId, clientId });
     };
 
     if (isLoadingPoams) {
@@ -949,6 +950,7 @@ export default function POAMTracker() {
                                         return;
                                     }
                                     updatePoamItem.mutate({
+                                        clientId,
                                         id: editingItem.id,
                                         controlId: editingItem.controlId || undefined,
                                         weaknessName: editingItem.weaknessName,

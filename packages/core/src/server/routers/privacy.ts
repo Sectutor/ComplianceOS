@@ -42,6 +42,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
         // Update privacy specifics of an asset
         updateAssetPrivacy: clientProcedure
             .input(z.object({
+                clientId: z.number(),
                 assetId: z.number(),
                 isPersonalData: z.boolean(),
                 dataSensitivity: z.string().optional(),
@@ -106,6 +107,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
         // Add a data flow to a process
         addProcessDataFlow: clientProcedure
             .input(z.object({
+                clientId: z.number(),
                 processId: z.number(),
                 assetId: z.number().optional().nullable(),
                 dataElements: z.string().optional().nullable(),
@@ -148,7 +150,10 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
 
         // Delete a data flow
         deleteProcessDataFlow: clientProcedure
-            .input(z.object({ flowId: z.number() }))
+            .input(z.object({
+                clientId: z.number(),
+                flowId: z.number()
+            }))
             .mutation(async ({ ctx, input }: any) => {
                 const db = await getDb();
                 // Ideally we check ownership via join to process -> client, but for speed skipping strict check if ID is obscure. 
@@ -212,7 +217,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                 priority: z.string().optional(),
                 assignedTo: z.string().optional(), // User ID as string/int
             }))
-.mutation(async ({ ctx, input }: any) => {
+            .mutation(async ({ ctx, input }: any) => {
                 try {
                     const db = await getDb();
                     const clientId = ctx.clientId || input?.clientId;
@@ -220,31 +225,31 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
 
                     if (!clientId) throw new TRPCError({ code: "BAD_REQUEST", message: "Client ID required" });
 
-                // Generate ID
-                const year = new Date().getFullYear();
-                const randomPart = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-                const requestId = `DSAR-${year}-${randomPart}`;
+                    // Generate ID
+                    const year = new Date().getFullYear();
+                    const randomPart = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+                    const requestId = `DSAR-${year}-${randomPart}`;
 
-                await db.insert(dsarRequests).values({
-                    clientId: clientId,
-                    requestId,
-                    requestType: input.requestType,
-                    subjectEmail: input.subjectEmail,
-                    subjectName: input.subjectName ?? null,
-                    requestDate: input.requestDate ? new Date(input.requestDate) : new Date(),
-                    dueDate: input.dueDate ? new Date(input.dueDate) : null,
-                    submissionMethod: input.submissionMethod ?? 'manual',
-                    priority: input.priority ?? 'medium',
-                    status: 'New',
-                    auditLog: [{
-                        action: 'created',
-                        user: ctx.user?.email || 'system',
-                        timestamp: new Date().toISOString(),
-                        details: `Request created via ${input.submissionMethod || 'system'}`
-                    }]
-                });
+                    await db.insert(dsarRequests).values({
+                        clientId: clientId,
+                        requestId,
+                        requestType: input.requestType,
+                        subjectEmail: input.subjectEmail,
+                        subjectName: input.subjectName ?? null,
+                        requestDate: input.requestDate ? new Date(input.requestDate) : new Date(),
+                        dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                        submissionMethod: input.submissionMethod ?? 'manual',
+                        priority: input.priority ?? 'medium',
+                        status: 'New',
+                        auditLog: [{
+                            action: 'created',
+                            user: ctx.user?.email || 'system',
+                            timestamp: new Date().toISOString(),
+                            details: `Request created via ${input.submissionMethod || 'system'}`
+                        }]
+                    });
 
-return { success: true, requestId };
+                    return { success: true, requestId };
                 } catch (error: any) {
                     console.error("[PrivacyRouter] createDsarRequest error:", error);
                     throw new TRPCError({
@@ -329,7 +334,7 @@ return { success: true, requestId };
                     rightsInfo: z.string(),
                 })
             }))
-            .mutation(async ({ ctx, input }) => {
+            .mutation(async ({ ctx, input }: any) => {
                 const db = await getDb();
 
                 const existing = await db.query.dsarRequests.findFirst({

@@ -102,7 +102,20 @@ export const createEvidenceFilesRouter = (
                     throw new Error("Source file not found");
                 }
 
-                // 2. Create copy linked to new evidence
+                // 2. Check if already linked
+                // We assume fileKey is unique per file content.
+                const existingLinks = await dbConn.select()
+                    .from(schema.evidenceFiles)
+                    .where(and(
+                        eq(schema.evidenceFiles.evidenceId, input.targetEvidenceId),
+                        eq(schema.evidenceFiles.fileKey, sourceFile.fileKey)
+                    ));
+
+                if (existingLinks.length > 0) {
+                    throw new Error("This file is already attached to this request.");
+                }
+
+                // 3. Create copy linked to new evidence
                 const [newFile] = await dbConn.insert(schema.evidenceFiles).values({
                     evidenceId: input.targetEvidenceId,
                     filename: sourceFile.filename,

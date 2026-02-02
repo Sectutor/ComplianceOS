@@ -7,12 +7,23 @@ import { Input } from "@complianceos/ui/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Database, Search, ArrowLeft, Filter, Save } from "lucide-react";
+import { Database, Search, ArrowLeft, Filter, Save, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@complianceos/ui/ui/alert-dialog";
 import {
     Sheet,
     SheetContent,
@@ -48,12 +59,25 @@ export default function DataInventory() {
     // We can also fetch just the inventory if we want, but letting user "tag" assets is better
     // const { data: inventory } = trpc.privacy.getInventory.useQuery();
 
+    const utils = trpc.useContext();
+
     const updatePrivacyMutation = trpc.privacy.updateAssetPrivacy.useMutation({
         onSuccess: () => {
             toast.success("Asset privacy details updated");
+            utils.assets.list.invalidate();
         },
         onError: (err) => {
             toast.error("Failed to update: " + err.message);
+        }
+    });
+
+    const deleteAssetMutation = trpc.assets.delete.useMutation({
+        onSuccess: () => {
+            toast.success("Asset deleted successfully");
+            utils.assets.list.invalidate();
+        },
+        onError: (err) => {
+            toast.error("Failed to delete asset: " + err.message);
         }
     });
 
@@ -133,7 +157,8 @@ export default function DataInventory() {
                                         <InventoryRow
                                             key={asset.id}
                                             asset={asset}
-                                            onUpdate={(data) => updatePrivacyMutation.mutateAsync(data)}
+                                            onUpdate={(data) => updatePrivacyMutation.mutateAsync({ ...data, clientId: selectedClientId as number })}
+                                            onDelete={(id) => deleteAssetMutation.mutateAsync({ id, clientId: selectedClientId as number })}
                                         />
                                     ))
                                 )}
@@ -146,13 +171,14 @@ export default function DataInventory() {
     );
 }
 
-function InventoryRow({ asset, onUpdate }: { asset: any, onUpdate: (data: any) => Promise<any> }) {
+function InventoryRow({ asset, onUpdate, onDelete }: { asset: any, onUpdate: (data: any) => Promise<any>, onDelete: (id: number) => Promise<any> }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isPersonalData, setIsPersonalData] = useState(asset.isPersonalData || false);
     const [sensitivity, setSensitivity] = useState(asset.dataSensitivity || "Internal");
     const [format, setFormat] = useState(asset.dataFormat || "Digital");
     const [dataOwner, setDataOwner] = useState(asset.dataOwner || asset.owner || "");
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const handleSave = async () => {
         setSaving(true);
@@ -167,6 +193,15 @@ function InventoryRow({ asset, onUpdate }: { asset: any, onUpdate: (data: any) =
             setIsOpen(false);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            await onDelete(asset.id);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -194,7 +229,7 @@ function InventoryRow({ asset, onUpdate }: { asset: any, onUpdate: (data: any) =
             </TableCell>
             <TableCell>{asset.dataFormat}</TableCell>
             <TableCell>{asset.dataOwner || asset.owner || "-"}</TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right flex items-center justify-end gap-2">
                 <Sheet open={isOpen} onOpenChange={setIsOpen}>
                     <SheetTrigger asChild>
                         <Button variant="ghost" size="sm">Edit Details</Button>
@@ -268,6 +303,28 @@ function InventoryRow({ asset, onUpdate }: { asset: any, onUpdate: (data: any) =
                         </div>
                     </SheetContent>
                 </Sheet>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to delete <strong>{asset.name}</strong>? This action cannot be undone and will remove it from your inventory.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
+                                {deleting ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </TableCell>
         </TableRow>
     );

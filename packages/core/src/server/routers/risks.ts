@@ -11,7 +11,7 @@ import {
 import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not } from "drizzle-orm";
 import { calculateResidualScore, scoreToRiskLevel } from "../../lib/riskCalculations";
 import { logActivity } from "../../lib/audit";
-import { generateRiskManagementDocx } from "../lib/reporting/riskReport";
+// import { generateRiskManagementDocx } from "../lib/reporting/riskReport";
 
 
 export const createRisksRouter = (t: any, procedure: any) => {
@@ -125,13 +125,7 @@ export const createRisksRouter = (t: any, procedure: any) => {
                 references: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
-                console.log(`Generating risk report for client ${input.clientId}...`);
-                // Use input content directly
-                const buffer = await generateRiskManagementDocx(input.clientId, input);
-                return {
-                    filename: `Risk_Management_Report_${new Date().toISOString().split('T')[0]}.docx`,
-                    base64: buffer.toString('base64')
-                };
+                throw new Error("Risk Management Report Export is a Premium feature.");
             }),
 
         // Get Risk Report Draft
@@ -340,27 +334,11 @@ export const createRisksRouter = (t: any, procedure: any) => {
                         await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: data } }, tx);
 
                         // Index updated risk (Outside TX if needed? Indexing service usually handles its own or is silent fail. Keeping inside for simplicity as it was)
-                        try {
-                            const { IndexingService } = await import('../../lib/advisor/indexing');
-                            // Note: indexing likely uses its own connection or global db, which is fine since it's a separate system (elasticsearch/vector db). 
-                            // If it uses SQL db, it needs tx. IndexingService usually uses global db.getDb(). 
-                            // For now, leaving as is, failure here won't rollback main tx but main tx won't see index update until commit.
-                            await IndexingService.indexDocument(
-                                input.clientId,
-                                'risk',
-                                updated.id.toString(),
-                                {
-                                    title: updated.title,
-                                    content: `Risk: ${updated.title}\nID: ${updated.assessmentId}\nLikelihood: ${updated.likelihood}\nImpact: ${updated.impact}\nScore: ${updated.inherentScore}\nInherent Risk: ${updated.inherentRisk}\nStatus: ${updated.status}`,
-                                    updatedAt: new Date().toISOString()
-                                },
-                                {
-                                    title: updated.title,
-                                    riskId: updated.assessmentId,
-                                    score: updated.inherentScore
-                                }
-                            );
-                        } catch (e) { console.error("Failed to index risk:", e); }
+                        // Indexing removed for Core split
+                        // try {
+                        //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                        //     // ... indexing logic ...
+                        // } catch (e) { console.error("Failed to index risk:", e); }
 
                         return updated;
                     } else {
@@ -371,24 +349,11 @@ export const createRisksRouter = (t: any, procedure: any) => {
 
                         await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: created.id, details: { title: created.title } }, tx);
 
-                        try {
-                            const { IndexingService } = await import('../../lib/advisor/indexing');
-                            await IndexingService.indexDocument(
-                                input.clientId,
-                                'risk',
-                                created.id.toString(),
-                                {
-                                    title: created.title,
-                                    content: `Risk: ${created.title}\nID: ${created.assessmentId}\nLikelihood: ${created.likelihood}\nImpact: ${created.impact}\nScore: ${created.inherentScore}\nInherent Risk: ${created.inherentRisk}\nStatus: ${created.status}`,
-                                    updatedAt: new Date().toISOString()
-                                },
-                                {
-                                    title: created.title,
-                                    riskId: created.assessmentId,
-                                    score: created.inherentScore
-                                }
-                            );
-                        } catch (e) { console.error("Failed to index new risk:", e); }
+                        // Indexing removed for Core split
+                        // try {
+                        //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                        //     // ... indexing logic ...
+                        // } catch (e) { console.error("Failed to index new risk:", e); }
 
                         return created;
                     }
@@ -406,10 +371,11 @@ export const createRisksRouter = (t: any, procedure: any) => {
                 await db.delete(riskAssessments).where(eq(riskAssessments.id, input.id));
 
                 // Remove from Index
-                try {
-                    const { IndexingService } = await import('../../lib/advisor/indexing');
-                    await IndexingService.deleteDocumentIndex(input.clientId, 'risk', input.id.toString());
-                } catch (e) { console.error("Failed to delete risk index:", e); }
+                // Remove from Index - removed for Core split
+                // try {
+                //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                //     await IndexingService.deleteDocumentIndex(input.clientId, 'risk', input.id.toString());
+                // } catch (e) { console.error("Failed to delete risk index:", e); }
 
                 await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "delete", entityType: "risk", entityId: input.id, details: { title: "Deleted Risk" } });
                 return { success: true };

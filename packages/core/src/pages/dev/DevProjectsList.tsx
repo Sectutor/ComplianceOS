@@ -5,7 +5,17 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { useLocation, useParams } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
-import { Plus, Search, Github, Layers, Calendar, ChevronRight } from "lucide-react";
+import { Plus, Search, Github, Layers, Calendar, ChevronRight, Trash2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 
@@ -40,6 +50,7 @@ export const DevProjectsList = () => {
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [search, setSearch] = useState("");
+    const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
 
     // Create Project State
     const [newProject, setNewProject] = useState({
@@ -60,6 +71,21 @@ export const DevProjectsList = () => {
             setNewProject({ name: "", description: "", repositoryUrl: "", techStackInput: "", owner: "" });
         }
     });
+
+    const deleteMutation = trpc.devProjects.delete.useMutation({
+        onSuccess: () => {
+            utils.devProjects.list.invalidate();
+            setProjectToDelete(null);
+        }
+    });
+
+    const handleDelete = async () => {
+        if (!projectToDelete || !clientId) return;
+        await deleteMutation.mutateAsync({
+            id: projectToDelete,
+            clientId: clientId
+        });
+    };
 
     const handleCreate = async () => {
         if (!clientId) return;
@@ -153,6 +179,27 @@ export const DevProjectsList = () => {
                     </Dialog>
                 </div>
 
+                <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the project
+                                and all associated threat models and risks.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDelete}
+                                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                            >
+                                {deleteMutation.isLoading ? "Deleting..." : "Delete Project"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
                 {/* Filters */}
                 <div className="flex items-center space-x-2">
                     <div className="relative flex-1 max-w-sm">
@@ -208,7 +255,18 @@ export const DevProjectsList = () => {
                                         </div>
                                     </div>
                                 </CardContent>
-                                <CardFooter className="pt-0 justify-end">
+                                <CardFooter className="pt-0 flex justify-between items-center">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setProjectToDelete(project.id);
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                    </Button>
                                     <Button variant="ghost" className="text-blue-600 p-0 h-auto hover:bg-transparent group-hover:underline">
                                         View Details <ChevronRight className="h-4 w-4 ml-1" />
                                     </Button>

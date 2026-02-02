@@ -844,6 +844,7 @@ export default function AuditHub() {
                                                             <Shield className="h-4 w-4 text-indigo-500" />
                                                             {analyzeMutation.isLoading ? "Analyzing..." : "AI Audit Analysis"}
                                                         </Button>
+
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
@@ -863,8 +864,14 @@ export default function AuditHub() {
                                                             <MoreHorizontal className="h-4 w-4" />
                                                             Link Integration
                                                         </Button>
-                                                        <Button size="sm" className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700">
-                                                            <Plus className="h-4 w-4" /> Upload File
+
+                                                        <Button
+                                                            size="sm"
+                                                            className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700"
+                                                            onClick={() => document.getElementById('evidence-upload-input')?.click()}
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                            Upload File
                                                         </Button>
                                                     </div>
                                                 </div>

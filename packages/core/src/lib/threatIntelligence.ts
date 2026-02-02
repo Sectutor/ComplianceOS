@@ -702,37 +702,13 @@ export async function scanVendorForCves(vendorId: number): Promise<CveSuggestion
         }
     }
 
-    // Index for RAG
-    try {
-        const { IndexingService } = await import('./advisor/indexing');
-
-        const summary = `
-Vendor: ${vendor.name}
-Risk Score: ${suggestions.length > 0 ? 'High' : 'Low'}
-Active CVEs: ${suggestions.length}
-Critical Vulnerabilities: ${suggestions.filter(s => parseFloat(s.cvssScore || '0') >= 9.0).length}
-KEV Matches: ${suggestions.filter(s => s.isKev).length}
-Top Issues: ${suggestions.slice(0, 3).map(s => s.cveId + " (" + s.matchReason + ")").join(', ')}
-        `.trim();
-
-        await IndexingService.indexDocument(
-            0, // Global namespace for vendors
-            'vendor_cve_summary',
-            vendor.id.toString(),
-            summary, // Content
-            {        // Metadata
-                name: vendor.name,
-                cveCount: suggestions.length,
-                riskScore: suggestions.length * 10,
-                updatedAt: new Date().toISOString(),
-                title: `Vendor Risk: ${vendor.name}`,
-                version: new Date().toISOString().split('T')[0],
-                url: `/tprm/vendors/${vendor.id}` // Assuming this route exists
-            }
-        );
-    } catch (e) {
-        console.error('[ThreatIntel] Failed to index vendor scan:', e);
-    }
+    // Index for RAG - Removed for Core split
+    // try {
+    //     const { IndexingService } = await import('./advisor/indexing');
+    //     // ... indexing logic ...
+    // } catch (e) {
+    //     console.error('[ThreatIntel] Failed to index vendor scan:', e);
+    // }
 
     return suggestions.slice(0, 20);
 }

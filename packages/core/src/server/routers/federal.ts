@@ -55,7 +55,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }),
 
     getSSP: clientProcedure
-        .input(z.object({ id: z.number() }))
+        .input(z.object({
+            clientId: z.number(),
+            id: z.number()
+        }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
             const [ssp] = await dbConn.select().from(schema.federalSSPs)
@@ -87,6 +90,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     updateSSP: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             id: z.number(),
             content: z.string(),
         }))
@@ -130,6 +134,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     updateSAR: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             id: z.number(),
             systemAcronym: z.string().optional(),
             systemIdentification: z.string().optional(),
@@ -182,7 +187,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }),
 
     getPoamWithItems: clientProcedure
-        .input(z.object({ id: z.number() }))
+        .input(z.object({
+            clientId: z.number(),
+            id: z.number()
+        }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
             const [poam] = await dbConn.select().from(schema.federalPoams)
@@ -218,6 +226,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     addPoamItem: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             poamId: z.number(),
             controlId: z.string().optional(),
             weaknessName: z.string(),
@@ -270,6 +279,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     updatePoamItem: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             id: z.number(),
             controlId: z.string().optional(),
             weaknessName: z.string().optional(),
@@ -329,7 +339,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }),
 
     exportPoam: clientProcedure
-        .input(z.object({ poamId: z.number() }))
+        .input(z.object({
+            clientId: z.number(),
+            poamId: z.number()
+        }))
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
             const [poam] = await dbConn.select().from(schema.federalPoams)
@@ -407,7 +420,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     // SSP Sections
     getSspSections: clientProcedure
-        .input(z.object({ sspId: z.number() }))
+        .input(z.object({
+            clientId: z.number(),
+            sspId: z.number()
+        }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
             return await dbConn.select().from(schema.federalSspSections)
@@ -416,6 +432,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     saveSspSection: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             sspId: z.number(),
             sectionKey: z.string(),
             content: z.any(),
@@ -441,7 +458,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     // SSP Controls
     getControlsByFramework: clientProcedure
-        .input(z.object({ framework: z.string() }))
+        .input(z.object({
+            clientId: z.number(),
+            framework: z.string()
+        }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
             return await dbConn.select().from(schema.controls)
@@ -458,7 +478,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
             category: z.string().optional(),
             owner: z.string().optional(),
             frequency: z.string().optional(),
-            clientId: z.number().optional(),
+            clientId: z.number(),
         }))
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
@@ -467,7 +487,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }),
 
     getSspControls: clientProcedure
-        .input(z.object({ sspId: z.number() }))
+        .input(z.object({
+            clientId: z.number(),
+            sspId: z.number()
+        }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
             return await dbConn.select().from(schema.federalSspControls)
@@ -476,6 +499,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     saveSspControl: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             sspId: z.number(),
             controlId: z.string(),
             implementationStatus: z.string().optional(),
@@ -507,6 +531,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     deleteSspControl: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             sspId: z.number(),
             controlId: z.string(),
         }))
@@ -522,7 +547,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     // SAR Findings
     getSarFindings: clientProcedure
-        .input(z.object({ sarId: z.number() }))
+        .input(z.object({
+            clientId: z.number(),
+            sarId: z.number()
+        }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
             return await dbConn.select().from(schema.federalSarFindings)
@@ -531,11 +559,11 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     saveSarFinding: clientProcedure
         .input(z.object({
+            clientId: z.number(),
             sarId: z.number(),
             controlId: z.string(),
             result: z.string().optional(),
             observation: z.string().optional(),
-            riskLevel: z.string().optional(),
             riskLevel: z.string().optional(),
             remediationPlan: z.string().optional(),
             overlay: z.string().optional(),

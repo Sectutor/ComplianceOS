@@ -48,7 +48,14 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
-                return await db.select().from(vendorAssessmentTemplates)
+                return await db.select({
+                    id: vendorAssessmentTemplates.id,
+                    name: vendorAssessmentTemplates.name,
+                    description: vendorAssessmentTemplates.description,
+                    updatedAt: vendorAssessmentTemplates.updatedAt,
+                    createdAt: vendorAssessmentTemplates.createdAt,
+                })
+                    .from(vendorAssessmentTemplates)
                     .where(eq(vendorAssessmentTemplates.clientId, input.clientId));
             }),
 
@@ -633,13 +640,14 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 });
 
                 // Indexing
-                try {
-                    const { IndexingService } = await import('../../lib/advisor/indexing');
-                    await IndexingService.indexDocument(input.clientId, 'vendor', newVendor.id.toString(), {
-                        title: newVendor.name,
-                        content: `Vendor: ${newVendor.name}\nDescription: ${newVendor.description}`,
-                    }, { title: newVendor.name });
-                } catch (e) { console.error("Indexing failed", e); }
+                // Indexing removed for Core split
+                // try {
+                //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                //     await IndexingService.indexDocument(input.clientId, 'vendor', newVendor.id.toString(), {
+                //         title: newVendor.name,
+                //         content: `Vendor: ${newVendor.name}\nDescription: ${newVendor.description}`,
+                //     }, { title: newVendor.name });
+                // } catch (e) { console.error("Indexing failed", e); }
 
                 return newVendor;
             }),

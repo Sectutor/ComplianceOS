@@ -103,7 +103,7 @@ export default function SARViewer() {
     const sarId = sar?.id;
 
     const { data: findings, refetch: refetchFindings } = trpc.federal.getSarFindings.useQuery(
-        { sarId: sarId! },
+        { sarId: sarId!, clientId },
         { enabled: !!sarId }
     );
 
@@ -178,6 +178,7 @@ export default function SARViewer() {
         if (!sarId) return;
         try {
             await updateSAR.mutateAsync({
+                clientId,
                 id: sarId,
                 ...headerData,
                 systemOwnerId: headerData.systemOwnerId ? Number(headerData.systemOwnerId) : undefined,
@@ -230,6 +231,7 @@ export default function SARViewer() {
 
         try {
             await saveFindingMutation.mutateAsync({
+                clientId,
                 sarId,
                 ...data,
                 // Ensure defaults

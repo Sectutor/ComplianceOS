@@ -135,27 +135,14 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         const newPolicy = await db.createClientPolicy(insertData as any);
         console.log(`[PolicyCreate] Saved policy with ID: ${newPolicy?.id}`);
 
-        // Index new policy
-        if (newPolicy && newPolicy.content) {
-          try {
-            console.log(`[PolicyCreate] Starting indexing for policy ID: ${newPolicy.id}, Client ID: ${newPolicy.clientId}`);
-            const { IndexingService } = await import('../../lib/advisor/indexing');
-            await IndexingService.indexDocument(
-              newPolicy.clientId,
-              'policy',
-              newPolicy.id.toString(),
-              {
-                title: newPolicy.name,
-                content: newPolicy.content,
-                updatedAt: newPolicy.updatedAt?.toISOString() || new Date().toISOString()
-              },
-              {
-                title: newPolicy.name,
-                url: `/clients/${newPolicy.clientId}/policies/${newPolicy.id}`
-              }
-            );
-          } catch (e) { console.error("Failed to index policy:", e); }
-        }
+        // Indexing removed for Core split
+        // if (newPolicy && newPolicy.content) {
+        //   try {
+        //     console.log(`[PolicyCreate] Starting indexing for policy ID: ${newPolicy.id}, Client ID: ${newPolicy.clientId}`);
+        //     // const { IndexingService } = await import('../../lib/advisor/indexing');
+        //     // await IndexingService.indexDocument(...)
+        //   } catch (e) { console.error("Failed to index policy:", e); }
+        // }
 
         return newPolicy;
       }),
@@ -183,28 +170,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         await db.updateClientPolicy(id, data);
 
         // Re-index updated policy
-        try {
-          const { IndexingService } = await import('../../lib/advisor/indexing');
-          const updated = await db.getClientPolicyById(id);
-          if (updated && updated.clientPolicy.content) {
-            await IndexingService.indexDocument(
-              updated.clientPolicy.clientId,
-              'policy',
-              updated.clientPolicy.id.toString(),
-              {
-                title: updated.clientPolicy.name,
-                content: updated.clientPolicy.content,
-                updatedAt: updated.clientPolicy.updatedAt?.toISOString() || new Date().toISOString()
-              },
-              {
-                title: updated.clientPolicy.name,
-                url: `/clients/${updated.clientPolicy.clientId}/policies/${updated.clientPolicy.id}`
-              }
-            );
-          }
-        } catch (e) {
-          console.error("Failed to update policy index:", e);
-        }
+        // Re-index updated policy - removed for Core split
 
         return { success: true };
       }),
@@ -217,12 +183,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         await db.deleteClientPolicy(input.id);
 
-        if (policy) {
-          try {
-            const { IndexingService } = await import('../../lib/advisor/indexing');
-            await IndexingService.deleteDocumentIndex(policy.clientPolicy.clientId, 'policy', input.id.toString());
-          } catch (e) { console.error("Failed to delete policy index:", e); }
-        }
+        // if (policy) {
+        //   try {
+        //     const { IndexingService } = await import('../../lib/advisor/indexing');
+        //     await IndexingService.deleteDocumentIndex(policy.clientPolicy.clientId, 'policy', input.id.toString());
+        //   } catch (e) { console.error("Failed to delete policy index:", e); }
+        // }
 
         return { success: true };
       }),
@@ -252,11 +218,11 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         await db.updatePolicyRACIAssignments(input.clientId, input.policyId, input.assignments);
 
         // Re-index assignments
-        try {
-          const { reindexKnowledgeBase } = await import("../../lib/advisor/service");
-          // Run in background
-          reindexKnowledgeBase(input.clientId, 'assignments').catch(e => console.error(e));
-        } catch (e) { console.error("Failed to reindex assignments:", e); }
+        // Re-index assignments - removed for Core split
+        // try {
+        //   const { reindexKnowledgeBase } = await import("../../lib/advisor/service");
+        //   reindexKnowledgeBase(input.clientId, 'assignments').catch(e => console.error(e));
+        // } catch (e) { console.error("Failed to reindex assignments:", e); }
 
         return { success: true };
       }),
@@ -310,28 +276,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         });
 
         // Index for RAG
-        try {
-          const { IndexingService } = await import('../../lib/advisor/indexing');
-          await IndexingService.indexDocument(
-            policy.clientId,
-            'policy',
-            policy.id.toString(),
-            {
-              title: policy.name,
-              content: policy.content || '',
-              version: newVersionStr,
-              updatedAt: new Date().toISOString()
-            },
-            {
-              title: policy.name,
-              version: newVersionStr,
-              url: `/clients/${policy.clientId}/policies/${policy.id}`
-            }
-          );
-        } catch (error) {
-          console.error(`Failed to index policy ${policy.id}:`, error);
-          // Don't block the response, just log the error
-        }
+        // Index for RAG - removed for Core split
 
         return { success: true, version: newVersionStr };
       }),
@@ -406,28 +351,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         }).optional()
       }))
       .mutation(async ({ input }: any) => {
-        const { LLMService } = await import('../../lib/llm/service');
-        const llm = new LLMService();
+        // AI Refinement removed for Core split
+        // const { LLMService } = await import('../../lib/llm/service');
+        // const llm = new LLMService();
+        // ...
 
-        const prompt = `
-You are an expert policy writer for ${input.context?.clientName || 'a company'}${input.context?.industry ? ` in the ${input.context.industry} industry` : ''}.
-Please refine the following policy text based on the user's instruction.
-
-Instruction: "${input.instruction}"
-
-Current Policy Content:
-${input.content}
-
-Return ONLY the updated policy text in Markdown format. Do not include conversational text.
-`;
-
-        const response = await llm.generate({
-          userPrompt: prompt,
-          systemPrompt: "You are a helpful compliance assistant.",
-          temperature: 0.3
-        });
-
-        return { content: response.text };
+        return { content: input.content }; // No-op return
       }),
     gapAnalysis: publicProcedure
       .input(z.object({ clientId: z.number() }))

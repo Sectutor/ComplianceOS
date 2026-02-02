@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -50,6 +50,7 @@ import { TourProvider } from "./TourProvider";
 
 const globalMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Rocket, label: "Client Onboarding", path: "/onboarding" }, // New
   { icon: Users, label: "Clients", path: "/clients" },
   { icon: Shield, label: "Global Control Library", path: "/controls" },
   { icon: FileText, label: "Policy Templates", path: "/policy-templates" },
@@ -73,7 +74,7 @@ const adminMenuItems = [
   { label: "User Invitations", path: "/admin/invitations" },
   { label: "Audit Logs", path: "/admin/audit" },
   { label: "LLM Settings", path: "/admin/llm" },
-  { label: "Integrations Marketplace", path: "/admin/integrations" },
+  // { label: "Integrations Marketplace", path: "/admin/integrations" },
   { label: "Issue Trackers", path: "/admin/issue-tracker" },
   { label: "Billing", path: "/admin/billing" },
   { label: "Waitlist Management", path: "/sales/waitlist" },
@@ -87,14 +88,16 @@ const clientSpecificMenuItems = [
   { icon: Shield, label: "Controls", path: "/client-controls" },
   { icon: FileText, label: "Policies", path: "/client-policies" },
   { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
-  { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires" },
+  { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires", isPremium: true },
   { icon: Link, label: "Mappings", path: "/mappings" },
 
   { icon: ClipboardCheck, label: "Evidence", path: "/evidence" },
   { icon: AlertTriangle, label: "Risk Management", path: "/risks" },
-  { icon: Code, label: "Threat Modeling", path: "/dev/projects" },
+  { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
   { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
-  { icon: Brain, label: "AI Governance", path: "/ai-governance" },
+  { icon: Compass, label: "Compliance Journey", path: "/journey" }, // New
+  { icon: Flag, label: "Discovery Wizard", path: "/readiness/wizard" }, // New
+  { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
 
   {
     icon: Building2, label: "Federal Hub", path: "/federal", submenu: [
@@ -148,6 +151,8 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
   if (purePath === "/implementation") return `/clients/${clientId}/implementation${queryStr}`;
   if (purePath === "/evidence") return `/clients/${clientId}/evidence${queryStr}`;
+  if (purePath === "/journey") return `/clients/${clientId}/journey${queryStr}`; // New
+  if (purePath === "/onboarding") return `/onboarding${queryStr}`; // Global, but good to handle explicitly if needed
   if (purePath === "/gap-analysis") return `/clients/${clientId}/gap-analysis${queryStr}`;
   if (purePath === "/audit-hub") return `/clients/${clientId}/audit-hub${queryStr}`;
   if (purePath === "/reports") return `/clients/${clientId}/reports${queryStr}`;
@@ -164,6 +169,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/cyber') ||
     purePath.startsWith('/ai-governance') ||
     purePath.startsWith('/roadmap') ||
+    purePath.startsWith('/readiness') ||
     purePath.startsWith('/compliance-journey') ||
     purePath.startsWith('/implementation');
 
@@ -510,7 +516,18 @@ function DashboardLayoutContent({
         label: "Compliance Journey",
         items: [
           { icon: Compass, label: "Overview", path: `/clients/${persistentClientId}/compliance-journey` },
-          { icon: Star, label: "Readiness Assessment", path: `/clients/${persistentClientId}/readiness/wizard` },
+          {
+            icon: Star,
+            label: "Discovery & Scoping",
+            path: `/clients/${persistentClientId}/readiness/wizard`,
+            submenu: [
+              { label: "ISO 27001", path: `/clients/${persistentClientId}/readiness/wizard/ISO27001` },
+              { label: "SOC 2", path: `/clients/${persistentClientId}/readiness/wizard/SOC2` },
+              { label: "NIST CSF", path: `/clients/${persistentClientId}/readiness/wizard/NISTCSF` },
+              { label: "HIPAA", path: `/clients/${persistentClientId}/readiness/wizard/HIPAA` },
+              { label: "GDPR", path: `/clients/${persistentClientId}/readiness/wizard/GDPR` },
+            ]
+          },
           { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
           { icon: Briefcase, label: "Audit Preparation", path: "/audit-hub" },
         ]
@@ -559,6 +576,7 @@ function DashboardLayoutContent({
           { icon: AlertTriangle, label: "Threats", path: "/risks/threats" },
           { icon: Bug, label: "Vulnerabilities", path: "/risks/vulnerabilities" },
           { icon: ClipboardCheck, label: "Assessments", path: "/risks/assessments" },
+          { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
           { icon: Compass, label: "Guided Assessment", path: "/risks/guided" },
           { icon: ShieldCheck, label: "Treatment Plan", path: "/risks/treatment-plan" },
           { icon: BookOpen, label: "Alignment Guide", path: "/risks/alignment-guide" },
@@ -587,8 +605,8 @@ function DashboardLayoutContent({
     groups.push({
       label: "AI & App Security",
       items: [
-        { icon: Brain, label: "AI Governance", path: "/ai-governance" },
-        { icon: Code, label: "Threat Modeling", path: "/dev/projects" },
+        { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
+        { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
       ]
     });
 
@@ -614,7 +632,7 @@ function DashboardLayoutContent({
           { icon: LayoutDashboard, label: "Dashboard", path: "/compliance" },
 
           { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
-          { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires" },
+          { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires", isPremium: true },
           { icon: Link, label: "Mappings", path: "/mappings" },
 
         ]
@@ -671,8 +689,7 @@ function DashboardLayoutContent({
           ...(clientInfo?.serviceModel === 'managed' ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: FileBarChart, label: "Reports", path: "/reports" },
-          { icon: Bell, label: "Notifications", path: "/notifications" },
-          { icon: Globe, label: "Trust Center", path: "/trust-center" },
+
         ]
       },
       {

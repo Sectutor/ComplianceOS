@@ -39,7 +39,7 @@ const adminMenuItems = [
     { icon: FileText, label: "Invitations", path: "/admin/invitations" },
     { icon: History, label: "Audit Logs", path: "/admin/audit" },
     { icon: Variable, label: "LLM Settings", path: "/admin/llm" },
-    { icon: CloudCog, label: "Cloud Integrations", path: "/admin/cloud" },
+    // { icon: CloudCog, label: "Cloud Integrations", path: "/admin/cloud" },
     { icon: Bug, label: "Issue Trackers", path: "/admin/issue-tracker" },
     { icon: CreditCard, label: "Billing", path: "/admin/billing" },
     { icon: Users, label: "Waitlist", path: "/sales/waitlist" },

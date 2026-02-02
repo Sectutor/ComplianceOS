@@ -1,5 +1,5 @@
 
-import { llmService } from '../llm/service';
+// import { llmService } from '../llm/service';
 import { getDb } from '../../db';
 import { globalVendors, vendors, vendorChangeLogs } from '../../schema';
 import { eq, ilike, or, and, sql } from 'drizzle-orm';
@@ -188,99 +188,17 @@ export class VRMAgentService {
     /**
      * Analyze a trust center content
      */
+    /**
+     * Analyze a trust center content
+     */
     async analyzeTrustCenter(vendorId: number, url: string): Promise<TrustCenterAnalysis> {
-        const db = await getDb();
-        const vendor = await db.query.vendors.findFirst({
-            where: eq(vendors.id, vendorId)
-        });
-
-        if (!vendor) throw new Error("Vendor not found");
-
-        // Advanced Prompt for GDPR & Subprocessors
-        const prompt = `
-        You are an AI VRM Agent. Analyze the trust posture of the following vendor with a focus on GDPR Article 28 compliance.
-        Vendor: ${vendor.name}
-        Public Trust Center URL: ${url}
-        Website: ${vendor.website}
-
-        Task:
-        1. Identify common security certifications (SOC2, ISO 27001, GDPR, etc.).
-        2. Assign a Trust Posture Score (0-100).
-        3. Identify Likely Subprocessors: Scan for their own list of subprocessors if public.
-        4. DPA Analysis: Look for clauses regarding Liability Caps, Audit Rights, and Breach Notification windows.
-        5. Provide a risk summary focusing on GDPR suitability.
-
-        Return the results in a STRICT JSON format like this:
-        {
-          "score": 85,
-          "docs": [
-            { "name": "SOC 2 Type II Report", "url": "https://...", "type": "SOC2" }
-          ],
-          "gaps": ["No public SOC3", "No mention of breach windows"],
-          "riskSummary": "Vendor maintains a strong security posture...",
-          "subprocessors": [
-            { "name": "AWS", "purpose": "Hosting", "location": "USA" }
-          ],
-          "dpaAnalysis": {
-            "liabilityCap": "12 months fees",
-            "auditRights": "Annual",
-            "breachNoticeWindow": "72 hours"
-          }
-        }
-        `;
-
-        try {
-            const response = await llmService.generate({
-                systemPrompt: "You are a senior security auditor and VRM expert.",
-                userPrompt: prompt,
-                jsonMode: true,
-                feature: 'vrm_analysis'
-            });
-
-            if (!response || !response.text) {
-                throw new Error("Empty response from LLM service");
-            }
-
-            let data: TrustCenterAnalysis;
-            try {
-                const cleanJson = response.text.replace(/```json\n?|\n?```/g, '').trim();
-                data = JSON.parse(cleanJson) as TrustCenterAnalysis;
-            } catch (e) {
-                console.error("Failed to parse LLM response as JSON:", response.text);
-                data = {
-                    score: 50,
-                    docs: [],
-                    gaps: ["Analysis failed: malformed AI response"],
-                    riskSummary: "Automated analysis failed to parse. Please review manually.",
-                    subprocessors: [],
-                    dpaAnalysis: {}
-                };
-            }
-
-            // Update vendor in DB with new fields
-            await db.update(vendors)
-                .set({
-                    trustCenterUrl: url,
-                    trustCenterData: data,
-                    trustScore: data.score,
-                    isSubprocessor: true,
-                    dataLocation: data.subprocessors?.[0]?.location || 'Global',
-                    recursiveSubprocessors: data.subprocessors || [],
-                    dpaAnalysis: data.dpaAnalysis || {},
-                    updatedAt: new Date()
-                })
-                .where(eq(vendors.id, vendorId));
-
-            return data;
-        } catch (error) {
-            console.error("VRM Analysis failed:", error);
-            return {
-                score: 0,
-                docs: [],
-                gaps: ["Analysis failed: " + (error as Error).message],
-                riskSummary: "Analysis could not be completed at this time."
-            };
-        }
+        console.warn("VRM Analysis is a Premium feature.");
+        return {
+            score: 0,
+            docs: [],
+            gaps: ["Premium Feature"],
+            riskSummary: "This feature is available in the Premium edition."
+        };
     }
 
     /**
