@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Progress } from "@complianceos/ui/ui/progress";
+import { Badge } from "@complianceos/ui/ui/badge";
 import {
     Flag,
     ClipboardCheck,
-    Briefcase, // For Audit
+    Briefcase,
     ArrowRight,
     Lock,
-    Unlock,
     CheckCircle2,
     ShieldCheck,
-    AlertCircle
+    Map,
+    Play
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -23,25 +23,27 @@ export default function ComplianceJourneyDashboard() {
     const clientId = parseInt(id || "0");
     const [_location, setLocation] = useLocation();
 
-    // Mock Data for Progressive Disclosure (Phase 1 Shell)
-    const [readinessScore, _setReadinessScore] = useState(100); // Mock score (Unlocked)
-    const [evidenceProgress, setEvidenceProgress] = useState(100); // Mock progress (Unlocked)
-    const auditReady = false;
+    // Mock Data (In a real app, this would come from a query)
+    const [readinessScore, _setReadinessScore] = useState(10);
+    const [evidenceProgress, setEvidenceProgress] = useState(0);
 
-    // Determine Stage Status
-    const isEvidenceUnlocked = readinessScore >= 40; // Example threshold
+    // Unlock Logic
+    const isEvidenceUnlocked = readinessScore >= 40;
     const isAuditUnlocked = readinessScore >= 80 && evidenceProgress >= 80;
 
     const stages = [
         {
             id: 'readiness',
+            level: 1,
             title: "Readiness Assessment",
-            description: "Assess your current security posture against frameworks like SOC 2 or ISO 27001.",
+            subtitle: "Phase 1: Discovery",
+            description: "Identify gaps against frameworks like SOC 2 & ISO 27001.",
             icon: Flag,
             path: `/clients/${clientId}/readiness/wizard`,
-            color: "text-blue-500",
-            bgColor: "bg-blue-50 dark:bg-blue-900/20",
-            borderColor: "border-blue-200 dark:border-blue-800",
+            color: "text-blue-600",
+            bgGradient: "from-blue-50 to-indigo-50",
+            borderColor: "border-blue-200",
+            shadowColor: "shadow-blue-100",
             buttonText: "Start Assessment",
             progress: readinessScore,
             status: readinessScore >= 80 ? 'completed' : 'in-progress',
@@ -49,13 +51,16 @@ export default function ComplianceJourneyDashboard() {
         },
         {
             id: 'evidence',
+            level: 2,
             title: "Evidence Collection",
-            description: "Collect and organize evidence to prove your controls are operating effectively.",
+            subtitle: "Phase 2: Implementation",
+            description: "Connect integrations and upload proof of compliance.",
             icon: ClipboardCheck,
             path: `/clients/${clientId}/evidence`,
-            color: "text-purple-500",
-            bgColor: "bg-purple-50 dark:bg-purple-900/20",
-            borderColor: "border-purple-200 dark:border-purple-800",
+            color: "text-purple-600",
+            bgGradient: "from-purple-50 to-fuchsia-50",
+            borderColor: "border-purple-200",
+            shadowColor: "shadow-purple-100",
             buttonText: "Collect Evidence",
             progress: evidenceProgress,
             status: isEvidenceUnlocked ? 'in-progress' : 'locked',
@@ -63,13 +68,16 @@ export default function ComplianceJourneyDashboard() {
         },
         {
             id: 'audit',
+            level: 3,
             title: "Audit Preparation",
-            description: "Collaborate with auditors, manage request lists (PBC), and finalize your audit.",
+            subtitle: "Phase 3: Certification",
+            description: "Collaborate with auditors in the Audit Room.",
             icon: Briefcase,
             path: `/clients/${clientId}/audit-hub`,
-            color: "text-emerald-500",
-            bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-            borderColor: "border-emerald-200 dark:border-emerald-800",
+            color: "text-emerald-600",
+            bgGradient: "from-emerald-50 to-teal-50",
+            borderColor: "border-emerald-200",
+            shadowColor: "shadow-emerald-100",
             buttonText: "Enter Audit Hub",
             progress: 0,
             status: isAuditUnlocked ? 'ready' : 'locked',
@@ -77,174 +85,175 @@ export default function ComplianceJourneyDashboard() {
         }
     ];
 
-    // Calculate Overall Journey Progress
-    const overallProgress = Math.round((readinessScore + evidenceProgress + (auditReady ? 100 : 0)) / 3);
+    // Calculate overall journey percentage
+    const overallProgress = Math.round((readinessScore * 0.3) + (evidenceProgress * 0.4)); // Weighted example
 
     return (
         <DashboardLayout>
-            <div className="space-y-8 pb-20 px-6 max-w-7xl mx-auto py-8">
-                <Breadcrumb
-                    items={[
-                        { label: "Dashboard", href: "/dashboard" },
-                        { label: "Compliance Journey" },
-                    ]}
-                />
-
-                {/* Header Section */}
-                <div className="space-y-4">
-                    <h1 className="text-3xl font-bold tracking-tight">Your Compliance Journey</h1>
-                    <p className="text-lg text-muted-foreground max-w-3xl">
-                        Follow this step-by-step path to achieve and maintain compliance.
-                        Start with assessing your gaps, then move to collecting evidence, and finally prepare for your audit.
-                    </p>
-                </div>
-
-                {/* Overall Progress */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                            Overall Progress
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center gap-4">
-                            <Progress value={overallProgress} className="h-4 flex-1" />
-                            <span className="font-bold text-lg min-w-[3rem] text-right">{overallProgress}%</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Stages Grid */}
-                <div className="grid md:grid-cols-3 gap-6">
-                    {stages.map((stage, index) => (
-                        <div key={stage.id} className="relative group">
-                            {/* Connector Line (Desktop) */}
-                            {index < stages.length - 1 && (
-                                <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5 bg-gray-200 z-0 transform -translate-y-1/2" />
-                            )}
-
-                            <Card className={cn(
-                                "h-full flex flex-col transition-all duration-300 relative z-10",
-                                stage.locked ? "opacity-70 grayscale" : "hover:shadow-lg border-opacity-100",
-                                stage.locked && "border-dashed"
-                            )}>
-                                <CardHeader className={cn("border-b", stage.bgColor)}>
-                                    <div className="flex justify-between items-start">
-                                        <div className={cn("p-3 rounded-xl bg-white shadow-sm", stage.color)}>
-                                            <stage.icon className="w-6 h-6" />
-                                        </div>
-                                        {stage.locked ? (
-                                            <Lock className="w-5 h-5 text-gray-400" />
-                                        ) : stage.status === 'completed' ? (
-                                            <CheckCircle2 className="w-6 h-6 text-green-500" />
-                                        ) : (
-                                            <div className="px-2 py-1 rounded-full bg-white/50 text-xs font-semibold backdrop-blur-sm">
-                                                Step {index + 1}
-                                            </div>
-                                        )}
+            <div className="min-h-screen bg-slate-50/50 pb-20">
+                {/* Header / Hero */}
+                <div className="bg-white border-b border-slate-200 px-8 py-10">
+                    <div className="max-w-7xl mx-auto">
+                        <Breadcrumb
+                            items={[
+                                { label: "Dashboard", href: "/dashboard" },
+                                { label: "Client Journey" },
+                            ]}
+                            className="mb-6"
+                        />
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                            <div>
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
+                                        <Map className="w-6 h-6" />
                                     </div>
-                                    <CardTitle className="mt-4">{stage.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex-1 flex flex-col pt-6 gap-4">
-                                    <p className="text-muted-foreground text-sm flex-1">
-                                        {stage.description}
-                                    </p>
-
-                                    {!stage.locked && (
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-xs font-medium text-muted-foreground">
-                                                <span>Progress</span>
-                                                <span>{stage.progress}%</span>
-                                            </div>
-                                            <Progress value={stage.progress} className="h-2" />
-                                        </div>
-                                    )}
-
-                                    {stage.locked ? (
-                                        <div className="mt-auto p-3 bg-gray-100 rounded-lg text-xs text-gray-600 flex items-center gap-2">
-                                            <Lock className="w-3 h-3" />
-                                            <span>Complete previous step to unlock</span>
-                                        </div>
-                                    ) : (
-                                        <Button
-                                            onClick={() => setLocation(stage.path)}
-                                            className="w-full mt-auto group-hover:bg-primary/90"
-                                        >
-                                            {stage.buttonText}
-                                            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                                        </Button>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Info / Help Section */}
-                <div className="grid md:grid-cols-2 gap-6 mt-8">
-                    <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100">
-                        <CardContent className="p-6 flex items-start gap-4">
-                            <ShieldCheck className="w-8 h-8 text-indigo-600 mt-1" />
-                            <div>
-                                <h3 className="font-bold text-indigo-900 mb-2">Why this approach?</h3>
-                                <p className="text-indigo-800/80 text-sm leading-relaxed">
-                                    Traditional compliance is chaotic. We've structured the journey into three distinct phases to keep you focused.
-                                    Don't worry about the audit until your evidence is ready. Don't collect evidence until you know what you need.
+                                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Compliance Journey</h1>
+                                </div>
+                                <p className="text-lg text-slate-500 max-w-2xl leading-relaxed">
+                                    Your roadmap to certification. Complete each phase to unlock the next level.
+                                    We've gamified the process to keep it organized and efficient.
                                 </p>
                             </div>
-                        </CardContent>
-                    </Card>
 
-                    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100">
-                        <CardContent className="p-6 flex items-start gap-4">
-                            <AlertCircle className="w-8 h-8 text-amber-600 mt-1" />
-                            <div>
-                                <h3 className="font-bold text-amber-900 mb-2">Need Guidance?</h3>
-                                <p className="text-amber-800/80 text-sm leading-relaxed">
-                                    Our "Compliance Journey" is designed to be self-paced, but expert help is always available.
-                                    Use the "Advisor" chat or book a session if you get stuck on any step.
-                                </p>
+                            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 min-w-[280px]">
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-sm font-medium mb-2">
+                                        <span className="text-slate-700">Total Progress</span>
+                                        <span className="text-indigo-600 font-bold">{overallProgress}%</span>
+                                    </div>
+                                    <Progress value={overallProgress} className="h-3" />
+                                </div>
+                                <ShieldCheck className="w-8 h-8 text-slate-300" />
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* DEV TOOLS (Temporary for Testing) */}
-                <div className="mt-12 p-6 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Construction Zone: Test Logic</h3>
-                    <div className="flex gap-8">
-                        <div className="flex-1 space-y-4">
-                            <div className="flex justify-between text-sm">
-                                <span>Readiness Score (Unlock Evidence @ 40%)</span>
-                                <span className="font-bold">{readinessScore}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={readinessScore}
-                                onChange={(e) => _setReadinessScore(parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                            />
-                        </div>
-                        <div className="flex-1 space-y-4">
-                            <div className="flex justify-between text-sm">
-                                <span>Evidence Progress (Unlock Audit @ 80%)</span>
-                                <span className="font-bold">{evidenceProgress}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={evidenceProgress}
-                                onChange={(e) => setEvidenceProgress(parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                            />
                         </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-4">
-                        * Move the slider to &gt; 80% to see the "Audit Preparation" card unlock.
-                    </p>
+                </div>
+
+                <div className="max-w-7xl mx-auto px-8 py-12">
+                    {/* Journey Map */}
+                    <div className="relative">
+                        {/* Connecting Line (Behind cards) */}
+                        <div className="hidden lg:block absolute top-[140px] left-0 w-full h-1 bg-gradient-to-r from-blue-200 via-purple-200 to-emerald-200 -z-0 rounded-full opacity-50" />
+
+                        <div className="grid lg:grid-cols-3 gap-8">
+                            {stages.map((stage, index) => {
+                                const isLocked = stage.locked;
+                                const isCompleted = stage.status === 'completed';
+
+                                return (
+                                    <div key={stage.id} className="relative group z-10">
+                                        {/* Level Badge */}
+                                        <div className={cn(
+                                            "absolute -top-3 left-8 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-sm z-20 transition-all",
+                                            isLocked ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-slate-800 border-slate-200 group-hover:border-indigo-200 group-hover:scale-105"
+                                        )}>
+                                            Level {stage.level}
+                                        </div>
+
+                                        <div className={cn(
+                                            "h-full flex flex-col p-1 rounded-2xl transition-all duration-500",
+                                            isLocked ? "bg-slate-100" : `bg-gradient-to-br ${stage.bgGradient} hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1`
+                                        )}>
+                                            <div className="h-full bg-white/60 backdrop-blur-sm border border-white/50 rounded-xl p-6 flex flex-col">
+
+                                                {/* Header Icon Area */}
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div className={cn(
+                                                        "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm border border-white transition-transform group-hover:rotate-3",
+                                                        isLocked ? "bg-slate-100 text-slate-400" : `bg-white ${stage.color}`
+                                                    )}>
+                                                        <stage.icon className="w-7 h-7" />
+                                                    </div>
+
+                                                    {isCompleted ? (
+                                                        <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 gap-1 pl-1 pr-2">
+                                                            <CheckCircle2 className="w-3.5 h-3.5" /> Completed
+                                                        </Badge>
+                                                    ) : isLocked ? (
+                                                        <div className="bg-slate-100 p-2 rounded-full">
+                                                            <Lock className="w-4 h-4 text-slate-400" />
+                                                        </div>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200 animate-pulse">
+                                                            Active
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* Text Content */}
+                                                <div className="mb-6">
+                                                    <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-1", isLocked ? "text-slate-400" : "text-slate-500")}>
+                                                        {stage.subtitle}
+                                                    </h3>
+                                                    <h2 className={cn("text-xl font-bold mb-3", isLocked ? "text-slate-400" : "text-slate-900")}>
+                                                        {stage.title}
+                                                    </h2>
+                                                    <p className={cn("text-sm leading-relaxed", isLocked ? "text-slate-400" : "text-slate-600")}>
+                                                        {stage.description}
+                                                    </p>
+                                                </div>
+
+                                                {/* Progress & Action */}
+                                                <div className="mt-auto space-y-4">
+                                                    {!isLocked && (
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between text-xs font-medium text-slate-600">
+                                                                <span>Progress</span>
+                                                                <span>{stage.progress}%</span>
+                                                            </div>
+                                                            <Progress value={stage.progress} className="h-2" />
+                                                        </div>
+                                                    )}
+
+                                                    {isLocked ? (
+                                                        <Button disabled className="w-full bg-slate-100 text-slate-400 border border-slate-200">
+                                                            <Lock className="w-4 h-4 mr-2" /> Locked
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            onClick={() => setLocation(stage.path)}
+                                                            className={cn(
+                                                                "w-full transition-all group-hover:scale-[1.02]",
+                                                                isCompleted ? "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
+                                                            )}
+                                                        >
+                                                            {stage.buttonText}
+                                                            {!isCompleted && <Play className="w-4 h-4 ml-2 fill-current" />}
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Footer Info */}
+                    <div className="mt-16 grid md:grid-cols-3 gap-6 opacity-80">
+                        <div className="p-4 border border-dashed border-slate-300 rounded-xl flex gap-4 items-start">
+                            <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">1</div>
+                            <div>
+                                <h4 className="font-bold text-sm text-slate-900">Linear Progression</h4>
+                                <p className="text-xs text-slate-500 mt-1">Completing one phase unlocks the next, preventing context switching.</p>
+                            </div>
+                        </div>
+                        <div className="p-4 border border-dashed border-slate-300 rounded-xl flex gap-4 items-start">
+                            <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">2</div>
+                            <div>
+                                <h4 className="font-bold text-sm text-slate-900">Evidence Gating</h4>
+                                <p className="text-xs text-slate-500 mt-1">Evidence collection only starts after you define your controls.</p>
+                            </div>
+                        </div>
+                        <div className="p-4 border border-dashed border-slate-300 rounded-xl flex gap-4 items-start">
+                            <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">3</div>
+                            <div>
+                                <h4 className="font-bold text-sm text-slate-900">Audit Ready</h4>
+                                <p className="text-xs text-slate-500 mt-1">The Audit Hub opens only when you are 80% ready, saving auditor fees.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </DashboardLayout>

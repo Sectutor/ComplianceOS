@@ -17,10 +17,12 @@ import {
     vendorDpas,
     dpaTemplates
 } from "../../schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
+import * as dbHelpers from "../../db";
+import * as threatIntel from "../../lib/threatIntelligence";
 
-export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any) => {
+export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any) => {
     return t.router({
         // Template Management
         createTemplate: clientProcedure
@@ -302,37 +304,15 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return { success: true };
             }),
 
-        // --- Standard CRUD Procedures (Moved from routers.ts) ---
-        list: publicProcedure
+        // Assessment Requests
+        listAssessments: publicProcedure
             .input(z.object({ vendorId: z.number() }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 return db.select().from(vendorAssessments).where(eq(vendorAssessments.vendorId, input.vendorId));
             }),
 
-        listAll: publicProcedure
-            .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }) => {
-                const db = await getDb();
-                const results = await db.select({
-                    id: vendorAssessments.id,
-                    vendorId: vendorAssessments.vendorId,
-                    vendorName: vendors.name,
-                    vendorCriticality: vendors.criticality,
-                    type: vendorAssessments.type,
-                    status: vendorAssessments.status,
-                    dueDate: vendorAssessments.dueDate,
-                    completedDate: vendorAssessments.completedDate,
-                    score: vendorAssessments.score,
-                })
-                    .from(vendorAssessments)
-                    .innerJoin(vendors, eq(vendorAssessments.vendorId, vendors.id))
-                    .where(eq(vendors.clientId, input.clientId));
-
-                return results;
-            }),
-
-        create: clientProcedure
+        createAssessment: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 vendorId: z.number(),
@@ -356,7 +336,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return assessment;
             }),
 
-        update: clientProcedure
+        updateAssessment: clientProcedure
             .input(z.object({
                 id: z.number(),
                 status: z.string().optional(),
@@ -384,7 +364,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
         // Vendor Management Endpoints
         get: clientProcedure
             .input(z.object({ id: z.number() }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 const [vendor] = await db.select().from(vendors).where(eq(vendors.id, input.id));
                 return vendor || null;
@@ -392,7 +372,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
 
         getLatestScan: clientProcedure
             .input(z.object({ vendorId: z.number() }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
 
                 // Get ALL scans for this vendor, sorted by date descending
@@ -424,7 +404,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
 
         getScanVulnerabilities: clientProcedure
             .input(z.object({ scanId: z.number() }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 return db.select().from(vendorCveMatches)
                     .where(eq(vendorCveMatches.scanId, input.scanId))
@@ -434,7 +414,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
         // Vendor Contact Management
         listContacts: clientProcedure
             .input(z.object({ vendorId: z.number() }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 return db.select().from(vendorContacts).where(eq(vendorContacts.vendorId, input.vendorId));
             }),
@@ -442,7 +422,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
         // Vendor Contract Management  
         listContracts: clientProcedure
             .input(z.object({ vendorId: z.number() }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 return db.select().from(vendorContracts).where(eq(vendorContracts.vendorId, input.vendorId));
             }),
@@ -453,7 +433,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 vendorId: z.number(),
                 clientId: z.number()
             }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 return db.select()
                     .from(vendorDpas)
@@ -464,14 +444,6 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                     .orderBy(desc(vendorDpas.createdAt));
             }),
 
-        // Vendor Assessment Template Management
-        listTemplates: clientProcedure
-            .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }) => {
-                const db = await getDb();
-                return db.select().from(vendorAssessmentTemplates)
-                    .where(eq(vendorAssessmentTemplates.clientId, input.clientId));
-            }),
 
         // DPA Template Management
         listDpaTemplates: clientProcedure
@@ -487,7 +459,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 vendorId: z.number(),
                 clientId: z.number()
             }))
-            .query(async ({ input }) => {
+            .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
 
                 // Get vendor basic info
@@ -578,7 +550,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 role: z.string().optional(),
                 isPrimary: z.boolean().optional()
             }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 const [contact] = await db.insert(vendorContacts).values(input).returning();
                 return contact;
@@ -593,7 +565,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 role: z.string().optional(),
                 isPrimary: z.boolean().optional()
             }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 const { id, ...data } = input;
                 const [contact] = await db.update(vendorContacts).set(data).where(eq(vendorContacts.id, id)).returning();
@@ -602,17 +574,219 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
 
         deleteContact: clientProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 await db.delete(vendorContacts).where(eq(vendorContacts.id, input.id));
                 return { success: true };
             }),
 
+        list: clientProcedure
+            .input(z.object({
+                clientId: z.number().optional(),
+                status: z.string().optional(),
+                reviewStatus: z.string().optional()
+            }))
+            .query(async ({ input, ctx }: any) => {
+                const clientId = input.clientId || ctx.clientId;
+                if (!clientId) throw new Error("Client ID required");
+                return dbHelpers.getVendors(clientId, { status: input.status, reviewStatus: input.reviewStatus });
+            }),
+
         listVendors: clientProcedure
-            .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }) => {
+            .input(z.object({
+                clientId: z.number().optional()
+            }))
+            .query(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const clientId = input.clientId || ctx.clientId;
+                if (!clientId) throw new Error("Client ID required");
                 const db = await getDb();
-                return db.select().from(vendors).where(eq(vendors.clientId, input.clientId));
+                return db.select().from(vendors).where(eq(vendors.clientId, clientId));
+            }),
+
+        create: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                name: z.string(),
+                description: z.string().optional(),
+                website: z.string().optional(),
+                criticality: z.string().optional(),
+                dataAccess: z.string().optional(),
+                ownerId: z.number().optional(),
+                securityOwnerId: z.number().optional(),
+                category: z.string().optional(),
+                source: z.string().optional(),
+                status: z.string().optional(),
+                reviewStatus: z.string().optional(),
+                serviceDescription: z.string().optional(),
+                additionalNotes: z.string().optional(),
+                isSubprocessor: z.boolean().optional(),
+                usesAi: z.boolean().optional(),
+                isAiService: z.boolean().optional(),
+                aiDataUsage: z.string().optional(),
+                additionalDocuments: z.array(z.object({ name: z.string(), url: z.string(), date: z.string().optional() })).optional(),
+            }))
+            .mutation(async ({ input }: { input: any }) => {
+                const newVendor = await dbHelpers.createVendor({
+                    ...input,
+                    status: input.status || 'Active',
+                    reviewStatus: input.reviewStatus || 'needs_review',
+                });
+
+                // Indexing
+                try {
+                    const { IndexingService } = await import('../../lib/advisor/indexing');
+                    await IndexingService.indexDocument(input.clientId, 'vendor', newVendor.id.toString(), {
+                        title: newVendor.name,
+                        content: `Vendor: ${newVendor.name}\nDescription: ${newVendor.description}`,
+                    }, { title: newVendor.name });
+                } catch (e) { console.error("Indexing failed", e); }
+
+                return newVendor;
+            }),
+
+        update: adminProcedure
+            .input(z.object({
+                id: z.number(),
+                name: z.string().optional(),
+                description: z.string().optional(),
+                website: z.string().optional(),
+                criticality: z.string().optional(),
+                dataAccess: z.string().optional(),
+                status: z.string().optional(),
+                ownerId: z.number().optional(),
+                securityOwnerId: z.number().optional(),
+                category: z.string().optional(),
+                source: z.string().optional(),
+                reviewStatus: z.string().optional(),
+            }))
+            .mutation(async ({ input }: { input: any }) => {
+                const { id, ...data } = input;
+                await dbHelpers.updateVendor(id, data);
+                return dbHelpers.getVendorById(id);
+            }),
+
+        delete: adminProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input }) => {
+                await dbHelpers.deleteVendor(input.id);
+                return { success: true };
+            }),
+
+        getStats: premiumClientProcedure
+            .input(z.object({ clientId: z.number().optional() }))
+            .query(async ({ input, ctx }: any) => {
+                const clientId = input.clientId || ctx.clientId;
+                if (!clientId) throw new Error("Client ID required");
+                return dbHelpers.getVendorStats(clientId);
+            }),
+
+        discoverTrustCenter: clientProcedure
+            .input(z.object({ vendorId: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                const vendor = await db.query.vendors.findFirst({ where: eq(vendors.id, input.vendorId) });
+                if (!vendor) throw new Error("Vendor not found");
+
+                const { vrmAgent } = await import('../../lib/ai/vrm-agent');
+                const url = await vrmAgent.discoverTrustCenter(vendor.name, vendor.website || undefined);
+
+                if (url) {
+                    await db.update(vendors).set({ trustCenterUrl: url }).where(eq(vendors.id, input.vendorId));
+                    // Background analysis
+                    (async () => {
+                        try {
+                            await vrmAgent.analyzeTrustCenter(vendor.id, url);
+                        } catch (e) {
+                            console.error("Background analysis failed:", e);
+                        }
+                    })();
+                }
+                return { url };
+            }),
+
+        runRiskScan: clientProcedure
+            .input(z.object({ vendorId: z.number(), clientId: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                const vendor = await db.query.vendors.findFirst({
+                    where: eq(vendors.id, input.vendorId)
+                });
+
+                if (!vendor) throw new Error("Vendor not found");
+
+                const nvdResults = await threatIntel.searchNvdByKeyword(vendor.name, 20);
+                const vulnerabilities = nvdResults?.vulnerabilities || [];
+
+                let cveScore = 0;
+                const cveMatches: any[] = [];
+
+                for (const v of vulnerabilities) {
+                    const cve = v.cve;
+                    const score = parseFloat(cve.metrics?.cvssMetricV31?.[0]?.cvssData.baseScore?.toString() || "0");
+
+                    cveMatches.push({
+                        vendorId: input.vendorId,
+                        cveId: cve.id,
+                        matchScore: 80,
+                        matchReason: `Keyword match: ${vendor.name}`,
+                        status: 'Active',
+                        description: cve.descriptions?.[0]?.value?.substring(0, 255) || "No description available",
+                        cvssScore: score.toFixed(1)
+                    });
+
+                    if (score > 9) cveScore += 10;
+                    else if (score > 7) cveScore += 5;
+                    else if (score > 4) cveScore += 2;
+                }
+
+                const foundBreaches = await threatIntel.simulateBreachSearch(vendor.name, vendor.website || undefined);
+                let breachScore = 0;
+                for (const breach of foundBreaches) {
+                    if (breach.riskScore > 80) breachScore += 15;
+                    else if (breach.riskScore > 50) breachScore += 8;
+                    else breachScore += 4;
+                }
+
+                let totalRiskScore = 100 - cveScore - breachScore;
+                if (totalRiskScore < 0) totalRiskScore = 0;
+
+                const [scan] = await db.insert(vendorScans).values({
+                    clientId: input.clientId,
+                    vendorId: input.vendorId,
+                    riskScore: totalRiskScore,
+                    vulnerabilityCount: vulnerabilities.length,
+                    breachCount: foundBreaches.length,
+                    status: "Completed",
+                    scanDate: new Date(),
+                }).returning();
+
+                if (foundBreaches.length > 0) {
+                    for (const breach of foundBreaches) {
+                        await db.insert(vendorBreaches).values({
+                            vendorId: input.vendorId,
+                            title: breach.title,
+                            description: breach.description,
+                            breachDate: breach.breachDate,
+                            affectedCount: breach.recordCount,
+                            dataClasses: breach.dataClasses,
+                            riskScore: breach.riskScore,
+                            source: breach.source,
+                            isVerified: breach.isVerified,
+                            status: 'Active'
+                        }).onConflictDoNothing();
+                    }
+                }
+
+                if (cveMatches.length > 0) {
+                    for (const match of cveMatches.slice(0, 10)) {
+                        await db.insert(vendorCveMatches).values({
+                            ...match,
+                            scanId: scan.id
+                        }).onConflictDoNothing();
+                    }
+                }
+
+                return scan;
             }),
 
         // Vendor Contract Mutations
@@ -631,7 +805,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 noticePeriod: z.string().optional(),
                 paymentTerms: z.string().optional(),
             }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 const { startDate, endDate, ...rest } = input;
                 const [contract] = await db.insert(vendorContracts).values({
@@ -656,7 +830,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 noticePeriod: z.string().optional(),
                 paymentTerms: z.string().optional(),
             }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 const { id, startDate, endDate, ...updateData } = input;
                 const [contract] = await db.update(vendorContracts).set({
@@ -669,7 +843,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
 
         deleteContract: clientProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 await db.delete(vendorContracts).where(eq(vendorContracts.id, input.id));
                 return { success: true };
@@ -684,7 +858,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 name: z.string(),
                 content: z.string().optional()
             }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 const [dpa] = await db.insert(vendorDpas).values({
                     clientId: input.clientId,
@@ -699,7 +873,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
 
         deleteDpa: clientProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();
                 await db.delete(vendorDpas).where(eq(vendorDpas.id, input.id));
                 return { success: true };

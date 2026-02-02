@@ -14,12 +14,18 @@ import { aiRouter } from './packages/core/src/server/routers/ai';
 export const app = express();
 const port = process.env.PORT || 3002;
 // Force restart
-console.log('[Server] Initializing...');
+console.log('[Server] Initializing... Last update: 2026-02-02 17:05');
 
 console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(`- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
 
+
+// Add request logging for all /api routes BEFORE anything else
+app.use('/api', (req, res, next) => {
+    console.log(`[API Request] ${req.method} ${req.url}`);
+    next();
+});
 
 // Configure CORS
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
@@ -50,8 +56,9 @@ app.use(authMiddleware);
 
 // Health Check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date() });
+    res.json({ status: 'ok', timestamp: new Date(), update: '2026-02-02 17:15' });
 });
+
 
 // Production Diagnostics Endpoint
 app.get('/api/debug/connection', async (req, res) => {
@@ -164,11 +171,6 @@ app.use(
     })
 );
 
-// Add request logging for all /api routes
-app.use('/api', (req, res, next) => {
-    console.log(`[API] ${req.method} ${req.url}`);
-    next();
-});
 
 // Only listen locally, Netlify calls the handler directly
 if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {

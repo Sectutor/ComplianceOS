@@ -17,7 +17,7 @@ import {
 import {
     ArrowLeft, ArrowRight, Save, Trash2, Loader2, AlertTriangle, Plus,
     ShieldAlert, Sparkles, Box, Search, ListChecks, CheckCircle2,
-    ShieldCheck, Activity, Server, Database, Globe, Network, Lock, Unlock, X, User, Cylinder, Download, Upload
+    ShieldCheck, Activity, Server, Database, Globe, Network, Lock, Unlock, X, User, Cylinder, Download, Upload, Target
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -78,7 +78,7 @@ const WorkflowDiagram = ({ currentStep }: { currentStep: number }) => {
     );
 };
 
-const ThreatModelWizard = () => {
+export function ThreatModelWizard() {
     const { selectedClientId } = useClientContext();
     const params = useParams();
     const [location, setLocation] = useLocation();
@@ -140,18 +140,29 @@ const ThreatModelWizard = () => {
         }
     };
 
-    // HANDLERS
     React.useEffect(() => {
         if (existingModel) {
             setModelBasic({
                 name: existingModel.name,
                 methodology: existingModel.methodology
             });
+
+            // Populate generated risks from backend if available and not yet loaded
+            if (existingModel.risks && existingModel.risks.length > 0 && generatedRisks.length === 0) {
+                setGeneratedRisks(existingModel.risks.map((r: any) => ({
+                    ...r,
+                    selected: true,
+                    likelihood: r.likelihood || 3,
+                    impact: r.impact || 3,
+                    selectedMitigations: r.mitigations || []
+                })));
+            }
+
             if (archSubstep === 1) {
                 setArchSubstep(2);
             }
         }
-    }, [existingModel]);
+    }, [existingModel, generatedRisks.length, archSubstep]);
 
     const handleCreateBasic = async () => {
         if (!clientId || !projectId) return;
@@ -915,4 +926,4 @@ const ThreatModelWizard = () => {
     );
 };
 
-export default ThreatModelWizard;
+

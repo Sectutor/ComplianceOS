@@ -199,7 +199,7 @@ export default function AuditHub() {
         }
     });
 
-    const deleteFileMutation = trpc.evidenceFiles.delete.useMutation({
+    const fileDeleteMutation = trpc.evidenceFiles.delete.useMutation({
         onSuccess: () => {
             toast.success("File removed successfully");
             refetchFiles();
@@ -990,9 +990,9 @@ export default function AuditHub() {
                                                                                     size="sm"
                                                                                     className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
                                                                                     onClick={() => setFileToDelete(file)}
-                                                                                    disabled={deleteFileMutation.isLoading}
+                                                                                    disabled={fileDeleteMutation.isLoading}
                                                                                 >
-                                                                                    {deleteFileMutation.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                                                    {fileDeleteMutation.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                                                                 </Button>
                                                                             </TableCell>
                                                                         </TableRow>
@@ -1292,12 +1292,12 @@ export default function AuditHub() {
                             className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
                             onClick={() => {
                                 if (fileToDelete) {
-                                    deleteFileMutation.mutate({ id: fileToDelete.id });
+                                    fileDeleteMutation.mutate({ id: fileToDelete.id });
                                     setFileToDelete(null);
                                 }
                             }}
                         >
-                            {deleteFileMutation.isLoading ? "Deleting..." : "Delete"}
+                            {fileDeleteMutation.isLoading ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -1,41 +1,91 @@
-
 import React from "react";
 import { RadioGroup, RadioGroupItem } from "@complianceos/ui/ui/radio-group";
 import { Label } from "@complianceos/ui/ui/label";
-import { Card } from "@complianceos/ui/ui/card";
-import { Check } from "lucide-react";
+import { Check, Target, Gauge, Flag, Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function WizardStep5_Expectations({ data, onChange }: { data: any, onChange: (d: any) => void }) {
+interface WizardStepProps {
+    data: any;
+    onChange: (d: any) => void;
+}
+
+export function WizardStep5_Expectations({ data, onChange }: WizardStepProps) {
     return (
-        <div className="space-y-6">
-            <p className="text-sm text-neutral-500">What is your primary goal for this readiness assessment?</p>
+        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 fade-in">
+            <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center p-3 bg-indigo-50 text-indigo-600 rounded-full mb-4">
+                    <Target className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">What is your primary goal?</h3>
+                <p className="text-slate-500 mt-2 max-w-lg mx-auto">This helps us calibrate the strictness of our recommendations.</p>
+            </div>
 
             <RadioGroup
                 value={data?.goal || "gap_scan"}
                 onValueChange={(val) => onChange({ ...data, goal: val })}
                 className="grid gap-4"
             >
-                <Card className={`p-4 border-2 cursor-pointer transition-all ${data?.goal === "gap_scan" ? "border-primary bg-primary/5" : "border-neutral-200 hover:border-neutral-300"}`}>
-                    <div className="flex items-start space-x-3">
-                        <RadioGroupItem value="gap_scan" id="gap_scan" className="mt-1" />
-                        <div className="grid gap-1.5 flex-1">
-                            <Label htmlFor="gap_scan" className="font-semibold text-lg cursor-pointer">Gap Scan Only</Label>
-                            <p className="text-sm text-neutral-500">"We just want to know where we stand." - Quick identification of major missing controls.</p>
-                        </div>
-                        {data?.goal === "gap_scan" && <Check className="h-5 w-5 text-primary" />}
+                <label
+                    className={cn(
+                        "relative flex items-start gap-4 p-6 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md",
+                        data?.goal === "gap_scan"
+                            ? "border-indigo-600 bg-indigo-50/30 ring-1 ring-indigo-600/20"
+                            : "border-slate-200 bg-white hover:border-indigo-200"
+                    )}
+                >
+                    <div className={cn(
+                        "p-3 rounded-lg shrink-0 transition-colors",
+                        data?.goal === "gap_scan" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"
+                    )}>
+                        <Gauge className="h-6 w-6" />
                     </div>
-                </Card>
 
-                <Card className={`p-4 border-2 cursor-pointer transition-all ${data?.goal === "audit_ready" ? "border-primary bg-primary/5" : "border-neutral-200 hover:border-neutral-300"}`}>
-                    <div className="flex items-start space-x-3">
-                        <RadioGroupItem value="audit_ready" id="audit_ready" className="mt-1" />
-                        <div className="grid gap-1.5 flex-1">
-                            <Label htmlFor="audit_ready" className="font-semibold text-lg cursor-pointer">Audit Ready (6 Months)</Label>
-                            <p className="text-sm text-neutral-500">"We want to pass an audit." - Detailed roadmap, remediation planning, and evidence collection.</p>
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                            <Label className="text-lg font-bold text-slate-900 cursor-pointer">Gap Scan Only</Label>
+                            {data?.goal === "gap_scan" && <Check className="h-5 w-5 text-indigo-600" />}
                         </div>
-                        {data?.goal === "audit_ready" && <Check className="h-5 w-5 text-primary" />}
+                        <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                            "We just want to know where we stand."
+                        </p>
+                        <ul className="text-xs text-slate-600 space-y-1">
+                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400" />Quick identification of missing controls</li>
+                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400" />No evidence collection required</li>
+                        </ul>
                     </div>
-                </Card>
+                    <RadioGroupItem value="gap_scan" id="gap_scan" className="sr-only" />
+                </label>
+
+                <label
+                    className={cn(
+                        "relative flex items-start gap-4 p-6 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md",
+                        data?.goal === "audit_ready"
+                            ? "border-indigo-600 bg-indigo-50/30 ring-1 ring-indigo-600/20"
+                            : "border-slate-200 bg-white hover:border-indigo-200"
+                    )}
+                >
+                    <div className={cn(
+                        "p-3 rounded-lg shrink-0 transition-colors",
+                        data?.goal === "audit_ready" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"
+                    )}>
+                        <Trophy className="h-6 w-6" />
+                    </div>
+
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                            <Label className="text-lg font-bold text-slate-900 cursor-pointer">Audit Ready (6 Months)</Label>
+                            {data?.goal === "audit_ready" && <Check className="h-5 w-5 text-indigo-600" />}
+                        </div>
+                        <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                            "We want to pass an audit."
+                        </p>
+                        <ul className="text-xs text-slate-600 space-y-1">
+                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400" />Detailed remediation roadmap</li>
+                            <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-slate-400" />Full evidence collection & review</li>
+                        </ul>
+                    </div>
+                    <RadioGroupItem value="audit_ready" id="audit_ready" className="sr-only" />
+                </label>
             </RadioGroup>
         </div>
     );

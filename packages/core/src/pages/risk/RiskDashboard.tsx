@@ -245,13 +245,27 @@ export default function RiskDashboard() {
                     <KRITrendCards clientId={clientId} />
                 </div>
 
-                {/* Gap Analysis Section - Removed per user request */}
-                {/* 
-                <div className="space-y-4">
-                    <button ... > ... </button>
-                    ...
-                </div> 
-                */}
+                {/* Gap Analysis Section */}
+                <Card className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white border-none shadow-lg mb-6">
+                    <CardContent className="p-6 flex items-center justify-between">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-blue-300" />
+                                <h3 className="text-xl font-bold">Gap Analysis</h3>
+                            </div>
+                            <p className="text-blue-100 max-w-2xl">
+                                Conduct comprehensive gap assessments against major security frameworks like ISO 27001, SOC 2, HIPAA, and NIST. Identify missing controls and track remediation.
+                            </p>
+                        </div>
+                        <Button 
+                            onClick={() => setLocation(`/clients/${clientId}/gap-analysis`)}
+                            className="bg-white text-blue-900 hover:bg-blue-50"
+                        >
+                            Open Gap Analysis
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 {/* Visualizations Section */}
                 <div className="space-y-4">

@@ -173,7 +173,17 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                 const components = await db.select().from(threatModelComponents).where(eq(threatModelComponents.threatModelId, input.id));
                 const flows = await db.select().from(threatModelDataFlows).where(eq(threatModelDataFlows.threatModelId, input.id));
 
-                return { ...model, components, flows };
+                // Fetch identified risks and their mitigations
+                const risks = await db.select().from(riskScenarios).where(eq(riskScenarios.threatModelId, input.id));
+                const risksWithMitigations = await Promise.all(risks.map(async (risk) => {
+                    const treatments = await db.select().from(riskTreatments).where(eq(riskTreatments.riskScenarioId, risk.id));
+                    return {
+                        ...risk,
+                        mitigations: treatments.map(t => t.strategy).filter(Boolean) as string[]
+                    };
+                }));
+
+                return { ...model, components, flows, risks: risksWithMitigations };
             }),
 
         addComponent: clientProcedure

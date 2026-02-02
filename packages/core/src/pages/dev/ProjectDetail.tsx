@@ -40,7 +40,7 @@ export const ProjectDetail = () => {
         console.error("[ProjectDetail] TRPC Error:", error);
     }
 
-    const [activeTab, setActiveTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState("threat-models");
 
     // Fetch Risks & Treatments
     const { data: risks, refetch: refetchRisks } = trpc.devProjects.getRisks.useQuery(
@@ -151,36 +151,13 @@ export const ProjectDetail = () => {
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="bg-transparent border-b rounded-none w-full justify-start h-auto p-0 mb-6">
-                        <TabsTrigger value="overview" className="border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-4 py-2">Overview</TabsTrigger>
+
                         <TabsTrigger value="threat-models" className="border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-4 py-2">Threat Models</TabsTrigger>
                         <TabsTrigger value="risks" className="border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-4 py-2">Risk Register</TabsTrigger>
                         <TabsTrigger value="mitigations" className="border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-4 py-2">Mitigations</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="overview" className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-sm font-medium text-slate-500">Tech Stack</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2">
-                                        {project.techStack?.map((t: string) => <Badge key={t} variant="secondary">{t}</Badge>)}
-                                        {(!project.techStack || project.techStack.length === 0) && <span className="text-slate-400 italic text-sm">No tech stack defined</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-sm font-medium text-slate-500">Threat Models</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{project.threatModels?.length || 0}</div>
-                                    <p className="text-xs text-slate-500 mt-1">Active models</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </TabsContent>
+
 
                     <TabsContent value="threat-models">
                         <div className="space-y-6">
@@ -256,8 +233,8 @@ export const ProjectDetail = () => {
                                                 <TableCell className="text-center">
                                                     {risk.likelihood ? (
                                                         <div className={`inline-flex items-center justify-center w-8 h-8 rounded-md text-white font-bold text-sm shadow-sm ${Number(risk.likelihood) >= 5 ? 'bg-red-600' :
-                                                                Number(risk.likelihood) >= 4 ? 'bg-orange-500' :
-                                                                    Number(risk.likelihood) >= 3 ? 'bg-amber-500' : 'bg-emerald-600'
+                                                            Number(risk.likelihood) >= 4 ? 'bg-orange-500' :
+                                                                Number(risk.likelihood) >= 3 ? 'bg-amber-500' : 'bg-emerald-600'
                                                             }`}>
                                                             {risk.likelihood}
                                                         </div>
@@ -266,8 +243,8 @@ export const ProjectDetail = () => {
                                                 <TableCell className="text-center">
                                                     {risk.impact ? (
                                                         <div className={`inline-flex items-center justify-center w-8 h-8 rounded-md text-white font-bold text-sm shadow-sm ${Number(risk.impact) >= 5 ? 'bg-red-600' :
-                                                                Number(risk.impact) >= 4 ? 'bg-orange-500' :
-                                                                    Number(risk.impact) >= 3 ? 'bg-amber-500' : 'bg-emerald-600'
+                                                            Number(risk.impact) >= 4 ? 'bg-orange-500' :
+                                                                Number(risk.impact) >= 3 ? 'bg-amber-500' : 'bg-emerald-600'
                                                             }`}>
                                                             {risk.impact}
                                                         </div>
