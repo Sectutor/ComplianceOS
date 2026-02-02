@@ -163,9 +163,8 @@ export default function EvidenceIntakeBox() {
         });
     };
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !clientId) return;
+    const processFile = (file: File) => {
+        if (!clientId) return;
 
         const reader = new FileReader();
         reader.onload = async (event) => {
@@ -208,6 +207,18 @@ export default function EvidenceIntakeBox() {
         reader.readAsDataURL(file);
     };
 
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) processFile(file);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) processFile(file);
+    };
+
     const triggerUpload = () => {
         document.getElementById("file-upload")?.click();
     };
@@ -247,7 +258,7 @@ export default function EvidenceIntakeBox() {
                     className={`border-2 border-dashed transition-all cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 ${isDragging ? "border-indigo-500 bg-indigo-50" : "border-slate-200"}`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDragging(false); triggerUpload(); }}
+                    onDrop={handleDrop}
                     onClick={triggerUpload}
                 >
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
