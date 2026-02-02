@@ -411,7 +411,7 @@ export default function Controls() {
               { label: "Frameworks", href: "/frameworks" },
               { label: `${frameworkParam} Controls` }
             ] : [
-              { label: "Control Library" }
+              { label: "Global Control Library" }
             ]}
           />
         </div>
@@ -419,7 +419,7 @@ export default function Controls() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              {frameworkParam ? `${frameworkParam} Controls` : "Control Library"}
+              {frameworkParam ? `${frameworkParam} Controls` : "Global Control Library"}
             </h1>
             <p className="text-muted-foreground mt-1">
               {frameworkParam

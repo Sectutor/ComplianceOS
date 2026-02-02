@@ -51,7 +51,7 @@ import { TourProvider } from "./TourProvider";
 const globalMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Users, label: "Clients", path: "/clients" },
-  { icon: Shield, label: "Control Library", path: "/controls" },
+  { icon: Shield, label: "Global Control Library", path: "/controls" },
   { icon: FileText, label: "Policy Templates", path: "/policy-templates" },
   { icon: Scale, label: "Compliance Obligations", path: "/compliance-obligations" },
   { icon: Target, label: "Strategic Roadmaps", path: "/roadmap" },
@@ -490,7 +490,7 @@ function DashboardLayoutContent({
     {
       label: "Libraries & Knowledge",
       items: [
-        { icon: Shield, label: "Control Library", path: "/controls" },
+        { icon: Shield, label: "Global Control Library", path: "/controls" },
         { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
         { icon: LayoutGrid, label: "Frameworks Library", path: "/frameworks" },
         learningZoneMenuItem
