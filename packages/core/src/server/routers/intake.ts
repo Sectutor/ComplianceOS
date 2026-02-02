@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
 import * as db from "../../db";
 import { intakeItems, evidence, clients, clientPolicies, evidenceFiles, clientControls, controls } from "../../schema";
-import { eq, desc, and, or } from "drizzle-orm";
+import { eq, desc, and, or, sql, getTableColumns } from "drizzle-orm";
 import { classifyIntakeItem } from "../../lib/ai/intake-triage";
 
 export const createIntakeRouter = (t: any, clientProcedure: any) => {
@@ -14,9 +14,15 @@ export const createIntakeRouter = (t: any, clientProcedure: any) => {
             }))
             .query(async ({ input }: any) => {
                 const d = await db.getDb();
-                return await d.select()
+                return await d.select({
+                    ...getTableColumns(intakeItems),
+                    mappedCount: sql<number>`count(distinct ${evidence.clientControlId})`.mapWith(Number)
+                })
                     .from(intakeItems)
+                    .leftJoin(evidenceFiles, eq(intakeItems.fileUrl, evidenceFiles.fileUrl))
+                    .leftJoin(evidence, eq(evidenceFiles.evidenceId, evidence.id))
                     .where(eq(intakeItems.clientId, input.clientId))
+                    .groupBy(intakeItems.id)
                     .orderBy(desc(intakeItems.createdAt));
             }),
 

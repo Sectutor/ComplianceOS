@@ -317,6 +317,7 @@ export default function EvidenceIntakeBox() {
                                                 className="capitalize"
                                             >
                                                 {item.status}
+                                                {(item.mappedCount || 0) > 0 && ` (${item.mappedCount})`}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
