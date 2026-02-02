@@ -55,22 +55,26 @@ const WORKFLOWS: Workflow[] = [
             {
                 title: 'Identify Assets',
                 description: 'Catalog your critical information assets (hardware, software, data).',
-                link: '/clients/select/risks/assets' // We'll handle 'select' in logic
+                link: '/clients/select/risks/assets',
+                details: 'Create a comprehensive inventory of all information assets, including hardware, software, and data. Assign owners and classification levels.'
             },
             {
                 title: 'Identify Risks',
                 description: 'Determine threats and vulnerabilities affecting your assets.',
-                link: '/clients/select/risks/register'
+                link: '/clients/select/risks/register',
+                details: 'Identify potential threats and vulnerabilities that could impact the confidentiality, integrity, or availability of your assets.'
             },
             {
                 title: 'Assess Impact',
                 description: 'Score risks based on likelihood and impact.',
-                link: '/clients/select/risks/assessments'
+                link: '/clients/select/risks/assessments',
+                details: 'Evaluate the likelihood and potential impact of each risk. Calculate risk scores to prioritize mitigation efforts.'
             },
             {
                 title: 'Treat Risks',
                 description: 'Decide to mitigate, accept, avoid, or transfer risks.',
-                link: '/clients/select/risks/treatment-plan'
+                link: '/clients/select/risks/treatment-plan',
+                details: 'Select appropriate risk treatment options (mitigate, transfer, avoid, accept) and develop a plan to implement controls.'
             }
         ]
     },
@@ -377,7 +381,7 @@ export default function StartHere() {
             console.log('Skip to Dashboard clicked');
             // Redirect immediately
             setLocation('/dashboard');
-            
+
             // Try to mark tour as seen in the background
             completeTourMutation.mutate(undefined, {
                 onSuccess: () => {
@@ -417,7 +421,7 @@ export default function StartHere() {
         // Mark as seen when they actually start working
         // Redirect immediately first
         setLocation(target);
-        
+
         // Try to mark tour as seen in the background
         completeTourMutation.mutate(undefined, {
             onSuccess: () => {
