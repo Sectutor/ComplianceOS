@@ -344,6 +344,15 @@ function DashboardLayoutContent({
     }
   }, [clientError, persistentClientId]);
 
+  // Sync planTier to ClientContext so pages can use it
+  const { setPlanTier } = useClientContext();
+  useEffect(() => {
+    if (clientInfo) {
+      // Avoid infinite loops by checking equality if possible, though React state setter handles primitives well
+      setPlanTier(clientInfo.planTier);
+    }
+  }, [clientInfo, setPlanTier]);
+
   const brandStyles: CSSProperties = {
     "--sidebar-background": clientInfo?.brandPrimaryColor || "#0f172a",
     "--sidebar-foreground": "#ffffff",
