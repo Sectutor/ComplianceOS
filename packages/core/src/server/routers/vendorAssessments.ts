@@ -312,6 +312,28 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
             }),
 
         // Assessment Requests
+        listAll: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: { input: any }) => {
+                const db = await getDb();
+                return db.select({
+                    id: vendorAssessments.id,
+                    vendorId: vendorAssessments.vendorId,
+                    type: vendorAssessments.type,
+                    status: vendorAssessments.status,
+                    dueDate: vendorAssessments.dueDate,
+                    score: vendorAssessments.score,
+                    completedDate: vendorAssessments.completedDate,
+                    vendorName: vendors.name,
+                    inherentRiskLevel: vendorAssessments.inherentRiskLevel,
+                    residualRiskLevel: vendorAssessments.residualRiskLevel,
+                    reviewStatus: vendorAssessments.reviewStatus
+                })
+                    .from(vendorAssessments)
+                    .innerJoin(vendors, eq(vendorAssessments.vendorId, vendors.id))
+                    .where(eq(vendorAssessments.clientId, input.clientId));
+            }),
+
         listAssessments: publicProcedure
             .input(z.object({ vendorId: z.number() }))
             .query(async ({ input }: { input: any }) => {

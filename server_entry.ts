@@ -37,7 +37,15 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        // Allow localhost, configured origins, Netlify domains, and production domain
+        if (
+            allowedOrigins.indexOf(origin) !== -1 ||
+            origin.startsWith('http://localhost') ||
+            origin.startsWith('http://127.0.0.1') ||
+            origin.endsWith('.netlify.app') ||
+            origin === 'https://grcompliance.com' ||
+            origin === 'https://www.grcompliance.com'
+        ) {
             callback(null, true);
         } else {
             console.error(`[CORS] Rejected origin: ${origin}`);
