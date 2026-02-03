@@ -3342,12 +3342,60 @@ export const employees = pgTable("employees", {
 
 export type Employee = typeof employees.$inferSelect;
 
-
-
 export type InsertEmployee = typeof employees.$inferInsert;
 
 
+// Employee Acknowledgments - tracks compliance document signatures
+export const employeeAcknowledgments = pgTable("employee_acknowledgments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  employeeId: integer("employee_id").notNull(),
+  acknowledgmentType: varchar("acknowledgment_type", { length: 100 }).notNull(), // 'code_of_conduct', 'aup', 'data_protection', 'confidentiality'
+  acknowledgedAt: timestamp("acknowledged_at").defaultNow().notNull(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+});
 
+export type EmployeeAcknowledgment = typeof employeeAcknowledgments.$inferSelect;
+export type InsertEmployeeAcknowledgment = typeof employeeAcknowledgments.$inferInsert;
+
+
+// Employee Security Setup - tracks security configuration status
+export const employeeSecuritySetup = pgTable("employee_security_setup", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  employeeId: integer("employee_id").notNull().unique(),
+  mfaEnrolled: boolean("mfa_enrolled").default(false),
+  mfaEnrolledAt: timestamp("mfa_enrolled_at"),
+  passwordManagerSetup: boolean("password_manager_setup").default(false),
+  passwordManagerSetupAt: timestamp("password_manager_setup_at"),
+  securityQuestionsSet: boolean("security_questions_set").default(false),
+  securityQuestionsSetAt: timestamp("security_questions_set_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type EmployeeSecuritySetup = typeof employeeSecuritySetup.$inferSelect;
+export type InsertEmployeeSecuritySetup = typeof employeeSecuritySetup.$inferInsert;
+
+
+// Employee Asset Receipts - tracks asset confirmation
+export const employeeAssetReceipts = pgTable("employee_asset_receipts", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  employeeId: integer("employee_id").notNull(),
+  assetType: varchar("asset_type", { length: 100 }).notNull(), // 'laptop', 'badge', 'software_access'
+  status: varchar("status", { length: 50 }).notNull().default('assigned'), // 'assigned', 'confirmed', 'returned'
+  serialNumber: varchar("serial_number", { length: 100 }),
+  assetId: integer("asset_id"), // Optional link to specific asset inventory
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  assignedBy: integer("assigned_by"),
+  confirmedAt: timestamp("confirmed_at"),
+  notes: text("notes"),
+});
+
+export type EmployeeAssetReceipt = typeof employeeAssetReceipts.$inferSelect;
+export type InsertEmployeeAssetReceipt = typeof employeeAssetReceipts.$inferInsert;
 
 
 
@@ -13679,4 +13727,47 @@ export const evidenceComments = pgTable("evidence_comments", {
 
 export type EvidenceComment = typeof evidenceComments.$inferSelect;
 export type InsertEvidenceComment = typeof evidenceComments.$inferInsert;
+
+
+// ==========================================
+// Employee Onboarding & Training Module
+// ==========================================
+
+export const employeeTrainingRecords = pgTable("employee_training_records", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  employeeId: integer("employee_id").notNull(),
+
+  // Training identification
+  frameworkId: varchar("framework_id", { length: 100 }).notNull(), // iso-27001, soc-2, etc.
+  sectionId: varchar("section_id", { length: 100 }).notNull(), // intro, implementation, etc.
+
+  // Completion tracking
+  completedAt: timestamp("completed_at").notNull(),
+  completedByUserId: integer("completed_by_user_id").notNull(),
+
+  // Audit trail
+  ipAddress: varchar("ip_address", { length: 50 }),
+  userAgent: text("user_agent"),
+
+  // Optional metadata
+  timeSpentSeconds: integer("time_spent_seconds"),
+  score: integer("score"), // For future quiz/assessment integration
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    employeeIdx: index("idx_training_employee").on(table.employeeId),
+    clientIdx: index("idx_training_client").on(table.clientId),
+    frameworkIdx: index("idx_training_framework").on(table.frameworkId),
+    uniqueCompletion: uniqueIndex("idx_training_unique").on(
+      table.employeeId,
+      table.frameworkId,
+      table.sectionId
+    ),
+  };
+});
+
+export type EmployeeTrainingRecord = typeof employeeTrainingRecords.$inferSelect;
+export type InsertEmployeeTrainingRecord = typeof employeeTrainingRecords.$inferInsert;
 

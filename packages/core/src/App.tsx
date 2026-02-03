@@ -49,6 +49,7 @@ const IssueTrackerSettings = lazy(() => import("./pages/admin/IssueTrackerSettin
 const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
 const ClientSettings = lazy(() => import("./pages/ClientSettings"));
+const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings")); // New Import
 const ClientActivity = lazy(() => import("./pages/ClientActivity"));
 
 const ClientPoliciesPage = lazy(() => import("./pages/ClientPoliciesPage"));
@@ -225,6 +226,7 @@ const AIGovernance = lazy(() => import("./pages/ai-governance/AIGovernance"));
 
 
 const StartHere = lazy(() => import("./pages/StartHere"));
+const EmployeeOnboarding = lazy(() => import("./pages/EmployeeOnboarding"));
 
 const UIPatternShowcase = lazy(() => import("./pages/UIPatternShowcase"));
 const ConsolidatedRequestPortal = lazy(() => import("./pages/portal/ConsolidatedRequestPortal"));
@@ -499,6 +501,12 @@ function Router() {
         <Route path="/clients/:id/policies">
           {(_params) => <ProtectedRoute component={ClientPoliciesPage} />}
         </Route>
+
+        {/* My Policies must come BEFORE :policyId to prevent matching conflict */}
+        <Route path="/clients/:id/policies/my-policies">
+          {(_params) => <ProtectedRoute component={MyPolicies} />}
+        </Route>
+
         <Route path="/clients/:id/policies/:policyId">
           {(_params) => <ProtectedRoute component={PolicyEditor} />}
         </Route>
@@ -1134,6 +1142,18 @@ function Router() {
         <Route path="/mappings">
           <ProtectedRoute component={Mappings} />
         </Route>
+        <Route path="/settings/users">
+          <ProtectedRoute component={UserManagement} />
+        </Route>
+        <Route path="/settings/organization">
+          <ProtectedRoute component={OrganizationManagement} />
+        </Route>
+        <Route path="/settings/onboarding">
+          <ProtectedRoute component={OnboardingSettings} />
+        </Route>
+        <Route path="/settings/invitations">
+          <ProtectedRoute component={UserInvitations} />
+        </Route>
         <Route path="/evidence">
           <ProtectedRoute component={Evidence} />
         </Route>
@@ -1147,8 +1167,8 @@ function Router() {
           <ProtectedRoute component={Profile} />
         </Route>
 
-        <Route path="/clients/:id/my-policies">
-          {(_params) => <ProtectedRoute component={MyPolicies} />}
+        <Route path="/onboarding">
+          <ProtectedRoute component={EmployeeOnboarding} />
         </Route>
 
         <Route path="/admin/crm/:id">
