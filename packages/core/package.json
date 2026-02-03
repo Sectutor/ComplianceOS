@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm exec tsc && npm exec vite build",
+    "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run"
@@ -108,7 +108,8 @@
     "wouter": "^3.1.2",
     "xlsx": "^0.18.5",
     "yaml": "^2.3.4",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "typescript": "^5.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.0.0-alpha.12",
@@ -135,7 +136,6 @@
     "pg": "^8.17.1",
     "toml": "^3.0.0",
     "tsx": "^4.7.1",
-    "typescript": "^5.4.3",
     "vite": "^5.2.6",
     "vitest": "^4.0.16"
   }

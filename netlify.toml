@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --legacy-peer-deps && npm run build -w @complianceos/core"
+  command = "npm install --legacy-peer-deps && cd packages/core && ../../node_modules/.bin/tsc && ../../node_modules/.bin/vite build"
   publish = "packages/core/dist"
 
 [build.environment]
