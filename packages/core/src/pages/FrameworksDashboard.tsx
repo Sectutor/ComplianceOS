@@ -104,7 +104,7 @@ export default function FrameworksDashboard() {
         { id: clientId },
         { enabled: !!clientId }
     );
-    const isPremium = client?.planTier === 'pro' || client?.planTier === 'enterprise';
+    const isPremium = (client?.planTier === 'pro' || client?.planTier === 'enterprise') && import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
 
     const filteredFrameworks = frameworks.filter(fw =>
         fw.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

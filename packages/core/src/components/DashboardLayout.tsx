@@ -596,7 +596,7 @@ function DashboardLayoutContent({
     );
 
     // Premium Feature: Adversary Intelligence - Add to Risk Management group
-    const isPremiumClient = clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise';
+    const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
     if (isPremiumClient) {
       const riskManagementGroup = groups.find(g => g.label === 'Risk Management');
       if (riskManagementGroup) {
@@ -608,7 +608,8 @@ function DashboardLayoutContent({
 
     // Premium Feature: Vendor Management
     // Show when a client is selected (premium check happens at route level)
-    const isPremium = clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise';
+    const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
+    const isPremium = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && enabledInBuild;
 
 
 
@@ -696,7 +697,7 @@ function DashboardLayoutContent({
       {
         label: "Assurance",
         items: [
-          ...(clientInfo?.serviceModel === 'managed' ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
+          ...(clientInfo?.serviceModel === 'managed' && enabledInBuild ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: FileBarChart, label: "Reports", path: "/reports" },
 

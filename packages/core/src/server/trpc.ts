@@ -95,6 +95,15 @@ export const checkPremiumAccess = middleware(async (opts) => {
     }
 
     try {
+        // STRICT CHECK: Premium must be enabled in environment
+        // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
+        if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'Premium features are disabled in this environment.'
+            });
+        }
+
         const dbConn = await db.getDb();
         const [client] = await dbConn.select({ planTier: schema.clients.planTier })
             .from(schema.clients)

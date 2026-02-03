@@ -275,6 +275,14 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
   if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
   const tier = client?.planTier || userMe?.planTier;
+  // STRICT CHECK: Premium must be enabled in build AND user must have tier
+  const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
+
+  if (!enabledInBuild) {
+    // If premium is disabled by env, block access regardless of plan
+    return <Redirect to="/upgrade-required" />;
+  }
+
   const isPremium = tier === 'pro' || tier === 'enterprise' || userMe?.role === 'admin';
 
   if (!isPremium) {
@@ -1059,7 +1067,11 @@ function Router() {
 
 
         <Route path="/clients/:id/intake">
-          {(_params) => <ProtectedRoute component={EvidenceIntakeBox} />}
+          {(_params) => (
+            <PremiumGuard>
+              <ProtectedRoute component={EvidenceIntakeBox} />
+            </PremiumGuard>
+          )}
         </Route>
 
         <Route path="/clients/:id/board-summary">

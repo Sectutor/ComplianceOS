@@ -6,7 +6,8 @@ import tailwindcss from '@tailwindcss/vite';
 
 // Auto-detect if premium package is available
 const premiumPath = path.resolve(__dirname, "../premium/src");
-const hasPremium = fs.existsSync(premiumPath);
+const forceDisablePremium = process.env.VITE_ENABLE_PREMIUM === 'false';
+const hasPremium = !forceDisablePremium && fs.existsSync(premiumPath);
 
 console.log(`[Vite] Building with ${hasPremium ? 'Premium' : 'Open Source'} edition.`);
 
