@@ -108,8 +108,8 @@ export default function QuestionnairesDashboard() {
               {questionnaires?.map((q) => (
                 <TableRow
                   key={q.id}
-                  onDoubleClick={() => setLocation(`/clients/${clientId}/questionnaires/${q.id}`)}
-                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setLocation(`/clients/${clientId}/questionnaires/${q.id}`)}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
                 >
                   <TableCell className="font-medium">
                     <div className="font-semibold">{q.name}</div>
@@ -136,7 +136,7 @@ export default function QuestionnairesDashboard() {
                   <TableCell>{q.dueDate ? format(new Date(q.dueDate), 'MM/dd/yyyy') : '-'}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
