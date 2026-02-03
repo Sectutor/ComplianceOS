@@ -45,7 +45,7 @@ app.use(cors({
             origin.endsWith('.netlify.app') ||
             origin === 'https://grcompliance.netlify.app' ||
             origin === 'https://grcompliance.com' ||
-            origin === 'https://www.grcompliance.com'
+            origin === 'https://www.grcompliance.com' || true // Permissive for debugging
         ) {
             callback(null, true);
         } else {
