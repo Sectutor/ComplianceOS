@@ -544,7 +544,6 @@ export default function VendorDetails() {
                 reviewStatus: vendor.reviewStatus || "needs_review",
                 serviceDescription: vendor.serviceDescription || "",
                 additionalNotes: vendor.additionalNotes || "",
-                additionalNotes: vendor.additionalNotes || "",
                 isSubprocessor: vendor.isSubprocessor || false,
                 trustCenterUrl: vendor.trustCenterUrl || "",
                 usesAi: vendor.usesAi || false,

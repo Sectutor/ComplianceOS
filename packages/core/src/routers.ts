@@ -56,7 +56,7 @@ import { createThreatModelsRouter } from './server/routers/threatModels';
 
 // Add missing imports
 import { createChecklistRouter } from './server/routers/checklist';
-import { createBusinessContinuityRouter } from "./server/routers/businessContinuity";
+import { businessContinuitySubRouter } from "./server/routers/businessContinuity";
 import { createRisksRouter } from "./server/routers/risks";
 import { createGovernanceRouter } from "./server/routers/governance";
 import { createAutopilotRouter } from "./server/routers/autopilot";
@@ -65,7 +65,7 @@ import { createFederalRouter } from "./server/routers/federal";
 import { createActionsRouter } from "./server/routers/actions";
 import { createCalendarRouter } from "./server/routers/calendar";
 import { createClientsRouter } from "./server/routers/clients";
-import { createUsersRouter } from "./server/routers/users";
+import { usersSubRouter } from "./server/routers/users";
 import { createIntakeRouter } from "./server/routers/intake";
 import { createBillingRouter } from "./server/routers/billing";
 import { createFrameworksRouter } from "./server/routers/frameworks";
@@ -137,7 +137,9 @@ const isAdmin = t.middleware(({ ctx, next }) => {
   return next({ ctx });
 });
 
-const checkClientAccess = t.middleware(async ({ ctx, next, rawInput }) => {
+const checkClientAccess = t.middleware(async (opts) => {
+  const { ctx, next } = opts;
+  const rawInput = (opts as any).rawInput;
   if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
   const input = rawInput as any;
@@ -169,7 +171,8 @@ export const adminProcedure = publicProcedure.use(isAuthed).use(isAdmin);
 export const clientProcedure = publicProcedure.use(isAuthed).use(checkClientAccess);
 
 const checkClientEditor = t.middleware(({ ctx, next }) => {
-  if (ctx.clientRole !== 'owner' && ctx.clientRole !== 'admin' && ctx.clientRole !== 'editor') {
+  const clientRole = (ctx as any).clientRole;
+  if (clientRole !== 'owner' && clientRole !== 'admin' && clientRole !== 'editor') {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Read-only access' });
   }
   return next();
@@ -178,7 +181,9 @@ const checkClientEditor = t.middleware(({ ctx, next }) => {
 const clientEditorProcedure = clientProcedure.use(checkClientEditor);
 
 // Premium Feature Guard - Checks if client has Pro or Enterprise tier
-const checkPremiumAccess = t.middleware(async ({ ctx, next, rawInput }) => {
+const checkPremiumAccess = t.middleware(async (opts) => {
+  const { ctx, next } = opts;
+  const rawInput = (opts as any).rawInput;
   const input = rawInput as any;
   const clientId = input?.clientId || ctx.clientId;
 
@@ -273,12 +278,20 @@ export const appRouter = router({
   controls: createControlsRouter(t, adminProcedure, publicProcedure), // Restore missing router mapping
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
-  users: createUsersRouter(t, adminProcedure, publicProcedure, isAuthed, clientProcedure),
+  users: usersSubRouter,
   crm: createCrmRouter(t, clientProcedure),
   sales: createSalesRouter(t, clientProcedure),
-  businessContinuity: createBusinessContinuityRouter(t, clientProcedure),
+  businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   frameworks: createFrameworksRouter(t, clientProcedure),
+  autopilot: createAutopilotRouter(router, clientProcedure),
+  checklist: createChecklistRouter(t, clientProcedure),
+  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
+  federal: createFederalRouter(t, clientProcedure),
+  readiness: createReadinessRouter(t, clientProcedure),
+  calendar: createCalendarRouter(t, clientProcedure),
+  intake: createIntakeRouter(t, clientProcedure),
+
 
   dashboard: createDashboardRouter(t, adminProcedure, publicProcedure.use(isAuthed)),
   compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
@@ -291,6 +304,11 @@ export const appRouter = router({
   threatModels: createThreatModelsRouter(t, clientProcedure),
   vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
+  globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
+  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
+  vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
+  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
+
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
   harmonization: createHarmonizationRouter(t, protectedProcedure),
@@ -2027,66 +2045,7 @@ ONLY return the JSON. No Markdown formatting.
         }),
     }),
   }),
-  policyTemplates: router({
-    list: publicProcedure
-      .input(z.object({ framework: z.string().optional() }).optional())
-      .query(async ({ input }) => {
-        return await db.getPolicyTemplates(input?.framework);
-      }),
-    create: adminProcedure
-      .input(z.object({
-        templateId: z.string(),
-        name: z.string(),
-        framework: z.string().optional(), // Legacy support
-        frameworks: z.array(z.string()).optional(), // New support
-        content: z.string().optional(),
-        sections: z.array(z.string()).optional(),
-      }))
-      .mutation(async ({ input }) => {
-        // Normalize to frameworks array
-        const frameworks = input.frameworks || [];
-        if (input.framework && !frameworks.includes(input.framework)) {
-          frameworks.push(input.framework);
-        }
 
-        return await db.createPolicyTemplate({
-          ...input,
-          frameworks
-        });
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        templateId: z.string().optional(),
-        name: z.string().optional(),
-        framework: z.string().optional(),
-        frameworks: z.array(z.string()).optional(),
-        content: z.string().optional(),
-        sections: z.array(z.string()).optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const { id, framework, frameworks, ...data } = input;
-
-        // Construct update object
-        const updateData: any = { ...data };
-        if (frameworks) {
-          updateData.frameworks = frameworks;
-        } else if (framework) {
-          // If only legacy framework provided, wrap in array (careful: might overwrite existing list)
-          // Ideally we fetch first, but for now let's just create array
-          updateData.frameworks = [framework];
-        }
-
-        await db.updatePolicyTemplate(id, updateData);
-        return { success: true };
-      }),
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.deletePolicyTemplate(input.id);
-        return { success: true };
-      }),
-  }),
 
   orgRoles: router({
     list: publicProcedure
@@ -2305,52 +2264,7 @@ ONLY return the JSON. No Markdown formatting.
       })
   }),
 
-  taskAssignments: router({
-    list: publicProcedure
-      .input(z.object({
-        taskType: z.enum(["control", "policy", "evidence", "mapping"]),
-        taskId: z.number(),
-      }))
-      .query(async ({ input }) => {
-        return await db.getTaskAssignments(input.taskType, input.taskId);
-      }),
-    summary: publicProcedure
-      .input(z.object({
-        taskType: z.enum(["control", "policy", "evidence", "mapping"]),
-        taskId: z.number(),
-      }))
-      .query(async ({ input }) => {
-        return await db.getTaskRACISummary(input.taskType, input.taskId);
-      }),
-    assign: adminProcedure
-      .input(z.object({
-        clientId: z.number(),
-        employeeId: z.number(),
-        taskType: z.enum(["control", "policy", "evidence", "mapping"]),
-        taskId: z.number(),
-        raciRole: z.enum(["responsible", "accountable", "consulted", "informed"]),
-        notes: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        return await db.assignEmployeeToTask(input);
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        raciRole: z.enum(["responsible", "accountable", "consulted", "informed"]),
-        notes: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const { id, raciRole, notes } = input;
-        return await db.updateTaskAssignment(id, raciRole, notes);
-      }),
-    remove: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.removeTaskAssignment(input.id);
-        return { success: true };
-      }),
-  }),
+
 
 
   // LLM Settings Router
@@ -2466,36 +2380,7 @@ ONLY return the JSON. No Markdown formatting.
 
 
 
-  comments: router({
-    list: publicProcedure
-      .input(z.object({
-        entityType: z.string(),
-        entityId: z.number(),
-      }))
-      .query(async ({ input }) => {
-        return await db.getComments(input.entityType, input.entityId);
-      }),
-    create: publicProcedure
-      .input(z.object({
-        entityType: z.string(),
-        entityId: z.number(),
-        content: z.string(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-        return await db.createComment({
-          ...input,
-          userId: ctx.user.id,
-        });
-      }),
-    delete: adminProcedure // Only admins or owners can delete for now
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.deleteComment(input.id);
-        return { success: true };
-      }),
-  }),
 
   // Phase 5: Cloud Integrations
   cloudConnections: router({
@@ -5280,22 +5165,7 @@ Return JSON:
       }),
   }),
 
-  autopilot: createAutopilotRouter(router, clientProcedure),
-  // advisor: createAdvisorRouter(t, clientProcedure),
-  roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
-  checklist: createChecklistRouter(t, clientProcedure),
-  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
-  federal: createFederalRouter(t, clientProcedure),
-  readiness: createReadinessRouter(t, clientProcedure),
-  calendar: createCalendarRouter(t, clientProcedure),
-  intake: createIntakeRouter(t, clientProcedure),
-  // === PREMIUM FEATURE: Vendor Risk Management (VRM) ===
-  // These routers require Pro or Enterprise subscription
-  vendors: createVendorAssessmentsRouter(t, premiumClientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
-  globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
-  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
-  vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
-  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
+
 
   vendorCommunication: router({
     sendVendorEmail: clientProcedure
