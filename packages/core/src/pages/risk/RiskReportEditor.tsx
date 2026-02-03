@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -62,6 +62,7 @@ export default function RiskReportEditor() {
         if (savedReport) {
             setReportData(prev => ({
                 ...prev,
+                title: savedReport.title || prev.title,
                 executiveSummary: savedReport.executiveSummary || prev.executiveSummary,
                 introduction: savedReport.introduction || prev.introduction,
                 scope: savedReport.scope || prev.scope,
@@ -140,7 +141,7 @@ export default function RiskReportEditor() {
             // If this was a new report (no reportId), navigate to the created report's URL
             // so subsequent saves update this report instead of creating new ones
             if (!reportId && savedReportData?.id) {
-                setLocation(`/clients/${clientId}/risks/reports/${savedReportData.id}`);
+                setLocation(`/clients/${clientId}/risks/report/${savedReportData.id}`);
             }
         } catch (error) {
             console.error(error);
@@ -241,13 +242,19 @@ export default function RiskReportEditor() {
                     <div className="flex items-center gap-4">
 
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight">Risk Management Report</h1>
+                            <h1 className="text-2xl font-bold tracking-tight">{reportData.title || "Risk Management Report"}</h1>
                             <p className="text-muted-foreground mt-1">
                                 Customize and export your risk management report
                             </p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-3">
+                        <Link href={`/clients/${clientId}/risks/report`}>
+                            <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900 border-transparent hover:bg-slate-100 transition-all font-medium">
+                                <FileText className="w-4 h-4 text-slate-500" />
+                                History
+                            </Button>
+                        </Link>
                         <Slot
                             name={SlotNames.RISK_REPORT_GENERATE_ALL}
                             props={{
@@ -260,16 +267,18 @@ export default function RiskReportEditor() {
                             variant="outline"
                             onClick={handleSave}
                             disabled={saving}
+                            className="gap-2 border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-100/80 hover:border-indigo-300 transition-all shadow-sm active:scale-[0.98] font-semibold h-10 px-5"
                         >
-                            <Save className="w-4 h-4 mr-2" />
-                            {saving ? "Saving..." : "Save Draft"}
+                            <Save className={`w-4 h-4 ${saving ? 'animate-pulse' : ''}`} />
+                            {saving ? "Saving..." : "Save Report"}
                         </Button>
                         <Button
-                            variant="default"
+                            variant="primary"
                             onClick={handleExport}
                             disabled={downloading}
+                            className="gap-2 shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 transition-all active:scale-[0.98] font-bold h-10 px-6"
                         >
-                            <Download className="w-4 h-4 mr-2" />
+                            <Download className={`w-4 h-4 text-white ${downloading ? 'animate-bounce' : ''}`} />
                             {downloading ? "Exporting..." : "Export Report"}
                         </Button>
                     </div>

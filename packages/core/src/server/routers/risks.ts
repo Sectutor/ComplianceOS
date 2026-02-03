@@ -192,7 +192,7 @@ ${JSON.stringify(riskSummary.slice(0, 80), null, 2)}
 
 REPORT REQUIREMENTS:
 Return a JSON object with these EXACT keys (values MUST be Markdown strings):
-1. "title": "Strategic Risk Management Analysis for ${orgName}"
+1. "title": "Strategic Risk Management Analysis for ${orgName} (${new Date().toLocaleString()})"
 2. "executiveSummary": Strategic overview. YOU MUST EXPLICITLY MENTION the total (${totalRisks}) and especially the ${criticalCount} critical risks. Use Markdown.
 3. "keyFindings": YOU MUST LIST AND ANALYZE ALL ${criticalCount} CRITICAL/VERY HIGH RISKS INDIVIDUALLY. For EACH risk, you MUST explicitly state the Inherent Risk Score and the Residual Risk Score. Use their specific IDs and professional English business names. Format as Markdown lists/headings.
 4. "recommendations": Strategic steps for the ${criticalCount} critical risks and the broader high-risk landscape. Format as Markdown.
@@ -212,30 +212,17 @@ Return a JSON object with these EXACT keys (values MUST be Markdown strings):
                     console.log(`[AI Analysis] LLM service responded successfully`);
                     const reportData = JSON.parse(response.text);
 
-                    // Save to Report Area
-                    console.log(`[AI Analysis] Saving to report area...`);
-                    const [existing] = await db.select()
-                        .from(schema.riskReports)
-                        .where(eq(schema.riskReports.clientId, input.clientId))
-                        .limit(1);
-
-                    if (existing) {
-                        await db.update(schema.riskReports)
-                            .set({
-                                ...reportData,
-                                updatedAt: new Date(),
-                                status: 'draft'
-                            })
-                            .where(eq(schema.riskReports.id, existing.id));
-                    } else {
-                        await db.insert(schema.riskReports)
-                            .values({
-                                clientId: input.clientId,
-                                ...reportData,
-                                status: 'draft',
-                                version: 1
-                            });
-                    }
+                    // Save to Report Area as a NEW report every time
+                    console.log(`[AI Analysis] Creating new report entry...`);
+                    await db.insert(schema.riskReports)
+                        .values({
+                            clientId: input.clientId,
+                            ...reportData,
+                            status: 'draft',
+                            version: 1, // Every generation is a new baseline draft
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        });
 
                     // Return as markdown for convenience (or the JSON)
                     const fullMarkdown = `
@@ -323,7 +310,7 @@ ${reportData.conclusion}
                 if (input.reportId) {
                     query = query.where(eq(schema.riskReports.id, input.reportId));
                 } else {
-                    query = query.orderBy(desc(schema.riskReports.version));
+                    query = query.orderBy(desc(schema.riskReports.createdAt));
                 }
 
                 const [report] = await query.limit(1);
