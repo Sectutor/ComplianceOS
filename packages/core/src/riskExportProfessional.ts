@@ -252,6 +252,13 @@ export async function generateRiskReportDocx(data: RiskExportData): Promise<Buff
     return await Packer.toBuffer(doc);
 }
 
+function getReportRiskLevel(score: number): string {
+    if (score >= 15) return 'Critical/Very High';
+    if (score >= 9) return 'High';
+    if (score >= 4) return 'Medium';
+    return 'Low';
+}
+
 function riskRegisterTable(risks: any[]): Table {
     const headerRow = new TableRow({
         children: [
@@ -265,11 +272,14 @@ function riskRegisterTable(risks: any[]): Table {
     });
 
     const rows = risks.map(risk => {
+        const score = typeof risk.inherentScore === 'number' ? risk.inherentScore : 0;
+        const level = getReportRiskLevel(score);
+
         return new TableRow({
             children: [
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: risk.assessmentId || "-", size: 20 })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: risk.title || "Untitled Risk", size: 20 })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: risk.inherentRisk || "-", size: 20 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: level, size: 20 })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: risk.residualRisk || "-", size: 20 })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: risk.status || "Draft", size: 20 })] })] }),
             ]

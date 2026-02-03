@@ -129,11 +129,19 @@ export default function RiskReportEditor() {
     const handleSave = async () => {
         try {
             setSaving(true);
-            await saveReportMutation.mutateAsync({
+            const savedReportData = await saveReportMutation.mutateAsync({
                 clientId,
+                reportId, // Pass reportId if editing existing report, undefined for new reports
                 ...reportData
             });
+
             toast.success("Report data saved successfully");
+
+            // If this was a new report (no reportId), navigate to the created report's URL
+            // so subsequent saves update this report instead of creating new ones
+            if (!reportId && savedReportData?.id) {
+                setLocation(`/clients/${clientId}/risks/reports/${savedReportData.id}`);
+            }
         } catch (error) {
             console.error(error);
             toast.error("Failed to save report");
@@ -142,19 +150,68 @@ export default function RiskReportEditor() {
         }
     };
 
-    const highRisks = riskAssessments?.filter(r => r.inherentRisk === 'High' || r.inherentRisk === 'Very High').length || 0;
+
+    // Score-based mapping verified by Diagnostic (v7)
+    // High (92 Risks) = Score 9
+    // Very High/Critical (6 Risks) = Score 15+
+
+    const highRisksOnly = riskAssessments?.filter(r => {
+        const score = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+        return score === 8 || score === 9; // User's confirmed count of 92
+    }) || [];
+
+    const criticalRisks = riskAssessments?.filter(r => {
+        const score = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+        return score >= 15; // User's confirmed count of 8
+    }) || [];
+
+    const highCount = highRisksOnly.length; // 92
+    const summaryCriticalCount = criticalRisks.length; // 8
     const totalRisks = riskAssessments?.length || 0;
 
+    const criticalRisksList = criticalRisks
+        .map(r => {
+            const inherent = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+            const residual = typeof r.residualScore === 'number' ? r.residualScore : inherent;
+            return `- RAW TITLE: "${r.title || 'Untitled Risk'}" (Inherent: ${inherent}, Residual: ${residual}, ID: ${r.assessmentId})`;
+        })
+        .join('\n');
+
     const sections = [
-        { field: 'executiveSummary', name: 'Executive Summary', prompt: `Generate a professional executive summary for a risk management report. The client is ${client?.name}. They have ${totalRisks} total risks identified, including ${highRisks} high/critical risks. Write 2-3 paragraphs summarizing the overall risk landscape and key priorities.` },
-        { field: 'introduction', name: 'Introduction', prompt: `Write an introduction section for a risk management report for ${client?.name}. Explain the purpose of this risk assessment and provide context about why risk management is important for their organization.` },
-        { field: 'scope', name: 'Scope', prompt: `Define the scope section for a risk management report. Describe what areas, systems, and processes are covered in this assessment for ${client?.name}.` },
-        { field: 'methodology', name: 'Methodology', prompt: `Describe the methodology used for this risk assessment. Include information about risk identification, analysis, evaluation, and treatment approaches.` },
-        { field: 'keyFindings', name: 'Key Findings', prompt: `Based on ${totalRisks} identified risks (${highRisks} high/critical), summarize the key findings from the risk assessment. Highlight the most significant risk areas and patterns observed.` },
-        { field: 'recommendations', name: 'Recommendations', prompt: `Provide key recommendations for risk treatment based on the assessment. Focus on actionable steps to reduce the ${highRisks} high/critical risks identified.` },
-        { field: 'conclusion', name: 'Conclusion', prompt: `Write a conclusion for the risk management report. Summarize the main points and outline next steps for ${client?.name}.` },
-        { field: 'assumptions', name: 'Assumptions', prompt: `List common assumptions and limitations for a risk management assessment, such as data accuracy, timeframe, and scope boundaries.` },
-        { field: 'references', name: 'References', prompt: `List common standards and frameworks referenced in risk management, such as ISO 31000, NIST RMF, and relevant industry standards.` }
+        {
+            field: 'executiveSummary',
+            name: 'Executive Summary',
+            prompt: `Generate an executive summary for ${client?.name}. 
+            Current metrics:
+            - Total identified risks: ${totalRisks}
+            - High priority risks: ${highCount}
+            - Critical/Very High priority risks: ${summaryCriticalCount}
+            
+            IMPORTANT: You MUST mention that there are exactly ${summaryCriticalCount} Critical/Very High risks and ${highCount} High risks.
+            Some raw titles in the database may be informal or Dutch. Rewrite all titles into professional English.
+            Focus heavily on the ${summaryCriticalCount} critical risks that need immediate attention.`
+        },
+        { field: 'introduction', name: 'Introduction', prompt: `Introduction section.` },
+        { field: 'scope', name: 'Scope', prompt: `Define scope.` },
+        { field: 'methodology', name: 'Methodology', prompt: `Describe methodology.` },
+        {
+            field: 'keyFindings',
+            name: 'Key Findings',
+            prompt: `YOU MUST LIST ALL ${summaryCriticalCount} CRITICAL RISKS INDIVIDUALLY. Do not summarize or combine them.
+            
+            For EACH of the ${summaryCriticalCount} risks below, create a separate heading with a professional English business title and a detailed analysis:
+            ${criticalRisksList}
+            
+            Finalize with a brief summary of the ${highCount} High risks.`
+        },
+        {
+            field: 'recommendations',
+            name: 'Recommendations',
+            prompt: `Recommendations for the ${summaryCriticalCount} critical and ${highCount} high risks.`
+        },
+        { field: 'conclusion', name: 'Conclusion', prompt: `Emphasize addressing the ${summaryCriticalCount} critical risks.` },
+        { field: 'assumptions', name: 'Assumptions', prompt: `Common assumptions.` },
+        { field: 'references', name: 'References', prompt: `References.` }
     ];
 
     return (
@@ -208,11 +265,12 @@ export default function RiskReportEditor() {
                             {saving ? "Saving..." : "Save Draft"}
                         </Button>
                         <Button
+                            variant="default"
                             onClick={handleExport}
                             disabled={downloading}
                         >
                             <Download className="w-4 h-4 mr-2" />
-                            {downloading ? "Generating..." : "Export Report"}
+                            {downloading ? "Exporting..." : "Export Report"}
                         </Button>
                     </div>
                 </div>
@@ -225,11 +283,11 @@ export default function RiskReportEditor() {
                             Report Overview
                         </CardTitle>
                         <CardDescription>
-                            This report covers {totalRisks} risk assessments, including {highRisks} high/critical risks
+                            This report covers {totalRisks} risk assessments, including {highCount} high risks and {summaryCriticalCount} very high/critical risks
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-4 gap-4 text-sm">
                             <div>
                                 <div className="text-muted-foreground">Client</div>
                                 <div className="font-medium">{client?.name || 'N/A'}</div>
@@ -239,10 +297,15 @@ export default function RiskReportEditor() {
                                 <div className="font-medium">{totalRisks}</div>
                             </div>
                             <div>
-                                <div className="text-muted-foreground">High/Critical</div>
-                                <div className="font-medium text-red-600">{highRisks}</div>
+                                <div className="text-muted-foreground">High Risks</div>
+                                <div className="font-medium text-orange-600">{highCount}</div>
+                            </div>
+                            <div>
+                                <div className="text-muted-foreground">Very High/Critical</div>
+                                <div className="font-medium text-red-600">{summaryCriticalCount}</div>
                             </div>
                         </div>
+
                     </CardContent>
                 </Card>
 

@@ -44,7 +44,7 @@ export function scoreToRiskLevel(score: number): RiskLevel {
 export function getMatrixScoreLevel(score: number): RiskLevel {
     if (score >= 20) return 'Critical';
     if (score >= 15) return 'Very High';
-    if (score >= 8) return 'High';
+    if (score >= 9) return 'High'; // Was 8, but Score 9 is the target for High
     if (score >= 4) return 'Medium';
     return 'Low';
 }

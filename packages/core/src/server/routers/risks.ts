@@ -137,25 +137,41 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
 
                 const orgName = client?.name || "the Organization";
 
-                // Calculate Stats for AI Context
+                // Calculate Stats for AI Context using strictly verified score buckets
                 const totalRisks = assessments.length;
-                const criticalRisks = assessments.filter((r: any) => r.inherentRisk === 'Critical').length;
-                const highRisks = assessments.filter((r: any) => r.inherentRisk === 'High').length;
-                const moderateRisks = assessments.filter((r: any) => r.inherentRisk === 'Moderate').length;
-                const lowRisks = assessments.filter((r: any) => r.inherentRisk === 'Low').length;
+                const criticalRisksList = assessments.filter((r: any) => (typeof r.inherentScore === 'number' ? r.inherentScore : 0) >= 15);
+                const highRisksList = assessments.filter((r: any) => {
+                    const s = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+                    return s === 8 || s === 9;
+                });
+
+                const criticalCount = criticalRisksList.length; // Target 8
+                const highCount = highRisksList.length; // Target 92
                 const approvedRisks = assessments.filter((r: any) => r.status === 'approved').length;
                 const draftRisks = assessments.filter((r: any) => r.status === 'draft').length;
 
-                // Format data for AI
-                const riskSummary = assessments.map((r: any) => ({
-                    id: r.assessmentId,
-                    title: r.title,
-                    inherent: r.inherentRisk,
-                    residual: r.residualRisk,
-                    status: r.status,
-                    owner: r.riskOwner,
-                    treatment: r.treatmentOption
-                }));
+                // Priority sort risks so Critical ones are ALWAYS seen by the AI first
+                const sortedAssessments = [...assessments].sort((a, b) =>
+                    (typeof b.inherentScore === 'number' ? b.inherentScore : 0) - (typeof a.inherentScore === 'number' ? a.inherentScore : 0)
+                );
+
+                // Format data for AI with score context
+                const riskSummary = sortedAssessments.map((r: any) => {
+                    const inherent = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+                    const residual = typeof r.residualScore === 'number' ? r.residualScore : inherent; // Fallback to inherent if null
+
+                    return {
+                        id: r.assessmentId,
+                        title: r.title,
+                        inherentScore: inherent,
+                        residualScore: residual,
+                        inherentLevel: inherent >= 15 ? 'Critical/Very High' : r.inherentRisk,
+                        residualLevel: r.residualRisk || (inherent >= 15 ? 'Critical/Very High' : r.inherentRisk),
+                        status: r.status,
+                        owner: r.riskOwner,
+                        treatment: r.treatmentOption
+                    };
+                });
 
                 const systemPrompt = `You are a Senior Risk Management Consultant for ${orgName}.
 Your task is to analyze the Risk Register and produce a professional, strategic Management Report.
@@ -167,23 +183,21 @@ IMPORTANT: You must use the specific metrics provided in the context to back up 
 
 CONTEXT & METRICS (Use these exact numbers in your analysis):
 - Total Risks Identified: ${totalRisks}
-- Critical Risks: ${criticalRisks}
-- High Risks: ${highRisks}
-- Moderate Risks: ${moderateRisks}
-- Low Risks: ${lowRisks}
+- Critical/Very High Risks (Score 15+): ${criticalCount}
+- High Priority Risks (Score 8-9): ${highCount}
 - Approval Status: ${approvedRisks} Approved, ${draftRisks} Draft
 
-DATA SAMPLE:
-${JSON.stringify(riskSummary.slice(0, 50), null, 2)}
+DATASET SUMMARY (Prioritized by Score):
+${JSON.stringify(riskSummary.slice(0, 80), null, 2)}
 
 REPORT REQUIREMENTS:
-Return a JSON object with these EXACT keys:
-1. "title": "Risk Management Report for ${orgName}"
-2. "executiveSummary": High-level overview of current risk posture. MUST MENTION the total number of risks (${totalRisks}) and the count of critical/high risks (${criticalRisks + highRisks}). (Clean Markdown).
-3. "keyFindings": Top 3-5 most critical or unmanaged risks. Cite specific risk titles from the data. (Clean Markdown).
-4. "recommendations": Actionable steps for management. (Clean Markdown).
-5. "conclusion": Brief forward-looking statement on risk resilience. Quote the percentage of risks that are currently in 'Draft' status if it is high. (Clean Markdown).
-6. "methodology": Brief description of how this analysis was performed (Clean Markdown).`;
+Return a JSON object with these EXACT keys (values MUST be Markdown strings):
+1. "title": "Strategic Risk Management Analysis for ${orgName}"
+2. "executiveSummary": Strategic overview. YOU MUST EXPLICITLY MENTION the total (${totalRisks}) and especially the ${criticalCount} critical risks. Use Markdown.
+3. "keyFindings": YOU MUST LIST AND ANALYZE ALL ${criticalCount} CRITICAL/VERY HIGH RISKS INDIVIDUALLY. For EACH risk, you MUST explicitly state the Inherent Risk Score and the Residual Risk Score. Use their specific IDs and professional English business names. Format as Markdown lists/headings.
+4. "recommendations": Strategic steps for the ${criticalCount} critical risks and the broader high-risk landscape. Format as Markdown.
+5. "conclusion": Forward-looking summary. Markdown string.
+6. "methodology": AI-driven quantitative and qualitative risk analysis. Markdown string.`;
 
                 console.log(`[AI Analysis] Calling LLM service...`);
                 try {
@@ -365,6 +379,7 @@ ${reportData.conclusion}
         saveReport: procedure
             .input(z.object({
                 clientId: z.number(),
+                reportId: z.number().optional(),
                 title: z.string().optional(),
                 executiveSummary: z.string().optional(),
                 introduction: z.string().optional(),
@@ -377,29 +392,56 @@ ${reportData.conclusion}
                 references: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
-                console.log(`[RISKS] Saving report for client ${input.clientId}`);
+                console.log(`[RISKS] Saving report for client ${input.clientId}, reportId: ${input.reportId || 'NEW'}`);
                 const db = await getDb();
 
-                // Check if report exists
-                const [existing] = await db.select()
-                    .from(schema.riskReports)
-                    .where(eq(schema.riskReports.clientId, input.clientId))
-                    .limit(1);
-
-                if (existing) {
+                // If reportId is provided, update existing report
+                if (input.reportId) {
                     const [updated] = await db.update(schema.riskReports)
                         .set({
-                            ...input,
+                            title: input.title,
+                            executiveSummary: input.executiveSummary,
+                            introduction: input.introduction,
+                            scope: input.scope,
+                            methodology: input.methodology,
+                            keyFindings: input.keyFindings,
+                            recommendations: input.recommendations,
+                            conclusion: input.conclusion,
+                            assumptions: input.assumptions,
+                            references: input.references,
                             updatedAt: new Date()
                         })
-                        .where(eq(schema.riskReports.id, existing.id))
+                        .where(and(
+                            eq(schema.riskReports.id, input.reportId),
+                            eq(schema.riskReports.clientId, input.clientId)
+                        ))
                         .returning();
+
+                    if (!updated) {
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Report not found'
+                        });
+                    }
+
                     return updated;
                 } else {
+                    // Create new report
                     const [created] = await db.insert(schema.riskReports)
                         .values({
-                            ...input,
-                            version: 1
+                            clientId: input.clientId,
+                            title: input.title || 'Risk Management Report',
+                            executiveSummary: input.executiveSummary,
+                            introduction: input.introduction,
+                            scope: input.scope,
+                            methodology: input.methodology,
+                            keyFindings: input.keyFindings,
+                            recommendations: input.recommendations,
+                            conclusion: input.conclusion,
+                            assumptions: input.assumptions,
+                            references: input.references,
+                            version: 1,
+                            status: 'draft'
                         })
                         .returning();
                     return created;
@@ -979,7 +1021,7 @@ ${reportData.conclusion}
                 const db = await getDb();
 
                 const inherentScore = input.likelihood * input.impact;
-                const inherentRisk = scoreToRiskLevel(inherentScore);
+                const inherentRisk = getMatrixScoreLevel(inherentScore);
 
                 const [assessment] = await db.insert(riskAssessments)
                     .values({
