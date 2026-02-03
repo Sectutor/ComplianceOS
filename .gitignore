@@ -39,8 +39,8 @@ tmp/
 # Testing/coverage
 coverage/
 
-# Premium Package (Closed Source)
-packages/premium/
+# Premium Package (Open for internal tracking)
+# packages/premium/
 
 # Trae AI
 .trae/documents/
@@ -67,3 +67,6 @@ diagnose_*
 *.py
 build_output*
 db_counts*
+
+# Local Netlify folder
+.netlify
