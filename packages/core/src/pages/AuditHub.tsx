@@ -37,7 +37,8 @@ import {
     RotateCw,
     Trash2,
     Plus,
-    Loader2
+    Loader2,
+    Upload
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Input } from "@complianceos/ui/ui/input";
@@ -73,6 +74,7 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import { Suspense, lazy } from 'react';
+import { Slot, SlotNames } from "@/registry";
 
 const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
 
@@ -158,30 +160,6 @@ export default function AuditHub() {
 
     const [fileToDelete, setFileToDelete] = useState<any>(null);
 
-    // AI Analysis State
-    const [analysisOpen, setAnalysisOpen] = useState(false);
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
-    const analyzeMutation = trpc.evidence.analyze.useMutation({
-        onSuccess: (data) => {
-            setAnalysisResult(data);
-            toast.success("AI Analysis Complete");
-        },
-        onError: (err) => {
-            toast.error(err.message);
-        }
-    });
-
-    const handleAnalyze = () => {
-        if (!selectedRequest) return;
-        setAnalysisResult(null);
-        setAnalysisOpen(true);
-        analyzeMutation.mutate({
-            evidenceId: (selectedRequest as any).id,
-            controlName: (selectedRequest as any).controlName || selectedRequest.control,
-            controlDescription: selectedRequest.description || (selectedRequest as any).evidenceDescription || "No description provided"
-        });
-    };
-
     // Link Integration State
     const [libraryOpen, setLibraryOpen] = useState(false);
 
@@ -209,6 +187,73 @@ export default function AuditHub() {
             toast.error(err.message);
         }
     });
+
+    const createFileMutation = trpc.evidenceFiles.create.useMutation({
+        onSuccess: () => {
+            refetchFiles();
+            utils.evidence.list.invalidate();
+        },
+        onError: (error) => toast.error(error.message),
+    });
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const evidenceId = (selectedRequest as any)?.original?.id;
+        if (!evidenceId) return;
+
+        for (const file of files) {
+            try {
+                const reader = new FileReader();
+                const uploadPromise = new Promise<void>((resolve, reject) => {
+                    reader.onload = async () => {
+                        try {
+                            const base64 = (reader.result as string).split(',')[1];
+                            const timestamp = Date.now();
+                            const randomSuffix = Math.random().toString(36).substring(2, 8);
+                            const extension = file.name.split('.').pop() || '';
+                            const filename = `evidence-${evidenceId}-${timestamp}-${randomSuffix}.${extension}`;
+
+                            const response = await fetch('/api/upload', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    filename,
+                                    data: base64,
+                                    contentType: file.type,
+                                    folder: 'evidence'
+                                }),
+                            });
+
+                            if (!response.ok) throw new Error('Upload failed');
+                            const { key, url } = await response.json();
+
+                            await createFileMutation.mutateAsync({
+                                evidenceId,
+                                filename,
+                                originalFilename: file.name,
+                                mimeType: file.type,
+                                size: file.size,
+                                fileKey: key,
+                                url,
+                            });
+                            resolve();
+                        } catch (err) { reject(err); }
+                    };
+                    reader.readAsDataURL(file);
+                });
+                toast.promise(uploadPromise, {
+                    loading: `Uploading ${file.name}...`,
+                    success: `${file.name} uploaded successfully`,
+                    error: `Failed to upload ${file.name}`
+                });
+                await uploadPromise;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    };
 
     const handleLink = () => {
         if (!selectedRequest || !linkData.resourceId) return;
@@ -834,16 +879,14 @@ export default function AuditHub() {
                                                 <div className="flex justify-between items-center mb-6">
                                                     <h3 className="text-lg font-semibold text-slate-900">Evidence Documentation</h3>
                                                     <div className="flex gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="gap-2"
-                                                            onClick={handleAnalyze}
-                                                            disabled={analyzeMutation.isLoading}
-                                                        >
-                                                            <Shield className="h-4 w-4 text-indigo-500" />
-                                                            {analyzeMutation.isLoading ? "Analyzing..." : "AI Audit Analysis"}
-                                                        </Button>
+                                                        <Slot
+                                                            name={SlotNames.EVIDENCE_TOOLBAR_ACTIONS}
+                                                            props={{
+                                                                evidenceId: selectedRequest.original.id,
+                                                                controlName: selectedRequest.control,
+                                                                controlDescription: selectedRequest.description || (selectedRequest as any).evidenceDescription || "No description provided"
+                                                            }}
+                                                        />
 
                                                         <Button
                                                             variant="outline"
@@ -859,82 +902,31 @@ export default function AuditHub() {
                                                             variant="outline"
                                                             size="sm"
                                                             className="gap-2"
+                                                            onClick={() => document.getElementById('audit-hub-upload-input')?.click()}
+                                                        >
+                                                            <Upload className="h-4 w-4" />
+                                                            Upload New
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-2"
                                                             onClick={() => setLinkOpen(true)}
                                                         >
                                                             <MoreHorizontal className="h-4 w-4" />
                                                             Link Integration
                                                         </Button>
 
-                                                        <Button
-                                                            size="sm"
-                                                            className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700"
-                                                            onClick={() => document.getElementById('evidence-upload-input')?.click()}
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                            Upload File
-                                                        </Button>
+                                                        <input
+                                                            id="audit-hub-upload-input"
+                                                            type="file"
+                                                            className="hidden"
+                                                            onChange={handleFileSelect}
+                                                            multiple
+                                                        />
                                                     </div>
                                                 </div>
-
-                                                {/* AI Analysis Result Display */}
-                                                {analysisOpen && (
-                                                    <Card className="mb-6 border-indigo-100 bg-indigo-50/30 overflow-hidden">
-                                                        <CardHeader className="bg-indigo-50/50 py-3 border-b border-indigo-100 flex flex-row items-center justify-between">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="bg-indigo-100 p-1.5 rounded-md">
-                                                                    <Shield className="h-4 w-4 text-indigo-600" />
-                                                                </div>
-                                                                <h4 className="text-sm font-semibold text-indigo-900">Preliminary Audit Analysis</h4>
-                                                            </div>
-                                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setAnalysisOpen(false)}><X className="h-4 w-4" /></Button>
-                                                        </CardHeader>
-                                                        <CardContent className="p-4">
-                                                            {analyzeMutation.isLoading ? (
-                                                                <div className="flex flex-col items-center py-6 text-slate-500">
-                                                                    <RotateCw className="h-8 w-8 text-indigo-500 animate-spin mb-3" />
-                                                                    <p className="text-sm font-medium">Analyzing evidence against control requirements...</p>
-                                                                    <p className="text-xs">Extracting content and verifying compliance criteria.</p>
-                                                                </div>
-                                                            ) : analysisResult ? (
-                                                                <div className="space-y-4">
-                                                                    <div className="flex items-center gap-4">
-                                                                        <Badge className={cn(
-                                                                            "text-sm px-3 py-1",
-                                                                            analysisResult.analysis.isCompliant ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-red-100 text-red-700 hover:bg-red-200"
-                                                                        )}>
-                                                                            {analysisResult.analysis.isCompliant ? "COMPLIANT" : "NON-COMPLIANT"}
-                                                                        </Badge>
-                                                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Confidence: {analysisResult.analysis.confidence}</span>
-                                                                        <span className="text-xs text-slate-400">Model: {analysisResult.model}</span>
-                                                                    </div>
-
-                                                                    <div>
-                                                                        <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Reasoning</h5>
-                                                                        <p className="text-sm text-slate-700 leading-relaxed">{analysisResult.analysis.reasoning}</p>
-                                                                    </div>
-
-                                                                    {analysisResult.analysis.keyFindings && (
-                                                                        <div>
-                                                                            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Key Findings</h5>
-                                                                            <ul className="space-y-1">
-                                                                                {analysisResult.analysis.keyFindings.map((finding: string, i: number) => (
-                                                                                    <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
-                                                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
-                                                                                        {finding}
-                                                                                    </li>
-                                                                                ))}
-                                                                            </ul>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-center py-4 text-slate-500">
-                                                                    Analysis failed to load.
-                                                                </div>
-                                                            )}
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
 
                                                 {selectedRequest.evidence === 0 && !evidenceFiles?.length ? (
                                                     <div className="p-6">

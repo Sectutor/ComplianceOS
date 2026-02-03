@@ -12,8 +12,10 @@ import {
     CheckCircle2,
     ShieldCheck,
     Map,
-    Play
+    Play,
+    Loader2
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { cn } from "@/lib/utils";
@@ -23,9 +25,22 @@ export default function ComplianceJourneyDashboard() {
     const clientId = parseInt(id || "0");
     const [_location, setLocation] = useLocation();
 
-    // Mock Data (In a real app, this would come from a query)
-    const [readinessScore, _setReadinessScore] = useState(10);
-    const [evidenceProgress, setEvidenceProgress] = useState(0);
+    // Real Data from TRPC
+    const { data: readinessData, isLoading: readinessLoading } = trpc.readiness.list.useQuery({ clientId });
+    const { data: frameworkStats, isLoading: statsLoading } = trpc.compliance.frameworkStats.list.useQuery({ clientId });
+
+    // Calculate Readiness Score (Phase 1)
+    // Based on the current step of the latest assessment (out of 6 steps)
+    const latestAssessment = readinessData?.[0];
+    const readinessScore = latestAssessment
+        ? Math.round(((latestAssessment.currentStep || 1) / 6) * 100)
+        : 0;
+
+    // Calculate Evidence Progress (Phase 2)
+    // Based on the average percentage across all frameworks
+    const totalPercentage = frameworkStats?.reduce((acc, curr) => acc + curr.percentage, 0) || 0;
+    const evidenceProgress = frameworkStats?.length ? Math.round(totalPercentage / frameworkStats.length) : 0;
+
 
     // Unlock Logic
     const isEvidenceUnlocked = readinessScore >= 40;
@@ -86,7 +101,18 @@ export default function ComplianceJourneyDashboard() {
     ];
 
     // Calculate overall journey percentage
-    const overallProgress = Math.round((readinessScore * 0.3) + (evidenceProgress * 0.4)); // Weighted example
+    const overallProgress = Math.round((readinessScore * 0.3) + (evidenceProgress * 0.7)); // Weighted
+
+    if (readinessLoading || statsLoading) {
+        return (
+            <DashboardLayout>
+                <div className="flex items-center justify-center min-h-screen">
+                    <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                </div>
+            </DashboardLayout>
+        );
+    }
+
 
     return (
         <DashboardLayout>

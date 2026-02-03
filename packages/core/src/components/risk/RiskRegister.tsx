@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
-import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check } from 'lucide-react';
+import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@complianceos/ui/ui/input';
 import { Button } from '@complianceos/ui/ui/button';
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@complianceos/ui/ui/badge';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { RiskDetailsDialog } from './RiskDetailsDialog';
+import { Slot, SlotNames } from '@/registry';
+import { Wand2, Sparkles, Loader2, Save } from 'lucide-react';
 
 interface RiskRegisterProps {
     clientId: number;
@@ -28,24 +30,21 @@ const riskColors: Record<string, string> = {
     'Insignificant': 'bg-green-200 text-black', // Added for consistency
 };
 
-// Helper to normalize risk likelihood/impact values (handles "3", "3 - Medium", "Likely", etc.)
-// ADJUSTED: Maps 1-4 data inputs to 2-5 visual scale for compatibility with 5x5 heatmap consistency
 const normalizeValue = (val: any): number => {
     if (!val) return 0;
     const strVal = val.toString().toLowerCase().trim();
     let num = parseInt(strVal.charAt(0));
 
-    // Map text descriptions if numeric parse fails or needs override
+    // Map text descriptions if numeric parse fails
     if (isNaN(num)) {
-        if (strVal.includes('critical') || strVal.includes('very high') || strVal.includes('extreme') || strVal.includes('catastrophic') || strVal.includes('almost certain')) num = 4;
+        if (strVal.includes('critical') || strVal.includes('extreme') || strVal.includes('catastrophic')) num = 5;
+        else if (strVal.includes('very high') || strVal.includes('almost certain')) num = 4;
         else if (strVal.includes('high') || strVal.includes('likely') || strVal.includes('major')) num = 3;
         else if (strVal.includes('medium') || strVal.includes('moderate') || strVal.includes('possible')) num = 2;
         else if (strVal.includes('low') || strVal.includes('unlikely') || strVal.includes('minor') || strVal.includes('rare') || strVal.includes('insignificant')) num = 1;
     }
 
-    // Shift 1-4 data to 2-5 visual range
-    if (num >= 1 && num <= 4) return num + 1;
-    if (num === 5) return 5;
+    if (num >= 1 && num <= 5) return num;
     return 0;
 };
 
@@ -72,13 +71,27 @@ import {
     DropdownMenuTrigger,
 } from "@complianceos/ui/ui/dropdown-menu";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
+
 export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegisterProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
     const [riskLevelFilter, setRiskLevelFilter] = useState<string>('all');
     const [selectedRisk, setSelectedRisk] = useState<any>(null);
+    const [riskToDelete, setRiskToDelete] = useState<any>(null);
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+    const [aiActionRisk, setAiActionRisk] = useState<any>(null);
+    const [aiTriageResults, setAiTriageResults] = useState<any>(null);
 
     // Sorting state
     type SortField = 'assessmentId' | 'threatDescription' | 'likelihood' | 'impact' | 'inherentRisk' | 'residualRisk' | 'treatmentOption' | 'riskOwner' | 'priority' | 'status';
@@ -94,7 +107,24 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
     const utils = trpc.useUtils();
     const createTaskMutation = trpc.actions.create.useMutation();
     const [createdTaskIds, setCreatedTaskIds] = useState<Set<number>>(new Set());
+    const deleteMutation = trpc.risks.delete.useMutation({
+        onSuccess: () => {
+            utils.risks.getRiskAssessments.invalidate();
+            toast.success("Risk assessment deleted successfully");
+        },
+        onError: (error) => {
+            toast.error(`Failed to delete risk: ${error.message}`);
+        }
+    });
 
+    const updateRiskMutation = trpc.risks.upsert.useMutation({
+        onSuccess: () => {
+            utils.risks.getRiskAssessments.invalidate();
+            toast.success("Risk updated successfully with AI insights");
+            setAiActionRisk(null);
+            setAiTriageResults(null);
+        }
+    });
 
 
     // Auto-open risk from URL param
@@ -316,22 +346,6 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Export
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleExport('csv')}>
-                                    Export as CSV
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleExport('json')}>
-                                    Export as JSON
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -358,6 +372,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                             <SelectItem value="closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
+                    {/* 
                     <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue placeholder="Priority" />
@@ -369,7 +384,8 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                             <SelectItem value="Medium">Medium</SelectItem>
                             <SelectItem value="Low">Low</SelectItem>
                         </SelectContent>
-                    </Select>
+                    </Select> 
+                    */}
                     <Select value={riskLevelFilter} onValueChange={setRiskLevelFilter}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue placeholder="Risk Level" />
@@ -402,16 +418,16 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                 <SortableHeader field="residualRisk" className="text-center text-white">Residual</SortableHeader>
                                 <SortableHeader field="treatmentOption" className="text-left text-white">Treatment</SortableHeader>
                                 <SortableHeader field="riskOwner" className="text-left text-white">Owner</SortableHeader>
-                                <SortableHeader field="priority" className="text-center text-white">Priority</SortableHeader>
+                                {/* <SortableHeader field="priority" className="text-center text-white">Priority</SortableHeader> */}
                                 <SortableHeader field="status" className="text-center text-white">Status</SortableHeader>
                                 {/* <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">Policies</th> */}
-                                <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider min-w-[120px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {filteredRisks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-4 py-12 text-center bg-white">
+                                    <td colSpan={13} className="px-4 py-12 text-center bg-white">
                                         <Shield className="w-12 h-12 mx-auto text-gray-400 opacity-30 mb-4" />
                                         <p className="text-gray-500">No risks found matching your criteria.</p>
                                     </td>
@@ -546,19 +562,6 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                             <td className="px-4 py-4 text-center">
                                                 <Badge
                                                     variant={
-                                                        risk.priority === 'Critical' ? 'error' :
-                                                            risk.priority === 'High' ? 'warning' :
-                                                                risk.priority === 'Medium' ? 'evaluation' :
-                                                                    'info'
-                                                    }
-                                                    className="uppercase text-[10px] font-bold px-2.5"
-                                                >
-                                                    {risk.contextSnapshot?.priority || risk.priority || '-'}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <Badge
-                                                    variant={
                                                         risk.status === 'approved' ? 'success' :
                                                             risk.status === 'reviewed' ? 'info' :
                                                                 risk.status === 'closed' ? 'secondary' :
@@ -579,7 +582,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                                 )}
                                             </td> */}
                                             <td className="px-4 py-4 text-center">
-                                                <div className="flex items-center justify-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-center gap-1">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -587,48 +590,81 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                                             e.stopPropagation();
                                                             setSelectedRisk(risk);
                                                         }}
-                                                        className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D]"
+                                                        className="h-8 w-8 p-0 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D]"
                                                         title="View details"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onEditRisk(risk);
-                                                        }}
-                                                        className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D]"
-                                                        title="Edit risk"
-                                                    >
-                                                        <Pencil className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        disabled={createdTaskIds.has(risk.id)}
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            try {
-                                                                await createTaskMutation.mutateAsync({
-                                                                    clientId,
-                                                                    title: `Remediate Risk: ${risk.assessmentId}`,
-                                                                    description: `Threat: ${risk.threatDescription || 'N/A'}. Recommended Actions: ${risk.recommendedActions || 'N/A'}.`,
-                                                                    priority: risk.priority?.toLowerCase() === 'critical' ? 'high' : (risk.priority?.toLowerCase() || 'medium'),
-                                                                    dueDate: risk.nextReviewDate || undefined,
-                                                                });
-                                                                toast.success('Task created in Action Center');
-                                                                setCreatedTaskIds(prev => new Set([...prev, risk.id]));
-                                                            } catch (err: any) {
-                                                                toast.error(`Failed: ${err.message}`);
-                                                            }
-                                                        }}
-                                                        className={createdTaskIds.has(risk.id) ? 'text-green-600' : 'hover:bg-blue-100 hover:text-blue-700'}
-                                                        title="Create Task"
-                                                    >
-                                                        {createdTaskIds.has(risk.id) ? <Check className="w-4 h-4" /> : <Hammer className="w-4 h-4" />}
-                                                    </Button>
+
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="h-8 w-8 p-0 hover:bg-slate-100"
+                                                            >
+                                                                <MoreHorizontal className="w-4 h-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-48">
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onEditRisk(risk);
+                                                                }}
+                                                                className="gap-2 cursor-pointer"
+                                                            >
+                                                                <Pencil className="w-4 h-4" />
+                                                                Edit Risk
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                disabled={createdTaskIds.has(risk.id)}
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        await createTaskMutation.mutateAsync({
+                                                                            clientId,
+                                                                            title: `Remediate Risk: ${risk.assessmentId}`,
+                                                                            description: `Threat: ${risk.threatDescription || 'N/A'}. Recommended Actions: ${risk.recommendedActions || 'N/A'}.`,
+                                                                            priority: (risk as any).priority?.toLowerCase() === 'critical' ? 'high' : ((risk as any).priority?.toLowerCase() || 'medium'),
+                                                                            dueDate: risk.nextReviewDate || undefined,
+                                                                        });
+                                                                        toast.success('Task created in Action Center');
+                                                                        setCreatedTaskIds(prev => new Set([...prev, risk.id]));
+                                                                    } catch (err: any) {
+                                                                        toast.error(`Failed: ${err.message}`);
+                                                                    }
+                                                                }}
+                                                                className="gap-2 cursor-pointer"
+                                                            >
+                                                                {createdTaskIds.has(risk.id) ? <Check className="w-4 h-4 text-green-600" /> : <Hammer className="w-4 h-4" />}
+                                                                {createdTaskIds.has(risk.id) ? 'Task Created' : 'Create Task'}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setRiskToDelete(risk);
+                                                                }}
+                                                                className="gap-2 text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                                Delete Risk
+                                                            </DropdownMenuItem>
+                                                            <div className="border-t my-1" />
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setAiActionRisk(risk);
+                                                                    setAiTriageResults(null);
+                                                                }}
+                                                                className="gap-2 text-purple-700 focus:text-purple-800 focus:bg-purple-50 cursor-pointer"
+                                                            >
+                                                                <Wand2 className="w-4 h-4" />
+                                                                AI Smart Insights
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </div>
                                             </td>
                                         </tr>
@@ -637,7 +673,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                                         {
                                             expandedRows.has(risk.id) && (
                                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <td colSpan={14} className="px-8 py-6">
+                                                    <td colSpan={12} className="px-8 py-6">
                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                                                             <div>
                                                                 <h4 className="font-semibold text-gray-900 mb-2">Vulnerability</h4>
@@ -717,6 +753,144 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter }: RiskRegist
                 risk={selectedRisk}
                 clientId={clientId}
             />
+
+            {/* Delete Confirmation Alert */}
+            <AlertDialog open={!!riskToDelete} onOpenChange={(open) => !open && setRiskToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="h-5 w-5" />
+                            Delete Risk Assessment
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete the risk assessment for
+                            <span className="font-semibold text-foreground"> {riskToDelete?.threatDescription || riskToDelete?.assessmentId} </span>?
+                            This action cannot be undone and will permanently remove all associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (riskToDelete) {
+                                    deleteMutation.mutate({ id: riskToDelete.id, clientId });
+                                    setRiskToDelete(null);
+                                }
+                            }}
+                            className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                        >
+                            Delete Risk
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* AI Smart Insights Dialog */}
+            <EnhancedDialog
+                open={!!aiActionRisk}
+                onOpenChange={(open) => !open && setAiActionRisk(null)}
+                title={
+                    <div className="flex items-center gap-2">
+                        <Wand2 className="w-5 h-5 text-purple-600" />
+                        AI Smart Insights: {aiActionRisk?.assessmentId}
+                    </div>
+                }
+                description="Leverage AI to triage this risk and get control recommendations."
+                size="xl"
+                footer={
+                    <div className="flex justify-between w-full">
+                        <Button variant="ghost" onClick={() => setAiActionRisk(null)}>Close</Button>
+                        {aiTriageResults && (
+                            <Button
+                                onClick={() => {
+                                    updateRiskMutation.mutate({
+                                        id: aiActionRisk.id,
+                                        clientId,
+                                        likelihood: parseInt(aiTriageResults.likelihood),
+                                        impact: parseInt(aiTriageResults.impact),
+                                        notes: (aiActionRisk.notes || '') + `\n\n[AI Triage]: ${aiTriageResults.reasoning}`
+                                    });
+                                }}
+                                disabled={updateRiskMutation.isLoading}
+                                className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
+                            >
+                                {updateRiskMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Commit AI Triage to Risk
+                            </Button>
+                        )}
+                    </div>
+                }
+            >
+                <div className="space-y-8 py-4">
+                    {/* Triage Slot */}
+                    <div className="bg-purple-50/50 p-6 rounded-xl border border-purple-100">
+                        <h4 className="font-semibold text-purple-900 mb-4 flex items-center gap-2">
+                            <ArrowUpDown className="w-4 h-4" />
+                            Step 1: AI Auto-Triage
+                        </h4>
+                        <div className="flex items-start gap-6">
+                            <div className="flex-1 space-y-4">
+                                <p className="text-sm text-purple-800 italic">
+                                    "Analysis based on: <strong>{aiActionRisk?.threatDescription || 'No description'}</strong>"
+                                </p>
+                                <Slot
+                                    name={SlotNames.RISK_AUTO_TRIAGE}
+                                    props={{
+                                        clientId,
+                                        threatDescription: aiActionRisk?.threatDescription || '',
+                                        vulnerabilityDescription: aiActionRisk?.vulnerabilityDescription || '',
+                                        affectedAssets: parseAffectedAssets(aiActionRisk?.affectedAssets),
+                                        onAnalysisComplete: (data: any) => {
+                                            setAiTriageResults(data);
+                                            toast.success("AI Triage complete! Review and commit the results below.");
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            {aiTriageResults && (
+                                <div className="w-64 bg-white p-4 rounded-lg border border-purple-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <h5 className="text-xs font-bold text-purple-700 uppercase mb-3">AI Recommendation</h5>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <p className="text-[10px] text-gray-500 uppercase">Likelihood</p>
+                                            <p className="text-lg font-bold">{aiTriageResults.likelihood}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-gray-500 uppercase">Impact</p>
+                                            <p className="text-lg font-bold">{aiTriageResults.impact}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-gray-500 uppercase">Reasoning</p>
+                                        <p className="text-xs text-gray-700 leading-relaxed">{aiTriageResults.reasoning}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Suggestions Slot */}
+                    <div className="p-2">
+                        <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2 px-4">
+                            <Sparkles className="w-4 h-4 text-purple-600" />
+                            Step 2: Intelligent Control Suggestions
+                        </h4>
+                        <Slot
+                            name={SlotNames.RISK_CONTROL_SUGGESTION}
+                            props={{
+                                clientId,
+                                threat: aiActionRisk?.threatDescription || '',
+                                vulnerability: aiActionRisk?.vulnerabilityDescription || '',
+                                selectedControlIds: [],
+                                onAddControl: (id: number) => {
+                                    toast.info(`Control ${id} recommendation accepted. In a full implementation, this would link the control.`);
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
+            </EnhancedDialog>
         </div >
     );
 }

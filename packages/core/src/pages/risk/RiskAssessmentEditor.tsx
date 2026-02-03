@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@complianceos/ui/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@complianceos/ui/ui/tabs';
 import { trpc } from '@/lib/trpc';
-import { Shield, Loader2, Check, Calculator, Plus, ArrowLeft, Save, Trash2, Calendar, FileText, User, Wand2, Activity, LayoutList } from 'lucide-react';
+import { Shield, Loader2, Check, Calculator, Plus, ArrowLeft, Save, Trash2, Calendar, FileText, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
@@ -18,8 +18,9 @@ import { useClientContext } from '@/contexts/ClientContext';
 import { Separator } from '@complianceos/ui/ui/separator';
 import DashboardLayout from '@/components/DashboardLayout';
 import { SearchableSelect, type SearchableSelectItem } from '@/components/ui-custom/SearchableSelect';
-import { AIControlSuggestions } from '@/components/risk/AIControlSuggestions';
 import { GapAnalysis } from '@/components/risk/GapAnalysis';
+import { Slot } from "@/registry";
+import { SlotNames } from "@/registry/slotNames";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -179,7 +180,8 @@ export default function RiskAssessmentEditor() {
 
 
 
-    // Auto-Triage Mutation
+    // Auto-Triage Mutation (Removed in favor of Slot component)
+    /*
     const analyzeMutation = trpc.advisor.analyzeRisk.useMutation({
         onSuccess: (data) => {
             setFormData(prev => ({
@@ -212,6 +214,7 @@ export default function RiskAssessmentEditor() {
             assets: formData.affectedAssets
         });
     };
+    */
 
     const createVulnerabilityMutation = trpc.risks.createVulnerability.useMutation({
         onSuccess: (data) => {
@@ -608,17 +611,23 @@ export default function RiskAssessmentEditor() {
                                     </div>
 
                                     <div className="flex justify-end pt-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleAutoTriage}
-                                            disabled={analyzeMutation.isLoading}
-                                            className="gap-2 text-violet-600 border-violet-200 hover:bg-violet-50"
-                                        >
-                                            {analyzeMutation.isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                            Auto-Triage with AI
-                                        </Button>
+                                        <Slot
+                                            name={SlotNames.RISK_AUTO_TRIAGE}
+                                            props={{
+                                                clientId: parseInt(clientId?.toString() || "0"),
+                                                threatDescription: formData.threatDescription,
+                                                vulnerabilityDescription: formData.vulnerabilityDescription,
+                                                affectedAssets: formData.affectedAssets,
+                                                onAnalysisComplete: (data: any) => {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        likelihood: data.likelihood,
+                                                        impact: data.impact,
+                                                        inherentRisk: data.inherentRisk
+                                                    }));
+                                                }
+                                            }}
+                                        />
                                     </div>
 
                                     <Separator />
@@ -680,14 +689,17 @@ export default function RiskAssessmentEditor() {
                                             Select controls that are <strong>currently active</strong>. These give you immediate credit and lower your <em>Residual Risk</em> score now.
                                         </div>
                                     </div>
-                                    <AIControlSuggestions
-                                        clientId={parseInt(clientId!)}
-                                        threat={formData.threatDescription || ""}
-                                        vulnerability={formData.vulnerabilityDescription || ""}
-                                        selectedControlIds={formData.controlIds}
-                                        onAddControl={(id) => {
-                                            if (!formData.controlIds.includes(id)) {
-                                                toggleControl(id);
+                                    <Slot
+                                        name={SlotNames.RISK_CONTROL_SUGGESTION}
+                                        props={{
+                                            clientId: parseInt(clientId?.toString() || "0"),
+                                            threat: formData.threatDescription || "",
+                                            vulnerability: formData.vulnerabilityDescription || "",
+                                            selectedControlIds: formData.controlIds,
+                                            onAddControl: (id: number) => {
+                                                if (!formData.controlIds.includes(id)) {
+                                                    toggleControl(id);
+                                                }
                                             }
                                         }}
                                     />

@@ -178,7 +178,7 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
         reindexContent: protectedProcedure
             .input(z.object({
                 clientId: z.number().optional(),
-                type: z.enum(['all', 'policies', 'evidence', 'knowledge_base']).default('all')
+                type: z.enum(['all', 'policies', 'evidence', 'knowledge_base', 'risks']).default('all')
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
@@ -188,6 +188,7 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                     policies: 0,
                     evidence: 0,
                     knowledge_base: 0,
+                    risks: 0,
                     errors: 0
                 };
 
@@ -289,6 +290,43 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                         }
                     } catch (e) {
                         console.error("Knowledge Base indexing failed", e);
+                        stats.errors++;
+                    }
+                }
+
+                // Index Risks
+                if (input.type === 'all' || input.type === 'risks') {
+                    try {
+                        const assessments = input.clientId
+                            ? await dbConn.select().from(schema.riskAssessments).where(eq(schema.riskAssessments.clientId, input.clientId))
+                            : await dbConn.select().from(schema.riskAssessments);
+
+                        for (const r of assessments) {
+                            const content = `Risk: ${r.title}\nID: ${r.assessmentId}\nDescription: ${r.threatDescription || ''}\nVulnerability: ${r.vulnerabilityDescription || ''}\nInherent Risk: ${r.inherentRisk}\nResidual Risk: ${r.residualRisk}\nStatus: ${r.status}`;
+                            try {
+                                await IndexingService.indexDocument(
+                                    r.clientId,
+                                    'risk',
+                                    r.id.toString(),
+                                    {
+                                        title: r.title,
+                                        content: content,
+                                        updatedAt: r.updatedAt?.toISOString() || new Date().toISOString()
+                                    },
+                                    {
+                                        title: r.title,
+                                        inherentRisk: r.inherentRisk,
+                                        status: r.status
+                                    }
+                                );
+                                stats.risks++;
+                            } catch (err) {
+                                console.error(`Failed to index risk ${r.id}`, err);
+                                stats.errors++;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Risk indexing failed", e);
                         stats.errors++;
                     }
                 }

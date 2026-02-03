@@ -11,7 +11,8 @@ import { Checkbox } from '@complianceos/ui/ui/checkbox';
 import { ScrollArea } from '@complianceos/ui/ui/scroll-area';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
-import { Shield, AlertTriangle, Layers, Building, ArrowRight, Check, Plus, Link as LinkIcon, Sparkles, Loader2, Info } from 'lucide-react';
+import { Slot, SlotNames } from "@/registry";
+import { Check, Link as LinkIcon, AlertTriangle, Shield, Building, Layers, ArrowRight, Wand2, Sparkles, Loader2, Info } from 'lucide-react';
 import { calculateResidualScore, getRiskLevelColor, scoreToRiskLevel, getMatrixScoreLevel, getRiskLevelTextColor } from '@/lib/riskCalculations';
 import { RiskAppetiteCheck } from '@/components/risk/RiskAppetiteCheck';
 
@@ -90,7 +91,8 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
         const num = parseInt(str);
         if (!isNaN(num)) return num;
 
-        if (str.includes('very high') || str.includes('critical')) return 4;
+        if (str.includes('critical') || str.includes('extreme')) return 5;
+        if (str.includes('very high')) return 4;
         if (str.includes('high')) return 3;
         if (str.includes('medium')) return 2;
         return 1;
@@ -341,12 +343,13 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                 <div className="text-[11px] space-y-1">
                                     <h4 className="font-semibold text-slate-900">Risk Calculation Methodology</h4>
                                     <p className="text-slate-600 leading-relaxed">
-                                        Scores are calculated using a 4x4 matrix: <br />
-                                        <span className="font-mono bg-slate-200 px-1 py-0.5 rounded text-[10px]">Likelihood (1-4) × Impact (1-4) = Risk Score</span>
+                                        Scores are calculated using a 5x5 matrix: <br />
+                                        <span className="font-mono bg-slate-200 px-1 py-0.5 rounded text-[10px]">Likelihood (1-5) × Impact (1-5) = Risk Score</span>
                                     </p>
                                     <div className="grid grid-cols-2 gap-x-2 text-[10px] text-slate-500 font-medium pt-1">
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-600" /> 12-16: Very High</div>
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> 8-11: High</div>
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-800" /> 20-25: Critical</div>
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-600" /> 15-19: Very High</div>
+                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> 8-14: High</div>
                                         <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> 4-7: Medium</div>
                                         <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> 1-3: Low</div>
                                     </div>
@@ -354,10 +357,33 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                             </div>
                         </div>
                         <div className="space-y-4">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center bg-violet-50/50 p-4 rounded-lg border border-violet-100">
+                                <div className="space-y-1">
+                                    <Label className="text-violet-900 font-bold">Inherent Risk Scoring</Label>
+                                    <p className="text-[10px] text-violet-700">Use AI to analyze the threat/vulnerability and suggest scores.</p>
+                                </div>
+                                <Slot
+                                    name={SlotNames.RISK_AUTO_TRIAGE}
+                                    props={{
+                                        clientId,
+                                        threatDescription: formData.description || '',
+                                        vulnerabilityDescription: formData.vulnerability || '',
+                                        affectedAssets: formData.assets,
+                                        onAnalysisComplete: (data: any) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                likelihood: parseInt(data.likelihood),
+                                                impact: parseInt(data.impact),
+                                                notes: (prev.notes || '') + `\n\n[AI Triage]: ${data.reasoning}`
+                                            }));
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="flex justify-between mt-4">
                                 <Label>Likelihood ({formData.likelihood})</Label>
                             </div>
-                            <Slider value={[formData.likelihood]} onValueChange={([val]) => setFormData({ ...formData, likelihood: val })} max={4} min={1} step={1} className="py-4" rangeClassName="bg-blue-700" />
+                            <Slider value={[formData.likelihood]} onValueChange={([val]) => setFormData({ ...formData, likelihood: val })} max={5} min={1} step={1} className="py-4" rangeClassName="bg-blue-700" />
                         </div>
                         <div className="space-y-4">
                             <Label>Priority</Label>
@@ -377,7 +403,7 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                             <div className="flex justify-between">
                                 <Label>Impact ({formData.impact})</Label>
                             </div>
-                            <Slider value={[formData.impact]} onValueChange={([val]) => setFormData({ ...formData, impact: val })} max={4} min={1} step={1} className="py-4" rangeClassName="bg-blue-700" />
+                            <Slider value={[formData.impact]} onValueChange={([val]) => setFormData({ ...formData, impact: val })} max={5} min={1} step={1} className="py-4" rangeClassName="bg-blue-700" />
                         </div>
                         <div className="bg-gray-50 p-6 rounded-xl flex items-center justify-between border border-gray-200">
                             <div>

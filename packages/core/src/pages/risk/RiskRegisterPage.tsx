@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'wouter';
+import { useParams, Link, useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
 import { RiskRegister } from '@/components/risk/RiskRegister';
 import { RiskHeatmap } from '@/components/risk/RiskHeatmap';
 import { RiskAssessmentWizard } from '@/components/risk/RiskAssessmentWizard';
 import { Button } from '@complianceos/ui/ui/button';
-import { Plus, ChevronRight, Home, Download, ChevronLeft } from 'lucide-react';
+import { Shield, Plus, ChevronRight, Home, Download, ChevronLeft, Wand2, RefreshCcw, FileText } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import {
@@ -28,12 +30,16 @@ export default function RiskRegisterPage() {
         }
     });
     const params = useParams<{ id: string }>();
+    const [_, setLocation] = useLocation();
     const clientId = params.id ? parseInt(params.id) : 0;
-    const utils = trpc.useUtils();
     const [wizardOpen, setWizardOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<any>(null);
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [reportModalOpen, setReportModalOpen] = useState(false);
     const [heatmapFilter, setHeatmapFilter] = useState<{ likelihood?: string; impact?: string; type?: string } | null>(null);
 
+    const utils = trpc.useUtils();
     // Query for risk assessments
     const { data: riskAssessments } = trpc.risks.getRiskAssessments.useQuery(
         { clientId },
@@ -41,6 +47,25 @@ export default function RiskRegisterPage() {
     );
     const exportReportMutation = trpc.risks.exportReport.useMutation();
     const [exporting, setExporting] = useState(false);
+
+    const aiAnalysisMutation = trpc.risks.generateAIAnalysis.useMutation({
+        onSuccess: (data) => {
+            setAiAnalysis(data);
+            setAnalyzing(false);
+            setReportModalOpen(true);
+            utils.risks.getReport.invalidate({ clientId });
+            toast.success("AI Analysis generated and saved to Report Area");
+        },
+        onError: (err) => {
+            setAnalyzing(false);
+            toast.error(`Analysis failed: ${err.message}`);
+        }
+    });
+
+    const handleGenerateReport = async () => {
+        setAnalyzing(true);
+        aiAnalysisMutation.mutate({ clientId });
+    };
 
     // Check for query params to auto-open wizard (e.g. from Asset Active Threats)
     useEffect(() => {
@@ -106,6 +131,10 @@ export default function RiskRegisterPage() {
             toast.success("Export successful", { description: `Report downloaded: ${data.filename}` });
         } catch (e: any) {
             console.error("Export failed:", e);
+            if (e?.data?.code === 'PRECONDITION_FAILED') {
+                setLocation(`/upgrade-required?feature=risk-reports&clientId=${clientId}`);
+                return;
+            }
             toast.error("Export failed", { description: e.message || "An unexpected error occurred." });
         } finally {
             setExporting(false);
@@ -157,13 +186,17 @@ export default function RiskRegisterPage() {
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
-                            variant="outline"
-                            onClick={handleExportRiskReport}
-                            disabled={exporting || !clientId}
-                            className="gap-2"
+                            variant="primary"
+                            onClick={handleGenerateReport}
+                            disabled={analyzing || !riskAssessments || riskAssessments.length === 0}
+                            className="gap-2 shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 transition-all active:scale-[0.98] text-white"
                         >
-                            <Download className="w-4 h-4" />
-                            Export Risk Report
+                            {analyzing ? (
+                                <RefreshCcw className="w-4 h-4 animate-spin text-white" />
+                            ) : (
+                                <Wand2 className="w-4 h-4 text-white" />
+                            )}
+                            {analyzing ? "AI Analyzing Risks..." : "AI Management Report"}
                         </Button>
                         <Button onClick={() => { setEditingRisk(null); setWizardOpen(true); }}>
                             <Plus className="w-4 h-4 mr-2" /> Add Risk
@@ -207,6 +240,57 @@ export default function RiskRegisterPage() {
                         toast.success("Risk saved successfully");
                     }}
                 />
+
+                {/* AI Report Modal */}
+                <EnhancedDialog
+                    open={reportModalOpen}
+                    onOpenChange={setReportModalOpen}
+                    title="AI Risk Management Analysis"
+                    description="Strategic report generated based on current Risk Register data."
+                    size="3xl"
+                >
+                    <div className="max-h-[70vh] overflow-y-auto p-4 bg-slate-50/50 rounded-xl border border-slate-200/60 shadow-inner">
+                        <div className="prose prose-slate max-w-none prose-sm dark:prose-invert 
+                            prose-headings:text-slate-900 prose-headings:font-bold prose-headings:mb-3 prose-headings:mt-6
+                            prose-p:text-slate-800 prose-p:leading-relaxed prose-p:mb-4
+                            prose-li:text-slate-800 prose-li:mb-1
+                            prose-strong:text-slate-950 prose-strong:font-bold
+                            prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg">
+                            <ReactMarkdown>{aiAnalysis || ''}</ReactMarkdown>
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button variant="outline" onClick={() => setReportModalOpen(false)}>
+                            Close
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            className="gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200"
+                            onClick={() => {
+                                setReportModalOpen(false);
+                                setLocation(`/clients/${clientId}/risks/report`);
+                            }}
+                        >
+                            <FileText className="w-4 h-4" />
+                            Edit in Report Editor
+                        </Button>
+                        <Button
+                            className="gap-2 bg-slate-900 hover:bg-slate-800"
+                            onClick={() => {
+                                const blob = new Blob([aiAnalysis || ''], { type: 'text/markdown' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `Risk_Management_Report_${new Date().toISOString().split('T')[0]}.md`;
+                                a.click();
+                                toast.success("Report downloaded as Markdown");
+                            }}
+                        >
+                            <Download className="w-4 h-4" />
+                            Download Markdown
+                        </Button>
+                    </div>
+                </EnhancedDialog>
             </div>
         </DashboardLayout>
     );

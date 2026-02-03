@@ -16,28 +16,21 @@ interface RiskHeatmapProps {
 // 5x5 Matrix scales
 const SCALES = ['1 - Very Low', '2 - Low', '3 - Medium', '4 - High', '5 - Very High'];
 
-// Helper to normalized scale inputs (handling text vs numbers if necessary)
-// ADJUSTED: Maps 1-4 data inputs to 2-5 visual scale for compatibility with 5x5 heatmap
 const toViewScale = (val: string | number | undefined): number => {
     if (!val) return 0;
     const strVal = val.toString().toLowerCase().trim();
     let num = parseInt(strVal.charAt(0));
 
-    // Map text descriptions if numeric parse fails or needs override
+    // Map text descriptions if numeric parse fails
     if (isNaN(num)) {
-        if (strVal.includes('critical') || strVal.includes('very high') || strVal.includes('extreme') || strVal.includes('catastrophic') || strVal.includes('almost certain')) num = 4;
+        if (strVal.includes('critical') || strVal.includes('extreme') || strVal.includes('catastrophic')) num = 5;
+        else if (strVal.includes('very high') || strVal.includes('almost certain')) num = 4;
         else if (strVal.includes('high') || strVal.includes('likely') || strVal.includes('major')) num = 3;
         else if (strVal.includes('medium') || strVal.includes('moderate') || strVal.includes('possible')) num = 2;
         else if (strVal.includes('low') || strVal.includes('unlikely') || strVal.includes('minor') || strVal.includes('rare') || strVal.includes('insignificant')) num = 1;
     }
 
-    // Shift 1-4 data to 2-5 visual range
-    // 1 -> 2 (Low)
-    // 2 -> 3 (Medium)
-    // 3 -> 4 (High)
-    // 4 -> 5 (Very High/Critical)
-    if (num >= 1 && num <= 4) return num + 1;
-    if (num === 5) return 5; // Keep 5 as 5 (Top) matches Top
+    if (num >= 1 && num <= 5) return num;
     return 0;
 };
 

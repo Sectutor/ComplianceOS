@@ -7,7 +7,22 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { registerDefaults } from "@/registry/defaults";
+import { registerPremium } from "@/registry/premium";
 import "./index.css";
+
+// Initialize the Slot Registry
+// 1. Register Core Defaults (Clean Slate)
+registerDefaults();
+
+// 2. Register Premium Features (AI, etc.)
+// Controlled by VITE_ENABLE_PREMIUM env var (see .env)
+// If 'false' or missing, Premium features are skipped (Open Source Mode)
+if (import.meta.env.VITE_ENABLE_PREMIUM === 'true') {
+  registerPremium();
+} else {
+  console.log('[Registry] Premium features disabled (Open Source Mode)');
+}
 
 const queryClient = new QueryClient();
 

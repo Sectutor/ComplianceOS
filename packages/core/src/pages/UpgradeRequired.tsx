@@ -17,6 +17,7 @@ export default function UpgradeRequired() {
     // Determine feature based on URL or query param
     const getFeatureName = () => {
         if (featureParam === 'custom-frameworks') return "Custom Frameworks";
+        if (featureParam === 'risk-reports') return "Risk Management Reporting";
         if (location.includes("vendors") || location.includes("tprm")) return "Vendor Risk Management";
         return "Premium Feature";
     };

@@ -571,6 +571,7 @@ function DashboardLayoutContent({
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/risks" },
           { icon: ListTodo, label: "Risk Register", path: "/risks/register" },
+          { icon: FileText, label: "Risk Reports", path: "/risks/report" },
           { icon: LayoutGrid, label: "Risk Framework", path: "/risks/framework" },
           { icon: Database, label: "Assets", path: "/risks/assets" },
           { icon: AlertTriangle, label: "Threats", path: "/risks/threats" },

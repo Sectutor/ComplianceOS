@@ -5,6 +5,8 @@ import { Shield } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
+import { Slot, SlotNames } from '@/registry';
+import { Wand2, Sparkles } from 'lucide-react';
 
 interface RiskDetailsDialogProps {
     open: boolean;
@@ -78,10 +80,12 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId }: RiskDe
                             {risk.residualRisk || '-'}
                         </p>
                     </div>
+                    {/* 
                     <div className="bg-muted/50 p-4 rounded-lg">
                         <p className="text-xs text-muted-foreground uppercase">Priority</p>
                         <p className="text-lg font-bold mt-1">{risk.priority || '-'}</p>
-                    </div>
+                    </div> 
+                    */}
                     <div className="bg-muted/50 p-4 rounded-lg">
                         <p className="text-xs text-muted-foreground uppercase">Status</p>
                         <p className="text-lg font-bold mt-1 capitalize">{risk.status || '-'}</p>
@@ -158,6 +162,41 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId }: RiskDe
                         </div>
                     </div>
                 )}
+
+                {/* AI Insight Slots */}
+                <div className="space-y-4 pt-4 border-t border-dashed">
+                    <h4 className="font-semibold flex items-center gap-2 text-purple-700">
+                        <Wand2 className="w-4 h-4" />
+                        AI Power Tools
+                    </h4>
+                    <div className="grid grid-cols-1 gap-4">
+                        <Slot
+                            name={SlotNames.RISK_AUTO_TRIAGE}
+                            props={{
+                                clientId,
+                                threatDescription: risk.threatDescription || '',
+                                vulnerabilityDescription: risk.vulnerabilityDescription || '',
+                                affectedAssets: parseAffectedAssets(risk.affectedAssets),
+                                onAnalysisComplete: (data: any) => {
+                                    // In a real app, we might want to refresh or update the UI
+                                    console.log('AI Analysis complete:', data);
+                                }
+                            }}
+                        />
+                        <Slot
+                            name={SlotNames.RISK_CONTROL_SUGGESTION}
+                            props={{
+                                clientId,
+                                threat: risk.threatDescription || '',
+                                vulnerability: risk.vulnerabilityDescription || '',
+                                selectedControlIds: [], // We'd need to fetch these or pass from risk
+                                onAddControl: (id: number) => {
+                                    console.log('Would add control:', id);
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
 
                 {/* Dates */}
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t">

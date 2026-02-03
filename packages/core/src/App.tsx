@@ -112,6 +112,7 @@ const RiskFramework = lazy(() => import("./pages/risk/RiskFramework"));
 const GuidedRiskValidation = lazy(() => import("./pages/risk/GuidedRiskValidation"));
 const RiskRegisterPage = lazy(() => import("./pages/risk/RiskRegisterPage"));
 const RiskReportEditor = lazy(() => import("./pages/risk/RiskReportEditor"));
+const RiskReportList = lazy(() => import("./pages/risk/RiskReportList"));
 const RiskTreatmentPlanPage = lazy(() => import("./pages/risk/RiskTreatmentPlanPage"));
 const RiskAlignmentPage = lazy(() => import("./pages/risk/RiskAlignmentPage"));
 const AdversaryIntelPage = lazy(() => import("./pages/risk/AdversaryIntelPage"));
@@ -659,6 +660,9 @@ function Router() {
           {(_params) => <ProtectedRoute component={RiskDashboard} />}
         </Route>
         <Route path="/clients/:id/risks/report">
+          {(_params) => <ProtectedRoute component={RiskReportList} />}
+        </Route>
+        <Route path="/clients/:id/risks/report/:reportId">
           {(_params) => <ProtectedRoute component={RiskReportEditor} />}
         </Route>
         <Route path="/clients/:id/risks/treatment-plan">

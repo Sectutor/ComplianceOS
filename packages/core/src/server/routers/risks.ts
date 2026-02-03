@@ -9,12 +9,13 @@ import {
     threats, vulnerabilities
 } from "../../schema";
 import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not } from "drizzle-orm";
-import { calculateResidualScore, scoreToRiskLevel } from "../../lib/riskCalculations";
+import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
 import { logActivity } from "../../lib/audit";
-// import { generateRiskManagementDocx } from "../lib/reporting/riskReport";
+import { llmService } from "../../lib/llm/service";
+import { generateRiskReportDocx } from "../../riskExportProfessional";
 
 
-export const createRisksRouter = (t: any, procedure: any) => {
+export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
     console.log('[RISKS ROUTER] Creating risks router with procedures... AND RELOADED!');
     return t.router({
 
@@ -109,8 +110,151 @@ export const createRisksRouter = (t: any, procedure: any) => {
                 return { success: true };
             }),
 
+        // Generate AI-driven Risk Management Analysis
+        generateAIAnalysis: procedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input, ctx }: any) => {
+                console.log(`[AI Analysis] Starting analysis for client ${input.clientId}`);
+                const db = await getDb();
+
+                // Fetch all risks for the client
+                console.log(`[AI Analysis] Fetching risks...`);
+                const assessments = await db.select()
+                    .from(riskAssessments)
+                    .where(eq(riskAssessments.clientId, input.clientId));
+
+                console.log(`[AI Analysis] Found ${assessments.length} risks`);
+
+                if (assessments.length === 0) {
+                    return "No risk assessments found to analyze. Please add some risks first.";
+                }
+
+                // Fetch Client Name
+                const [client] = await db.select({ name: schema.clients.name })
+                    .from(schema.clients)
+                    .where(eq(schema.clients.id, input.clientId))
+                    .limit(1);
+
+                const orgName = client?.name || "the Organization";
+
+                // Calculate Stats for AI Context
+                const totalRisks = assessments.length;
+                const criticalRisks = assessments.filter((r: any) => r.inherentRisk === 'Critical').length;
+                const highRisks = assessments.filter((r: any) => r.inherentRisk === 'High').length;
+                const moderateRisks = assessments.filter((r: any) => r.inherentRisk === 'Moderate').length;
+                const lowRisks = assessments.filter((r: any) => r.inherentRisk === 'Low').length;
+                const approvedRisks = assessments.filter((r: any) => r.status === 'approved').length;
+                const draftRisks = assessments.filter((r: any) => r.status === 'draft').length;
+
+                // Format data for AI
+                const riskSummary = assessments.map((r: any) => ({
+                    id: r.assessmentId,
+                    title: r.title,
+                    inherent: r.inherentRisk,
+                    residual: r.residualRisk,
+                    status: r.status,
+                    owner: r.riskOwner,
+                    treatment: r.treatmentOption
+                }));
+
+                const systemPrompt = `You are a Senior Risk Management Consultant for ${orgName}.
+Your task is to analyze the Risk Register and produce a professional, strategic Management Report.
+You MUST return the report as a structured JSON object.
+Use professional tone and industry standard (ISO 31000 / NIST SP 800-30) terminology.
+IMPORTANT: You must use the specific metrics provided in the context to back up your findings.`;
+
+                const userPrompt = `Analyze the following Risk Register data for ${orgName}:
+
+CONTEXT & METRICS (Use these exact numbers in your analysis):
+- Total Risks Identified: ${totalRisks}
+- Critical Risks: ${criticalRisks}
+- High Risks: ${highRisks}
+- Moderate Risks: ${moderateRisks}
+- Low Risks: ${lowRisks}
+- Approval Status: ${approvedRisks} Approved, ${draftRisks} Draft
+
+DATA SAMPLE:
+${JSON.stringify(riskSummary.slice(0, 50), null, 2)}
+
+REPORT REQUIREMENTS:
+Return a JSON object with these EXACT keys:
+1. "title": "Risk Management Report for ${orgName}"
+2. "executiveSummary": High-level overview of current risk posture. MUST MENTION the total number of risks (${totalRisks}) and the count of critical/high risks (${criticalRisks + highRisks}). (Clean Markdown).
+3. "keyFindings": Top 3-5 most critical or unmanaged risks. Cite specific risk titles from the data. (Clean Markdown).
+4. "recommendations": Actionable steps for management. (Clean Markdown).
+5. "conclusion": Brief forward-looking statement on risk resilience. Quote the percentage of risks that are currently in 'Draft' status if it is high. (Clean Markdown).
+6. "methodology": Brief description of how this analysis was performed (Clean Markdown).`;
+
+                console.log(`[AI Analysis] Calling LLM service...`);
+                try {
+                    const response = await llmService.generate({
+                        systemPrompt,
+                        userPrompt,
+                        feature: 'risk_analysis',
+                        temperature: 0.3,
+                        jsonMode: true
+                    }, { clientId: input.clientId, userId: ctx.user.id, endpoint: 'generateAIAnalysis' });
+
+                    console.log(`[AI Analysis] LLM service responded successfully`);
+                    const reportData = JSON.parse(response.text);
+
+                    // Save to Report Area
+                    console.log(`[AI Analysis] Saving to report area...`);
+                    const [existing] = await db.select()
+                        .from(schema.riskReports)
+                        .where(eq(schema.riskReports.clientId, input.clientId))
+                        .limit(1);
+
+                    if (existing) {
+                        await db.update(schema.riskReports)
+                            .set({
+                                ...reportData,
+                                updatedAt: new Date(),
+                                status: 'draft'
+                            })
+                            .where(eq(schema.riskReports.id, existing.id));
+                    } else {
+                        await db.insert(schema.riskReports)
+                            .values({
+                                clientId: input.clientId,
+                                ...reportData,
+                                status: 'draft',
+                                version: 1
+                            });
+                    }
+
+                    // Return as markdown for convenience (or the JSON)
+                    const fullMarkdown = `
+# ${reportData.title || 'Risk Management Report'}
+
+## Executive Summary
+${reportData.executiveSummary}
+
+## Key Findings
+${reportData.keyFindings}
+
+## Strategic Recommendations
+${reportData.recommendations}
+
+## Conclusion
+${reportData.conclusion}
+
+---
+*Analysis generated by AI Advisor on ${new Date().toLocaleDateString()}*
+`;
+                    return fullMarkdown;
+                } catch (error: any) {
+                    console.error(`[AI Analysis] LLM service ERROR:`, error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `AI Analysis failed: ${error.message}`,
+                        cause: error
+                    });
+                }
+            }),
+
         // Export Professional DOCX Report
-        exportReport: procedure
+        exportReport: premiumClientProcedure
             .input(z.object({
                 clientId: z.number(),
                 title: z.string().optional(),
@@ -125,21 +269,96 @@ export const createRisksRouter = (t: any, procedure: any) => {
                 references: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
-                throw new Error("Risk Management Report Export is a Premium feature.");
+                const db = await getDb();
+                const [client] = await db.select({ name: schema.clients.name })
+                    .from(schema.clients)
+                    .where(eq(schema.clients.id, input.clientId))
+                    .limit(1);
+
+                const risks = await db.select()
+                    .from(schema.riskAssessments)
+                    .where(eq(schema.riskAssessments.clientId, input.clientId))
+                    .orderBy(desc(schema.riskAssessments.updatedAt));
+
+                const buffer = await generateRiskReportDocx({
+                    ...input,
+                    title: input.title || "Risk Management Report",
+                    clientName: client?.name || "Premium Client",
+                    risks: risks
+                });
+
+                return {
+                    base64: buffer.toString('base64'),
+                    filename: `Risk_Management_Report_${new Date().toISOString().split('T')[0]}.docx`
+                };
             }),
 
         // Get Risk Report Draft
         getReport: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number().optional()
+            }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                let query = db.select()
+                    .from(schema.riskReports)
+                    .where(eq(schema.riskReports.clientId, input.clientId));
+
+                if (input.reportId) {
+                    query = query.where(eq(schema.riskReports.id, input.reportId));
+                } else {
+                    query = query.orderBy(desc(schema.riskReports.version));
+                }
+
+                const [report] = await query.limit(1);
+                return report || null;
+            }),
+
+        // List all Risk Reports
+        listReports: procedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {
-                console.log(`[RISKS] Getting report for client ${input.clientId}`);
                 const db = await getDb();
-                const [report] = await db.select()
+                return await db.select()
                     .from(schema.riskReports)
                     .where(eq(schema.riskReports.clientId, input.clientId))
-                    .orderBy(desc(schema.riskReports.version))
-                    .limit(1);
-                return report || null;
+                    .orderBy(desc(schema.riskReports.createdAt));
+            }),
+
+        // Delete Risk Report
+        deleteReport: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number()
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.delete(schema.riskReports)
+                    .where(and(
+                        eq(schema.riskReports.id, input.reportId),
+                        eq(schema.riskReports.clientId, input.clientId)
+                    ));
+                return { success: true };
+            }),
+
+        // Update Risk Report Status
+        updateReportStatus: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number(),
+                status: z.string()
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.update(schema.riskReports)
+                    .set({ status: input.status, updatedAt: new Date() })
+                    .where(and(
+                        eq(schema.riskReports.id, input.reportId),
+                        eq(schema.riskReports.clientId, input.clientId)
+                    ));
+                return { success: true };
             }),
 
         // Save Risk Report Draft
@@ -301,7 +520,7 @@ export const createRisksRouter = (t: any, procedure: any) => {
 
                 return await db.transaction(async (tx) => {
                     const inherentScore = input.likelihood * input.impact;
-                    const inherentRisk = scoreToRiskLevel(inherentScore);
+                    const inherentRisk = getMatrixScoreLevel(inherentScore);
 
                     const data: any = {
                         clientId: input.clientId,
@@ -805,7 +1024,7 @@ export const createRisksRouter = (t: any, procedure: any) => {
                     updateData.likelihood = String(likelihood);
                     updateData.impact = String(impact);
                     updateData.inherentScore = likelihood * impact;
-                    updateData.inherentRisk = scoreToRiskLevel(updateData.inherentScore);
+                    updateData.inherentRisk = getMatrixScoreLevel(updateData.inherentScore);
                 }
 
                 const [assessment] = await db.update(riskAssessments)
@@ -971,18 +1190,6 @@ export const createRisksRouter = (t: any, procedure: any) => {
                 return linked;
             }),
 
-        deleteRiskTreatment: procedure
-            .input(z.object({ id: z.number(), clientId: z.number() }))
-            .mutation(async ({ input, ctx }: any) => {
-                if (ctx.clientRole !== 'owner') {
-                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Only owners can delete treatments' });
-                }
-                const db = await getDb();
-                await db.delete(riskTreatments).where(eq(riskTreatments.id, input.id));
-
-                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "delete", entityType: "treatment", entityId: input.id, details: {} });
-                return { success: true };
-            }),
 
         // --- STAKEHOLDERS ---
         getStakeholders: procedure

@@ -10,8 +10,10 @@ import { Checkbox } from "@complianceos/ui/ui/checkbox";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2, Hammer, Check } from "lucide-react";
+import { Hammer, Check } from "lucide-react";
 import { PlaybookSuggestionCard } from "@/components/gap-analysis/PlaybookSuggestionCard";
+import { Slot } from "@/registry";
+import { SlotNames } from "@/registry/slotNames";
 
 interface Control {
     id: number;
@@ -51,10 +53,11 @@ export function GapAnalysisControlCard({
     onRaiseRisk
 }: GapAnalysisControlCardProps) {
     const currentStatus = response?.currentStatus;
-    const [aiLoading, setAiLoading] = React.useState(false);
+
+    // AI Assist Logic removed - now handled via Slot
+
     const [taskCreated, setTaskCreated] = React.useState(false);
     const [riskCreated, setRiskCreated] = React.useState(false);
-    const askQuestionMutation = trpc.advisor.askQuestion.useMutation();
     const createTaskMutation = trpc.governance.create.useMutation();
 
     const handleCreateTask = async () => {
@@ -81,36 +84,7 @@ export function GapAnalysisControlCard({
         setRiskCreated(true);
     };
 
-    const handleAiAssist = async () => {
-        setAiLoading(true);
-        try {
-            const result = await askQuestionMutation.mutateAsync({
-                clientId: 3, // TODO: Pass client Id in props or context
-                question: `Suggest a remediation plan for control ${control.controlId}: ${control.name}`,
-                context: {
-                    type: 'gapanalysis',
-                    id: control.controlId,
-                    data: {
-                        controlName: control.name,
-                        description: control.description,
-                        framework: control.framework,
-                        currentStatus: response?.currentStatus,
-                        notes: response?.notes
-                    }
-                }
-            });
-
-            if (result?.answer) {
-                onUpdate('notes', (response?.notes ? response.notes + '\n\n' : '') + '--- AI Remediation Plan ---\n' + result.answer);
-                toast.success("AI Remediation suggested!");
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to generate AI suggestion");
-        } finally {
-            setAiLoading(false);
-        }
-    };
+    // Removed direct useAskQuestion hook usage
 
     // Helper to get response for a control
     const getResponse = (controlId: string) => response; // simplified for local ref
@@ -200,28 +174,24 @@ export function GapAnalysisControlCard({
                         <div className="space-y-1.5 relative">
                             <div className="flex items-center justify-between">
                                 <label className="text-xs font-medium text-muted-foreground">Notes / Remediation</label>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-5 px-2 text-[10px] text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                                    onClick={() => handleAiAssist()}
-                                    disabled={aiLoading}
-                                >
-                                    {aiLoading ? (
-                                        <>
-                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                            Thinking...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="w-3 h-3 mr-1" />
-                                            AI Assist
-                                        </>
-                                    )}
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Slot
+                                        name={SlotNames.GAP_ANALYSIS_AI_BUTTON}
+                                        props={{
+                                            clientId: 3, // TODO: Pass client Id in props or context
+                                            controlId: control.id,
+                                            controlName: control.name,
+                                            description: control.description,
+                                            framework: control.framework,
+                                            currentStatus: currentStatus,
+                                            notes: response?.notes,
+                                            onUpdate: (newNotes: string) => onUpdate('notes', newNotes)
+                                        }}
+                                    />
+                                </div>
                             </div>
                             <Textarea
-                                placeholder="Add notes..."
+                                placeholder="Add implementation notes, evidence links, or questions..."
                                 className="h-[108px] resize-none"
                                 value={response?.notes || ""}
                                 onChange={(e) => onUpdate('notes', e.target.value)}

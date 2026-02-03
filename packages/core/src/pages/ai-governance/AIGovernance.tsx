@@ -27,6 +27,7 @@ const AIGovernance = () => {
 
     const { data: systems, refetch: refetchSystems } = trpc.ai.systems.list.useQuery({ clientId: activeClientId });
     const { data: stats } = trpc.ai.systems.getStats.useQuery({ clientId: activeClientId });
+    const { data: allAssessments } = trpc.ai.systems.listAllAssessments.useQuery({ clientId: activeClientId });
     const { data: vendorsData } = trpc.vendors.listVendors.useQuery({ clientId: activeClientId });
     const { data: selectedSystem, refetch: refetchDetail } = trpc.ai.systems.getWithAssessments.useQuery(
         { id: selectedSystemId as number },
@@ -192,10 +193,25 @@ const AIGovernance = () => {
                     </div>
 
                     <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="bg-muted/50 p-1">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="assessments">Assessments History</TabsTrigger>
-                            <TabsTrigger value="mapping">NIST Control Mapping</TabsTrigger>
+                        <TabsList className="flex w-fit mb-8 bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
+                            <TabsTrigger
+                                value="overview"
+                                className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm text-slate-600 hover:text-slate-900"
+                            >
+                                <LayoutGrid className="h-4 w-4 mr-2" /> Overview
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="assessments"
+                                className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm text-slate-600 hover:text-slate-900"
+                            >
+                                <History className="h-4 w-4 mr-2" /> Assessments History
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="mapping"
+                                className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm text-slate-600 hover:text-slate-900"
+                            >
+                                <ShieldCheck className="h-4 w-4 mr-2" /> NIST Control Mapping
+                            </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="mt-6 space-y-6">
@@ -482,14 +498,23 @@ const AIGovernance = () => {
                 </div>
 
                 <Tabs defaultValue="inventory" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 p-1 rounded-xl">
-                        <TabsTrigger value="inventory" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    <TabsList className="grid w-full grid-cols-3 mb-10 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
+                        <TabsTrigger
+                            value="inventory"
+                            className="rounded-xl py-3 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md text-slate-500 hover:text-slate-800"
+                        >
                             <LayoutGrid className="h-4 w-4 mr-2" /> AI System Inventory
                         </TabsTrigger>
-                        <TabsTrigger value="assessments" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        <TabsTrigger
+                            value="assessments"
+                            className="rounded-xl py-3 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md text-slate-500 hover:text-slate-800"
+                        >
                             <ClipboardCheck className="h-4 w-4 mr-2" /> Global Assessments
                         </TabsTrigger>
-                        <TabsTrigger value="nist-map" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        <TabsTrigger
+                            value="nist-map"
+                            className="rounded-xl py-3 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md text-slate-500 hover:text-slate-800"
+                        >
                             <ShieldCheck className="h-4 w-4 mr-2" /> NIST AI RMF Core
                         </TabsTrigger>
                     </TabsList>
@@ -541,16 +566,44 @@ const AIGovernance = () => {
                     <TabsContent value="assessments">
                         <Card className="rounded-3xl border-muted/30 shadow-xl overflow-hidden">
                             <CardHeader className="bg-muted/30 pb-6 border-b border-muted/20">
-                                <CardTitle>Continuous Measurement</CardTitle>
-                                <CardDescription>Systematic evaluation of AI trustworthy characteristics</CardDescription>
+                                <CardTitle>Global Assessment History</CardTitle>
+                                <CardDescription>All evaluations performed across your AI inventory</CardDescription>
                             </CardHeader>
                             <CardContent className="p-0">
-                                <div className="p-20 text-center">
-                                    <ClipboardCheck className="h-16 w-16 text-muted-foreground/20 mx-auto mb-6" />
-                                    <h3 className="text-2xl font-bold">Historical Assessments</h3>
-                                    <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-                                        Select an individual system from the inventory to view its specific impact assessments.
-                                    </p>
+                                <div className="divide-y divide-muted/10">
+                                    {allAssessments?.map((assessment: any) => (
+                                        <div
+                                            key={assessment.id}
+                                            className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors cursor-pointer"
+                                            onClick={() => setSelectedSystemId(assessment.aiSystemId)}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={`p-3 rounded-xl ${assessment.overallRiskScore > 70 ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                    <ClipboardCheck className="h-6 w-6" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-lg">{assessment.systemName}</h4>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Badge variant="outline" className="text-xs">{new Date(assessment.createdAt).toLocaleDateString()}</Badge>
+                                                        <span className="text-xs text-muted-foreground">Assessor: {assessment.assessorName || 'System'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-2xl font-black text-foreground">{assessment.overallRiskScore}<span className="text-sm font-normal text-muted-foreground">/100</span></div>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mt-1">Risk Score</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!allAssessments || allAssessments.length === 0) && (
+                                        <div className="p-20 text-center">
+                                            <ClipboardCheck className="h-16 w-16 text-muted-foreground/20 mx-auto mb-6" />
+                                            <h3 className="text-2xl font-bold">No Assessments Yet</h3>
+                                            <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                                                Select an individual system from the inventory to run your first impact assessment.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -563,19 +616,49 @@ const AIGovernance = () => {
                                 <CardDescription>Visualizing your coverage across the 73 subcategories</CardDescription>
                             </CardHeader>
                             <CardContent className="p-8">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {['GOVERN', 'MAP', 'MEASURE', 'MANAGE'].map(category => (
-                                        <div key={category} className="p-6 rounded-2xl bg-muted/40 border border-muted/20 flex flex-col items-center">
-                                            <span className="text-xs font-bold text-muted-foreground mb-2 tracking-widest">{category}</span>
-                                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden mb-3">
-                                                <div className="h-full bg-primary" style={{ width: '15%' }}></div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                    {(stats?.categoryBreakdown || []).map((stat: any) => (
+                                        <div key={stat.category} className="p-8 rounded-3xl bg-slate-50 border border-muted/30 flex flex-col items-center shadow-sm hover:shadow-md transition-all">
+                                            <span className="text-xs font-black text-indigo-600 mb-3 tracking-[0.2em]">{stat.category}</span>
+                                            <div className="relative h-24 w-24 flex items-center justify-center mb-4">
+                                                <svg className="w-full h-full -rotate-90">
+                                                    <circle
+                                                        cx="48"
+                                                        cy="48"
+                                                        r="38"
+                                                        stroke="currentColor"
+                                                        strokeWidth="8"
+                                                        fill="transparent"
+                                                        className="text-slate-200"
+                                                    />
+                                                    <circle
+                                                        cx="48"
+                                                        cy="48"
+                                                        r="38"
+                                                        stroke="currentColor"
+                                                        strokeWidth="8"
+                                                        fill="transparent"
+                                                        strokeDasharray={238.76}
+                                                        strokeDashoffset={238.76 - (238.76 * stat.percentage) / 100}
+                                                        className="text-indigo-600 transition-all duration-1000"
+                                                    />
+                                                </svg>
+                                                <span className="absolute text-xl font-bold">{stat.percentage}%</span>
                                             </div>
-                                            <span className="text-lg font-bold">15%</span>
+                                            <p className="text-xs text-muted-foreground mt-2 font-medium">
+                                                {stat.mapped} of {stat.total} mapped
+                                            </p>
                                         </div>
                                     ))}
+                                    {(!stats?.categoryBreakdown || stats.categoryBreakdown.length === 0) && (
+                                        <div className="col-span-full text-center py-10">
+                                            <p className="text-muted-foreground italic">No mapping data available for this client yet.</p>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="mt-12 text-center py-10">
-                                    <p className="text-muted-foreground">Select an AI System to begin mapping controls.</p>
+                                <div className="mt-12 text-center py-10 bg-indigo-50/30 rounded-3xl border border-indigo-100/50">
+                                    <ShieldCheck className="h-10 w-10 text-indigo-200 mx-auto mb-4" />
+                                    <p className="text-slate-600 font-medium">Select an AI System to begin mapping controls across the NIST AI RMF core lifecycle.</p>
                                 </div>
                             </CardContent>
                         </Card>

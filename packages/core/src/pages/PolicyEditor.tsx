@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
 import { RiskDetailsDialog } from "@/components/risk/RiskDetailsDialog";
 import { CommentsSection } from "@/components/CommentsSection";
+import { Slot } from "@/registry";
+import { SlotNames } from "@/registry/slotNames";
 
 export default function PolicyEditor() {
     const params = useParams();
@@ -91,9 +93,6 @@ export default function PolicyEditor() {
     const [selectedControlIds, setSelectedControlIds] = useState<number[]>([]);
     const [suggestedRiskIds, setSuggestedRiskIds] = useState<number[]>([]);
     const [suggestedControlIds, setSuggestedControlIds] = useState<number[]>([]);
-    const [isLoadingRiskSuggestions, setIsLoadingRiskSuggestions] = useState(false);
-
-    const [isLoadingControlSuggestions, setIsLoadingControlSuggestions] = useState(false);
 
     // Detail Dialog States
     const [selectedRisk, setSelectedRisk] = useState<any>(null);
@@ -391,61 +390,6 @@ export default function PolicyEditor() {
         }
     };
 
-    const handleSuggestRisks = async () => {
-        if (!content || !availableRisks || availableRisks.length === 0) {
-            toast.error("No policy content or risks available");
-            return;
-        }
-
-        setIsLoadingRiskSuggestions(true);
-        try {
-            // Get already linked risk IDs to exclude them
-            const linkedRiskIds = new Set(linkedRisks?.map((item: any) => item.risk?.id).filter(Boolean) || []);
-
-            // Filter available risks that aren't already linked
-            const unlinkedRisks = availableRisks.filter((risk: any) => !linkedRiskIds.has(risk.id));
-
-            if (unlinkedRisks.length === 0) {
-                toast.info("All available risks are already linked");
-                setIsLoadingRiskSuggestions(false);
-                return;
-            }
-
-            // Simple keyword matching for risk suggestion
-            // Extract keywords from policy content (lowercase, remove HTML tags)
-            const cleanContent = content.replace(/<[^>]*>/g, ' ').toLowerCase();
-            const keywords = cleanContent.split(/\s+/).filter((word: string) => word.length > 4);
-
-            // Score each risk based on keyword matches in title and description
-            const scoredRisks = unlinkedRisks.map((risk: any) => {
-                const riskText = `${risk.title || ''} ${risk.description || ''}`.toLowerCase();
-                const score = keywords.reduce((total: number, keyword: string) => {
-                    return total + (riskText.includes(keyword) ? 1 : 0);
-                }, 0);
-                return { risk, score };
-            });
-
-            // Sort by score and take top 5 matches
-            const topRisks = scoredRisks
-                .filter(item => item.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 5)
-                .map(item => item.risk.id);
-
-            if (topRisks.length === 0) {
-                toast.info("No matching risks found based on policy content");
-            } else {
-                setSuggestedRiskIds(topRisks);
-                setSelectedRiskIds(topRisks);
-                toast.success(`Found ${topRisks.length} suggested risk(s)`);
-            }
-        } catch (error: any) {
-            console.error("Error suggesting risks:", error);
-            toast.error("Failed to analyze policy for risk suggestions");
-        } finally {
-            setIsLoadingRiskSuggestions(false);
-        }
-    };
 
     const handleUnlinkRisk = async (riskId: number) => {
         if (!policyId) return;
@@ -477,63 +421,6 @@ export default function PolicyEditor() {
         }
     };
 
-    const handleSuggestControls = async () => {
-        if (!content || !availableControls || (availableControls as any[]).length === 0) {
-            toast.error("No policy content or controls available");
-            return;
-        }
-
-        setIsLoadingControlSuggestions(true);
-        try {
-            // Get already linked control IDs to exclude them
-            const linkedControlIds = new Set(linkedControls?.map((item: any) => item.clientControl?.id).filter(Boolean) || []);
-
-            // Filter available controls that aren't already linked
-            const unlinkedControls = (availableControls as any[]).filter((item: any) =>
-                item?.clientControl && !linkedControlIds.has(item.clientControl.id)
-            );
-
-            if (unlinkedControls.length === 0) {
-                toast.info("All available controls are already linked");
-                setIsLoadingControlSuggestions(false);
-                return;
-            }
-
-            // Simple keyword matching for control suggestion
-            // Extract keywords from policy content (lowercase, remove HTML tags)
-            const cleanContent = content.replace(/<[^>]*>/g, ' ').toLowerCase();
-            const keywords = cleanContent.split(/\s+/).filter((word: string) => word.length > 4);
-
-            // Score each control based on keyword matches in control ID and name
-            const scoredControls = unlinkedControls.map((item: any) => {
-                const controlText = `${item.clientControl.clientControlId || ''} ${item.control?.name || ''} ${item.control?.description || ''}`.toLowerCase();
-                const score = keywords.reduce((total: number, keyword: string) => {
-                    return total + (controlText.includes(keyword) ? 1 : 0);
-                }, 0);
-                return { item, score };
-            });
-
-            // Sort by score and take top 5 matches
-            const topControls = scoredControls
-                .filter(item => item.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 5)
-                .map(item => item.item.clientControl.id);
-
-            if (topControls.length === 0) {
-                toast.info("No matching controls found based on policy content");
-            } else {
-                setSuggestedControlIds(topControls);
-                setSelectedControlIds(topControls);
-                toast.success(`Found ${topControls.length} suggested control(s)`);
-            }
-        } catch (error: any) {
-            console.error("Error suggesting controls:", error);
-            toast.error("Failed to analyze policy for control suggestions");
-        } finally {
-            setIsLoadingControlSuggestions(false);
-        }
-    };
 
     const handleUnlinkControl = async (controlId: number) => {
         if (!policyId) return;
@@ -1160,25 +1047,18 @@ export default function PolicyEditor() {
                                                             <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
                                                                 {/* AI Suggestion Button */}
                                                                 <div className="flex items-center gap-2">
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={handleSuggestRisks}
-                                                                        disabled={isLoadingRiskSuggestions}
-                                                                        className="flex-1"
-                                                                    >
-                                                                        {isLoadingRiskSuggestions ? (
-                                                                            <>
-                                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                                Analyzing Policy...
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <Sparkles className="h-4 w-4 mr-2" />
-                                                                                AI Suggest Risks
-                                                                            </>
-                                                                        )}
-                                                                    </Button>
+                                                                    <Slot
+                                                                        name={SlotNames.POLICY_RISK_SUGGESTION}
+                                                                        props={{
+                                                                            content: content,
+                                                                            availableRisks: availableRisks,
+                                                                            linkedRisks: linkedRisks,
+                                                                            onSuggest: (ids: number[]) => {
+                                                                                setSuggestedRiskIds(ids);
+                                                                                setSelectedRiskIds(ids);
+                                                                            }
+                                                                        }}
+                                                                    />
                                                                     {selectedRiskIds.length > 0 && (
                                                                         <Button
                                                                             variant="ghost"
@@ -1378,25 +1258,18 @@ export default function PolicyEditor() {
                                                             <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
                                                                 {/* AI Suggestion Button */}
                                                                 <div className="flex items-center gap-2">
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={handleSuggestControls}
-                                                                        disabled={isLoadingControlSuggestions}
-                                                                        className="flex-1"
-                                                                    >
-                                                                        {isLoadingControlSuggestions ? (
-                                                                            <>
-                                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                                Analyzing Policy...
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <Sparkles className="h-4 w-4 mr-2" />
-                                                                                AI Suggest Controls
-                                                                            </>
-                                                                        )}
-                                                                    </Button>
+                                                                    <Slot
+                                                                        name={SlotNames.POLICY_CONTROL_SUGGESTION}
+                                                                        props={{
+                                                                            content: content,
+                                                                            availableControls: availableControls,
+                                                                            linkedControls: linkedControls,
+                                                                            onSuggest: (ids: number[]) => {
+                                                                                setSuggestedControlIds(ids);
+                                                                                setSelectedControlIds(ids);
+                                                                            }
+                                                                        }}
+                                                                    />
                                                                     {selectedControlIds.length > 0 && (
                                                                         <Button
                                                                             variant="ghost"

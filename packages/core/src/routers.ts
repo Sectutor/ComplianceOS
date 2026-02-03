@@ -182,9 +182,9 @@ const checkPremiumAccess = t.middleware(async ({ ctx, next, rawInput }) => {
   const input = rawInput as any;
   const clientId = input?.clientId || ctx.clientId;
 
-  // Admin/Owner bypass if no clientId is provided (global view)
-  if (!clientId && (ctx.user?.role === 'admin' || ctx.user?.role === 'owner')) {
-    console.log(`[PremiumGuard] Admin bypass for global query`);
+  // Global Admin/Owner bypass (Internal access)
+  if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner') {
+    console.log(`[PremiumGuard] Global bypass for Administrator/Owner`);
     return next({ ctx: { ...ctx, isPremium: true } });
   }
 
@@ -286,7 +286,7 @@ export const appRouter = router({
   notifications: createNotificationsRouter(t, clientProcedure, adminProcedure),
 
   // Risk Management Module
-  risks: createRisksRouter(t, clientProcedure),
+  risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
   vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),

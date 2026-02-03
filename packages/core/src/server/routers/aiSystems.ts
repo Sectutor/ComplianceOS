@@ -297,6 +297,37 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                 const mappedCount = mappedControlsResult.length;
                 const totalNistCount = Number(nistControlsResult[0]?.count) || 72;
 
+                // 5. Category Breakdown for NIST AI RMF
+                const nistCategories = ["GOVERN", "MAP", "MEASURE", "MANAGE"];
+                const categoryStats = await Promise.all(nistCategories.map(async (cat) => {
+                    const totalInCatResult = await dbConn.select({ count: sql<number>`count(*)` })
+                        .from(schema.controls)
+                        .where(and(
+                            eq(schema.controls.framework, "NIST AI RMF"),
+                            eq(schema.controls.category, cat)
+                        ));
+
+                    const mappedInCatResult = await dbConn.selectDistinct({ controlId: schema.aiSystemControls.controlId })
+                        .from(schema.aiSystemControls)
+                        .innerJoin(schema.aiSystems, eq(schema.aiSystemControls.aiSystemId, schema.aiSystems.id))
+                        .innerJoin(schema.controls, eq(schema.aiSystemControls.controlId, schema.controls.id))
+                        .where(and(
+                            eq(schema.aiSystems.clientId, input.clientId),
+                            eq(schema.controls.framework, "NIST AI RMF"),
+                            eq(schema.controls.category, cat)
+                        ));
+
+                    const total = Number(totalInCatResult[0]?.count) || 0;
+                    const mapped = mappedInCatResult.length;
+
+                    return {
+                        category: cat,
+                        total,
+                        mapped,
+                        percentage: total > 0 ? Math.round((mapped / total) * 100) : 0
+                    };
+                }));
+
                 return {
                     totalSystems,
                     highRiskSystems,
@@ -305,8 +336,28 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                         percentage: totalNistCount > 0 ? Math.round((mappedCount / totalNistCount) * 100) : 0,
                         mappedCount,
                         totalCount: totalNistCount
-                    }
+                    },
+                    categoryBreakdown: categoryStats
                 };
+            }),
+
+        listAllAssessments: protectedProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                return await dbConn.select({
+                    id: schema.aiImpactAssessments.id,
+                    aiSystemId: schema.aiImpactAssessments.aiSystemId,
+                    systemName: schema.aiSystems.name,
+                    overallRiskScore: schema.aiImpactAssessments.overallRiskScore,
+                    createdAt: schema.aiImpactAssessments.createdAt,
+                    assessorName: schema.users.name
+                })
+                    .from(schema.aiImpactAssessments)
+                    .innerJoin(schema.aiSystems, eq(schema.aiImpactAssessments.aiSystemId, schema.aiSystems.id))
+                    .leftJoin(schema.users, eq(schema.aiImpactAssessments.assessorId, schema.users.id))
+                    .where(eq(schema.aiSystems.clientId, input.clientId))
+                    .orderBy(desc(schema.aiImpactAssessments.createdAt));
             }),
 
         downloadAssessmentReport: protectedProcedure
