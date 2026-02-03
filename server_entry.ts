@@ -43,6 +43,7 @@ app.use(cors({
             origin.startsWith('http://localhost') ||
             origin.startsWith('http://127.0.0.1') ||
             origin.endsWith('.netlify.app') ||
+            origin === 'https://grcompliance.netlify.app' ||
             origin === 'https://grcompliance.com' ||
             origin === 'https://www.grcompliance.com'
         ) {
