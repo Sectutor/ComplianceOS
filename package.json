@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @complianceos/core",
-    "build": "vite build",
+    "build": "npm run build -w @complianceos/core",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "check": "tsc",
