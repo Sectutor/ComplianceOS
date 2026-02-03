@@ -16,10 +16,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SOURCE_ROOT = path.resolve(__dirname, '..');
-const IGNORE_LIST = [
-    '.git',
-    '.env',
-    'node_modules',
+
+const IGNORE_PATHS = [
     'packages/premium',
     'dist',
     'coverage',
@@ -27,11 +25,18 @@ const IGNORE_LIST = [
     '.agent',
     '.venv',
     'logs',
-    'scripts/publish-oss.js', // Don't copy this script itself
+    'scripts/publish-oss.js',
+    'scripts/release.js'
+];
+
+const IGNORE_NAMES = [
+    '.git',
+    '.env',
+    'node_modules',
     '.DS_Store'
 ];
 
-// Folders to explicitly sync (whitelist approach is safer, but mixed is okay)
+// Folders to explicitly sync
 const SYNC_DIRS = [
     'packages/core',
     'packages/ui',
@@ -50,20 +55,30 @@ const SYNC_FILES = [
 function copyRecursive(src, dest) {
     const stats = fs.statSync(src);
     if (stats.isDirectory()) {
+        const dirName = path.basename(src);
+        if (IGNORE_NAMES.includes(dirName)) return;
+
         if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+
         fs.readdirSync(src).forEach(child => {
             const childSrc = path.join(src, child);
             const childDest = path.join(dest, child);
-            // Check relative path for ignores
+
+            // Check relative path for specific ignores
             const relPath = path.relative(SOURCE_ROOT, childSrc).replace(/\\/g, '/');
 
-            if (IGNORE_LIST.some(i => relPath.startsWith(i) || relPath === i)) {
-                return; // Skip ignored
+            // 1. Check strict path ignores (prefix match)
+            if (IGNORE_PATHS.some(i => relPath.startsWith(i) || relPath === i)) {
+                return;
             }
+
+            // 2. Check name ignores (node_modules, etc)
+            if (IGNORE_NAMES.includes(child)) return;
 
             copyRecursive(childSrc, childDest);
         });
     } else {
+        if (IGNORE_NAMES.includes(path.basename(src))) return;
         fs.copyFileSync(src, dest);
     }
 }
