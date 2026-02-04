@@ -252,16 +252,16 @@ export default function EmployeeOnboarding() {
                 />
 
                 {/* Hero Section with Progress */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 p-8 text-white shadow-2xl">
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002a40] via-[#004d70] to-[#0284c7] p-8 text-white shadow-2xl">
                     <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                                <Sparkles className="h-8 w-8" />
+                            <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+                                <Sparkles className="h-8 w-8 text-sky-400" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold">Welcome to ComplianceOS</h1>
-                                <p className="text-blue-100 text-lg">Complete your onboarding to get started</p>
+                                <h1 className="text-3xl font-bold tracking-tight">Welcome to ComplianceOS</h1>
+                                <p className="text-sky-100/80 text-lg font-medium">Complete your onboarding to get started</p>
                             </div>
                         </div>
 
@@ -270,8 +270,8 @@ export default function EmployeeOnboarding() {
                                 <span className="text-sm font-medium">Overall Progress</span>
                                 <span className="text-2xl font-bold">{progress.percentage}%</span>
                             </div>
-                            <Progress value={progress.percentage} className="h-3 bg-white/20" />
-                            <p className="text-sm text-blue-100">
+                            <Progress value={progress.percentage} className="h-3 bg-white/10" />
+                            <p className="text-sm text-sky-100/70">
                                 {progress.completed} of {progress.total} tasks completed
                             </p>
                         </div>
