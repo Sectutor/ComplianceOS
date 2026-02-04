@@ -39,6 +39,8 @@ import {
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { Eye } from "lucide-react";
 import { marked } from "marked";
+import { toast } from "sonner";
+import { ExceptionRequestDialog } from "@/components/policy/ExceptionRequestDialog";
 
 // Mock Policy Content (In a real app, this would come from the API)
 const POLICY_CONTENT = {
@@ -99,6 +101,9 @@ export default function EmployeeOnboarding() {
     const [viewingPolicy, setViewingPolicy] = useState<string | null>(null);
     const [isTrainingCenterOpen, setIsTrainingCenterOpen] = useState(false);
     const [activeTrainingModuleId, setActiveTrainingModuleId] = useState<number | null>(null);
+    const [isExceptionDialogOpen, setIsExceptionDialogOpen] = useState(false);
+    const [exceptionPolicyKey, setExceptionPolicyKey] = useState<string | null>(null);
+    const [exceptionPolicyId, setExceptionPolicyId] = useState<number | null>(null);
 
     const markAsViewed = (policyId: string) => {
         setViewedPolicies(prev => new Set(prev).add(policyId));
@@ -193,24 +198,22 @@ export default function EmployeeOnboarding() {
     // Calculate progress from database
     const progress = useMemo(() => {
         if (!onboardingStatus) {
-            return { tasks: { policies: false, training: false, device: false }, completed: 0, total: 3, percentage: 0 };
+            return { tasks: { training: false, acknowledgments: false, security: false, assets: false }, completed: 0, total: 4, percentage: 0 };
         }
 
-        // Update policy status from policyData
-        const policyComplete = policyData?.assignments?.filter((a: any) => a.status === 'pending' || a.status === 'viewed').length === 0;
-
         const tasks = {
-            policies: policyComplete,
             training: onboardingStatus.tasks.training.complete,
-            device: onboardingStatus.tasks.device.complete
+            acknowledgments: onboardingStatus.tasks.acknowledgments.complete,
+            security: onboardingStatus.tasks.security.complete,
+            assets: onboardingStatus.tasks.assets.complete
         };
 
         const completed = Object.values(tasks).filter(Boolean).length;
-        const total = 3;
+        const total = 4;
         const percentage = Math.round((completed / total) * 100);
 
         return { tasks, completed, total, percentage };
-    }, [onboardingStatus, policyData]);
+    }, [onboardingStatus]);
 
     const toggleTrainingSection = async (frameworkId: string, sectionId: string) => {
         if (!effectiveClientId || !employee?.id) return;
@@ -277,52 +280,6 @@ export default function EmployeeOnboarding() {
 
                 {/* Onboarding Tasks */}
                 <div className="grid gap-6">
-                    {/* Task 1: Policy Attestation */}
-                    <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
-                        <CardHeader>
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-4">
-                                    <div className={`p-3 rounded-xl ${progress.tasks.policies ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
-                                        <FileText className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <CardTitle className="text-xl">Review & Sign Policies</CardTitle>
-                                            {progress.tasks.policies ? (
-                                                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                            ) : (
-                                                <Circle className="h-5 w-5 text-muted-foreground" />
-                                            )}
-                                        </div>
-                                        <CardDescription className="mt-1">
-                                            {progress.tasks.policies
-                                                ? "All policies reviewed and attested"
-                                                : `${pendingPoliciesCount} ${pendingPoliciesCount === 1 ? 'policy' : 'policies'} pending your review`
-                                            }
-                                        </CardDescription>
-                                    </div>
-                                </div>
-                                {!progress.tasks.policies && (
-                                    <Badge variant="default" className="bg-orange-500 hover:bg-orange-600">
-                                        Action Required
-                                    </Badge>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Review and attest to company policies to ensure you understand our security and compliance requirements.
-                            </p>
-                            <Button
-                                onClick={() => setLocation(selectedClientId ? `/clients/${selectedClientId}/policies/my-policies` : '/policies')}
-                                className="w-full sm:w-auto"
-                                disabled={!selectedClientId}
-                            >
-                                {progress.tasks.policies ? 'View Policies' : 'Review Policies'}
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </CardContent>
-                    </Card>
 
                     {/* Task 2: Security Awareness Training */}
                     <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
@@ -334,7 +291,7 @@ export default function EmployeeOnboarding() {
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <CardTitle className="text-xl">Security Awareness Training</CardTitle>
+                                            <CardTitle className="text-xl">Task 1: Security Awareness Training</CardTitle>
                                             {progress.tasks.training ? (
                                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                                             ) : (
@@ -441,42 +398,9 @@ export default function EmployeeOnboarding() {
                         </CardContent>
                     </Card>
 
-                    {/* Task 3: Device Security (Placeholder) */}
-                    <Card className="border-2 border-dashed opacity-75">
-                        <CardHeader>
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 rounded-xl bg-gray-100 text-gray-600">
-                                        <Laptop className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <CardTitle className="text-xl">Install Security Agent</CardTitle>
-                                            <Circle className="h-5 w-5 text-muted-foreground" />
-                                        </div>
-                                        <CardDescription className="mt-1">
-                                            Coming soon
-                                        </CardDescription>
-                                    </div>
-                                </div>
-                                <Badge variant="secondary">
-                                    Coming Soon
-                                </Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Install our device security agent to ensure your workstation meets our security standards.
-                            </p>
-                            <Button variant="outline" disabled className="w-full sm:w-auto">
-                                <Shield className="mr-2 h-4 w-4" />
-                                Install Agent
-                            </Button>
-                        </CardContent>
-                    </Card>
 
                     {/* Task 4: Compliance Acknowledgments */}
-                    <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
+                    <Card id="compliance-acknowledgments" className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
                         <CardHeader>
                             <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-4">
@@ -485,7 +409,7 @@ export default function EmployeeOnboarding() {
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <CardTitle className="text-xl">Compliance Acknowledgments</CardTitle>
+                                            <CardTitle className="text-xl">Task 2: Compliance Acknowledgments</CardTitle>
                                             {onboardingStatus?.tasks.acknowledgments?.complete ? (
                                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                                             ) : (
@@ -516,14 +440,17 @@ export default function EmployeeOnboarding() {
                                             label={req.title}
                                             checked={onboardingStatus.tasks.acknowledgments.items[req.key] || false}
                                             onCheck={() => {
-                                                // Disable manual checking from the list
-                                                // User must open the view and click accept there
                                                 if (!onboardingStatus.tasks.acknowledgments.items[req.key]) {
                                                     setViewingPolicy(req.key);
                                                 }
                                             }}
                                             onView={() => {
                                                 setViewingPolicy(req.key);
+                                            }}
+                                            onException={() => {
+                                                setExceptionPolicyId(req.id);
+                                                setExceptionPolicyKey(req.key);
+                                                setIsExceptionDialogOpen(true);
                                             }}
                                             viewed={viewedPolicies.has(req.key)}
                                         />
@@ -632,7 +559,7 @@ export default function EmployeeOnboarding() {
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <CardTitle className="text-xl">Account Security Setup</CardTitle>
+                                            <CardTitle className="text-xl">Task 3: Account Security Setup</CardTitle>
                                             {onboardingStatus?.tasks.security?.complete ? (
                                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                                             ) : (
@@ -684,7 +611,7 @@ export default function EmployeeOnboarding() {
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <CardTitle className="text-xl">Asset Receipt Confirmation</CardTitle>
+                                            <CardTitle className="text-xl">Task 4: Asset Receipt Confirmation</CardTitle>
                                             {onboardingStatus?.tasks.assets?.complete ? (
                                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                                             ) : (
@@ -724,6 +651,40 @@ export default function EmployeeOnboarding() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Task 5: Device Security (Placeholder) */}
+                    <Card className="border-2 border-dashed opacity-75">
+                        <CardHeader>
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-xl bg-gray-100 text-gray-600">
+                                        <Laptop className="h-6 w-6" />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <CardTitle className="text-xl">Task 5: Install Security Agent</CardTitle>
+                                            <Circle className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                        <CardDescription className="mt-1">
+                                            Coming soon
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                                <Badge variant="secondary">
+                                    Coming Soon
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Install our device security agent to ensure your workstation meets our security standards.
+                            </p>
+                            <Button variant="outline" disabled className="w-full sm:w-auto">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Install Agent
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Completion Message */}
@@ -743,6 +704,15 @@ export default function EmployeeOnboarding() {
                             </div>
                         </CardContent>
                     </Card>
+                )}
+
+                {exceptionPolicyId && (
+                    <ExceptionRequestDialog
+                        open={isExceptionDialogOpen}
+                        onOpenChange={setIsExceptionDialogOpen}
+                        policyId={exceptionPolicyId}
+                        employeeId={employee?.id || 0}
+                    />
                 )}
             </div>
         </DashboardLayout>
@@ -799,12 +769,14 @@ function AcknowledgmentCheckbox({
     checked,
     onCheck,
     onView,
+    onException,
     viewed
 }: {
     label: string;
     checked: boolean;
     onCheck: () => void;
     onView: () => void;
+    onException: () => void;
     viewed: boolean;
 }) {
     const canCheck = checked || viewed;
@@ -840,18 +812,33 @@ function AcknowledgmentCheckbox({
                 </div>
             </div>
 
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onView();
-                }}
-                className="gap-2 h-8"
-            >
-                <Eye className="h-3 w-3" />
-                View
-            </Button>
+            <div className="flex items-center gap-2">
+                {!checked && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onException();
+                        }}
+                        className="text-xs text-muted-foreground hover:text-destructive h-8 px-2"
+                    >
+                        Request Exception
+                    </Button>
+                )}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onView();
+                    }}
+                    className="gap-2 h-8"
+                >
+                    <Eye className="h-3 w-3" />
+                    View
+                </Button>
+            </div>
         </div>
     );
 }

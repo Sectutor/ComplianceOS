@@ -9,10 +9,11 @@ import { Input } from "@complianceos/ui/ui/input";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
-import { Users, GraduationCap, ClipboardList, Search, Loader2, FileCheck } from "lucide-react";
+import { Users, GraduationCap, ClipboardList, Search, Loader2, FileCheck, Package } from "lucide-react";
 import TrainingManagement from "./TrainingManagement";
 import OnboardingSettings from "./settings/OnboardingSettings";
 import ClientPoliciesPage from "./ClientPoliciesPage";
+import EquipmentAssignmentTab from "@/components/compliance/EquipmentAssignmentTab";
 
 export default function PersonnelComplianceHub() {
     const { id: idParam } = useParams();
@@ -33,7 +34,7 @@ export default function PersonnelComplianceHub() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full max-w-2xl grid-cols-4">
+                    <TabsList className="grid w-full max-w-3xl grid-cols-5">
                         <TabsTrigger value="training" className="gap-2">
                             <GraduationCap className="h-4 w-4" />
                             Training
@@ -45,6 +46,10 @@ export default function PersonnelComplianceHub() {
                         <TabsTrigger value="policies" className="gap-2">
                             <FileCheck className="h-4 w-4" />
                             Policies
+                        </TabsTrigger>
+                        <TabsTrigger value="assets" className="gap-2">
+                            <Package className="h-4 w-4" />
+                            Assets
                         </TabsTrigger>
                         <TabsTrigger value="tracking" className="gap-2">
                             <Users className="h-4 w-4" />
@@ -62,6 +67,10 @@ export default function PersonnelComplianceHub() {
 
                     <TabsContent value="policies" className="space-y-6">
                         <ClientPoliciesPage hideLayout={true} clientId={clientId} />
+                    </TabsContent>
+
+                    <TabsContent value="assets" className="space-y-6">
+                        <EquipmentAssignmentTab clientId={clientId} />
                     </TabsContent>
 
                     <TabsContent value="tracking" className="space-y-6">

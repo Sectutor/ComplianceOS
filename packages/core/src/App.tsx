@@ -54,7 +54,6 @@ const PersonnelComplianceHub = lazy(() => import("./pages/PersonnelComplianceHub
 const ClientActivity = lazy(() => import("./pages/ClientActivity"));
 
 const ClientPoliciesPage = lazy(() => import("./pages/ClientPoliciesPage"));
-const MyPolicies = lazy(() => import("./pages/MyPolicies"));
 const ManagementSignOffPage = lazy(() => import("./pages/ManagementSignOffPage"));
 const NIS2EntityClassificationWizard = lazy(() => import("./pages/NIS2EntityClassificationWizard"));
 const ClientControlsPage = lazy(() => import("./pages/ClientControlsPage"));
@@ -530,10 +529,6 @@ function Router() {
           {(_params) => <ProtectedRoute component={ClientPoliciesPage} />}
         </Route>
 
-        {/* My Policies must come BEFORE :policyId to prevent matching conflict */}
-        <Route path="/clients/:id/policies/my-policies">
-          {(_params) => <ProtectedRoute component={MyPolicies} />}
-        </Route>
 
         <Route path="/clients/:id/policies/:policyId">
           {(_params) => <ProtectedRoute component={PolicyEditor} />}
