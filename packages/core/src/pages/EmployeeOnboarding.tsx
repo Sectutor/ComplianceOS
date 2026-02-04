@@ -82,6 +82,16 @@ const POLICY_CONTENT = {
     }
 };
 
+function getYouTubeThumbnail(url: string | null) {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+        return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+    }
+    return null;
+}
+
 export default function EmployeeOnboarding() {
     const { user } = useAuth();
     // Track viewed policies in this session
@@ -379,14 +389,22 @@ export default function EmployeeOnboarding() {
                                                 >
                                                     {/* Thumbnail / Header */}
                                                     <div className="aspect-video bg-slate-100 relative flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                                                        {(module.thumbnailUrl || getYouTubeThumbnail(module.videoUrl)) && (
+                                                            <img
+                                                                src={module.thumbnailUrl || getYouTubeThumbnail(module.videoUrl) || ""}
+                                                                alt={module.title}
+                                                                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                            />
+                                                        )}
+
                                                         {module.type === 'video' ? (
-                                                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                                            <div className="z-10 w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                                                                 <PlayCircle className="h-6 w-6 text-indigo-600 ml-0.5" />
                                                             </div>
                                                         ) : (
-                                                            <FileText className="h-10 w-10 text-slate-400" />
+                                                            <FileText className="h-10 w-10 text-slate-400 z-10" />
                                                         )}
-                                                        <div className="absolute top-2 right-2">
+                                                        <div className="absolute top-2 right-2 z-10">
                                                             <Badge variant="secondary" className="bg-white/90 backdrop-blur-sm text-xs font-normal">
                                                                 {module.durationMinutes} min
                                                             </Badge>
@@ -568,7 +586,7 @@ export default function EmployeeOnboarding() {
                                 <div className="text-sm text-gray-500">
                                     Please read the document carefully.
                                 </div>
-                                <Button 
+                                <Button
                                     onClick={() => {
                                         if (viewingPolicy) {
                                             handleAcknowledgment(viewingPolicy);
@@ -577,8 +595,8 @@ export default function EmployeeOnboarding() {
                                     }}
                                     disabled={!!(viewingPolicy && onboardingStatus?.tasks.acknowledgments?.items?.[viewingPolicy as keyof typeof onboardingStatus.tasks.acknowledgments.items])}
                                 >
-                                    {viewingPolicy && onboardingStatus?.tasks.acknowledgments?.items?.[viewingPolicy as keyof typeof onboardingStatus.tasks.acknowledgments.items] 
-                                        ? "Accepted" 
+                                    {viewingPolicy && onboardingStatus?.tasks.acknowledgments?.items?.[viewingPolicy as keyof typeof onboardingStatus.tasks.acknowledgments.items]
+                                        ? "Accepted"
                                         : "I have read and understood"
                                     }
                                 </Button>

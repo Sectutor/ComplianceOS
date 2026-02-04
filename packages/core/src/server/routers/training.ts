@@ -185,6 +185,7 @@ export const createTrainingRouter = (t: any, clientProcedure: any, clientEditorP
                 description: z.string().optional(),
                 type: z.enum(['video', 'text']),
                 videoUrl: z.string().optional(),
+                thumbnailUrl: z.string().optional(),
                 content: z.string().optional(),
                 durationMinutes: z.number().optional(),
                 order: z.number().optional(),
@@ -210,6 +211,7 @@ export const createTrainingRouter = (t: any, clientProcedure: any, clientEditorP
                         description: input.description,
                         type: input.type,
                         videoUrl: input.videoUrl,
+                        thumbnailUrl: input.thumbnailUrl,
                         content: input.content,
                         durationMinutes: input.durationMinutes,
                         order
@@ -239,6 +241,7 @@ export const createTrainingRouter = (t: any, clientProcedure: any, clientEditorP
                 description: z.string().optional(),
                 type: z.enum(['video', 'text']).optional(),
                 videoUrl: z.string().optional(),
+                thumbnailUrl: z.string().optional(),
                 content: z.string().optional(),
                 durationMinutes: z.number().optional(),
                 active: z.boolean().optional(),

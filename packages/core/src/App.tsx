@@ -50,6 +50,7 @@ const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
 const ClientSettings = lazy(() => import("./pages/ClientSettings"));
 const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings")); // New Import
+const PersonnelComplianceHub = lazy(() => import("./pages/PersonnelComplianceHub"));
 const ClientActivity = lazy(() => import("./pages/ClientActivity"));
 
 const ClientPoliciesPage = lazy(() => import("./pages/ClientPoliciesPage"));
@@ -295,6 +296,26 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Management Guard Component (Admin or Owner)
+function ManagementGuard({ children }: { children: React.ReactNode }) {
+  const { data: userMe, isLoading } = trpc.users.me.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+    retry: false
+  });
+
+  if (isLoading) return <PageLoader />;
+
+  const userRole = userMe?.role;
+  const isAuthorized = userRole === 'admin' || userRole === 'owner';
+
+  if (!isAuthorized) {
+    // Redirect unauthorized users to dashboard
+    return <Redirect to="/dashboard" />;
+  }
+
+  return <>{children}</>;
+}
+
 // Wrapper for protected routes
 function ProtectedRoute({ component: Component }: { component: React.ComponentType<any> }) {
   const { session, loading } = useAuth();
@@ -479,6 +500,9 @@ function Router() {
         </Route>
         <Route path="/clients/:clientId/training/management">
           {(_params) => <PremiumGuard><ProtectedRoute component={TrainingManagement} /></PremiumGuard>}
+        </Route>
+        <Route path="/clients/:id/personnel-compliance">
+          {(_params) => <ManagementGuard><PremiumGuard><ProtectedRoute component={PersonnelComplianceHub} /></PremiumGuard></ManagementGuard>}
         </Route>
         <Route path="/clients/:id/compliance/overview">
           <ProtectedRoute component={ComplianceOverview} />

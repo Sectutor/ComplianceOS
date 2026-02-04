@@ -13800,6 +13800,7 @@ export const trainingModules = pgTable("training_modules", {
   description: text("description"),
   type: varchar("type", { length: 20 }).notNull(), // 'video', 'text'
   videoUrl: text("video_url"),
+  thumbnailUrl: text("thumbnail_url"),
   content: text("content"),
   durationMinutes: integer("duration_minutes").default(0),
   active: boolean("active").default(true),
