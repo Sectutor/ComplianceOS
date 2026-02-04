@@ -19,11 +19,13 @@ import {
     ArrowRight,
     Lock,
     CreditCard,
-    CheckSquare
+    CheckSquare,
+    PlayCircle,
+    Video
 } from "lucide-react";
+import { TrainingModuleViewer } from "@/components/training/TrainingModuleViewer";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { learningContent } from "@/data/learningContent";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@complianceos/ui/ui/collapsible";
 import {
     Dialog,
@@ -36,6 +38,7 @@ import {
 } from "@complianceos/ui/ui/dialog";
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { Eye } from "lucide-react";
+import { marked } from "marked";
 
 // Mock Policy Content (In a real app, this would come from the API)
 const POLICY_CONTENT = {
@@ -84,12 +87,15 @@ export default function EmployeeOnboarding() {
     // Track viewed policies in this session
     const [viewedPolicies, setViewedPolicies] = useState<Set<string>>(new Set());
     const [viewingPolicy, setViewingPolicy] = useState<string | null>(null);
+    const [isTrainingCenterOpen, setIsTrainingCenterOpen] = useState(false);
+    const [activeTrainingModuleId, setActiveTrainingModuleId] = useState<number | null>(null);
 
     const markAsViewed = (policyId: string) => {
         setViewedPolicies(prev => new Set(prev).add(policyId));
         setViewingPolicy(null);
     };
     const { selectedClientId } = useClientContext();
+    const utils = trpc.useUtils();
     const [, setLocation] = useLocation();
 
     // Fetch user's clients to handle cases where selectedClientId is not in URL context (e.g. /onboarding)
@@ -100,7 +106,7 @@ export default function EmployeeOnboarding() {
 
     // Fetch current user's employee record
     const { data: me } = trpc.users.me.useQuery();
-    const { data: employee, refetch: refetchEmployee } = (trpc.employees as any).getByEmail?.useQuery(
+    const { data: employee } = (trpc.employees as any).getByEmail?.useQuery(
         { email: me?.email || "", clientId: effectiveClientId || 0 },
         { enabled: !!me?.email && !!effectiveClientId }
     );
@@ -108,7 +114,7 @@ export default function EmployeeOnboarding() {
     // Auto-ensure employee record exists for the current user
     const ensureSelfMutation = (trpc.employees as any).ensureSelf?.useMutation({
         onSuccess: () => {
-            refetchEmployee();
+            utils.employees.getByEmail.invalidate();
         }
     });
 
@@ -130,6 +136,12 @@ export default function EmployeeOnboarding() {
         { enabled: !!effectiveClientId && !!employee?.id }
     );
 
+    // Fetch custom training modules
+    const { data: customModules } = trpc.training.list.useQuery(
+        { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
+        { enabled: !!effectiveClientId && !!employee?.id }
+    );
+
     // Fetch pending policies
     const { data: policyData } = (trpc.policyManagement as any).getMyPolicies?.useQuery(
         { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
@@ -139,6 +151,7 @@ export default function EmployeeOnboarding() {
     // Attest training mutation
     const attestTrainingMutation = (trpc.onboarding as any).attestTraining?.useMutation({
         onSuccess: () => {
+            utils.onboarding.getOnboardingStatus.invalidate();
             refetchOnboarding();
         }
     });
@@ -146,6 +159,7 @@ export default function EmployeeOnboarding() {
     // Acknowledgment mutation
     const submitAcknowledgmentMutation = (trpc.onboarding as any).submitAcknowledgment?.useMutation({
         onSuccess: () => {
+            utils.onboarding.getOnboardingStatus.invalidate();
             refetchOnboarding();
         }
     });
@@ -153,6 +167,7 @@ export default function EmployeeOnboarding() {
     // Security setup mutation
     const updateSecuritySetupMutation = (trpc.onboarding as any).updateSecuritySetup?.useMutation({
         onSuccess: () => {
+            utils.onboarding.getOnboardingStatus.invalidate();
             refetchOnboarding();
         }
     });
@@ -160,6 +175,7 @@ export default function EmployeeOnboarding() {
     // Asset receipt mutation
     const confirmAssetReceiptMutation = (trpc.onboarding as any).confirmAssetReceipt?.useMutation({
         onSuccess: () => {
+            utils.onboarding.getOnboardingStatus.invalidate();
             refetchOnboarding();
         }
     });
@@ -318,7 +334,12 @@ export default function EmployeeOnboarding() {
                                         <CardDescription className="mt-1">
                                             {progress.tasks.training
                                                 ? "Training modules completed"
-                                                : `${trainingData?.totalCompleted || 0} sections completed`
+                                                : (
+                                                    <span>
+                                                        {trainingData?.totalCompleted || 0} sections completed
+                                                        {customModules && customModules.length > 0 && <span> • {customModules.length} custom modules</span>}
+                                                    </span>
+                                                )
                                             }
                                         </CardDescription>
                                     </div>
@@ -330,55 +351,74 @@ export default function EmployeeOnboarding() {
                                 Learn about key compliance frameworks and security best practices.
                             </p>
 
+                            {customModules && customModules.length > 0 && (
+                                <div className="mb-6">
+                                    <Button
+                                        onClick={() => setIsTrainingCenterOpen(true)}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
+                                    >
+                                        <PlayCircle className="mr-2 h-5 w-5" />
+                                        Launch Training Center
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
+
                             <div className="space-y-3">
-                                {Object.entries(learningContent).map(([frameworkId, framework]) => (
-                                    <Collapsible key={frameworkId}>
-                                        <CollapsibleTrigger className="w-full">
-                                            <div className="flex items-center justify-between p-4 bg-muted/50 hover:bg-muted rounded-lg transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full ${framework.sections.every(s => isSectionComplete(frameworkId, s.id))
-                                                        ? 'bg-green-500'
-                                                        : 'bg-gray-300'
-                                                        }`} />
-                                                    <span className="font-medium">{framework.title}</span>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {framework.sections.filter(s => isSectionComplete(frameworkId, s.id)).length}/{framework.sections.length}
-                                                    </Badge>
-                                                </div>
-                                                <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-                                            </div>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                            <div className="mt-2 ml-4 space-y-2">
-                                                {framework.sections.map((section) => {
-                                                    const isComplete = isSectionComplete(frameworkId, section.id);
-                                                    return (
-                                                        <div
-                                                            key={section.id}
-                                                            className="flex items-center justify-between p-3 bg-background border rounded-lg hover:border-primary/50 transition-colors"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                {isComplete ? (
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                                ) : (
-                                                                    <Circle className="h-4 w-4 text-muted-foreground" />
-                                                                )}
-                                                                <span className="text-sm">{section.title}</span>
+                                {customModules && customModules.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {customModules.map((module: any) => {
+                                            return (
+                                                <div
+                                                    key={module.id}
+                                                    className="group relative flex flex-col overflow-hidden rounded-lg border bg-background shadow-sm hover:shadow-md transition-all cursor-pointer h-full"
+                                                    onClick={() => {
+                                                        setActiveTrainingModuleId(module.id);
+                                                        setIsTrainingCenterOpen(true);
+                                                    }}
+                                                >
+                                                    {/* Thumbnail / Header */}
+                                                    <div className="aspect-video bg-slate-100 relative flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                                                        {module.type === 'video' ? (
+                                                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                                                <PlayCircle className="h-6 w-6 text-indigo-600 ml-0.5" />
                                                             </div>
-                                                            <Button
-                                                                size="sm"
-                                                                variant={isComplete ? "outline" : "default"}
-                                                                onClick={() => toggleTrainingSection(frameworkId, section.id)}
-                                                            >
-                                                                {isComplete ? 'Completed' : 'Mark Complete'}
-                                                            </Button>
+                                                        ) : (
+                                                            <FileText className="h-10 w-10 text-slate-400" />
+                                                        )}
+                                                        <div className="absolute top-2 right-2">
+                                                            <Badge variant="secondary" className="bg-white/90 backdrop-blur-sm text-xs font-normal">
+                                                                {module.durationMinutes} min
+                                                            </Badge>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </CollapsibleContent>
-                                    </Collapsible>
-                                ))}
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div className="p-4 flex flex-col flex-1">
+                                                        <h4 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-indigo-600 transition-colors">
+                                                            {module.title}
+                                                        </h4>
+                                                        <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">
+                                                            {module.description || "No description provided."}
+                                                        </p>
+                                                        <Button
+                                                            size="sm"
+                                                            className="w-full mt-auto"
+                                                            variant="outline"
+                                                        >
+                                                            Start Learning
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                                        <GraduationCap className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                        <p className="text-sm">No training modules assigned.</p>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -457,11 +497,14 @@ export default function EmployeeOnboarding() {
                                             key={req.key}
                                             label={req.title}
                                             checked={onboardingStatus.tasks.acknowledgments.items[req.key] || false}
-                                            onCheck={() => handleAcknowledgment(req.key)}
+                                            onCheck={() => {
+                                                // Disable manual checking from the list
+                                                // User must open the view and click accept there
+                                                if (!onboardingStatus.tasks.acknowledgments.items[req.key]) {
+                                                    setViewingPolicy(req.key);
+                                                }
+                                            }}
                                             onView={() => {
-                                                // If we have DB content, use it. Otherwise try fallback.
-                                                // We can pass the content directly to the view state if needed, or just set ID.
-                                                // Ideally, we set the viewing policy ID, and the modal lookup finds the content.
                                                 setViewingPolicy(req.key);
                                             }}
                                             viewed={viewedPolicies.has(req.key)}
@@ -488,15 +531,36 @@ export default function EmployeeOnboarding() {
                                     )}
                                 </DialogTitle>
                             </DialogHeader>
-                            <ScrollArea className="flex-1 p-4 border rounded-md bg-white">
+                            <ScrollArea className="flex-1 p-6 bg-slate-50/50">
                                 <div
-                                    className="prose max-w-none"
+                                    className="mx-auto max-w-2xl bg-white p-8 md:p-12 shadow-sm border rounded-sm min-h-full prose prose-slate dark:prose-invert [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-8 [&_h1]:text-slate-900 [&_h1]:border-b [&_h1]:pb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-slate-800 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-8 [&_h3]:mb-3 [&_p]:mb-6 [&_p]:leading-relaxed [&_p]:text-slate-700 [&_p]:text-justify [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-6 [&_li]:mb-3 [&_li]:text-slate-700 whitespace-normal"
                                     dangerouslySetInnerHTML={{
-                                        __html: viewingPolicy ? (
-                                            onboardingStatus?.tasks.acknowledgments?.requirements?.find((r: any) => r.key === viewingPolicy)?.description
-                                            || POLICY_CONTENT[viewingPolicy as keyof typeof POLICY_CONTENT]?.content
-                                            || '<p>No content available.</p>'
-                                        ) : ''
+                                        __html: viewingPolicy ? (() => {
+                                            const requirement = onboardingStatus?.tasks.acknowledgments?.requirements?.find((r: any) => r.key === viewingPolicy);
+                                            const rawContent = requirement?.description
+                                                || POLICY_CONTENT[viewingPolicy as keyof typeof POLICY_CONTENT]?.content
+                                                || '<p>No content available.</p>';
+
+                                            // 1. Decodes entities like &#39; but preserves tags
+                                            const decodeEntities = (html: string): string => {
+                                                if (typeof document === 'undefined') return html;
+                                                const txt = document.createElement("textarea");
+                                                txt.innerHTML = html;
+                                                return txt.value;
+                                            };
+
+                                            const unescaped = decodeEntities(rawContent).trim();
+
+                                            // 2. Default to rich HTML rendering. 
+                                            // Only parse as markdown if it lacks HTML structure but contains markdown indicators.
+                                            const appearsToBeMarkdown = !unescaped.includes('<') && unescaped.includes('#');
+
+                                            if (appearsToBeMarkdown) {
+                                                return marked.parse(unescaped, { async: false }) as string;
+                                            }
+
+                                            return unescaped;
+                                        })() : ''
                                     }}
                                 />
                             </ScrollArea>
@@ -504,10 +568,39 @@ export default function EmployeeOnboarding() {
                                 <div className="text-sm text-gray-500">
                                     Please read the document carefully.
                                 </div>
-                                <Button onClick={() => viewingPolicy && markAsViewed(viewingPolicy)}>
-                                    I have read and understood
+                                <Button 
+                                    onClick={() => {
+                                        if (viewingPolicy) {
+                                            handleAcknowledgment(viewingPolicy);
+                                            markAsViewed(viewingPolicy);
+                                        }
+                                    }}
+                                    disabled={!!(viewingPolicy && onboardingStatus?.tasks.acknowledgments?.items?.[viewingPolicy as keyof typeof onboardingStatus.tasks.acknowledgments.items])}
+                                >
+                                    {viewingPolicy && onboardingStatus?.tasks.acknowledgments?.items?.[viewingPolicy as keyof typeof onboardingStatus.tasks.acknowledgments.items] 
+                                        ? "Accepted" 
+                                        : "I have read and understood"
+                                    }
                                 </Button>
                             </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Training Center Modal */}
+                    <Dialog open={isTrainingCenterOpen} onOpenChange={setIsTrainingCenterOpen}>
+                        <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col p-0 gap-0">
+                            <DialogHeader className="px-6 py-4 border-b">
+                                <DialogTitle>Security Training Center</DialogTitle>
+                            </DialogHeader>
+                            <div className="flex-1 overflow-hidden bg-slate-50 p-4">
+                                {effectiveClientId && employee?.id && (
+                                    <TrainingModuleViewer
+                                        clientId={effectiveClientId}
+                                        employeeId={employee.id}
+                                        initialModuleId={activeTrainingModuleId}
+                                    />
+                                )}
+                            </div>
                         </DialogContent>
                     </Dialog>
 
@@ -641,16 +734,17 @@ export default function EmployeeOnboarding() {
     function handleAcknowledgment(policyId: string) {
         if (!employee || !effectiveClientId) return;
 
-        // Enforce viewing
-        if (!viewedPolicies.has(policyId) && !onboardingStatus?.tasks.acknowledgments?.items?.[policyId as keyof typeof onboardingStatus.tasks.acknowledgments.items]) {
-            // If trying to check without viewing, do nothing or show toast (optional)
+        // If already accepted, do nothing
+        if (onboardingStatus?.tasks.acknowledgments?.items?.[policyId as keyof typeof onboardingStatus.tasks.acknowledgments.items]) {
             return;
         }
 
+        // Logic moved to "I have read and understood" button inside the modal
+        // This function is now only called when the user clicks the button in the modal
         submitAcknowledgmentMutation?.mutate({
             clientId: effectiveClientId,
             employeeId: employee.id,
-            policyId,
+            acknowledgmentType: policyId,
             version: "1.0"
         });
     }
@@ -706,7 +800,7 @@ function AcknowledgmentCheckbox({
                     className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${checked
                         ? 'bg-green-500 border-green-500'
                         : canCheck
-                            ? 'border-gray-500 hover:border-green-500'
+                            ? 'border-gray-500 hover:border-green-500 cursor-pointer'
                             : 'border-gray-200 bg-gray-100 cursor-not-allowed'
                         }`}
                 >
@@ -716,11 +810,15 @@ function AcknowledgmentCheckbox({
                     <span className={`text-sm ${checked ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                         {label}
                     </span>
-                    {!checked && !canCheck && (
+                    {checked ? (
+                        <span className="text-xs text-green-600 font-medium">
+                            Read & Accepted
+                        </span>
+                    ) : !canCheck ? (
                         <span className="text-xs text-orange-600">
                             Must view document first
                         </span>
-                    )}
+                    ) : null}
                 </div>
             </div>
 

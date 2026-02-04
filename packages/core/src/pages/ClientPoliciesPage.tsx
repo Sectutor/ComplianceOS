@@ -14,6 +14,7 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, FileText, Plus, Trash2, Edit, FileDown, Sparkles, FileSearch } from "lucide-react";
+import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import PolicyReviewDialog from "@/components/PolicyReviewDialog";
 import {
     DropdownMenu,
@@ -38,6 +39,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
+import { Send } from "lucide-react";
 
 export default function ClientPoliciesPage() {
     const params = useParams(); // Get raw params to debug
@@ -73,6 +75,7 @@ export default function ClientPoliciesPage() {
     const [tailorToIndustry, setTailorToIndustry] = useState(true);
     const [customInstruction, setCustomInstruction] = useState("");
     const [deletePolicyId, setDeletePolicyId] = useState<number | null>(null);
+    const [distributionPolicyId, setDistributionPolicyId] = useState<number | null>(null);
 
     const { text: streamedContent, isLoading: isStreaming, generate: generateStream, reset: resetStream } = useStreamingAI();
 
@@ -394,6 +397,16 @@ export default function ClientPoliciesPage() {
                     )}
                 </EnhancedDialog>
 
+                {/* Distribution Dialog */}
+                {distributionPolicyId && (
+                    <DistributionDialog
+                        open={!!distributionPolicyId}
+                        onOpenChange={(open) => !open && setDistributionPolicyId(null)}
+                        clientId={clientId}
+                        policyId={distributionPolicyId}
+                    />
+                )}
+
                 {/* Policy Review Dialog */}
                 <PolicyReviewDialog
                     open={isPolicyReviewOpen}
@@ -495,6 +508,18 @@ export default function ClientPoliciesPage() {
                                                         }}
                                                     >
                                                         <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                                        title="Distribute Policy"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDistributionPolicyId(item.clientPolicy.id);
+                                                        }}
+                                                    >
+                                                        <Send className="h-4 w-4" />
                                                     </Button>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>

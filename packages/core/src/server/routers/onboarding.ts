@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { employeeTrainingRecords, employeeAcknowledgments, employeeSecuritySetup, employeeAssetReceipts, employees } from "../../schema";
+import { employeeTrainingRecords, employeeAcknowledgments, employeeSecuritySetup, employeeAssetReceipts, employees, complianceRequirements } from "../../schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "../../lib/audit";
+import { llmService } from "../../lib/llm/service";
 
 export const createOnboardingRouter = (t: any, clientProcedure: any, clientEditorProcedure: any) => {
     return t.router({
@@ -66,7 +67,24 @@ export const createOnboardingRouter = (t: any, clientProcedure: any, clientEdito
                 let completedAcks = 0;
 
                 requirements.forEach((req: any) => {
-                    const isAck = acknowledgments.some((a: any) => a.acknowledgmentType === req.key);
+                    // Find the latest acknowledgment for this requirement
+                    const latestAck = acknowledgments
+                        .filter((a: any) => a.acknowledgmentType === req.key)
+                        .sort((a: any, b: any) => new Date(b.acknowledgedAt).getTime() - new Date(a.acknowledgedAt).getTime())[0];
+
+                    // Check if it exists AND is recent enough (acknowledged AFTER the requirement was last updated)
+                    // If requirement update time is missing, assume it's valid if ack exists
+                    let isAck = false;
+                    if (latestAck) {
+                        if (req.updatedAt) {
+                            // Allow a small buffer (e.g. 5 seconds) for concurrent db writes or clock skew
+                            // Check if acknowledgedAt is >= updatedAt
+                            isAck = new Date(latestAck.acknowledgedAt).getTime() >= (new Date(req.updatedAt).getTime() - 5000);
+                        } else {
+                            isAck = true;
+                        }
+                    }
+
                     ackItems[req.key] = isAck;
                     if (isAck) completedAcks++;
                 });
@@ -312,6 +330,10 @@ export const createOnboardingRouter = (t: any, clientProcedure: any, clientEdito
                 const employeeIds = clientEmployees.map((e: any) => e.id);
 
                 // 2. Bulk fetch all related records
+                const requirements = await db.select()
+                    .from(complianceRequirements)
+                    .where(eq(complianceRequirements.clientId, clientId));
+
                 const trainingRecords = await db.select()
                     .from(employeeTrainingRecords)
                     .where(eq(employeeTrainingRecords.clientId, clientId));
@@ -338,7 +360,12 @@ export const createOnboardingRouter = (t: any, clientProcedure: any, clientEdito
 
                     // Calculate basic status
                     const trainingComplete = empTraining.length >= 5;
-                    const acksComplete = empAcks.length >= 4;
+                    // Dynamically calculate acknowledgment completion
+                    const mandatoryReqs = requirements.filter((r: any) => r.isMandatory !== false).map((r: any) => r.key);
+                    const acksComplete = mandatoryReqs.length > 0
+                        ? mandatoryReqs.every((key: string) => empAcks.some((a: any) => a.acknowledgmentType === key))
+                        : true;
+
                     const securityComplete = empSecurity?.mfaEnrolled && empSecurity?.passwordManagerSetup && empSecurity?.securityQuestionsSet;
                     const assetsComplete = empAssets.length > 0 && empAssets.every((a: any) => a.status === 'confirmed' || (a.confirmedAt && a.status !== 'returned'));
 
@@ -361,7 +388,11 @@ export const createOnboardingRouter = (t: any, clientProcedure: any, clientEdito
                         percentage,
                         tasks: {
                             training: { complete: trainingComplete, count: empTraining.length, total: 5 },
-                            acknowledgments: { complete: acksComplete, count: empAcks.length, total: 4 },
+                            acknowledgments: {
+                                complete: acksComplete,
+                                count: empAcks.length,
+                                total: requirements.length || 4
+                            },
                             security: { complete: !!securityComplete },
                             assets: { complete: assetsComplete, count: empAssets.filter((a: any) => a.status === 'confirmed' || (a.confirmedAt && a.status !== 'returned')).length, total: empAssets.length }
                         },
@@ -472,6 +503,69 @@ export const createOnboardingRouter = (t: any, clientProcedure: any, clientEdito
                     ));
 
                 return { success: true };
+            }),
+
+        /**
+         * Generate compliance requirement content using AI
+         */
+        generateRequirementContent: clientEditorProcedure
+            .input(z.object({
+                clientId: z.number(),
+                title: z.string(),
+                industry: z.string().optional(),
+                tone: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const prompt = `
+Generate a comprehensive, high-quality compliance document or policy content for: "${input.title}".
+Industry context: ${input.industry || 'General Business'}
+Tone: ${input.tone || 'Professional and Legalistic'}
+
+The output MUST be formatted as semantic HTML content.
+- Use <h3> for section headers.
+- Use <p> for body text.
+- Use <ul> and <li> for bulleted lists.
+- Use <strong> for key requirements, deadlines, or emphasized terms.
+- Ensure proper spacing between sections.
+
+Do not include <html>, <head>, or <body> tags. Start directly with the content.
+Include standard sections relevant to this type of document:
+1. Purpose
+2. Scope
+3. Detailed Policy/Requirements
+4. Compliance Monitoring
+5. Violations and Enforcement
+`;
+
+                try {
+                    const response = await llmService.generate({
+                        userPrompt: prompt,
+                        systemPrompt: "You are an expert compliance officer and legal aide. detailed, accurate, and legally sound compliance documents.",
+                        temperature: 0.3,
+                        maxTokens: 2000,
+                        feature: 'compliance_generation'
+                    }, {
+                        clientId: input.clientId,
+                        userId: ctx.user.id,
+                        endpoint: 'onboarding.generateRequirementContent'
+                    });
+
+                    return { content: response.text };
+                } catch (error: any) {
+                    console.error("AI Generation Failed:", error);
+
+                    if (error.message && error.message.includes("No enabled LLM provider")) {
+                        throw new TRPCError({
+                            code: 'BAD_REQUEST',
+                            message: "AI capabilities are not configured. Please enable an AI provider in Settings > AI Integration."
+                        });
+                    }
+
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to generate content: ${error.message}`
+                    });
+                }
             }),
 
         /**

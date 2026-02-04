@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -154,6 +154,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/journey") return `/clients/${clientId}/journey${queryStr}`; // New
   if (purePath === "/onboarding") return `/onboarding${queryStr}`; // Global, but good to handle explicitly if needed
   if (purePath === "/gap-analysis") return `/clients/${clientId}/gap-analysis${queryStr}`;
+  if (purePath === "/training/management") return `/clients/${clientId}/training/management${queryStr}`;
   if (purePath === "/audit-hub") return `/clients/${clientId}/audit-hub${queryStr}`;
   if (purePath === "/reports") return `/clients/${clientId}/reports${queryStr}`;
   if (purePath === "/trust-center") return `/trust-center/${clientId}${queryStr}`;
@@ -500,6 +501,7 @@ function DashboardLayoutContent({
         { icon: Rocket, label: "Start Here", path: "/start-here" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Users, label: "Clients", path: "/clients" },
+        { icon: GraduationCap, label: "Employee Onboarding", path: "/onboarding" },
       ]
     },
     {
@@ -573,6 +575,7 @@ function DashboardLayoutContent({
           { icon: Users, label: "People & Org", path: "/people" },
           { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
           { icon: Settings, label: "Settings", path: "/settings" },
+          { icon: Video, label: "Training Management", path: "/training/management" },
         ]
       },
       {

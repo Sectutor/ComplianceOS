@@ -3379,6 +3379,27 @@ export type EmployeeSecuritySetup = typeof employeeSecuritySetup.$inferSelect;
 export type InsertEmployeeSecuritySetup = typeof employeeSecuritySetup.$inferInsert;
 
 
+// Compliance Requirements for Onboarding
+export const complianceRequirements = pgTable("compliance_requirements", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  key: varchar("key", { length: 100 }).notNull(), // e.g., 'code_of_conduct', 'aup'
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  isMandatory: boolean("is_mandatory").default(true),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_comp_req_client").on(table.clientId),
+  };
+});
+
+export type ComplianceRequirement = typeof complianceRequirements.$inferSelect;
+export type InsertComplianceRequirement = typeof complianceRequirements.$inferInsert;
+
+
 // Employee Asset Receipts - tracks asset confirmation
 export const employeeAssetReceipts = pgTable("employee_asset_receipts", {
   id: serial("id").primaryKey(),
@@ -13770,4 +13791,49 @@ export const employeeTrainingRecords = pgTable("employee_training_records", {
 
 export type EmployeeTrainingRecord = typeof employeeTrainingRecords.$inferSelect;
 export type InsertEmployeeTrainingRecord = typeof employeeTrainingRecords.$inferInsert;
+
+// Training Modules defined by Admin
+export const trainingModules = pgTable("training_modules", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  type: varchar("type", { length: 20 }).notNull(), // 'video', 'text'
+  videoUrl: text("video_url"),
+  content: text("content"),
+  durationMinutes: integer("duration_minutes").default(0),
+  active: boolean("active").default(true),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_training_module_client").on(table.clientId),
+  };
+});
+
+// Assignment and completion records for training modules
+export const trainingAssignments = pgTable("training_assignments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  employeeId: integer("employee_id").notNull(),
+  moduleId: integer("module_id").notNull(),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, in_progress, completed
+  score: integer("score"),
+  feedback: text("feedback"),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_training_assignment_client").on(table.clientId),
+    employeeIdx: index("idx_training_assignment_employee").on(table.employeeId),
+    moduleIdx: index("idx_training_assignment_module").on(table.moduleId),
+  };
+});
+
+export type TrainingModule = typeof trainingModules.$inferSelect;
+export type InsertTrainingModule = typeof trainingModules.$inferInsert;
+export type TrainingAssignment = typeof trainingAssignments.$inferSelect;
+export type InsertTrainingAssignment = typeof trainingAssignments.$inferInsert;
 

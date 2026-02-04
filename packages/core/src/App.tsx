@@ -227,6 +227,7 @@ const AIGovernance = lazy(() => import("./pages/ai-governance/AIGovernance"));
 
 const StartHere = lazy(() => import("./pages/StartHere"));
 const EmployeeOnboarding = lazy(() => import("./pages/EmployeeOnboarding"));
+const TrainingManagement = lazy(() => import("./pages/TrainingManagement"));
 
 const UIPatternShowcase = lazy(() => import("./pages/UIPatternShowcase"));
 const ConsolidatedRequestPortal = lazy(() => import("./pages/portal/ConsolidatedRequestPortal"));
@@ -475,6 +476,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/governance">
           {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceDashboard} /></PremiumGuard>}
+        </Route>
+        <Route path="/clients/:clientId/training/management">
+          {(_params) => <PremiumGuard><ProtectedRoute component={TrainingManagement} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/compliance/overview">
           <ProtectedRoute component={ComplianceOverview} />
