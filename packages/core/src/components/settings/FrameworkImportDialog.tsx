@@ -16,7 +16,7 @@ interface FrameworkImportDialogProps {
 }
 
 export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess }: FrameworkImportDialogProps) {
-    const [frameworkType, setFrameworkType] = useState<"pci_dss_v4" | "cis_v8" | "ccm_v4" | "hitrust" | "fedramp" | "fedramp_low" | "fedramp_high" | "cyber_essentials" | "nist_ai_rmf" | "iso27001" | "soc2" | "cis_v8_system">("pci_dss_v4");
+    const [frameworkType, setFrameworkType] = useState<"pci_dss_v4" | "cis_v8" | "ccm_v4" | "hitrust" | "fedramp" | "fedramp_low" | "fedramp_high" | "cyber_essentials" | "nist_ai_rmf" | "iso27001" | "soc2" | "cis_v8_system" | "owasp_aisvs" | "owasp_asvs">("pci_dss_v4");
     const [file, setFile] = useState<File | null>(null);
     const [isConfirmed, setIsConfirmed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +46,9 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
         frameworkType === "nist_ai_rmf" ||
         frameworkType === "iso27001" ||
         frameworkType === "soc2" ||
-        frameworkType === "cis_v8_system";
+        frameworkType === "cis_v8_system" ||
+        frameworkType === "owasp_aisvs" ||
+        frameworkType === "owasp_asvs";
 
     // Dynamic Description Text
     const getFrameworkDescription = () => {
@@ -158,6 +160,26 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
                 </div>
             );
         }
+        if (frameworkType === "owasp_aisvs" as any) {
+            return (
+                <div className="bg-cyan-50 border-l-4 border-cyan-500 p-4 mb-4 text-sm">
+                    <p className="font-bold text-cyan-700 mb-1">OWASP AISVS 1.0 (AI Security)</p>
+                    <p className="text-cyan-600 mb-2">
+                        The Artificial Intelligence Security Verification Standard. Covers training data, model lifecycle, and adversarial robustness.
+                    </p>
+                </div>
+            );
+        }
+        if (frameworkType === "owasp_asvs" as any) {
+            return (
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 text-sm">
+                    <p className="font-bold text-blue-700 mb-1">OWASP ASVS 4.0.3 (App Security)</p>
+                    <p className="text-blue-600 mb-2">
+                        The Application Security Verification Standard. Technical security controls for modern web applications and APIs.
+                    </p>
+                </div>
+            );
+        }
         return null;
     };
 
@@ -219,6 +241,8 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
                                 <SelectItem value="fedramp_high">FedRAMP High</SelectItem>
                                 <SelectItem value="cyber_essentials">Cyber Essentials / Plus</SelectItem>
                                 <SelectItem value="nist_ai_rmf">NIST AI RMF 1.0</SelectItem>
+                                <SelectItem value="owasp_aisvs">OWASP AISVS 1.0 (AI Security)</SelectItem>
+                                <SelectItem value="owasp_asvs">OWASP ASVS 4.0.3 (App Security)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

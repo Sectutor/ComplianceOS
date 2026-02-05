@@ -12,7 +12,7 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
         importCustom: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
-                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system"]),
+                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs"]),
                 fileContent: z.string().optional(), // Base64, optional for system frameworks
             }))
             .mutation(async ({ ctx, input }: any) => {
@@ -293,11 +293,30 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         version: 1,
                         grouping: "CIS v8"
                     }));
+                } else if (input.type === "owasp_aisvs") {
+                    frameworkName = "OWASP AISVS (AI Security)";
+                    // Use bulkAssign later
+                } else if (input.type === "owasp_asvs") {
+                    frameworkName = "OWASP ASVS (App Security)";
+                    // Use bulkAssign later
                 }
 
                 try {
+                    const d = await db.getDb();
+                    if (input.type === "owasp_aisvs" || input.type === "owasp_asvs") {
+                        await db.bulkAssignControls(input.clientId, frameworkName);
+                        // Count how many were assigned
+                        const count = await d.select({ count: sql<number>`count(*)` })
+                            .from(schema.clientControls)
+                            .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
+                            .where(and(
+                                eq(schema.clientControls.clientId, input.clientId),
+                                eq(schema.controls.framework, frameworkName)
+                            ));
+                        return { success: true, count: Number(count[0]?.count || 0) };
+                    }
+
                     if (newControls.length > 0) {
-                        const d = await db.getDb();
                         // Delete existing for this framework/client to avoid duplicates on re-import
                         await d.delete(controls).where(and(
                             eq(controls.clientId, input.clientId),

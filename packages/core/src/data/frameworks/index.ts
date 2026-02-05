@@ -91,6 +91,20 @@ export const frameworks: Framework[] = [
         description: "NIST AI Risk Management Framework (1.0) for trustworthy and responsible AI.",
         type: "AI & Data",
         logo: "/frameworks/nist.svg"
+    },
+    {
+        id: "owasp-aisvs",
+        name: "OWASP AISVS (AI Security)",
+        description: "OWASP Artificial Intelligence Security Verification Standard (1.0). structured checklist to evaluate AI-driven applications.",
+        type: "AI & Data",
+        logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp-asvs",
+        name: "OWASP ASVS (App Security)",
+        description: "OWASP Application Security Verification Standard (4.0.3). Basis for testing technical security controls.",
+        type: "Security",
+        logo: "/frameworks/owasp.svg"
     }
 ];
 
