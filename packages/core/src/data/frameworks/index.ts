@@ -105,6 +105,34 @@ export const frameworks: Framework[] = [
         description: "OWASP Application Security Verification Standard (4.0.3). Basis for testing technical security controls.",
         type: "Security",
         logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp_masvs",
+        name: "OWASP MASVS (Mobile Security)",
+        description: "OWASP Mobile Application Security Verification Standard (2.0). The industry standard for mobile app security.",
+        type: "Security",
+        logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp_samm",
+        name: "OWASP SAMM (Maturity Model)",
+        description: "OWASP Software Assurance Maturity Model. An effective and measurable way for all types of organizations to analyze and improve their software security posture.",
+        type: "Governance",
+        logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp_api_top10",
+        name: "OWASP API Security Top 10",
+        description: "The most critical API security risks. Focuses on strategies and solutions to understand and mitigate the unique vulnerabilities and security risks of APIs.",
+        type: "Security",
+        logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp_top10",
+        name: "OWASP Web Top 10",
+        description: "The standard awareness document for developers and web application security. It represents a broad consensus about the most critical security risks to web applications.",
+        type: "Security",
+        logo: "/frameworks/owasp.svg"
     }
 ];
 
