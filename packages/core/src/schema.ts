@@ -5702,50 +5702,24 @@ export const riskScenarios = pgTable("risk_scenarios", {
 
   processId: varchar("process_id", { length: 100 }), // Linked Business Process (if process-based)
 
-
-
   vendorId: integer("vendor_id"), // Linked Vendor (if vendor-based)
-
   devProjectId: integer("dev_project_id"), // Linked Dev Project
+  projectId: integer("project_id"), // Linked General Project
   threatModelId: integer("threat_model_id"), // Linked Threat Model
 
-
-
-
-
-
-
   // Linked Context (New)
-
-
-
   threatId: integer("threat_id"), // FK to threats
-
-
-
   vulnerabilityId: integer("vulnerability_id"), // FK to vulnerabilities
 
-
-
-
-
-
-
   // The "What can go wrong"
-
-
-
   title: varchar("title", { length: 500 }).notNull(), // Short risk name
-
-
-
   description: text("description"),
 
-
-
-
-
-
+  // Security Framework Triage
+  category: varchar("category", { length: 100 }).default('General'), // Project, Enterprise, Data, AI
+  owaspCategory: varchar("owasp_category", { length: 100 }), // e.g. "Broken Access Control"
+  privacyImpact: boolean("privacy_impact").default(false), // If DPIA required
+  csfFunction: varchar("csf_function", { length: 50 }), // Identify, Protect, etc.
 
   // Threat & Vulnerability (ISO 27005 Model)
 
@@ -5807,17 +5781,8 @@ export const riskScenarios = pgTable("risk_scenarios", {
 
 
   status: varchar("status", { length: 50 }).default("identified"), // identified, analyzed, treated, monitored
-
-
-
   owner: varchar("owner", { length: 255 }),
-
-
-
-
-
-
-
+  customMitigationPlan: text("custom_mitigation_plan"), // AI generated for custom rich text plan
   updatedAt: timestamp("updated_at").defaultNow(),
 
 
@@ -6856,11 +6821,23 @@ export const riskAssessments = pgTable("risk_assessments", {
 
 
 
+  projectId: integer("project_id"),
+
+
+
   assessmentId: varchar("assessment_id", { length: 50 }).notNull(), // e.g. RA-2024-001
 
 
 
   title: varchar("title", { length: 255 }), // User-friendly name
+
+
+  // Security Framework Triage (Consistency with riskScenarios)
+  category: varchar("category", { length: 100 }).default('General'), // Project, Enterprise, Data, AI
+  owaspCategory: varchar("owasp_category", { length: 100 }), // e.g. "Broken Access Control"
+  privacyImpact: boolean("privacy_impact").default(false), // If DPIA required
+  csfFunction: varchar("csf_function", { length: 50 }), // Identify, Protect, etc.
+  aiRmfCategory: varchar("ai_rmf_category", { length: 50 }), // Govern, Map, Measure, Manage
 
 
 
@@ -13543,6 +13520,49 @@ export type InsertComplianceCertificate = typeof complianceCertificates.$inferIn
 // Developer Risk Management & Threat Modeling
 // ==========================================
 
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 50 }).default("planning"), // planning, active, completed, archived
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  owner: varchar("owner", { length: 255 }),
+  projectType: varchar("project_type", { length: 50 }).default("it"), // it, ai, infra, privacy
+  securityCriticality: varchar("security_criticality", { length: 50 }).default("medium"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_projects_client").on(table.clientId),
+  };
+});
+
+export const projectComplianceMappings = pgTable("project_compliance_mappings", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id"), // Nullable for general projects
+  devProjectId: integer("dev_project_id"), // New: Linked to developer projects
+  framework: varchar("framework", { length: 100 }).notNull(), // NIST CSF, OWASP ASVS
+  requirementId: varchar("requirement_id", { length: 100 }).notNull(),
+  status: varchar("status", { length: 50 }).default("pending"),
+  evidenceId: integer("evidence_id"),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    projectIdx: index("idx_pcm_project").on(table.projectId),
+    devProjectIdx: index("idx_pcm_dev_project").on(table.devProjectId),
+  };
+});
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = typeof projects.$inferInsert;
+
+export type ProjectComplianceMapping = typeof projectComplianceMappings.$inferSelect;
+export type InsertProjectComplianceMapping = typeof projectComplianceMappings.$inferInsert;
+
 export const devProjects = pgTable("dev_projects", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
@@ -13565,7 +13585,8 @@ export type InsertDevProject = typeof devProjects.$inferInsert;
 export const threatModels = pgTable("threat_models", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
-  devProjectId: integer("dev_project_id").notNull(),
+  devProjectId: integer("dev_project_id"), // Nullable for general projects
+  projectId: integer("project_id"), // New: Linked to general projects
   name: varchar("name", { length: 255 }).notNull(),
   methodology: varchar("methodology", { length: 50 }).default('STRIDE'),
   status: varchar("status", { length: 50 }).default('draft'), // draft, active, archived
@@ -13616,6 +13637,27 @@ export const threatModelDataFlows = pgTable("threat_model_data_flows", {
 
 export type ThreatModelDataFlow = typeof threatModelDataFlows.$inferSelect;
 export type InsertThreatModelDataFlow = typeof threatModelDataFlows.$inferInsert;
+
+// ==========================================
+// FRAMEWORK INTELLIGENCE & MAPPINGS
+// ==========================================
+
+export const frameworkKnowledgeMappings = pgTable("framework_knowledge_mappings", {
+  id: serial("id").primaryKey(),
+  sourceRequirementId: integer("source_requirement_id").notNull(),
+  targetType: varchar("target_type", { length: 50 }).notNull(), // 'threat_category', 'tech_stack', 'component_type', etc.
+  targetValue: varchar("target_value", { length: 255 }).notNull(), // e.g. 'Tampering', 'React', 'API'
+  mappingWeight: integer("mapping_weight").default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    sourceIdx: index("idx_fkm_source").on(table.sourceRequirementId),
+    targetIdx: index("idx_fkm_target").on(table.targetType, table.targetValue),
+  };
+});
+
+export type FrameworkKnowledgeMapping = typeof frameworkKnowledgeMappings.$inferSelect;
+export type InsertFrameworkKnowledgeMapping = typeof frameworkKnowledgeMappings.$inferInsert;
 
 // ==========================================
 // TRUST CENTER & NDA GATEKEEPING
