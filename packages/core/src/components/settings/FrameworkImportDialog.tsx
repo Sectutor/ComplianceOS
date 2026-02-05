@@ -16,7 +16,7 @@ interface FrameworkImportDialogProps {
 }
 
 export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess }: FrameworkImportDialogProps) {
-    const [frameworkType, setFrameworkType] = useState<"pci_dss_v4" | "cis_v8" | "ccm_v4" | "hitrust" | "fedramp" | "fedramp_low" | "fedramp_high" | "cyber_essentials" | "nist_ai_rmf" | "iso27001" | "soc2" | "cis_v8_system" | "owasp_aisvs" | "owasp_asvs" | "owasp_masvs" | "owasp_samm" | "owasp_api_top10" | "owasp_top10">("pci_dss_v4");
+    const [frameworkType, setFrameworkType] = useState<"pci_dss_v4" | "cis_v8" | "ccm_v4" | "hitrust" | "fedramp" | "fedramp_low" | "fedramp_high" | "cyber_essentials" | "nist_ai_rmf" | "iso27001" | "soc2" | "cis_v8_system" | "owasp_aisvs" | "owasp_asvs" | "owasp_masvs" | "owasp_samm" | "owasp_api_top10" | "owasp_top10" | "owasp_top10_2021" | "owasp_ml_top10">("pci_dss_v4");
     const [file, setFile] = useState<File | null>(null);
     const [isConfirmed, setIsConfirmed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -217,9 +217,29 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
         if (frameworkType === "owasp_top10" as any) {
             return (
                 <div className="bg-slate-50 border-l-4 border-slate-500 p-4 mb-4 text-sm">
+                    <p className="font-bold text-slate-700 mb-1">OWASP Web Top 10 (2025 Pre-release)</p>
+                    <p className="text-slate-600 mb-2">
+                        The latest awareness document for web application security risks, updated for 2025 with detailed mitigation guidance.
+                    </p>
+                </div>
+            );
+        }
+        if (frameworkType === "owasp_ml_top10" as any) {
+            return (
+                <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-4 text-sm">
+                    <p className="font-bold text-indigo-700 mb-1">OWASP ML Security Top 10 (2023)</p>
+                    <p className="text-indigo-600 mb-2">
+                        Vulnerabilities in machine learning models and systems through the ML lifecycle, covering poisoning, extraction, and inversion.
+                    </p>
+                </div>
+            );
+        }
+        if (frameworkType === "owasp_top10_2021" as any) {
+            return (
+                <div className="bg-slate-50 border-l-4 border-slate-500 p-4 mb-4 text-sm">
                     <p className="font-bold text-slate-700 mb-1">OWASP Web Top 10 (2021)</p>
                     <p className="text-slate-600 mb-2">
-                        The foundational awareness document for web application security risks.
+                        The 2021 edition of the foundational web application security risks.
                     </p>
                 </div>
             );
@@ -290,7 +310,9 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
                                 <SelectItem value="owasp_masvs">OWASP MASVS 2.0 (Mobile Security)</SelectItem>
                                 <SelectItem value="owasp_samm">OWASP SAMM 2.0 (Maturity)</SelectItem>
                                 <SelectItem value="owasp_api_top10">OWASP API Security Top 10</SelectItem>
-                                <SelectItem value="owasp_top10">OWASP Web Top 10</SelectItem>
+                                <SelectItem value="owasp_top10">OWASP Web Top 10 (2025)</SelectItem>
+                                <SelectItem value="owasp_top10_2021">OWASP Web Top 10 (2021)</SelectItem>
+                                <SelectItem value="owasp_ml_top10">OWASP ML Security Top 10</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

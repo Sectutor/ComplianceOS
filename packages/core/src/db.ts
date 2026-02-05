@@ -159,7 +159,9 @@ import {
   integrations, evidenceRequests,
 
 
-  projectTasks
+  projectTasks,
+  projects, InsertProject, Project,
+  projectComplianceMappings, InsertProjectComplianceMapping, ProjectComplianceMapping
 } from "./schema";
 
 import * as schema from "./schema";

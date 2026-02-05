@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -45,6 +45,18 @@ import { CopilotPanel } from "@complianceos/premium/components/advisor/CopilotPa
 
 import { CopilotHelpTrigger } from "@complianceos/premium/components/advisor/CopilotHelpTrigger";
 import { TourProvider } from "./TourProvider";
+import { useBranding, BrandLogo } from "@/config/branding";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@complianceos/ui/ui/dialog";
+import { Label } from "@complianceos/ui/ui/label";
+import { Slider } from "@complianceos/ui/ui/slider";
+// Force rebuild
+import { toast } from "sonner";
 
 // ... (existing imports)
 
@@ -160,6 +172,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/audit-hub") return `/clients/${clientId}/audit-hub${queryStr}`;
   if (purePath === "/reports") return `/clients/${clientId}/reports${queryStr}`;
   if (purePath === "/trust-center") return `/trust-center/${clientId}${queryStr}`;
+  if (purePath === "/projects") return `/clients/${clientId}/projects${queryStr}`;
 
   // Handle client-specific sub-routes
   const isClientSubRoute = clientSpecificMenuItems.some(cItem => cItem.path === purePath) ||
@@ -243,6 +256,7 @@ export default function DashboardLayout({
   });
   const { loading, user, signOut } = useAuth();
   const { selectedClientId } = useClientContext();
+  const { appName } = useBranding();
 
   // Redirect Auditors to their clean room
   if (user?.user_metadata?.role === 'auditor' && selectedClientId) {
@@ -264,7 +278,7 @@ export default function DashboardLayout({
           <div className="flex flex-col items-center gap-6">
             <Shield className="h-16 w-16 text-primary" />
             <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to GRCompliance
+              Sign in to {appName}
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
               Access to this dashboard requires authentication. Sign in to manage your compliance controls and policies.
@@ -319,6 +333,40 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const [menuSearch, setMenuSearch] = useState("");
+  const { appName, logoUrl, primaryColor, updateBranding, resetBranding, logoSize } = useBranding();
+  const [brandingOpen, setBrandingOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      updateBranding({ logoUrl: result });
+      setIsUploadingLogo(false);
+      toast.success("Logo uploaded successfully");
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read file");
+      setIsUploadingLogo(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Extract client ID from URL if present
   const clientIdMatch = location.match(/\/clients\/(\d+)/);
@@ -624,6 +672,7 @@ function DashboardLayoutContent({
     groups.push({
       label: "AI & App Security",
       items: [
+        { icon: Shield, label: "Security Projects", path: "/projects" },
         { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
         { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
       ]
@@ -845,7 +894,122 @@ function DashboardLayoutContent({
           className="border-r-0"
           disableTransition={isResizing}
         >
-          {/* Legacy Header Removed to match design */}
+          <SidebarHeader className="p-4 border-b border-white/5 bg-[var(--sidebar-background)] h-20 flex flex-col justify-center">
+            <Dialog open={brandingOpen} onOpenChange={setBrandingOpen}>
+              <DialogTrigger asChild>
+                <div className="cursor-pointer hover:opacity-80 transition-opacity w-full h-full flex items-center">
+                  <BrandLogo className="text-white scale-110 origin-left" showText={!isCollapsed} />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Branding Settings</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Application Name</Label>
+                    <Input
+                      value={appName}
+                      onChange={(e) => updateBranding({ appName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Logo</Label>
+                    <div className="flex gap-4 items-start">
+                      <div className="w-24 h-24 border rounded-md flex items-center justify-center bg-muted/20 overflow-hidden relative group">
+                        {logoUrl ? (
+                          <>
+                            <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
+                            <button
+                              onClick={() => updateBranding({ logoUrl: null })}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </>
+                        ) : (
+                          <Shield className="w-10 h-10 text-muted-foreground/30" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploadingLogo}
+                        >
+                          {isUploadingLogo ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4 mr-2" />
+                          )}
+                          Upload Image
+                        </Button>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <p>Supported: PNG, JPG, SVG</p>
+                          <p>Max size: 2MB</p>
+                          <p>Recommended: 512x512px transparent PNG</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground pt-1 border-t border-muted/50 mt-1">
+                          <span className="font-medium">Or use URL:</span>
+                          <Input
+                            value={logoUrl || ''}
+                            onChange={(e) => updateBranding({ logoUrl: e.target.value || null })}
+                            placeholder="https://..."
+                            className="mt-1 h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <Label>Logo Size</Label>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-muted-foreground w-8">50%</span>
+                      <Slider
+                        defaultValue={[logoSize]}
+                        max={200}
+                        min={50}
+                        step={5}
+                        onValueChange={(vals) => updateBranding({ logoSize: vals[0] })}
+                        className="flex-1"
+                      />
+                      <span className="text-xs font-medium w-8 text-right">{logoSize}%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Primary Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => updateBranding({ primaryColor: e.target.value })}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        value={primaryColor}
+                        onChange={(e) => updateBranding({ primaryColor: e.target.value })}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-4 flex justify-end gap-2">
+                    <Button variant="outline" onClick={resetBranding}>Reset to Default</Button>
+                    <Button onClick={() => setBrandingOpen(false)}>Done</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </SidebarHeader>
 
 
           <SidebarContent className="gap-2">

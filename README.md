@@ -160,6 +160,7 @@ Visit `http://localhost:5173` to start using GRCompliance.
 Detailed documentation is available in the [`docs/`](./docs) directory:
 
 - [**Addon Development Guide**](./docs/ADDON_SYSTEM.md)
+- [**Strategic Differentiators**](./docs/STRATEGIC_DIFFERENTIATORS.md)
 - [**Architecture Overview**](./docs/architecture.md)
 - [**API Reference**](./docs/api-reference.md)
 - [**Database Schema**](./docs/database-schema.md)

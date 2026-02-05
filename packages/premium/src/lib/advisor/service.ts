@@ -21,7 +21,9 @@ import type {
     VendorMitigationPlanResponse,
     MitigationStep,
     AnalyzeRiskRequest,
-    AnalyzeRiskResponse
+    AnalyzeRiskResponse,
+    GenerateRiskMitigationPlanRequest,
+    GenerateRiskMitigationPlanResponse
 } from './types';
 import { getDb } from '../../db';
 import {
@@ -1064,6 +1066,48 @@ Output as JSON:
             reasoning: 'AI analysis failed to parse. Defaulting to medium.'
         };
     }
+}
+
+/**
+ * Generate a detailed risk mitigation plan
+ */
+export async function generateRiskMitigationPlan(
+    request: GenerateRiskMitigationPlanRequest
+): Promise<GenerateRiskMitigationPlanResponse> {
+    const systemPrompt = `You are a senior cybersecurity architect and risk manager.
+Your task is to generate a comprehensive, actionable mitigation plan for a specific risk.
+The output must be formatted as HTML content suitable for a rich text editor (using <h3>, <p>, <ul>, <li>, <strong> tags).
+Do NOT include <html>, <body>, or markdown code blocks (like \`\`\`html). Just the raw HTML content.
+Focus on:
+1. Technical controls (what to implement)
+2. Process controls (policies, reviews)
+3. Verification steps (how to test)
+`;
+
+    const userPrompt = `
+Risk: ${request.riskTitle}
+Description: ${request.riskDescription}
+Context: ${request.riskContext || 'General System'}
+${request.currentMitigations?.length ? `Current Planned Mitigations: ${request.currentMitigations.join(', ')}` : ''}
+
+Please provide a detailed mitigation plan.
+`;
+
+    const response = await llmService.generateCompletion({
+        systemPrompt,
+        userPrompt,
+        temperature: 0.7
+    });
+
+    // Strip markdown code blocks if present
+    const cleanResponse = (response || '')
+        .replace(/^```html\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '');
+
+    return {
+        mitigationPlan: cleanResponse || '<p>Failed to generate plan.</p>'
+    };
 }
 
 // ==================== HELPER FUNCTIONS ====================

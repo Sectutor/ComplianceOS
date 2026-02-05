@@ -5,7 +5,7 @@ import { createComplianceRouter } from "./server/routers/compliance";
 import { createEvidenceRouter } from "./server/routers/evidence";
 import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
 import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
-// import { createAdvisorRouter } from "./server/routers/advisor";
+import { createAdvisorRouter } from "./server/routers/advisor";
 import { initTRPC, TRPCError } from "@trpc/server";
 import * as crypto from 'crypto';
 import { z } from "zod";
@@ -42,7 +42,6 @@ import * as adversaryIntelService from "./lib/adversaryService";
 import { nvdCveCache, cisaKevCache, assetCveMatches, threatIntelSyncLog } from "./schema";
 
 // Initialize tRPC
-// Initialize tRPC
 import { inferAsyncReturnType } from "@trpc/server";
 import { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { createCrmRouter } from './lib/modules/crm/router';
@@ -53,6 +52,7 @@ import { createReadinessRouter } from './server/routers/readiness';
 import { createImplementationRouter } from './server/routers/implementation';
 import { createDevProjectsRouter } from './server/routers/devProjects';
 import { createThreatModelsRouter } from './server/routers/threatModels';
+import { createProjectsRouter } from './server/routers/projects';
 
 // Add missing imports
 import { createChecklistRouter } from './server/routers/checklist';
@@ -94,9 +94,7 @@ import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
 import { createTrainingRouter } from "./server/routers/training";
-
-
-
+import { magicLinksRouter } from "./server/routers/magicLinks";
 
 
 // Context type definition
@@ -111,7 +109,17 @@ export type Context = inferAsyncReturnType<typeof createContext>;
 const t = initTRPC.context<Context>().create({
   // transformer: superjson,
   errorFormatter({ shape, error }) {
+
     console.error("TRPC Error (Global):", error);
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      // Use a fixed hardcoded path to ensure we find it
+      const logPath = 'C:/Users/emman/.gemini/antigravity/brain/1a946fc8-d637-4774-a760-ec89c9312443/global_trpc_error.log';
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${error.message}\nStack: ${error.stack}\n\n`);
+    } catch (e) {
+      // ignore log error
+    }
     return shape;
   },
 });
@@ -143,7 +151,7 @@ const checkClientAccess = t.middleware(async (opts) => {
   const { ctx, next } = opts;
   // Safer input access that works with both batched and standard requests
   const input = (opts as any).rawInput || (opts as any).input || {};
-  
+
   if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
   const clientId = input?.clientId;
@@ -311,6 +319,7 @@ export const appRouter = router({
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
+  projects: createProjectsRouter(t, clientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
   vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
@@ -326,6 +335,8 @@ export const appRouter = router({
   findings: createFindingsRouter(t, protectedProcedure),
 
   waitlist: createWaitlistRouter(t, publicProcedure, adminProcedure),
+  magicLinks: magicLinksRouter,
+
   globalCrm: createGlobalCrmRouter(t, adminProcedure),
   privacy: createPrivacyRouter(t, clientProcedure),
   cyber: createCyberRouter(t, clientProcedure),
@@ -350,6 +361,7 @@ export const appRouter = router({
     systems: createAiSystemsRouter(t, clientProcedure),
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
+  advisor: createAdvisorRouter(t, clientProcedure),
 
   comments: createCommentsRouter(t, clientProcedure),
 

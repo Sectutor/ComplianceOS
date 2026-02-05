@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBranding, BrandLogo } from "@/config/branding";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@complianceos/ui/ui/card";
 import { getLoginUrl } from "@/const";
@@ -9,6 +10,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const { appName } = useBranding();
   const [location, setLocation] = useLocation();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const SHOW_PRICING = false; // Toggle this to show/hide pricing section and menu option
@@ -34,8 +36,7 @@ export default function Home() {
         <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
-              <Shield className="h-8 w-8 text-primary" />
-              <span className="text-xl font-semibold">GRCompliance</span>
+              <BrandLogo />
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground hidden md:inline-block">Welcome, {user?.user_metadata?.full_name || user?.email}</span>
@@ -118,10 +119,7 @@ export default function Home() {
       <header className="fixed top-0 w-full z-50 bg-[#002a40] backdrop-blur-md border-b border-white/10">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[#0ea5e9] flex items-center justify-center text-white">
-              <Shield className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-white">GRCompliance</span>
+            <BrandLogo className="text-white" />
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a>
@@ -476,7 +474,7 @@ export default function Home() {
                       <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
                         <BarChart3 className="h-4 w-4 text-blue-600" />
                       </div>
-                      GRCompliance Self-Service
+                      {appName} Self-Service
                     </CardTitle>
                     <div className="mt-4">
                       {billingPeriod === 'monthly' ? (
@@ -520,7 +518,7 @@ export default function Home() {
                       <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
                         <Star className="h-4 w-4 text-blue-600" />
                       </div>
-                      GRCompliance Growth
+                      {appName} Growth
                     </CardTitle>
                     <div className="mt-4">
                       {billingPeriod === 'monthly' ? (
@@ -739,7 +737,7 @@ export default function Home() {
               <div className="relative z-10 max-w-2xl mx-auto">
                 <h2 className="text-3xl font-bold mb-6 text-white">Ready to get compliant?</h2>
                 <p className="text-lg text-slate-300 mb-8">
-                  Join 500+ security teams who trust GRCompliance to manage their security program.
+                  Join 500+ security teams who trust {appName} to manage their security program.
                 </p>
                 <Button size="lg" className="h-12 px-8 text-lg bg-[#7FBF3F] hover:bg-[#6ba832] text-white border-none shadow-lg shadow-[#7FBF3F]/30" asChild>
                   <a href={getLoginUrl()}>Create Free Account</a>
@@ -755,10 +753,7 @@ export default function Home() {
         <div className="container grid md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="h-6 w-6 rounded bg-[#0ea5e9] flex items-center justify-center">
-                <Shield className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold text-lg text-white">GRCompliance</span>
+              <BrandLogo className="text-white" />
             </div>
             <p className="text-slate-400 text-sm max-w-xs">
               The modern operating system for governance, risk, and compliance. Built for high-growth tech companies.
@@ -780,7 +775,7 @@ export default function Home() {
           </div>
         </div>
         <div className="container mt-12 pt-8 border-t border-white/10 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} GRCompliance. All rights reserved.
+          © {new Date().getFullYear()} {appName}. All rights reserved.
         </div>
       </footer>
     </div>

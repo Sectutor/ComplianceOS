@@ -66,25 +66,25 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         const path = await import('path');
         const logFile = path.resolve(process.cwd(), 'auth_error.log');
         const logEntry = `[${new Date().toISOString()}] ${error.stack}\n`;
-        fs.appendFile(logFile, logEntry, () => {});
+        fs.appendFile(logFile, logEntry, () => { });
 
         // If DB connection fails, we should probably fail hard for API requests
         // instead of letting it pass as unauthorized/undefined
         if (error.name === 'DatabaseConnectionError' || error.message.includes('connect')) {
-             res.status(503).json({ error: 'Database connection failed' });
-             return;
+            res.status(503).json({ error: 'Database connection failed' });
+            return;
         }
-        
+
         // Don't just next() on error, send a proper error response if we can't authenticate
         // Otherwise trpc gets undefined user and throws generic 500 or 401 later
         if (req.url.startsWith('/api/trpc')) {
-             res.status(500).json({ 
-                error: 'Internal Authentication Error', 
-                details: error.message 
-             });
-             return;
+            res.status(500).json({
+                error: 'Internal Authentication Error',
+                details: error.message
+            });
+            return;
         }
-        
+
         next();
     }
 };

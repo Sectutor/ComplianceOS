@@ -130,8 +130,25 @@ export const frameworks: Framework[] = [
     {
         id: "owasp_top10",
         name: "OWASP Web Top 10",
-        description: "The standard awareness document for developers and web application security. It represents a broad consensus about the most critical security risks to web applications.",
+        description: "The standard awareness document for developers and web application security (2025 Draft/Pre-release).",
+        version: "2025",
         type: "Security",
+        logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp_top10_2021",
+        name: "OWASP Web Top 10 (2021)",
+        description: "The standard awareness document for developers and web application security (2021).",
+        version: "2021",
+        type: "Security",
+        logo: "/frameworks/owasp.svg"
+    },
+    {
+        id: "owasp_ml_top10",
+        name: "OWASP ML Security Top 10",
+        description: "Vulnerabilities in machine learning models and systems through the ML lifecycle (0.3).",
+        version: "2023",
+        type: "AI & Data",
         logo: "/frameworks/owasp.svg"
     }
 ];

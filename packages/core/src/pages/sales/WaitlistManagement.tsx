@@ -16,7 +16,7 @@ import {
     DropdownMenuTrigger
 } from '@complianceos/ui/ui/dropdown-menu';
 import { Button } from '@complianceos/ui/ui/button';
-import { MoreHorizontal, Download, Trash2, UserPlus, Mail } from 'lucide-react';
+import { MoreHorizontal, Download, Trash2, UserPlus, Mail, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { toast } from 'sonner';
 
@@ -26,6 +26,8 @@ export default function WaitlistManagement() {
     const updateStatus = trpc.waitlist.updateStatus.useMutation();
     const deleteLead = trpc.waitlist.remove.useMutation();
     const convertToGlobalCrm = trpc.globalCrm.convertFromWaitlist.useMutation();
+    const createMagicLink = trpc.magicLinks.create.useMutation();
+
 
     const handleStatusChange = async (id: number, status: string) => {
         console.log("Updating status for:", id, "to", status);
@@ -73,6 +75,30 @@ export default function WaitlistManagement() {
             toast.error('Failed to convert: ' + (e as Error).message);
         }
     };
+
+    const handleInvite = async (lead: any) => {
+        try {
+            const link = await createMagicLink.mutateAsync({
+                label: `Waitlist Invite: ${lead.firstName} ${lead.lastName}`,
+                email: lead.email,
+                role: 'admin',
+                planTier: 'pro',
+                maxClients: 2,
+                accessDurationType: 'lifetime',
+                waitlistId: lead.id,
+                expiresInDays: 30
+            });
+
+            const url = `${window.location.origin}/auth/redeem-link?token=${link.token}`;
+            await navigator.clipboard.writeText(url);
+            toast.success('Magic link created and copied to clipboard!');
+            refetch();
+        } catch (e) {
+            console.error("Invite failed:", e);
+            toast.error('Failed to create invite: ' + (e as Error).message);
+        }
+    };
+
 
     const exportCsv = () => {
         if (!leads) return;
@@ -198,6 +224,11 @@ export default function WaitlistManagement() {
                                                 <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'contacted')}>
                                                     Mark as Contacted
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleInvite(lead)} disabled={lead.status === 'invited'}>
+                                                    <LinkIcon className="mr-2 h-4 w-4" />
+                                                    Send Magic Link Invite
+                                                </DropdownMenuItem>
+
                                                 <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'pending')}>
                                                     Reset to Pending
                                                 </DropdownMenuItem>

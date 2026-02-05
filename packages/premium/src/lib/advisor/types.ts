@@ -166,6 +166,18 @@ export interface AnalyzeRiskRequest {
     assets: string[];
 }
 
+export interface GenerateRiskMitigationPlanRequest {
+    clientId: number;
+    riskTitle: string;
+    riskDescription: string;
+    riskContext?: string; // e.g. "Web Client", "Database"
+    currentMitigations?: string[];
+}
+
+export interface GenerateRiskMitigationPlanResponse {
+    mitigationPlan: string; // HTML content
+}
+
 // ==================== BCP Generation ====================
 
 export interface GenerateBcpContentRequest {

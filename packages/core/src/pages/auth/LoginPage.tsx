@@ -18,11 +18,11 @@ export default function LoginPage() {
     const { user, signIn, signOut } = useAuth();
 
     // Check if user has seen tour
-    const { 
-        data: userProfile, 
-        isLoading: isProfileLoading, 
-        isError, 
-        error: profileError 
+    const {
+        data: userProfile,
+        isLoading: isProfileLoading,
+        isError,
+        error: profileError
     } = trpc.users.me.useQuery(undefined, {
         enabled: !!user,
         retry: false
@@ -35,10 +35,13 @@ export default function LoginPage() {
                 return;
             }
 
+            const searchParams = new URLSearchParams(window.location.search);
+            const inviteToken = searchParams.get('invite');
+
             if (userProfile && !userProfile.hasSeenTour) {
-                setLocation('/start-here');
+                setLocation(inviteToken ? `/auth/redeem-link?token=${inviteToken}` : '/start-here');
             } else {
-                setLocation('/dashboard');
+                setLocation(inviteToken ? `/auth/redeem-link?token=${inviteToken}` : '/dashboard');
             }
         }
     }, [user, userProfile, isProfileLoading, setLocation, isError, profileError]);
@@ -83,12 +86,12 @@ export default function LoginPage() {
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button 
+                        <Button
                             onClick={() => {
                                 signOut();
                                 setLoading(false);
-                            }} 
-                            variant="destructive" 
+                            }}
+                            variant="destructive"
                             className="w-full"
                         >
                             Sign Out & Try Again

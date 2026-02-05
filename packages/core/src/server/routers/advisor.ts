@@ -8,7 +8,8 @@ import {
     askQuestion,
     generateVendorMitigationPlan,
     analyzeRisk,
-    reindexKnowledgeBase
+    reindexKnowledgeBase,
+    generateRiskMitigationPlan
 } from '../../lib/advisor/service';
 import { eq, sql, and } from "drizzle-orm";
 import { getDb } from '../../db';
@@ -151,6 +152,32 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
                         message: `Failed to generate vendor mitigation plan: ${error.message}`,
+                    });
+                }
+            }),
+
+        generateRiskMitigationPlan: protectedProcedure
+            .input(z.object({
+                clientId: z.number(),
+                riskTitle: z.string(),
+                riskDescription: z.string(),
+                riskContext: z.string().optional(),
+                currentMitigations: z.array(z.string()).optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                try {
+                    const result = await generateRiskMitigationPlan({
+                        clientId: input.clientId,
+                        riskTitle: input.riskTitle,
+                        riskDescription: input.riskDescription,
+                        riskContext: input.riskContext,
+                        currentMitigations: input.currentMitigations
+                    });
+                    return result;
+                } catch (error: any) {
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to generate risk mitigation plan: ${error.message}`,
                     });
                 }
             }),
@@ -332,6 +359,38 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 }
 
                 return { success: true, stats };
+            }),
+
+        getOwaspIntelligence: protectedProcedure
+            .input(z.object({
+                tags: z.array(z.string()),
+                limit: z.number().default(10)
+            }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                try {
+                    const requirements = await db.select().from(schema.frameworkRequirements);
+
+                    const filtered = requirements.filter((r: any) => {
+                        const rTags = r.mappingTags as string[] | null;
+                        if (!rTags || !Array.isArray(rTags)) return false;
+                        return input.tags.some((tag: string) => rTags.includes(tag));
+                    });
+
+                    // Sort by how many tags match (simple relevance)
+                    const sorted = filtered.sort((a: any, b: any) => {
+                        const aMatches = (a.mappingTags as string[]).filter((t: string) => input.tags.includes(t)).length;
+                        const bMatches = (b.mappingTags as string[]).filter((t: string) => input.tags.includes(t)).length;
+                        return bMatches - aMatches;
+                    });
+
+                    return sorted.slice(0, input.limit);
+                } catch (error: any) {
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to fetch OWASP intelligence: ${error.message}`,
+                    });
+                }
             }),
 
         // Health check for RAG embeddings

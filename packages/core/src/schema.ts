@@ -13880,3 +13880,26 @@ export type InsertTrainingModule = typeof trainingModules.$inferInsert;
 export type TrainingAssignment = typeof trainingAssignments.$inferSelect;
 export type InsertTrainingAssignment = typeof trainingAssignments.$inferInsert;
 
+export const magicLinks = pgTable("magic_links", {
+  id: serial("id").primaryKey(),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  label: varchar("label", { length: 255 }), // e.g., "Early Adopter Pro Link"
+  email: varchar("email", { length: 255 }), // Optional: restrict to specific email
+  role: varchar("role", { length: 50 }).default("viewer"),
+  planTier: varchar("plan_tier", { length: 50 }).default("free"), // free, pro, enterprise
+  maxClients: integer("max_clients").default(2), // e.g., 2 for Pro, 10 for Enterprise
+  accessDurationType: varchar("access_duration_type", { length: 50 }), // 'lifetime', 'limited'
+  accessDurationDays: integer("access_duration_days"), // e.g., 14 for 2 weeks
+  waitlistId: integer("waitlist_id"), // Reference to waiting_list table
+  status: varchar("status", { length: 50 }).default("active"), // active, accepted, revoked
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // Link expiration (different from access duration)
+  usedAt: timestamp("used_at"),
+  usedByUserId: integer("used_by_user_id"),
+});
+
+export type MagicLink = typeof magicLinks.$inferSelect;
+export type InsertMagicLink = typeof magicLinks.$inferInsert;
+
+

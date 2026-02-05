@@ -13,7 +13,7 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
         importCustom: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
-                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs", "owasp_masvs", "owasp_samm", "owasp_api_top10", "owasp_top10"]),
+                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs", "owasp_masvs", "owasp_samm", "owasp_api_top10", "owasp_top10", "owasp_top10_2021", "owasp_ml_top10"]),
                 fileContent: z.string().optional(), // Base64, optional for system frameworks
             }))
             .mutation(async ({ ctx, input }: any) => {
@@ -311,12 +311,15 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                     // Use bulkAssign later
                 } else if (input.type === "owasp_top10") {
                     frameworkName = "OWASP Web Top 10";
-                    // Use bulkAssign later
+                } else if (input.type === "owasp_top10_2021") {
+                    frameworkName = "OWASP Web Top 10 (2021)";
+                } else if (input.type === "owasp_ml_top10") {
+                    frameworkName = "OWASP ML Security Top 10";
                 }
 
                 try {
                     const d = await db.getDb();
-                    if (input.type === "owasp_aisvs" || input.type === "owasp_asvs" || input.type === "owasp_masvs" || input.type === "owasp_samm" || input.type === "owasp_api_top10" || input.type === "owasp_top10") {
+                    if (input.type === "owasp_aisvs" || input.type === "owasp_asvs" || input.type === "owasp_masvs" || input.type === "owasp_samm" || input.type === "owasp_api_top10" || input.type === "owasp_top10" || input.type === "owasp_top10_2021" || input.type === "owasp_ml_top10") {
                         await db.bulkAssignControls(input.clientId, frameworkName);
                         // Count how many were assigned
                         const count = await d.select({ count: sql<number>`count(*)` })

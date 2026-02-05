@@ -1,6 +1,7 @@
 export interface Framework {
     id: string;
     name: string;
+    version?: string;
     description: string;
     type: 'Security' | 'Privacy' | 'Quality' | 'Business Continuity' | 'AI & Data' | 'Governance' | 'Other';
     logo?: string;

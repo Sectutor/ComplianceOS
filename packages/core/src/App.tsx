@@ -1,4 +1,5 @@
 import { Toaster } from "@complianceos/ui/ui/sonner";
+import { BrandingProvider } from "./config/branding";
 import { TooltipProvider } from "@complianceos/ui/ui/tooltip";
 import GDPRBanner from "@/components/GDPRBanner";
 import NotFound from "@/pages/NotFound";
@@ -68,6 +69,7 @@ const SignUpPage = lazy(() => import("./pages/auth/SignUpPage"));
 const CompleteSubscription = lazy(() => import("./pages/auth/CompleteSubscription"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const UpdatePassword = lazy(() => import("./pages/auth/UpdatePassword"));
+const RedeemLink = lazy(() => import("./pages/auth/RedeemLink"));
 const UpgradeRequired = lazy(() => import("./pages/UpgradeRequired"));
 
 const LearningPage = lazy(() => import("./pages/LearningPage"));
@@ -236,6 +238,9 @@ const VendorAssessmentPortal = lazy(() => import("./pages/portal/VendorAssessmen
 // const Integrations = lazy(() => import("./pages/admin/Integrations"));
 const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
 
+const SecurityProjectsDashboard = lazy(() => import("./pages/projects/ProjectsDashboard").then(m => ({ default: m.ProjectsDashboard })));
+const SecurityProjectDetail = lazy(() => import("./pages/projects/ProjectDetail").then(m => ({ default: m.ProjectDetail })));
+
 
 // Premium Guard Component
 function PremiumGuard({ children }: { children: React.ReactNode }) {
@@ -374,6 +379,12 @@ function DevProjectsAlias() {
   return <Redirect to="/clients" />;
 }
 
+function ProjectsAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/projects`} />;
+  return <Redirect to="/clients" />;
+}
+
 
 
 
@@ -435,6 +446,7 @@ function Router() {
         {/* Public Routes */}
         <Route path="/login" component={LoginPage} />
         <Route path="/signup" component={SignUpPage} />
+        <Route path="/auth/redeem-link" component={RedeemLink} />
 
         {/* Privacy Assessments */}
         <Route path="/clients/:id/privacy/assessment/gdpr">
@@ -591,6 +603,9 @@ function Router() {
         </Route>
 
         {/* Dev Projects routes */}
+        <Route path="/projects">
+          <ProjectsAlias />
+        </Route>
         <Route path="/dev/projects">
           <DevProjectsAlias />
         </Route>
@@ -602,6 +617,14 @@ function Router() {
         </Route>
         <Route path="/clients/:clientId/dev/projects">
           {(_params) => <ProtectedRoute component={() => <PremiumGuard><DevProjectsList /></PremiumGuard>} />}
+        </Route>
+
+        {/* General Security Projects routes */}
+        <Route path="/clients/:id/projects">
+          {(_params) => <ProtectedRoute component={SecurityProjectsDashboard} />}
+        </Route>
+        <Route path="/clients/:clientId/projects/:projectId">
+          {(_params) => <ProtectedRoute component={SecurityProjectDetail} />}
         </Route>
 
 
@@ -1356,19 +1379,21 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ClientContextProvider>
-          <AdvisorProvider>
-            <ThemeProvider defaultTheme="light">
-              <TooltipProvider>
-                <Toaster />
-                <GDPRBanner />
-                <Router />
-              </TooltipProvider>
-            </ThemeProvider>
-          </AdvisorProvider>
-        </ClientContextProvider>
-      </AuthProvider>
+      <BrandingProvider>
+        <AuthProvider>
+          <ClientContextProvider>
+            <AdvisorProvider>
+              <ThemeProvider defaultTheme="light">
+                <TooltipProvider>
+                  <Toaster />
+                  <GDPRBanner />
+                  <Router />
+                </TooltipProvider>
+              </ThemeProvider>
+            </AdvisorProvider>
+          </ClientContextProvider>
+        </AuthProvider>
+      </BrandingProvider>
     </ErrorBoundary>
   );
 }

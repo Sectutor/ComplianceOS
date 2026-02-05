@@ -5,10 +5,10 @@ import * as crypto from 'crypto';
 import { eq, desc, and, isNull } from "drizzle-orm";
 
 import * as db from "../../db";
-import { users, userClients, clients, userInvitations } from "../../schema";
+import { users, userClients, clients, userInvitations, magicLinks } from "../../schema";
 import { sendEmail } from "../../lib/email/transporter";
 
-import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure } from "../trpc";
+import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
 
 export const usersSubRouter = router({
     me: publicProcedure.query(async ({ ctx }: any) => {
@@ -438,5 +438,49 @@ export const usersSubRouter = router({
             await dbConn.delete(userInvitations)
                 .where(eq(userInvitations.id, input.id));
             return { success: true };
+        }),
+
+    applyMagicLink: protectedProcedure
+        .input(z.object({ token: z.string() }))
+        .mutation(async ({ input, ctx }: any) => {
+            const dbConn = await db.getDb();
+            const [link] = await dbConn.select()
+                .from(magicLinks)
+                .where(eq(magicLinks.token, input.token))
+                .limit(1);
+
+            if (!link) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Invalid magic link" });
+            }
+
+            if (link.status !== 'active') {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Link already used or revoked" });
+            }
+
+            if (link.expiresAt && new Date() > link.expiresAt) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Link expired" });
+            }
+
+            // Apply settings to user
+            await dbConn.update(users)
+                .set({
+                    planTier: link.planTier as any,
+                    role: link.role as any,
+                    maxClients: link.maxClients ?? 2,
+                    subscriptionStatus: 'active'
+                })
+                .where(eq(users.id, ctx.user.id));
+
+            // Mark link as used
+            await dbConn.update(magicLinks)
+                .set({
+                    status: 'accepted',
+                    usedAt: new Date(),
+                    usedByUserId: ctx.user.id
+                })
+                .where(eq(magicLinks.id, link.id));
+
+            return { success: true, planTier: link.planTier };
         })
+
 });
