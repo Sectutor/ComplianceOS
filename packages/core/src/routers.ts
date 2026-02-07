@@ -27,6 +27,7 @@ import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrate
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
 import { logActivity } from "./lib/audit";
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
+import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
 import {
   sendOverdueNotification,
@@ -58,6 +59,7 @@ import { createProjectsRouter } from './server/routers/projects';
 import { createChecklistRouter } from './server/routers/checklist';
 import { businessContinuitySubRouter } from "./server/routers/businessContinuity";
 import { createRisksRouter } from "./server/routers/risks";
+import { createMetricsRouter } from "./server/routers/metrics";
 import { createGovernanceRouter } from "./server/routers/governance";
 import { createAutopilotRouter } from "./server/routers/autopilot";
 import { createGapAnalysisRouter } from "./server/routers/gapAnalysis";
@@ -95,31 +97,26 @@ import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
 import { createTrainingRouter } from "./server/routers/training";
 import { magicLinksRouter } from "./server/routers/magicLinks";
+import { emailTemplatesRouter } from "./server/routers/emailTemplates";
+import { emailTriggersRouter } from "./server/routers/emailTriggers";
 
 
 // Context type definition
-export const createContext = ({ req, res }: CreateExpressContextOptions) => ({
-  req,
-  res,
-  user: req.user,
-  clientId: (req as any).clientId as number | undefined, // Support for other middlewares if any
-});
+export const createContext = ({ req, res }: CreateExpressContextOptions) => {
+  const headerClientId = req.headers['x-client-id'] ? parseInt(req.headers['x-client-id'] as string) : undefined;
+  return {
+    req,
+    res,
+    user: req.user,
+    clientId: (req as any).clientId || headerClientId as number | undefined,
+  };
+};
 export type Context = inferAsyncReturnType<typeof createContext>;
 
 const t = initTRPC.context<Context>().create({
   // transformer: superjson,
   errorFormatter({ shape, error }) {
-
     console.error("TRPC Error (Global):", error);
-    try {
-      const fs = require('fs');
-      const path = require('path');
-      // Use a fixed hardcoded path to ensure we find it
-      const logPath = 'C:/Users/emman/.gemini/antigravity/brain/1a946fc8-d637-4774-a760-ec89c9312443/global_trpc_error.log';
-      fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${error.message}\nStack: ${error.stack}\n\n`);
-    } catch (e) {
-      // ignore log error
-    }
     return shape;
   },
 });
@@ -135,6 +132,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   }
   return next({
     ctx: {
+      ...ctx,
       user: ctx.user,
     },
   });
@@ -154,7 +152,12 @@ const checkClientAccess = t.middleware(async (opts) => {
 
   if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
-  const clientId = input?.clientId;
+  const clientId = input?.clientId || input?.id || ctx.clientId;
+
+  console.log('[DEBUG checkClientAccess routers.ts] Path:', (opts as any).path);
+  console.log('[DEBUG checkClientAccess routers.ts] User:', ctx.user.id, 'Role:', ctx.user.role);
+  console.log('[DEBUG checkClientAccess routers.ts] ctx.clientId:', ctx.clientId);
+  console.log('[DEBUG checkClientAccess routers.ts] Resolved clientId:', clientId);
 
   // Admins have implicit access
   if (ctx.user.role === 'admin' || ctx.user.role === 'owner') {
@@ -162,12 +165,7 @@ const checkClientAccess = t.middleware(async (opts) => {
   }
 
   if (!clientId) {
-    // If no clientId provided in input, we cannot verify client access
-    // However, some procedures might not need clientId immediately or handle it differently
-    // But clientProcedure implies scope to a client. 
-    // If the input doesn't have clientId, we should probably fail if it's strictly a client procedure.
-    // BUT, sometimes inputs are nested or different.
-    // For now, if no clientId, we throw, matching previous logic but safer access.
+    console.log('[DEBUG checkClientAccess routers.ts] No clientId found - THROWING FORBIDDEN');
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Client ID is required for this operation' });
   }
 
@@ -177,6 +175,7 @@ const checkClientAccess = t.middleware(async (opts) => {
     .limit(1);
 
   if (membership.length === 0) {
+    console.log('[DEBUG checkClientAccess routers.ts] Membership not found for client:', clientId);
     throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace' });
   }
 
@@ -202,11 +201,12 @@ const checkPremiumAccess = t.middleware(async (opts) => {
   const { ctx, next } = opts;
   // Safer input access that works with both batched and standard requests
   const input = (opts as any).rawInput || (opts as any).input || {};
-  const clientId = input?.clientId || ctx.clientId;
+  const clientId = input?.clientId || input?.id || ctx.clientId;
 
-  // Global Admin/Owner bypass (Internal access)
-  if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner') {
-    console.log(`[PremiumGuard] Global bypass for Administrator/Owner`);
+  // Global Admin/Owner bypass OR Client Owner/Admin bypass
+  if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' ||
+    (ctx as any).clientRole === 'owner' || (ctx as any).clientRole === 'admin') {
+    console.log(`[PremiumGuard] Bypass for Global Admin or Client Owner/Admin`);
     return next({ ctx: { ...ctx, isPremium: true } });
   }
 
@@ -301,14 +301,15 @@ export const appRouter = router({
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   frameworks: createFrameworksRouter(t, clientProcedure),
+  frameworkImport: createFrameworkImportRouter(t, adminProcedure, clientProcedure),
   autopilot: createAutopilotRouter(router, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
   federal: createFederalRouter(t, clientProcedure),
   readiness: createReadinessRouter(t, clientProcedure),
+  samm: createSammRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure),
-  employees: createEmployeesRouter(t, clientProcedure),
 
 
   dashboard: createDashboardRouter(t, adminProcedure, publicProcedure.use(isAuthed)),
@@ -318,6 +319,7 @@ export const appRouter = router({
 
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
+  metrics: createMetricsRouter(t, clientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
   projects: createProjectsRouter(t, clientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
@@ -336,6 +338,8 @@ export const appRouter = router({
 
   waitlist: createWaitlistRouter(t, publicProcedure, adminProcedure),
   magicLinks: magicLinksRouter,
+  emailTemplates: emailTemplatesRouter,
+  emailTriggers: emailTriggersRouter,
 
   globalCrm: createGlobalCrmRouter(t, adminProcedure),
   privacy: createPrivacyRouter(t, clientProcedure),
@@ -345,7 +349,6 @@ export const appRouter = router({
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
-  employees: createEmployeesRouter(t, clientProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
   training: createTrainingRouter(t, clientProcedure, clientEditorProcedure),
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
@@ -1249,16 +1252,32 @@ export const appRouter = router({
   }),
 
   vendorAnalytics: router({
-    getOverdueAssessments: premiumClientProcedure
+    getOverdueAssessments: protectedProcedure
       .input(z.object({ clientId: z.number().optional() }).optional())
       .query(async ({ input = {}, ctx }) => {
         const db = await getDb();
-
         const now = new Date();
         const conditions = [lt(schema.vendorAssessments.dueDate, now)];
 
         if (input?.clientId) {
+          // If specific clientId provided, check access
+          const membership = ctx.user.role === 'admin' || ctx.user.role === 'owner' ? [true] :
+            await db.select().from(schema.userClients)
+              .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)))
+              .limit(1);
+
+          if (membership.length === 0) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client' });
+          }
           conditions.push(eq(schema.vendors.clientId, input.clientId));
+        } else if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+          // For non-admins calling globally, filter by their clients
+          const userClientIds = await db.select({ id: schema.userClients.clientId })
+            .from(schema.userClients)
+            .where(eq(schema.userClients.userId, ctx.user.id));
+
+          if (userClientIds.length === 0) return [];
+          conditions.push(inArray(schema.vendors.clientId, userClientIds.map(c => c.id)));
         }
 
         const results = await db.select({

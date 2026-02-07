@@ -57,6 +57,7 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Slider } from "@complianceos/ui/ui/slider";
 // Force rebuild
 import { toast } from "sonner";
+import { NotificationCenter } from "./notifications/NotificationCenter";
 
 // ... (existing imports)
 
@@ -187,7 +188,9 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/roadmap') ||
     purePath.startsWith('/readiness') ||
     purePath.startsWith('/compliance-journey') ||
-    purePath.startsWith('/implementation');
+    purePath.startsWith('/assurance') ||
+    purePath.startsWith('/implementation') ||
+    purePath === '/metrics';
 
 
 
@@ -373,36 +376,59 @@ function DashboardLayoutContent({
   const activeClientId = clientIdMatch ? parseInt(clientIdMatch[1], 10) : null;
 
   // Use persistent client context
-  const { selectedClientId } = useClientContext();
+  const { selectedClientId, clearSelectedClient } = useClientContext();
 
   // Use selectedClientId from context if available, otherwise fall back to URL
   const persistentClientId = selectedClientId || activeClientId;
 
+  console.log('[DEBUG DashboardLayout] selectedClientId:', selectedClientId, 'activeClientId:', activeClientId, 'persistentClientId:', persistentClientId);
+  console.log('[DEBUG DashboardLayout] location:', location);
+
+  // Only fetch client data if we're on a client-specific page
+  const isClientSpecificPage = location.includes('/clients/') || location.includes('/client-');
+  const shouldFetchClient = !!persistentClientId &&
+    typeof persistentClientId === 'number' &&
+    persistentClientId > 0 &&
+    isClientSpecificPage;
+
+  console.log('[DEBUG DashboardLayout] isClientSpecificPage:', isClientSpecificPage, 'shouldFetchClient:', shouldFetchClient);
+
   const { data: clientInfo, error: clientError } = trpc.clients.get.useQuery(
     { id: persistentClientId as number },
     {
-      enabled: !!persistentClientId,
+      enabled: shouldFetchClient,
       retry: false
     }
   );
+  console.log('[DEBUG DashboardLayout] clients.get result - data:', !!clientInfo, 'error:', clientError);
 
   useEffect(() => {
-    if (clientError && clientError.data?.code === 'FORBIDDEN') {
-      // Clear invalid client ID and reload to recover
+    console.log('[DEBUG DashboardLayout] clientError:', clientError, 'persistentClientId:', persistentClientId);
+    if (clientError && clientError.data?.code === 'FORBIDDEN' && isClientSpecificPage) {
+      // Clear invalid client ID
       console.warn("Access denied for client ID", persistentClientId, "Clearing context.");
-      localStorage.removeItem('selectedClientId');
-      window.location.reload();
+      clearSelectedClient();
+
+      // Instead of auto-redirecting (which causes loops), just show a toast or let the user navigate
+      // If we really must redirect, do it only if we are deep in a client route
+      // But for now, let's stop the loop.
+      if (location !== '/dashboard') {
+        // toast.error("Access denied to this workspace. Redirecting to dashboard...");
+        // setTimeout(() => setLocation('/dashboard'), 1000);
+        // For now, FORCE redirect only if we are sure it won't loop
+        setLocation('/dashboard');
+      }
     }
-  }, [clientError, persistentClientId]);
+  }, [clientError, persistentClientId, setLocation, isClientSpecificPage, location, clearSelectedClient]);
 
   // Sync planTier to ClientContext so pages can use it
   const { setPlanTier } = useClientContext();
   useEffect(() => {
-    if (clientInfo) {
+    if (clientInfo && isClientSpecificPage) {
       // Avoid infinite loops by checking equality if possible, though React state setter handles primitives well
       setPlanTier(clientInfo.planTier);
     }
-  }, [clientInfo, setPlanTier]);
+  }, [clientInfo, setPlanTier, isClientSpecificPage]);
 
   const brandStyles: CSSProperties = {
     "--sidebar-background": clientInfo?.brandPrimaryColor || "#0f172a",
@@ -613,8 +639,7 @@ function DashboardLayoutContent({
             submenu: [
               { label: "Roadmap Dashboard", path: "/roadmap/dashboard" },
               { label: "Implementation Plans", path: "/implementation/dashboard" },
-              { label: "Roadmap Templates", path: "/roadmap/templates" },
-              { label: "Reports", path: "/reports" }
+              { label: "Roadmap Templates", path: "/roadmap/templates" }
             ]
           },
           {
@@ -756,16 +781,22 @@ function DashboardLayoutContent({
         items: [
           ...(clientInfo?.serviceModel === 'managed' && enabledInBuild ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
-          { icon: FileBarChart, label: "Reports", path: "/reports" },
-
+          { icon: Shield, label: "SAMM Maturity", path: "/samm" },
+          { icon: Zap, label: "Supply Chain (SCVS)", path: "/assurance/scvs" },
+          { icon: Code, label: "App Security (ASVS)", path: "/assurance/asvs" },
+          { icon: ShieldCheck, label: "OpenSSF Hygiene", path: "/assurance/openssf" },
+          { icon: Radar, label: "Mobile App Sec", path: "/assurance/masvs" },
         ]
       },
       {
         label: "Management",
         items: [
+          { icon: FileBarChart, label: "Metrics", path: "/metrics" },
+          { icon: FileBarChart, label: "Reports", path: "/reports" },
           { icon: Calendar, label: "Calendar", path: "/calendar" },
           { icon: ListTodo, label: "Tasks", path: "/tasks" },
           { icon: MessageSquare, label: "Communication", path: "/communication" },
+          { icon: Settings, label: "Client Settings", path: "/settings" },
           ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
         ]
       },
@@ -1156,10 +1187,7 @@ function DashboardLayoutContent({
             <GlobalSearch />
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <CopilotHelpTrigger />
-            <button className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-            </button>
+            <NotificationCenter />
           </div>
         </div>
         <div className="flex-1 p-4 md:p-6">{children}</div>

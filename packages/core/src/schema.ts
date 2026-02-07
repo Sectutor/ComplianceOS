@@ -2,7 +2,7 @@
 
 
 
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 
 
 
@@ -66,7 +66,7 @@ export const policyReviewStatusEnum = pgEnum("policy_review_status", ["analyzing
 
 
 
-export const evidenceStatusEnum = pgEnum("evidence_status", ["pending", "collected", "verified", "expired", "not_applicable"]);
+export const evidenceStatusEnum = pgEnum("evidence_status", ["pending", "collected", "verified", "rejected", "expired", "not_applicable"]);
 
 
 
@@ -2949,53 +2949,19 @@ export type InsertEvidenceFile = typeof evidenceFiles.$inferInsert;
 
 
 export const notificationLog = pgTable("notification_log", {
-
-
-
   id: serial("id").primaryKey(),
-
-
-
   userId: integer("user_id").notNull(),
-
-
-
   type: varchar("type", { length: 50 }),
-
-
-
   channel: varchar("channel", { length: 20 }).default("email"), // email, system, push
-
-
-
   title: varchar("title", { length: 255 }),
-
-
-
   message: text("message"),
-
-
-
+  link: text("link"),
   sentAt: timestamp("sent_at").defaultNow(),
-
-
-
+  readAt: timestamp("read_at"),
   status: varchar("status", { length: 20 }).default("sent"), // sent, failed, queued
-
-
-
   metadata: json("metadata"), // Context data
-
-
-
   relatedEntityType: varchar("related_entity_type", { length: 50 }), // risk, policy, gap, questionnaire
-
-
-
   relatedEntityId: integer("related_entity_id"),
-
-
-
 });
 
 
@@ -3412,14 +3378,38 @@ export const employeeAssetReceipts = pgTable("employee_asset_receipts", {
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
   assignedBy: integer("assigned_by"),
   confirmedAt: timestamp("confirmed_at"),
+  expiresAt: timestamp("expires_at").defaultNow().notNull(),
   notes: text("notes"),
 });
+
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 255 }).unique().notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailTriggers = pgTable("email_triggers", {
+  id: serial("id").primaryKey(),
+  eventSlug: varchar("event_slug", { length: 255 }).unique().notNull(), // e.g. 'USER_WELCOME'
+  templateId: integer("template_id").references(() => emailTemplates.id),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailTemplatesRelations = relations(emailTemplates, ({ }) => ({
+}));
 
 export type EmployeeAssetReceipt = typeof employeeAssetReceipts.$inferSelect;
 export type InsertEmployeeAssetReceipt = typeof employeeAssetReceipts.$inferInsert;
 
-
-
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = typeof emailTemplates.$inferInsert;
+export type EmailTrigger = typeof emailTriggers.$inferSelect;
+export type InsertEmailTrigger = typeof emailTriggers.$inferInsert;
 
 export const employeeTaskAssignments = pgTable("employee_task_assignments", {
 
@@ -7065,6 +7055,17 @@ export type RiskAssessment = typeof riskAssessments.$inferSelect;
 
 export type InsertRiskAssessment = typeof riskAssessments.$inferInsert;
 
+export const riskAssessmentsRelations = relations(riskAssessments, ({ many }) => ({
+  treatments: many(riskTreatments),
+}));
+
+export const riskTreatmentsRelations = relations(riskTreatments, ({ one }) => ({
+  assessment: one(riskAssessments, {
+    fields: [riskTreatments.riskAssessmentId],
+    references: [riskAssessments.id],
+  }),
+}));
+
 
 
 
@@ -7918,6 +7919,8 @@ export const vendorAssessments = pgTable("vendor_assessments", {
 
 
   status: varchar("status", { length: 50 }).default("Planned"), // Planned, Sent, In Progress, Review, Completed
+
+  reviewStatus: varchar("review_status", { length: 50 }).default("pending"),
 
 
 
@@ -12497,6 +12500,44 @@ export const privacyAssessments = pgTable("privacy_assessments", {
   };
 
 });
+
+
+
+export const sammMaturityAssessments = pgTable("samm_maturity_assessments", {
+
+  id: serial("id").primaryKey(),
+
+  clientId: integer("client_id").notNull(),
+
+  practiceId: varchar("practice_id", { length: 50 }).notNull(), // e.g., 'SM-1'
+
+  maturityLevel: integer("maturity_level").notNull().default(0),
+
+  targetLevel: integer("target_level").notNull().default(1),
+
+  evidenceLinks: jsonb("evidence_links").$type<number[]>().default([]), // Array of evidence IDs
+
+  notes: text("notes"),
+
+  updatedAt: timestamp("updated_at").defaultNow(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+
+}, (table) => {
+
+  return {
+
+    clientPracticeIdx: uniqueIndex("idx_samm_client_practice").on(table.clientId, table.practiceId),
+
+  };
+
+});
+
+
+
+export type SammMaturityAssessment = typeof sammMaturityAssessments.$inferSelect;
+
+export type InsertSammMaturityAssessment = typeof sammMaturityAssessments.$inferInsert;
 
 
 

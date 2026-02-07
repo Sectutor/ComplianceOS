@@ -22,6 +22,7 @@ const ManagedServicesPage = lazy(() => import("./pages/ManagedServicesPage"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Clients = lazy(() => import("./pages/Clients"));
 const Controls = lazy(() => import("./pages/Controls"));
+const MetricsPage = lazy(() => import("./pages/Metrics"));
 const PolicyTemplates = lazy(() => import("./pages/PolicyTemplates"));
 const PolicyEditor = lazy(() => import("./pages/PolicyEditor"));
 const Mappings = lazy(() => import("./pages/Mappings"));
@@ -87,6 +88,8 @@ const CyberOverview = lazy(() => import("./pages/cyber/CyberOverview"));
 const GovernanceDashboard = lazy(() => import("./pages/governance/GovernanceDashboard"));
 const ComplianceOverview = lazy(() => import("./pages/compliance/ComplianceOverview"));
 const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview"));
+const SAMMView = lazy(() => import("@/pages/assurance/SAMMView"));
+const FrameworkImplementationView = lazy(() => import("@/pages/assurance/FrameworkImplementationView"));
 
 // New Roadmap & Implementation pages
 const RoadmapDashboard = lazy(() => import("@/components/roadmap/RoadmapDashboard"));
@@ -103,6 +106,8 @@ const ImplementationCreate = lazy(() => import("./components/implementation/Impl
 const MultiFrameworkPlanView = lazy(() => import("@/components/implementation/MultiFrameworkPlanView"));
 const ImplementationResources = lazy(() => import("./components/implementation/ImplementationResources"));
 const TemplateManager = lazy(() => import("./components/implementation/TemplateManager"));
+const RiskRegisterPage = lazy(() => import("./pages/risk/RiskRegisterPage"));
+const CriticalRisksPage = lazy(() => import("./pages/risk/CriticalRisksPage"));
 const RiskAssetsPage = lazy(() => import("./pages/risk/RiskAssetsPage"));
 const RiskThreatsPage = lazy(() => import("./pages/risk/RiskThreatsPage"));
 const RiskVulnerabilitiesPage = lazy(() => import("./pages/risk/RiskVulnerabilitiesPage"));
@@ -113,7 +118,7 @@ const RiskAssetEditor = lazy(() => import("./pages/risk/RiskAssetEditor"));
 const RiskThreatEditor = lazy(() => import("./pages/risk/RiskThreatEditor"));
 const RiskFramework = lazy(() => import("./pages/risk/RiskFramework"));
 const GuidedRiskValidation = lazy(() => import("./pages/risk/GuidedRiskValidation"));
-const RiskRegisterPage = lazy(() => import("./pages/risk/RiskRegisterPage"));
+
 const RiskReportEditor = lazy(() => import("./pages/risk/RiskReportEditor"));
 const RiskReportList = lazy(() => import("./pages/risk/RiskReportList"));
 const RiskTreatmentPlanPage = lazy(() => import("./pages/risk/RiskTreatmentPlanPage"));
@@ -124,6 +129,7 @@ const TPRMLayout = lazy(() => import("./pages/tprm/TPRMLayout").then(module => (
 const VendorList = lazy(() => import("./pages/tprm/VendorList"));
 const VendorDetails = lazy(() => import("./pages/tprm/VendorDetails"));
 const VendorDashboard = lazy(() => import("./pages/tprm/VendorDashboard"));
+const OverdueAssessmentsPage = lazy(() => import("./pages/tprm/OverdueAssessmentsPage"));
 const VendorAlignmentPage = lazy(() => import("./pages/tprm/VendorAlignmentPage"));
 const GapAnalysisList = lazy(() => import("./pages/gap-analysis/GapAnalysisList"));
 const NewGapAnalysis = lazy(() => import("./pages/gap-analysis/NewGapAnalysis"));
@@ -242,9 +248,18 @@ const SecurityProjectsDashboard = lazy(() => import("./pages/projects/ProjectsDa
 const SecurityProjectDetail = lazy(() => import("./pages/projects/ProjectDetail").then(m => ({ default: m.ProjectDetail })));
 
 
-// Premium Guard Component
-function PremiumGuard({ children }: { children: React.ReactNode }) {
-  const { selectedClientId, setPlanTier } = useClientContext();
+// Unified Client Guard - Handles both Premium and Management checks
+// This ensures that client data is fetched ONCE and shared across all guards
+function UnifiedClientGuard({
+  children,
+  requirePremium = false,
+  requireManagement = false
+}: {
+  children: React.ReactNode,
+  requirePremium?: boolean,
+  requireManagement?: boolean
+}) {
+  const { selectedClientId, setPlanTier, setUserRole, userRole: contextRole } = useClientContext();
   const [location] = useLocation();
 
   // Extract client ID from URL as fallback
@@ -256,6 +271,7 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
     staleTime: 1000 * 60 * 5,
     retry: false
   });
+
   const { data: client, isLoading: clientLoading, error } = trpc.clients.get.useQuery(
     { id: effectiveClientId as number },
     {
@@ -264,13 +280,14 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
       staleTime: 1000 * 60 * 5,
       onSuccess: (data) => {
         if (data?.planTier) setPlanTier(data.planTier);
+        if (data?.userRole) setUserRole(data.userRole);
       }
     }
   );
 
   useEffect(() => {
-    if (userMe?.planTier) setPlanTier(userMe.planTier);
-  }, [userMe, setPlanTier]);
+    if (userMe?.planTier && !client) setPlanTier(userMe.planTier);
+  }, [userMe, setPlanTier, client]);
 
   if (error?.data?.code === 'PRECONDITION_FAILED') {
     return <Redirect to="/upgrade-required" />;
@@ -283,41 +300,39 @@ function PremiumGuard({ children }: { children: React.ReactNode }) {
   if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
   const tier = client?.planTier || userMe?.planTier;
-  // STRICT CHECK: Premium must be enabled in build AND user must have tier
-  const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
+  const clientRole = client?.userRole || contextRole;
+  const globalRole = userMe?.role;
 
-  if (!enabledInBuild) {
-    // If premium is disabled by env, block access regardless of plan
-    return <Redirect to="/upgrade-required" />;
+  // 1. Premium Check (if required)
+  if (requirePremium) {
+    const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
+    if (!enabledInBuild) return <Redirect to="/upgrade-required" />;
+
+    const isPremium = tier === 'pro' || tier === 'enterprise' ||
+      globalRole === 'admin' ||
+      clientRole === 'owner' || clientRole === 'admin';
+
+    if (!isPremium) return <Redirect to="/upgrade-required" />;
   }
 
-  const isPremium = tier === 'pro' || tier === 'enterprise' || userMe?.role === 'admin';
+  // 2. Management Check (if required)
+  if (requireManagement) {
+    const isAuthorized = globalRole === 'admin' || globalRole === 'owner' ||
+      clientRole === 'owner' || clientRole === 'admin';
 
-  if (!isPremium) {
-    return <Redirect to="/upgrade-required" />;
+    if (!isAuthorized) return <Redirect to="/dashboard" />;
   }
 
   return <>{children}</>;
 }
 
-// Management Guard Component (Admin or Owner)
+// Legacy wrappers for backward compatibility (optional but kept for internal reuse)
+function PremiumGuard({ children }: { children: React.ReactNode }) {
+  return <UnifiedClientGuard requirePremium={true}>{children}</UnifiedClientGuard>;
+}
+
 function ManagementGuard({ children }: { children: React.ReactNode }) {
-  const { data: userMe, isLoading } = trpc.users.me.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-    retry: false
-  });
-
-  if (isLoading) return <PageLoader />;
-
-  const userRole = userMe?.role;
-  const isAuthorized = userRole === 'admin' || userRole === 'owner';
-
-  if (!isAuthorized) {
-    // Redirect unauthorized users to dashboard
-    return <Redirect to="/dashboard" />;
-  }
-
-  return <>{children}</>;
+  return <UnifiedClientGuard requireManagement={true}>{children}</UnifiedClientGuard>;
 }
 
 // Wrapper for protected routes
@@ -361,6 +376,32 @@ function RiskManagementAlias() {
   return <Redirect to="/clients" />;
 }
 
+function RiskRegisterAlias() {
+  const { selectedClientId } = useClientContext();
+  const search = window.location.search;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/register${search}`} />;
+  return <Redirect to="/clients" />;
+}
+
+function CriticalRisksAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/critical`} />;
+  return <Redirect to="/clients" />;
+}
+
+function OverdueAssessmentsAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/vendors/assessments/overdue`} />;
+  return <Redirect to="/clients" />;
+}
+
+function EvidenceAlias() {
+  const { selectedClientId } = useClientContext();
+  const search = window.location.search;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/evidence${search}`} />;
+  return <Redirect to="/clients" />;
+}
+
 function GapAnalysisAlias() {
   const { selectedClientId } = useClientContext();
   if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/gap-analysis`} />;
@@ -370,6 +411,12 @@ function GapAnalysisAlias() {
 function ComplianceDashboardAlias() {
   const { selectedClientId } = useClientContext();
   if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/compliance`} />;
+  return <Redirect to="/clients" />;
+}
+
+function SAMMAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/samm`} />;
   return <Redirect to="/clients" />;
 }
 
@@ -425,6 +472,13 @@ function CyberAlias() {
     const cyberPath = location.replace(/^\/cyber/, '');
     return <Redirect to={`/clients/${selectedClientId}/cyber${cyberPath}`} />;
   }
+  return <Redirect to="/clients" />;
+}
+
+function VendorsAlias() {
+  const { selectedClientId } = useClientContext();
+  const search = window.location.search;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/vendors/overview${search}`} />;
   return <Redirect to="/clients" />;
 }
 
@@ -485,10 +539,10 @@ function Router() {
           <ProtectedRoute component={Dashboard} />
         </Route>
         <Route path="/sales">
-          {(_params) => <PremiumGuard><ProtectedRoute component={SalesDashboard} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SalesDashboard} /></UnifiedClientGuard>}
         </Route>
         <Route path="/sales/waitlist">
-          {(_params) => <PremiumGuard><ProtectedRoute component={WaitlistManagement} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={WaitlistManagement} /></UnifiedClientGuard>}
         </Route>
 
         <Route path="/clients">
@@ -498,22 +552,22 @@ function Router() {
           <ProtectedRoute component={ClientOnboarding} />
         </Route>
         <Route path="/clients/:id/governance/overview">
-          {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceDashboard} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/governance/workbench">
-          {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceWorkbench} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceWorkbench} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/governance/alignment-guide">
           <ProtectedRoute component={GovernanceAlignmentPage} />
         </Route>
         <Route path="/clients/:id/governance">
-          {(_params) => <PremiumGuard><ProtectedRoute component={GovernanceDashboard} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:clientId/training/management">
-          {(_params) => <PremiumGuard><ProtectedRoute component={TrainingManagement} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={TrainingManagement} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/personnel-compliance">
-          {(_params) => <ManagementGuard><PremiumGuard><ProtectedRoute component={PersonnelComplianceHub} /></PremiumGuard></ManagementGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium requireManagement><ProtectedRoute component={PersonnelComplianceHub} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/compliance/overview">
           <ProtectedRoute component={ComplianceOverview} />
@@ -525,17 +579,20 @@ function Router() {
           <ProtectedRoute component={KnowledgeBase} />
         </Route>
         <Route path="/clients/:id/questionnaires">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><QuestionnairesDashboard /></PremiumGuard>} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnairesDashboard} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/questionnaire-workspace">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><QuestionnaireWorkspace /></PremiumGuard>} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnaireWorkspace} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/questionnaires/:qId">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><QuestionnaireWorkspace /></PremiumGuard>} />} {/* Reusing workspace for specific item */}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnaireWorkspace} /></UnifiedClientGuard>}
         </Route>
 
         <Route path="/clients/:id/controls">
           {(_params) => <ProtectedRoute component={ClientControlsPage} />}
+        </Route>
+        <Route path="/clients/:id/metrics">
+          {(_params) => <ProtectedRoute component={MetricsPage} />}
         </Route>
         <Route path="/clients/:id/policies">
           {(_params) => <ProtectedRoute component={ClientPoliciesPage} />}
@@ -550,6 +607,12 @@ function Router() {
         </Route>
         <Route path="/clients/:id/evidence/overview">
           {(_params) => <ProtectedRoute component={AssuranceOverview} />}
+        </Route>
+        <Route path="/clients/:id/samm">
+          {(_params) => <ProtectedRoute component={SAMMView} />}
+        </Route>
+        <Route path="/clients/:id/assurance/:frameworkId">
+          {(_params) => <ProtectedRoute component={FrameworkImplementationView} />}
         </Route>
         <Route path="/clients/:id/evidence">
           {(_params) => <ProtectedRoute component={Evidence} />}
@@ -610,13 +673,13 @@ function Router() {
           <DevProjectsAlias />
         </Route>
         <Route path="/clients/:clientId/dev/projects/:projectId/threat-model/:modelId">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><ThreatModelWizard /></PremiumGuard>} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={ThreatModelWizard} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:clientId/dev/projects/:projectId">
           {(_params) => <ProtectedRoute component={ProjectDetail} />}
         </Route>
         <Route path="/clients/:clientId/dev/projects">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><DevProjectsList /></PremiumGuard>} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={DevProjectsList} /></UnifiedClientGuard>}
         </Route>
 
         {/* General Security Projects routes */}
@@ -679,7 +742,7 @@ function Router() {
           {(_params) => <ProtectedRoute component={Reports} />}
         </Route>
         <Route path="/clients/:id/audit-hub">
-          {(_params) => <PremiumGuard><ProtectedRoute component={AuditHub} /></PremiumGuard>}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={AuditHub} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/employees/:employeeId">
           {(_params) => <ProtectedRoute component={EmployeeDetails} />}
@@ -708,6 +771,18 @@ function Router() {
         {/* Redirect direct /communication access to dashboard since it requires client context */}
         <Route path="/communication">
           <Redirect to="/dashboard" />
+        </Route>
+        <Route path="/risk-register">
+          <RiskRegisterAlias />
+        </Route>
+        <Route path="/risk-register/critical">
+          <CriticalRisksAlias />
+        </Route>
+        <Route path="/evidence">
+          <EvidenceAlias />
+        </Route>
+        <Route path="/clients/:id/risks/critical">
+          {(_params) => <ProtectedRoute component={CriticalRisksPage} />}
         </Route>
         <Route path="/clients/:id/risks/register">
           {(_params) => <ProtectedRoute component={RiskRegisterPage} />}
@@ -741,6 +816,15 @@ function Router() {
         </Route>
         <Route path="/clients/:id/vendors">
           {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
+        </Route>
+        <Route path="/vendors">
+          <VendorsAlias />
+        </Route>
+        <Route path="/vendors/assessments/overdue">
+          <OverdueAssessmentsAlias />
+        </Route>
+        <Route path="/clients/:id/vendors/assessments/overdue">
+          {(_params) => <ProtectedRoute component={OverdueAssessmentsPage} />}
         </Route>
         <Route path="/clients/:id/tprm">
           {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
@@ -951,6 +1035,10 @@ function Router() {
 
         <Route path="/gap-analysis">
           <ProtectedRoute component={GapAnalysisAlias} />
+        </Route>
+
+        <Route path="/samm">
+          <ProtectedRoute component={SAMMAlias} />
         </Route>
 
         {/* Federal Compliance Hub Routes */}

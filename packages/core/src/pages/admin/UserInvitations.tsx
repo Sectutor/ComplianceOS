@@ -338,6 +338,7 @@ export default function UserInvitations() {
 function MagicLinksSection() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [label, setLabel] = useState("");
+    const [email, setEmail] = useState("");
     const [role, setRole] = useState("viewer");
     const [planTier, setPlanTier] = useState("free");
     const [maxClients, setMaxClients] = useState(2);
@@ -352,6 +353,7 @@ function MagicLinksSection() {
             toast.success("Magic link created!");
             setIsCreateOpen(false);
             setLabel("");
+            setEmail("");
             refetch();
         },
         onError: (error) => toast.error(error.message),
@@ -377,6 +379,7 @@ function MagicLinksSection() {
         e.preventDefault();
         createMutation.mutate({
             label,
+            email: email || undefined,
             role,
             planTier,
             maxClients,
@@ -394,6 +397,7 @@ function MagicLinksSection() {
 
     return (
         <div className="space-y-4">
+            <MagicLinkStats />
             <div className="flex justify-end">
                 <EnhancedDialog
                     open={isCreateOpen}
@@ -447,6 +451,19 @@ function MagicLinksSection() {
                                 onChange={(e) => setLabel(e.target.value)}
                                 required
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="magic-email">Recipient Email (Optional)</Label>
+                            <Input
+                                id="magic-email"
+                                type="email"
+                                placeholder="Send directly to..."
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                If provided, an invite email will be sent automatically.
+                            </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -633,6 +650,59 @@ function MagicLinksSection() {
                             </Table>
                         </div>
                     )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+function MagicLinkStats() {
+    const { data: stats, isLoading } = trpc.magicLinks.getStats.useQuery();
+
+    if (isLoading) return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 w-full" />)}
+        </div>
+    );
+
+    if (!stats) return null;
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Links</CardTitle>
+                    <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.total}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Invites</CardTitle>
+                    <Clock className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.active}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Redeemed</CardTitle>
+                    <UserPlus className="h-4 w-4 text-emerald-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.redeemed}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Revoked / Expired</CardTitle>
+                    <XCircle className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.revoked}</div>
                 </CardContent>
             </Card>
         </div>

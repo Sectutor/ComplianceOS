@@ -13,6 +13,7 @@ import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from ".
 import { logActivity } from "../../lib/audit";
 import { llmService } from "../../lib/llm/service";
 import { generateRiskReportDocx } from "../../riskExportProfessional";
+import { recalculateRiskScore } from "../services/riskService";
 
 
 export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
@@ -1100,6 +1101,12 @@ ${reportData.conclusion}
                     .returning();
 
                 await logActivity({ userId: ctx.user.id, clientId, action: "update", entityType: "risk", entityId: id, details: { changes: data } });
+                
+                // Recalculate residual score if likelihood or impact changed
+                if (data.likelihood !== undefined || data.impact !== undefined) {
+                    await recalculateRiskScore(db, id);
+                }
+
                 return assessment;
             }),
 
@@ -1236,6 +1243,16 @@ ${reportData.conclusion}
                         })
                         .where(eq(treatmentControls.id, existing[0].id))
                         .returning();
+
+                    // Get treatment to find risk
+                    const [treatment] = await db.select().from(riskTreatments)
+                        .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                        .where(eq(riskTreatments.id, input.treatmentId));
+
+                    if (treatment && treatment.risk_assessments) {
+                        await recalculateRiskScore(db, treatment.risk_assessments.id);
+                    }
+
                     return updated;
                 }
 
@@ -1254,6 +1271,12 @@ ${reportData.conclusion}
                     effectiveness: input.effectiveness,
                     implementationNotes: input.implementationNotes
                 }).returning();
+
+                // Auto-recalculate risk score
+                if (treatment.risk_assessments) {
+                     await recalculateRiskScore(db, treatment.risk_assessments.id);
+                }
+
                 return linked;
             }),
 

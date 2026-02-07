@@ -1666,11 +1666,14 @@ export async function getClientControls(clientId: number) {
       framework: controls.framework,
 
       category: controls.category,
-
     },
-
+    evidenceCount: sql<number>`(
+        SELECT count(*)::int 
+        FROM ${evidence} 
+        WHERE ${evidence.clientControlId} = ${clientControls.id} 
+        AND ${evidence.status} != 'rejected'
+    )`.mapWith(Number)
   })
-
     .from(clientControls)
 
     .leftJoin(controls, eq(clientControls.controlId, controls.id))
@@ -1742,11 +1745,9 @@ export async function getClientControls(clientId: number) {
       description: fc.description,
 
       framework: fw.name,
-
       category: fc.grouping || 'General',
-
-    }
-
+    },
+    evidenceCount: 0
   }));
 
 
@@ -2621,6 +2622,18 @@ export async function bulkGeneratePolicies(clientId: number, companyName: string
 }
 
 
+export const NATIVE_OWASP_STANDARDS = [
+  "SAMM",
+  "ASVS",
+  "SCVS",
+  "WSTG",
+  "MASVS",
+  "MASTG",
+  "OPENSSF",
+  "AISVS",
+  "WEB-T10",
+  "API-T10"
+];
 
 export async function onboardClient(data: {
   name: string;
@@ -2637,6 +2650,7 @@ export async function onboardClient(data: {
       industry: data.industry,
       status: 'active'
     }).returning();
+    console.log('[DEBUG onboardClient] Created client:', client.id, 'for user:', data.userId);
 
     // 2. Assign User
     await tx.insert(userClients).values({
@@ -2644,11 +2658,21 @@ export async function onboardClient(data: {
       clientId: client.id,
       role: 'owner'
     });
+    console.log('[DEBUG onboardClient] Assigned user:', data.userId, 'to client:', client.id);
 
-    // 3. Assign Frameworks
+    // 3. Assign Frameworks (User selected + Native OWASP)
+    const frameworksToAssign = [...NATIVE_OWASP_STANDARDS];
     if (data.frameworks) {
-      await bulkAssignControls(client.id, data.frameworks, tx);
+      if (Array.isArray(data.frameworks)) {
+        frameworksToAssign.push(...data.frameworks);
+      } else {
+        frameworksToAssign.push(data.frameworks);
+      }
     }
+
+    // Remove duplicates
+    const uniqueFrameworks = Array.from(new Set(frameworksToAssign));
+    await bulkAssignControls(client.id, uniqueFrameworks, tx);
 
     // 4. Generate Policies
     await bulkGeneratePolicies(client.id, data.companyName, tx);
@@ -2955,6 +2979,7 @@ export async function seedSampleData(userId: number, options: { name: string, in
 
     // 2. Link User
     await assignUserToClient(userId, client.id, 'owner');
+    console.log('[DEBUG seedSampleData] Assigned user:', userId, 'to demo client:', client.id);
   }
 
   // 3. Bulk Assign ISO 27001 & SOC 2 Controls

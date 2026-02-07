@@ -1,4 +1,4 @@
-// Server Entry Point - Touched for restart
+// Server Entry Point - Touched for restart at 2026-02-07 12:10
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -15,7 +15,7 @@ import { aiRouter } from './packages/core/src/server/routers/ai';
 export const app = express();
 const port = process.env.PORT || 3002;
 // Force restart
-console.log('[Server] Initializing... Last update: 2026-02-02 17:05');
+console.log('[Server] Initializing... Last update: 2026-02-07 16:07');
 
 console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
@@ -67,7 +67,7 @@ app.use(authMiddleware);
 
 // Health Check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date(), update: '2026-02-02 17:15' });
+    res.json({ status: 'ok', timestamp: new Date(), update: '2026-02-07 12:20' });
 });
 
 
@@ -191,3 +191,4 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         console.log(`-> TRPC endpoint: http://localhost:${port}/api/trpc`);
     });
 }
+

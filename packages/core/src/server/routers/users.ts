@@ -7,10 +7,76 @@ import { eq, desc, and, isNull } from "drizzle-orm";
 import * as db from "../../db";
 import { users, userClients, clients, userInvitations, magicLinks } from "../../schema";
 import { sendEmail } from "../../lib/email/transporter";
+import { supabaseAdmin } from "../lib/supabaseAdmin";
 
 import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
 
 export const usersSubRouter = router({
+    acceptInviteAndSignup: publicProcedure
+        .input(z.object({
+            token: z.string(),
+            name: z.string(),
+            password: z.string().min(6),
+            email: z.string().email().optional()
+        }))
+        .mutation(async ({ input }: any) => {
+            const dbConn = await db.getDb();
+
+            // 1. Validate Token
+            const [link] = await dbConn.select()
+                .from(magicLinks)
+                .where(eq(magicLinks.token, input.token))
+                .limit(1);
+
+            if (!link) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid magic link" });
+            if (link.status !== 'active') throw new TRPCError({ code: "BAD_REQUEST", message: "Link already used" });
+            if (link.expiresAt && new Date() > link.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Link expired" });
+
+            let userEmail = link.email;
+            if (!userEmail) {
+                if (!input.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Email required" });
+                userEmail = input.email;
+            }
+
+            // 2. Create User in Supabase
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email: userEmail,
+                password: input.password,
+                email_confirm: true,
+                user_metadata: { full_name: input.name }
+            });
+
+            if (authError) {
+                // Emphasize this is a sign-up error
+                throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
+            }
+
+            if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+
+            // 3. Create User in DB (users table)
+            const [newUser] = await dbConn.insert(users).values({
+                openId: authUser.user.id,
+                email: userEmail,
+                name: input.name,
+                role: 'user', // FORCE 'user' role. Magic links should never create platform admins.
+                planTier: link.planTier as any,
+                maxClients: link.maxClients ?? 2,
+                subscriptionStatus: 'active',
+                loginMethod: 'email_password'
+            }).returning();
+
+            // 4. Mark Link Used
+            await dbConn.update(magicLinks)
+                .set({
+                    status: 'accepted',
+                    usedAt: new Date(),
+                    usedByUserId: newUser.id
+                })
+                .where(eq(magicLinks.id, link.id));
+
+            return { success: true };
+        }),
+
     me: publicProcedure.query(async ({ ctx }: any) => {
         if (!ctx.user) {
             console.log('[users.me] No user in context, returning null');

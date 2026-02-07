@@ -1,22 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useLocation, Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@complianceos/ui/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Loader2, CheckCircle2, AlertCircle, Shield, Rocket, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { Label } from '@complianceos/ui/ui/label';
+import { Input } from '@complianceos/ui/ui/input';
 
 export default function RedeemLink() {
-    const [searchParams] = useSearchParams();
+    // Wouter doesn't have native search params hook, use standard URL API
+    const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get('token');
-    const navigate = useNavigate();
+    const [, navigate] = useLocation();
 
     const { data: user } = trpc.users.me.useQuery();
     const { data: link, isLoading, error } = trpc.magicLinks.get.useQuery(
         { token: token || '' },
         { enabled: !!token }
     );
+
+
+
+    const { signIn } = useAuth();
+    const [formData, setFormData] = useState({ name: '', password: '', email: '' });
+    const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+
+    // If link has email, pre-fill it
+    useEffect(() => {
+        if (link?.email) {
+            setFormData(prev => ({ ...prev, email: link.email }));
+        }
+    }, [link]);
 
     const applyMutation = trpc.users.applyMagicLink.useMutation({
         onSuccess: () => {
@@ -28,9 +45,36 @@ export default function RedeemLink() {
         }
     });
 
+    const createAccountMutation = trpc.users.acceptInviteAndSignup.useMutation({
+        onSuccess: async () => {
+            toast.success("Account created! Signing you in...");
+            try {
+                await signIn(formData.email, formData.password);
+                navigate('/dashboard');
+            } catch (e) {
+                toast.error("Account created, but failed to sign in automatically. Please login.");
+                navigate('/auth/login');
+            }
+        },
+        onError: (err) => {
+            toast.error(err.message);
+        }
+    });
+
     const handleRedeem = () => {
         if (!token) return;
         applyMutation.mutate({ token });
+    };
+
+    const handleCreateAccount = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!token) return;
+        createAccountMutation.mutate({
+            token,
+            name: formData.name,
+            password: formData.password,
+            email: formData.email
+        });
     };
 
     if (!token) {
@@ -140,16 +184,70 @@ export default function RedeemLink() {
                     </div>
 
                     {!user && (
-                        <div className="text-center space-y-4">
-                            <p className="text-sm text-slate-600 font-medium bg-amber-50 py-2 rounded-lg border border-amber-100 italic">
-                                Please sign in or create an account to redeem this invitation.
-                            </p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <Button asChild variant="outline" className="h-12 font-bold">
-                                    <Link to={`/auth/login?invite=${token}`}>Login</Link>
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <p className="text-sm text-slate-600 mb-4">
+                                    Create your account to accept this invitation.
+                                </p>
+                            </div>
+
+                            <form onSubmit={handleCreateAccount} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="John Doe"
+                                        value={formData.name}
+                                        onChange={e => setFormData(d => ({ ...d, name: e.target.value }))}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="john@company.com"
+                                        value={formData.email}
+                                        onChange={e => setFormData(d => ({ ...d, email: e.target.value }))}
+                                        disabled={!!link.email}
+                                        className={link.email ? "bg-slate-100 text-slate-500" : ""}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Create Password</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={formData.password}
+                                        onChange={e => setFormData(d => ({ ...d, password: e.target.value }))}
+                                        minLength={6}
+                                        required
+                                    />
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold shadow-md"
+                                    disabled={createAccountMutation.isPending}
+                                >
+                                    {createAccountMutation.isPending ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Creating Account...
+                                        </>
+                                    ) : "Create Account & Redeem"}
                                 </Button>
-                                <Button asChild className="h-12 bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200">
-                                    <Link to={`/auth/signup?invite=${token}`}>Sign Up</Link>
+                            </form>
+
+                            <div className="text-center border-t border-slate-100 pt-4">
+                                <p className="text-xs text-slate-500">
+                                    Already have an account?
+                                </p>
+                                <Button asChild variant="link" className="text-blue-600 font-semibold p-0 h-auto">
+                                    <Link to={`/auth/login?invite=${token}`}>Sign in to redeem</Link>
                                 </Button>
                             </div>
                         </div>

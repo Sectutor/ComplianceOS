@@ -15,11 +15,20 @@ interface SendEmailOptions {
 /**
  * Send an email using either Client-Specific SMTP or System Default
  */
+// Configure SendGrid if API key is present
+import sgMail from '@sendgrid/mail';
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+if (SENDGRID_API_KEY) {
+    sgMail.setApiKey(SENDGRID_API_KEY);
+    console.log("[Email] SendGrid SDK initialized.");
+}
+
 export async function sendEmail({ to, subject, html, from, clientId }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
     let transporter = null;
     let fromAddress = from || process.env.SMTP_FROM || 'system@compliance-os.com';
 
-    // 1. Try to load Client Integrations
+    // 1. Try to load Client Integrations (Custom SMTP)
+    // If a client has specific settings, they usually want to override everything.
     if (clientId) {
         const db = await getDb();
         if (db) {
@@ -39,7 +48,7 @@ export async function sendEmail({ to, subject, html, from, clientId }: SendEmail
                     transporter = nodemailer.createTransport({
                         host: settings.host,
                         port: Number(settings.port) || 587,
-                        secure: Number(settings.port) === 465, // true for 465, false for other ports
+                        secure: Number(settings.port) === 465,
                         auth: {
                             user: settings.user,
                             pass: settings.pass,
@@ -51,45 +60,81 @@ export async function sendEmail({ to, subject, html, from, clientId }: SendEmail
                     }
                 } catch (e) {
                     console.error(`[Email] Failed to create custom transport for Client ${clientId}`, e);
-                    // Fallback to system default will happen below if transporter is null
                 }
             }
         }
     }
 
-    // 2. Fallback to System Default (from .env)
+    // 2. Use SendGrid SDK if available and no custom client transporter
+    if (!transporter && SENDGRID_API_KEY) {
+        try {
+            console.log(`[Email] Sending via SendGrid API to ${to}`);
+
+            // SendGrid allows multiple recipients in an array
+            const toArray = Array.isArray(to) ? to : [to];
+
+            await sgMail.send({
+                to: toArray,
+                from: fromAddress,
+                subject: subject,
+                html: html,
+                // Track this as a system category
+                categories: ['compliance-os-system'],
+            });
+
+            return { success: true, messageId: 'sendgrid-api-success' };
+        } catch (error: any) {
+            console.error(`[Email] SendGrid API failed: ${error.message}`);
+            if (error.response) {
+                console.error(`[Email] SendGrid Response: ${JSON.stringify(error.response.body)}`);
+            }
+            // Fallback to SMTP if SendGrid fails? 
+            // Only if SMTP config is present.
+            if (!process.env.SMTP_HOST) {
+                return { success: false, error };
+            }
+            console.log("[Email] Falling back to Default SMTP due to SendGrid failure.");
+        }
+    }
+
+    // 3. Fallback to System Default (from .env) via Nodemailer
     if (!transporter) {
         if (!process.env.SMTP_HOST) {
-            console.warn("[Email] No SMTP_HOST defined. Email simulated.");
-            // Simulation Mode
+            console.warn("[Email] No SMTP_HOST defined and no SENDGRID_API_KEY. Email simulated.");
             console.log(`[SIMULATION] To: ${to}, Subject: ${subject}`);
-            return { success: true, messageId: 'simulated-123' };
+            return { success: true, messageId: 'simulated-' + Math.random().toString(36).substring(7) };
         }
 
         console.log(`[Email] Using System Default SMTP`);
-        transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: Number(process.env.SMTP_PORT) === 465,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
+        try {
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: Number(process.env.SMTP_PORT) || 587,
+                secure: Number(process.env.SMTP_PORT) === 465,
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                },
+            });
+        } catch (e) {
+            console.error("[Email] Failed to create default transporter:", e);
+            return { success: false, error: e };
+        }
     }
 
-    // 3. Send
+    // 4. Send via Nodemailer (Custom or System Default)
     try {
         const info = await transporter.sendMail({
             from: fromAddress,
-            to,
+            to: Array.isArray(to) ? to.join(', ') : to,
             subject,
             html,
         });
-        console.log(`[Email] Sent: ${info.messageId}`);
+        console.log(`[Email] Sent (SMTP): ${info.messageId}`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error("[Email] Send Failed:", error);
+        console.error("[Email] Send Failed (SMTP):", error);
         return { success: false, error };
     }
 }
+

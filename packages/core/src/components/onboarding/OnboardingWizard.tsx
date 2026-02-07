@@ -43,12 +43,17 @@ export function OnboardingWizard() {
     });
 
     const setupMutation = trpc.clients.autoSetup.useMutation({
-        onSuccess: (client) => {
+        onSuccess: async (client) => {
             toast.success("Workspace configured successfully!");
-            utils.clients.list.invalidate();
-            utils.dashboard.enhanced.invalidate();
+            // Ensure queries are invalidated and wait for completion
+            await Promise.all([
+                utils.clients.list.invalidate(),
+                utils.dashboard.enhanced.invalidate()
+            ]);
+            // Small delay to ensure data is refreshed
+            await new Promise(resolve => setTimeout(resolve, 300));
             setOpen(false);
-            setLocation(`/clients/${client.id}`);
+            setLocation(`/clients/${client.id}?onboarding=complete`);
         },
         onError: (error) => {
             toast.error(`Auto-setup failed: ${error.message}`);
@@ -56,12 +61,17 @@ export function OnboardingWizard() {
     });
 
     const sampleMutation = trpc.clients.createSampleData.useMutation({
-        onSuccess: (client) => {
+        onSuccess: async (client) => {
             toast.success("Magic Sample Data workspace created!");
-            utils.clients.list.invalidate();
-            utils.dashboard.enhanced.invalidate();
+            // Ensure queries are invalidated and wait for completion
+            await Promise.all([
+                utils.clients.list.invalidate(),
+                utils.dashboard.enhanced.invalidate()
+            ]);
+            // Small delay to ensure data is refreshed
+            await new Promise(resolve => setTimeout(resolve, 300));
             setOpen(false);
-            setLocation(`/clients/${client.id}`);
+            setLocation(`/clients/${client.id}?onboarding=complete`);
         },
         onError: (error) => {
             toast.error(`Sample data creation failed: ${error.message}`);

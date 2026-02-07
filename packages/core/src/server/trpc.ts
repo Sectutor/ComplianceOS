@@ -30,6 +30,7 @@ export const isAuthed = middleware(async ({ ctx, next }) => {
     }
     return next({
         ctx: {
+            ...ctx,
             user: ctx.user,
         },
     });
@@ -45,18 +46,28 @@ export const isAdmin = middleware(async ({ ctx, next }) => {
 export const checkClientAccess = middleware(async (opts) => {
     const { ctx, next } = opts;
     const rawInput = (opts as any).rawInput;
+    const typedInput = (opts as any).input; // Try to get parsed input
 
     if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
-    const input = rawInput as any;
-    const clientId = input?.clientId || ctx.clientId;
+    const input = typedInput || rawInput || {};
+    const clientId = input?.clientId || input?.id || ctx.clientId;
+
+    console.log('[DEBUG checkClientAccess] Path:', (opts as any).path);
+    console.log('[DEBUG checkClientAccess] User:', ctx.user.id, 'Role:', ctx.user.role);
+    console.log('[DEBUG checkClientAccess] rawInput:', JSON.stringify(rawInput));
+    console.log('[DEBUG checkClientAccess] typedInput:', JSON.stringify(typedInput));
+    console.log('[DEBUG checkClientAccess] ctx.clientId:', ctx.clientId);
+    console.log('[DEBUG checkClientAccess] Resolved clientId:', clientId);
 
     // Admins have implicit access
     if (ctx.user.role === 'admin' || ctx.user.role === 'owner') {
+        console.log('[DEBUG checkClientAccess] Admin access granted');
         return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
     }
 
     if (!clientId) {
+        console.log('[DEBUG checkClientAccess] No clientId found - THROWING FORBIDDEN');
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Client ID is required for this operation' });
     }
 
@@ -65,10 +76,14 @@ export const checkClientAccess = middleware(async (opts) => {
         .where(and(eq(userClients.userId, ctx.user.id), eq(userClients.clientId, clientId)))
         .limit(1);
 
+    console.log('[DEBUG checkClientAccess] Membership check:', { userId: ctx.user.id, clientId, found: membership.length > 0 });
+
     if (membership.length === 0) {
+        console.log('[DEBUG checkClientAccess] No membership found');
         throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace' });
     }
 
+    console.log('[DEBUG checkClientAccess] Access granted with role:', membership[0].role);
     return next({ ctx: { ...ctx, clientId, clientRole: membership[0].role } });
 });
 

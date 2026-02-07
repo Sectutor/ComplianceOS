@@ -14,7 +14,7 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
@@ -59,10 +59,28 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [framework, setFramework] = useState<string | undefined>();
-  const { data: enhancedStats, isLoading: statsLoading } = trpc.dashboard.enhanced.useQuery({ framework }, {
+  const [clientId, setClientId] = useState<string | undefined>();
+  const [hasSeenOnboardingThisSession, setHasSeenOnboardingThisSession] = useState(false);
+  const utils = trpc.useUtils();
+  
+  // Check for onboarding completion parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('onboarding') === 'complete') {
+      // Force refresh data when returning from onboarding
+      utils.clients.list.invalidate();
+      utils.dashboard.enhanced.invalidate();
+      // Clean up URL parameter
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('onboarding');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [utils]);
+  
+  const { data: enhancedStats, isLoading: statsLoading } = trpc.dashboard.enhanced.useQuery({ framework, clientId }, {
     enabled: !!user
   });
-  const { data: clients } = trpc.clients.list.useQuery(undefined, {
+  const { data: clients, isLoading: clientsLoading } = trpc.clients.list.useQuery(undefined, {
     enabled: !!user
   });
   const { data: complianceScores, isLoading: scoresLoading } = trpc.dashboard.complianceScores.useQuery(undefined, {
@@ -71,7 +89,7 @@ export default function Dashboard() {
   const { data: overdueAssessments, isLoading: overdueLoading } = trpc.vendorAnalytics.getOverdueAssessments.useQuery(undefined, {
     enabled: !!user
   });
-  const { data: insightsData } = trpc.dashboard.getInsights.useQuery(undefined, {
+  const { data: insightsData } = trpc.dashboard.getInsights.useQuery({ clientId }, {
     enabled: !!user
   });
   const insights = Array.isArray(insightsData) ? insightsData : [];
@@ -80,7 +98,6 @@ export default function Dashboard() {
   const [selectedClient, setSelectedClient] = useState<{ id: number; name: string; currentTarget: number } | null>(null);
   const [newTargetScore, setNewTargetScore] = useState(80);
 
-  const utils = trpc.useUtils();
   const setTargetMutation = trpc.clients.setTargetScore.useMutation({
     onSuccess: () => {
       toast.success(`Target score updated for ${selectedClient?.name}`);
@@ -170,10 +187,41 @@ export default function Dashboard() {
   const overallComplianceRate = totalControlsAssigned > 0 ?
     Math.round(((status.implemented || 0) / totalControlsAssigned) * 100) : 0;
 
-  if (!statsLoading && clients && clients.length === 0) {
+  // Show onboarding only if: no clients, not loading, and hasn't been shown this session
+  const shouldShowOnboarding = !statsLoading && !clientsLoading && clients && clients.length === 0 && !hasSeenOnboardingThisSession;
+
+  // Show loading state when transitioning from onboarding to dashboard
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Mark that we've seen onboarding this session when conditions are met
+  useEffect(() => {
+    if (shouldShowOnboarding) {
+      setHasSeenOnboardingThisSession(true);
+    }
+  }, [shouldShowOnboarding]);
+
+  // Handle transition state when clients are being loaded after onboarding
+  useEffect(() => {
+    if (hasSeenOnboardingThisSession && clientsLoading) {
+      setIsTransitioning(true);
+    } else if (isTransitioning && !clientsLoading) {
+      setIsTransitioning(false);
+    }
+  }, [hasSeenOnboardingThisSession, clientsLoading, isTransitioning]);
+
+  if (shouldShowOnboarding || isTransitioning) {
     return (
       <DashboardLayout>
-        <OnboardingWizard />
+        {shouldShowOnboarding && <OnboardingWizard />}
+        {isTransitioning && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground">Loading your workspace...</p>
+            </div>
+          </div>
+        )}
+        {shouldShowOnboarding && (
         <div className="max-w-4xl mx-auto space-y-8 mt-12 px-4">
           <div className="text-center space-y-4">
             <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 mb-2">
@@ -240,6 +288,7 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+      )}
       </DashboardLayout>
     );
   }
@@ -264,6 +313,25 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-2 items-center">
+            {/* Client Selector - Subtle */}
+            {clients && clients.length > 0 && (
+              <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-1 text-sm shadow-sm transition-all hover:border-primary/50">
+                <span className="text-muted-foreground font-medium">Client:</span>
+                <select
+                  className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-semibold text-primary max-w-[150px] truncate"
+                  value={clientId || ""}
+                  onChange={(e) => setClientId(e.target.value || undefined)}
+                >
+                  <option value="">All Clients</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
             <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-1 text-sm shadow-sm transition-all hover:border-primary/50">
               <span className="text-muted-foreground font-medium">Standard:</span>
               <select
@@ -297,15 +365,15 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-lg bg-blue-600/10">
-                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    <Activity className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">AI-Powered Insights</CardTitle>
-                    <CardDescription>Actionable recommendations to improve your compliance posture</CardDescription>
+                    <CardTitle className="text-lg">Compliance Action Center</CardTitle>
+                    <CardDescription>Live updates and required actions</CardDescription>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                  Generate New Insights
+                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => utils.dashboard.getInsights.invalidate()}>
+                  Refresh Actions
                 </Button>
               </div>
             </CardHeader>
@@ -397,7 +465,7 @@ export default function Dashboard() {
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Client Policies</p>
+                  <p className="text-sm font-medium text-muted-foreground">Policy Templates</p>
                   {statsLoading ? (
                     <Skeleton className="h-8 w-16 mt-2" />
                   ) : (
@@ -416,21 +484,27 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover-lift shadow-premium border-l-4 border-l-red-500">
+          <Card className="hover-lift shadow-premium border-l-4 border-l-red-500 cursor-pointer group" onClick={() => setLocation('/risk-register')}>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Flagged Risks</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-muted-foreground">Flagged Risks</p>
+                    <span className="flex h-2 w-2 relative" title="Live Risk Monitoring">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  </div>
                   {statsLoading ? (
                     <Skeleton className="h-8 w-16 mt-2" />
                   ) : (
-                    <h3 className="text-3xl font-bold mt-2 metric-value">
+                    <h3 className="text-3xl font-bold mt-2 metric-value group-hover:text-red-600 transition-colors">
                       {overview?.highRisks || 0}
                     </h3>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">High & Critical severity</p>
                 </div>
-                <div className="p-3 rounded-lg bg-red-100 text-red-600">
+                <div className="p-3 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
               </div>

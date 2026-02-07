@@ -1,6 +1,5 @@
-
 import { getDb } from "../db";
-import { complianceFrameworks, frameworkRequirements, controls } from "../schema";
+import { complianceFrameworks, frameworkRequirements, controls, implementationPhases } from "../schema";
 import { eq, and } from "drizzle-orm";
 import * as dotenv from "dotenv";
 import path from "path";
@@ -23,8 +22,13 @@ async function promote(shortCode: string) {
 
     console.log(`Found Framework: ${fw.name} (ID: ${fw.id})`);
 
-    // 2. Fetch Requirements
-    const reqs = await db.select().from(frameworkRequirements)
+    // 2. Fetch Requirements with Phase Info
+    const reqs = await db.select({
+        req: frameworkRequirements,
+        phaseName: implementationPhases.name
+    })
+        .from(frameworkRequirements)
+        .leftJoin(implementationPhases, eq(frameworkRequirements.phaseId, implementationPhases.id))
         .where(eq(frameworkRequirements.frameworkId, fw.id));
 
     console.log(`Found ${reqs.length} requirements.`);
@@ -33,7 +37,7 @@ async function promote(shortCode: string) {
     let added = 0;
     let updated = 0;
 
-    for (const req of reqs) {
+    for (const { req, phaseName } of reqs) {
         const existing = await db.select().from(controls)
             .where(and(
                 eq(controls.controlId, req.identifier),
@@ -49,7 +53,7 @@ async function promote(shortCode: string) {
             evidenceType: "Document",
             frequency: "Annual",
             implementationGuidance: req.guidance,
-            category: req.mappingTags?.join(', ') || ""
+            category: phaseName || "General"
         };
 
         if (existing.length > 0) {

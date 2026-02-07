@@ -36,8 +36,13 @@ export default function Clients() {
   const [clientToDelete, setClientToDelete] = useState<number | null>(null);
   const [clientData, setClientData] = useState({ name: "", description: "", industry: "", size: "" });
 
-  const { data: clients, isLoading, refetch } = trpc.clients.list.useQuery();
-  console.log('Clients page render. isLoading:', isLoading, 'clients:', clients);
+  const { data: clients, isLoading, error: clientsError, refetch } = trpc.clients.list.useQuery();
+  console.log('Clients page render. isLoading:', isLoading, 'clients:', clients, 'error:', clientsError);
+
+  // Add error state handling
+  if (clientsError) {
+    console.error('Failed to load clients:', clientsError);
+  }
 
   const { upgradeAccount, isLoading: isBillingLoading } = useBilling();
 

@@ -3,17 +3,18 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { controls } from "../../schema";
 import * as schema from "../../schema";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, asc } from "drizzle-orm";
 import * as db from "../../db";
 import * as XLSX from 'xlsx';
 import { nistAiRmfControls } from '../../data/frameworks/nist_ai_rmf';
 
 export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
+    console.log('[FrameworksRouter] Initializing createFrameworksRouter...');
     return t.router({
         importCustom: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
-                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs", "owasp_masvs", "owasp_samm", "owasp_api_top10", "owasp_top10", "owasp_top10_2021", "owasp_ml_top10"]),
+                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs", "owasp_masvs", "owasp_samm", "owasp_api_top10", "owasp_top10", "owasp_top10_2021", "owasp_ml_top10", "owasp_scvs"]),
                 fileContent: z.string().optional(), // Base64, optional for system frameworks
             }))
             .mutation(async ({ ctx, input }: any) => {
@@ -315,11 +316,13 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                     frameworkName = "OWASP Web Top 10 (2021)";
                 } else if (input.type === "owasp_ml_top10") {
                     frameworkName = "OWASP ML Security Top 10";
+                } else if (input.type === "owasp_scvs") {
+                    frameworkName = "OWASP SCVS (Supply Chain Security)";
                 }
 
                 try {
                     const d = await db.getDb();
-                    if (input.type === "owasp_aisvs" || input.type === "owasp_asvs" || input.type === "owasp_masvs" || input.type === "owasp_samm" || input.type === "owasp_api_top10" || input.type === "owasp_top10" || input.type === "owasp_top10_2021" || input.type === "owasp_ml_top10") {
+                    if (input.type === "owasp_aisvs" || input.type === "owasp_asvs" || input.type === "owasp_masvs" || input.type === "owasp_samm" || input.type === "owasp_api_top10" || input.type === "owasp_top10" || input.type === "owasp_top10_2021" || input.type === "owasp_ml_top10" || input.type === "owasp_scvs") {
                         await db.bulkAssignControls(input.clientId, frameworkName);
                         // Count how many were assigned
                         const count = await d.select({ count: sql<number>`count(*)` })
@@ -370,7 +373,7 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
           GROUP BY framework
          `);
 
-                return result.rows.map((r: any) => ({
+                return (result.rows || result).map((r: any) => ({
                     id: r.framework, // Use name as ID
                     name: r.framework,
                     scope: r.client_id ? 'custom' : 'system',
@@ -395,6 +398,53 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                     eq(controls.framework, input.frameworkName)
                 ));
                 return { success: true };
+            }),
+
+        getWorkProcessData: protectedProcedure
+            .input(z.object({
+                clientId: z.number(),
+                frameworkId: z.string() // shortCode like 'scvs' or full name
+            }))
+            .query(async ({ input }: { input: { clientId: number, frameworkId: string } }) => {
+                const dbConn = await db.getDb();
+                console.log(`[FrameworksRouter] Fetching work process data for client ${input.clientId}, framework ${input.frameworkId}`);
+
+                // 1. Resolve framework name if it's a shortCode
+                let frameworkName = input.frameworkId;
+                const frameworks = await dbConn.select().from(schema.complianceFrameworks)
+                    .where(eq(schema.complianceFrameworks.shortCode, input.frameworkId.toUpperCase()))
+                    .limit(1);
+
+                if (frameworks.length > 0) {
+                    frameworkName = frameworks[0].name;
+                }
+
+                // 2. Fetch controls with client status and evidence counts
+                const results = await dbConn.select({
+                    id: schema.clientControls.id,
+                    controlId: schema.controls.controlId,
+                    name: schema.controls.name,
+                    description: schema.controls.description,
+                    status: schema.clientControls.status,
+                    category: schema.controls.category,
+                    implementationGuidance: schema.controls.implementationGuidance,
+                    evidenceCount: sql<number>`(
+                        SELECT count(*)::int 
+                        FROM ${schema.evidenceRequests} 
+                        WHERE ${schema.evidenceRequests.clientControlId} = ${schema.clientControls.id} 
+                        AND ${schema.evidenceRequests.status} != 'rejected'
+                    )`.mapWith(Number)
+                })
+                    .from(schema.clientControls)
+                    .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
+                    .where(and(
+                        eq(schema.clientControls.clientId, input.clientId),
+                        sql`${schema.controls.framework} IN (${frameworkName}, ${input.frameworkId.toUpperCase()}, ${input.frameworkId})`
+                    ))
+                    .orderBy(asc(schema.controls.controlId));
+
+                console.log(`[FrameworksRouter] Found ${results.length} controls for ${frameworkName}`);
+                return results;
             })
     });
 };

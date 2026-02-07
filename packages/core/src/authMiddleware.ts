@@ -57,6 +57,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             console.log('[Auth Debug] dbUser found:', dbUser.id, dbUser.role);
         }
 
+        console.log('[Auth Debug] Setting req.user:', { id: dbUser.id, role: dbUser.role, email: dbUser.email });
         req.user = dbUser;
         next();
     } catch (error: any) {

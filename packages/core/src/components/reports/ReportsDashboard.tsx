@@ -17,7 +17,8 @@ import {
     Activity,
     AlertTriangle,
     BookOpen,
-    Layout
+    Layout,
+    Check
 } from "lucide-react";
 import {
     Button,
@@ -28,9 +29,9 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
-    Checkbox,
     Input,
     Label
+
 } from "@complianceos/ui";
 import { toast } from 'sonner';
 
@@ -50,12 +51,17 @@ const REPORT_SECTIONS = [
     { id: 'incidents', label: 'Incident History', desc: 'Log of security events and response efficacy', icon: Activity, color: 'text-red-600', bg: 'bg-red-50' },
     { id: 'vulnerabilities', label: 'Vulnerability Scan', desc: 'Technical debt and patch management status', icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50' },
     { id: 'audit', label: 'Audit Findings', desc: 'Internal and external audit observation results', icon: BookOpen, color: 'text-zinc-600', bg: 'bg-zinc-50' },
+    { id: 'strategic_vision', label: 'Strategic Vision', desc: 'Future roadmap and compliance trajectory', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { id: 'implementation_plan', label: 'Implementation Plan', desc: 'Step-by-step guidance for control rollout', icon: Layout, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { id: 'kpis_metrics', label: 'KPIs & Metrics', desc: 'Key performance indicators for governance', icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'governance', label: 'Governance', desc: 'Management oversight and policy framework', icon: Shield, color: 'text-slate-600', bg: 'bg-slate-50' },
 ];
 
 export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
     const [isGeneratorOpen, setIsGeneratorOpen] = React.useState(false);
     const [reportTitle, setReportTitle] = React.useState(`Compliance intelligence Report - ${new Date().toLocaleDateString()}`);
-    const [selectedSections, setSelectedSections] = React.useState<string[]>(['executive_summary', 'gap_analysis']);
+    const [selectedSections, setSelectedSections] = React.useState<string[]>(['executive_summary']);
+    const [reportFormat, setReportFormat] = React.useState<'pdf' | 'docx'>('pdf');
 
     const { data: reports, isLoading, refetch } = trpc.reports.getReportHistory.useQuery({
         clientId,
@@ -81,12 +87,34 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
     const proGenerateMutation = trpc.reports.generateProfessionalReport.useMutation({
         onSuccess: (data) => {
             toast.success("Professional report generated!");
-            const blob = new Blob([Uint8Array.from(atob(data.pdfBase64), c => c.charCodeAt(0))], { type: 'application/pdf' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = data.filename;
-            a.click();
+
+            // Final Robust Base64 to Blob conversion
+            try {
+                const byteCharacters = atob(data.pdfBase64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {
+                    type: (data as any).contentType || 'application/pdf'
+                });
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = data.filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+            } catch (err) {
+                console.error("Blob creation failed:", err);
+                toast.error("Failed to process download stream.");
+            }
+
             setIsGeneratorOpen(false);
             refetch();
         },
@@ -111,6 +139,7 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
         toast.promise(proGenerateMutation.mutateAsync({
             clientId,
             title: reportTitle,
+            format: reportFormat,
             includedSections: selectedSections as any,
             dataSources: {
                 gapAnalysis: selectedSections.includes('gap_analysis'),
@@ -140,10 +169,10 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                     { title: "Gap Analysis PDF", desc: "Detailed technical posture survey", icon: FileText, action: handleGenerateReport },
                     { title: "Board Executive Summary", desc: "Clean, chart-heavy PDF brief", icon: FileBarChart, action: handleGenerateReport },
                 ].map((workshop, i) => (
-                    <button
+                    <div
                         key={i}
                         onClick={workshop.action}
-                        className={`flex flex-col items-start p-5 bg-white border ${workshop.primary ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200'} rounded-xl hover:border-indigo-500 hover:shadow-md transition-all group text-left`}
+                        className={`flex flex-col items-start p-5 bg-white border ${workshop.primary ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200'} rounded-xl hover:border-indigo-500 hover:shadow-md transition-all group text-left cursor-pointer`}
                     >
                         <div className={`p-2 ${workshop.primary ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600'} rounded-lg group-hover:scale-110 transition-transform mb-4`}>
                             <workshop.icon className="w-5 h-5" />
@@ -153,7 +182,7 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                         <div className="mt-4 flex items-center gap-1 text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wider">
                             {workshop.primary ? 'Configure Workshop' : 'Generate Now'} <Plus className="w-3 h-3" />
                         </div>
-                    </button>
+                    </div>
                 ))}
             </div>
 
@@ -278,14 +307,20 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                             <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intelligence Components</Label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {REPORT_SECTIONS.map((section) => (
-                                    <button
+                                    <label
                                         key={section.id}
                                         onClick={() => toggleSection(section.id)}
-                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center group relative ${selectedSections.includes(section.id)
+                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center group relative cursor-pointer outline-none focus-within:ring-2 focus-within:ring-indigo-500/20 ${selectedSections.includes(section.id)
                                             ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/10'
                                             : 'border-slate-100 bg-white hover:border-slate-300'
                                             }`}
                                     >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSections.includes(section.id)}
+                                            onChange={() => { }}
+                                            className="sr-only"
+                                        />
                                         <div className={`p-1.5 rounded-lg ${section.bg} ${section.color} group-hover:scale-110 transition-transform`}>
                                             <section.icon className="w-4 h-4" />
                                         </div>
@@ -293,13 +328,34 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                                             <h5 className="font-bold text-slate-800 text-[10px] leading-tight">{section.label}</h5>
                                         </div>
                                         <div className="absolute top-2 right-2">
-                                            <Checkbox
-                                                checked={selectedSections.includes(section.id)}
-                                                className="h-3 w-3 rounded-[3px]"
-                                            />
+                                            <div className={`h-4 w-4 rounded-[4px] border flex items-center justify-center transition-colors ${selectedSections.includes(section.id)
+                                                ? 'bg-indigo-600 border-indigo-600 text-white'
+                                                : 'border-slate-300 bg-white'
+                                                }`}>
+                                                {selectedSections.includes(section.id) && <Check className="w-3 h-3 stroke-[3]" />}
+                                            </div>
                                         </div>
-                                    </button>
+                                    </label>
                                 ))}
+
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Output Format</Label>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setReportFormat('pdf')}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${reportFormat === 'pdf' ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-bold ring-2 ring-indigo-500/10' : 'border-slate-100 bg-white text-slate-500 hover:border-slate-300'}`}
+                                >
+                                    <FileText className="w-4 h-4" /> PDF Office Document
+                                </button>
+                                <button
+                                    onClick={() => setReportFormat('docx')}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${reportFormat === 'docx' ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-bold ring-2 ring-indigo-500/10' : 'border-slate-100 bg-white text-slate-500 hover:border-slate-300'}`}
+                                >
+                                    <Download className="w-4 h-4" /> Word Edit Mode
+                                </button>
                             </div>
                         </div>
 

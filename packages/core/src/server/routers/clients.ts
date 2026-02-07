@@ -15,14 +15,52 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .use(isAuthed)
             .input(z.any())
             .query(async ({ ctx }: any) => {
-                const dbConn = await db.getDb();
-                console.log('[DEBUG] clients.list called');
-                console.log('[DEBUG] ctx.user:', JSON.stringify(ctx.user, null, 2));
+                try {
+                    const dbConn = await db.getDb();
+                    console.log('[DEBUG] clients.list called');
+                    console.log('[DEBUG] ctx.user:', JSON.stringify(ctx.user, null, 2));
 
-                // Admins/owners: list all clients
-                if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner') {
-                    console.log('[DEBUG] Admin path taken');
-                    const all = await dbConn.select({
+                    // Validate user context
+                    if (!ctx.user?.id) {
+                        console.error('[DEBUG] No user ID in context');
+                        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
+                    }
+
+                    // Admins/owners: list all clients
+                    if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner') {
+                        console.log('[DEBUG] Admin path taken');
+                        const all = await dbConn.select({
+                            id: clients.id,
+                            name: clients.name,
+                            description: clients.description,
+                            industry: clients.industry,
+                            size: clients.size,
+                            updatedAt: clients.updatedAt,
+                            createdAt: clients.createdAt, // Added
+                            status: clients.status,
+                            logoUrl: clients.logoUrl,
+                            planTier: clients.planTier, // Added
+                            activeModules: clients.activeModules, // Added
+                            brandPrimaryColor: clients.brandPrimaryColor,
+                            brandSecondaryColor: clients.brandSecondaryColor,
+                            portalTitle: clients.portalTitle,
+                        }).from(clients).orderBy(desc(clients.updatedAt));
+                        console.log('[DEBUG] Admin listing clients count:', all.length);
+                        // Log first client ID if available to verify data structure
+                        if (all.length > 0) {
+                            console.log('[DEBUG] Sample client ID:', all[0].id);
+                        }
+                        // Ensure dates are serializable
+                        return all.map((c: any) => ({
+                            ...c,
+                            updatedAt: c.updatedAt?.toString() || null,
+                            createdAt: c.createdAt?.toString() || null, // Added serialization
+                        }));
+                    }
+
+                    // Else list clients by membership
+                    console.log('[DEBUG] User path taken');
+                    const rows = await dbConn.select({
                         id: clients.id,
                         name: clients.name,
                         description: clients.description,
@@ -37,63 +75,31 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         brandPrimaryColor: clients.brandPrimaryColor,
                         brandSecondaryColor: clients.brandSecondaryColor,
                         portalTitle: clients.portalTitle,
-                    }).from(clients).orderBy(desc(clients.updatedAt));
-                    console.log('[DEBUG] Admin listing clients count:', all.length);
-                    // Log first client ID if available to verify data structure
-                    if (all.length > 0) {
-                        console.log('[DEBUG] Sample client ID:', all[0].id);
-                    }
-                    // Ensure dates are serializable
-                    return all.map((c: any) => ({
+                    })
+                        .from(userClients)
+                        .innerJoin(clients, eq(userClients.clientId, clients.id))
+                        .where(eq(userClients.userId, ctx.user!.id));
+
+                    console.log('[DEBUG] User listing clients count:', rows.length);
+                    return rows.map((c: any) => ({
                         ...c,
                         updatedAt: c.updatedAt?.toString() || null,
-                        createdAt: c.createdAt?.toString() || null, // Added serialization
+                        createdAt: c.createdAt?.toString() || null,
                     }));
+                } catch (error) {
+                    console.error('[DEBUG] Error in clients.list:', error);
+                    throw error;
                 }
-
-                // Else list clients by membership
-                console.log('[DEBUG] User path taken');
-                const rows = await dbConn.select({
-                    id: clients.id,
-                    name: clients.name,
-                    description: clients.description,
-                    industry: clients.industry,
-                    size: clients.size,
-                    updatedAt: clients.updatedAt,
-                    createdAt: clients.createdAt, // Added
-                    status: clients.status,
-                    logoUrl: clients.logoUrl,
-                    planTier: clients.planTier, // Added
-                    activeModules: clients.activeModules, // Added
-                    brandPrimaryColor: clients.brandPrimaryColor,
-                    brandSecondaryColor: clients.brandSecondaryColor,
-                    portalTitle: clients.portalTitle,
-                })
-                    .from(userClients)
-                    .innerJoin(clients, eq(userClients.clientId, clients.id))
-                    .where(eq(userClients.userId, ctx.user!.id));
-
-                console.log('[DEBUG] User listing clients count:', rows.length);
-                return rows.map((c: any) => ({
-                    ...c,
-                    updatedAt: c.updatedAt?.toString() || null,
-                    createdAt: c.createdAt?.toString() || null,
-                }));
             }),
         get: clientProcedure
             .input(z.object({ id: z.number() }))
             .query(async ({ input, ctx }: any) => {
-                // Explicit security check since input is 'id' not 'clientId'
-                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner') {
-                    const dbConn = await db.getDb();
-                    const membership = await dbConn.select().from(schema.userClients)
-                        .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.id)))
-                        .limit(1);
-                    if (membership.length === 0) throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace' });
-                }
                 const client = await db.getClientById(input.id);
                 if (!client) throw new TRPCError({ code: 'NOT_FOUND' });
-                return client;
+                return {
+                    ...client,
+                    userRole: ctx.clientRole
+                };
             }),
         getComplianceScore: clientProcedure // Dashboard Score
             .input(z.object({ clientId: z.number() }))

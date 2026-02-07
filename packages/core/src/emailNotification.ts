@@ -3,6 +3,7 @@ import * as db from "./db";
 import { CalendarEvent } from "./db";
 import * as schema from "./schema";
 import { eq, and } from "drizzle-orm";
+import { createInAppNotification } from "./lib/notificationService";
 
 /**
  * Format a list of calendar events into a readable notification
@@ -108,6 +109,13 @@ export async function sendOverdueNotification(): Promise<{
       body: htmlBody,
       snippet: `You have ${clientItems.length} overdue items.`
     });
+
+    await createInAppNotification(clientId, {
+      type: "overdue_alert",
+      title: title,
+      message: `You have ${clientItems.length} overdue compliance items that require immediate attention.`,
+      link: `/clients/${clientId}/dashboard`
+    });
   }
 
   return { success, itemCount: overdueItems.length };
@@ -160,6 +168,13 @@ export async function sendUpcomingNotification(days: number = 7): Promise<{
       subject: title,
       body: htmlBody,
       snippet: `You have ${clientItems.length} upcoming items.`
+    });
+
+    await createInAppNotification(clientId, {
+      type: "upcoming_alert",
+      title: title,
+      message: `You have ${clientItems.length} compliance items due in the next ${days} days.`,
+      link: `/clients/${clientId}/calendar`
     });
   }
 
@@ -344,6 +359,13 @@ export async function sendExpiredEvidenceNotification(clientId?: number): Promis
       body: htmlBody,
       snippet: `${clientItems.length} evidence items need re-verification`
     });
+
+    await createInAppNotification(cId, {
+      type: "evidence_expired",
+      title: title,
+      message: `You have ${clientItems.length} evidence items that have expired and need re-verification.`,
+      link: `/clients/${cId}/evidence`
+    });
   }
 
   return { success, itemCount: expiredEvidence.length };
@@ -431,6 +453,13 @@ export async function sendPolicyReviewNotification(clientId?: number, daysAhead:
       body: htmlBody,
       snippet: `${clientItems.length} policies need review`
     });
+
+    await createInAppNotification(cId, {
+      type: "policy_review",
+      title: title,
+      message: `You have ${clientItems.length} policies due for annual review.`,
+      link: `/clients/${cId}/policies`
+    });
   }
 
   return { success, itemCount: policiesDueForReview.length };
@@ -513,6 +542,13 @@ export async function sendMissingJustificationNotification(clientId?: number): P
       subject: title,
       body: htmlBody,
       snippet: `${clientItems.length} controls need justification`
+    });
+
+    await createInAppNotification(cId, {
+      type: "missing_justification",
+      title: title,
+      message: `You have ${clientItems.length} controls marked as "Not Applicable" without required justification.`,
+      link: `/clients/${cId}/controls`
     });
   }
 

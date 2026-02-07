@@ -11,7 +11,9 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Shield, Plus, Trash2, Edit, Download, ClipboardList, LayoutGrid, List } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, Shield, Plus, Trash2, Edit, Download, ClipboardList, LayoutGrid, List, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@complianceos/ui/ui/tooltip";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
 import { EvidenceSuggestionsPopover } from "@/components/controls/EvidenceSuggestionsPopover";
 import { useState, useEffect } from "react";
@@ -550,6 +552,7 @@ export default function ClientControlsPage() {
                                         <TableHead className="w-[200px] py-4">Control Name</TableHead>
                                         <TableHead className="w-[150px] py-4">Framework</TableHead>
                                         <TableHead className="w-[180px] py-4">Applicability</TableHead>
+                                        <TableHead className="w-[120px] py-4">Monitoring</TableHead>
                                         <TableHead className="py-4">Justification</TableHead>
                                         <TableHead className="w-[120px] py-4 text-center">Status</TableHead>
                                         <TableHead className="w-[50px] py-4"></TableHead>
@@ -601,6 +604,21 @@ export default function ClientControlsPage() {
                                                 </Select>
                                             </TableCell>
                                             <TableCell className="py-4">
+                                                {(() => {
+                                                    const monitoring = item.clientControl.implementationNotes?.match(/Monitoring Frequency: (.*)$/m)?.[1] || "Manual";
+                                                    return (
+                                                        <Badge variant="outline" className={cn(
+                                                            "text-[10px] font-medium whitespace-nowrap",
+                                                            monitoring === 'Continuous' ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                                                                monitoring === 'Daily' ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                                                    "text-slate-500 bg-slate-50"
+                                                        )}>
+                                                            {monitoring}
+                                                        </Badge>
+                                                    );
+                                                })()}
+                                            </TableCell>
+                                            <TableCell className="py-4">
                                                 <Input
                                                     className="h-8 text-xs bg-white text-black"
                                                     placeholder={item.clientControl.applicability === 'not_applicable' ? "Why is this excluded?" : "Why is this included?"}
@@ -616,17 +634,31 @@ export default function ClientControlsPage() {
                                                 />
                                             </TableCell>
                                             <TableCell className="py-4 text-center">
-                                                <Badge
-                                                    variant={
-                                                        item.clientControl.status === 'implemented' ? 'success' :
-                                                            item.clientControl.status === 'in_progress' ? 'info' :
-                                                                item.clientControl.status === 'not_applicable' ? 'secondary' :
-                                                                    'warning'
-                                                    }
-                                                    className="uppercase text-[10px] px-3 transition-all"
-                                                >
-                                                    {item.clientControl.status?.replace('_', ' ')}
-                                                </Badge>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Badge
+                                                        variant={
+                                                            item.clientControl.status === 'implemented' ? 'success' :
+                                                                item.clientControl.status === 'in_progress' ? 'info' :
+                                                                    item.clientControl.status === 'not_applicable' ? 'secondary' :
+                                                                        'warning'
+                                                        }
+                                                        className="uppercase text-[10px] px-3 transition-all"
+                                                    >
+                                                        {item.clientControl.status?.replace('_', ' ')}
+                                                    </Badge>
+                                                    {item.clientControl.status !== 'not_implemented' && item.clientControl.status !== 'not_applicable' && (!item.evidenceCount || item.evidenceCount === 0) && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <AlertCircle className="h-4 w-4 text-red-500 animate-pulse cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Missing Evidence!</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200" onClick={() => setSelectedControl(item)}>

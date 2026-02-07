@@ -6,6 +6,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+import { recalculateRiskScore } from "../services/riskService";
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {
@@ -215,6 +216,8 @@ export const createEvidenceRouter = (
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
+                
+                // 1. Update Evidence Status
                 await dbConn.update(schema.evidence)
                     .set({
                         status: input.status,
@@ -222,6 +225,55 @@ export const createEvidenceRouter = (
                         updatedAt: new Date()
                     } as any)
                     .where(eq(schema.evidence.id, input.evidenceId));
+
+                // 2. "Live Wire": Propagate to Control and Risk
+                if (input.status === 'verified') {
+                    // Get the evidence to find clientControlId
+                    const [evidence] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
+                    
+                    if (evidence && evidence.clientControlId) {
+                         // A. Update Client Control to 'implemented'
+                         await dbConn.update(schema.clientControls)
+                            .set({ status: 'implemented', implementationDate: new Date() })
+                            .where(eq(schema.clientControls.id, evidence.clientControlId));
+                         
+                         // B. Find linked treatments and update effectiveness
+                         // Get the controlId from clientControl
+                         const [clientControl] = await dbConn.select().from(schema.clientControls).where(eq(schema.clientControls.id, evidence.clientControlId));
+                         
+                         if (clientControl) {
+                             const controlId = clientControl.controlId;
+                             
+                             // Find all treatmentControls for this control and client
+                             const linkedTreatments = await dbConn.select()
+                                .from(schema.treatmentControls)
+                                .where(and(
+                                    eq(schema.treatmentControls.controlId, controlId),
+                                    eq(schema.treatmentControls.clientId, evidence.clientId)
+                                ));
+                             
+                             // Update them to 'effective'
+                             if (linkedTreatments.length > 0) {
+                                 await dbConn.update(schema.treatmentControls)
+                                    .set({ effectiveness: 'effective', updatedAt: new Date() })
+                                    .where(and(
+                                        eq(schema.treatmentControls.controlId, controlId),
+                                        eq(schema.treatmentControls.clientId, evidence.clientId)
+                                    ));
+                                 
+                                 // C. Recalculate Risk for each affected treatment
+                                 for (const tc of linkedTreatments) {
+                                     // Get treatment to find riskAssessmentId
+                                     const [treatment] = await dbConn.select().from(schema.riskTreatments).where(eq(schema.riskTreatments.id, tc.treatmentId));
+                                     if (treatment) {
+                                         await recalculateRiskScore(dbConn, treatment.riskAssessmentId);
+                                     }
+                                 }
+                             }
+                         }
+                    }
+                }
+
                 return { success: true };
             }),
 

@@ -23,6 +23,7 @@ import {
     Trash2,
     Image,
     Server,
+    Mail,
     Database,
     Briefcase,
     MapPin,
@@ -39,6 +40,8 @@ import { PolicySettingsTab } from "@/components/settings/PolicySettingsTab";
 import { FrameworksSettingsTab } from "@/components/settings/FrameworksSettingsTab";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { OnboardingSettingsTab } from "@/components/settings/OnboardingSettingsTab";
+import { EmailTemplatesTab } from "@/components/settings/EmailTemplatesTab";
+import { PersonalizationReference } from "@/components/settings/PersonalizationReference";
 import { ListTodo } from "lucide-react";
 
 export default function ClientSettings() {
@@ -220,6 +223,13 @@ export default function ClientSettings() {
                             <ListTodo className="mr-2 h-4 w-4" />
                             Onboarding
                         </TabsTrigger>
+                        <TabsTrigger
+                            value="email-templates"
+                            className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm data-[state=active]:border-slate-200 border border-transparent px-4 py-2.5 rounded-lg transition-all"
+                        >
+                            <Mail className="mr-2 h-4 w-4" />
+                            Emails
+                        </TabsTrigger>
                     </TabsList>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -328,6 +338,11 @@ export default function ClientSettings() {
                                 </Card>
                             </TabsContent>
 
+                            {/* Email Templates Tab */}
+                            <TabsContent value="email-templates" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
+                                <EmailTemplatesTab clientId={clientId} />
+                            </TabsContent>
+
                             {/* Frameworks Tab */}
                             <TabsContent value="frameworks" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
                                 <FrameworksSettingsTab clientId={clientId} />
@@ -394,6 +409,8 @@ export default function ClientSettings() {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <PersonalizationReference />
 
                             {/* Danger Zone - Only for Admins */}
                             {user?.role === 'admin' && (
