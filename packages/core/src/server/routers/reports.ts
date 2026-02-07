@@ -393,5 +393,44 @@ export const createReportsRouter = (t: any, adminProcedure: any, clientProcedure
                     contentType
                 };
             }),
+
+        /**
+         * Delete a report
+         */
+        deleteReport: clientProcedure
+            .input(z.object({
+                reportId: z.number(),
+                clientId: z.number()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const dbConn = await db.getDb();
+
+                // First, verify the report exists and belongs to this client
+                const report = await dbConn.query.roadmapReports.findFirst({
+                    where: and(
+                        eq(roadmapReports.id, input.reportId),
+                        eq(roadmapReports.clientId, input.clientId)
+                    )
+                });
+
+                if (!report) {
+                    throw new Error("Report not found or access denied");
+                }
+
+                // If there's a file path, try to delete the file
+                if (report.filePath) {
+                    try {
+                        await fs.unlink(report.filePath);
+                    } catch (fileErr) {
+                        // File might not exist, continue with DB deletion
+                        console.warn(`[Reports] Could not delete report file: ${report.filePath}`);
+                    }
+                }
+
+                // Delete from database
+                await dbConn.delete(roadmapReports).where(eq(roadmapReports.id, input.reportId));
+
+                return { success: true, message: "Report deleted successfully" };
+            }),
     });
 };

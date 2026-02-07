@@ -1111,20 +1111,92 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
         return String(text).replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD]/g, "");
     };
 
-    // AI Content Helper
+    // AI Content Helper - generates structured, concise content
     const getAIContent = async (section: string, data: any): Promise<string> => {
         try {
             const response = await llmService.generate({
-                systemPrompt: "You are a Senior Strategic Advisor. Provide a sharp, high-level strategic commentary (Exactly 2 paragraphs). Focus on the 'The Bottom Line' for executive stakeholders. Professional, direct, and insight-driven.",
-                userPrompt: `Section: ${section}\nData Summary:\n${JSON.stringify(data, null, 2)}`,
+                systemPrompt: `You are a Senior Strategic Advisor writing for C-level executives. Generate CONCISE, SCANNABLE content.
+
+CRITICAL FORMAT RULES:
+1. Start with a 1-2 sentence KEY TAKEAWAY (bold-worthy insight)
+2. Follow with 2-3 SHORT bullet points (each max 15 words)
+3. End with a brief ACTION item or recommendation (1 sentence)
+
+Use this exact structure:
+KEY INSIGHT: [One impactful sentence]
+
+• [Bullet point 1]
+• [Bullet point 2]  
+• [Bullet point 3]
+
+RECOMMENDATION: [Action-oriented sentence]
+
+Keep total response under 100 words. Be direct, no filler words.`,
+                userPrompt: `Section: ${section}\nData: ${JSON.stringify(data, null, 2)}`,
                 temperature: 0.3,
-                maxTokens: 500
+                maxTokens: 250
             });
             return response.text;
         } catch (error) {
-            return "Strategic analysis is currently being finalized based on mission-critical data streams.";
+            return "KEY INSIGHT: Analysis in progress.\n\n• Data compilation underway\n• Strategic review pending\n\nRECOMMENDATION: Check back for updated insights.";
         }
     };
+
+    // Helper: Format AI content into styled paragraphs with highlights
+    const formatAIContent = (content: string): any[] => {
+        const paragraphs: any[] = [];
+        const lines = content.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('KEY INSIGHT:') || trimmed.startsWith('KEY TAKEAWAY:')) {
+                // Key insight - bold and highlighted
+                const text = trimmed.replace(/^KEY (INSIGHT|TAKEAWAY):?\s*/i, '');
+                paragraphs.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: '🎯 KEY INSIGHT: ', bold: true, size: 22, color: accentColor }),
+                        new TextRun({ text: safeText(text), bold: true, size: 22 })
+                    ],
+                    spacing: { before: 200, after: 150 },
+                    shading: { fill: 'FEF3C7' },
+                    border: { left: { style: BorderStyle.SINGLE, size: 24, color: warningColor, space: 8 } }
+                }));
+            } else if (trimmed.startsWith('RECOMMENDATION:') || trimmed.startsWith('ACTION:')) {
+                // Recommendation - green highlighted
+                const text = trimmed.replace(/^(RECOMMENDATION|ACTION):?\s*/i, '');
+                paragraphs.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: '✅ RECOMMENDATION: ', bold: true, size: 22, color: successColor }),
+                        new TextRun({ text: safeText(text), size: 22 })
+                    ],
+                    spacing: { before: 200, after: 150 },
+                    shading: { fill: 'D1FAE5' },
+                    border: { left: { style: BorderStyle.SINGLE, size: 24, color: successColor, space: 8 } }
+                }));
+            } else if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                // Bullet point
+                const text = trimmed.replace(/^[•\-\*]\s*/, '');
+                paragraphs.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: '  •  ', color: accentColor, bold: true }),
+                        new TextRun({ text: safeText(text), size: 20 })
+                    ],
+                    spacing: { before: 80, after: 80 },
+                    indent: { left: 300 }
+                }));
+            } else if (trimmed.length > 0) {
+                // Regular paragraph - keep it short
+                paragraphs.push(new Paragraph({
+                    children: [new TextRun({ text: safeText(trimmed), size: 20 })],
+                    spacing: { before: 100, after: 100 }
+                }));
+            }
+        }
+
+        return paragraphs;
+    };
+
 
     // Helper: Create styled KPI card as a table cell
     const createKPICard = (label: string, value: string, subtext: string, color: string = primaryColor) => {
@@ -1258,9 +1330,9 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
                     new DocxTableRow({
                         children: [
                             createKPICard('Overall Readiness', `${scoreData?.complianceScore || 0}%`, 'Compliance Score', accentColor),
-                            createKPICard('Controls', `${stats?.controls || 0}`, 'Total Mapped', successColor),
-                            createKPICard('Risks', `${stats?.riskCount || 0}`, 'Identified', warningColor),
-                            createKPICard('Policies', `${stats?.policies || 0}`, 'Active', primaryColor)
+                            createKPICard('Controls', `${stats?.controlsAssigned || 0}`, 'Total Mapped', successColor),
+                            createKPICard('Evidence', `${stats?.evidenceCount || 0}`, 'Collected', warningColor),
+                            createKPICard('Policies', `${stats?.policiesCreated || 0}`, 'Active', primaryColor)
                         ]
                     })
                 ]
@@ -1268,21 +1340,9 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
             new Paragraph({ children: [], spacing: { after: 400 } })
         );
 
-        // AI Strategic Insight
+        // AI Strategic Insight - formatted with bullet points and highlights
         const summary = await getAIContent('Executive Overview', { scoreData, stats });
-        children.push(
-            new Paragraph({
-                children: [new TextRun({ text: '💡 Strategic Insight', bold: true, size: 24, color: accentColor })],
-                spacing: { before: 400, after: 200 },
-                shading: { fill: 'F0F9FF' },
-                border: { left: { style: BorderStyle.SINGLE, size: 24, color: accentColor, space: 8 } }
-            }),
-            new Paragraph({
-                children: [new TextRun({ text: safeText(summary), size: 22 })],
-                spacing: { after: 400 },
-                shading: { fill: 'F0F9FF' }
-            })
-        );
+        children.push(...formatAIContent(summary));
     }
 
     // ============================================
@@ -1315,9 +1375,7 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
         );
 
         const summaryText = await getAIContent('Gap Analysis', { total, implemented, gaps: gaps.length });
-        children.push(
-            new Paragraph({ children: [new TextRun({ text: safeText(summaryText), size: 22 })], spacing: { after: 400 } })
-        );
+        children.push(...formatAIContent(summaryText));
 
         if (gaps.length > 0) {
             children.push(
@@ -1381,7 +1439,7 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
         );
 
         const summary = await getAIContent('Strategic Risks', { total: risks.length, high: highRisks, medium: mediumRisks, low: lowRisks });
-        children.push(new Paragraph({ children: [new TextRun({ text: safeText(summary), size: 22 })], spacing: { after: 400 } }));
+        children.push(...formatAIContent(summary));
 
         if (risks.length > 0) {
             children.push(
@@ -1419,43 +1477,55 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
     // BIA Section
     // ============================================
     if (options.sections.includes('bia')) {
-        const { bcpPlans } = await import('../schema');
-        const biaData = await dbConn.select().from(bcpPlans).where(eq(bcpPlans.clientId, clientId)).limit(10);
+        try {
+            // Try to import bcpPlans - may not exist in all schemas
+            const schemaModule = await import('../schema');
+            const bcpPlans = (schemaModule as any).bcpPlans;
 
-        children.push(...createSectionHeader('Business Impact Analysis', 'Critical Process Assessment & Recovery Objectives'));
+            if (bcpPlans) {
+                const biaData = await dbConn.select().from(bcpPlans).where(eq(bcpPlans.clientId, clientId)).limit(10);
 
-        const summary = await getAIContent('Business Impact Analysis', { count: biaData.length });
-        children.push(
-            new Paragraph({ children: [new TextRun({ text: safeText(summary), size: 22 })], spacing: { after: 400 } })
-        );
+                children.push(...createSectionHeader('Business Impact Analysis', 'Critical Process Assessment & Recovery Objectives'));
 
-        if (biaData.length > 0) {
-            children.push(
-                new DocxTable({
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                    rows: [
-                        new DocxTableRow({
-                            tableHeader: true,
-                            children: [
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Process/Plan", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RTO", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RPO", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } })
+                const summary = await getAIContent('Business Impact Analysis', { count: biaData.length });
+                children.push(...formatAIContent(summary));
+
+                if (biaData.length > 0) {
+                    children.push(
+                        new DocxTable({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                new DocxTableRow({
+                                    tableHeader: true,
+                                    children: [
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Process/Plan", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RTO", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RPO", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } })
+                                    ]
+                                }),
+                                ...biaData.map((item: any, i: number) => new DocxTableRow({
+                                    children: [
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.name), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rto || '4h'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rpo || '1h'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.status || 'Active'), color: getStatusColor(item.status), bold: true, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } })
+                                    ]
+                                }))
                             ]
-                        }),
-                        ...biaData.map((item: any, i: number) => new DocxTableRow({
-                            children: [
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.name), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rto || '4h'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rpo || '1h'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
-                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.status || 'Active'), color: getStatusColor(item.status), bold: true, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } })
-                            ]
-                        }))
-                    ]
-                })
-            );
+                        })
+                    );
+                }
+            } else {
+                // bcpPlans table doesn't exist - skip BIA section
+                console.log('[DOCX] BIA section skipped - bcpPlans table not found in schema');
+            }
+        } catch (biaErr: any) {
+            // BIA section failed - continue without it
+            console.error('[DOCX] BIA section failed:', biaErr.message);
         }
     }
+
 
     // ============================================
     // STRATEGIC CONCLUSION

@@ -18,7 +18,8 @@ import {
     AlertTriangle,
     BookOpen,
     Layout,
-    Check
+    Check,
+    Trash2
 } from "lucide-react";
 import {
     Button,
@@ -62,6 +63,7 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
     const [reportTitle, setReportTitle] = React.useState(`Compliance intelligence Report - ${new Date().toLocaleDateString()}`);
     const [selectedSections, setSelectedSections] = React.useState<string[]>(['executive_summary']);
     const [reportFormat, setReportFormat] = React.useState<'pdf' | 'docx'>('pdf');
+    const [reportToDelete, setReportToDelete] = React.useState<number | null>(null);
 
     const { data: reports, isLoading, refetch } = trpc.reports.getReportHistory.useQuery({
         clientId,
@@ -83,6 +85,27 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
             toast.error("Failed to generate report: " + err.message);
         }
     });
+
+    const deleteReportMutation = trpc.reports.deleteReport.useMutation({
+        onSuccess: () => {
+            toast.success("Report deleted successfully");
+            refetch();
+        },
+        onError: (err) => {
+            toast.error("Failed to delete report: " + err.message);
+        }
+    });
+
+    const handleDeleteReport = (reportId: number) => {
+        setReportToDelete(reportId);
+    };
+
+    const confirmDelete = () => {
+        if (reportToDelete) {
+            deleteReportMutation.mutate({ reportId: reportToDelete, clientId });
+            setReportToDelete(null);
+        }
+    };
 
     const proGenerateMutation = trpc.reports.generateProfessionalReport.useMutation({
         onSuccess: (data) => {
@@ -263,6 +286,17 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                                         <Button variant="ghost" size="sm" className="hidden group-hover:flex">
                                             Download
                                         </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 hidden group-hover:flex"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteReport(report.id);
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
                                         <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
                                     </div>
                                 </div>
@@ -381,6 +415,42 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                                 {proGenerateMutation.isLoading ? 'Assembling...' : 'Generate Intelligence'}
                             </Button>
                         </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
+                <DialogContent className="sm:max-w-md bg-white border-0 shadow-xl rounded-2xl overflow-hidden">
+                    <div className="bg-red-50 p-6 border-b border-red-100">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-red-600 font-bold text-lg">
+                                <div className="p-2 bg-red-100 rounded-lg">
+                                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                                </div>
+                                Delete Intelligence Report
+                            </DialogTitle>
+                            <DialogDescription className="pt-2 text-red-700/80 font-medium">
+                                Are you sure you want to delete this report? This action cannot be undone and will permanently remove the file and record.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    <div className="p-6 bg-white">
+                        <div className="flex items-center p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm text-slate-600 mb-2">
+                            <Trash2 className="w-4 h-4 mr-2 text-slate-400" />
+                            File deletion will be permanent.
+                        </div>
+                    </div>
+                    <DialogFooter className="p-6 bg-slate-50 border-t flex justify-end gap-2">
+                        <Button variant="ghost" onClick={() => setReportToDelete(null)} disabled={deleteReportMutation.isLoading}>Cancel, keep report</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleteReportMutation.isLoading}
+                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20"
+                        >
+                            {deleteReportMutation.isLoading ? 'Deleting...' : 'Delete Permanently'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
