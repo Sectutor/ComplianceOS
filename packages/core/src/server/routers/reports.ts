@@ -7,6 +7,8 @@ import { ReportGenerator } from "../services/reportGenerator";
 import * as schema from "../../schema";
 import { getDb } from "../../db";
 
+console.log("[Reports Router] roadmapReports table imported:", !!roadmapReports);
+
 const reportSectionSchema = z.enum([
     // Core Report Sections
     "cover_page",
@@ -70,14 +72,19 @@ export const createReportsRouter = (t: any, adminProcedure: any, clientProcedure
                 limit: z.number().optional().default(10),
             }))
             .query(async ({ input }: any) => {
-                const dbConn = await db.getDb();
-                const reports = await dbConn.query.roadmapReports.findMany({
-                    where: eq(roadmapReports.clientId, input.clientId),
-                    orderBy: [desc(roadmapReports.generatedAt)],
-                    limit: input.limit,
-                });
+                try {
+                    const dbConn = await db.getDb();
+                    const reports = await dbConn.query.roadmapReports.findMany({
+                        where: eq(roadmapReports.clientId, input.clientId),
+                        orderBy: [desc(roadmapReports.generatedAt)],
+                        limit: input.limit,
+                    });
 
-                return reports;
+                    return reports;
+                } catch (error: any) {
+                    console.error("[Reports] getReportHistory error:", error.message, error);
+                    throw new Error(`Failed to fetch report history: ${error.message}`);
+                }
             }),
 
         /**
@@ -125,38 +132,6 @@ export const createReportsRouter = (t: any, adminProcedure: any, clientProcedure
                     data: buffer.toString("base64"),
                     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 };
-            }),
-
-        /**
-         * Delete a report
-         */
-        deleteReport: clientEditorProcedure
-            .input(z.object({
-                reportId: z.number(),
-            }))
-            .mutation(async ({ input }: any) => {
-                const dbConn = await db.getDb();
-                const report = await dbConn.query.roadmapReports.findFirst({
-                    where: eq(roadmapReports.id, input.reportId),
-                });
-
-                if (!report) {
-                    throw new Error("Report not found");
-                }
-
-                // Delete file if exists
-                if (report.filePath) {
-                    try {
-                        await fs.unlink(report.filePath);
-                    } catch (err) {
-                        console.error("Failed to delete report file:", err);
-                    }
-                }
-
-                // Delete from database
-                await dbConn.delete(roadmapReports).where(eq(roadmapReports.id, input.reportId));
-
-                return { success: true };
             }),
 
         /**

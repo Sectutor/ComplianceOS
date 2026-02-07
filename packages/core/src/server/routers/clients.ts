@@ -585,6 +585,15 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 await db.updateClient(input.clientId, { logoUrl: null });
                 return { success: true };
             }),
+        uploadLogo: adminProcedure
+            .input(z.object({
+                clientId: z.number(),
+                logoUrl: z.string()
+            }))
+            .mutation(async ({ input }: any) => {
+                await db.updateClient(input.clientId, { logoUrl: input.logoUrl });
+                return { success: true };
+            }),
         updateContactInfo: adminProcedure
             .input(z.object({
                 clientId: z.number(),

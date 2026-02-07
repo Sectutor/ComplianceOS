@@ -91,7 +91,7 @@ export default function Reports() {
               description="Advanced analytics and trend reporting for board-level insights."
               isPremiumEnabled={isPremium}
             >
-              <ExecutiveDashboard clientId={clientId} />
+              <ExecutiveDashboard clientId={clientId} onViewFullAnalysis={() => setActiveTab('reports')} />
             </PremiumSlot>
           </TabsContent>
 

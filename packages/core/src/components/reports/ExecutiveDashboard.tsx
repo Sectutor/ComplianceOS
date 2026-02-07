@@ -33,9 +33,10 @@ import {
 
 interface ExecutiveDashboardProps {
     clientId: number;
+    onViewFullAnalysis?: () => void;
 }
 
-export const ExecutiveDashboard = ({ clientId }: ExecutiveDashboardProps) => {
+export const ExecutiveDashboard = ({ clientId, onViewFullAnalysis }: ExecutiveDashboardProps) => {
     const { data: dashboard, isLoading } = trpc.metrics.getDashboard.useQuery({ clientId });
 
     if (isLoading) {
@@ -193,7 +194,10 @@ export const ExecutiveDashboard = ({ clientId }: ExecutiveDashboardProps) => {
                         </div>
 
                         <div className="pt-4 mt-auto">
-                            <button className="w-full py-3 bg-white text-indigo-700 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                            <button
+                                onClick={onViewFullAnalysis}
+                                className="w-full py-3 bg-white text-indigo-700 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            >
                                 <TrendingUp className="w-4 h-4" />
                                 View Full Analysis
                             </button>

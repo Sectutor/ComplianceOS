@@ -9,6 +9,7 @@ interface SendEmailOptions {
     subject: string;
     html: string;
     from?: string;
+    replyTo?: string; // Email address for replies
     clientId?: number; // Context to find specific SMTP settings
 }
 
@@ -23,9 +24,11 @@ if (SENDGRID_API_KEY) {
     console.log("[Email] SendGrid SDK initialized.");
 }
 
-export async function sendEmail({ to, subject, html, from, clientId }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
+export async function sendEmail({ to, subject, html, from, replyTo, clientId }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
     let transporter = null;
     let fromAddress = from || process.env.SMTP_FROM || 'system@compliance-os.com';
+    // Default replyTo to the sender's email if not specified
+    const replyToAddress = replyTo || process.env.SMTP_REPLY_TO || fromAddress;
 
     // 1. Try to load Client Integrations (Custom SMTP)
     // If a client has specific settings, they usually want to override everything.
@@ -76,6 +79,7 @@ export async function sendEmail({ to, subject, html, from, clientId }: SendEmail
             await sgMail.send({
                 to: toArray,
                 from: fromAddress,
+                replyTo: replyToAddress,
                 subject: subject,
                 html: html,
                 // Track this as a system category
@@ -126,6 +130,7 @@ export async function sendEmail({ to, subject, html, from, clientId }: SendEmail
     try {
         const info = await transporter.sendMail({
             from: fromAddress,
+            replyTo: replyToAddress,
             to: Array.isArray(to) ? to.join(', ') : to,
             subject,
             html,

@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@complianceos/ui/ui/too
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@complianceos/ui/ui/dialog';
 import { ExternalLink, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'wouter/use-browser-location';
+import { PageGuide } from "@/components/PageGuide";
 
 
 export default function RiskAssetsPage() {
@@ -113,13 +114,29 @@ export default function RiskAssetsPage() {
                         <h1 className="text-2xl font-bold tracking-tight">Asset Inventory</h1>
                         <p className="text-muted-foreground mt-1">Manage your organization's assets and their valuations.</p>
                     </div>
-                    <button
-                        onClick={handleOpenAddDialog}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Asset
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleOpenAddDialog}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Asset
+                        </button>
+                        <PageGuide
+                            title="Asset Inventory"
+                            description="Maintain a complete registry of your organization’s critical information assets."
+                            rationale="You cannot protect what you don't know you have. A comprehensive asset inventory is the starting point for all risk assessments."
+                            howToUse={[
+                                { step: "Add Assets", description: "Use the 'Add Asset' button to register hardware, software, data, or people." },
+                                { step: "Value Assets", description: "Assign Confidentiality, Integrity, and Availability (CIA) scores to determine criticality." },
+                                { step: "Identify Threats", description: "Click the lightning bolt icon to see active threats relevant to that asset's technology stack." }
+                            ]}
+                            integrations={[
+                                { name: "Risk Assessment", description: "Assets selected here become the targets for risk scenarios." },
+                                { name: "Threat Intelligence", description: "The system automatically matches asset technologies (e.g. 'Windows') to CVEs and threat feeds." }
+                            ]}
+                        />
+                    </div>
                 </div>
 
                 <div className="bg-card rounded-xl border shadow-sm min-h-[400px]">

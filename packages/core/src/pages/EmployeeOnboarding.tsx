@@ -41,6 +41,7 @@ import { Eye } from "lucide-react";
 import { marked } from "marked";
 import { toast } from "sonner";
 import { ExceptionRequestDialog } from "@/components/policy/ExceptionRequestDialog";
+import { PageGuide } from "@/components/PageGuide";
 
 // Mock Policy Content (In a real app, this would come from the API)
 const POLICY_CONTENT = {
@@ -244,12 +245,30 @@ export default function EmployeeOnboarding() {
     return (
         <DashboardLayout>
             <div className="space-y-8 pb-12">
-                <Breadcrumb
-                    items={[
-                        { label: "Dashboard", href: "/dashboard" },
-                        { label: "Employee Onboarding" },
-                    ]}
-                />
+                <div className="flex justify-between items-center">
+                    <Breadcrumb
+                        items={[
+                            { label: "Dashboard", href: "/dashboard" },
+                            { label: "Employee Onboarding" },
+                        ]}
+                    />
+                    <PageGuide
+                        title="Employee Security Onboarding"
+                        description="Your personal checklist for completing security and compliance requirements."
+                        rationale="Security is a shared responsibility. This onboarding process ensures that every team member understands their role in protecting the organization's data and assets from day one. Completing these steps is mandatory for access to production systems."
+                        howToUse={[
+                            { step: "Security Training", description: "Watch required training modules to understand key security concepts." },
+                            { step: "Policy Acceptance", description: "Read and acknowledge core security policies (e.g., Code of Conduct)." },
+                            { step: "Account Setup", description: "Configure MFA and password manager to secure your identity." },
+                            { step: "Asset Verification", description: "Confirm receipt of your assigned laptop and devices." }
+                        ]}
+                        integrations={[
+                            { name: "HR System", description: "Employee records are synced from the HRIS." },
+                            { name: "Device Management", description: "Asset confirmation updates the central inventory." },
+                            { name: "Audit Logs", description: "All acknowledgments are time-stamped for compliance audits." }
+                        ]}
+                    />
+                </div>
 
                 {/* Hero Section with Progress */}
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#002a40] via-[#004d70] to-[#0284c7] p-8 text-white shadow-2xl">

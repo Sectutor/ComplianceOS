@@ -20,6 +20,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -177,6 +178,23 @@ export default function ClientControlsPage() {
                         <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
                             {clientControls.length} Controls
                         </Badge>
+                        <PageGuide
+                            title="Client Control Implementation"
+                            description="Manage and validate the implementation of security controls for this client."
+                            rationale="Controls are the operational reality of compliance. This page allows you to track which controls are applicable, their implementation status, and link evidence to prove they are working."
+                            howToUse={[
+                                { step: "Assign Controls", description: "Import controls from the Global Library or use the 'Select Baseline' wizard to bulk-add NIST controls." },
+                                { step: "Review Controls", description: "Use filters to find specific controls (e.g., 'Access Control')." },
+                                { step: "Determine Applicability", description: "Mark controls as 'Applicable' or 'Not Applicable' with justification." },
+                                { step: "Update Status", description: "Track progress from 'Not Implemented' to 'Implemented'." },
+                                { step: "Upload Evidence", description: "Click the 'Edit' icon to upload proof of compliance." }
+                            ]}
+                            integrations={[
+                                { name: "Frameworks", description: "Controls are automatically mapped to standards like SOC 2 and ISO 27001." },
+                                { name: "Evidence Library", description: "Uploaded files are securely stored in the client's evidence repository." },
+                                { name: "Readiness Score", description: "Completed controls directly increase your compliance readiness score." }
+                            ]}
+                        />
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {/* View Toggles & Export buttons (unchanged) */}

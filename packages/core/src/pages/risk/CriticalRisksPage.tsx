@@ -15,6 +15,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@complianceos/ui/ui/breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 
 export default function CriticalRisksPage() {
     const params = useParams<{ id: string }>();
@@ -98,11 +99,41 @@ export default function CriticalRisksPage() {
                             These risks represent the highest threats to your organization. Immediate mitigation strategies are recommended.
                         </p>
                     </div>
-                    <Link href={`/clients/${clientId}/risks/register`}>
-                        <Button variant="outline">
-                            View Full Register
-                        </Button>
-                    </Link>
+                    <PageGuide
+                        title="Critical Risks"
+                        description="A focused view of your most dangerous exposure points."
+                        rationale="Executives need a 'red alert' dashboard to focus resources on the risks that matter most."
+                        howToUse={[
+                            { step: "Immediate Action", description: "Everything on this list requires an active, funded treatment plan." },
+                            { step: "Residual Risk Check", description: "If a risk is here but has controls, those controls are likely failing or insufficient." },
+                            { step: "Review Weekly", description: "This list should be shrinking, not growing." }
+                        ]}
+                        integrations={[
+                            { name: "Risk Register", description: "Sources data from all high-severity assessments." },
+                            { name: "Alerting", description: "New critical risks can trigger automated notifications." }
+                        ]}
+                    />
+                    <div className="flex gap-2">
+                        <Link href={`/clients/${clientId}/risks/register`}>
+                            <Button variant="outline">
+                                View Full Register
+                            </Button>
+                        </Link>
+                        <PageGuide
+                            title="Critical Risks"
+                            description="Prioritized view of high-severity risks that require immediate attention."
+                            rationale="Not all risks are created equal. This page filters out the noise to focus on 'Critical' and 'High' risks that exceed your organization's risk tolerance."
+                            howToUse={[
+                                { step: "Review Cards", description: "Each card displays a critical risk with its score and status." },
+                                { step: "Check Recommendations", description: "Read the 'Recommended Action' to understand mitigation steps." },
+                                { step: "Take Action", description: "Click 'Manage Risk' to update the treatment plan or assign an owner." }
+                            ]}
+                            integrations={[
+                                { name: "Risk Register", description: "Clicking 'Manage Risk' takes you directly to the full register entry." },
+                                { name: "Dashboard", description: "The count of critical risks here drives the red metric on the main dashboard." }
+                            ]}
+                        />
+                    </div>
                 </div>
 
                 {criticalRisks.length === 0 ? (

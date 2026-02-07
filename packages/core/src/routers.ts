@@ -296,6 +296,7 @@ export const appRouter = router({
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   users: usersSubRouter,
+  employees: createEmployeesRouter(t, clientProcedure),
   crm: createCrmRouter(t, clientProcedure),
   sales: createSalesRouter(t, clientProcedure),
   businessContinuity: businessContinuitySubRouter,
@@ -1617,7 +1618,7 @@ export const appRouter = router({
           to: toList,
           subject: msg.subject || "(No Subject)",
           html: msg.body || "",
-          // from: msg.from, // Let transporter decide based on settings
+          replyTo: msg.from || undefined, // Allow recipients to reply to sender
           clientId: input.clientId
         });
 

@@ -30,11 +30,12 @@ import {
     Globe
 } from "lucide-react";
 
-import ClientLogoUpload from "@/components/ClientLogoUpload";
+
 import ClientContactInfo from "@/components/ClientContactInfo";
 import ClientTeamManagement from "@/components/ClientTeamManagement";
 import BillingSettings from "./BillingSettings";
 import ClientGeneralSettings from "@/components/ClientGeneralSettings";
+import ClientBrandingSettings from "@/components/ClientBrandingSettings";
 import { SmtpSettings } from "@/components/settings/SmtpSettings";
 import { PolicySettingsTab } from "@/components/settings/PolicySettingsTab";
 import { FrameworksSettingsTab } from "@/components/settings/FrameworksSettingsTab";
@@ -305,19 +306,17 @@ export default function ClientSettings() {
 
                             {/* Branding Tab */}
                             <TabsContent value="branding" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Brand Customization</CardTitle>
-                                        <CardDescription>Upload organization logo to personlize the workspace.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <ClientLogoUpload
-                                            clientId={clientId}
-                                            currentLogoUrl={client?.logoUrl}
-                                            clientName={client?.name || "Client"}
-                                        />
-                                    </CardContent>
-                                </Card>
+                                <ClientBrandingSettings
+                                    clientId={clientId}
+                                    clientName={client?.name || "Client"}
+                                    initialData={{
+                                        logoUrl: client?.logoUrl,
+                                        brandPrimaryColor: client?.brandPrimaryColor,
+                                        brandSecondaryColor: client?.brandSecondaryColor,
+                                        portalTitle: client?.portalTitle
+                                    }}
+                                    onUpdate={refetch}
+                                />
                             </TabsContent>
 
                             {/* Billing Tab */}

@@ -13397,6 +13397,21 @@ export const roadmapReports = pgTable("roadmap_reports", {
 export type RoadmapReport = typeof roadmapReports.$inferSelect;
 export type InsertRoadmapReport = typeof roadmapReports.$inferInsert;
 
+export const roadmapReportsRelations = relations(roadmapReports, ({ one }) => ({
+  client: one(clients, {
+    fields: [roadmapReports.clientId],
+    references: [clients.id],
+  }),
+  roadmap: one(roadmaps, {
+    fields: [roadmapReports.roadmapId],
+    references: [roadmaps.id],
+  }),
+  generatedByUser: one(users, {
+    fields: [roadmapReports.generatedBy],
+    references: [users.id],
+  }),
+}));
+
 
 // ==========================================
 // IMPLEMENTATION TEMPLATES
@@ -13942,5 +13957,3 @@ export const magicLinks = pgTable("magic_links", {
 
 export type MagicLink = typeof magicLinks.$inferSelect;
 export type InsertMagicLink = typeof magicLinks.$inferInsert;
-
-
