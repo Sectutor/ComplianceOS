@@ -183,14 +183,52 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
         );
     };
 
+    const handleGapAnalysis = () => {
+        toast.promise(proGenerateMutation.mutateAsync({
+            clientId,
+            title: `Technical Gap Analysis - ${new Date().toLocaleDateString()}`,
+            format: 'pdf',
+            includedSections: ['gap_analysis', 'controls', 'vulnerabilities', 'assets'],
+            dataSources: {
+                gapAnalysis: true,
+                riskAssessment: false,
+                controls: true,
+                policies: false
+            }
+        }), {
+            loading: 'Generating technical gap analysis...',
+            success: 'Gap Analysis ready!',
+            error: 'Failed to generate Gap Analysis'
+        });
+    };
+
+    const handleBoardSummary = () => {
+        toast.promise(proGenerateMutation.mutateAsync({
+            clientId,
+            title: `Board Executive Summary - ${new Date().toLocaleDateString()}`,
+            format: 'pdf',
+            includedSections: ['executive_summary', 'risks', 'kpis_metrics', 'strategic_vision'],
+            dataSources: {
+                gapAnalysis: false,
+                riskAssessment: true,
+                controls: false,
+                policies: false
+            }
+        }), {
+            loading: 'Generating executive summary...',
+            success: 'Executive Summary ready!',
+            error: 'Failed to generate Executive Summary'
+        });
+    };
+
     return (
         <div className="space-y-8 pb-12">
             {/* Quick Actions / Workshop Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
                     { title: "Custom Professional Report", desc: "Build a bespoke intelligence report", icon: Layout, action: () => setIsGeneratorOpen(true), primary: true },
-                    { title: "Gap Analysis PDF", desc: "Detailed technical posture survey", icon: FileText, action: handleGenerateReport },
-                    { title: "Board Executive Summary", desc: "Clean, chart-heavy PDF brief", icon: FileBarChart, action: handleGenerateReport },
+                    { title: "Gap Analysis PDF", desc: "Detailed technical posture survey", icon: FileText, action: handleGapAnalysis },
+                    { title: "Board Executive Summary", desc: "Clean, chart-heavy PDF brief", icon: FileBarChart, action: handleBoardSummary },
                 ].map((workshop, i) => (
                     <div
                         key={i}
@@ -248,7 +286,7 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                                 <h3 className="text-slate-900 font-semibold">No reports generated yet</h3>
                                 <p className="text-slate-500 text-sm mt-1">Generate your first board summary or technical gap analysis above.</p>
                             </div>
-                            <Button onClick={handleGenerateReport} variant="outline" className="mt-2">
+                            <Button onClick={() => setIsGeneratorOpen(true)} variant="outline" className="mt-2">
                                 <Plus className="w-4 h-4 mr-2" />
                                 Start Workshop
                             </Button>
@@ -338,7 +376,23 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                         </div>
 
                         <div className="space-y-3">
-                            <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intelligence Components</Label>
+                            <div className="flex items-center justify-between">
+                                <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intelligence Components</Label>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-[10px] text-indigo-600 font-bold hover:bg-indigo-50 hover:text-indigo-700"
+                                    onClick={() => {
+                                        if (selectedSections.length === REPORT_SECTIONS.length) {
+                                            setSelectedSections([]);
+                                        } else {
+                                            setSelectedSections(REPORT_SECTIONS.map(s => s.id));
+                                        }
+                                    }}
+                                >
+                                    {selectedSections.length === REPORT_SECTIONS.length ? 'Deselect All' : 'Select All'}
+                                </Button>
+                            </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {REPORT_SECTIONS.map((section) => (
                                     <label
