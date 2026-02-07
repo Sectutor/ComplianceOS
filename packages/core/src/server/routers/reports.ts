@@ -7,16 +7,22 @@ import * as fs from "fs/promises";
 const reportSectionSchema = z.enum([
     "cover_page",
     "executive_summary",
+    "gap_analysis",
+    "risks",
+    "controls",
+    "bcp",
+    "bia",
+    "assets",
+    "vendors",
+    "policies",
+    "incidents",
+    "vulnerabilities",
+    "audit",
+    "dpia",
     "strategic_vision",
-    "risk_appetite",
-    "objectives_timeline",
     "implementation_plan",
-    "resource_allocation",
     "kpis_metrics",
     "governance",
-    "appendix",
-    "execution_dashboard",
-    "detailed_task_log",
 ]);
 
 const generateReportSchema = z.object({
@@ -138,6 +144,51 @@ export const createReportsRouter = (t: any, adminProcedure: any, clientProcedure
                 await dbConn.delete(roadmapReports).where(eq(roadmapReports.id, input.reportId));
 
                 return { success: true };
+            }),
+
+        /**
+         * Generate a Gap Analysis report
+         */
+        generateReport: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const { generateGapAnalysisReport } = await import("../../lib/reporting");
+                const buffer = await generateGapAnalysisReport(input.clientId);
+                return {
+                    filename: `compliance-report-${new Date().toISOString().split('T')[0]}.pdf`,
+                    pdfBase64: buffer.toString('base64'),
+                };
+            }),
+
+        /**
+         * Generate a professional custom report
+         */
+        generateProfessionalReport: clientProcedure
+            .input(generateReportSchema)
+            .mutation(async ({ input }: any) => {
+                const { generateCustomProfessionalReport } = await import("../../lib/reporting");
+                const buffer = await generateCustomProfessionalReport(input.clientId, {
+                    title: input.title,
+                    sections: input.includedSections,
+                    branding: input.branding
+                });
+
+                // Save record to database
+                const dbConn = await db.getDb();
+                await dbConn.insert(roadmapReports).values({
+                    clientId: input.clientId,
+                    title: input.title,
+                    version: input.version || 'v1.0',
+                    includedSections: input.includedSections,
+                    dataSources: input.dataSources,
+                    branding: input.branding,
+                    generatedAt: new Date(),
+                });
+
+                return {
+                    filename: `${input.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    pdfBase64: buffer.toString('base64'),
+                };
             }),
     });
 };
