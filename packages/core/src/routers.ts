@@ -98,6 +98,7 @@ import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
 import { createTrainingRouter } from "./server/routers/training";
 import { magicLinksRouter } from "./server/routers/magicLinks";
+import { sammV2Router } from "./server/routers/samm-v2";
 import { emailTemplatesRouter } from "./server/routers/emailTemplates";
 import { emailTriggersRouter } from "./server/routers/emailTriggers";
 
@@ -310,6 +311,7 @@ export const appRouter = router({
   federal: createFederalRouter(t, clientProcedure),
   readiness: createReadinessRouter(t, clientProcedure),
   samm: createSammRouter(t, clientProcedure),
+  sammV2: sammV2Router,
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure),
 

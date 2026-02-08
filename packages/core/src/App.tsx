@@ -89,6 +89,7 @@ const GovernanceDashboard = lazy(() => import("./pages/governance/GovernanceDash
 const ComplianceOverview = lazy(() => import("./pages/compliance/ComplianceOverview"));
 const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview"));
 const SAMMView = lazy(() => import("@/pages/assurance/SAMMView"));
+const SAMMV2View = lazy(() => import("@/pages/assurance/SAMMV2View"));
 const FrameworkImplementationView = lazy(() => import("@/pages/assurance/FrameworkImplementationView"));
 
 // New Roadmap & Implementation pages
@@ -609,7 +610,7 @@ function Router() {
           {(_params) => <ProtectedRoute component={AssuranceOverview} />}
         </Route>
         <Route path="/clients/:id/samm">
-          {(_params) => <ProtectedRoute component={SAMMView} />}
+          {(_params) => <ProtectedRoute component={SAMMV2View} />}
         </Route>
         <Route path="/clients/:id/assurance/:frameworkId">
           {(_params) => <ProtectedRoute component={FrameworkImplementationView} />}

@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { toast } from "sonner";
 import { SAMM_OFFICIAL_CONTENT } from "./SAMM_CONTENT";
+import { PageGuide } from "@/components/PageGuide";
 
 const SAMM_STRUCTURE = [
     {
@@ -94,6 +95,18 @@ export default function SAMMView() {
         }
     });
 
+    const generatePlanMutation = trpc.samm.generateImprovementPlan.useMutation({
+        onSuccess: (data) => {
+            toast.success("Improvement Plan Created", {
+                description: `Generated ${data.taskCount} tasks for ${data.gaps} practices with gaps.`
+            });
+            setLocation(`/clients/${clientId}/implementation/kanban/${data.planId}`);
+        },
+        onError: (err) => {
+            toast.error("Failed to generate plan: " + err.message);
+        }
+    });
+
     const getPracticeScore = (practiceId: string) => {
         return localScores?.find(s => s.practiceId === practiceId) || { maturityLevel: 0, targetLevel: 1, notes: "" };
     };
@@ -121,6 +134,13 @@ export default function SAMMView() {
         return (sum / (SAMM_STRUCTURE.flatMap(f => f.practices).length * 3)) * 100;
     };
 
+    const calculateGaps = () => {
+        if (!localScores || localScores.length === 0) return 0;
+        return localScores.filter(s => s.maturityLevel < s.targetLevel).length;
+    };
+
+    const hasGaps = calculateGaps() > 0;
+
     return (
         <DashboardLayout>
             <div className="space-y-8 pb-20 px-6">
@@ -133,8 +153,26 @@ export default function SAMMView() {
                 />
 
                 <div className="flex justify-between items-end">
-                    <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight">OWASP SAMM Maturity</h1>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-4xl font-extrabold tracking-tight">OWASP SAMM Maturity</h1>
+                            <PageGuide
+                                title="OWASP SAMM Assessment"
+                                description="Measure and improve your software assurance maturity across 15 security practices organized into 5 business functions."
+                                rationale="SAMM provides a structured framework to assess your current security capabilities and create a roadmap for improvement."
+                                howToUse={[
+                                    { step: "Select Function", description: "Choose from Governance, Design, Implementation, Verification, or Operations." },
+                                    { step: "Rate Current State", description: "For each practice, select your current maturity level (0-3)." },
+                                    { step: "Set Target", description: "Define your target maturity level based on business needs." },
+                                    { step: "Review Roadmap", description: "Expand practices to see criteria, next steps, and implementation links." }
+                                ]}
+                                integrations={[
+                                    { name: "Risk Register", description: "Practice scores inform risk assessment priorities." },
+                                    { name: "Implementation", description: "Jump directly to related modules to execute improvements." },
+                                    { name: "AI Advisor", description: "Get personalized recommendations based on your evidence library." }
+                                ]}
+                            />
+                        </div>
                         <p className="text-muted-foreground mt-2">Assess your organization's software assurance maturity level.</p>
                     </div>
                     <div className="text-right space-y-2">
@@ -145,6 +183,51 @@ export default function SAMMView() {
                         </div>
                     </div>
                 </div>
+
+                {/* Generate Improvement Plan CTA */}
+                {hasGaps && (
+                    <Card className="border-2 border-[#0284c7]/20 bg-gradient-to-r from-[#0284c7]/5 to-emerald-500/5">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 rounded-lg bg-[#0284c7]/10">
+                                            <Target className="w-5 h-5 text-[#0284c7]" />
+                                        </div>
+                                        <h3 className="text-lg font-bold">Ready to Improve?</h3>
+                                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                                            {calculateGaps()} {calculateGaps() === 1 ? 'Gap' : 'Gaps'} Identified
+                                        </Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                            {localScores.length} of 15 practices assessed
+                                        </Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground ml-12">
+                                        Generate a tactical implementation plan with tasks for each <strong>assessed</strong> practice below target level.
+                                        Tasks will be organized in the PDCA framework and ready to assign to your team.
+                                    </p>
+                                </div>
+                                <Button
+                                    onClick={() => generatePlanMutation.mutate({ clientId })}
+                                    disabled={generatePlanMutation.isPending}
+                                    className="bg-[#0284c7] hover:bg-[#0369a1] text-white px-8 py-6 rounded-xl font-bold shadow-lg shadow-[#0284c7]/20"
+                                >
+                                    {generatePlanMutation.isPending ? (
+                                        <>
+                                            <span className="animate-spin mr-2">⚙️</span>
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ArrowRight className="w-5 h-5 mr-2" />
+                                            Generate Improvement Plan
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <div className="grid lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-8">
