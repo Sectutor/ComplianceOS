@@ -94,14 +94,20 @@ export default function SAMMV2View() {
                     <div className="flex items-center gap-4">
                         <PageGuide
                             title="SAMM Assessment Guide"
-                            sections={[
+                            description="A comprehensive guide to performing OWASP SAMM v2 assessments using the stream-based model."
+                            rationale="SAMM v2's stream-based model ensures a balanced approach between having the right processes (Stream A) and actually measuring their effectiveness (Stream B). This diagnostic balance prevents 'flying blind' in your security program."
+                            howToUse={[
                                 {
-                                    title: "How Assessment Works",
-                                    content: "OWASP SAMM v2 uses a stream-based model. Each of the 15 security practices is split into two logical 'streams' (A and B). You assess each stream from Level 1 to Level 3."
+                                    step: "Stream A vs. Stream B",
+                                    description: "Stream A focuses on policies and tools. Stream B focuses on verification and metrics. Your practice score is the average of both."
                                 },
                                 {
-                                    title: "Scoring Strategy",
-                                    content: "Answer questions for each level. Quality criteria must be met to achieve a level. The practice score is the average of its two streams."
+                                    step: "Diagnostic Balance",
+                                    description: "Identify gaps where you have tools (Stream A) but no data (Stream B). Bring both into balance for true maturity."
+                                },
+                                {
+                                    step: "Achieve Your Goals",
+                                    description: "Set targets for each stream and use the 'Build Roadmap' feature to generate a tactical task list."
                                 }
                             ]}
                         />
@@ -614,7 +620,12 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                         <Info className="w-5 h-5 text-primary" />
                         Assessment Notes & Evidence
                     </h4>
-                    <Button variant="ghost" size="sm" className="gap-2 text-primary font-bold">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 text-primary font-bold"
+                        onClick={() => window.open("https://owaspsamm.org/model/", "_blank")}
+                    >
                         <ExternalLink className="w-4 h-4" />
                         SAMM Docs
                     </Button>
