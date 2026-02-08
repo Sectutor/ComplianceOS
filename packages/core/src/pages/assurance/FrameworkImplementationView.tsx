@@ -14,16 +14,17 @@ import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@complianceos/ui/ui/dialog";
 import ReactMarkdown from 'react-markdown';
+import { PageGuide } from "@/components/PageGuide";
 
 const FrameworkImplementationView: React.FC = () => {
     const { id: clientId, frameworkId } = useParams<{ id: string, frameworkId: string }>();
     const [, setLocation] = useLocation();
     const [selectedPractice, setSelectedPractice] = useState<string | null>(null);
-    
+
     // AI Guidance State
     const [guidanceControl, setGuidanceControl] = useState<any | null>(null);
     const [guidanceContent, setGuidanceContent] = useState<string>("");
-    
+
     const getGuidanceMutation = trpc.advisor.getImplementationGuidance.useMutation({
         onSuccess: (data) => {
             setGuidanceContent(data.guidance);
@@ -126,6 +127,23 @@ const FrameworkImplementationView: React.FC = () => {
                                 </p>
                             </div>
                         </div>
+                    </div>
+                    <div className="relative z-10 p-2">
+                        <PageGuide
+                            title="Framework Implementation"
+                            description="Interactive guide to implementing technical controls."
+                            rationale="Bridge the gap between requirements and technical reality with step-by-step verification."
+                            howToUse={[
+                                { step: "Select Domain", description: "Choose a category from the sidebar to focus your efforts." },
+                                { step: "Review Control", description: "Read the requirements and description." },
+                                { step: "AI Guidance", description: "Click 'AI Implementation Guide' for tailored advice." },
+                                { step: "Verify & Update", description: "Check status in Audit Hub and update the state here." }
+                            ]}
+                            integrations={[
+                                { name: "Audit Hub", description: "Direct link to evidence collection." },
+                                { name: "Advisor", description: "Real-time AI consultation." }
+                            ]}
+                        />
                     </div>
                 </div>
 

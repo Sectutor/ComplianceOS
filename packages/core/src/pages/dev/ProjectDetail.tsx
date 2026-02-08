@@ -11,6 +11,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { ArrowLeft, Github, ShieldAlert, FileText, Layers, Pencil, Trash2, CheckCircle2, ListTodo, Sparkles } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 import { ThreatModelWizard } from "../../components/threat-modeling/ThreatModelWizard";
 import { RiskTreatmentDialog } from "../../components/risk/RiskTreatmentDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
@@ -194,7 +195,17 @@ export const ProjectDetail = () => {
                         </div>
                         <p className="text-slate-500 mt-1">{project.description}</p>
                     </div>
-                    <div className="ml-auto flex gap-2">
+                    <div className="ml-auto flex gap-2 items-center">
+                        <PageGuide
+                            title="Project Security Hub"
+                            description="Central view for all security aspects of this application."
+                            rationale="Consolidates threat models, risks, and compliance requirements."
+                            howToUse={[
+                                { step: "Threat Models", description: "Create and review architectural diagrams." },
+                                { step: "Risk Register", description: "Track specific vulnerabilities." },
+                                { step: "Compliance", description: "Map OWASP requirements to your stack." }
+                            ]}
+                        />
                         <Badge variant="outline" className="text-sm px-3 py-1 bg-white">
                             {project.owner || "No Owner"}
                         </Badge>

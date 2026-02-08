@@ -245,7 +245,6 @@ export default function RiskTreatmentPlanPage() {
                     </Table>
                 </CardContent>
             </Card>
-        </div>
-        </DashboardLayout >
+        </DashboardLayout>
     );
 }

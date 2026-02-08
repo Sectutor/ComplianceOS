@@ -26,6 +26,7 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { PageGuide } from "@/components/PageGuide";
 
 export default function ImplementationDashboard() {
     const params = useParams();
@@ -43,6 +44,21 @@ export default function ImplementationDashboard() {
     const { data: plans, isLoading } = trpc.implementation.list.useQuery({
         clientId: clientId!
     }, { enabled: !!clientId });
+
+    const generatePlan = trpc.compliancePlanning.generatePlan.useMutation({
+        onSuccess: (res) => {
+            if (res?.planId) {
+                toast.success("PDCA demo plan created", { description: `Generated ${res.taskCount} tasks for ${res.framework}` });
+                setLocation(`/clients/${clientId}/implementation/kanban/${res.planId}`);
+            } else {
+                toast.info("Plan generated, but no planId returned");
+            }
+            utils.implementation.list.invalidate();
+        },
+        onError: (err) => {
+            toast.error("Failed to generate demo plan", { description: err.message });
+        }
+    });
 
     const deletePlanMutation = trpc.implementation.deletePlan.useMutation({
         onSuccess: () => {
@@ -79,6 +95,20 @@ export default function ImplementationDashboard() {
                         </p>
                     </div>
                     <div className="flex gap-3">
+                        <PageGuide
+                            title="Tactical Implementation"
+                            description="Execution hub for compliance tasks and remediation plans."
+                            rationale="Translates strategic goals into actionable tasks assigned to team members."
+                            howToUse={[
+                                { step: "Create Plan", description: "Start from a roadmap or template." },
+                                { step: "Manage Tasks", description: "Use the Kanban board to track progress." },
+                                { step: "Orchestrate", description: "Use AI to break down requirements into subtasks." }
+                            ]}
+                            integrations={[
+                                { name: "Roadmap", description: "Inherits strategic milestones." },
+                                { name: "Ticketing", description: "Syncs with JIRA/Linear (if configured)." }
+                            ]}
+                        />
                         <Button
                             variant="outline"
                             className="bg-white/50 hover:bg-white border-slate-200"
@@ -86,6 +116,14 @@ export default function ImplementationDashboard() {
                         >
                             <FileText className="w-4 h-4 mr-2" />
                             Generate Report
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="bg-indigo-50 hover:bg-indigo-100 border-indigo-200"
+                            disabled={generatePlan.isPending || !clientId}
+                            onClick={() => generatePlan.mutate({ clientId: clientId!, framework: 'ISO27001', useAi: false })}
+                        >
+                            {generatePlan.isPending ? "Creating Demo PDCA…" : "Create PDCA Demo Plan"}
                         </Button>
                         <Link href={`/clients/${clientId}/implementation/create`}>
                             <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20">

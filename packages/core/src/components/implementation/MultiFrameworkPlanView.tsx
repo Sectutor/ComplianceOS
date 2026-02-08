@@ -18,6 +18,7 @@ import { HarmonizationAnalyzer } from '@/components/harmonization/HarmonizationA
 import { CertificationTracker } from '@/components/audit/CertificationTracker';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { cn } from "@/lib/utils";
+import { PageGuide } from "@/components/PageGuide";
 
 interface MultiFrameworkPlanViewProps {
     planId: number;
@@ -29,6 +30,14 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [sheetOpen, setSheetOpen] = useState(false);
     const utils = trpc.useContext();
+
+    const getPhaseStyle = (phase: string) => {
+        if (phase === 'Plan') return "bg-blue-50 text-blue-800 hover:bg-blue-100 data-[state=active]:bg-blue-200 data-[state=active]:text-blue-900 border-blue-200";
+        if (phase === 'Do') return "bg-amber-50 text-amber-800 hover:bg-amber-100 data-[state=active]:bg-amber-200 data-[state=active]:text-amber-900 border-amber-200";
+        if (phase === 'Check') return "bg-violet-50 text-violet-800 hover:bg-violet-100 data-[state=active]:bg-violet-200 data-[state=active]:text-violet-900 border-violet-200";
+        if (phase === 'Act') return "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 data-[state=active]:bg-emerald-200 data-[state=active]:text-emerald-900 border-emerald-200";
+        return "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200";
+    };
 
     const autoAssignMutation = trpc.implementation.autoAssignPdca.useMutation({
         onSuccess: (data: any) => {
@@ -131,6 +140,18 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <PageGuide
+                        title="PDCA Plan Manager"
+                        description="Manage the full lifecycle of your implementation plan using PDCA methodology."
+                        rationale="PDCA (Plan-Do-Check-Act) ensures continuous improvement and strict control over compliance activities."
+                        howToUse={[
+                            { step: "Plan", description: "Define objectives and assess risks." },
+                            { step: "Do", description: "Execute tasks and implement controls." },
+                            { step: "Check", description: "Monitor results and gather evidence." },
+                            { step: "Act", description: "Optimize and address non-conformities." },
+                            { step: "Orchestrate", description: "Use the 'Orchestrate AI Lifecycle' button to auto-generate tasks." }
+                        ]}
+                    />
                     <Button
                         variant="ghost"
                         size="sm"
@@ -155,13 +176,16 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                     {/* Left Panel: Methodology & Tasks */}
                     <div className="col-span-12 lg:col-span-9 space-y-8">
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 pb-2 mb-6">
-                                <TabsList className="bg-transparent border-0 p-0 h-auto gap-8">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 mb-6">
+                                <TabsList className="bg-white/60 backdrop-blur-sm border border-slate-100 p-1 h-auto gap-2 rounded-xl shadow-sm">
                                     {['Plan', 'Do', 'Check', 'Act'].map(phase => (
                                         <TabsTrigger
                                             key={phase}
                                             value={phase}
-                                            className="bg-transparent border-0 border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent rounded-none px-0 py-2 h-auto text-sm font-bold text-slate-400 data-[state=active]:text-slate-900 transition-all flex items-center gap-2.5"
+                                            className={cn(
+                                                "rounded-full px-3 py-1.5 h-auto text-xs font-bold tracking-wide transition-all flex items-center gap-2 border shadow-sm",
+                                                getPhaseStyle(phase)
+                                            )}
                                         >
                                             <div className={cn(
                                                 "w-2 h-2 rounded-full",
@@ -173,7 +197,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                     ))}
                                     <TabsTrigger
                                         value="framework"
-                                        className="bg-transparent border-0 border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent rounded-none px-0 py-2 h-auto text-sm font-bold text-slate-400 data-[state=active]:text-slate-900 transition-all flex items-center gap-2.5 ml-4"
+                                        className="rounded-full px-3 py-1.5 h-auto text-xs font-bold tracking-wide transition-all flex items-center gap-2 ml-2 border bg-slate-50 text-slate-700 hover:bg-slate-100 data-[state=active]:bg-slate-200 data-[state=active]:text-slate-900"
                                     >
                                         <LayoutGrid className="w-4 h-4 text-indigo-500" />
                                         Methodology Board

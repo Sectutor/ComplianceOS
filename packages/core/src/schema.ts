@@ -11365,6 +11365,13 @@ export const federalSspControls = pgTable("federal_ssp_controls", {
 
   responsibleRole: varchar("responsible_role", { length: 255 }),
 
+  evidenceLinks: json("evidence_links").$type<{
+    id?: string;
+    url?: string;
+    name: string;
+    type?: 'link' | 'file';
+  }[]>().default([]),
+
   updatedAt: timestamp("updated_at").defaultNow(),
 
 });
@@ -11375,6 +11382,36 @@ export type FederalSspControl = typeof federalSspControls.$inferSelect;
 
 export type InsertFederalSspControl = typeof federalSspControls.$inferInsert;
 
+
+
+
+// FIPS 199 Categorization
+export const federalFipsCategorizations = pgTable("federal_fips_categorizations", {
+  id: serial("id").primaryKey(),
+  sspId: integer("ssp_id").unique().notNull(),
+
+  // Security Objectives
+  securityObjectiveConfidentiality: varchar("security_objective_confidentiality", { length: 20 }).default('low'), // low, moderate, high
+  securityObjectiveIntegrity: varchar("security_objective_integrity", { length: 20 }).default('low'),
+  securityObjectiveAvailability: varchar("security_objective_availability", { length: 20 }).default('low'),
+
+  // Rationale
+  rationaleConfidentiality: text("rationale_confidentiality"),
+  rationaleIntegrity: text("rationale_integrity"),
+  rationaleAvailability: text("rationale_availability"),
+
+  // Information Types (array of types affecting the system)
+  informationTypes: json("information_types").$type<{
+    type: string;
+    impact: 'low' | 'moderate' | 'high';
+    description?: string;
+  }[]>().default([]),
+
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type FederalFipsCategorization = typeof federalFipsCategorizations.$inferSelect;
+export type InsertFederalFipsCategorization = typeof federalFipsCategorizations.$inferInsert;
 
 
 // SAR Findings

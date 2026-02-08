@@ -21,6 +21,7 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 import {
     Card,
     CardContent,
@@ -152,110 +153,126 @@ export const ProjectsDashboard = () => {
                         </p>
                     </div>
 
-                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
-                                <Plus className="mr-2 h-5 w-5" /> New Project
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                                <DialogTitle className="text-2xl">Initialize Security Project</DialogTitle>
-                                <DialogDescription>
-                                    Define the scope and criticality to start tracking its security posture.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>Project Name</Label>
-                                    <Input
-                                        value={newProject.name}
-                                        onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                                        placeholder="e.g. Migration to AWS"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Project Type</Label>
-                                        <Select
-                                            value={newProject.projectType}
-                                            onValueChange={(v: any) => setNewProject({ ...newProject, projectType: v })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="it">IT Project</SelectItem>
-                                                <SelectItem value="ai">AI / LLM Project</SelectItem>
-                                                <SelectItem value="infra">Infrastructure</SelectItem>
-                                                <SelectItem value="privacy">Privacy / Personal Data</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Criticality</Label>
-                                        <Select
-                                            value={newProject.securityCriticality}
-                                            onValueChange={(v: any) => setNewProject({ ...newProject, securityCriticality: v })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="low">Low Impact</SelectItem>
-                                                <SelectItem value="medium">Medium</SelectItem>
-                                                <SelectItem value="high">High</SelectItem>
-                                                <SelectItem value="critical">Critical</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Description</Label>
-                                    <Textarea
-                                        value={newProject.description}
-                                        onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                                        placeholder="Briefly describe the security scope..."
-                                        rows={3}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Owner / Lead</Label>
-                                    <Select
-                                        value={newProject.owner}
-                                        onValueChange={(v) => setNewProject({ ...newProject, owner: v })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select responsible person" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {members?.map(member => (
-                                                <SelectItem key={member.id} value={member.name || member.email}>
-                                                    <div className="flex flex-col">
-                                                        <span>{member.name || member.email}</span>
-                                                        <span className="text-[10px] text-slate-400 capitalize">{member.role}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                            {(!members || members.length === 0) && (
-                                                <SelectItem value="unassigned" disabled>No members found</SelectItem>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                                <Button
-                                    onClick={handleCreate}
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                    disabled={!newProject.name || createMutation.isLoading}
-                                >
-                                    {createMutation.isLoading ? "Initializing..." : "Create Project"}
+                    <div className="flex gap-4 items-center">
+                        <PageGuide
+                            title="Security Projects"
+                            description="Manage and track security initiatives across IT, AI, and Infrastructure."
+                            rationale="Projects group related assets and risks, allowing for focused assessment and remediation."
+                            howToUse={[
+                                { step: "Create Project", description: "Define clear scope and criticality for new initiatives." },
+                                { step: "Assign Owner", description: "Designate a responsible lead for accountability." },
+                                { step: "Assess Risks", description: "Use the project view to identify and treat specific risks." }
+                            ]}
+                            integrations={[
+                                { name: "Risk Register", description: "Aggregates project risks into the global register." },
+                                { name: "Threat Modeling", description: "Links technical threat models to the project." }
+                            ]}
+                        />
+                        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+                                    <Plus className="mr-2 h-5 w-5" /> New Project
                                 </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[500px]">
+                                <DialogHeader>
+                                    <DialogTitle className="text-2xl">Initialize Security Project</DialogTitle>
+                                    <DialogDescription>
+                                        Define the scope and criticality to start tracking its security posture.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label>Project Name</Label>
+                                        <Input
+                                            value={newProject.name}
+                                            onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                                            placeholder="e.g. Migration to AWS"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Project Type</Label>
+                                            <Select
+                                                value={newProject.projectType}
+                                                onValueChange={(v: any) => setNewProject({ ...newProject, projectType: v })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="it">IT Project</SelectItem>
+                                                    <SelectItem value="ai">AI / LLM Project</SelectItem>
+                                                    <SelectItem value="infra">Infrastructure</SelectItem>
+                                                    <SelectItem value="privacy">Privacy / Personal Data</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Criticality</Label>
+                                            <Select
+                                                value={newProject.securityCriticality}
+                                                onValueChange={(v: any) => setNewProject({ ...newProject, securityCriticality: v })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select level" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="low">Low Impact</SelectItem>
+                                                    <SelectItem value="medium">Medium</SelectItem>
+                                                    <SelectItem value="high">High</SelectItem>
+                                                    <SelectItem value="critical">Critical</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Description</Label>
+                                        <Textarea
+                                            value={newProject.description}
+                                            onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                                            placeholder="Briefly describe the security scope..."
+                                            rows={3}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Owner / Lead</Label>
+                                        <Select
+                                            value={newProject.owner}
+                                            onValueChange={(v) => setNewProject({ ...newProject, owner: v })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select responsible person" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {members?.map(member => (
+                                                    <SelectItem key={member.id} value={member.name || member.email}>
+                                                        <div className="flex flex-col">
+                                                            <span>{member.name || member.email}</span>
+                                                            <span className="text-[10px] text-slate-400 capitalize">{member.role}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                                {(!members || members.length === 0) && (
+                                                    <SelectItem value="unassigned" disabled>No members found</SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                                    <Button
+                                        onClick={handleCreate}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                        disabled={!newProject.name || createMutation.isLoading}
+                                    >
+                                        {createMutation.isLoading ? "Initializing..." : "Create Project"}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
 
                 <div className="flex items-center space-x-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -374,6 +391,6 @@ export const ProjectsDashboard = () => {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 };

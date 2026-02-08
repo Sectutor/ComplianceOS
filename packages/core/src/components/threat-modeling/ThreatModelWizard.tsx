@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PASTAStages, PASTAData } from "./PASTAStages";
 import RichTextEditor from "@/components/RichTextEditor";
+import { PageGuide } from "@/components/PageGuide";
 
 const COMPONENT_GROUPS = {
     "General": ['Process', 'Store', 'Actor'],
@@ -484,6 +485,19 @@ export function ThreatModelWizard() {
                         { label: `${modelBasic.methodology || "STRIDE"} Framework` }
                     ]}
                 />
+
+                <div className="flex justify-between items-start">
+                    <PageGuide
+                        title="Threat Modeling Wizard"
+                        description="Identify architectural flaws and security risks."
+                        rationale="Systematic analysis of your design prevents costly security fixes later."
+                        howToUse={[
+                            { step: "Architecture", description: "Design your system using the drag-and-drop canvas." },
+                            { step: "Analysis", description: "Automatically generate threats based on the design." },
+                            { step: "Mitigation", description: "Select controls to reduce risk." }
+                        ]}
+                    />
+                </div>
 
                 <WorkflowDiagram currentStep={step} />
 

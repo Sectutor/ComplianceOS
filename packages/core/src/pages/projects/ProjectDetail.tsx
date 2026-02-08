@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 import {
     Card,
     CardContent,
@@ -121,7 +122,17 @@ export const ProjectDetail = () => {
                         </div>
                     </div>
 
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-3 items-center">
+                        <PageGuide
+                            title="IT Project Overview"
+                            description="Security posture and risk analysis for infrastructure projects."
+                            rationale="Provides visibility into the security health of IT initiatives."
+                            howToUse={[
+                                { step: "Security Analysis", description: "View NIST CSF maturity scores." },
+                                { step: "Privacy & Data", description: "Track LINDDUN privacy threats." },
+                                { step: "Risk Register", description: "Manage project-specific risks." }
+                            ]}
+                        />
                         <Button variant="outline" className="rounded-xl">
                             <FileText className="mr-2 h-4 w-4" /> Export Report
                         </Button>
@@ -180,8 +191,8 @@ export const ProjectDetail = () => {
                                     <div className="flex items-center justify-between">
                                         {/* If 0% completion but we have planned mitigations, show the count to indicate progress */}
                                         <div className="text-3xl font-black text-indigo-700">
-                                            {(posture?.treatmentStats?.averageCompletion === 0 && posture?.treatmentStats?.total > 0) 
-                                                ? posture.treatmentStats.total 
+                                            {(posture?.treatmentStats?.averageCompletion === 0 && posture?.treatmentStats?.total > 0)
+                                                ? posture.treatmentStats.total
                                                 : `${posture?.treatmentStats?.averageCompletion || 0}%`}
                                         </div>
                                         <Target className="h-8 w-8 text-indigo-200" />

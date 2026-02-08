@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
+import { PageGuide } from "@/components/PageGuide";
 import { useClientContext } from "@/contexts/ClientContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -31,6 +32,20 @@ export default function PersonnelComplianceHub() {
                             Manage training modules, onboarding documents, and track company-wide compliance status.
                         </p>
                     </div>
+                    <PageGuide
+                        title="Personnel Compliance"
+                        description="360-degree view of employee security status."
+                        rationale="Centralizes tracking of background checks, training, and policy acceptance."
+                        howToUse={[
+                            { step: "Onboard Employees", description: "Manage document signing workflows." },
+                            { step: "Monitor Status", description: "Identify non-compliant staff at a glance." },
+                            { step: "Asset Management", description: "Track assigned devices and access." }
+                        ]}
+                        integrations={[
+                            { name: "Training", description: "Links to Training Management." },
+                            { name: "Policies", description: "Tracks policy acceptance." }
+                        ]}
+                    />
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

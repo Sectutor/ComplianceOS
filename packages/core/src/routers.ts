@@ -18,6 +18,7 @@ import { createRoadmapRouter } from "./server/routers/roadmap";
 import { createVendorContractsRouter } from "./server/routers/vendorContracts";
 import { createVendorDpasRouter } from "./server/routers/vendorDpas";
 import { createVendorRequestsRouter } from "./server/routers/vendorRequests";
+import { createThreatIntelRouter } from "./server/routers/threatIntel";
 // Premium import placeholders
 // import { createSubprocessorsRouter } from "./server/routers/subprocessors";
 import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
@@ -324,6 +325,7 @@ export const appRouter = router({
   devProjects: createDevProjectsRouter(t, clientProcedure),
   projects: createProjectsRouter(t, clientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
+  threatIntel: createThreatIntelRouter(t, protectedProcedure, clientProcedure),
   vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),

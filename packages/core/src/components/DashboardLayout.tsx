@@ -164,6 +164,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/readiness/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
   if (purePath === "/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
   if (purePath === "/implementation") return `/clients/${clientId}/implementation${queryStr}`;
+  if (purePath === "/implementation/dashboard") return `/clients/${clientId}/implementation${queryStr}`;
   if (purePath === "/evidence") return `/clients/${clientId}/evidence${queryStr}`;
   if (purePath === "/journey") return `/clients/${clientId}/journey${queryStr}`; // New
   if (purePath === "/onboarding") return `/onboarding${queryStr}`; // Global, but good to handle explicitly if needed
@@ -1221,11 +1222,25 @@ function CollapsibleGroup({
   menuSearch: string,
   highlightMatch: any
 }) {
-  const [isOpen, setIsOpen] = useState(forceOpen);
+  // Check if the current group contains the active menu item
+  const containsActiveItem = group.items.some((item: any) => {
+    if (item === bestMatchItem) return true;
+    // Also check if active item is in a submenu of this group
+    if (item.submenu) {
+      return item.submenu.some((sub: any) => sub === bestMatchItem);
+    }
+    return false;
+  });
 
+  // Initialize open state based on whether group contains active item
+  const [isOpen, setIsOpen] = useState(forceOpen || containsActiveItem);
+
+  // Update open state when the active item changes (e.g., during navigation)
   useEffect(() => {
-    if (forceOpen) setIsOpen(true);
-  }, [forceOpen]);
+    if (forceOpen || containsActiveItem) {
+      setIsOpen(true);
+    }
+  }, [forceOpen, containsActiveItem]);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="group/collapsible">

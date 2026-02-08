@@ -16,6 +16,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@complianceos/ui/ui/breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 
 export default function OverdueAssessmentsPage() {
     const { id } = useParams<{ id: string }>();
@@ -84,16 +85,17 @@ export default function OverdueAssessmentsPage() {
                     </BreadcrumbList>
                 </Breadcrumb>
 
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-950 flex items-center gap-2">
-                            <ShieldAlert className="w-8 h-8 text-red-600" />
-                            Overdue Vendor Assessments
-                        </h1>
-                        <p className="text-slate-600 mt-2 text-lg">
-                            The following vendor assessments have missed their due dates and require immediate attention.
-                        </p>
-                    </div>
+                <div className="flex items-start justify-between animate-slide-down">
+                    <PageGuide
+                        title="Overdue Vendor Assessments"
+                        description="Track and resolve assessments that have missed their due dates."
+                        rationale="Timely assessment completion is critical for continuous monitoring compliance (ISO 27001 / SOC 2)."
+                        howToUse={[
+                            { step: "Review", description: "Identify vendors with overdue assessments and their risk level." },
+                            { step: "Contact", description: "Follow up with vendors to expedite response submission." },
+                            { step: "Resolve", description: "Review late submissions or escalate non-responsive vendors." }
+                        ]}
+                    />
                     <Link href={`/clients/${clientId}/vendors`}>
                         <Button variant="outline">
                             View All Vendors
