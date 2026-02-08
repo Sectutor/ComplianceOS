@@ -76,6 +76,8 @@ import {
 import { Suspense, lazy } from 'react';
 import { Slot, SlotNames } from "@/registry";
 
+import { PageGuide } from "@/components/PageGuide";
+
 const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
 
 export default function AuditHub() {
@@ -501,6 +503,22 @@ export default function AuditHub() {
                                         <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: `${score}%` }} />
                                     </div>
                                 </div>
+
+                                <PageGuide
+                                    title="Audit Hub"
+                                    description="Centralized workspace for audit evidence and external auditor collaboration."
+                                    rationale="Streamlines the audit process by providing a secure, auditable 'Clean Room' where auditors only see verified evidence."
+                                    howToUse={[
+                                        { step: "Initialize PBC", description: "Use the rotate icon in the sidebar to sync a standard request list." },
+                                        { step: "Collect Evidence", description: "Drag and drop files or link integrations to fulfill requests." },
+                                        { step: "Internal Review", description: "Set status to 'Verified' to make evidence visible to the auditor." },
+                                        { step: "Manage Findings", description: "Track auditor observations and link them to remediation tasks." }
+                                    ]}
+                                    integrations={[
+                                        { name: "Global Vault", description: "Sync existing evidence." },
+                                        { name: "Magic Links", description: "Secure external auditor access." }
+                                    ]}
+                                />
 
                                 {isAdmin && (
                                     <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>

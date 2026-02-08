@@ -191,6 +191,8 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/compliance-journey') ||
     purePath.startsWith('/assurance') ||
     purePath.startsWith('/implementation') ||
+    purePath === '/asvs' ||
+    purePath === '/samm' ||
     purePath === '/metrics';
 
 
@@ -701,6 +703,8 @@ function DashboardLayoutContent({
         { icon: Shield, label: "Security Projects", path: "/projects" },
         { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
         { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
+        { icon: ShieldCheck, label: "SAMM V2", path: "/samm" },
+        { icon: ShieldAlert, label: "ASVS Assessment", path: "/asvs" },
       ]
     });
 
@@ -784,7 +788,7 @@ function DashboardLayoutContent({
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: Shield, label: "SAMM Maturity", path: "/samm" },
           { icon: Zap, label: "Supply Chain (SCVS)", path: "/assurance/scvs" },
-          { icon: Code, label: "App Security (ASVS)", path: "/assurance/asvs" },
+          { icon: Code, label: "App Security (ASVS)", path: "/asvs" },
           { icon: ShieldCheck, label: "OpenSSF Hygiene", path: "/assurance/openssf" },
           { icon: Radar, label: "Mobile App Sec", path: "/assurance/masvs" },
         ]

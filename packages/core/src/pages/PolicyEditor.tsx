@@ -32,6 +32,7 @@ import { CommentsSection } from "@/components/CommentsSection";
 import { Slot } from "@/registry";
 import { SlotNames } from "@/registry/slotNames";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
+import { PageGuide } from "@/components/PageGuide";
 
 export default function PolicyEditor() {
     const params = useParams();
@@ -626,62 +627,21 @@ export default function PolicyEditor() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Quick Guide Card */}
-                        <Card className="border-blue-100 bg-blue-50/30 overflow-hidden transition-all duration-300">
-                            <CardHeader className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-blue-50/50" onClick={() => setShowGuide(!showGuide)}>
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600">
-                                        <HelpCircle className="h-4 w-4" />
-                                    </div>
-                                    <CardTitle className="text-base font-semibold text-blue-900">How to use Policy Editor</CardTitle>
-                                </div>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100/50">
-                                    {showGuide ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                </Button>
-                            </CardHeader>
-                            <div className={showGuide ? "block" : "hidden"}>
-                                <CardContent className="px-4 pb-4 pt-0">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-blue-800 font-medium text-sm">
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white">1</span>
-                                                Structured Formatting
-                                            </div>
-                                            <p className="text-xs text-blue-700/80 leading-relaxed">
-                                                Use the editor to build <strong>well-structured policies</strong>. Proper headings, bullet points, and tables are not just for layout—they ensure your policy is readable and legally sound for auditors.
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-blue-800 font-medium text-sm">
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white">2</span>
-                                                Audit-Ready History
-                                            </div>
-                                            <p className="text-xs text-blue-700/80 leading-relaxed">
-                                                Compliance requires a <strong>clear trail of changes</strong>. Use the <strong>"History"</strong> tab to demonstrate evolution over time. Restoring a version allows you to safely experiment with new drafts.
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-blue-800 font-medium text-sm">
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white">3</span>
-                                                Targeted Exporting
-                                            </div>
-                                            <p className="text-xs text-blue-700/80 leading-relaxed">
-                                                Export as <strong>PDF</strong> for final, tamper-proof submissions to auditors. Use the <strong>Word</strong> export if you need to perform external legal reviews or share with third parties.
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-blue-800 font-medium text-sm">
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white">4</span>
-                                                Official Publication
-                                            </div>
-                                            <p className="text-xs text-blue-700/80 leading-relaxed">
-                                                Publishing creates a <strong>locked timestamped record</strong> of your policy. This is the "Gold Version" that stakeholders should follow and that auditors will evaluate during your assessment.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </div>
-                        </Card>
+                        <PageGuide
+                            title="Policy Management Guide"
+                            description="Build, manage, and distribute your organizational policies."
+                            rationale="Policies are the foundation of compliance. This editor ensures they are not just text files, but integrated living documents connected to your risks and controls."
+                            howToUse={[
+                                { step: "Structure Policy", description: "Use the Rich Text Editor to build well-formatted, readable policies." },
+                                { step: "Link Integrations", description: "Connect your policy to the Risks it mitigates and Controls it enforces." },
+                                { step: "Publish Version", description: "Create a locked, timestamped record of the policy for auditors." },
+                                { step: "Track Attestation", description: "Monitor employee acknowledgment in the Employees tab." }
+                            ]}
+                            integrations={[
+                                { name: "Risk Register", description: "Link to source risks." },
+                                { name: "Audit Hub", description: "Export results as evidence." }
+                            ]}
+                        />
 
                         <Card>
                             <CardHeader>

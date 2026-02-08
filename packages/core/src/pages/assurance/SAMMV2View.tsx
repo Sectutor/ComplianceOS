@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -36,9 +36,10 @@ export default function SAMMV2View() {
     const [activeFunction, setActiveFunction] = useState<string>("Governance");
 
     // Queries
-    const { data: practices, isLoading: loadingPractices } = trpc.sammV2.getPractices.useQuery({});
+    const { data: practices, isLoading: loadingPractices } = trpc.sammV2.getPractices.useQuery({ clientId });
     const { data: assessments, refetch: refetchAssessments } = trpc.sammV2.getAssessments.useQuery({ clientId });
     const { data: overallScore } = trpc.sammV2.calculateOverallScore.useQuery({ clientId });
+    const generatePlanMutation = trpc.sammV2.generateImprovementPlan.useMutation();
 
     // Select first practice of initial function on load
     useEffect(() => {
@@ -262,19 +263,20 @@ export default function SAMMV2View() {
                                     </p>
                                 </div>
                                 <Button
-                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/20 py-6"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/20 py-6 font-black"
+                                    disabled={generatePlanMutation.isLoading}
                                     onClick={() => {
-                                        toast.promise(trpc.sammV2.generateImprovementPlan.mutateAsync({ clientId }), {
-                                            loading: "Generating plan...",
+                                        toast.promise(generatePlanMutation.mutateAsync({ clientId }), {
+                                            loading: "Building your security roadmap...",
                                             success: (res) => {
-                                                setLocation(`/clients/${clientId}/implementation/${res.planId}`);
+                                                setLocation(`/clients/${clientId}/implementation/kanban/${res.planId}`);
                                                 return `Generated plan with ${res.taskCount} tasks!`;
                                             },
                                             error: (err) => `Failed to generate plan: ${err.message}`
                                         });
                                     }}
                                 >
-                                    Build Roadmap
+                                    {generatePlanMutation.isLoading ? "Building..." : "Build Roadmap"}
                                 </Button>
                             </div>
                         </Card>
@@ -313,10 +315,30 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
 }) {
     const [activeStream, setActiveStream] = useState<"A" | "B">("A");
 
-    const streamA = existingAssessments.find(a => a.streamId === "A");
-    const streamB = existingAssessments.find(a => a.streamId === "B");
+    const streamA = existingAssessments?.find(a => a.streamId === "A");
+    const streamB = existingAssessments?.find(a => a.streamId === "B");
 
-    const score = ((streamA?.maturityLevel || 0) + (streamB?.maturityLevel || 0)) / 2;
+    const [maturityA, setMaturityA] = useState(streamA?.maturityLevel || 0);
+    const [maturityB, setMaturityB] = useState(streamB?.maturityLevel || 0);
+
+    // Sync state when props change
+    useEffect(() => {
+        if (streamA) setMaturityA(streamA.maturityLevel);
+    }, [streamA?.maturityLevel]);
+
+    useEffect(() => {
+        if (streamB) setMaturityB(streamB.maturityLevel);
+    }, [streamB?.maturityLevel]);
+
+    const handleMaturityChange = useCallback((newLevel: number) => {
+        if (activeStream === "A") {
+            setMaturityA(newLevel);
+        } else {
+            setMaturityB(newLevel);
+        }
+    }, [activeStream]);
+
+    const score = (maturityA + maturityB) / 2;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -334,12 +356,15 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-8 px-10">
                     <div className="flex flex-col items-center">
                         <span className="text-xs uppercase tracking-widest font-black text-slate-400 mb-1">Maturity</span>
-                        <span className="text-4xl font-black text-primary">{score.toFixed(1)}</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-black text-primary">{score.toFixed(1)}</span>
+                            <span className="text-sm text-slate-400 font-bold">/ 3.0</span>
+                        </div>
                     </div>
                     <div className="h-10 w-px bg-slate-100"></div>
                     <div className="flex flex-col items-center">
                         <span className="text-xs uppercase tracking-widest font-black text-slate-400 mb-1">Status</span>
-                        <Badge variant={score > 1.5 ? "success" : score > 0.5 ? "warning" : "default"} className="font-bold">
+                        <Badge variant={score > 1.5 ? "success" : score > 0.5 ? "warning" : "default"} className="font-bold text-sm px-3 py-1">
                             {score === 3 ? "Optimized" : score >= 2 ? "Managed" : score >= 1 ? "Defined" : "Initial"}
                         </Badge>
                     </div>
@@ -354,7 +379,7 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
                     description={practice.streamADescription}
                     active={activeStream === "A"}
                     onClick={() => setActiveStream("A")}
-                    maturity={streamA?.maturityLevel || 0}
+                    maturity={maturityA}
                 />
                 <StreamCard
                     streamId="B"
@@ -362,7 +387,7 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
                     description={practice.streamBDescription}
                     active={activeStream === "B"}
                     onClick={() => setActiveStream("B")}
-                    maturity={streamB?.maturityLevel || 0}
+                    maturity={maturityB}
                 />
             </div>
 
@@ -374,6 +399,7 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
                 streamName={activeStream === "A" ? practice.streamAName : practice.streamBName}
                 onUpdate={onUpdate}
                 assessment={activeStream === "A" ? streamA : streamB}
+                onMaturityChange={handleMaturityChange}
             />
         </div>
     );
@@ -413,20 +439,29 @@ function StreamCard({ streamId, name, description, active, onClick, maturity }: 
     );
 }
 
-function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onUpdate, assessment }: any) {
-    const { data: questions, isLoading } = trpc.sammV2.getStreamQuestions.useQuery({ practiceId, streamId });
+function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onUpdate, assessment, onMaturityChange }: any) {
+    const { data: questions, isLoading } = trpc.sammV2.getStreamQuestions.useQuery(
+        { practiceId, streamId },
+        { enabled: !!practiceId }
+    );
     const [localAnswers, setLocalAnswers] = useState<Record<string, boolean>>(assessment?.assessmentAnswers || {});
+    // ... other states unchanged ...
     const [localQuality, setLocalQuality] = useState<Record<string, Record<string, boolean>>>(assessment?.qualityCriteria || {});
+    const [localLevelNotes, setLocalLevelNotes] = useState<Record<string, string>>(assessment?.levelNotes || {});
     const [notes, setNotes] = useState(assessment?.notes || "");
     const [target, setTarget] = useState(assessment?.targetLevel || 1);
 
     // Sync with prop when props change
     useEffect(() => {
         setLocalAnswers(assessment?.assessmentAnswers || {});
+        // ...
         setLocalQuality(assessment?.qualityCriteria || {});
+        setLocalLevelNotes(assessment?.levelNotes || {});
         setNotes(assessment?.notes || "");
         setTarget(assessment?.targetLevel || 1);
     }, [assessment, streamId]);
+
+    // ... updateMutation unchanged ...
 
     const updateMutation = trpc.sammV2.updateStreamAssessment.useMutation({
         onSuccess: () => {
@@ -436,7 +471,8 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
     });
 
     const handleToggleAnswer = (level: number, value: boolean) => {
-        setLocalAnswers(prev => ({ ...prev, [level]: value }));
+        const key = String(level); // Force string key
+        setLocalAnswers(prev => ({ ...prev, [key]: value }));
     };
 
     const handleToggleQuality = (level: number, index: number, value: boolean) => {
@@ -446,16 +482,25 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
         }));
     };
 
-    // Calculate maturity based on answers
-    // In a simple model: max level achieved where answer is Yes and all prior are Yes
-    // SAMM v2 officially has more complex partial scoring, but we'll start with achieved level
+    // Robust calculation logic
     const calculatedMaturity = useMemo(() => {
         let max = 0;
-        if (localAnswers[1]) max = 1; else return 0;
-        if (localAnswers[2]) max = 2; else return 1;
-        if (localAnswers[3]) max = 3; else return 2;
+        // Check levels sequentially, handling string/number key ambiguity
+        if (localAnswers["1"] || localAnswers[1]) max = 1; else return 0;
+        if (localAnswers["2"] || localAnswers[2]) max = 2; else return 1;
+        if (localAnswers["3"] || localAnswers[3]) max = 3; else return 2;
         return max;
     }, [localAnswers]);
+
+    // Report maturity change
+    useEffect(() => {
+        if (onMaturityChange) {
+            onMaturityChange(calculatedMaturity);
+        }
+    }, [calculatedMaturity, onMaturityChange]);
+
+    // ... JSX ...
+
 
     const saveAssessment = () => {
         updateMutation.mutate({
@@ -466,6 +511,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
             targetLevel: target,
             assessmentAnswers: localAnswers,
             qualityCriteria: localQuality,
+            levelNotes: localLevelNotes,
             notes
         });
     };
@@ -502,7 +548,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                     const isTarget = q.level === target;
 
                     return (
-                        <Card key={q.level} className={`border-none shadow-none overflow-hidden rounded-3xl transition-all ${isAchieved ? "bg-white ring-2 ring-primary/20" : "bg-white border border-slate-100"
+                        <Card key={q.id} className={`border-none shadow-none overflow-hidden rounded-3xl transition-all ${isAchieved ? "bg-white ring-2 ring-primary/20" : "bg-white border border-slate-100"
                             }`}>
                             <div className="grid md:grid-cols-12">
                                 <div className={`md:col-span-1 p-4 flex flex-col items-center justify-center border-r border-slate-50 transition-colors ${isAchieved ? "bg-primary text-white" : "bg-slate-50 text-slate-400"
@@ -606,6 +652,22 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Level-specific Notes */}
+                                    <div className="mt-10 -mx-8 -mb-8">
+                                        <div className="px-8 py-3 bg-slate-50 border-t border-b border-slate-100 flex items-center justify-between">
+                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                                <FileText className="w-3.5 h-3.5" />
+                                                Implementation Findings & Evidence (Level {q.level})
+                                            </h5>
+                                        </div>
+                                        <textarea
+                                            value={localLevelNotes[q.level] || ""}
+                                            onChange={(e) => setLocalLevelNotes(prev => ({ ...prev, [q.level]: e.target.value }))}
+                                            placeholder={`Document how your organization satisfies the requirements for Level ${q.level}...`}
+                                            className="w-full min-h-[100px] p-8 bg-white text-sm text-slate-600 placeholder:text-slate-300 transition-all outline-none resize-none"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </Card>
@@ -643,6 +705,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                         onClick={() => {
                             setLocalAnswers(assessment?.assessmentAnswers || {});
                             setLocalQuality(assessment?.qualityCriteria || {});
+                            setLocalLevelNotes(assessment?.levelNotes || {});
                             setNotes(assessment?.notes || "");
                         }}
                     >

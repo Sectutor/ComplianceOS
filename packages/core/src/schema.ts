@@ -12614,6 +12614,10 @@ export const sammStreamAssessments = pgTable("samm_stream_assessments", {
   notes: text("notes"),
   improvementNotes: text("improvement_notes"),
 
+  // Specific notes per level
+  // Format: { "1": "Notes for level 1", "2": "Notes for level 2", ... }
+  levelNotes: jsonb("level_notes").$type<Record<string, string>>().default({}),
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -14132,3 +14136,84 @@ export const magicLinks = pgTable("magic_links", {
 
 export type MagicLink = typeof magicLinks.$inferSelect;
 export type InsertMagicLink = typeof magicLinks.$inferInsert;
+
+// ============================================================================
+// OWASP ASVS v4.0.3 Assessment Schema
+// ============================================================================
+
+// ASVS Categories (e.g., V1: Architecture)
+export const asvsCategories = pgTable("asvs_categories", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 10 }).notNull().unique(), // e.g., "V1"
+  name: varchar("name", { length: 255 }).notNull(), // e.g., "Architecture, Design and Threat Modeling"
+  description: text("description"),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ASVS Chapters (Sub-categories if needed, but usually flattened to Requirements. 
+// However, ASVS structure is V1 -> 1.1 -> 1.1.1. 
+// We will store individual requirements and link them to the Category V1, V2 etc.
+// We will simply store the "Chapter" (1.1, 1.2) as a string property on the requirement for grouping.)
+
+// ASVS Requirements (Reference Data)
+export const asvsRequirements = pgTable("asvs_requirements", {
+  id: serial("id").primaryKey(),
+
+  categoryCode: varchar("category_code", { length: 10 }).notNull(), // FK to asvsCategories.code e.g. "V1" (manual link or join)
+
+  chapterId: varchar("chapter_id", { length: 20 }).notNull(), // e.g., "1.1"
+  chapterName: varchar("chapter_name", { length: 255 }), // e.g., "Secure Software Development Lifecycle"
+
+  requirementId: varchar("requirement_id", { length: 20 }).notNull().unique(), // e.g., "1.1.1"
+  description: text("description").notNull(),
+
+  level1: boolean("level_1").default(false), // Required for L1?
+  level2: boolean("level_2").default(false), // Required for L2?
+  level3: boolean("level_3").default(false), // Required for L3?
+
+  cwe: varchar("cwe", { length: 50 }), // e.g., "CWE-123"
+  nist: varchar("nist", { length: 50 }), // NIST mapping if available
+
+  version: varchar("version", { length: 20 }).default("4.0.3"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    categoryIdx: index("idx_asvs_req_category").on(table.categoryCode),
+    reqIdIdx: index("idx_asvs_req_id").on(table.requirementId),
+  };
+});
+
+// ASVS Assessments (Client Data)
+export const asvsAssessments = pgTable("asvs_assessments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+
+  requirementId: varchar("requirement_id", { length: 20 }).notNull(), // Link to asvsRequirements
+
+  status: varchar("status", { length: 50 }).default("unanswered"), // unanswered, pass, fail, na
+
+  notes: text("notes"),
+  evidence: jsonb("evidence").$type<string[]>().default([]),
+
+  assessedBy: integer("assessed_by"),
+  assessmentDate: timestamp("assessment_date").defaultNow(),
+
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientReqIdx: uniqueIndex("idx_asvs_client_req").on(table.clientId, table.requirementId),
+    clientStatusIdx: index("idx_asvs_client_status").on(table.clientId, table.status),
+  };
+});
+
+export type AsvsCategory = typeof asvsCategories.$inferSelect;
+export type InsertAsvsCategory = typeof asvsCategories.$inferInsert;
+
+export type AsvsRequirement = typeof asvsRequirements.$inferSelect;
+export type InsertAsvsRequirement = typeof asvsRequirements.$inferInsert;
+
+export type AsvsAssessment = typeof asvsAssessments.$inferSelect;
+export type InsertAsvsAssessment = typeof asvsAssessments.$inferInsert;

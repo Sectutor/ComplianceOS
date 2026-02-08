@@ -16,7 +16,7 @@ import * as threatScheduler from './packages/core/src/server/services/threatSche
 export const app = express();
 const port = process.env.PORT || 3002;
 // Force restart
-console.log('[Server] Initializing... Last update: 2026-02-07 16:07');
+console.log(`[Server] Initializing... Last update: ${new Date().toISOString()}`);
 
 console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
