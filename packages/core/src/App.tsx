@@ -90,6 +90,7 @@ const ComplianceOverview = lazy(() => import("./pages/compliance/ComplianceOverv
 const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview"));
 const SAMMView = lazy(() => import("@/pages/assurance/SAMMView"));
 const SAMMV2View = lazy(() => import("@/pages/assurance/SAMMV2View"));
+const ASVSView = lazy(() => import("@/pages/assurance/ASVSView"));
 const FrameworkImplementationView = lazy(() => import("@/pages/assurance/FrameworkImplementationView"));
 
 // New Roadmap & Implementation pages
@@ -103,7 +104,7 @@ const RoadmapEditPage = lazy(() => import("./pages/readiness/RoadmapEditPageFixe
 const ImplementationDashboard = lazy(() => import("./components/implementation/ImplementationDashboard"));
 const ImplementationCreate = lazy(() => import("./components/implementation/ImplementationCreate"));
 // const ImplementationKanban = lazy(() => import("./components/implementation/ImplementationKanban"));
-// const ImplementationKanbanPage = lazy(() => import("./components/implementation/ImplementationKanbanPage"));
+const ImplementationKanbanPage = lazy(() => import("./components/implementation/ImplementationKanbanPage"));
 const MultiFrameworkPlanView = lazy(() => import("@/components/implementation/MultiFrameworkPlanView"));
 const ImplementationResources = lazy(() => import("./components/implementation/ImplementationResources"));
 const TemplateManager = lazy(() => import("./components/implementation/TemplateManager"));
@@ -612,6 +613,9 @@ function Router() {
         <Route path="/clients/:id/samm">
           {(_params) => <ProtectedRoute component={SAMMV2View} />}
         </Route>
+        <Route path="/clients/:id/asvs">
+          {(_params) => <ProtectedRoute component={ASVSView} />}
+        </Route>
         <Route path="/clients/:id/assurance/:frameworkId">
           {(_params) => <ProtectedRoute component={FrameworkImplementationView} />}
         </Route>
@@ -701,7 +705,7 @@ function Router() {
         <Route path="/clients/:id/implementation/create">
           {(_params) => <ProtectedRoute component={ImplementationCreate} />}
         </Route>
-        <Route path="/clients/:id/implementation/kanban/:planId">
+        <Route path="/clients/:id/implementation/plan/:planId">
           {(_params) => (
             <ProtectedRoute
               component={() => (
@@ -712,6 +716,9 @@ function Router() {
               )}
             />
           )}
+        </Route>
+        <Route path="/clients/:id/implementation/kanban/:planId">
+          <ProtectedRoute component={ImplementationKanbanPage} />
         </Route>
         <Route path="/clients/:id/implementation/resources">
           {(_params) => <ProtectedRoute component={ImplementationResources} />}

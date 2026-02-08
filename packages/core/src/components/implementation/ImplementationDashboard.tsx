@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
-import { Plus, Layout, ArrowRight, Calendar, ClipboardList } from "lucide-react";
+import { Plus, Layout, ArrowRight, Calendar, ClipboardList, Trash2, FileText } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Link, useLocation } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
@@ -10,7 +10,6 @@ import { useParams } from "wouter";
 import { trpc } from '@/lib/trpc';
 import { Badge } from "@complianceos/ui/ui/badge";
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
 import ImplementationReportDialog from './ImplementationReportDialog';
 import { toast } from 'sonner';
 import { MyTasksView } from './MyTasksView';
@@ -25,7 +24,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
 import { PageGuide } from "@/components/PageGuide";
 
 export default function ImplementationDashboard() {
@@ -49,7 +47,7 @@ export default function ImplementationDashboard() {
         onSuccess: (res) => {
             if (res?.planId) {
                 toast.success("PDCA demo plan created", { description: `Generated ${res.taskCount} tasks for ${res.framework}` });
-                setLocation(`/clients/${clientId}/implementation/kanban/${res.planId}`);
+                setLocation(`/clients/${clientId}/implementation/plan/${res.planId}`);
             } else {
                 toast.info("Plan generated, but no planId returned");
             }
@@ -154,7 +152,7 @@ export default function ImplementationDashboard() {
                                 <Card
                                     key={plan.id}
                                     className="group hover:border-blue-400 hover:shadow-xl transition-all duration-300 border-slate-200 cursor-pointer overflow-hidden relative"
-                                    onClick={() => setLocation(`/clients/${clientId}/implementation/kanban/${plan.id}`)}
+                                    onClick={() => setLocation(`/clients/${clientId}/implementation/plan/${plan.id}`)}
                                 >
                                     <div className="absolute top-0 right-0 p-4 flex gap-2">
                                         <Badge variant="outline" className="bg-white/80 backdrop-blur-sm text-[10px] uppercase">
@@ -185,7 +183,7 @@ export default function ImplementationDashboard() {
                                                 {plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : 'N/A'}
                                             </div>
                                             <div className="flex items-center text-blue-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Manage Board <ArrowRight className="ml-1.5 w-4 h-4" />
+                                                Manage Phase Plan <ArrowRight className="ml-1.5 w-4 h-4" />
                                             </div>
                                         </div>
                                     </CardContent>
@@ -208,10 +206,8 @@ export default function ImplementationDashboard() {
                             </Link>
                         </div>
                     )}
-
                 </div>
 
-                {/* IMPLEMENTATION REPORT HISTORY */}
                 <div className="pt-8 border-t">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-medium text-slate-900">Generate Reports</h3>
@@ -256,6 +252,3 @@ export default function ImplementationDashboard() {
         </DashboardLayout>
     );
 }
-
-// Implementation Report History Component
-
