@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ExternalLink, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'wouter/use-browser-location';
 import { PageGuide } from "@/components/PageGuide";
+import { toast } from "sonner";
 
 
 export default function RiskAssetsPage() {
@@ -37,6 +38,14 @@ export default function RiskAssetsPage() {
         { clientId },
         { enabled: !!clientId }
     );
+    const scanAllMutation = trpc.threatIntel.scanAllAssets.useMutation({
+        onSuccess: (data) => {
+            const total = data.results?.reduce((sum: number, r: any) => sum + (r.count || 0), 0) || 0;
+            toast.success(`Scanned ${data.results?.length || 0} assets, found ${total} suggestions`);
+            refetchAssets();
+        },
+        onError: (err) => toast.error(`Scan failed: ${err.message}`)
+    });
 
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -115,6 +124,15 @@ export default function RiskAssetsPage() {
                         <p className="text-muted-foreground mt-1">Manage your organization's assets and their valuations.</p>
                     </div>
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => scanAllMutation.mutate({ clientId })}
+                            className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 flex items-center gap-2 shadow-sm transition-colors"
+                            disabled={scanAllMutation.isPending}
+                            title="Scan all assets against NVD/KEV"
+                        >
+                            <Zap className="w-4 h-4" />
+                            {scanAllMutation.isPending ? "Scanning..." : "Scan All Assets"}
+                        </button>
                         <button
                             onClick={handleOpenAddDialog}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"

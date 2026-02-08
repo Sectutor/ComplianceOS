@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
 import { aiRouter } from './packages/core/src/server/routers/ai';
+import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 
 export const app = express();
 const port = process.env.PORT || 3002;
@@ -181,6 +182,11 @@ app.use(
         },
     })
 );
+
+// Optional background syncs
+if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
+    threatScheduler.start();
+}
 
 
 // Only listen locally, Netlify calls the handler directly

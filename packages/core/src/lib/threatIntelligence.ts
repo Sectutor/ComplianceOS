@@ -82,6 +82,7 @@ export interface CveSuggestion {
     cweIds?: string[];
     references?: { url: string; tags?: string[] }[];
     affectedProducts?: string[];
+    matchId?: number;
 }
 
 export interface BreachSuggestion {
@@ -556,6 +557,7 @@ export async function getAssetCveSuggestions(assetId: number): Promise<CveSugges
         cweIds: (m.cveCache?.cweIds as string[] | undefined) || [],
         references: (m.cveCache?.references as { url: string; tags?: string[] }[] | undefined) || [],
         affectedProducts: (m.cveCache?.affectedProducts as string[] | undefined) || [],
+        matchId: m.match.id,
     }));
 }
 
@@ -745,6 +747,7 @@ export async function getVendorCveSuggestions(vendorId: number): Promise<CveSugg
         cweIds: (m.cveCache?.cweIds as string[] | undefined) || [],
         references: (m.cveCache?.references as { url: string; tags?: string[] }[] | undefined) || [],
         affectedProducts: (m.cveCache?.affectedProducts as string[] | undefined) || [],
+        matchId: m.match.id,
     }));
 }
 /**
