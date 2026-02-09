@@ -180,47 +180,58 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                 usageLimit: z.number().int().min(1).nullable().optional().default(1),
             }))
             .mutation(async ({ input, ctx }: any) => {
-                const d = await db.getDb();
-                const [lead] = await d.select().from(waitingList).where(eq(waitingList.id, input.id)).limit(1);
-                if (!lead) throw new TRPCError({ code: 'NOT_FOUND', message: 'Waitlist lead not found' });
-                if (!lead.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Lead email missing' });
-
-                const token = crypto.randomUUID();
-                const expiresAt = new Date();
-                expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 30));
-
-                const [newLink] = await d.insert(magicLinks).values({
-                    token,
-                    label: `Waitlist Invite: ${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
-                    email: lead.email,
-                    role: input.role || 'viewer',
-                    planTier: input.planTier || 'pro',
-                    maxClients: 2,
-                    accessDurationType: 'lifetime',
-                    waitlistId: lead.id,
-                    createdById: ctx.user.id,
-                    expiresAt,
-                    usageLimit: input.usageLimit ?? 1,
-                }).returning();
-
-                await d.update(waitingList).set({ status: 'invited', updatedAt: new Date() }).where(eq(waitingList.id, lead.id));
-
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
-                const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
                 try {
-                    const { subject, html } = generateMagicLinkEmail({
-                        inviteUrl,
-                        recipientEmail: lead.email,
-                        planTier: input.planTier || 'pro',
-                        role: input.role || 'viewer',
-                        expiresInDays: input.expiresInDays || 30
-                    });
-                    await sendEmail({ to: lead.email, subject, html });
-                } catch (e) {
-                    console.warn("[Waitlist] Invite email failed:", e);
-                }
+                    console.log("[Waitlist] Invite called by:", ctx.user?.id, "for lead:", input.id);
+                    const d = await db.getDb();
+                    const [lead] = await d.select().from(waitingList).where(eq(waitingList.id, input.id)).limit(1);
+                    if (!lead) throw new TRPCError({ code: 'NOT_FOUND', message: 'Waitlist lead not found' });
+                    if (!lead.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Lead email missing' });
 
-                return newLink;
+                    const token = crypto.randomUUID();
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 30));
+
+                    const [newLink] = await d.insert(magicLinks).values({
+                        token,
+                        label: `Waitlist Invite: ${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+                        email: lead.email,
+                        role: input.role || 'viewer',
+                        planTier: input.planTier || 'pro',
+                        maxClients: 2,
+                        accessDurationType: 'lifetime',
+                        waitlistId: lead.id,
+                        createdById: ctx.user.id,
+                        expiresAt,
+                        usageLimit: input.usageLimit ?? 1,
+                    }).returning();
+
+                    await d.update(waitingList).set({ status: 'invited', updatedAt: new Date() }).where(eq(waitingList.id, lead.id));
+
+                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                    const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
+                    try {
+                        const { subject, html } = generateMagicLinkEmail({
+                            inviteUrl,
+                            recipientEmail: lead.email,
+                            planTier: input.planTier || 'pro',
+                            role: input.role || 'viewer',
+                            expiresInDays: input.expiresInDays || 30
+                        });
+                        await sendEmail({ to: lead.email, subject, html });
+                    } catch (e) {
+                        console.warn("[Waitlist] Invite email failed:", e);
+                    }
+
+                    console.log("[Waitlist] Invite success:", newLink?.id);
+                    return newLink;
+                } catch (err: any) {
+                    console.error("[Waitlist] Invite failed:", err);
+                    if (err instanceof TRPCError) throw err;
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to send invite: ${err?.message || 'Unknown error'}`
+                    });
+                }
             }),
     });
 };
