@@ -390,53 +390,82 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 includeSampleData: z.boolean().default(false),
             }))
             .mutation(async ({ input, ctx }: any) => {
-                if (!ctx.user) {
-                    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found in context' });
-                }
-
-                // Check Limits
-                const d = await db.getDb();
-                const fullUser = await db.getUserById(ctx.user.id);
-                const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                    .from(schema.userClients)
-                    .where(and(
-                        eq(schema.userClients.userId, ctx.user.id),
-                        eq(schema.userClients.role, 'owner')
-                    ));
-
-                const currentCount = Number(userOrgs[0]?.count || 0);
-                const limit = fullUser?.maxClients || 2;
-
-                if (currentCount >= limit && ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
-                    throw new TRPCError({
-                        code: 'FORBIDDEN',
-                        message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                    });
-                }
-
-                // 1. Transactional Setup for Main Client
-                const client = await db.onboardClient({
-                    name: input.name,
-                    industry: input.industry,
-                    userId: ctx.user.id,
-                    frameworks: input.frameworks,
-                    companyName: input.name
-                });
-
-                // 2. (Removed individual steps as they are covered by onboardClient)
-
-                // 3. Always create a second "DEMO" Client with sample data fo new users
                 try {
-                    await db.seedSampleData(ctx.user.id, {
-                        name: `${input.name} DEMO`,
-                        industry: input.industry
-                    });
-                } catch (err) {
-                    console.error("Failed to create secondary demo organization:", err);
-                    // We don't fail the whole request if the demo org fails
-                }
+                    if (!ctx.user) {
+                        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found in context' });
+                    }
 
-                return client;
+                    const d = await db.getDb();
+                    const fullUser = await db.getUserById(ctx.user.id);
+                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
+                        .from(schema.userClients)
+                        .where(and(
+                            eq(schema.userClients.userId, ctx.user.id),
+                            eq(schema.userClients.role, 'owner')
+                        ));
+
+                    const currentCount = Number(userOrgs[0]?.count || 0);
+                    const limit = fullUser?.maxClients || 2;
+
+                    if (currentCount >= limit && ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+                        throw new TRPCError({
+                            code: 'FORBIDDEN',
+                            message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
+                        });
+                    }
+
+                    const selectedFrameworks = Array.isArray(input.frameworks)
+                        ? input.frameworks.filter(f => typeof f === 'string' && f.trim().length > 0)
+                        : [];
+
+                    const canonicalNameByCode: Record<string, string> = {
+                        ISO27001: 'ISO 27001:2022',
+                        SOC2: 'SOC 2 Type II',
+                        GDPR: 'GDPR',
+                        NISTCSF: 'NIST CSF 2.0',
+                        NIST80053: 'NIST SP 800-53 Rev 5',
+                        NIST800171: 'NIST SP 800-171',
+                        PCIDSSV4: 'PCI DSS v4.0',
+                        CISV8: 'CIS Controls v8',
+                        ISO22301: 'ISO 22301:2019',
+                        FEDRAMP_LOW: 'FedRAMP Low',
+                        FEDRAMP_MODERATE: 'FedRAMP Moderate',
+                        FEDRAMP_HIGH: 'FedRAMP High',
+                        CCMV4: 'CSA CCM v4',
+                        CYBERESSENTIALS: 'Cyber Essentials',
+                        HITRUST: 'HITRUST-Aligned (Representative)',
+                    };
+                    const normalizedFrameworks = selectedFrameworks.map(code => {
+                        const c = String(code).toUpperCase().replace(/\s/g, '');
+                        return canonicalNameByCode[c] || code;
+                    });
+
+                    const client = await db.onboardClient({
+                        name: input.name,
+                        industry: input.industry,
+                        userId: ctx.user.id,
+                        frameworks: normalizedFrameworks,
+                        companyName: input.name
+                    });
+
+                    try {
+                        await db.seedSampleData(ctx.user.id, {
+                            name: `${input.name} DEMO`,
+                            industry: input.industry
+                        });
+                    } catch (err) {
+                        console.error("Failed to create secondary demo organization:", err);
+                    }
+
+                    return client;
+                } catch (error: any) {
+                    console.error('[Clients] AutoSetup Error:', error);
+                    if (error instanceof TRPCError) throw error;
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Auto-setup failed: ${error?.message || 'Unknown error'}`
+                    });
+                }
             }),
         createSampleData: publicProcedure.use(isAuthed)
             .input(z.object({

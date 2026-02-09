@@ -46,7 +46,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@complianceos/ui/ui/alert-dialog";
-import { UserPlus, Mail, Clock, XCircle, Loader2, Trash2, Link as LinkIcon, Copy, Info } from "lucide-react";
+import { UserPlus, User, Mail, Clock, XCircle, Loader2, Trash2, Link as LinkIcon, Copy, Info } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -345,6 +345,9 @@ function MagicLinksSection() {
     const [durationType, setDurationType] = useState<"lifetime" | "limited">("lifetime");
     const [durationDays, setDurationDays] = useState(14);
     const [expiresInDays, setExpiresInDays] = useState(7);
+    const [usageLimit, setUsageLimit] = useState<number | null>(1);
+    const [restrictedDomains, setRestrictedDomains] = useState("");
+    const [filterOrigin, setFilterOrigin] = useState<'all' | 'waitlist'>('all');
 
     const { data: magicLinks, isLoading, refetch } = trpc.magicLinks.list.useQuery();
 
@@ -386,6 +389,8 @@ function MagicLinksSection() {
             accessDurationType: durationType,
             accessDurationDays: durationType === "limited" ? durationDays : undefined,
             expiresInDays,
+            usageLimit: usageLimit === 0 ? null : usageLimit,
+            restrictedDomains: restrictedDomains ? restrictedDomains.split(',').map(d => d.trim().toLowerCase()).filter(d => d !== "") : undefined,
         });
     };
 
@@ -534,16 +539,60 @@ function MagicLinksSection() {
                                 onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="usageLimit">Max Redemptions (1 = Single Use, 0 = Unlimited)</Label>
+                            <Input
+                                id="usageLimit"
+                                type="number"
+                                value={usageLimit ?? 0}
+                                onChange={(e) => {
+                                    const v = parseInt(e.target.value);
+                                    setUsageLimit(v === 0 ? null : v);
+                                }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="restrictedDomains">Restricted Domains (comma-separated, optional)</Label>
+                            <Input
+                                id="restrictedDomains"
+                                placeholder="e.g. google.com, acme.org"
+                                value={restrictedDomains}
+                                onChange={(e) => setRestrictedDomains(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Only users with emails from these domains will be allowed to use this link.
+                            </p>
+                        </div>
                     </form>
                 </EnhancedDialog>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Magic Links</CardTitle>
-                    <CardDescription>
-                        Reusable links for streamlined onboarding and plan upgrades.
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Magic Links</CardTitle>
+                            <CardDescription>
+                                Reusable links for streamlined onboarding and plan upgrades.
+                            </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant={filterOrigin === 'all' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setFilterOrigin('all')}
+                            >
+                                All
+                            </Button>
+                            <Button
+                                variant={filterOrigin === 'waitlist' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setFilterOrigin('waitlist')}
+                            >
+                                Origin: Waitlist
+                            </Button>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -565,11 +614,14 @@ function MagicLinksSection() {
                                 </TableHeader>
                                 <TableBody>
                                     {magicLinks && magicLinks.length > 0 ? (
-                                        magicLinks.map((link: any) => (
+                                        (filterOrigin === 'waitlist' ? magicLinks.filter((l: any) => !!l.waitlistId) : magicLinks).map((link: any) => (
                                             <TableRow key={link.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 group">
                                                 <TableCell className="py-4">
                                                     <div className="flex flex-col gap-1">
                                                         <span className="font-semibold text-black">{link.label}</span>
+                                                        {link.waitlistId && (
+                                                            <span className="text-[10px] text-slate-500">From Waitlist #{link.waitlistId}</span>
+                                                        )}
                                                         <div className="flex items-center gap-2 group/token">
                                                             <code className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-mono truncate max-w-[120px]">
                                                                 {link.token}
@@ -598,12 +650,28 @@ function MagicLinksSection() {
                                                         <span className="text-xs text-slate-500">
                                                             Max {link.maxClients} orgs • {link.accessDurationType === 'lifetime' ? 'Lifetime' : `${link.accessDurationDays} days`}
                                                         </span>
+                                                        {link.restrictedDomains && (link.restrictedDomains as string[]).length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {(link.restrictedDomains as string[]).map((d: string, idx: number) => (
+                                                                    <Badge key={`${d}-${idx}`} variant="secondary" className="text-[9px] h-4 py-0 px-1 bg-slate-100">
+                                                                        @{d}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="py-4">
-                                                    <div className="flex items-center gap-1 text-xs text-slate-600">
-                                                        <Info className="h-3 w-3" />
-                                                        {link.usedAt ? `Used ${format(new Date(link.usedAt), "MMM d")}` : "Never used"}
+                                                <TableCell className="py-4 text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="flex items-center gap-1 text-xs text-slate-600 font-medium">
+                                                            <User className="h-3 w-3" />
+                                                            {link.useCount || 0} / {link.usageLimit || "∞"}
+                                                        </div>
+                                                        {link.usedAt && (
+                                                            <span className="text-[10px] text-slate-400">
+                                                                Last: {format(new Date(link.usedAt), "MMM d")}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="py-4">
@@ -616,6 +684,7 @@ function MagicLinksSection() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right py-4 space-x-2">
+                                                    <MagicLinkRedemptionsDialog linkId={link.id} label={link.label} />
                                                     {link.status === 'active' && (
                                                         <Button
                                                             variant="ghost"
@@ -652,7 +721,72 @@ function MagicLinksSection() {
                     )}
                 </CardContent>
             </Card>
-        </div>
+        </div >
+    );
+}
+
+function MagicLinkRedemptionsDialog({ linkId, label }: { linkId: number, label: string }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const { data: redemptions, isLoading } = trpc.magicLinks.getRedemptions.useQuery(
+        { magicLinkId: linkId },
+        { enabled: isOpen }
+    );
+
+    return (
+        <EnhancedDialog
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            trigger={
+                <Button variant="ghost" size="sm" className="text-blue-500 hover:text-blue-600 hover:bg-blue-50">
+                    <Info className="h-4 w-4 mr-2" />
+                    Redemptions
+                </Button>
+            }
+            title={`Redemptions: ${label}`}
+            description="Users who have claimed an account through this link."
+        >
+            <div className="py-4 max-h-[60vh] overflow-y-auto pr-2">
+                {isLoading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                ) : redemptions && redemptions.length > 0 ? (
+                    <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                                    <TableHead className="font-semibold text-slate-900">User</TableHead>
+                                    <TableHead className="font-semibold text-slate-900">Redeemed At</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {redemptions.map((r: any) => (
+                                    <TableRow key={r.id}>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-black">{r.name || "Unnamed User"}</span>
+                                                <span className="text-xs text-slate-500">{r.email}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-slate-500 text-sm whitespace-nowrap">
+                                            {r.redeemedAt ? format(new Date(r.redeemedAt), "MMM d, yyyy HH:mm") : "-"}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                ) : (
+                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                        <User className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No redemptions yet.</p>
+                        <p className="text-xs text-slate-400 mt-1">Share the link to start seeing new users here.</p>
+                    </div>
+                )}
+            </div>
+        </EnhancedDialog>
     );
 }
 

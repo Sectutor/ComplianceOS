@@ -3,10 +3,10 @@ import { TRPCError } from "@trpc/server";
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "../../db";
 import { emailTemplates } from "../../schema";
-import { router, adminProcedure } from "../trpc";
+import { router, adminProcedure, protectedProcedure } from "../trpc";
 
 export const emailTemplatesRouter = router({
-    list: adminProcedure.query(async () => {
+    list: protectedProcedure.query(async () => {
         const db = await getDb();
         return await db.select().from(emailTemplates).orderBy(desc(emailTemplates.updatedAt));
     }),

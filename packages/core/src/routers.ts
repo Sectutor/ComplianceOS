@@ -102,6 +102,7 @@ import { magicLinksRouter } from "./server/routers/magicLinks";
 import { createSammV2Router } from "./server/routers/samm-v2";
 import { emailTemplatesRouter } from "./server/routers/emailTemplates";
 import { emailTriggersRouter } from "./server/routers/emailTriggers";
+import { createAdversaryIntelRouter } from "./server/routers/adversaryIntel";
 
 
 // Context type definition
@@ -291,9 +292,12 @@ SI-4: Information System Monitoring
 
 
 
+import { createAuditorsRouter } from "./server/routers/auditors";
+
 export const appRouter = router({
   evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
   actions: createActionsRouter(t, clientProcedure),
+  auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   controls: createControlsRouter(t, adminProcedure, publicProcedure), // Restore missing router mapping
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
@@ -304,7 +308,7 @@ export const appRouter = router({
   sales: createSalesRouter(t, clientProcedure),
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
-  frameworks: createFrameworksRouter(t, clientProcedure),
+  frameworks: createFrameworksRouter(t, protectedProcedure),
   frameworkImport: createFrameworkImportRouter(t, clientProcedure),
   autopilot: createAutopilotRouter(t, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
@@ -321,7 +325,7 @@ export const appRouter = router({
   dashboard: createDashboardRouter(t, adminProcedure, publicProcedure.use(isAuthed)),
   compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
   evidence: createEvidenceRouter(t, adminProcedure, publicProcedure, protectedProcedure),
-  notifications: createNotificationsRouter(t, clientProcedure, adminProcedure),
+  notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
 
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
@@ -330,6 +334,7 @@ export const appRouter = router({
   projects: createProjectsRouter(t, clientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
+  adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
   vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),

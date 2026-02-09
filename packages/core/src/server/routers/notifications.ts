@@ -5,7 +5,7 @@ import * as db from "../../db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-export const createNotificationsRouter = (t: any, clientProcedure: any, adminProcedure: any) => {
+export const createNotificationsRouter = (t: any, clientProcedure: any, adminProcedure: any, protectedProcedure: any) => {
     return t.router({
         getSettings: clientProcedure
             .input(z.object({ clientId: z.number() }))
@@ -96,7 +96,7 @@ export const createNotificationsRouter = (t: any, clientProcedure: any, adminPro
                     .limit(input.limit);
             }),
 
-        getUnreadCount: clientProcedure
+        getUnreadCount: protectedProcedure
             .query(async ({ ctx }: any) => {
                 const dbConn = await db.getDb();
                 const result = await dbConn.select({

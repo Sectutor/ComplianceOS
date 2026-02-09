@@ -4,10 +4,10 @@ import { TRPCError } from "@trpc/server";
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "../../db";
 import { emailTriggers, emailTemplates } from "../../schema";
-import { router, adminProcedure } from "../trpc";
+import { router, adminProcedure, protectedProcedure } from "../trpc";
 
 export const emailTriggersRouter = router({
-    list: adminProcedure.query(async () => {
+    list: protectedProcedure.query(async () => {
         const db = await getDb();
         return await db.select({
             id: emailTriggers.id,

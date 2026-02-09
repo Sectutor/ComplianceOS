@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { trpc } from '@/lib/trpc';
 import {
@@ -19,6 +19,9 @@ import { Button } from '@complianceos/ui/ui/button';
 import { MoreHorizontal, Download, Trash2, UserPlus, Mail, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@complianceos/ui/ui/dialog';
+import { Label } from '@complianceos/ui/ui/label';
+import { Input } from '@complianceos/ui/ui/input';
 
 export default function WaitlistManagement() {
     const { data: leads, isLoading, refetch } = trpc.waitlist.list.useQuery();
@@ -26,7 +29,14 @@ export default function WaitlistManagement() {
     const updateStatus = trpc.waitlist.updateStatus.useMutation();
     const deleteLead = trpc.waitlist.remove.useMutation();
     const convertToGlobalCrm = trpc.globalCrm.convertFromWaitlist.useMutation();
-    const createMagicLink = trpc.magicLinks.create.useMutation();
+    const inviteMutation = trpc.waitlist.invite.useMutation();
+
+    const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const [inviteLead, setInviteLead] = useState<any | null>(null);
+    const [inviteRole, setInviteRole] = useState<'viewer' | 'editor' | 'admin'>('viewer');
+    const [invitePlanTier, setInvitePlanTier] = useState<'free' | 'pro' | 'enterprise'>('pro');
+    const [inviteExpiresInDays, setInviteExpiresInDays] = useState<number>(30);
+    const [inviteUsageLimit, setInviteUsageLimit] = useState<number | null>(1);
 
 
     const handleStatusChange = async (id: number, status: string) => {
@@ -76,26 +86,34 @@ export default function WaitlistManagement() {
         }
     };
 
-    const handleInvite = async (lead: any) => {
-        try {
-            const link = await createMagicLink.mutateAsync({
-                label: `Waitlist Invite: ${lead.firstName} ${lead.lastName}`,
-                email: lead.email,
-                role: 'admin',
-                planTier: 'pro',
-                maxClients: 2,
-                accessDurationType: 'lifetime',
-                waitlistId: lead.id,
-                expiresInDays: 30
-            });
+    const openInviteModal = (lead: any) => {
+        setInviteLead(lead);
+        setInviteRole('viewer');
+        setInvitePlanTier('pro');
+        setInviteExpiresInDays(30);
+        setInviteUsageLimit(1);
+        setIsInviteOpen(true);
+    };
 
+    const submitInvite = async () => {
+        if (!inviteLead) return;
+        try {
+            const link = await inviteMutation.mutateAsync({
+                id: inviteLead.id,
+                role: inviteRole,
+                planTier: invitePlanTier,
+                expiresInDays: inviteExpiresInDays,
+                usageLimit: inviteUsageLimit
+            });
             const url = `${window.location.origin}/auth/redeem-link?token=${link.token}`;
             await navigator.clipboard.writeText(url);
-            toast.success('Magic link created and copied to clipboard!');
+            toast.success('Invitation sent and link copied to clipboard!');
+            setIsInviteOpen(false);
+            setInviteLead(null);
             refetch();
         } catch (e) {
             console.error("Invite failed:", e);
-            toast.error('Failed to create invite: ' + (e as Error).message);
+            toast.error('Failed to send invite: ' + (e as Error).message);
         }
     };
 
@@ -221,13 +239,13 @@ export default function WaitlistManagement() {
                                                     <UserPlus className="mr-2 h-4 w-4" />
                                                     Convert to Contact
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'contacted')}>
-                                                    Mark as Contacted
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleInvite(lead)} disabled={lead.status === 'invited'}>
-                                                    <LinkIcon className="mr-2 h-4 w-4" />
-                                                    Send Magic Link Invite
-                                                </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'contacted')}>
+                                                Mark as Contacted
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => openInviteModal(lead)} disabled={lead.status === 'invited'}>
+                                                <LinkIcon className="mr-2 h-4 w-4" />
+                                                Send Invitation
+                                            </DropdownMenuItem>
 
                                                 <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'pending')}>
                                                     Reset to Pending
@@ -245,6 +263,74 @@ export default function WaitlistManagement() {
                     </TableBody>
                 </Table>
             </div>
+            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Send Invitation</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Role</Label>
+                            <div className="flex gap-2">
+                                {(['viewer', 'editor', 'admin'] as const).map(r => (
+                                    <Button
+                                        key={r}
+                                        type="button"
+                                        variant={inviteRole === r ? 'default' : 'outline'}
+                                        onClick={() => setInviteRole(r)}
+                                        className="capitalize"
+                                    >
+                                        {r}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Plan Tier</Label>
+                            <div className="flex gap-2">
+                                {(['free', 'pro', 'enterprise'] as const).map(p => (
+                                    <Button
+                                        key={p}
+                                        type="button"
+                                        variant={invitePlanTier === p ? 'default' : 'outline'}
+                                        onClick={() => setInvitePlanTier(p)}
+                                        className="capitalize"
+                                    >
+                                        {p}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Expires In (Days)</Label>
+                                <Input
+                                    type="number"
+                                    value={inviteExpiresInDays}
+                                    onChange={(e) => setInviteExpiresInDays(parseInt(e.target.value))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Usage Limit (1 = single use, 0 = unlimited)</Label>
+                                <Input
+                                    type="number"
+                                    value={inviteUsageLimit ?? 0}
+                                    onChange={(e) => {
+                                        const v = parseInt(e.target.value);
+                                        setInviteUsageLimit(v === 0 ? null : v);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
+                        <Button onClick={submitInvite} disabled={inviteMutation.isPending}>
+                            {inviteMutation.isPending ? 'Sending...' : 'Send Invitation'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
