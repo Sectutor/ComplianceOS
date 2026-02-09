@@ -6,8 +6,6 @@ import { notifyOwner } from "../../notification";
 import { sendInternalSystemEmail } from "../../lib/email/internalSender";
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
-import { sendEmail } from "../../lib/email/transporter";
-import { generateMagicLinkEmail } from "../../components/email/templates/MagicLinkInvite";
 
 export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedure: any) => {
     return t.router({
@@ -116,14 +114,20 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                             await d2.update(waitingList).set({ status: 'invited' }).where(eq(waitingList.id, lead.id));
                             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
                             const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
-                            const { subject, html } = generateMagicLinkEmail({
-                                inviteUrl,
-                                recipientEmail: input.email,
-                                planTier: 'pro',
-                                role: 'viewer',
-                                expiresInDays: 30
-                            });
-                            await sendEmail({ to: input.email, subject, html });
+                            try {
+                                const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
+                                const { sendEmail } = await import("../../lib/email/transporter");
+                                const { subject, html } = generateMagicLinkEmail({
+                                    inviteUrl,
+                                    recipientEmail: input.email,
+                                    planTier: 'pro',
+                                    role: 'viewer',
+                                    expiresInDays: 30
+                                });
+                                await sendEmail({ to: input.email, subject, html });
+                            } catch (emailErr) {
+                                console.warn("[Waitlist] Auto invite email failed:", emailErr);
+                            }
                             console.log("[Waitlist] Auto invite sent:", link.id);
                         }
                     }
@@ -210,6 +214,8 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
                     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
                     try {
+                        const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
+                        const { sendEmail } = await import("../../lib/email/transporter");
                         const { subject, html } = generateMagicLinkEmail({
                             inviteUrl,
                             recipientEmail: lead.email,
