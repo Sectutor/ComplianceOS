@@ -5,8 +5,9 @@ import * as crypto from 'crypto';
 import { eq, desc, and, isNull } from "drizzle-orm";
 
 import * as db from "../../db";
-import { users, userClients, clients, userInvitations, magicLinks } from "../../schema";
+import { users, userClients, clients, userInvitations, magicLinks, magicLinkRedemptions } from "../../schema";
 import { sendEmail } from "../../lib/email/transporter";
+import { sql } from "drizzle-orm";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 
 import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
@@ -17,7 +18,8 @@ export const usersSubRouter = router({
             token: z.string(),
             name: z.string(),
             password: z.string().min(6),
-            email: z.string().email().optional()
+            email: z.string().email().or(z.literal("")).optional(),
+            clientId: z.number().nullish()
         }))
         .mutation(async ({ input }: any) => {
             const dbConn = await db.getDb();
@@ -29,16 +31,53 @@ export const usersSubRouter = router({
                 .limit(1);
 
             if (!link) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid magic link" });
-            if (link.status !== 'active') throw new TRPCError({ code: "BAD_REQUEST", message: "Link already used" });
+            if (link.status !== 'active') throw new TRPCError({ code: "BAD_REQUEST", message: "Link already used or revoked" });
             if (link.expiresAt && new Date() > link.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Link expired" });
+
+            // Usage Limit Check
+            if (link.usageLimit !== null && (link.useCount || 0) >= link.usageLimit) {
+                // Auto-close if limit reached
+                await dbConn.update(magicLinks).set({ status: 'accepted' }).where(eq(magicLinks.id, link.id));
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Link usage limit reached" });
+            }
 
             let userEmail = link.email;
             if (!userEmail) {
-                if (!input.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Email required" });
-                userEmail = input.email;
+                const inputEmail = input.email?.trim();
+                if (!inputEmail) throw new TRPCError({ code: "BAD_REQUEST", message: "A valid email is required to redeem this link." });
+                userEmail = inputEmail;
             }
 
-            // 2. Create User in Supabase
+            // Calculate Expiration
+            let accessExpiresAt: Date | null = null;
+            if (link.accessDurationType === 'limited' && link.accessDurationDays) {
+                const d = new Date();
+                d.setDate(d.getDate() + link.accessDurationDays);
+                accessExpiresAt = d;
+            }
+
+            // Domain Restriction Check (Prevention against excessive account creation)
+            if (link.restrictedDomains && (link.restrictedDomains as string[]).length > 0) {
+                const domain = userEmail.split('@')[1]?.toLowerCase();
+                const allowedDomains = (link.restrictedDomains as string[]).map(d => d.toLowerCase());
+                if (!domain || !allowedDomains.includes(domain)) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: `This magic link is restricted to the following domains: ${allowedDomains.join(', ')}`
+                    });
+                }
+            }
+
+            // 2. Check if user already exists
+            const existingUser = await db.getUserByEmail(userEmail);
+            if (existingUser) {
+                throw new TRPCError({
+                    code: "CONFLICT",
+                    message: "An account with this email already exists. Please sign in to claim this invitation."
+                });
+            }
+
+            // 3. Create User in Supabase
             const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email: userEmail,
                 password: input.password,
@@ -47,32 +86,150 @@ export const usersSubRouter = router({
             });
 
             if (authError) {
-                // Emphasize this is a sign-up error
+                if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+                    throw new TRPCError({
+                        code: "CONFLICT",
+                        message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
+                    });
+                }
+                throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
+            }
+
+            if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+
+            // 3. Create User in DB
+            const isWaitlistOrigin = (link as any).waitlistId != null;
+            const globalRole = input.clientId
+                ? 'user'
+                : (isWaitlistOrigin ? 'user' : (['admin', 'owner', 'user'].includes(link.role || '') ? link.role : 'user'));
+
+            const [newUser] = await dbConn.insert(users).values({
+                openId: authUser.user.id,
+                email: userEmail,
+                name: input.name,
+                role: globalRole as any,
+                planTier: link.planTier as any,
+                maxClients: link.maxClients ?? 2,
+                subscriptionStatus: 'active',
+                loginMethod: 'email_password',
+                accessExpiresAt: input.clientId ? null : accessExpiresAt
+            }).returning();
+
+            // 3b. Add to Client if clientId provided
+            if (input.clientId) {
+                await dbConn.insert(userClients).values({
+                    userId: newUser.id,
+                    clientId: input.clientId,
+                    role: (link.role || 'viewer') as any,
+                    accessExpiresAt: accessExpiresAt
+                });
+            }
+
+            // 3c. For waitlist-origin links without clientId, create a personal workspace and assign admin within that org
+            if (!input.clientId && isWaitlistOrigin) {
+                try {
+                    const d2 = await db.getDb();
+                    const { waitingList } = await import("../../schema");
+                    const { eq: eq2 } = await import("drizzle-orm");
+                    const [lead] = await d2.select().from(waitingList).where(eq2(waitingList.id, (link as any).waitlistId)).limit(1);
+                    const orgName = (lead?.company || input.name || "New Organization").toString();
+                    const industry = (lead?.industry || "Technology").toString();
+                    await db.onboardClient({
+                        name: orgName,
+                        industry,
+                        userId: newUser.id,
+                        frameworks: [],
+                        companyName: orgName
+                    });
+                } catch (e) {
+                    console.error("[acceptInviteAndSignup] OnboardClient failed for waitlist link:", e);
+                }
+            }
+
+            // 4. Record Redemption & Update Usage
+            const newUseCount = (link.useCount || 0) + 1;
+            const reachedLimit = link.usageLimit !== null && newUseCount >= link.usageLimit;
+
+            await dbConn.update(magicLinks)
+                .set({
+                    useCount: newUseCount,
+                    status: reachedLimit ? 'accepted' : 'active',
+                })
+                .where(eq(magicLinks.id, link.id));
+
+            await dbConn.insert(magicLinkRedemptions).values({
+                magicLinkId: link.id,
+                userId: newUser.id,
+            });
+
+            return { success: true };
+        }),
+
+    acceptInvitation: publicProcedure
+        .input(z.object({
+            token: z.string(),
+            name: z.string(),
+            password: z.string().min(6)
+        }))
+        .mutation(async ({ input }: any) => {
+            const dbConn = await db.getDb();
+
+            // 1. Validate Token
+            const [invite] = await dbConn.select()
+                .from(userInvitations)
+                .where(eq(userInvitations.token, input.token))
+                .limit(1);
+
+            if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid invitation link" });
+            if (invite.status === 'revoked' || invite.status === 'accepted') throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation no longer valid" });
+            if (invite.expiresAt && new Date() > invite.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation has expired" });
+
+            // 2. Check if user already exists
+            const existingUser = await db.getUserByEmail(invite.email);
+            if (existingUser) {
+                throw new TRPCError({
+                    code: "CONFLICT",
+                    message: "An account with this email already exists. Please sign in to claim this invitation."
+                });
+            }
+
+            // 3. Create User in Supabase
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email: invite.email,
+                password: input.password,
+                email_confirm: true,
+                user_metadata: { full_name: input.name }
+            });
+
+            if (authError) {
+                if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+                    throw new TRPCError({
+                        code: "CONFLICT",
+                        message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
+                    });
+                }
                 throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
             }
 
             if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
 
             // 3. Create User in DB (users table)
+            // User invitations are currently platform-wide.
             const [newUser] = await dbConn.insert(users).values({
                 openId: authUser.user.id,
-                email: userEmail,
+                email: invite.email,
                 name: input.name,
-                role: 'user', // FORCE 'user' role. Magic links should never create platform admins.
-                planTier: link.planTier as any,
-                maxClients: link.maxClients ?? 2,
+                role: (invite.role || 'user') as any, // Default to user if not specified
                 subscriptionStatus: 'active',
                 loginMethod: 'email_password'
             }).returning();
 
-            // 4. Mark Link Used
-            await dbConn.update(magicLinks)
+            // 4. Mark Invitation Accepted
+            await dbConn.update(userInvitations)
                 .set({
                     status: 'accepted',
-                    usedAt: new Date(),
-                    usedByUserId: newUser.id
                 })
-                .where(eq(magicLinks.id, link.id));
+                .where(eq(userInvitations.id, invite.id));
 
             return { success: true };
         }),
@@ -507,7 +664,10 @@ export const usersSubRouter = router({
         }),
 
     applyMagicLink: protectedProcedure
-        .input(z.object({ token: z.string() }))
+        .input(z.object({
+            token: z.string(),
+            clientId: z.number().nullish()
+        }))
         .mutation(async ({ input, ctx }: any) => {
             const dbConn = await db.getDb();
             const [link] = await dbConn.select()
@@ -527,24 +687,129 @@ export const usersSubRouter = router({
                 throw new TRPCError({ code: "BAD_REQUEST", message: "Link expired" });
             }
 
-            // Apply settings to user
-            await dbConn.update(users)
-                .set({
-                    planTier: link.planTier as any,
-                    role: link.role as any,
-                    maxClients: link.maxClients ?? 2,
-                    subscriptionStatus: 'active'
-                })
-                .where(eq(users.id, ctx.user.id));
+            // Usage Limit Check
+            if (link.usageLimit !== null && (link.useCount || 0) >= link.usageLimit) {
+                await dbConn.update(magicLinks).set({ status: 'accepted' }).where(eq(magicLinks.id, link.id));
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Link usage limit reached" });
+            }
 
-            // Mark link as used
+            // Prevent double usage by same user
+            const [existingRedemption] = await dbConn.select()
+                .from(magicLinkRedemptions)
+                .where(and(
+                    eq(magicLinkRedemptions.magicLinkId, link.id),
+                    eq(magicLinkRedemptions.userId, ctx.user.id)
+                ))
+                .limit(1);
+
+            if (existingRedemption) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "You have already used this link" });
+            }
+
+            // Calculate Expiration
+            let accessExpiresAt: Date | null = null;
+            if (link.accessDurationType === 'limited' && link.accessDurationDays) {
+                const d = new Date();
+                d.setDate(d.getDate() + link.accessDurationDays);
+                accessExpiresAt = d;
+            }
+
+            // Domain Restriction Check
+            if (link.restrictedDomains && (link.restrictedDomains as string[]).length > 0) {
+                const domain = ctx.user.email?.split('@')[1]?.toLowerCase();
+                const allowedDomains = (link.restrictedDomains as string[]).map(d => d.toLowerCase());
+                if (!domain || !allowedDomains.includes(domain)) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: `This magic link is restricted to the following domains: ${allowedDomains.join(', ')}`
+                    });
+                }
+            }
+
+            if (input.clientId) {
+                // Workspace Invite Logic
+                // Add/Update membership
+                // Use default 'viewer' if role is not found, or use 'auditor' if it's an auditor invite
+                const clientRole = link.role || 'viewer';
+
+                const existing = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
+                if (existing) {
+                    await dbConn.update(userClients)
+                        .set({ role: clientRole as any, accessExpiresAt })
+                        .where(and(eq(userClients.userId, ctx.user.id), eq(userClients.clientId, input.clientId)));
+                } else {
+                    await dbConn.insert(userClients).values({
+                        userId: ctx.user.id,
+                        clientId: input.clientId,
+                        role: clientRole as any,
+                        accessExpiresAt
+                    });
+                }
+
+            } else {
+                // Platform Update Logic
+                // Special handling for Waitlist-origin links: create a personal workspace and DO NOT elevate global role
+                if ((link as any).waitlistId) {
+                    const d2 = await db.getDb();
+                    // Fetch waitlist lead for company/industry context
+                    const { waitingList } = await import("../../schema");
+                    const { eq: eq2 } = await import("drizzle-orm");
+                    const [lead] = await d2.select().from(waitingList).where(eq2(waitingList.id, (link as any).waitlistId)).limit(1);
+                    const orgName = (lead?.company || ctx.user.name || "New Organization").toString();
+                    const industry = (lead?.industry || "Technology").toString();
+                    try {
+                        // Create workspace and assign the user as owner (handled inside onboardClient)
+                        await db.onboardClient({
+                            name: orgName,
+                            industry,
+                            userId: ctx.user.id,
+                            frameworks: [], // rely on native defaults; admin can configure later
+                            companyName: orgName
+                        });
+                    } catch (e) {
+                        // If onboarding fails, still proceed with account updates, but without global role elevation
+                        console.error("[applyMagicLink] OnboardClient failed for waitlist link:", e);
+                    }
+                    // Update account without elevating global role
+                    await d2.update(users)
+                        .set({
+                            planTier: link.planTier as any,
+                            // Keep existing role or default to 'viewer'; do NOT set global 'admin' from link
+                            role: (ctx.user.role || 'viewer') as any,
+                            maxClients: link.maxClients ?? 2,
+                            subscriptionStatus: 'active',
+                            accessExpiresAt
+                        })
+                        .where(eq(users.id, ctx.user.id));
+                } else {
+                    // Original behavior for platform-scoped links (explicit admin-managed platform invites)
+                    await dbConn.update(users)
+                        .set({
+                            planTier: link.planTier as any,
+                            role: link.role as any,
+                            maxClients: link.maxClients ?? 2,
+                            subscriptionStatus: 'active',
+                            accessExpiresAt
+                        })
+                        .where(eq(users.id, ctx.user.id));
+                }
+            }
+
+            // Record Redemption & Update Usage
+            const newUseCount = (link.useCount || 0) + 1;
+            const reachedLimit = link.usageLimit !== null && newUseCount >= link.usageLimit;
+
             await dbConn.update(magicLinks)
                 .set({
-                    status: 'accepted',
-                    usedAt: new Date(),
-                    usedByUserId: ctx.user.id
+                    useCount: newUseCount,
+                    status: reachedLimit ? 'accepted' : 'active',
                 })
                 .where(eq(magicLinks.id, link.id));
+
+            await dbConn.insert(magicLinkRedemptions).values({
+                magicLinkId: link.id,
+                userId: ctx.user.id,
+            });
 
             return { success: true, planTier: link.planTier };
         })
