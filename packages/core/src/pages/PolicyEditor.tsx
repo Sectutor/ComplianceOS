@@ -33,6 +33,7 @@ import { Slot } from "@/registry";
 import { SlotNames } from "@/registry/slotNames";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import { PageGuide } from "@/components/PageGuide";
+import PolicyLinter from "@/components/policy/PolicyLinter";
 
 export default function PolicyEditor() {
     const params = useParams();
@@ -691,6 +692,12 @@ export default function PolicyEditor() {
                                                 </div>
                                             )}
                                         </div>
+                                        <PolicyLinter
+                                            content={content}
+                                            onInsertSection={(html) => {
+                                                setContent((prev) => `${prev || ""}\n${html}`);
+                                            }}
+                                        />
                                     </TabsContent>
                                     <TabsContent value="preview" className="m-0">
                                         <div className="prose prose-sm max-w-none">
