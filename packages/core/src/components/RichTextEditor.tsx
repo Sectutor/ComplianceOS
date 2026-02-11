@@ -53,6 +53,35 @@ export default function RichTextEditor({
     });
     return s;
   };
+  // Ensure enumerated clauses like "5.1 Title:" start new paragraphs when multiple appear in one <p>
+  const ensureEnumerationParagraphs = (html: string) => {
+    try {
+      const container = document.createElement('div');
+      container.innerHTML = html || '';
+      const ps = Array.from(container.querySelectorAll('p'));
+      ps.forEach(p => {
+        const inner = p.innerHTML;
+        const enumerationCount = (inner.match(/\d+\.\d+\s/g) || []).length;
+        if (enumerationCount < 2) return;
+        let parts = inner.split(/(?<=:)\s+(?=\d+\.\d+\s)/g);
+        if (parts.length <= 1) {
+          parts = inner.split(/(?=\d+\.\d+\s)/g);
+        }
+        if (parts.length > 1) {
+          const wrapper = document.createElement('div');
+          parts.forEach(part => {
+            const pe = document.createElement('p');
+            pe.innerHTML = part.trim();
+            wrapper.appendChild(pe);
+          });
+          p.replaceWith(...Array.from(wrapper.childNodes));
+        }
+      });
+      return container.innerHTML;
+    } catch {
+      return html;
+    }
+  };
   // Set css var
   useEffect(() => {
     if (containerRef.current) {
@@ -122,7 +151,8 @@ export default function RichTextEditor({
 
     // Initial value
     if (value) {
-      quill.clipboard.dangerouslyPasteHTML(highlightPlaceholders(processContent(value)));
+      const initial = ensureEnumerationParagraphs(highlightPlaceholders(processContent(value)));
+      quill.clipboard.dangerouslyPasteHTML(initial);
     }
   }, []); // Mount once
 
@@ -130,7 +160,7 @@ export default function RichTextEditor({
   useEffect(() => {
     if (quillRef.current && value !== undefined && !isUpdatingRef.current) {
       const currentContent = quillRef.current.root.innerHTML;
-      const processedValue = highlightPlaceholders(processContent(value));
+      const processedValue = ensureEnumerationParagraphs(highlightPlaceholders(processContent(value)));
       if (currentContent !== processedValue && currentContent !== value) {
         quillRef.current.clipboard.dangerouslyPasteHTML(processedValue);
       }
@@ -167,6 +197,25 @@ export default function RichTextEditor({
               </TooltipContent>
             </Tooltip>
           )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!quillRef.current) return;
+                  const raw = quillRef.current.root.innerHTML;
+                  const formatted = ensureEnumerationParagraphs(raw);
+                  quillRef.current.clipboard.dangerouslyPasteHTML(formatted);
+                }}
+              >
+                Format paragraphs
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Start each numbered clause as a new paragraph</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       )}
       <style>{`
