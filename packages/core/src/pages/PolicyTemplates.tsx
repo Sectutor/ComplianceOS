@@ -64,6 +64,7 @@ export default function PolicyTemplates() {
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReport, setUpgradeReport] = useState<any>(null);
   const [enhanceBaseline, setEnhanceBaseline] = useState(true);
+  const [useServerUpgrade, setUseServerUpgrade] = useState(false);
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
@@ -473,7 +474,11 @@ export default function PolicyTemplates() {
                 variant="outline"
                 onClick={() => {
                   if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
-                  upgradeMutation.mutate({ dryRun: true });
+                  if (useServerUpgrade) {
+                    upgradeMutation.mutate({ dryRun: true });
+                  } else {
+                    clientSideUpgrade(true);
+                  }
                 }}
                 disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
               >
@@ -482,15 +487,16 @@ export default function PolicyTemplates() {
               <Button
                 onClick={() => {
                   if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
-                  // Try primary; if not found, fallback
-                  upgradeMutation.mutate({
-                    dryRun: false
-                  });
-                  setTimeout(async () => {
-                    if (!upgradeReport) {
-                      await clientSideUpgrade(false);
-                    }
-                  }, 800);
+                  if (useServerUpgrade) {
+                    upgradeMutation.mutate({ dryRun: false });
+                    setTimeout(async () => {
+                      if (!upgradeReport) {
+                        await clientSideUpgrade(false);
+                      }
+                    }, 800);
+                  } else {
+                    clientSideUpgrade(false);
+                  }
                 }}
                 disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
               >
@@ -510,6 +516,18 @@ export default function PolicyTemplates() {
               />
               <Label htmlFor="enhanceBaseline" className="text-sm font-normal">
                 Enhance content with baseline boilerplate
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="useServerUpgrade"
+                checked={useServerUpgrade}
+                onChange={(e) => setUseServerUpgrade(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="useServerUpgrade" className="text-sm font-normal">
+                Use server route (if available)
               </Label>
             </div>
             {!upgradeReport ? (
