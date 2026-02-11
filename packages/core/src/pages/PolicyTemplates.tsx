@@ -204,6 +204,7 @@ export default function PolicyTemplates() {
     }
     return s;
   };
+  (globalThis as any).PolicyTemplates_improveContentFallback = improveContentFallback;
 
   const clientSideUpgrade = async (dryRun: boolean) => {
     const list = templates || [];
@@ -962,7 +963,8 @@ export default function PolicyTemplates() {
               } catch (err: any) {
                 console.error("Improvement failed:", err);
                 toast.error((err && err.message) ? `Improvement failed: ${err.message}. Applied baseline fallback.` : "Improvement failed. Applied baseline fallback.");
-                const fallback = improveContentFallback(userPrompt, improveTarget);
+                const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
+                const fallback = fn(userPrompt, improveTarget);
                 setImprovedContent(fallback);
               } finally {
                 setIsImproving(false);
@@ -986,7 +988,8 @@ export default function PolicyTemplates() {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    const fallback = improveContentFallback(improveTarget?.content || "", improveTarget);
+                    const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
+                    const fallback = fn(improveTarget?.content || "", improveTarget);
                     setImprovedContent(fallback);
                     toast.success("Applied baseline enhancement without AI");
                   }}
