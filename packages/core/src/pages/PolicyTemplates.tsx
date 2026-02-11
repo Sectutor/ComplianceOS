@@ -61,11 +61,18 @@ export default function PolicyTemplates() {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [templateToGenerate, setTemplateToGenerate] = useState<any>(null);
   const [templateToDelete, setTemplateToDelete] = useState<any>(null);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReport, setUpgradeReport] = useState<any>(null);
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
 
-  const { data: templates, isLoading, refetch } = trpc.policyTemplates.list.useQuery({ framework: frameworkFilter });
+  const { selectedClientId } = useClientContext();
+
+  const { data: templates, isLoading, refetch } = trpc.policyTemplates.list.useQuery({
+    framework: frameworkFilter,
+    clientId: selectedClientId || undefined
+  });
 
   const turndownService = useMemo(() => new TurndownService(), []);
 
@@ -93,6 +100,13 @@ export default function PolicyTemplates() {
       toast.success("Template deleted");
       setTemplateToDelete(null);
       refetch();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const upgradeMutation = trpc.policyTemplates.upgradeAll.useMutation({
+    onSuccess: (data: any) => {
+      setUpgradeReport(data);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -130,6 +144,7 @@ export default function PolicyTemplates() {
       framework: selectedFramework,
       sections: sections,
       content: contentToSave,
+      clientId: selectedClientId || undefined
     });
   };
 
@@ -267,6 +282,11 @@ export default function PolicyTemplates() {
               </div>
             </form>
           </EnhancedDialog>
+          {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && (
+            <Button variant="outline" onClick={() => { setIsUpgradeOpen(true); setUpgradeReport(null); }}>
+              Upgrade Templates
+            </Button>
+          )}
         </div>
 
         {/* Quick Guide Card */}
@@ -329,6 +349,64 @@ export default function PolicyTemplates() {
             </CardContent>
           </div>
         </Card>
+
+        <EnhancedDialog
+          open={isUpgradeOpen}
+          onOpenChange={setIsUpgradeOpen}
+          title="Upgrade Policy Templates"
+          description="Sanitize HTML, enforce titles, and fill empty templates."
+          size="md"
+          footer={
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setIsUpgradeOpen(false)}>Close</Button>
+              <Button
+                variant="outline"
+                onClick={() => upgradeMutation.mutate({ dryRun: true })}
+                disabled={upgradeMutation.isPending}
+              >
+                {upgradeMutation.isPending ? "Running..." : "Dry‑run"}
+              </Button>
+              <Button
+                onClick={() => upgradeMutation.mutate({ dryRun: false })}
+                disabled={upgradeMutation.isPending}
+              >
+                {upgradeMutation.isPending ? "Applying..." : "Apply Upgrades"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            {!upgradeReport ? (
+              <p className="text-sm text-muted-foreground">Run a dry‑run or apply upgrades.</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-sm">
+                  Processed: {upgradeReport.templatesProcessed} • Changed: {upgradeReport.templatesChanged} • Dry‑run: {String(upgradeReport.dryRun)}
+                </div>
+                <div className="border rounded-md max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Updated</TableHead>
+                        <TableHead>Changes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(upgradeReport.results || []).map((r: any) => (
+                        <TableRow key={r.id}>
+                          <TableCell>{r.id}</TableCell>
+                          <TableCell>{r.updated ? "Yes" : "No"}</TableCell>
+                          <TableCell className="text-xs">{(r.changes || []).join(", ") || "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </div>
+        </EnhancedDialog>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
@@ -541,7 +619,7 @@ export default function PolicyTemplates() {
               <p className="text-muted-foreground mb-4">
                 {searchQuery ? "Try adjusting your search" : "Get started by creating your first template"}
               </p>
-              {user?.role === 'admin' && !searchQuery && (
+              {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && !searchQuery && (
                 <Button onClick={() => setIsCreateOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create First Template
@@ -645,7 +723,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
     }
   }, [open, contextClientId, clients]);
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin';
 
   const generateMutation = trpc.clientPolicies.create.useMutation({
     onSuccess: (data: any) => {

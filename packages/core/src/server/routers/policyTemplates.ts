@@ -214,5 +214,138 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
 
                 return { content };
             }),
+
+        upgradeAll: publicProcedure
+            .use(isAuthed)
+            .input(z.object({
+                dryRun: z.boolean().default(true)
+            }).optional())
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin') {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Admin or Owner required" });
+                }
+                const db = await getDb();
+                const templates = await db.select().from(policyTemplates).orderBy(desc(policyTemplates.createdAt));
+
+                const sanitize = (html: string, title: string) => {
+                    let s = html || "";
+                    // Strip fenced code blocks
+                    s = s.replace(/```html([\s\S]*?)```/gi, "$1").replace(/```([\s\S]*?)```/gi, "$1");
+                    // Extract <pre><code>...</code></pre>
+                    s = s.replace(/<pre[\s\S]*?>[\s\S]*?<code[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi, "$1");
+                    // Decode entities
+                    s = s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+                    // Remove accidental [object Object] artifacts
+                    s = s.replace(/\[object Object\]/g, "");
+                    // Remove outer wrappers
+                    const bodyMatch = s.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                    if (bodyMatch) s = bodyMatch[1];
+                    // Drop style/script tags
+                    s = s.replace(/<\/?(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
+                    // Replace <section> with <div>
+                    s = s.replace(/<section([^>]*)>/gi, "<div$1>").replace(/<\/section>/gi, "</div>");
+                    // Ensure H1 title at top
+                    try {
+                        const container = globalThis.document ? document.createElement("div") : null;
+                        if (container) {
+                            container.innerHTML = s || "";
+                            let h1 = container.querySelector("h1");
+                            const t = (title || "Information Security Policy").trim();
+                            if (!h1) {
+                                h1 = document.createElement("h1");
+                                h1.textContent = t;
+                                container.insertBefore(h1, container.firstChild);
+                            } else if (t && (h1.textContent || "").trim() !== t) {
+                                h1.textContent = t;
+                            }
+                            s = container.innerHTML;
+                        } else {
+                            // Server-side fallback: prepend title if missing
+                            if (!/\<h1[\s\S]*?\>/.test(s)) {
+                                s = `<h1>${title || "Information Security Policy"}</h1>\n${s}`;
+                            }
+                        }
+                    } catch {
+                        if (!/\<h1[\s\S]*?\>/.test(s)) {
+                            s = `<h1>${title || "Information Security Policy"}</h1>\n${s}`;
+                        }
+                    }
+                    return s.trim();
+                };
+
+                const defaultSectionTitles = [
+                    "Purpose",
+                    "Scope",
+                    "Roles and Responsibilities",
+                    "Policy Statements",
+                    "Procedures",
+                    "Exceptions",
+                    "Enforcement",
+                    "Definitions",
+                    "References",
+                    "Revision History"
+                ];
+
+                const buildSkeleton = (title: string, sectionTitles?: string[]) => {
+                    const t = (title || "Information Security Policy").trim();
+                    const secs = (sectionTitles && sectionTitles.length > 0 ? sectionTitles : defaultSectionTitles);
+                    const parts = secs.map(st => `<h2>${st}</h2>\n<p>[Content]</p>`);
+                    return [`<h1>${t}</h1>`, ...parts].join("\n\n");
+                };
+
+                const results: Array<{ id: number; updated: boolean; changes: string[] }> = [];
+                for (const tpl of templates) {
+                    const changes: string[] = [];
+                    let content = tpl.content || "";
+                    const before = content;
+                    const title = tpl.name || "Information Security Policy";
+                    // If content empty, build skeleton using template sections or defaults
+                    if (!content || content.trim().length === 0) {
+                        const sectionTitles = Array.isArray(tpl.sections)
+                            ? (tpl.sections as any[]).map(s => (typeof s === 'object' ? (s.title || 'Section') : String(s))).filter(Boolean)
+                            : undefined;
+                        content = buildSkeleton(title, sectionTitles);
+                        changes.push("skeleton_built_for_empty_template");
+                    }
+                    const after = sanitize(content, title);
+                    if (after !== before) {
+                        changes.push("sanitized_html_and_title");
+                    }
+
+                    // Sections sanitation if present
+                    let updatedSections = tpl.sections;
+                    if (Array.isArray(updatedSections)) {
+                        const newSections = updatedSections.map((s: any) => {
+                            if (s && typeof s === 'object') {
+                                const body = s.content || s.text || "";
+                                const cleanBody = sanitize(body, title);
+                                if (cleanBody !== body) changes.push(`section_${s.id || s.title}_sanitized`);
+                                return { ...s, content: cleanBody };
+                            }
+                            return s;
+                        });
+                        updatedSections = newSections as any;
+                    }
+
+                    const updated = changes.length > 0;
+                    results.push({ id: tpl.id, updated, changes });
+
+                    if (updated && !input?.dryRun) {
+                        await db.update(policyTemplates)
+                            .set({
+                                content: after,
+                                sections: updatedSections
+                            })
+                            .where(eq(policyTemplates.id, tpl.id));
+                    }
+                }
+
+                return {
+                    templatesProcessed: templates.length,
+                    templatesChanged: results.filter(r => r.updated).length,
+                    dryRun: !!(input?.dryRun),
+                    results
+                };
+            }),
     });
 };
