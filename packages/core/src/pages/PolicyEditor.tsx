@@ -697,6 +697,11 @@ export default function PolicyEditor() {
                                             onInsertSection={(html) => {
                                                 setContent((prev) => `${prev || ""}\n${html}`);
                                             }}
+                                            onReplaceContent={(html) => {
+                                                setContent(html);
+                                            }}
+                                            clientId={clientId}
+                                            policyId={policyId}
                                         />
                                     </TabsContent>
                                     <TabsContent value="preview" className="m-0">
@@ -1605,6 +1610,21 @@ export default function PolicyEditor() {
                                     <FileText className="mr-2 h-4 w-4" />
                                     Export as Word
                                 </Button>
+                                <Slot
+                                    name={SlotNames.POLICY_REWRITE_BUTTON}
+                                    props={{
+                                        content,
+                                        name,
+                                        clientId,
+                                        policyId,
+                                        onRewrite: (html: string) => setContent(html),
+                                    }}
+                                />
+                                {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
+                                    <div className="text-xs text-muted-foreground px-2 py-1">
+                                        Enable Premium (VITE_ENABLE_PREMIUM=true) to use AI rewrite
+                                    </div>
+                                )}
                                 <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" className="w-full justify-start">
