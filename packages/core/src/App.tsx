@@ -1,4 +1,6 @@
+// Refresh
 import { Toaster } from "@complianceos/ui/ui/sonner";
+
 import { BrandingProvider } from "./config/branding";
 import { TooltipProvider } from "@complianceos/ui/ui/tooltip";
 import GDPRBanner from "@/components/GDPRBanner";
@@ -51,7 +53,8 @@ const IssueTrackerSettings = lazy(() => import("./pages/admin/IssueTrackerSettin
 const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
 const ClientSettings = lazy(() => import("./pages/ClientSettings"));
-const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings")); // New Import
+const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings"));
+const SecuritySettings = lazy(() => import("./pages/settings/SecuritySettings"));
 const PersonnelComplianceHub = lazy(() => import("./pages/PersonnelComplianceHub"));
 const ClientActivity = lazy(() => import("./pages/ClientActivity"));
 
@@ -59,6 +62,7 @@ const ClientPoliciesPage = lazy(() => import("./pages/ClientPoliciesPage"));
 const ManagementSignOffPage = lazy(() => import("./pages/ManagementSignOffPage"));
 const NIS2EntityClassificationWizard = lazy(() => import("./pages/NIS2EntityClassificationWizard"));
 const ClientControlsPage = lazy(() => import("./pages/ClientControlsPage"));
+const AuditorChecklistPage = lazy(() => import("./pages/auditors/AuditorChecklistPage"));
 const ClientEmail = lazy(() => import("./pages/ClientEmail").then(module => ({ default: module.ClientEmail })));
 const ClientTasksPage = lazy(() => import("./pages/ClientTasksPage"));
 const AuditReadinessPage = lazy(() => import("./pages/compliance/AuditReadinessPage"));
@@ -71,6 +75,7 @@ const CompleteSubscription = lazy(() => import("./pages/auth/CompleteSubscriptio
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const UpdatePassword = lazy(() => import("./pages/auth/UpdatePassword"));
 const RedeemLink = lazy(() => import("./pages/auth/RedeemLink"));
+const AcceptInvite = lazy(() => import("./pages/auth/AcceptInvite"));
 const UpgradeRequired = lazy(() => import("./pages/UpgradeRequired"));
 
 const LearningPage = lazy(() => import("./pages/LearningPage"));
@@ -91,10 +96,13 @@ const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview
 const SAMMView = lazy(() => import("@/pages/assurance/SAMMView"));
 const SAMMV2View = lazy(() => import("@/pages/assurance/SAMMV2View"));
 const ASVSView = lazy(() => import("@/pages/assurance/ASVSView"));
+const EssentialEightView = lazy(() => import("@/pages/assurance/EssentialEightView"));
 const FrameworkImplementationView = lazy(() => import("@/pages/assurance/FrameworkImplementationView"));
 
 // New Roadmap & Implementation pages
 const RoadmapDashboard = lazy(() => import("@/components/roadmap/RoadmapDashboard"));
+const FrameworkMarketplacePage = lazy(() => import("./pages/FrameworkMarketplacePage"));
+const FrameworkStudio = lazy(() => import("./pages/studio/FrameworkStudio"));
 const RoadmapCreatePage = lazy(() => import("@/components/roadmap/RoadmapCreatePage"));
 const RoadmapTemplates = lazy(() => import("@/components/roadmap/RoadmapTemplates"));
 const StrategicReportsPage = lazy(() => import("./pages/roadmap/StrategicReportsPage"));
@@ -126,6 +134,7 @@ const RiskReportList = lazy(() => import("./pages/risk/RiskReportList"));
 const RiskTreatmentPlanPage = lazy(() => import("./pages/risk/RiskTreatmentPlanPage"));
 const RiskAlignmentPage = lazy(() => import("./pages/risk/RiskAlignmentPage"));
 const AdversaryIntelPage = lazy(() => import("./pages/risk/AdversaryIntelPage"));
+const VulnerabilityWorkbench = lazy(() => import("./pages/risk/VulnerabilityWorkbench"));
 
 const TPRMLayout = lazy(() => import("./pages/tprm/TPRMLayout").then(module => ({ default: module.TPRMLayout })));
 const VendorList = lazy(() => import("./pages/tprm/VendorList"));
@@ -304,22 +313,43 @@ function UnifiedClientGuard({
   const tier = client?.planTier || userMe?.planTier;
   const clientRole = client?.userRole || contextRole;
   const globalRole = userMe?.role;
+  const isGlobalAdmin = globalRole === 'admin' || globalRole === 'owner' || globalRole === 'super_admin';
 
   // 1. Premium Check (if required)
+  if (error) {
+    console.error('[DEBUG UnifiedClientGuard] TRPC error:', error);
+  }
+
   if (requirePremium) {
     const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
-    if (!enabledInBuild) return <Redirect to="/upgrade-required" />;
-
     const isPremium = tier === 'pro' || tier === 'enterprise' ||
-      globalRole === 'admin' ||
+      isGlobalAdmin ||
       clientRole === 'owner' || clientRole === 'admin';
 
-    if (!isPremium) return <Redirect to="/upgrade-required" />;
+    console.log('[DEBUG UnifiedClientGuard]', {
+      requirePremium,
+      enabledInBuild,
+      isGlobalAdmin,
+      isPremium,
+      tier,
+      clientRole,
+      effectiveClientId,
+      globalRole
+    });
+
+    if (!enabledInBuild && !isGlobalAdmin) {
+      console.log('[DEBUG UnifiedClientGuard] Redirecting: !enabledInBuild && !isGlobalAdmin');
+      return <Redirect to="/upgrade-required" />;
+    }
+    if (!isPremium) {
+      console.log('[DEBUG UnifiedClientGuard] Redirecting: !isPremium');
+      return <Redirect to="/upgrade-required" />;
+    }
   }
 
   // 2. Management Check (if required)
   if (requireManagement) {
-    const isAuthorized = globalRole === 'admin' || globalRole === 'owner' ||
+    const isAuthorized = isGlobalAdmin ||
       clientRole === 'owner' || clientRole === 'admin';
 
     if (!isAuthorized) return <Redirect to="/dashboard" />;
@@ -338,7 +368,7 @@ function ManagementGuard({ children }: { children: React.ReactNode }) {
 }
 
 // Wrapper for protected routes
-function ProtectedRoute({ component: Component }: { component: React.ComponentType<any> }) {
+function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any> } & any) {
   const { session, loading } = useAuth();
 
   if (loading) {
@@ -356,7 +386,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   console.log("ProtectedRoute: Session valid, rendering component");
 
-  return <Component />;
+  return <Component {...rest} />;
 }
 
 function ClientControlsAlias() {
@@ -503,6 +533,7 @@ function Router() {
         <Route path="/login" component={LoginPage} />
         <Route path="/signup" component={SignUpPage} />
         <Route path="/auth/redeem-link" component={RedeemLink} />
+        <Route path="/auth/accept-invite" component={AcceptInvite} />
 
         {/* Privacy Assessments */}
         <Route path="/clients/:id/privacy/assessment/gdpr">
@@ -596,13 +627,19 @@ function Router() {
         <Route path="/clients/:id/metrics">
           {(_params) => <ProtectedRoute component={MetricsPage} />}
         </Route>
+        <Route path="/clients/:id/marketplace">
+          {(_params) => <ProtectedRoute component={FrameworkMarketplacePage} />}
+        </Route>
+        <Route path="/frameworks/studio">
+          <ProtectedRoute component={FrameworkStudio} />
+        </Route>
         <Route path="/clients/:id/policies">
           {(_params) => <ProtectedRoute component={ClientPoliciesPage} />}
         </Route>
 
 
         <Route path="/clients/:id/policies/:policyId">
-          {(_params) => <ProtectedRoute component={PolicyEditor} />}
+          {(params) => <ProtectedRoute component={PolicyEditor} {...params} />}
         </Route>
         <Route path="/clients/:id/mappings">
           {(_params) => <ProtectedRoute component={Mappings} />}
@@ -612,6 +649,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/samm">
           {(_params) => <ProtectedRoute component={SAMMV2View} />}
+        </Route>
+        <Route path="/clients/:id/essential-eight">
+          {(_params) => <ProtectedRoute component={EssentialEightView} />}
         </Route>
         <Route path="/clients/:id/asvs">
           {(_params) => <ProtectedRoute component={ASVSView} />}
@@ -770,6 +810,9 @@ function Router() {
         <Route path="/clients/:id/audit-readiness">
           {(_params) => <ProtectedRoute component={AuditReadinessPage} />}
         </Route>
+        <Route path="/clients/:id/auditor-portal">
+          {(_params) => <ProtectedRoute component={AuditorChecklistPage} />}
+        </Route>
         <Route path="/clients/:id/audit-readiness/alignment-guide">
           {(_params) => <ProtectedRoute component={AuditReadinessAlignmentPage} />}
         </Route>
@@ -821,6 +864,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/risks/adversary-intel">
           {(_params) => <PremiumGuard><ProtectedRoute component={AdversaryIntelPage} /></PremiumGuard>}
+        </Route>
+        <Route path="/clients/:id/risks/vulnerability-workbench">
+          {(_params) => <PremiumGuard><ProtectedRoute component={VulnerabilityWorkbench} /></PremiumGuard>}
         </Route>
         <Route path="/clients/:id/vendors">
           {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
@@ -1284,6 +1330,9 @@ function Router() {
         <Route path="/mappings">
           <ProtectedRoute component={Mappings} />
         </Route>
+        <Route path="/settings">
+          <Redirect to="/settings/security" />
+        </Route>
         <Route path="/settings/users">
           <ProtectedRoute component={UserManagement} />
         </Route>
@@ -1292,6 +1341,9 @@ function Router() {
         </Route>
         <Route path="/settings/onboarding">
           <ProtectedRoute component={OnboardingSettings} />
+        </Route>
+        <Route path="/settings/security">
+          <ProtectedRoute component={SecuritySettings} />
         </Route>
         <Route path="/settings/invitations">
           <ProtectedRoute component={UserInvitations} />
