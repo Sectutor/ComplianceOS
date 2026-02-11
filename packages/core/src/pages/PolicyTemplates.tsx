@@ -105,10 +105,20 @@ export default function PolicyTemplates() {
   });
 
   const upgradeMutation = trpc.policyTemplates.upgradeAll.useMutation({
-    onSuccess: (data: any) => {
-      setUpgradeReport(data);
+    onSuccess: (data: any) => setUpgradeReport(data),
+    onError: (error) => {
+      const msg = error?.message || "";
+      if (msg.includes("No procedure found") || msg.includes("NOT_FOUND")) {
+        // Fallback to policyManagement router if policyTemplates.upgradeAll isn't available
+        fallbackUpgradeMutation.mutate({ dryRun: true });
+      } else {
+        toast.error(msg);
+      }
     },
-    onError: (error) => toast.error(error.message),
+  });
+  const fallbackUpgradeMutation = (trpc.policyManagement as any).upgradeTemplates?.useMutation({
+    onSuccess: (data: any) => setUpgradeReport(data),
+    onError: (error: any) => toast.error(error?.message || "Upgrade failed"),
   });
 
   const filteredTemplates = templates?.filter(template =>
@@ -282,11 +292,9 @@ export default function PolicyTemplates() {
               </div>
             </form>
           </EnhancedDialog>
-          {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && (
-            <Button variant="outline" onClick={() => { setIsUpgradeOpen(true); setUpgradeReport(null); }}>
-              Upgrade Templates
-            </Button>
-          )}
+          <Button variant="outline" onClick={() => { setIsUpgradeOpen(true); setUpgradeReport(null); }}>
+            Upgrade Templates
+          </Button>
         </div>
 
         {/* Quick Guide Card */}
@@ -361,16 +369,23 @@ export default function PolicyTemplates() {
               <Button variant="outline" onClick={() => setIsUpgradeOpen(false)}>Close</Button>
               <Button
                 variant="outline"
-                onClick={() => upgradeMutation.mutate({ dryRun: true })}
-                disabled={upgradeMutation.isPending}
+                onClick={() => {
+                  if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
+                  upgradeMutation.mutate({ dryRun: true });
+                }}
+                disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
               >
-                {upgradeMutation.isPending ? "Running..." : "Dry‑run"}
+                {(upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) ? "Running..." : "Dry‑run"}
               </Button>
               <Button
-                onClick={() => upgradeMutation.mutate({ dryRun: false })}
-                disabled={upgradeMutation.isPending}
+                onClick={() => {
+                  if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
+                  // Try primary; if not found, fallback
+                  upgradeMutation.mutate({ dryRun: false });
+                }}
+                disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
               >
-                {upgradeMutation.isPending ? "Applying..." : "Apply Upgrades"}
+                {(upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) ? "Applying..." : "Apply Upgrades"}
               </Button>
             </div>
           }
