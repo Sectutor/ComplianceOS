@@ -51,13 +51,13 @@ export default function PolicyEditor() {
     const publishVersionMutation = trpc.clientPolicies.publish.useMutation();
     const restoreVersionMutation = trpc.clientPolicies.restore.useMutation();
     const { data: versionHistory, refetch: refetchHistory } = trpc.clientPolicies.history.useQuery(
-        { policyId },
-        { enabled: !!policyId }
+        { policyId, clientId },
+        { enabled: !!policyId && !!clientId }
     );
 
     // Integations Data
-    const { data: linkedRisks, refetch: refetchLinkedRisks } = trpc.clientPolicies.getLinkedRisks.useQuery({ policyId }, { enabled: !!policyId });
-    const { data: linkedControls, refetch: refetchLinkedControls } = trpc.clientPolicies.getLinkedControls.useQuery({ policyId }, { enabled: !!policyId });
+    const { data: linkedRisks, refetch: refetchLinkedRisks } = trpc.clientPolicies.getLinkedRisks.useQuery({ policyId, clientId }, { enabled: !!policyId && !!clientId });
+    const { data: linkedControls, refetch: refetchLinkedControls } = trpc.clientPolicies.getLinkedControls.useQuery({ policyId, clientId }, { enabled: !!policyId && !!clientId });
     const { data: availableRisks } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
     const { data: availableControls } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
 
@@ -262,11 +262,9 @@ export default function PolicyEditor() {
 
                     // NEW: Smart Loading Logic
                     // 1. Strip wrappers
-                    let cleanContent = policy.content;
-                    if (cleanContent.trim().startsWith("```markdown")) {
-                        cleanContent = cleanContent.replace(/^```markdown\s*/, '').replace(/\s*```$/, '');
-                    } else if (cleanContent.trim().startsWith("```")) {
-                        cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                    let cleanContent = policy.content.trim();
+                    if (cleanContent.startsWith("```")) {
+                        cleanContent = cleanContent.replace(/^```(?:markdown)?\s*/i, '').replace(/\s*```$/, '');
                     }
 
                     // 2. Detect if it's already HTML
@@ -346,6 +344,7 @@ export default function PolicyEditor() {
         try {
             await publishVersionMutation.mutateAsync({
                 id: policyId,
+                clientId,
                 version: publishVersion || undefined,
                 notes: publishNotes
             });
@@ -370,7 +369,8 @@ export default function PolicyEditor() {
         try {
             await restoreVersionMutation.mutateAsync({
                 policyId,
-                versionId
+                versionId,
+                clientId
             });
             toast.success("Version restored to draft");
             refetchPolicy();

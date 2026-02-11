@@ -2,21 +2,43 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import * as schema from "../../schema";
-import { policyTemplates } from "../../schema";
+import { policyTemplates, clientPolicies } from "../../schema";
 import { getDb } from "../../db";
-import { eq, desc, or, and } from "drizzle-orm";
+import { eq, desc, or, and, sql } from "drizzle-orm";
 
 export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuthed: any) => {
     return t.router({
         list: publicProcedure
             .use(isAuthed)
-            .query(async ({ ctx }: any) => {
+            .input(z.object({
+                framework: z.string().optional(),
+                clientId: z.number().optional()
+            }).optional())
+            .query(async ({ input, ctx }: any) => {
                 const db = await getDb();
-                return await db.select().from(policyTemplates)
-                    .where(or(
+
+                const baseConditions = [
+                    or(
                         eq(policyTemplates.isPublic, true),
-                        eq(policyTemplates.ownerId, ctx.user.id)
-                    ));
+                        eq(policyTemplates.ownerId, ctx.user.id),
+                        input?.clientId ? eq(policyTemplates.clientId, input.clientId) : undefined
+                    )
+                ].filter(Boolean);
+
+                const whereClause = and(...baseConditions as any);
+
+                // If framework filter is provided and not 'all', filter by framework
+                // frameworks is a JSON array, so we check if it contains the framework
+                if (input?.framework && input.framework !== 'all') {
+                    return await db.select().from(policyTemplates)
+                        .where(and(
+                            whereClause,
+                            sql`${policyTemplates.frameworks}::jsonb @> ${JSON.stringify([input.framework])}::jsonb`
+                        ));
+                }
+
+                return await db.select().from(policyTemplates)
+                    .where(whereClause);
             }),
 
         get: publicProcedure
@@ -33,7 +55,17 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
 
                 // Privacy check
                 if (!template.isPublic && template.ownerId !== ctx.user.id && ctx.user.role !== 'admin') {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "Private template" });
+                    // Also check if clientId matches if user has access to that client
+                    if (template.clientId) {
+                        const [membership] = await db.select().from(schema.userClients)
+                            .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, template.clientId)));
+
+                        if (!membership && ctx.user.role !== 'admin') {
+                            throw new TRPCError({ code: "FORBIDDEN", message: "Private template" });
+                        }
+                    } else {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "Private template" });
+                    }
                 }
 
                 return template;
@@ -45,7 +77,8 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 name: z.string(),
                 content: z.string().optional(),
                 sections: z.any().optional(),
-                isPublic: z.boolean().default(false)
+                isPublic: z.boolean().default(false),
+                clientId: z.number().optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
@@ -57,7 +90,8 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     content: input.content || "",
                     sections: input.sections,
                     ownerId: ctx.user.id,
-                    isPublic: input.isPublic
+                    isPublic: input.isPublic,
+                    clientId: input.clientId
                 }).returning();
 
                 return template;
@@ -151,6 +185,34 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 }
 
                 return { success: true, deployedTo: results.length, details: results };
+            }),
+
+        preview: publicProcedure
+            .use(isAuthed)
+            .input(z.object({
+                clientId: z.number(),
+                templateId: z.number().optional(),
+                sections: z.array(z.string()).optional(),
+                tailor: z.boolean().optional(),
+                instruction: z.string().optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const { policyGenerator } = await import("../../lib/policy/policy-generation");
+
+                let content = "";
+                if (input.templateId) {
+                    content = await policyGenerator.generate(input.clientId, input.templateId, {
+                        tailorToIndustry: input.tailor,
+                        customInstruction: input.instruction
+                    });
+                } else if (input.sections && input.sections.length > 0) {
+                    content = await policyGenerator.generateFromSections(input.clientId, "New Policy", input.sections, {
+                        tailorToIndustry: input.tailor,
+                        customInstruction: input.instruction
+                    });
+                }
+
+                return { content };
             }),
     });
 };

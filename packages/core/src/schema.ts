@@ -1,4 +1,4 @@
-﻿import { pgTable, integer, varchar, text, timestamp, pgEnum, boolean, json, jsonb, serial, index, uniqueIndex, customType } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, text, timestamp, pgEnum, boolean, json, jsonb, serial, index, uniqueIndex, customType } from "drizzle-orm/pg-core";
 
 
 
@@ -42,7 +42,7 @@ export const vector = customType<{ data: number[]; driverData: string }>({
 
 
 
-export const roleEnum = pgEnum("role", ["owner", "admin", "editor", "viewer"]);
+export const roleEnum = pgEnum("role", ["owner", "admin", "editor", "viewer", "auditor"]);
 
 
 
@@ -783,6 +783,8 @@ export const users = pgTable("users", {
 
 
 
+  accessExpiresAt: timestamp("access_expires_at"),
+
   createdAt: timestamp("created_at").defaultNow(),
 
 
@@ -916,6 +918,9 @@ export const clients = pgTable("clients", {
 
   dpoName: varchar("dpo_name", { length: 255 }),
 
+  // Integration Settings
+  scanKey: varchar("scan_key", { length: 255 }), // API Key for external scanners (e.g., SurfSense, NVD)
+
 
 
   headquarters: varchar("headquarters", { length: 255 }),
@@ -1025,6 +1030,8 @@ export const userClients = pgTable("user_clients", {
   joinedAt: timestamp("joined_at").defaultNow(),
 
 
+
+  accessExpiresAt: timestamp("access_expires_at"), // For time-limited access (Magic Links)
 
 }, (table) => {
 
@@ -1806,19 +1813,13 @@ export const policyTemplates = pgTable("policy_templates", {
 
 
   name: varchar("name", { length: 255 }).notNull(),
-
-
-
   content: text("content"),
-
   // Ownership
   ownerId: integer("owner_id"),
+  clientId: integer("client_id"),
   isPublic: boolean("is_public").default(false),
 
-
-
   sections: json("sections").$type<{
-
 
 
     id: string;
@@ -8569,25 +8570,6 @@ export const frameworkMappings_deprecated = pgTable("framework_mappings_deprecat
 
 
 });
-
-
-
-
-
-
-
-export type FrameworkMapping = typeof frameworkMappings.$inferSelect;
-
-
-
-export type InsertFrameworkMapping = typeof frameworkMappings.$inferInsert;
-
-
-
-
-
-
-
 // ==================== INTEGRATIONS ====================
 
 
@@ -12468,7 +12450,9 @@ export const policyExceptions = pgTable("policy_exceptions", {
 
   id: serial("id").primaryKey(),
 
-  policyId: integer("policy_id").notNull(), // FK to client_policies
+  policyId: integer("policy_id"), // FK to client_policies (Nullable)
+  requirementId: integer("requirement_id"), // FK to compliance_requirements (Nullable)
+  policyType: varchar("policy_type", { length: 50 }).default("policy"), // 'policy' or 'document'
 
   employeeId: integer("employee_id").notNull(), // FK to employees (requester)
 
@@ -12576,6 +12560,35 @@ export type SammMaturityAssessment = typeof sammMaturityAssessments.$inferSelect
 
 export type InsertSammMaturityAssessment = typeof sammMaturityAssessments.$inferInsert;
 
+// ============================================================================
+// Essential Eight Maturity Assessment Schema
+// ============================================================================
+export const essentialEightAssessments = pgTable("essential_eight_assessments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  controlId: varchar("control_id", { length: 80 }).notNull(),
+  maturityLevel: integer("maturity_level").notNull().default(0),
+  targetLevel: integer("target_level").notNull().default(1),
+  assessmentAnswers: jsonb("assessment_answers").$type<Record<string, boolean>>().default({}),
+  qualityCriteria: jsonb("quality_criteria").$type<Record<string, Record<string, boolean>>>().default({}),
+  levelNotes: jsonb("level_notes").$type<Record<string, string>>().default({}),
+  outcome: varchar("outcome", { length: 30 }).notNull().default("not_assessed"),
+  evidenceQuality: varchar("evidence_quality", { length: 20 }).notNull().default("poor"),
+  evidenceQualityByLevel: jsonb("evidence_quality_by_level").$type<Record<string, string>>().default({}),
+  sampleCoverage: jsonb("sample_coverage").$type<{ workstations?: number; servers?: number; networkDevices?: number }>().default({}),
+  compensatingControls: jsonb("compensating_controls").$type<Array<{ description: string; acceptedBy?: string; date?: string }>>().default([]),
+  evidenceLinks: jsonb("evidence_links").$type<number[]>().default([]),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    clientControlIdx: uniqueIndex("idx_e8_client_control").on(table.clientId, table.controlId),
+  };
+});
+
+export type EssentialEightAssessment = typeof essentialEightAssessments.$inferSelect;
+export type InsertEssentialEightAssessment = typeof essentialEightAssessments.$inferInsert;
 
 // ============================================================================
 // OWASP SAMM v2 Stream-Based Assessment Schema
@@ -14130,12 +14143,22 @@ export const magicLinks = pgTable("magic_links", {
   createdById: integer("created_by_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // Link expiration (different from access duration)
-  usedAt: timestamp("used_at"),
-  usedByUserId: integer("used_by_user_id"),
+  usageLimit: integer("usage_limit").default(1), // null = unlimited
+  useCount: integer("use_count").default(0),
+  restrictedDomains: json("restricted_domains").$type<string[]>(), // e.g. ["intellfence.com"]
+});
+
+export const magicLinkRedemptions = pgTable("magic_link_redemptions", {
+  id: serial("id").primaryKey(),
+  magicLinkId: integer("magic_link_id").notNull(),
+  userId: integer("user_id").notNull(),
+  redeemedAt: timestamp("redeemed_at").defaultNow(),
 });
 
 export type MagicLink = typeof magicLinks.$inferSelect;
 export type InsertMagicLink = typeof magicLinks.$inferInsert;
+export type MagicLinkRedemption = typeof magicLinkRedemptions.$inferSelect;
+export type InsertMagicLinkRedemption = typeof magicLinkRedemptions.$inferInsert;
 
 // ============================================================================
 // OWASP ASVS v4.0.3 Assessment Schema

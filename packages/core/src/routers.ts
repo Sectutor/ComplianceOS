@@ -50,6 +50,7 @@ import { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { createCrmRouter } from './lib/modules/crm/router';
 import { createSalesRouter } from './lib/modules/crm/sales-router';
 import { createFrameworkImportRouter } from './server/routers/frameworkImport';
+import { createFrameworkPluginsRouter } from './server/routers/frameworkPlugins';
 import { createReadinessRouter } from './server/routers/readiness';
 // Roadmap & Implementation
 import { createImplementationRouter } from './server/routers/implementation';
@@ -103,6 +104,8 @@ import { createSammV2Router } from "./server/routers/samm-v2";
 import { emailTemplatesRouter } from "./server/routers/emailTemplates";
 import { emailTriggersRouter } from "./server/routers/emailTriggers";
 import { createAdversaryIntelRouter } from "./server/routers/adversaryIntel";
+import { createEssentialEightRouter } from "./server/routers/essentialEight";
+import { createStudioRouter } from "./server/routers/studio";
 
 
 // Context type definition
@@ -143,7 +146,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 });
 
 const isAdmin = t.middleware(({ ctx, next }) => {
-  if (!ctx.user || (ctx.user.role !== 'admin' && ctx.user.role !== 'owner')) {
+  if (!ctx.user || (ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin')) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
   }
   return next({ ctx });
@@ -164,7 +167,7 @@ const checkClientAccess = t.middleware(async (opts) => {
   console.log('[DEBUG checkClientAccess routers.ts] Resolved clientId:', clientId);
 
   // Admins have implicit access
-  if (ctx.user.role === 'admin' || ctx.user.role === 'owner') {
+  if (ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin') {
     return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
   }
 
@@ -208,7 +211,7 @@ const checkPremiumAccess = t.middleware(async (opts) => {
   const clientId = input?.clientId || input?.id || ctx.clientId;
 
   // Global Admin/Owner bypass OR Client Owner/Admin bypass
-  if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' ||
+  if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin' ||
     (ctx as any).clientRole === 'owner' || (ctx as any).clientRole === 'admin') {
     console.log(`[PremiumGuard] Bypass for Global Admin or Client Owner/Admin`);
     return next({ ctx: { ...ctx, isPremium: true } });
@@ -310,6 +313,7 @@ export const appRouter = router({
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   frameworks: createFrameworksRouter(t, protectedProcedure),
   frameworkImport: createFrameworkImportRouter(t, clientProcedure),
+  frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
   autopilot: createAutopilotRouter(t, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
@@ -317,6 +321,7 @@ export const appRouter = router({
   readiness: createReadinessRouter(t, clientProcedure),
   samm: createSammRouter(t, clientProcedure),
   sammV2: createSammV2Router(t, clientProcedure),
+  essentialEight: createEssentialEightRouter(t, clientProcedure),
   asvs: createAsvsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure),
@@ -376,10 +381,10 @@ export const appRouter = router({
     systems: createAiSystemsRouter(t, clientProcedure),
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
+  studio: createStudioRouter(t, protectedProcedure),
   advisor: createAdvisorRouter(t, clientProcedure),
 
   comments: createCommentsRouter(t, clientProcedure),
-
 
   // New and Management Readiness Tools
   // management: createManagementRouter(t, protectedProcedure),
@@ -1727,9 +1732,14 @@ ONLY return the JSON. No Markdown formatting.
           console.log("LLM Response received:", response.text.substring(0, 50) + "...");
 
           // Clean response of potential markdown code blocks
+          // Clean response of potential markdown code blocks
           const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-          const parsed = JSON.parse(cleanJson);
 
+          if (!cleanJson) {
+            throw new Error("Empty response from LLM");
+          }
+
+          const parsed = JSON.parse(cleanJson);
           return parsed;
 
         } catch (error: any) {
@@ -1795,6 +1805,7 @@ ONLY return the JSON. No Markdown formatting.
                 temperature: 0.3
               });
               const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
               return JSON.parse(cleanJson);
             } catch (e: any) {
               console.error("LLM failed for suggestTechnologies:", e);
@@ -1873,6 +1884,7 @@ ONLY return the JSON. No Markdown formatting.
                 temperature: 0.3
               });
               const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
               return JSON.parse(cleanJson);
             } catch (e: any) {
               console.error("LLM failed for implementationPlan:", e);
@@ -1955,6 +1967,7 @@ ONLY return the JSON. No Markdown formatting.
                 temperature: 0.3
               });
               const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
               return JSON.parse(cleanJson);
             } catch (e: any) {
               console.error("LLM failed for explainMapping:", e);
@@ -2021,6 +2034,7 @@ ONLY return the JSON. No Markdown formatting.
                 temperature: 0.5
               });
               const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
               return JSON.parse(cleanJson);
             } catch (e: any) {
               console.error("LLM failed for askQuestion:", e);
@@ -3542,6 +3556,7 @@ Example format:
 
           // Clean markdown code blocks if present
           const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+          if (!cleanJson) throw new Error("Empty response from LLM");
           const result = JSON.parse(cleanJson);
 
           // Map back to full control details
@@ -3642,6 +3657,7 @@ Return JSON:
           });
 
           const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+          if (!cleanJson) throw new Error("Empty response from LLM");
           const result = JSON.parse(cleanJson);
 
           // Re-hydrate with full details
@@ -5641,4 +5657,6 @@ Return JSON:
 
 
 export type AppRouter = typeof appRouter;
+
+
 

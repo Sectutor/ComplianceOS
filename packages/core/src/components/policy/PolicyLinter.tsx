@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
-import { AlertTriangle, CheckCircle2, Plus, Wand2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Plus, Wand2, Loader2, Sparkles } from "lucide-react";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
 import { Slot } from "@/registry";
 import { SlotNames } from "@/registry/slotNames";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 type LinterIssue = {
   id: string;
@@ -166,6 +168,40 @@ export function PolicyLinter({
   }, [contentText]);
 
   const issues = [...sectionResults.filter((i) => i.type !== "ok"), ...placeholderWarnings];
+  const missingSections = sectionResults.filter(i => i.type === "missing").map(i => ({ id: i.id, title: i.title }));
+
+  const fixAllMutation = trpc.clientPolicies.incorporateLinterSections.useMutation({
+    onSuccess: (data) => {
+      if (onReplaceContent) {
+        // Strip markdown code fences if present
+        let cleanContent = data.content.trim();
+        if (cleanContent.startsWith("```")) {
+          cleanContent = cleanContent.replace(/^```(?:markdown)?\s*/, '').replace(/\s*```$/, '');
+        }
+
+        // Parse markdown to HTML before updating
+        const html = marked.parse(cleanContent, { async: false }) as string;
+        onReplaceContent(html);
+        toast.success("AI has fixed issues and improved the policy!");
+      }
+    },
+    onError: (error) => {
+      toast.error(`AI fix failed: ${error.message}`);
+    }
+  });
+
+  const handleFixAll = () => {
+    if (!clientId || !policyId) {
+      toast.error("Client or Policy context missing");
+      return;
+    }
+    fixAllMutation.mutate({
+      clientId,
+      policyId,
+      content,
+      missingSections
+    });
+  };
 
   const appendSection = (sectionId: string) => {
     const section = DEFAULT_SECTIONS.find((s) => s.id === sectionId);
@@ -182,9 +218,22 @@ export function PolicyLinter({
             <CardTitle>Policy Linter</CardTitle>
             <CardDescription>Checks for required sections and common issues</CardDescription>
           </div>
-          <Badge variant="outline" className={cn(issues.length === 0 ? "text-green-700 border-green-200 bg-green-50" : "text-amber-700 border-amber-200 bg-amber-50")}>
-            {issues.length === 0 ? "No issues" : `${issues.length} issue(s)`}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {missingSections.length > 0 && (
+              <Button
+                size="sm"
+                variant="glow"
+                onClick={handleFixAll}
+                disabled={fixAllMutation.isPending}
+              >
+                {fixAllMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                Fix All with AI
+              </Button>
+            )}
+            <Badge variant="outline" className={cn(issues.length === 0 ? "text-green-700 border-green-200 bg-green-50" : "text-amber-700 border-amber-200 bg-amber-50")}>
+              {issues.length === 0 ? "No issues" : `${issues.length} issue(s)`}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -286,3 +335,4 @@ export function PolicyLinter({
 }
 
 export default PolicyLinter;
+

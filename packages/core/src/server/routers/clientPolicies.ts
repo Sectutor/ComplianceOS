@@ -58,7 +58,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         }
         return result;
       }),
-    create: adminProcedure
+    create: clientEditorProcedure
       .input(z.object({
         clientId: z.number(),
         templateId: z.number().optional(),
@@ -155,10 +155,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .query(async ({ input }: any) => {
         return await policyGenerator.suggestSections(input.policyName, input.industry);
       }),
-    update: adminProcedure
+    update: clientEditorProcedure
       .input(z.object({
         id: z.number(),
-        clientId: z.number().optional(), // usually not updated, but acceptable
+        clientId: z.number(),
         name: z.string().optional(),
         content: z.string().optional(),
         status: z.enum(["draft", "review", "approved", "archived"]).optional(),
@@ -166,7 +166,15 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         version: z.number().optional(),
       }))
       .mutation(async ({ input }: any) => {
-        const { id, ...data } = input;
+        const { id, clientId, ...data } = input;
+
+        // Safeguard: verify policy belongs to this client
+        const existing = await db.getClientPolicyById(id);
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
+        if (existing.clientPolicy.clientId !== clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
+        }
+
         await db.updateClientPolicy(id, data);
 
         // Re-index updated policy
@@ -174,12 +182,17 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         return { success: true };
       }),
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
+    delete: clientEditorProcedure
+      .input(z.object({ id: z.number(), clientId: z.number() }))
       .mutation(async ({ input }: any) => {
         // Fetch policy first to get clientId if needed, or assume global delete logic if supported.
         // But since we need clientId for partitioning, we must fetch it.
         const policy = await db.getClientPolicyById(input.id);
+        if (!policy) throw new TRPCError({ code: "NOT_FOUND" });
+
+        if (policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
+        }
 
         await db.deleteClientPolicy(input.id);
 
@@ -192,7 +205,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         return { success: true };
       }),
-    generateBulk: adminProcedure
+    generateBulk: clientEditorProcedure
       .input(z.object({
         clientId: z.number(),
         companyName: z.string(),
@@ -200,12 +213,13 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .mutation(async ({ input }: any) => {
         return await db.bulkGeneratePolicies(input.clientId, input.companyName);
       }),
-    getRACI: publicProcedure
-      .input(z.object({ policyId: z.number() }))
+    getRACI: clientProcedure
+      .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
+        // Optional: verify policy belongs to clientId
         return await db.getPolicyRACIAssignments(input.policyId);
       }),
-    updateRACI: adminProcedure
+    updateRACI: clientEditorProcedure
       .input(z.object({
         clientId: z.number(),
         policyId: z.number(),
@@ -227,9 +241,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
-    publish: adminProcedure
+    publish: clientEditorProcedure
       .input(z.object({
         id: z.number(),
+        clientId: z.number(),
         version: z.string().optional(),
         notes: z.string().optional(),
       }))
@@ -237,9 +252,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         const dbConn = await db.getDb();
 
         const policy = await dbConn.query.clientPolicies.findFirst({
-          where: eq(clientPolicies.id, input.id)
+          where: and(
+            eq(clientPolicies.id, input.id),
+            eq(clientPolicies.clientId, input.clientId)
+          )
         });
-        if (!policy) throw new TRPCError({ code: "NOT_FOUND" });
+        if (!policy) throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found or access denied" });
 
         // Create Version Snapshot
         const newVersionStr = input.version || `v${(policy.version || 0) + 1}.0`;
@@ -281,8 +299,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true, version: newVersionStr };
       }),
 
-    history: publicProcedure
-      .input(z.object({ policyId: z.number() }))
+    history: clientProcedure
+      .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
 
@@ -296,10 +314,11 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           .orderBy(desc(policyVersions.createdAt));
       }),
 
-    restore: adminProcedure
+    restore: clientEditorProcedure
       .input(z.object({
         policyId: z.number(),
-        versionId: z.number()
+        versionId: z.number(),
+        clientId: z.number()
       }))
       .mutation(async ({ input, ctx }: any) => {
         const dbConn = await db.getDb();
@@ -315,6 +334,9 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         // Get policy for client ID (for logging)
         const policy = await db.getClientPolicyById(input.policyId);
         if (!policy) throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found" });
+        if (policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
+        }
 
         // Update the policy
         await dbConn.update(clientPolicies)
@@ -358,7 +380,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         return { content: input.content }; // No-op return
       }),
-    gapAnalysis: publicProcedure
+    gapAnalysis: clientProcedure
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }: any) => {
         return await db.getPolicyGapAnalysis(input.clientId);
@@ -411,8 +433,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
-    getLinkedRisks: publicProcedure
-      .input(z.object({ policyId: z.number() }))
+    getLinkedRisks: clientProcedure
+      .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
 
@@ -427,8 +449,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return links;
       }),
 
-    getLinkedControls: publicProcedure
-      .input(z.object({ policyId: z.number() }))
+    getLinkedControls: clientProcedure
+      .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
         return await dbConn.select({
@@ -487,6 +509,28 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
             eq(controlPolicyMappings.clientControlId, input.controlId)
           ));
         return { success: true };
+      }),
+
+    incorporateLinterSections: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        policyId: z.number(),
+        content: z.string(),
+        missingSections: z.array(z.object({
+          id: z.string(),
+          title: z.string()
+        }))
+      }))
+      .mutation(async ({ input }: any) => {
+        const { policyGenerator } = await import("../../lib/policy/policy-generation");
+
+        const updatedContent = await policyGenerator.incorporateMissingSections(
+          input.clientId,
+          input.content,
+          input.missingSections
+        );
+
+        return { content: updatedContent };
       }),
 
   });

@@ -7,6 +7,16 @@ export default function RichTextEditor({ value, onChange, className, minHeight =
   const quillRef = useRef<Quill | null>(null);
   const isUpdatingRef = useRef(false);
 
+  // Helper to detect plain text and convert to HTML
+  const processContent = (content: string) => {
+    if (!content) return '';
+    // If it doesn't look like HTML (no tags) but has newlines, convert to HTML
+    if (!/<[a-z][\s\S]*>/i.test(content) && content.includes('\n')) {
+      return content.split('\n').map(line => `<p>${line}</p>`).join('');
+    }
+    return content;
+  };
+
   // Set css var
   useEffect(() => {
     if (containerRef.current) {
@@ -45,7 +55,7 @@ export default function RichTextEditor({ value, onChange, className, minHeight =
 
     // Initial value
     if (value) {
-      quill.clipboard.dangerouslyPasteHTML(value);
+      quill.clipboard.dangerouslyPasteHTML(processContent(value));
     }
   }, []); // Mount once
 
@@ -53,8 +63,9 @@ export default function RichTextEditor({ value, onChange, className, minHeight =
   useEffect(() => {
     if (quillRef.current && value !== undefined && !isUpdatingRef.current) {
       const currentContent = quillRef.current.root.innerHTML;
-      if (currentContent !== value) {
-        quillRef.current.clipboard.dangerouslyPasteHTML(value);
+      const procesedValue = processContent(value);
+      if (currentContent !== procesedValue && currentContent !== value) {
+        quillRef.current.clipboard.dangerouslyPasteHTML(procesedValue);
       }
     }
   }, [value]);
