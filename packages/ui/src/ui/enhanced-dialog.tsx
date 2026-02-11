@@ -60,7 +60,7 @@ export function EnhancedDialog({
                     )}
                 </DialogHeader>
 
-                <div className="p-6 bg-white overflow-y-auto max-h-[70vh]">
+                <div className="p-6 bg-white overflow-y-auto max-h-[85vh]">
                     {children}
                 </div>
 
