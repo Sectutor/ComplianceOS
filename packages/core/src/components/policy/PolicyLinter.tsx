@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertTriangle, CheckCircle2, Plus, Wand2 } from "lucide-react";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
+import { Slot } from "@/registry";
+import { SlotNames } from "@/registry/slotNames";
 
 type LinterIssue = {
   id: string;
@@ -108,7 +110,6 @@ function hasSection(contentText: string, section: SectionTemplate) {
   const keywordMatch = section.keywords.some((k) => contentText.includes(k.toLowerCase()));
   return titleMatch || keywordMatch;
 }
-
 function detectPlaceholders(contentText: string) {
   const patterns = [
     /\bTBD\b/i,
@@ -123,9 +124,15 @@ function detectPlaceholders(contentText: string) {
 export function PolicyLinter({
   content,
   onInsertSection,
+  onReplaceContent,
+  clientId,
+  policyId,
 }: {
   content: string;
   onInsertSection: (htmlToAppend: string) => void;
+  onReplaceContent?: (newHtml: string) => void;
+  clientId?: number;
+  policyId?: number;
 }) {
   const contentText = useMemo(() => normalizeText(content || ""), [content]);
 
@@ -213,6 +220,24 @@ export function PolicyLinter({
                           <Plus className="h-3 w-3 mr-1" />
                           Insert Template
                         </Button>
+                        <div className="inline-block ml-2">
+                          <Slot
+                            name={SlotNames.POLICY_SECTION_DRAFT}
+                            props={{
+                              sectionId: i.id,
+                              sectionTitle: i.title,
+                              currentContent: content,
+                              clientId,
+                              policyId,
+                              onDraft: (html: string) => onInsertSection(html),
+                            }}
+                          />
+                        </div>
+                        {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            Premium required for AI drafting
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -230,6 +255,21 @@ export function PolicyLinter({
                         <Wand2 className="h-3 w-3 mr-1" />
                         Review
                       </Button>
+                      <div className="inline-block ml-2">
+                        <Slot
+                          name={SlotNames.POLICY_REWRITE_BUTTON}
+                          props={{
+                            content,
+                            mode: "improve_placeholders",
+                            onRewrite: (html: string) => onReplaceContent && onReplaceContent(html),
+                          }}
+                        />
+                      </div>
+                      {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Premium required for AI rewrite
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
