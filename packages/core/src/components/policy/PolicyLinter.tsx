@@ -112,15 +112,18 @@ function hasSection(contentText: string, section: SectionTemplate) {
   const keywordMatch = section.keywords.some((k) => contentText.includes(k.toLowerCase()));
   return titleMatch || keywordMatch;
 }
-function detectPlaceholders(contentText: string) {
+
+function getPlaceholderMatches(contentText: string) {
   const patterns = [
-    /\bTBD\b/i,
-    /\[?Company Name\]?/i,
-    /\{\{company(_name)?\}\}/i,
-    /\bLOREM IPSUM\b/i,
-    /\[insert.*?\]/i,
+    { regex: /\bTBD\b/i, label: 'TBD' },
+    { regex: /\[?Company Name\]?/i, label: 'Company Name' },
+    { regex: /\{\{company(_name)?\}\}/i, label: 'Template Variable' },
+    { regex: /\bLOREM IPSUM\b/i, label: 'Lorem Ipsum' },
+    { regex: /\[insert.*?\]/i, label: 'Insert Instruction' },
   ];
-  return patterns.filter((p) => p.test(contentText)).length;
+  const found = patterns.filter(p => p.regex.test(contentText)).map(p => p.label);
+  // Remove duplicates
+  return Array.from(new Set(found));
 }
 
 export function PolicyLinter({
@@ -129,12 +132,14 @@ export function PolicyLinter({
   onReplaceContent,
   clientId,
   policyId,
+  orgName,
 }: {
   content: string;
   onInsertSection: (htmlToAppend: string) => void;
   onReplaceContent?: (newHtml: string) => void;
   clientId?: number;
   policyId?: number;
+  orgName?: string;
 }) {
   const contentText = useMemo(() => normalizeText(content || ""), [content]);
 
@@ -145,21 +150,21 @@ export function PolicyLinter({
         id: s.id,
         type: present ? "ok" : "missing",
         title: s.title,
-        description: present ? undefined : "Section is recommended and commonly required by auditors.",
+        description: present ? undefined : "Section is recommended.",
         fixable: !present,
       };
     });
   }, [contentText]);
 
   const placeholderWarnings = useMemo<LinterIssue[]>(() => {
-    const count = detectPlaceholders(contentText);
-    if (count > 0) {
+    const matches = getPlaceholderMatches(contentText);
+    if (matches.length > 0) {
       return [
         {
           id: "placeholders",
           type: "warning",
           title: "Unresolved placeholders",
-          description: "Detected unresolved tokens like TBD or Company Name.",
+          description: `Found: ${matches.join(", ")}`,
           fixable: false,
         },
       ];
@@ -171,15 +176,12 @@ export function PolicyLinter({
   const missingSections = sectionResults.filter(i => i.type === "missing").map(i => ({ id: i.id, title: i.title }));
 
   const fixAllMutation = trpc.clientPolicies.incorporateLinterSections.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (onReplaceContent) {
-        // Strip markdown code fences if present
         let cleanContent = data.content.trim();
         if (cleanContent.startsWith("```")) {
           cleanContent = cleanContent.replace(/^```(?:markdown)?\s*/, '').replace(/\s*```$/, '');
         }
-
-        // Parse markdown to HTML before updating
         const html = marked.parse(cleanContent, { async: false }) as string;
         onReplaceContent(html);
         toast.success("AI has fixed issues and improved the policy!");
@@ -210,6 +212,22 @@ export function PolicyLinter({
     onInsertSection(`<div>${html}</div>`);
   };
 
+  const fixPlaceholders = () => {
+    if (!onReplaceContent) return;
+    const name = (orgName || "").trim();
+    let updated = content || "";
+    if (name) {
+      updated = updated
+        .replace(/\[\s*Company\s+Name\s*\]/gi, name)
+        .replace(/\bCompany\s+Name\b/gi, name)
+        .replace(/\{\{\s*company(_name)?\s*\}\}/gi, name);
+    }
+    updated = updated
+      .replace(/\bTBD\b/g, "")
+      .replace(/\bLOREM IPSUM\b/gi, "")
+      .replace(/\[insert.*?\]/gi, "");
+    onReplaceContent(updated);
+  };
   return (
     <Card>
       <CardHeader>
@@ -222,7 +240,7 @@ export function PolicyLinter({
             {missingSections.length > 0 && (
               <Button
                 size="sm"
-                variant="glow"
+                variant="default"
                 onClick={handleFixAll}
                 disabled={fixAllMutation.isPending}
               >
@@ -257,7 +275,10 @@ export function PolicyLinter({
                   .filter((i) => i.type === "missing")
                   .map((i) => (
                     <TableRow key={i.id}>
-                      <TableCell className="font-medium">{i.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>{i.title}</div>
+                        {i.description && <div className="text-xs text-muted-foreground">{i.description}</div>}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-amber-700">
                           <AlertTriangle className="h-4 w-4" />
@@ -292,7 +313,10 @@ export function PolicyLinter({
                   ))}
                 {placeholderWarnings.map((i) => (
                   <TableRow key={i.id}>
-                    <TableCell className="font-medium">{i.title}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{i.title}</div>
+                      {i.description && <div className="text-xs text-muted-foreground">{i.description}</div>}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-amber-700">
                         <AlertTriangle className="h-4 w-4" />
@@ -300,9 +324,9 @@ export function PolicyLinter({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={fixPlaceholders}>
                         <Wand2 className="h-3 w-3 mr-1" />
-                        Review
+                        Fix Placeholders
                       </Button>
                       <div className="inline-block ml-2">
                         <Slot
@@ -310,6 +334,8 @@ export function PolicyLinter({
                           props={{
                             content,
                             mode: "improve_placeholders",
+                            clientId,
+                            policyId,
                             onRewrite: (html: string) => onReplaceContent && onReplaceContent(html),
                           }}
                         />
@@ -335,4 +361,3 @@ export function PolicyLinter({
 }
 
 export default PolicyLinter;
-

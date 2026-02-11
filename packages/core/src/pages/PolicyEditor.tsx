@@ -816,6 +816,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                             }}
                                             clientId={clientId}
                                             policyId={policyId}
+                                            orgName={clientData?.name}
                                         />
                                     </TabsContent>
                                     <TabsContent value="preview" className="m-0">
