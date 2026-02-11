@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -65,6 +65,10 @@ export default function PolicyTemplates() {
   const [upgradeReport, setUpgradeReport] = useState<any>(null);
   const [enhanceBaseline, setEnhanceBaseline] = useState(true);
   const [useServerUpgrade, setUseServerUpgrade] = useState(false);
+  const [isImproveOpen, setIsImproveOpen] = useState(false);
+  const [improveTarget, setImproveTarget] = useState<any>(null);
+  const [improveInstruction, setImproveInstruction] = useState("");
+  const [improvedContent, setImprovedContent] = useState("");
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
@@ -673,6 +677,21 @@ export default function PolicyTemplates() {
                                 setIsGenerateOpen(true);
                               }}
                             />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Improve with AI"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImproveTarget(template);
+                                setImprovedContent(template.content || "");
+                                setImproveInstruction("");
+                                setIsImproveOpen(true);
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4" />
+                            </Button>
 
                             <Button
                               size="sm"
@@ -751,6 +770,21 @@ export default function PolicyTemplates() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
+                              title="Improve with AI"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImproveTarget(template);
+                                setImprovedContent(template.content || "");
+                                setImproveInstruction("");
+                                setIsImproveOpen(true);
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
                               onClick={() => setTemplateToDelete(template)}
                             >
@@ -815,6 +849,94 @@ export default function PolicyTemplates() {
               </div>
             )}
           </div>
+        </EnhancedDialog>
+
+        <EnhancedDialog
+          open={isImproveOpen}
+          onOpenChange={setIsImproveOpen}
+          title={`Improve Template${improveTarget ? `: ${improveTarget.name}` : ""}`}
+          description="Use AI to enhance clarity, structure, and completeness. Review before saving."
+          size="xl"
+          footer={
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setIsImproveOpen(false)}>Close</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const form = document.getElementById('ai-improve-form') as HTMLFormElement;
+                  if (form) form.requestSubmit();
+                }}
+                disabled={false}
+              >
+                Generate Improvements
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!improveTarget) return;
+                  updateMutation.mutate({
+                    id: improveTarget.id,
+                    content: improvedContent
+                  });
+                }}
+                disabled={!improvedContent || updateMutation.isPending}
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Template"}
+              </Button>
+            </div>
+          }
+        >
+          <form id="ai-improve-form" onSubmit={(e) => {
+            e.preventDefault();
+            const systemPrompt = "You are an expert compliance policy editor. Improve the provided policy template content: enhance clarity, structure, and completeness; keep headings; avoid placeholders; output clean HTML only.";
+            const userPrompt = improvedContent || improveTarget?.content || "";
+            const run = async () => {
+              const { streamAIContent } = await import("../hooks/useStreamingAI");
+              const text = await streamAIContent(
+                {
+                  systemPrompt,
+                  userPrompt,
+                  instruction: improveInstruction,
+                  temperature: 0.3
+                },
+                (t: string) => {
+                  try {
+                    const html = marked.parse(t, { async: false }) as string;
+                    setImprovedContent(html);
+                  } catch {
+                    setImprovedContent(t);
+                  }
+                }
+              );
+              try {
+                const html = marked.parse(text, { async: false }) as string;
+                setImprovedContent(html);
+              } catch {
+                setImprovedContent(text);
+              }
+            };
+            run();
+          }}>
+            <div className="grid gap-4 py-4 max-h-[75vh] overflow-y-auto pr-2">
+              <div className="grid gap-2">
+                <Label htmlFor="instruction">Custom Instructions (optional)</Label>
+                <Textarea
+                  id="instruction"
+                  placeholder="e.g., strengthen access control statements and add exceptions guidance"
+                  value={improveInstruction}
+                  onChange={(e) => setImproveInstruction(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Improved Content Preview</Label>
+                <RichTextEditor
+                  value={improvedContent}
+                  onChange={setImprovedContent}
+                  minHeight="400px"
+                />
+              </div>
+            </div>
+          </form>
         </EnhancedDialog>
 
         <AlertDialog open={!!templateToDelete} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
