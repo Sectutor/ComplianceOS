@@ -63,6 +63,7 @@ export default function PolicyTemplates() {
   const [templateToDelete, setTemplateToDelete] = useState<any>(null);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReport, setUpgradeReport] = useState<any>(null);
+  const [enhanceBaseline, setEnhanceBaseline] = useState(true);
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
@@ -144,10 +145,24 @@ export default function PolicyTemplates() {
     "Purpose","Scope","Roles and Responsibilities","Policy Statements",
     "Procedures","Exceptions","Enforcement","Definitions","References","Revision History"
   ];
+  const baselineText = (title: string) => {
+    const t = (title || "").toLowerCase();
+    if (t.includes("purpose")) return "This policy establishes objectives and guiding principles to protect information assets and support regulatory compliance across the organization.";
+    if (t.includes("scope")) return "This policy applies to all employees, contractors, systems, facilities, and data owned or managed by the organization, regardless of location.";
+    if (t.includes("roles")) return "The organization assigns clear responsibilities for policy ownership, approval, implementation, monitoring, and exception handling.";
+    if (t.includes("statement")) return "The organization commits to maintaining confidentiality, integrity, and availability of information through documented controls and continuous improvement.";
+    if (t.includes("procedures")) return "Procedures define required actions for access control, change management, incident response, backup, and other operational controls.";
+    if (t.includes("exceptions")) return "Exceptions must be documented, risk-assessed, time-bound, and approved by an authorized owner with compensating controls.";
+    if (t.includes("enforcement")) return "Violations may lead to corrective actions up to and including disciplinary measures, subject to HR and legal review.";
+    if (t.includes("definitions")) return "Key terms are defined to ensure consistent understanding across stakeholders and auditors.";
+    if (t.includes("references")) return "This policy references applicable standards, regulations, and internal procedures to support implementation and audits.";
+    if (t.includes("revision")) return "Version history records authorship, approval dates, and change summaries to maintain traceability.";
+    return "This section provides the structured content necessary to implement and audit this policy.";
+  };
   const buildSkeleton = (title: string, sectionTitles?: string[]) => {
     const t = (title || "Information Security Policy").trim();
     const secs = (sectionTitles && sectionTitles.length > 0 ? sectionTitles : defaultSectionTitles);
-    const parts = secs.map(st => `<h2>${st}</h2>\n<p>[Content]</p>`);
+    const parts = secs.map(st => `<h2>${st}</h2>\n<p>${enhanceBaseline ? baselineText(st) : "[Content]"}</p>`);
     return [`<h1>${t}</h1>`, ...parts].join("\n\n");
   };
 
@@ -175,7 +190,12 @@ export default function PolicyTemplates() {
         const newSections = updatedSections.map((s: any) => {
           if (s && typeof s === 'object') {
             const body = s.content || s.text || "";
-            const cleanBody = sanitizeHtml(body, title);
+            let nextBody = body;
+            if (enhanceBaseline) {
+              const isEmpty = !nextBody || nextBody.trim().length < 60 || /\[Content\]/i.test(nextBody);
+              if (isEmpty) nextBody = baselineText(s.title || "Section");
+            }
+            const cleanBody = sanitizeHtml(nextBody, title);
             if (cleanBody !== body) changes.push(`section_${s.id || s.title}_sanitized`);
             return { ...s, content: cleanBody };
           }
@@ -444,7 +464,7 @@ export default function PolicyTemplates() {
           open={isUpgradeOpen}
           onOpenChange={setIsUpgradeOpen}
           title="Upgrade Policy Templates"
-          description="Sanitize HTML, enforce titles, and fill empty templates."
+          description="Sanitize HTML, enforce titles, fill empty templates, and optionally enhance content."
           size="md"
           footer={
             <div className="flex justify-end gap-2 w-full">
@@ -480,6 +500,18 @@ export default function PolicyTemplates() {
           }
         >
           <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="enhanceBaseline"
+                checked={enhanceBaseline}
+                onChange={(e) => setEnhanceBaseline(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="enhanceBaseline" className="text-sm font-normal">
+                Enhance content with baseline boilerplate
+              </Label>
+            </div>
             {!upgradeReport ? (
               <p className="text-sm text-muted-foreground">Run a dry‑run or apply upgrades.</p>
             ) : (
