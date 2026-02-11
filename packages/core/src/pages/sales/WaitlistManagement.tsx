@@ -33,7 +33,7 @@ export default function WaitlistManagement() {
 
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteLead, setInviteLead] = useState<any | null>(null);
-    const [inviteRole, setInviteRole] = useState<'viewer' | 'editor' | 'admin'>('viewer');
+    const [inviteRole, setInviteRole] = useState<'viewer' | 'editor' | 'user' | 'admin'>('viewer');
     const [invitePlanTier, setInvitePlanTier] = useState<'free' | 'pro' | 'enterprise'>('pro');
     const [inviteExpiresInDays, setInviteExpiresInDays] = useState<number>(30);
     const [inviteUsageLimit, setInviteUsageLimit] = useState<number | null>(1);
@@ -272,7 +272,7 @@ export default function WaitlistManagement() {
                         <div className="space-y-2">
                             <Label>Role</Label>
                             <div className="flex gap-2">
-                                {(['viewer', 'editor', 'admin'] as const).map(r => (
+                                {(['viewer', 'editor', 'user', 'admin'] as const).map(r => (
                                     <Button
                                         key={r}
                                         type="button"
@@ -280,7 +280,7 @@ export default function WaitlistManagement() {
                                         onClick={() => setInviteRole(r)}
                                         className="capitalize"
                                     >
-                                        {r}
+                                        {r === 'admin' ? 'Global Admin' : r === 'user' ? 'Org Admin' : r}
                                     </Button>
                                 ))}
                             </div>

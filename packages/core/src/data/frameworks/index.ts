@@ -144,6 +144,13 @@ export const frameworks: Framework[] = [
         logo: "/frameworks/owasp.svg"
     },
     {
+        id: "essential-eight",
+        name: "Australian Essential Eight",
+        description: "Eight prioritized mitigation strategies for cyber resilience with maturity levels 0–3.",
+        type: "Security",
+        logo: "/frameworks/australia.svg"
+    },
+    {
         id: "owasp_ml_top10",
         name: "OWASP ML Security Top 10",
         description: "Vulnerabilities in machine learning models and systems through the ML lifecycle (0.3).",

@@ -1,4 +1,4 @@
-
+// Router index - updated at 2026-02-11 17:15
 import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
@@ -116,6 +116,7 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
     res,
     user: req.user,
     clientId: (req as any).clientId || headerClientId as number | undefined,
+    aal: (req as any).aal as 'aal1' | 'aal2' | null,
   };
 };
 export type Context = inferAsyncReturnType<typeof createContext>;
@@ -252,6 +253,21 @@ const checkPremiumAccess = t.middleware(async (opts) => {
 
 // Premium client procedure - requires auth + client access + premium tier
 export const premiumClientProcedure = clientProcedure.use(checkPremiumAccess);
+const requiresMFA = t.middleware(async ({ ctx, next }) => {
+  const clientId = (ctx as any).clientId;
+  if (!clientId) return next();
+  const dbConn = await db.getDb();
+  const [client] = await dbConn.select({ requireMfa: schema.clients.requireMfa as any })
+    .from(schema.clients)
+    .where(eq(schema.clients.id, clientId))
+    .limit(1);
+  const must = !!client?.requireMfa;
+  const aal = (ctx as any).aal;
+  if (must && aal !== 'aal2') {
+    throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Multi-factor authentication required' });
+  }
+  return next();
+});
 
 const STANDARD_CONTROLS_CONTEXT = `
 AC-1: Access Control Policy and Procedures
@@ -301,7 +317,7 @@ export const appRouter = router({
   evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
   actions: createActionsRouter(t, clientProcedure),
   auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
-  clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
+  clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
   controls: createControlsRouter(t, adminProcedure, publicProcedure), // Restore missing router mapping
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),

@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "npm run dev -w @complianceos/core",
     "dev:core": "npx cross-env VITE_ENABLE_PREMIUM=false npm run dev -w @complianceos/core",
+    "dev:premium": "npx cross-env VITE_ENABLE_PREMIUM=true npm run dev -w @complianceos/core",
     "build": "npm run build -w @complianceos/core",
     "build:core": "npx cross-env VITE_ENABLE_PREMIUM=false npm run build -w @complianceos/core",
+    "build:premium": "npx cross-env VITE_ENABLE_PREMIUM=true npm run build -w @complianceos/core",
     "release": "node scripts/release.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
@@ -19,6 +21,7 @@
     "db:studio": "drizzle-kit studio",
     "server": "tsx --watch server_entry.ts",
     "server:core": "npx cross-env VITE_ENABLE_PREMIUM=false tsx --watch server_entry.ts",
+    "server:premium": "npx cross-env VITE_ENABLE_PREMIUM=true tsx --watch server_entry.ts",
     "cli": "tsx scripts/cli.ts",
     "import:csv": "tsx scripts/seed/importCsv.ts",
     "smoke": "tsx scripts/test/smoke.ts",

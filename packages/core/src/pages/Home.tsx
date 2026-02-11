@@ -145,8 +145,9 @@ export default function Home() {
           <div className="container relative z-10 text-center">
             <div className="inline-flex items-center rounded-full border border-[#0ea5e9]/30 px-3 py-1 text-sm text-slate-300 mb-8 bg-white/5 backdrop-blur-sm">
               <span className="flex h-2 w-2 rounded-full bg-[#7FBF3F] mr-2" />
-              Now supporting ISO 27001:2022 & SOC 2 Type II
+              Now supporting 19+ Global Standards including ISO 27001, SOC 2 & NIST
             </div>
+
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 text-white">
               Compliance Made Simple. <br className="hidden md:block" /><span className="text-[#0ea5e9]">At Your Pace.</span>
             </h1>

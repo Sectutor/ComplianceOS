@@ -113,6 +113,21 @@ export default function AssuranceOverview() {
                 "Target roadmap visualization",
                 "Direct evidence linking"
             ]
+        },
+        {
+            title: "Essential Eight",
+            headerTitle: "Core Cyber Controls",
+            description: "Assess maturity across eight prioritized mitigation strategies and generate improvement plans based on gaps.",
+            icon: Shield,
+            color: "from-emerald-500 to-cyan-500",
+            textColor: "text-emerald-600",
+            bgLight: "bg-emerald-50",
+            path: `/clients/${clientId}/essential-eight`,
+            benefits: [
+                "Control-level maturity scores",
+                "Target-driven improvement tasks",
+                "Evidence-driven verification"
+            ]
         }
     ];
 

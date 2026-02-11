@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, ShoppingBag
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -174,7 +174,10 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/audit-hub") return `/clients/${clientId}/audit-hub${queryStr}`;
   if (purePath === "/reports") return `/clients/${clientId}/reports${queryStr}`;
   if (purePath === "/trust-center") return `/trust-center/${clientId}${queryStr}`;
+  if (purePath === "/trust-center") return `/trust-center/${clientId}${queryStr}`;
   if (purePath === "/projects") return `/clients/${clientId}/projects${queryStr}`;
+  if (purePath === "/marketplace") return `/clients/${clientId}/marketplace${queryStr}`;
+  if (purePath === "/essential-eight") return `/clients/${clientId}/essential-eight${queryStr}`;
 
   // Handle client-specific sub-routes
   const isClientSubRoute = clientSpecificMenuItems.some(cItem => cItem.path === purePath) ||
@@ -584,6 +587,7 @@ function DashboardLayoutContent({
         { icon: Rocket, label: "Start Here", path: "/start-here" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Users, label: "Clients", path: "/clients" },
+        { icon: Settings, label: "Settings", path: "/settings" },
         { icon: GraduationCap, label: "Employee Onboarding", path: "/onboarding" },
       ]
     },
@@ -591,11 +595,14 @@ function DashboardLayoutContent({
       label: "Libraries & Knowledge",
       items: [
         { icon: Shield, label: "Global Control Library", path: "/controls" },
-        { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
+        ...(persistentClientId ? [
+          { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
+          { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
+        ] : []),
         { icon: LayoutGrid, label: "Frameworks Library", path: "/frameworks" },
         learningZoneMenuItem
       ]
-    }
+    },
   ];
 
   if (persistentClientId) {
@@ -656,7 +663,6 @@ function DashboardLayoutContent({
           },
           { icon: Users, label: "People & Org", path: "/people" },
           { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
-          { icon: Settings, label: "Settings", path: "/settings" },
         ]
       },
       {
@@ -679,15 +685,16 @@ function DashboardLayoutContent({
       }
     );
 
-    // Premium Feature: Adversary Intelligence - Add to Risk Management group
+    // Premium Feature: Threat Intelligence
     const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
     if (isPremiumClient) {
-      const riskManagementGroup = groups.find(g => g.label === 'Risk Management');
-      if (riskManagementGroup) {
-        riskManagementGroup.items.push(
-          { icon: Radar, label: "Adversary Intelligence", path: "/risks/adversary-intel", isPremium: true } as any
-        );
-      }
+      groups.push({
+        label: "Threat Intelligence",
+        items: [
+          { icon: Radar, label: "Adversary Intelligence", path: `/clients/${persistentClientId}/risks/adversary-intel`, isPremium: true } as any,
+          { icon: ShieldAlert, label: "Vulnerability Workbench", path: `/clients/${persistentClientId}/risks/vulnerability-workbench`, isPremium: true } as any
+        ]
+      });
     }
 
     // Premium Feature: Vendor Management
@@ -787,6 +794,7 @@ function DashboardLayoutContent({
           ...(clientInfo?.serviceModel === 'managed' && enabledInBuild ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: Shield, label: "SAMM Maturity", path: "/samm" },
+          { icon: ShieldCheck, label: "Essential Eight", path: "/essential-eight" },
           { icon: Zap, label: "Supply Chain (SCVS)", path: "/assurance/scvs" },
           { icon: Code, label: "App Security (ASVS)", path: "/asvs" },
           { icon: ShieldCheck, label: "OpenSSF Hygiene", path: "/assurance/openssf" },
@@ -801,7 +809,13 @@ function DashboardLayoutContent({
           { icon: Calendar, label: "Calendar", path: "/calendar" },
           { icon: ListTodo, label: "Tasks", path: "/tasks" },
           { icon: MessageSquare, label: "Communication", path: "/communication" },
-          { icon: Settings, label: "Client Settings", path: "/settings" },
+          { icon: Settings, label: "Client Settings", path: "/settings", submenu: [
+            { label: "Security", path: "/settings/security" },
+            { label: "Onboarding", path: "/settings/onboarding" },
+            { label: "Users", path: "/settings/users" },
+            { label: "Organization", path: "/settings/organization" },
+            { label: "Invitations", path: "/settings/invitations" },
+          ] },
           ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
         ]
       },

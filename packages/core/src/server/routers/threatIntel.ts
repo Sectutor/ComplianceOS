@@ -1,6 +1,7 @@
 import { z } from "zod";
 import * as threatIntel from "../../lib/threatIntelligence";
-import { eq, desc, sql } from "drizzle-orm";
+import { sendThreatAlert } from "../../emailNotification";
+import { eq, desc, sql, and, gte } from "drizzle-orm";
 import * as db from "../../db";
 import { TRPCError } from "@trpc/server";
 
@@ -25,12 +26,57 @@ export const createThreatIntelRouter = (t: any, adminProcedure: any, publicProce
             return { suggestions, scannedAt: new Date() };
         }),
 
-    // Scan all assets for a client
     scanAllAssets: clientProcedure
         .input(z.object({ clientId: z.number() }))
         .mutation(async ({ input }: any) => {
-            const results = await threatIntel.scanAllAssetsForClient(input.clientId);
-            return { results, scannedAt: new Date() };
+            try {
+                console.log(`[TRPC] Starting scanAllAssets for client: ${input.clientId}`);
+                const startTime = new Date();
+
+                // Run the scan
+                const results = await threatIntel.scanAllAssetsForClient(input.clientId);
+
+                console.log(`[TRPC] scanAllAssets completed for client: ${input.clientId}`);
+
+                // Check for new High Severity vulnerabilities to alert
+                const dbConn = await db.getDb();
+                const { assetCveMatches, nvdCveCache, assets } = await import("../../schema");
+
+                const newHighSevMatches = await dbConn.select({
+                    cveId: assetCveMatches.cveId,
+                    assetName: assets.name,
+                    description: nvdCveCache.description,
+                    score: nvdCveCache.cvssScore,
+                    discoveredAt: assetCveMatches.discoveredAt
+                })
+                    .from(assetCveMatches)
+                    .innerJoin(assets, eq(assetCveMatches.assetId, assets.id))
+                    .innerJoin(nvdCveCache, eq(assetCveMatches.cveId, nvdCveCache.cveId))
+                    .where(and(
+                        eq(assetCveMatches.clientId, input.clientId),
+                        gte(assetCveMatches.discoveredAt, startTime)
+                    ));
+
+                // Filter for High/Critical (Score >= 7.0)
+                const criticalThreats = newHighSevMatches.filter(m => {
+                    const score = parseFloat(m.score || '0');
+                    return score >= 7.0;
+                });
+
+                if (criticalThreats.length > 0) {
+                    console.log(`[TRPC] Sending alert for ${criticalThreats.length} new critical threats`);
+                    await sendThreatAlert(input.clientId, criticalThreats);
+                }
+
+                return { results, scannedAt: new Date() };
+            } catch (error: any) {
+                console.error(`[TRPC Error] scanAllAssets failed for client ${input.clientId}:`, error);
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `Internal error during bulk scan: ${error.message}`,
+                    cause: error,
+                });
+            }
         }),
 
     // Get CVE suggestions for an asset (from cache)
@@ -157,15 +203,64 @@ export const createThreatIntelRouter = (t: any, adminProcedure: any, publicProce
             };
         }),
 
+    // Get ALL CVE suggestions for a client
+    getClientSuggestions: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            const dbConn = await db.getDb();
+            const { assetCveMatches, nvdCveCache, assets } = await import("../../schema");
+
+            const matches = await dbConn.select({
+                matchId: assetCveMatches.id,
+                cveId: assetCveMatches.cveId,
+                assetId: assetCveMatches.assetId,
+                assetName: assets.name,
+                matchScore: assetCveMatches.matchScore,
+                isKev: assetCveMatches.isKev,
+                status: assetCveMatches.status,
+                discoveredAt: assetCveMatches.discoveredAt,
+                description: nvdCveCache.description,
+                cvssScore: nvdCveCache.cvssScore,
+            })
+                .from(assetCveMatches)
+                .innerJoin(assets, eq(assetCveMatches.assetId, assets.id))
+                .leftJoin(nvdCveCache, eq(assetCveMatches.cveId, nvdCveCache.cveId))
+                .where(eq(assetCveMatches.clientId, input.clientId))
+                .orderBy(desc(assetCveMatches.discoveredAt));
+
+            return matches;
+        }),
+
     // Update match status (accept/dismiss/import)
     updateMatchStatus: clientProcedure
         .input(z.object({
             matchId: z.number(),
-            status: z.enum(['accepted', 'dismissed', 'imported']),
+            status: z.enum(['suggested', 'accepted', 'dismissed', 'imported']),
         }))
         .mutation(async ({ input, ctx }: any) => {
             await threatIntel.updateMatchStatus(input.matchId, input.status, ctx.user?.id);
             return { success: true };
+        }),
+
+    // Bulk update match status
+    bulkUpdateMatchStatus: clientProcedure
+        .input(z.object({
+            matchIds: z.array(z.number()),
+            status: z.enum(['accepted', 'dismissed']),
+        }))
+        .mutation(async ({ input, ctx }: any) => {
+            const dbConn = await db.getDb();
+            const { assetCveMatches } = await import("../../schema");
+
+            await dbConn.update(assetCveMatches)
+                .set({
+                    status: input.status,
+                    reviewedAt: new Date(),
+                    reviewedBy: ctx.user?.id,
+                })
+                .where(sql`${assetCveMatches.id} IN (${sql.join(input.matchIds, sql`, `)})`);
+
+            return { success: true, count: input.matchIds.length };
         }),
 
     // Import CVE as vulnerability
@@ -221,5 +316,26 @@ export const createThreatIntelRouter = (t: any, adminProcedure: any, publicProce
             }
 
             return { vulnerability: newVuln, isKev };
+        }),
+
+    // Get daily briefing for a client
+    getDailyBriefing: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            return await threatIntel.getDailyBriefing(input.clientId);
+        }),
+
+    // Get MITRE ATT&CK Matrix (Exposure Focus)
+    getMITREMatrix: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            const dbConn = await db.getDb();
+            const { adversaries, adversaryTactics, adversaryTechniques } = await import("../../schema");
+
+            // Simplified: return tactics and techniques for visualization
+            const tactics = await dbConn.select().from(adversaryTactics).orderBy(adversaryTactics.order);
+            const techniques = await dbConn.select().from(adversaryTechniques);
+
+            return { tactics, techniques };
         }),
 });

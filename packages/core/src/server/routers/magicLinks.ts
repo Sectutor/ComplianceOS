@@ -6,7 +6,7 @@ import { sendEmail } from "../../lib/email/transporter";
 import { generateMagicLinkEmail } from "../../components/email/templates/MagicLinkInvite";
 
 import * as db from "../../db";
-import { magicLinks, waitingList } from "../../schema";
+import { magicLinks, waitingList, magicLinkRedemptions, users } from "../../schema";
 import { router, adminProcedure, publicProcedure } from "../trpc";
 
 export const magicLinksRouter = router({
@@ -19,6 +19,7 @@ export const magicLinksRouter = router({
                 active: sql<number>`sum(case when ${magicLinks.status} = 'active' then 1 else 0 end)`,
                 redeemed: sql<number>`sum(case when ${magicLinks.status} = 'accepted' then 1 else 0 end)`,
                 revoked: sql<number>`sum(case when ${magicLinks.status} = 'revoked' then 1 else 0 end)`,
+                totalRedemptions: sql<number>`sum(${magicLinks.useCount})`,
             })
             .from(magicLinks);
 
@@ -27,6 +28,7 @@ export const magicLinksRouter = router({
             active: Number(stats?.active || 0),
             redeemed: Number(stats?.redeemed || 0),
             revoked: Number(stats?.revoked || 0),
+            totalRedemptions: Number(stats?.totalRedemptions || 0),
         };
     }),
 
@@ -41,6 +43,8 @@ export const magicLinksRouter = router({
             accessDurationDays: z.number().optional(),
             waitlistId: z.number().optional(),
             expiresInDays: z.number().default(7),
+            usageLimit: z.number().int().min(1).nullable().default(1),
+            restrictedDomains: z.array(z.string()).optional(),
         }))
         .mutation(async ({ input, ctx }: any) => {
             console.log("[MagicLinks] Create called by user:", ctx.user?.id);
@@ -68,6 +72,8 @@ export const magicLinksRouter = router({
                     waitlistId: input.waitlistId,
                     createdById: ctx.user.id,
                     expiresAt,
+                    usageLimit: input.usageLimit,
+                    restrictedDomains: input.restrictedDomains,
                 }).returning();
 
                 console.log("[MagicLinks] Insert success, ID:", newLink.id);
@@ -163,5 +169,22 @@ export const magicLinksRouter = router({
             const dbConn = await db.getDb();
             await dbConn.delete(magicLinks).where(eq(magicLinks.id, input.id));
             return { success: true };
+        }),
+
+    getRedemptions: adminProcedure
+        .input(z.object({ magicLinkId: z.number() }))
+        .query(async ({ input }: any) => {
+            const dbConn = await db.getDb();
+            return await dbConn
+                .select({
+                    id: users.id,
+                    name: users.name,
+                    email: users.email,
+                    redeemedAt: magicLinkRedemptions.redeemedAt,
+                })
+                .from(magicLinkRedemptions)
+                .innerJoin(users, eq(magicLinkRedemptions.userId, users.id))
+                .where(eq(magicLinkRedemptions.magicLinkId, input.magicLinkId))
+                .orderBy(desc(magicLinkRedemptions.redeemedAt));
         }),
 });

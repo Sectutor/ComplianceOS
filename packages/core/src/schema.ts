@@ -987,6 +987,7 @@ export const clients = pgTable("clients", {
 
 
 
+  requireMfa: boolean("require_mfa").default(false),
 });
 
 

@@ -72,6 +72,24 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
 
     const { text: streamedContent, isLoading: isStreaming, generate: generateStream, reset: resetStream } = useStreamingAI();
 
+    const ensureTitleHeading = (html: string, title: string) => {
+        try {
+            const container = document.createElement("div");
+            container.innerHTML = html || "";
+            let h1 = container.querySelector("h1");
+            const t = (title || "Information Security Policy").trim();
+            if (!h1) {
+                h1 = document.createElement("h1");
+                h1.textContent = t;
+                container.insertBefore(h1, container.firstChild);
+            } else if (t && (h1.textContent || "").trim() !== t) {
+                h1.textContent = t;
+            }
+            return container.innerHTML;
+        } catch {
+            return html;
+        }
+    };
     useEffect(() => {
         const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
         if (params?.get('create') === 'true') {
@@ -86,7 +104,9 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     const previewMutation = trpc.policyTemplates.preview.useMutation({
         onSuccess: (data) => {
             if (data.content) {
-                setEditedContent(data.content);
+                const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
+                const title = nameInput?.value || "Information Security Policy";
+                setEditedContent(ensureTitleHeading(data.content, title));
             }
             setIsFetchingPreview(false);
         },
@@ -99,7 +119,9 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     // Sync streamed content to editor
     useEffect(() => {
         if (streamedContent) {
-            setEditedContent(streamedContent);
+            const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
+            const title = nameInput?.value || "Information Security Policy";
+            setEditedContent(ensureTitleHeading(streamedContent, title));
         }
     }, [streamedContent]);
 

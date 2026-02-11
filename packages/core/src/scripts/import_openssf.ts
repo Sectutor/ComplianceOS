@@ -6,7 +6,7 @@ import path from "path";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
-const OPEN_SSF_DATA = {
+export const OPEN_SSF_DATA = {
     shortCode: "OPENSSF",
     name: "OpenSSF Best Practices Badge (CII)",
     description: "The OpenSSF Best Practices Badge (formerly CII Best Practices) is a set of best practices for Free/Libre and Open Source Software (FLOSS) projects to show that they follow security and quality standards.",
@@ -113,7 +113,7 @@ async function main() {
 
     // 2. Phases & Requirements (Sync by Order)
     let order = 1;
-    
+
     // Fetch all existing phases for this framework, sorted by order
     const existingPhases = await db.select()
         .from(implementationPhases)
@@ -122,11 +122,11 @@ async function main() {
 
     for (const domain of OPEN_SSF_DATA.domains) {
         let phaseId;
-        
+
         // Find existing phase by order (primary) or name (fallback)
         const matchingPhaseByOrder = existingPhases.find(p => p.order === order);
         const matchingPhaseByName = existingPhases.find(p => p.name === domain.name);
-        
+
         const targetPhase = matchingPhaseByOrder || matchingPhaseByName;
 
         if (targetPhase) {

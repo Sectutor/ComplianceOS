@@ -14,6 +14,9 @@ export default function RedeemLink() {
     // Wouter doesn't have native search params hook, use standard URL API
     const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get('token');
+    const clientIdParam = searchParams.get('clientId');
+    const parsedClientId = clientIdParam ? parseInt(clientIdParam, 10) : undefined;
+    const clientId = (parsedClientId !== undefined && !isNaN(parsedClientId)) ? parsedClientId : undefined;
     const [, navigate] = useLocation();
 
     const { data: user } = trpc.users.me.useQuery();
@@ -57,13 +60,23 @@ export default function RedeemLink() {
             }
         },
         onError: (err) => {
-            toast.error(err.message);
+            if (err.data?.code === 'CONFLICT') {
+                toast.error(err.message, {
+                    action: {
+                        label: 'Sign In',
+                        onClick: () => navigate(`/auth/login?invite=${token}&email=${encodeURIComponent(formData.email)}`)
+                    },
+                    duration: 10000
+                });
+            } else {
+                toast.error(err.message);
+            }
         }
     });
 
     const handleRedeem = () => {
         if (!token) return;
-        applyMutation.mutate({ token });
+        applyMutation.mutate({ token, clientId });
     };
 
     const handleCreateAccount = (e: React.FormEvent) => {
@@ -71,6 +84,7 @@ export default function RedeemLink() {
         if (!token) return;
         createAccountMutation.mutate({
             token,
+            clientId,
             name: formData.name,
             password: formData.password,
             email: formData.email
@@ -227,6 +241,28 @@ export default function RedeemLink() {
                                         required
                                     />
                                 </div>
+
+                                {createAccountMutation.error?.data?.code === 'CONFLICT' && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                                        <div className="flex gap-3">
+                                            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-sm font-bold text-amber-900">Account Found</p>
+                                                <p className="text-xs text-amber-700 leading-relaxed">
+                                                    An account already exists for {formData.email}. Please sign in to accept this invitation with your existing credentials.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full border-amber-200 hover:bg-amber-100 text-amber-900 font-bold"
+                                            onClick={() => navigate(`/auth/login?invite=${token}&email=${encodeURIComponent(formData.email)}`)}
+                                        >
+                                            Sign In with {formData.email}
+                                        </Button>
+                                    </div>
+                                )}
 
                                 <Button
                                     type="submit"

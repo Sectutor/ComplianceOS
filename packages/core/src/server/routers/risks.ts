@@ -25,15 +25,26 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {
                 const db = await getDb();
-                return await db
+
+                // Fetch assets with risk counts
+                const rawAssets = await db
                     .select({
                         ...schema.assets,
-                        riskCount: sql<number>`count(${schema.riskScenarios.id})`.mapWith(Number)
+                        riskCount: sql<number>`count(DISTINCT ${schema.riskScenarios.id})`.mapWith(Number),
+                        suggestionCount: sql<number>`count(DISTINCT ${schema.assetCveMatches.id}) FILTER (WHERE ${schema.assetCveMatches.status} = 'suggested')`.mapWith(Number),
+                        vulnerabilityCount: sql<number>`count(DISTINCT ${schema.vulnerabilities.id})`.mapWith(Number)
                     })
                     .from(schema.assets)
                     .leftJoin(schema.riskScenarios, eq(schema.riskScenarios.assetId, schema.assets.id))
+                    .leftJoin(schema.assetCveMatches, eq(schema.assetCveMatches.assetId, schema.assets.id))
+                    // Vulnerabilities join is tricky because it's a JSON array. 
+                    // For now, we'll join on the JSON array if possible or use a subquery if needed.
+                    // Actually, let's keep it simple for now and do the complex joins separately if performance is an issue.
+                    .leftJoin(schema.vulnerabilities, sql`${schema.vulnerabilities.affectedAssets}::jsonb @> (('["' || ${schema.assets.id} || '"]')::jsonb)`)
                     .where(eq(schema.assets.clientId, input.clientId))
                     .groupBy(schema.assets.id);
+
+                return rawAssets;
             }),
 
         createAsset: procedure
@@ -1101,7 +1112,7 @@ ${reportData.conclusion}
                     .returning();
 
                 await logActivity({ userId: ctx.user.id, clientId, action: "update", entityType: "risk", entityId: id, details: { changes: data } });
-                
+
                 // Recalculate residual score if likelihood or impact changed
                 if (data.likelihood !== undefined || data.impact !== undefined) {
                     await recalculateRiskScore(db, id);
@@ -1274,7 +1285,7 @@ ${reportData.conclusion}
 
                 // Auto-recalculate risk score
                 if (treatment.risk_assessments) {
-                     await recalculateRiskScore(db, treatment.risk_assessments.id);
+                    await recalculateRiskScore(db, treatment.risk_assessments.id);
                 }
 
                 return linked;

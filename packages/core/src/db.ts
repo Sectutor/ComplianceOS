@@ -672,10 +672,21 @@ export async function updateClient(id: number, data: Partial<InsertClient>) {
 
   const db = await getDb();
 
-
-
-  await db.update(clients).set(data).where(eq(clients.id, id));
-
+  try {
+    const filtered = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+    if (Object.keys(filtered).length === 0) {
+      await db.update(clients).set({ updatedAt: new Date() }).where(eq(clients.id, id));
+      return;
+    }
+    await db.update(clients).set(filtered as any).where(eq(clients.id, id));
+  } catch (e: any) {
+    console.error('[updateClient] Failed to update client:', e?.message || e);
+    if (String(e?.message || '').includes('No values to set')) {
+      await db.update(clients).set({ updatedAt: new Date() }).where(eq(clients.id, id));
+      return;
+    }
+    throw e;
+  }
 }
 
 

@@ -62,7 +62,7 @@ export default function Dashboard() {
   const [clientId, setClientId] = useState<string | undefined>();
   const [hasSeenOnboardingThisSession, setHasSeenOnboardingThisSession] = useState(false);
   const utils = trpc.useUtils();
-  
+
   // Check for onboarding completion parameter
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -76,7 +76,7 @@ export default function Dashboard() {
       window.history.replaceState({}, '', newUrl.toString());
     }
   }, [utils]);
-  
+
   const { data: enhancedStats, isLoading: statsLoading } = trpc.dashboard.enhanced.useQuery({ framework, clientId }, {
     enabled: !!user
   });
@@ -148,7 +148,9 @@ export default function Dashboard() {
     controlsInProgress: 0,
     controlsNotStarted: 0,
     totalRisks: 0,
-    highRisks: 0
+    highRisks: 0,
+    maxClients: 2,
+    ownedClientsCount: 0
   };
   const clientsOverview = enhancedStats?.clientsOverview || [];
   const recentActivity = enhancedStats?.recentActivity || [];
@@ -222,73 +224,73 @@ export default function Dashboard() {
           </div>
         )}
         {shouldShowOnboarding && (
-        <div className="max-w-4xl mx-auto space-y-8 mt-12 px-4">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 mb-2">
-              <Shield className="h-10 w-10 text-primary" />
+          <div className="max-w-4xl mx-auto space-y-8 mt-12 px-4">
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 mb-2">
+                <Shield className="h-10 w-10 text-primary" />
+              </div>
+              <h1 className="text-4xl font-extrabold tracking-tight">Set up your Compliance OS</h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Follow our guided path to get audit-ready in record time. Complete these steps to activate your live compliance reports.
+              </p>
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight">Set up your Compliance OS</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Follow our guided path to get audit-ready in record time. Complete these steps to activate your live compliance reports.
-            </p>
+
+            <OnboardingChecklist stats={enhancedStats} />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
+              <Card className="bg-white/50 border-none shadow-sm h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    Auto-Policies
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Get 20+ policies tailored to your industry instantly using our AI policy engine.</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/50 border-none shadow-sm h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-purple-500" />
+                    Unified Controls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Map one master control to multiple frameworks like ISO 27001 and SOC 2 seamlessly.</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/50 border-none shadow-sm h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-500" />
+                    Live Monitoring
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Connect your cloud stack to automate evidence collection and get real-time readiness scores.</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="pt-8 flex flex-col items-center gap-4">
+              <Button
+                variant="default"
+                className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 font-bold shadow-lg shadow-indigo-200 animate-pulse"
+                onClick={() => sampleMutation.mutate({ name: "DEMO Organization", industry: "Technology" })}
+                disabled={sampleMutation.isPending}
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                {sampleMutation.isPending ? "Generating Magic..." : "Explore with Demo Data"}
+              </Button>
+
+              <Button variant="ghost" className="text-muted-foreground hover:text-primary" onClick={() => setLocation('/learning')}>
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Not ready yet? Explore the Learning Zone
+              </Button>
+            </div>
           </div>
-
-          <OnboardingChecklist stats={enhancedStats} />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
-            <Card className="bg-white/50 border-none shadow-sm h-full">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-blue-500" />
-                  Auto-Policies
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground leading-relaxed">Get 20+ policies tailored to your industry instantly using our AI policy engine.</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/50 border-none shadow-sm h-full">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-purple-500" />
-                  Unified Controls
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground leading-relaxed">Map one master control to multiple frameworks like ISO 27001 and SOC 2 seamlessly.</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/50 border-none shadow-sm h-full">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-emerald-500" />
-                  Live Monitoring
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground leading-relaxed">Connect your cloud stack to automate evidence collection and get real-time readiness scores.</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="pt-8 flex flex-col items-center gap-4">
-            <Button
-              variant="default"
-              className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 font-bold shadow-lg shadow-indigo-200 animate-pulse"
-              onClick={() => sampleMutation.mutate({ name: "DEMO Organization", industry: "Technology" })}
-              disabled={sampleMutation.isPending}
-            >
-              <Sparkles className="mr-2 h-5 w-5" />
-              {sampleMutation.isPending ? "Generating Magic..." : "Explore with Demo Data"}
-            </Button>
-
-            <Button variant="ghost" className="text-muted-foreground hover:text-primary" onClick={() => setLocation('/learning')}>
-              <FolderOpen className="mr-2 h-4 w-4" />
-              Not ready yet? Explore the Learning Zone
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
       </DashboardLayout>
     );
   }
@@ -331,7 +333,7 @@ export default function Dashboard() {
                 </select>
               </div>
             )}
-            
+
             <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-1 text-sm shadow-sm transition-all hover:border-primary/50">
               <span className="text-muted-foreground font-medium">Standard:</span>
               <select
@@ -344,7 +346,7 @@ export default function Dashboard() {
                 <option value="SOC 2">SOC 2</option>
               </select>
             </div>
-            {user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (
               <Button onClick={() => setLocation('/clients')}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Client
@@ -354,7 +356,7 @@ export default function Dashboard() {
         </div>
 
         {/* Onboarding Banner (Short version for active dashboard) */}
-        {!statsLoading && enhancedStats && (overview.totalPolicies === 0 || overview.totalEvidence === 0 || (user?.role === 'admin' && (overview.totalLLMProviders === 0))) && (
+        {!statsLoading && enhancedStats && (overview.totalPolicies === 0 || overview.totalEvidence === 0 || ((user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (overview.totalLLMProviders === 0))) && (
           <OnboardingChecklist stats={enhancedStats} role={user?.role} />
         )}
 
@@ -429,7 +431,11 @@ export default function Dashboard() {
                       {overview?.totalClients || 0}
                     </h3>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">Active workspaces</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {user?.role === 'super_admin'
+                      ? "Unlimited Organizations"
+                      : `${(overview as any)?.ownedClientsCount || 0} / ${(overview as any)?.maxClients || 2} used`}
+                  </p>
                 </div>
                 <div className="p-3 rounded-lg bg-blue-100 text-blue-600">
                   <Users className="w-6 h-6" />

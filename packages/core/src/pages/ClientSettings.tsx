@@ -43,7 +43,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { OnboardingSettingsTab } from "@/components/settings/OnboardingSettingsTab";
 import { EmailTemplatesTab } from "@/components/settings/EmailTemplatesTab";
 import { PersonalizationReference } from "@/components/settings/PersonalizationReference";
-import { ListTodo } from "lucide-react";
+import { ListTodo, ShoppingBag } from "lucide-react";
 
 export default function ClientSettings() {
     const params = useParams();
@@ -347,6 +347,8 @@ export default function ClientSettings() {
                                 <FrameworksSettingsTab clientId={clientId} />
                             </TabsContent>
 
+
+
                             {/* Demo Data Tab */}
                             <TabsContent value="data" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
                                 <Card>
@@ -412,7 +414,7 @@ export default function ClientSettings() {
                             <PersonalizationReference />
 
                             {/* Danger Zone - Only for Admins */}
-                            {user?.role === 'admin' && (
+                            {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && (
                                 <Card className="border-red-200 bg-red-50/30 overflow-hidden">
                                     <CardHeader className="bg-red-50/50 border-b border-red-100 pb-4">
                                         <CardTitle className="text-red-700 flex items-center gap-2 text-lg">

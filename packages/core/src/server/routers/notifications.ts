@@ -34,6 +34,26 @@ export const createNotificationsRouter = (t: any, clientProcedure: any, adminPro
                 return settings[0];
             }),
 
+        sendEvent: protectedProcedure
+            .input(z.object({
+                event: z.string(),
+                to: z.string(),
+                data: z.record(z.any()).optional(),
+                clientId: z.number().optional(),
+                from: z.string().optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const { EmailService } = await import("../../lib/email/service");
+                const res = await EmailService.triggerEvent({
+                    event: input.event,
+                    to: input.to,
+                    data: input.data || {},
+                    clientId: input.clientId,
+                    from: input.from
+                });
+                return res;
+            }),
+
         updateSettings: clientProcedure
             .input(z.object({
                 clientId: z.number(),

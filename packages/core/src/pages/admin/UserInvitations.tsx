@@ -480,7 +480,8 @@ function MagicLinksSection() {
                                     <SelectContent>
                                         <SelectItem value="viewer">Viewer</SelectItem>
                                         <SelectItem value="editor">Editor</SelectItem>
-                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="user">Org Admin</SelectItem>
+                                        <SelectItem value="admin">Global Admin</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

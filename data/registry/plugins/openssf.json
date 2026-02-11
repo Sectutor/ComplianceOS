@@ -1,0 +1,262 @@
+{
+  "manifest": {
+    "id": "openssf-best-practices-1.0",
+    "slug": "OPENSSF",
+    "name": "OpenSSF Best Practices Badge (CII)",
+    "version": "1.0",
+    "author": "OpenSSF (Packaged by ComplianceOS)",
+    "description": "The OpenSSF Best Practices Badge (formerly CII Best Practices) is a set of best practices for Free/Libre and Open Source Software (FLOSS) projects to show that they follow security and quality standards.",
+    "type": "General",
+    "tags": [
+      "software-supply-chain",
+      "open-source"
+    ],
+    "icon": "shield"
+  },
+  "content": {
+    "phases": [
+      {
+        "name": "V1: Basics",
+        "description": "Fundamental requirements for project transparency, licensing, and documentation.",
+        "order": 1
+      },
+      {
+        "name": "V2: Change Control",
+        "description": "Requirements for version control, release management, and change tracking.",
+        "order": 2
+      },
+      {
+        "name": "V3: Reporting",
+        "description": "Processes for handling bug reports and security vulnerabilities.",
+        "order": 3
+      },
+      {
+        "name": "V4: Quality",
+        "description": "Requirements for build quality, testing, and code health.",
+        "order": 4
+      },
+      {
+        "name": "V5: Security",
+        "description": "Specific security practices including cryptography and memory safety.",
+        "order": 5
+      },
+      {
+        "name": "V6: Analysis",
+        "description": "Use of automated tools to analyze code quality and security.",
+        "order": 6
+      }
+    ],
+    "requirements": [
+      {
+        "identifier": "OSPS-BAS-01",
+        "title": "Project Website",
+        "description": "Verify that the project has a website that describes what the software does and how to get it.",
+        "phaseName": "V1: Basics",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-BAS-02",
+        "title": "Contribution Information",
+        "description": "Verify that the project provides clear information on how to contribute and the contribution process.",
+        "phaseName": "V1: Basics",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-BAS-03",
+        "title": "FLOSS License",
+        "description": "Verify that the software is released as FLOSS (Free/Libre and Open Source Software) with an OSI-approved license.",
+        "phaseName": "V1: Basics",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-BAS-04",
+        "title": "Documentation",
+        "description": "Verify that the project provides basic documentation on how to install and use the software.",
+        "phaseName": "V1: Basics",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-BAS-05",
+        "title": "Secure Sites (HTTPS)",
+        "description": "Verify that the project sites (website, repository, download URLs) support HTTPS using TLS.",
+        "phaseName": "V1: Basics",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-BAS-06",
+        "title": "Discussion Mechanisms",
+        "description": "Verify that the project has a mechanism for discussion (mailing list, forum, issue tracker) that is searchable and accessible.",
+        "phaseName": "V1: Basics",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-CC-01",
+        "title": "Public Version Control",
+        "description": "Verify that the project uses a publicly readable version-controlled source repository (e.g., git).",
+        "phaseName": "V2: Change Control",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-CC-02",
+        "title": "Unique Versioning",
+        "description": "Verify that project results have a unique version identifier for each release.",
+        "phaseName": "V2: Change Control",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-CC-03",
+        "title": "Semantic Versioning",
+        "description": "Verify that the project uses a standard version numbering format (e.g., Semantic Versioning or CalVer).",
+        "phaseName": "V2: Change Control",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-CC-04",
+        "title": "Release Tags",
+        "description": "Verify that each release is identified within the version control system (e.g., using git tags).",
+        "phaseName": "V2: Change Control",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-CC-05",
+        "title": "Release Notes",
+        "description": "Verify that release notes are provided for each release, summarizing major changes.",
+        "phaseName": "V2: Change Control",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-CC-06",
+        "title": "Vulnerability Identification",
+        "description": "Verify that release notes identify any fixed vulnerabilities.",
+        "phaseName": "V2: Change Control",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-REP-01",
+        "title": "Bug Reporting Process",
+        "description": "Verify that the project provides a process for users to submit bug reports.",
+        "phaseName": "V3: Reporting",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-REP-02",
+        "title": "Issue Tracker",
+        "description": "Verify that the project uses an issue tracker to track individual issues.",
+        "phaseName": "V3: Reporting",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-REP-03",
+        "title": "Bug Response",
+        "description": "Verify that the project acknowledges a majority of bug reports submitted in the last 2-12 months.",
+        "phaseName": "V3: Reporting",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-REP-04",
+        "title": "Vulnerability Reporting",
+        "description": "Verify that the project has a documented process for reporting security vulnerabilities.",
+        "phaseName": "V3: Reporting",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-REP-05",
+        "title": "Private Vulnerability Reporting",
+        "description": "Verify that the vulnerability reporting process supports private reports (e.g., via email or encrypted channel).",
+        "phaseName": "V3: Reporting",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-REP-06",
+        "title": "Vulnerability Response SLA",
+        "description": "Verify that the project responds to vulnerability reports within 14 days.",
+        "phaseName": "V3: Reporting",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-QUAL-01",
+        "title": "Working Build",
+        "description": "Verify that the project can be built using standard tools.",
+        "phaseName": "V4: Quality",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-QUAL-02",
+        "title": "Automated Test Suite",
+        "description": "Verify that the project has an automated test suite.",
+        "phaseName": "V4: Quality",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-QUAL-03",
+        "title": "New Test Policy",
+        "description": "Verify that new features or bug fixes typically include new tests.",
+        "phaseName": "V4: Quality",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-QUAL-04",
+        "title": "Warning Flags",
+        "description": "Verify that compiler/linter warning flags are enabled and addressed.",
+        "phaseName": "V4: Quality",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-QUAL-05",
+        "title": "Test Invocation",
+        "description": "Verify that there is a standard way to run the tests (e.g., 'npm test', 'make test').",
+        "phaseName": "V4: Quality",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-SEC-01",
+        "title": "Secure Development Knowledge",
+        "description": "Verify that at least one primary developer knows how to design secure software.",
+        "phaseName": "V5: Security",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-SEC-02",
+        "title": "Good Cryptography",
+        "description": "Verify that if the project uses cryptography, it uses standard, publicly vetted algorithms and protocols.",
+        "phaseName": "V5: Security",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-SEC-03",
+        "title": "No Leaked Secrets",
+        "description": "Verify that the repository does not contain leaked private credentials or secrets.",
+        "phaseName": "V5: Security",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-SEC-04",
+        "title": "No Broken Algorithms",
+        "description": "Verify that the project avoids using known broken or weak cryptographic algorithms (e.g., MD5, SHA1 for security).",
+        "phaseName": "V5: Security",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-SEC-05",
+        "title": "Secure Delivery",
+        "description": "Verify that the software is distributed using secure channels (HTTPS).",
+        "phaseName": "V5: Security",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-ANA-01",
+        "title": "Static Code Analysis",
+        "description": "Verify that the project uses at least one static code analysis tool (linter, SAST) to detect common errors.",
+        "phaseName": "V6: Analysis",
+        "mappingTags": []
+      },
+      {
+        "identifier": "OSPS-ANA-02",
+        "title": "Dynamic Analysis",
+        "description": "Verify that the project uses dynamic analysis tools (e.g., fuzzing) if appropriate for the language/type.",
+        "phaseName": "V6: Analysis",
+        "mappingTags": []
+      }
+    ]
+  }
+}

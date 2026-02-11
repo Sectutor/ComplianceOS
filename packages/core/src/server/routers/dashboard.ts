@@ -40,7 +40,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
         }
 
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner';
+        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
 
         const userClientIds = isGlobalAdmin ? null : (await dbConn.select({ id: schema.userClients.clientId })
           .from(schema.userClients)
@@ -68,8 +68,23 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         }
 
         if (effectiveClientIds !== null && effectiveClientIds.length === 0) {
+          const [userData] = await dbConn.select({ maxClients: schema.users.maxClients })
+            .from(schema.users)
+            .where(eq(schema.users.id, ctx.user.id))
+            .limit(1);
+
           return {
-            overview: { totalClients: 0, totalControls: 0, totalPolicies: 0, totalEvidence: 0, totalLLMProviders: 0, totalRisks: 0, highRisks: 0 },
+            overview: {
+              totalClients: 0,
+              totalControls: 0,
+              totalPolicies: 0,
+              totalEvidence: 0,
+              totalLLMProviders: 0,
+              totalRisks: 0,
+              highRisks: 0,
+              maxClients: userData?.maxClients || 2,
+              ownedClientsCount: 0
+            },
             controlsByStatus: { implemented: 0, inProgress: 0, notStarted: 0, notApplicable: 0 },
             policiesByStatus: { approved: 0, review: 0, draft: 0, archived: 0 },
             evidenceByStatus: { verified: 0, collected: 0, pending: 0, expired: 0, notApplicable: 0 },
@@ -335,7 +350,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
 
         // 6. Risk Statistics (Global for now, optional framework filter if risks linked to controls)
         const risksCountQuery = dbConn.select({ value: count() }).from(schema.riskAssessments);
-        if (effectiveClientIds !== null) {
+        if (effectiveClientIds !== null && effectiveClientIds.length > 0) {
           risksCountQuery.where(inArray(schema.riskAssessments.clientId, effectiveClientIds));
         }
         const [totalRisksCount] = await risksCountQuery;
@@ -347,9 +362,22 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
               eq(schema.riskAssessments.residualRisk, 'High'),
               eq(schema.riskAssessments.residualRisk, 'Critical')
             ),
-            effectiveClientIds !== null ? inArray(schema.riskAssessments.clientId, effectiveClientIds) : undefined
+            effectiveClientIds !== null && effectiveClientIds.length > 0 ? inArray(schema.riskAssessments.clientId, effectiveClientIds) : undefined
           ));
         const [highRisksCount] = await highRisksQuery;
+
+        // 7. Organization Limits (for Dashboard display)
+        const [userData] = await dbConn.select({ maxClients: schema.users.maxClients })
+          .from(schema.users)
+          .where(eq(schema.users.id, ctx.user.id))
+          .limit(1);
+
+        const [ownedCountResult] = await dbConn.select({ count: count() })
+          .from(schema.userClients)
+          .where(and(
+            eq(schema.userClients.userId, ctx.user.id),
+            eq(schema.userClients.role, 'owner')
+          ));
 
         return {
           overview: {
@@ -359,7 +387,9 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
             totalEvidence: Number(evidenceCount.value),
             totalLLMProviders: Number(llmCount.value),
             totalRisks: Number(totalRisksCount.value),
-            highRisks: Number(highRisksCount.count || 0)
+            highRisks: Number(highRisksCount.count || 0),
+            maxClients: userData?.maxClients || 2,
+            ownedClientsCount: Number(ownedCountResult?.count || 0)
           },
           controlsByStatus,
           policiesByStatus,
@@ -415,6 +445,10 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           effectiveClientIds = isGlobalAdmin ? null : (userClientIds || []);
         }
 
+        if (effectiveClientIds !== null && effectiveClientIds.length === 0) {
+          return [];
+        }
+
         // Fetch some statistics to generate realistic insights
         const overdueVendorsQuery = dbConn.select({ value: count() })
           .from(schema.vendorAssessments)
@@ -422,21 +456,21 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           .where(and(
             sql`${schema.vendorAssessments.dueDate} < CURRENT_DATE`,
             sql`${schema.vendorAssessments.status} != 'completed'`,
-            effectiveClientIds !== null ? inArray(schema.vendorAssessments.clientId, effectiveClientIds) : undefined
+            effectiveClientIds && effectiveClientIds.length > 0 ? inArray(schema.vendorAssessments.clientId, effectiveClientIds) : undefined
           ));
         const overdueVendorsRaw = (await overdueVendorsQuery)[0].value;
         const overdueVendors = overdueVendorsRaw ? Number(overdueVendorsRaw) : 0;
 
         const pendingEvidenceQuery = dbConn.select({ value: count() }).from(schema.evidence).where(and(
           eq(schema.evidence.status, 'pending'),
-          effectiveClientIds !== null ? inArray(schema.evidence.clientId, effectiveClientIds) : undefined
+          effectiveClientIds !== null && effectiveClientIds.length > 0 ? inArray(schema.evidence.clientId, effectiveClientIds) : undefined
         ));
         const pendingEvidenceRaw = (await pendingEvidenceQuery)[0].value;
         const pendingEvidence = pendingEvidenceRaw ? Number(pendingEvidenceRaw) : 0;
 
         const expiredEvidenceQuery = dbConn.select({ value: count() }).from(schema.evidence).where(and(
           eq(schema.evidence.status, 'expired'),
-          effectiveClientIds !== null ? inArray(schema.evidence.clientId, effectiveClientIds) : undefined
+          effectiveClientIds !== null && effectiveClientIds.length > 0 ? inArray(schema.evidence.clientId, effectiveClientIds) : undefined
         ));
         const expiredEvidenceRaw = (await expiredEvidenceQuery)[0].value;
         const expiredEvidence = expiredEvidenceRaw ? Number(expiredEvidenceRaw) : 0;
@@ -450,7 +484,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
               eq(schema.riskAssessments.residualRisk, 'Critical'),
               eq(schema.riskAssessments.residualRisk, 'High')
             ),
-            effectiveClientIds !== null ? inArray(schema.riskAssessments.clientId, effectiveClientIds) : undefined
+            effectiveClientIds !== null && effectiveClientIds.length > 0 ? inArray(schema.riskAssessments.clientId, effectiveClientIds) : undefined
           ));
 
         const [unmitigatedCount] = await unmitigatedRisksQuery;
