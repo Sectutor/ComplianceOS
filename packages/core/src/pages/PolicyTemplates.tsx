@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Sparkles, Loader2, Wand2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
