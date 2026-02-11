@@ -49,7 +49,7 @@ const DEFAULT_SECTIONS = [
 ];
 
 export default function PolicyTemplates() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -69,6 +69,7 @@ export default function PolicyTemplates() {
   const [improveTarget, setImproveTarget] = useState<any>(null);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [improvedContent, setImprovedContent] = useState("");
+  const [isImproving, setIsImproving] = useState(false);
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
@@ -147,8 +148,8 @@ export default function PolicyTemplates() {
   };
 
   const defaultSectionTitles = [
-    "Purpose","Scope","Roles and Responsibilities","Policy Statements",
-    "Procedures","Exceptions","Enforcement","Definitions","References","Revision History"
+    "Purpose", "Scope", "Roles and Responsibilities", "Policy Statements",
+    "Procedures", "Exceptions", "Enforcement", "Definitions", "References", "Revision History"
   ];
   const baselineText = (title: string) => {
     const t = (title || "").toLowerCase();
@@ -866,9 +867,16 @@ export default function PolicyTemplates() {
                   const form = document.getElementById('ai-improve-form') as HTMLFormElement;
                   if (form) form.requestSubmit();
                 }}
-                disabled={false}
+                disabled={isImproving}
               >
-                Generate Improvements
+                {isImproving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Improvements"
+                )}
               </Button>
               <Button
                 onClick={() => {
@@ -887,31 +895,44 @@ export default function PolicyTemplates() {
         >
           <form id="ai-improve-form" onSubmit={(e) => {
             e.preventDefault();
+            if (isImproving) return;
             const systemPrompt = "You are an expert compliance policy editor. Improve the provided policy template content: enhance clarity, structure, and completeness; keep headings; avoid placeholders; output clean HTML only.";
             const userPrompt = improvedContent || improveTarget?.content || "";
             const run = async () => {
-              const { streamAIContent } = await import("../hooks/useStreamingAI");
-              const text = await streamAIContent(
-                {
-                  systemPrompt,
-                  userPrompt,
-                  instruction: improveInstruction,
-                  temperature: 0.3
-                },
-                (t: string) => {
-                  try {
-                    const html = marked.parse(t, { async: false }) as string;
-                    setImprovedContent(html);
-                  } catch {
-                    setImprovedContent(t);
-                  }
-                }
-              );
+              setIsImproving(true);
               try {
-                const html = marked.parse(text, { async: false }) as string;
-                setImprovedContent(html);
-              } catch {
-                setImprovedContent(text);
+                const { streamAIContent } = await import("../hooks/useStreamingAI");
+                const text = await streamAIContent(
+                  {
+                    systemPrompt,
+                    userPrompt,
+                    instruction: improveInstruction,
+                    temperature: 0.3
+                  },
+                  (t: string) => {
+                    try {
+                      const html = marked.parse(t, { async: false }) as string;
+                      setImprovedContent(html);
+                    } catch {
+                      setImprovedContent(t);
+                    }
+                  },
+                  session?.access_token
+                );
+
+                try {
+                  const html = marked.parse(text, { async: false }) as string;
+                  setImprovedContent(html);
+                } catch {
+                  setImprovedContent(text);
+                }
+              } catch (err: any) {
+                console.error("Improvement failed:", err);
+                toast.error((err && err.message) ? `Improvement failed: ${err.message}. Applied baseline fallback.` : "Improvement failed. Applied baseline fallback.");
+                const fallback = improveContentFallback(userPrompt, improveTarget);
+                setImprovedContent(fallback);
+              } finally {
+                setIsImproving(false);
               }
             };
             run();
@@ -926,6 +947,20 @@ export default function PolicyTemplates() {
                   onChange={(e) => setImproveInstruction(e.target.value)}
                   rows={3}
                 />
+              </div>
+              <div className="flex">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const fallback = improveContentFallback(improveTarget?.content || "", improveTarget);
+                    setImprovedContent(fallback);
+                    toast.success("Applied baseline enhancement without AI");
+                  }}
+                >
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Enhance without AI
+                </Button>
               </div>
               <div className="grid gap-2">
                 <Label>Improved Content Preview</Label>
@@ -978,7 +1013,7 @@ export default function PolicyTemplates() {
 
 function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean, onOpenChange: (open: boolean) => void, template: any }) {
   const { selectedClientId: contextClientId } = useClientContext();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [_, setLocation] = useLocation();
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [customInstruction, setCustomInstruction] = useState("");
