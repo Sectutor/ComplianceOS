@@ -148,8 +148,8 @@ export default function PolicyTemplates() {
   };
 
   const defaultSectionTitles = [
-    "Purpose", "Scope", "Roles and Responsibilities", "Policy Statements",
-    "Procedures", "Exceptions", "Enforcement", "Definitions", "References", "Revision History"
+    "Purpose","Scope","Roles and Responsibilities","Policy Statements",
+    "Procedures","Exceptions","Enforcement","Definitions","References","Revision History"
   ];
   const baselineText = (title: string) => {
     const t = (title || "").toLowerCase();
@@ -170,6 +170,39 @@ export default function PolicyTemplates() {
     const secs = (sectionTitles && sectionTitles.length > 0 ? sectionTitles : defaultSectionTitles);
     const parts = secs.map(st => `<h2>${st}</h2>\n<p>${enhanceBaseline ? baselineText(st) : "[Content]"}</p>`);
     return [`<h1>${t}</h1>`, ...parts].join("\n\n");
+  };
+  const improveContentFallback = (content: string, template?: any) => {
+    const title = template?.name || "Information Security Policy";
+    let s = content || "";
+    const isHtml = /<[a-z][\s\S]*>/i.test(s);
+    if (!isHtml) {
+      try {
+        s = marked.parse(s, { async: false }) as string;
+      } catch {}
+    }
+    s = s
+      .replace(/\bTBD\b/gi, "")
+      .replace(/\bLOREM IPSUM\b/gi, "")
+      .replace(/\[insert.*?\]/gi, "")
+      .replace(/\{\{\s*company(_name)?\s*\}\}/gi, "")
+      .replace(/\[\s*Company\s+Name\s*\]/gi, "");
+    s = sanitizeHtml(s, title);
+    const plain = s.replace(/<[^>]+>/g, " ").trim();
+    const sectionTitles = Array.isArray(template?.sections)
+      ? (template.sections as any[]).map((x: any) => (typeof x === "object" ? (x.title || "Section") : String(x))).filter(Boolean)
+      : undefined;
+    if (!plain || plain.length < 300) {
+      s = buildSkeleton(title, sectionTitles);
+    } else {
+      defaultSectionTitles.forEach((st) => {
+        const has = new RegExp(`<h2[^>]*>${st}</h2>`, "i").test(s);
+        if (!has) {
+          s += `\n\n<h2>${st}</h2>\n<p>${baselineText(st)}</p>`;
+        }
+      });
+      s = sanitizeHtml(s, title);
+    }
+    return s;
   };
 
   const clientSideUpgrade = async (dryRun: boolean) => {
