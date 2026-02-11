@@ -48,6 +48,83 @@ const DEFAULT_SECTIONS = [
   "Review & Approval"
 ];
 
+const defaultSectionTitles = [
+  "Purpose", "Scope", "Roles and Responsibilities", "Policy Statements",
+  "Procedures", "Exceptions", "Enforcement", "Definitions", "References", "Revision History"
+];
+
+const sanitizeHtml = (html: string, title: string) => {
+  let s = html || "";
+  s = s.replace(/```html([\s\S]*?)```/gi, "$1").replace(/```([\s\S]*?)```/gi, "$1");
+  s = s.replace(/<pre[\s\S]*?>[\s\S]*?<code[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi, "$1");
+  s = s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  s = s.replace(/\[object Object\]/g, "");
+  const bodyMatch = s.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) s = bodyMatch[1];
+  s = s.replace(/<\/?(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
+  s = s.replace(/<section([^>]*)>/gi, "<div$1>").replace(/<\/section>/gi, "</div>");
+  if (!/\<h1[\s\S]*?\>/.test(s)) {
+    s = `<h1>${title || "Information Security Policy"}</h1>\n${s}`;
+  }
+  return s.trim();
+};
+
+const baselineText = (title: string) => {
+  const t = (title || "").toLowerCase();
+  if (t.includes("purpose")) return "This policy establishes objectives and guiding principles to protect information assets and support regulatory compliance across the organization.";
+  if (t.includes("scope")) return "This policy applies to all employees, contractors, systems, facilities, and data owned or managed by the organization, regardless of location.";
+  if (t.includes("roles")) return "The organization assigns clear responsibilities for policy ownership, approval, implementation, monitoring, and exception handling.";
+  if (t.includes("statement")) return "The organization commits to maintaining confidentiality, integrity, and availability of information through documented controls and continuous improvement.";
+  if (t.includes("procedures")) return "Procedures define required actions for access control, change management, incident response, backup, and other operational controls.";
+  if (t.includes("exceptions")) return "Exceptions must be documented, risk-assessed, time-bound, and approved by an authorized owner with compensating controls.";
+  if (t.includes("enforcement")) return "Violations may lead to corrective actions up to and including disciplinary measures, subject to HR and legal review.";
+  if (t.includes("definitions")) return "Key terms are defined to ensure consistent understanding across stakeholders and auditors.";
+  if (t.includes("references")) return "This policy references applicable standards, regulations, and internal procedures to support implementation and audits.";
+  if (t.includes("revision")) return "Version history records authorship, approval dates, and change summaries to maintain traceability.";
+  return "This section provides the structured content necessary to implement and audit this policy.";
+};
+
+const buildSkeleton = (title: string, sectionTitles?: string[], enhanceBaseline: boolean = true) => {
+  const t = (title || "Information Security Policy").trim();
+  const secs = (sectionTitles && sectionTitles.length > 0 ? sectionTitles : defaultSectionTitles);
+  const parts = secs.map(st => `<h2>${st}</h2>\n<p>${enhanceBaseline ? baselineText(st) : "[Content]"}</p>`);
+  return [`<h1>${t}</h1>`, ...parts].join("\n\n");
+};
+
+const improveContentFallback = (content: string, template?: any, enhanceBaseline: boolean = true) => {
+  const title = template?.name || "Information Security Policy";
+  let s = content || "";
+  const isHtml = /<[a-z][\s\S]*>/i.test(s);
+  if (!isHtml) {
+    try {
+      s = marked.parse(s, { async: false }) as string;
+    } catch { }
+  }
+  s = s
+    .replace(/\bTBD\b/gi, "")
+    .replace(/\bLOREM IPSUM\b/gi, "")
+    .replace(/\[insert.*?\]/gi, "")
+    .replace(/\{\{\s*company(_name)?\s*\}\}/gi, "")
+    .replace(/\[\s*Company\s+Name\s*\]/gi, "");
+  s = sanitizeHtml(s, title);
+  const plain = s.replace(/<[^>]+>/g, " ").trim();
+  const sectionTitles = Array.isArray(template?.sections)
+    ? (template.sections as any[]).map((x: any) => (typeof x === "object" ? (x.title || "Section") : String(x))).filter(Boolean)
+    : undefined;
+  if (!plain || plain.length < 300) {
+    s = buildSkeleton(title, sectionTitles, enhanceBaseline);
+  } else {
+    defaultSectionTitles.forEach((st) => {
+      const has = new RegExp(`<h2[^>]*>${st}</h2>`, "i").test(s);
+      if (!has) {
+        s += `\n\n<h2>${st}</h2>\n<p>${baselineText(st)}</p>`;
+      }
+    });
+    s = sanitizeHtml(s, title);
+  }
+  return s;
+};
+
 export default function PolicyTemplates() {
   const { user, session } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,80 +208,8 @@ export default function PolicyTemplates() {
     },
   });
 
-  const sanitizeHtml = (html: string, title: string) => {
-    let s = html || "";
-    s = s.replace(/```html([\s\S]*?)```/gi, "$1").replace(/```([\s\S]*?)```/gi, "$1");
-    s = s.replace(/<pre[\s\S]*?>[\s\S]*?<code[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi, "$1");
-    s = s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-    s = s.replace(/\[object Object\]/g, "");
-    const bodyMatch = s.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    if (bodyMatch) s = bodyMatch[1];
-    s = s.replace(/<\/?(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
-    s = s.replace(/<section([^>]*)>/gi, "<div$1>").replace(/<\/section>/gi, "</div>");
-    if (!/\<h1[\s\S]*?\>/.test(s)) {
-      s = `<h1>${title || "Information Security Policy"}</h1>\n${s}`;
-    }
-    return s.trim();
-  };
-
-  const defaultSectionTitles = [
-    "Purpose","Scope","Roles and Responsibilities","Policy Statements",
-    "Procedures","Exceptions","Enforcement","Definitions","References","Revision History"
-  ];
-  const baselineText = (title: string) => {
-    const t = (title || "").toLowerCase();
-    if (t.includes("purpose")) return "This policy establishes objectives and guiding principles to protect information assets and support regulatory compliance across the organization.";
-    if (t.includes("scope")) return "This policy applies to all employees, contractors, systems, facilities, and data owned or managed by the organization, regardless of location.";
-    if (t.includes("roles")) return "The organization assigns clear responsibilities for policy ownership, approval, implementation, monitoring, and exception handling.";
-    if (t.includes("statement")) return "The organization commits to maintaining confidentiality, integrity, and availability of information through documented controls and continuous improvement.";
-    if (t.includes("procedures")) return "Procedures define required actions for access control, change management, incident response, backup, and other operational controls.";
-    if (t.includes("exceptions")) return "Exceptions must be documented, risk-assessed, time-bound, and approved by an authorized owner with compensating controls.";
-    if (t.includes("enforcement")) return "Violations may lead to corrective actions up to and including disciplinary measures, subject to HR and legal review.";
-    if (t.includes("definitions")) return "Key terms are defined to ensure consistent understanding across stakeholders and auditors.";
-    if (t.includes("references")) return "This policy references applicable standards, regulations, and internal procedures to support implementation and audits.";
-    if (t.includes("revision")) return "Version history records authorship, approval dates, and change summaries to maintain traceability.";
-    return "This section provides the structured content necessary to implement and audit this policy.";
-  };
-  const buildSkeleton = (title: string, sectionTitles?: string[]) => {
-    const t = (title || "Information Security Policy").trim();
-    const secs = (sectionTitles && sectionTitles.length > 0 ? sectionTitles : defaultSectionTitles);
-    const parts = secs.map(st => `<h2>${st}</h2>\n<p>${enhanceBaseline ? baselineText(st) : "[Content]"}</p>`);
-    return [`<h1>${t}</h1>`, ...parts].join("\n\n");
-  };
-  const improveContentFallback = (content: string, template?: any) => {
-    const title = template?.name || "Information Security Policy";
-    let s = content || "";
-    const isHtml = /<[a-z][\s\S]*>/i.test(s);
-    if (!isHtml) {
-      try {
-        s = marked.parse(s, { async: false }) as string;
-      } catch {}
-    }
-    s = s
-      .replace(/\bTBD\b/gi, "")
-      .replace(/\bLOREM IPSUM\b/gi, "")
-      .replace(/\[insert.*?\]/gi, "")
-      .replace(/\{\{\s*company(_name)?\s*\}\}/gi, "")
-      .replace(/\[\s*Company\s+Name\s*\]/gi, "");
-    s = sanitizeHtml(s, title);
-    const plain = s.replace(/<[^>]+>/g, " ").trim();
-    const sectionTitles = Array.isArray(template?.sections)
-      ? (template.sections as any[]).map((x: any) => (typeof x === "object" ? (x.title || "Section") : String(x))).filter(Boolean)
-      : undefined;
-    if (!plain || plain.length < 300) {
-      s = buildSkeleton(title, sectionTitles);
-    } else {
-      defaultSectionTitles.forEach((st) => {
-        const has = new RegExp(`<h2[^>]*>${st}</h2>`, "i").test(s);
-        if (!has) {
-          s += `\n\n<h2>${st}</h2>\n<p>${baselineText(st)}</p>`;
-        }
-      });
-      s = sanitizeHtml(s, title);
-    }
-    return s;
-  };
-  (globalThis as any).PolicyTemplates_improveContentFallback = improveContentFallback;
+  // Utility functions moved to top level
+  // (globalThis as any).PolicyTemplates_improveContentFallback = improveContentFallback;
 
   const clientSideUpgrade = async (dryRun: boolean) => {
     const list = templates || [];
@@ -218,7 +223,7 @@ export default function PolicyTemplates() {
         const sectionTitles = Array.isArray(tpl.sections)
           ? (tpl.sections as any[]).map((s: any) => (typeof s === 'object' ? (s.title || 'Section') : String(s))).filter(Boolean)
           : undefined;
-        content = buildSkeleton(title, sectionTitles);
+        content = buildSkeleton(title, sectionTitles, enhanceBaseline);
         changes.push("skeleton_built_for_empty_template");
       }
       const after = sanitizeHtml(content, title);
@@ -963,8 +968,8 @@ export default function PolicyTemplates() {
               } catch (err: any) {
                 console.error("Improvement failed:", err);
                 toast.error((err && err.message) ? `Improvement failed: ${err.message}. Applied baseline fallback.` : "Improvement failed. Applied baseline fallback.");
-                const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
-                const fallback = fn(userPrompt, improveTarget);
+                const fn = improveContentFallback;
+                const fallback = fn(userPrompt, improveTarget, enhanceBaseline);
                 setImprovedContent(fallback);
               } finally {
                 setIsImproving(false);
@@ -988,8 +993,8 @@ export default function PolicyTemplates() {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
-                    const fallback = fn(improveTarget?.content || "", improveTarget);
+                    const fn = improveContentFallback;
+                    const fallback = fn(improveTarget?.content || "", improveTarget, enhanceBaseline);
                     setImprovedContent(fallback);
                     toast.success("Applied baseline enhancement without AI");
                   }}
@@ -1097,8 +1102,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
       setIsGeneratingPreview(false);
     },
     onError: () => {
-      const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
-      const fallback = fn(template?.content || "", template);
+      const fallback = improveContentFallback(template?.content || "", template);
       setPreviewContent(fallback);
       setIsGeneratingPreview(false);
       toast.warning("Preview unavailable; applied baseline formatting");
@@ -1112,8 +1116,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
     }
 
     const title = template?.name || "Information Security Policy";
-    const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
-    const fallbackHtml = fn(template?.content || "", template);
+    const fallbackHtml = improveContentFallback(template?.content || "", template);
     const contentToUse = previewContent || fallbackHtml;
 
     generateMutation.mutate({
