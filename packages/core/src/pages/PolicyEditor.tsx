@@ -10,21 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { ArrowLeft, Save, Eye, FileText, Loader2, History, RotateCcw, HelpCircle, ChevronDown, ChevronUp, Sparkles, Send, Users } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, History, Loader2, Save, Sparkles, Trash2, Shield, AlertTriangle, Clock, Target, CheckCircle2, FileText, Users, Wand2, ShieldAlert, Link as LinkIcon, Unlink, TrendingDown, TrendingUp, ExternalLink, BarChart3, X, Send } from "lucide-react";
+import { marked } from "marked";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@complianceos/ui/ui/dialog";
 import RichTextEditor from "@/components/RichTextEditor";
-import { marked } from "marked";
 import TurndownService from "turndown";
 
-// @ts-ignore
+// @ts-expect-error - html-docx-js-typescript types are missing
 import { asBlob } from "html-docx-js-typescript";
 import { saveAs } from "file-saver";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@complianceos/ui/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@complianceos/ui/ui/popover";
-import { Check, X, ShieldAlert, Link as LinkIcon, Unlink, Shield, TrendingDown, TrendingUp, AlertTriangle, ExternalLink, CheckCircle2, Clock, Target, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
 import { RiskDetailsDialog } from "@/components/risk/RiskDetailsDialog";
@@ -35,10 +34,52 @@ import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import { PageGuide } from "@/components/PageGuide";
 import PolicyLinter from "@/components/policy/PolicyLinter";
 
-export default function PolicyEditor() {
+// Helper logic for Policy Analysis
+
+
+
+function decodeEntities(str: string) {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+}
+
+function cleanGeneratedHtml(input: string) {
+    let s = input || "";
+    // Strip fenced code blocks
+    s = s.replace(/```html([\s\S]*?)```/gi, "$1").replace(/```([\s\S]*?)```/gi, "$1");
+    // Extract <pre><code>...</code></pre>
+    s = s.replace(/<pre[\s\S]*?>[\s\S]*?<code[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi, "$1");
+    // Decode entities if HTML was serialized as text
+    if (s.includes("&lt;") || s.includes("&gt;")) s = decodeEntities(s);
+    // Remove outer html/head/body wrappers
+    const bodyMatch = s.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch) s = bodyMatch[1];
+    // Drop style/script tags
+    s = s.replace(/<\/?(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
+    // Convert <section> to <div>
+    s = s.replace(/<section([^>]*)>/gi, "<div$1>").replace(/<\/section>/gi, "</div>");
+    return s.trim();
+}
+
+export default function PolicyEditor(props: { id?: string; policyId?: string }) {
+    console.log("[PolicyEditor] Rendering...");
     const params = useParams();
-    const clientId = Number(params.id);
-    const policyId = Number(params.policyId);
+    // Prioritize props passed from Route
+    const rawClientId = props.id || params.id;
+    const rawPolicyId = props.policyId || params.policyId;
+
+    const clientId = Number(rawClientId);
+    const policyId = Number(rawPolicyId);
+
+    console.log("[PolicyEditor] Resolved IDs:", {
+        props,
+        params,
+        rawClientId,
+        rawPolicyId,
+        clientId,
+        policyId
+    });
     const [location, setLocation] = useLocation();
 
     const { data: policyData, isLoading: loadingPolicy, refetch: refetchPolicy } = trpc.clientPolicies.get.useQuery(
@@ -50,6 +91,7 @@ export default function PolicyEditor() {
     const deletePolicyMutation = trpc.clientPolicies.delete.useMutation();
     const publishVersionMutation = trpc.clientPolicies.publish.useMutation();
     const restoreVersionMutation = trpc.clientPolicies.restore.useMutation();
+    const refineMutation = trpc.clientPolicies.refine.useMutation();
     const { data: versionHistory, refetch: refetchHistory } = trpc.clientPolicies.history.useQuery(
         { policyId, clientId },
         { enabled: !!policyId && !!clientId }
@@ -60,6 +102,7 @@ export default function PolicyEditor() {
     const { data: linkedControls, refetch: refetchLinkedControls } = trpc.clientPolicies.getLinkedControls.useQuery({ policyId, clientId }, { enabled: !!policyId && !!clientId });
     const { data: availableRisks } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
     const { data: availableControls } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: clientData } = trpc.clients.get.useQuery({ id: clientId }, { enabled: !!clientId });
 
     const { data: assignments, isLoading: loadingAssignments } = trpc.policyManagement.getAssignments.useQuery(
         { policyId },
@@ -70,6 +113,8 @@ export default function PolicyEditor() {
     const unlinkRiskMutation = trpc.clientPolicies.unlinkRisk.useMutation();
     const linkControlMutation = trpc.clientPolicies.linkControl.useMutation();
     const unlinkControlMutation = trpc.clientPolicies.unlinkControl.useMutation();
+
+
 
     const sendToIntakeMutation = trpc.intake.createFromPolicy.useMutation({
         onSuccess: () => {
@@ -381,6 +426,73 @@ export default function PolicyEditor() {
         }
     };
 
+    const handleAiRewrite = async () => {
+        if (!content || !clientId) return;
+        try {
+            toast.info("Rewriting policy with AI...");
+            const res = await refineMutation.mutateAsync({
+                clientId,
+                content,
+                instruction: "Improve clarity, tone, and formatting.",
+                mode: 'refine',
+                context: {
+                    clientName: policyData?.clientName || clientData?.name || "the Organization",
+                }
+            });
+
+            const text = res.content || "";
+            const cleaned = cleanGeneratedHtml(text);
+            const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
+
+            setContent(html);
+            toast.success("Policy rewritten successfully");
+        } catch (error: any) {
+            console.error("AI Rewrite failed:", error);
+            toast.error("Failed to rewrite policy");
+        }
+    };
+
+    const handleAiFix = async () => {
+        if (!content || !clientId) return;
+
+        let clientName = clientData?.name || policyData?.clientName || "the Organization";
+        let industry = clientData?.industry || (policyData as any)?.industry || "General";
+
+        // Context from policyData (now enriched by backend)
+        if (policyData) {
+            if ((policyData as any).clientName) {
+                clientName = (policyData as any).clientName;
+            }
+            if ((policyData as any).industry) {
+                industry = (policyData as any).industry;
+            }
+        }
+
+        try {
+            toast.info(`Fixing placeholders for ${clientName}...`);
+            const res = await refineMutation.mutateAsync({
+                clientId,
+                content,
+                instruction: "Identify and fix placeholders.",
+                mode: 'fix_placeholders',
+                context: {
+                    clientName: clientName,
+                    industry: industry
+                }
+            });
+
+            const text = res.content || "";
+            const cleaned = cleanGeneratedHtml(text);
+            const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
+
+            setContent(html);
+            toast.success("Placeholders fixed successfully");
+        } catch (error: any) {
+            console.error("AI Fix failed:", error);
+            toast.error("Failed to fix placeholders");
+        }
+    };
+
     const handleLinkRisk = async () => {
         if (selectedRiskIds.length === 0 || !policyId) return;
         try {
@@ -685,6 +797,8 @@ export default function PolicyEditor() {
                                                     value={content}
                                                     onChange={setContent}
                                                     className="min-h-[400px]"
+                                                    onAiRewrite={handleAiRewrite}
+                                                    onAiFix={handleAiFix}
                                                 />
                                             ) : (
                                                 <div className="min-h-[400px] flex items-center justify-center bg-slate-50 rounded-lg border">

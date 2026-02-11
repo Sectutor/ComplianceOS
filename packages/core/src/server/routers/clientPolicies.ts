@@ -363,23 +363,85 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
-    refine: adminProcedure
+    refine: clientEditorProcedure
       .input(z.object({
+        clientId: z.number(),
         content: z.string(),
-        instruction: z.string(),
+        instruction: z.string().optional(),
+        mode: z.enum(['refine', 'fix_placeholders']).optional(),
         context: z.object({
           clientName: z.string(),
           industry: z.string().optional()
         }).optional()
       }))
-      .mutation(async ({ input }: any) => {
-        // AI Refinement removed for Core split
-        // const { LLMService } = await import('../../lib/llm/service');
-        // const llm = new LLMService();
-        // ...
+      .mutation(async ({ input, ctx }: any) => {
+        const { llmService } = await import('../../lib/llm/service');
+        const dbConn = await db.getDb();
 
-        return { content: input.content }; // No-op return
+        // Fetch Client Data for accurate context
+        let clientName = input.context?.clientName || 'the Organization';
+        let industry = input.context?.industry || 'General';
+
+        try {
+          const client = await dbConn.query.clients.findFirst({
+            where: eq(schema.clients.id, input.clientId),
+            columns: { name: true, industry: true }
+          });
+          if (client?.name) clientName = client.name;
+          if (client?.industry) industry = client.industry;
+        } catch (e) {
+          console.warn("[Refine] Could not fetch client data:", e);
+        }
+
+        let prompt = "";
+
+        if (input.mode === 'fix_placeholders') {
+          prompt = `You are a compliance policy editor. Your task is to ONLY fill in placeholders in the provided HTML content.
+            Context: Client=${clientName}, Industry=${industry}.
+            
+            Strict Instructions:
+            1. Identify placeholders such as [Company Name], TBD, [Date], [Insert Role], {{company_name}}, etc.
+            2. Replace them with specific, plausible values appropriate for ${clientName}.
+            3. CRITICAL: DO NOT rewrite, rephrase, summarize, or change any other text. The structure and wording must remain exactly the same, except for the filled placeholders.
+            4. Return the full, valid HTML content.
+            `
+        } else {
+          prompt = `Rewrite the following compliance policy content to be more professional, clear, and compliant.
+            Context: Client=${clientName}, Industry=${industry}.
+            `;
+        }
+
+        if (input.instruction) {
+          prompt += `\nSpecific Instruction: ${input.instruction}\n`;
+        }
+
+        prompt += `\nReturn ONLY the HTML content. Do not include markdown code blocks, preamble, or explanations.\n\nContent:\n${input.content}`;
+
+        try {
+          const response = await llmService.generate({
+            userPrompt: prompt,
+            temperature: 0.3,
+            feature: 'policy_refinement'
+          }, {
+            clientId: input.clientId,
+            userId: ctx.user?.id,
+            endpoint: 'clientPolicies.refine'
+          });
+
+          let cleanContent = response.text.trim();
+          // specific cleanup for common LLM markdown habits
+          if (cleanContent.startsWith("```")) {
+            cleanContent = cleanContent.replace(/^```(?:html|markdown)?\s*/, '').replace(/\s*```$/, '');
+          }
+
+          return { content: cleanContent };
+        } catch (error: any) {
+          console.error("Refine failed:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "AI Refinement failed: " + error.message });
+        }
       }),
+
+
     gapAnalysis: clientProcedure
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }: any) => {

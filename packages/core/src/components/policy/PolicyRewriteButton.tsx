@@ -34,37 +34,48 @@ export default function PolicyRewriteButton({
   name,
   clientId,
   policyId,
+  mode,
   onRewrite,
 }: {
   content: string;
   name?: string;
   clientId?: number;
   policyId?: number;
+  mode?: 'rewrite' | 'improve_placeholders';
   onRewrite: (html: string) => void;
 }) {
-  const rewrite = trpc.advisor.askQuestion.useMutation();
+  const refine = trpc.clientPolicies.refine.useMutation();
 
   const handleRewrite = async () => {
+
+    if (!clientId || isNaN(Number(clientId))) {
+      toast.error("Client context is missing. Please refresh the page.");
+      return;
+    }
+
     try {
-      toast.info("Asking AI to improve the policy...");
-      const question =
-        "Rewrite and improve this policy for clarity, completeness, and auditability. Preserve structure and produce HTML suitable for the editor. Avoid placeholders.";
-      const res = await rewrite.mutateAsync({
+      toast.info(mode === 'improve_placeholders' ? "Fixing placeholders..." : "Rewriting policy...");
+
+      let instruction = "Improve clarity, tone, and formatting.";
+      if (mode === 'improve_placeholders') {
+        instruction = "Identify any placeholders (like [Company Name], TBD, etc.) and replace them with generic but plausible placeholder text or instructions. Keep the rest of the content exactly the same.";
+      }
+
+      const res = await refine.mutateAsync({
         clientId: Number(clientId),
-        question,
+        content,
+        instruction,
+        mode: mode === 'improve_placeholders' ? 'fix_placeholders' : 'refine',
         context: {
-          type: "policy",
-          id: String(policyId ?? name ?? "policy"),
-          data: {
-            title: name || "Policy",
-            content,
-            mode: "rewrite",
-          },
-        },
+          clientName: name || "the Organization", // Backend will fetch real name if available
+        }
       });
-      const text = (res as any)?.answer || (res as any)?.text || "";
+
+      const text = res.content || "";
       const cleaned = cleanGeneratedHtml(text);
+      // Ensure we have valid HTML, otherwise parse markdown
       const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
+
       onRewrite(html);
       toast.success("Policy improved");
     } catch (err: any) {
@@ -74,9 +85,9 @@ export default function PolicyRewriteButton({
   };
 
   return (
-    <Button variant="outline" className="w-full justify-start" onClick={handleRewrite} disabled={rewrite.isPending}>
+    <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleRewrite} disabled={refine.isPending}>
       <Wand2 className="mr-2 h-4 w-4" />
-      {rewrite.isPending ? "Rewriting..." : "Rewrite with AI"}
+      {refine.isPending ? "Processing..." : (mode === 'improve_placeholders' ? "Fix Placeholders" : "Rewrite with AI")}
     </Button>
   );
 }

@@ -302,7 +302,7 @@ ${content}
 
         const systemPrompt = `You are a specialized compliance policy writer. You MUST write all content in ${languageName}.`;
         const userPrompt = `
-You are an expert CISO and Compliance Officer.
+You are an expert CISO and Compliance Officer assisting ${client.name}.
 The following policy content is missing some recommended sections.
 Your task is to:
 1. INCORPORATE the missing sections into the existing content in their most logical and standard positions.
@@ -319,7 +319,7 @@ Directives:
 1. Draft logical, professional content for each missing section.
 2. Refine existing content to match the tone and quality of the new sections.
 3. Use Markdown formatting (## for headers).
-4. Remove redundant "placeholder" text if found.
+4. CRITICAL: Scan the ENTIRE document for placeholders like [Company Name], TBD, [Date], {{company_name}}, [Insert Role], etc., and replace them with specific details for "${client.name}" or other plausible values.
 5. Write EVERYTHING in ${languageName}.
 6. Return ONLY the complete, improved policy text in Markdown format.
 `;
