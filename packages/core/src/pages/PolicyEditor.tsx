@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { ArrowLeft, Check, Copy, Eye, History, Loader2, Save, Sparkles, Trash2, Shield, AlertTriangle, Clock, Target, CheckCircle2, FileText, Users, Wand2, ShieldAlert, Link as LinkIcon, Unlink, TrendingDown, TrendingUp, ExternalLink, BarChart3, X, Send } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, History, Loader2, Save, Sparkles, Trash2, Shield, AlertTriangle, Clock, Target, CheckCircle2, FileText, Users, Wand2, ShieldAlert, Link as LinkIcon, Unlink, TrendingDown, TrendingUp, ExternalLink, BarChart3, X, Send, RotateCcw } from "lucide-react";
 import { marked } from "marked";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
