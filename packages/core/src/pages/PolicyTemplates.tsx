@@ -1054,6 +1054,8 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [customInstruction, setCustomInstruction] = useState("");
   const [tailorToIndustry, setTailorToIndustry] = useState(true);
+  const [previewContent, setPreviewContent] = useState<string>("");
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
 
   const { data: clients, isLoading: isLoadingClients } = trpc.clients.list.useQuery({}, {
     enabled: open
@@ -1084,16 +1086,41 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
     onError: (error) => toast.error(error.message),
   });
 
+  const previewMutation = trpc.policyTemplates.preview.useMutation({
+    onSuccess: (data: any) => {
+      const title = template?.name || "Information Security Policy";
+      const content = data?.content || "";
+      const isHtml = /<[a-z][\s\S]*>/i.test(content);
+      const html = isHtml ? content : (marked.parse(content, { async: false }) as string);
+      const sanitized = sanitizeHtml(html, title);
+      setPreviewContent(sanitized);
+      setIsGeneratingPreview(false);
+    },
+    onError: () => {
+      const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
+      const fallback = fn(template?.content || "", template);
+      setPreviewContent(fallback);
+      setIsGeneratingPreview(false);
+      toast.warning("Preview unavailable; applied baseline formatting");
+    }
+  });
+
   const handleGenerate = () => {
     if (!selectedClientId) {
       toast.error("Please select a client");
       return;
     }
 
+    const title = template?.name || "Information Security Policy";
+    const fn = (globalThis as any).PolicyTemplates_improveContentFallback || improveContentFallback;
+    const fallbackHtml = fn(template?.content || "", template);
+    const contentToUse = previewContent || fallbackHtml;
+
     generateMutation.mutate({
       clientId: selectedClientId,
       templateId: template.id,
       name: template.name,
+      content: sanitizeHtml(contentToUse, title),
       tailor: tailorToIndustry,
       instruction: customInstruction || undefined,
       status: 'draft',
@@ -1159,6 +1186,36 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
           />
         </div>
 
+        <div className="flex">
+          <Button
+            type="button"
+            onClick={() => {
+              if (!selectedClientId) {
+                toast.error("Please select a client");
+                return;
+              }
+              setIsGeneratingPreview(true);
+              previewMutation.mutate({
+                clientId: selectedClientId,
+                templateId: template?.id,
+                tailor: tailorToIndustry,
+                instruction: customInstruction || undefined
+              });
+            }}
+            disabled={isGeneratingPreview}
+            className="w-full"
+          >
+            {isGeneratingPreview ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Preview...
+              </>
+            ) : (
+              "Generate Preview"
+            )}
+          </Button>
+        </div>
+
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -1172,11 +1229,14 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
           </Label>
         </div>
 
-        {generateMutation.isPending && (
-          <div className="p-4 bg-muted rounded-lg animate-pulse text-sm text-center">
-            AI is generating your policy... This may take a few seconds.
-          </div>
-        )}
+        <div className="grid gap-2">
+          <Label>Policy Content Preview</Label>
+          <RichTextEditor
+            value={previewContent || (template?.content || "")}
+            onChange={setPreviewContent}
+            minHeight="400px"
+          />
+        </div>
       </div>
     </EnhancedDialog>
   );
