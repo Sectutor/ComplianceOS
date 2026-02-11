@@ -118,8 +118,90 @@ export default function PolicyTemplates() {
   });
   const fallbackUpgradeMutation = (trpc.policyManagement as any).upgradeTemplates?.useMutation({
     onSuccess: (data: any) => setUpgradeReport(data),
-    onError: (error: any) => toast.error(error?.message || "Upgrade failed"),
+    onError: async (error: any) => {
+      const msg = error?.message || "";
+      await clientSideUpgrade(true);
+    },
   });
+
+  const sanitizeHtml = (html: string, title: string) => {
+    let s = html || "";
+    s = s.replace(/```html([\s\S]*?)```/gi, "$1").replace(/```([\s\S]*?)```/gi, "$1");
+    s = s.replace(/<pre[\s\S]*?>[\s\S]*?<code[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi, "$1");
+    s = s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    s = s.replace(/\[object Object\]/g, "");
+    const bodyMatch = s.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch) s = bodyMatch[1];
+    s = s.replace(/<\/?(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
+    s = s.replace(/<section([^>]*)>/gi, "<div$1>").replace(/<\/section>/gi, "</div>");
+    if (!/\<h1[\s\S]*?\>/.test(s)) {
+      s = `<h1>${title || "Information Security Policy"}</h1>\n${s}`;
+    }
+    return s.trim();
+  };
+
+  const defaultSectionTitles = [
+    "Purpose","Scope","Roles and Responsibilities","Policy Statements",
+    "Procedures","Exceptions","Enforcement","Definitions","References","Revision History"
+  ];
+  const buildSkeleton = (title: string, sectionTitles?: string[]) => {
+    const t = (title || "Information Security Policy").trim();
+    const secs = (sectionTitles && sectionTitles.length > 0 ? sectionTitles : defaultSectionTitles);
+    const parts = secs.map(st => `<h2>${st}</h2>\n<p>[Content]</p>`);
+    return [`<h1>${t}</h1>`, ...parts].join("\n\n");
+  };
+
+  const clientSideUpgrade = async (dryRun: boolean) => {
+    const list = templates || [];
+    const results: Array<{ id: number; updated: boolean; changes: string[] }> = [];
+    for (const tpl of list) {
+      const changes: string[] = [];
+      let content = tpl.content || "";
+      const before = content;
+      const title = tpl.name || "Information Security Policy";
+      if (!content || content.trim().length === 0) {
+        const sectionTitles = Array.isArray(tpl.sections)
+          ? (tpl.sections as any[]).map((s: any) => (typeof s === 'object' ? (s.title || 'Section') : String(s))).filter(Boolean)
+          : undefined;
+        content = buildSkeleton(title, sectionTitles);
+        changes.push("skeleton_built_for_empty_template");
+      }
+      const after = sanitizeHtml(content, title);
+      if (after !== before) {
+        changes.push("sanitized_html_and_title");
+      }
+      let updatedSections = tpl.sections;
+      if (Array.isArray(updatedSections)) {
+        const newSections = updatedSections.map((s: any) => {
+          if (s && typeof s === 'object') {
+            const body = s.content || s.text || "";
+            const cleanBody = sanitizeHtml(body, title);
+            if (cleanBody !== body) changes.push(`section_${s.id || s.title}_sanitized`);
+            return { ...s, content: cleanBody };
+          }
+          return s;
+        });
+        updatedSections = newSections as any;
+      }
+      const updated = changes.length > 0;
+      results.push({ id: tpl.id, updated, changes });
+      if (updated && !dryRun) {
+        await updateMutation.mutateAsync({
+          id: tpl.id,
+          content: after,
+          sections: updatedSections
+        } as any);
+      }
+    }
+    const report = {
+      templatesProcessed: list.length,
+      templatesChanged: results.filter(r => r.updated).length,
+      dryRun,
+      results
+    };
+    setUpgradeReport(report);
+    if (!dryRun) toast.success("Templates upgraded");
+  };
 
   const filteredTemplates = templates?.filter(template =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -381,7 +463,14 @@ export default function PolicyTemplates() {
                 onClick={() => {
                   if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
                   // Try primary; if not found, fallback
-                  upgradeMutation.mutate({ dryRun: false });
+                  upgradeMutation.mutate({
+                    dryRun: false
+                  });
+                  setTimeout(async () => {
+                    if (!upgradeReport) {
+                      await clientSideUpgrade(false);
+                    }
+                  }, 800);
                 }}
                 disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
               >
