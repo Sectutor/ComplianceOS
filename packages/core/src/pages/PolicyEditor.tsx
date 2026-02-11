@@ -62,6 +62,25 @@ function cleanGeneratedHtml(input: string) {
     return s.trim();
 }
 
+function ensureTitleHeading(html: string, title: string) {
+    try {
+        const container = document.createElement("div");
+        container.innerHTML = html || "";
+        let h1 = container.querySelector("h1");
+        const t = (title || "Information Security Policy").trim();
+        if (!h1) {
+            h1 = document.createElement("h1");
+            h1.textContent = t;
+            container.insertBefore(h1, container.firstChild);
+        } else if (t && (h1.textContent || "").trim() !== t) {
+            h1.textContent = t;
+        }
+        return container.innerHTML;
+    } catch {
+        return html;
+    }
+}
+
 export default function PolicyEditor(props: { id?: string; policyId?: string }) {
     console.log("[PolicyEditor] Rendering...");
     const params = useParams();
@@ -336,6 +355,14 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
             }
         }
     }, [policyData]);
+
+    useEffect(() => {
+        if (!isContentReady) return;
+        const updated = ensureTitleHeading(content, name || "Information Security Policy");
+        if (updated !== content) {
+            setContent(updated);
+        }
+    }, [isContentReady, name]);
 
     const handleSave = async () => {
         if (!clientId || !policyId) {

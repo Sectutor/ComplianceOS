@@ -6,8 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertTriangle, CheckCircle2, Plus, Wand2, Loader2, Sparkles } from "lucide-react";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
-import { Slot } from "@/registry";
-import { SlotNames } from "@/registry/slotNames";
+// Removed premium slot actions for placeholders to avoid duplicate/faulty buttons
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -279,38 +278,17 @@ export function PolicyLinter({
                         <div>{i.title}</div>
                         {i.description && <div className="text-xs text-muted-foreground">{i.description}</div>}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-amber-700">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="text-xs">Missing</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => appendSection(i.id)}>
-                          <Plus className="h-3 w-3 mr-1" />
-                          Insert Template
-                        </Button>
-                        <div className="inline-block ml-2">
-                          <Slot
-                            name={SlotNames.POLICY_SECTION_DRAFT}
-                            props={{
-                              sectionId: i.id,
-                              sectionTitle: i.title,
-                              currentContent: content,
-                              clientId,
-                              policyId,
-                              onDraft: (html: string) => onInsertSection(html),
-                            }}
-                          />
-                        </div>
-                        {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            Premium required for AI drafting
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-amber-700">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-xs">Missing</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">No action</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
                 {placeholderWarnings.map((i) => (
                   <TableRow key={i.id}>
                     <TableCell className="font-medium">
@@ -328,23 +306,6 @@ export function PolicyLinter({
                         <Wand2 className="h-3 w-3 mr-1" />
                         Fix Placeholders
                       </Button>
-                      <div className="inline-block ml-2">
-                        <Slot
-                          name={SlotNames.POLICY_REWRITE_BUTTON}
-                          props={{
-                            content,
-                            mode: "improve_placeholders",
-                            clientId,
-                            policyId,
-                            onRewrite: (html: string) => onReplaceContent && onReplaceContent(html),
-                          }}
-                        />
-                      </div>
-                      {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          Premium required for AI rewrite
-                        </span>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
