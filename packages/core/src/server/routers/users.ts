@@ -146,7 +146,7 @@ export const usersSubRouter = router({
                             name: `${orgName} DEMO`,
                             industry
                         });
-                    } catch (se) {}
+                    } catch (se) { }
                 } catch (e) {
                     console.error("[acceptInviteAndSignup] OnboardClient failed for waitlist link:", e);
                 }
@@ -256,8 +256,25 @@ export const usersSubRouter = router({
                 return null;
             }
 
+            // Fetch client context if possible
+            const dbConn = await db.getDb();
+            let clientData = null;
+
+            if (ctx.clientId) {
+                const [c] = await dbConn.select().from(clients).where(eq(clients.id, ctx.clientId)).limit(1);
+                clientData = c;
+            } else {
+                // Fallback to first available client membership
+                const [membership] = await dbConn.select({ client: clients })
+                    .from(userClients)
+                    .innerJoin(clients, eq(userClients.clientId, clients.id))
+                    .where(eq(userClients.userId, user.id))
+                    .limit(1);
+                clientData = membership?.client;
+            }
+
             // Return a plain object with only serializable fields
-            console.log('[users.me] Returning user data for ID:', user.id);
+            console.log('[users.me] Returning user data for ID:', user.id, 'with client:', clientData?.name || 'none');
             return {
                 id: user.id,
                 openId: user.openId,
@@ -267,8 +284,14 @@ export const usersSubRouter = router({
                 hasSeenTour: user.hasSeenTour,
                 planTier: user.planTier,
                 subscriptionStatus: user.subscriptionStatus,
+                maxClients: user.maxClients,
                 createdAt: user.createdAt?.toString() || null,
                 updatedAt: user.updatedAt?.toString() || null,
+                client: clientData ? {
+                    id: clientData.id,
+                    name: clientData.name,
+                    requireMfa: clientData.requireMfa,
+                } : null
             };
         } catch (error) {
             console.error('[users.me] Error fetching user:', error);
@@ -363,7 +386,7 @@ export const usersSubRouter = router({
         }))
         .mutation(async ({ input, ctx }: any) => {
             // Prevent modifying own role to avoid lockout
-            if (input.id === ctx.user?.id && input.role !== 'admin' && input.role !== 'owner') {
+            if (input.id === ctx.user?.id && input.role !== 'admin' && input.role !== 'owner' && input.role !== 'super_admin') {
                 // Start Step 385: Allow owner to demote themselves? Probably dangerous.
                 // For now, prevent default admin from removing their own admin status
                 throw new TRPCError({ code: 'FORBIDDEN', message: 'You cannot demote your own global role.' });
@@ -377,6 +400,7 @@ export const usersSubRouter = router({
             id: z.number(),
             name: z.string().optional(),
             email: z.string().email().optional(),
+            maxClients: z.number().optional(),
         }))
         .mutation(async ({ input }: any) => {
             const dbConn = await db.getDb();
@@ -393,6 +417,7 @@ export const usersSubRouter = router({
                 .set({
                     ...(input.name ? { name: input.name } : {}),
                     ...(input.email ? { email: input.email } : {}),
+                    ...(input.maxClients !== undefined ? { maxClients: input.maxClients } : {}),
                     updatedAt: new Date()
                 })
                 .where(eq(users.id, input.id));
@@ -777,7 +802,7 @@ export const usersSubRouter = router({
                                 name: `${orgName} DEMO`,
                                 industry
                             });
-                        } catch (se) {}
+                        } catch (se) { }
                     } catch (e) {
                         // If onboarding fails, still proceed with account updates, but without global role elevation
                         console.error("[applyMagicLink] OnboardClient failed for waitlist link:", e);

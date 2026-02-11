@@ -12,6 +12,7 @@ console.log('[AuthMiddleware Init] Supabase URL:', supabaseUrl);
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    console.log(`[Auth] Request: ${req.url}`);
     try {
         const authHeader = req.headers.authorization;
         const url = req.url;
@@ -59,6 +60,13 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
         console.log('[Auth Debug] Setting req.user:', { id: dbUser.id, role: dbUser.role, email: dbUser.email });
         req.user = dbUser;
+        try {
+            const parts = token.split('.');
+            if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+                (req as any).aal = payload?.aal || null;
+            }
+        } catch { }
         next();
     } catch (error: any) {
         console.error('[AuthMiddleware] Exception:', error.message);

@@ -1,4 +1,4 @@
-// Server Entry Point - Touched for restart at 2026-02-07 12:10
+// Server Entry Point - Touched for restart at 2026-02-11 16:55
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -24,9 +24,9 @@ console.log(`- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'
 console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'false' ? 'CORE (Open Source)' : 'PREMIUM (Full Access)'}`);
 
 
-// Add request logging for all /api routes BEFORE anything else
-app.use('/api', (req, res, next) => {
-    console.log(`[API Request] ${req.method} ${req.url}`);
+// Add request logging for ALL routes BEFORE anything else
+app.use((req, res, next) => {
+    console.log(`[Incoming] ${req.method} ${req.url}`);
     next();
 });
 
@@ -65,6 +65,9 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Apply Authentication Middleware to populate req.user
 app.use(authMiddleware);
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -109,7 +112,7 @@ app.get('/api/debug/connection', async (req, res) => {
         });
     }
 });
-
+// APIs
 // APIs
 app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
@@ -191,10 +194,10 @@ if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
 
 // Only listen locally, Netlify calls the handler directly
 if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
-    app.listen(port, () => {
-        console.log(`\n🚀 Server listening on port ${port}`);
-        console.log(`-> Health check: http://localhost:${port}/health`);
-        console.log(`-> TRPC endpoint: http://localhost:${port}/api/trpc`);
+    app.listen(Number(port), '127.0.0.1', () => {
+        console.log(`\n🚀 Server listening specifically on http://127.0.0.1:${port}`);
+        console.log(`-> Health check: http://127.0.0.1:${port}/health`);
+        console.log(`-> TRPC endpoint: http://127.0.0.1:${port}/api/trpc\n`);
     });
 }
 
