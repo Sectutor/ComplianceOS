@@ -626,6 +626,23 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 await db.deleteClient(input.id);
                 return { success: true };
             }),
+        grantSelfAccess: publicProcedure.use(isAuthed).use(requiresMFA)
+            .input(z.object({ clientId: z.number(), role: z.enum(['owner', 'admin', 'editor']).default('owner') }))
+            .mutation(async ({ input, ctx }: any) => {
+                const d = await db.getDb();
+                const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
+                if (hasAccess) return { success: true, message: 'Already a member' };
+                const owners = await d.select().from(schema.userClients)
+                    .where(and(eq(schema.userClients.clientId, input.clientId), eq(schema.userClients.role, 'owner')));
+                if (owners.length === 0 || ctx.user.role === 'admin' || ctx.user.role === 'super_admin') {
+                    await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
+                    return { success: true, message: 'Access granted' };
+                }
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'An owner already exists for this workspace. Only admins can add themselves.'
+                });
+            }),
         stats: publicProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {

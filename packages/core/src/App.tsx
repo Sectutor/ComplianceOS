@@ -98,6 +98,8 @@ const SAMMV2View = lazy(() => import("@/pages/assurance/SAMMV2View"));
 const ASVSView = lazy(() => import("@/pages/assurance/ASVSView"));
 const EssentialEightView = lazy(() => import("@/pages/assurance/EssentialEightView"));
 const FrameworkImplementationView = lazy(() => import("@/pages/assurance/FrameworkImplementationView"));
+const MaturityAssessmentView = lazy(() => import("@/pages/assurance/MaturityAssessmentView"));
+const MaturitySimulationView = lazy(() => import("@/pages/assurance/MaturitySimulationView"));
 
 // New Roadmap & Implementation pages
 const RoadmapDashboard = lazy(() => import("@/components/roadmap/RoadmapDashboard"));
@@ -644,6 +646,9 @@ function Router() {
         <Route path="/clients/:id/mappings">
           {(_params) => <ProtectedRoute component={Mappings} />}
         </Route>
+        <Route path="/clients/:id/assurance">
+          {(_params) => <ProtectedRoute component={AssuranceOverview} />}
+        </Route>
         <Route path="/clients/:id/evidence/overview">
           {(_params) => <ProtectedRoute component={AssuranceOverview} />}
         </Route>
@@ -658,6 +663,18 @@ function Router() {
         </Route>
         <Route path="/clients/:id/assurance/:frameworkId">
           {(_params) => <ProtectedRoute component={FrameworkImplementationView} />}
+        </Route>
+        <Route path="/clients/:id/nist-csf-2">
+          {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="nist-csf-2" />} />}
+        </Route>
+        <Route path="/clients/:id/cisa-ztmm-2">
+          {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="cisa-ztmm-2" />} />}
+        </Route>
+        <Route path="/clients/:id/cmmc-2">
+          {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="cmmc-2" />} />}
+        </Route>
+        <Route path="/clients/:id/maturity/simulation/:frameworkId">
+          {(_params) => <ProtectedRoute component={MaturitySimulationView} />}
         </Route>
         <Route path="/clients/:id/evidence">
           {(_params) => <ProtectedRoute component={Evidence} />}

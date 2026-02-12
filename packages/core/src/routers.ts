@@ -7,6 +7,7 @@ import { createControlsRouter } from "./server/routers/controls"; // Restore mis
 import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
 import { createAdvisorRouter } from "./server/routers/advisor";
 import { initTRPC, TRPCError } from "@trpc/server";
+import crypto from "crypto";
 import * as crypto from 'crypto';
 import { z } from "zod";
 import * as db from "./db";
@@ -106,6 +107,7 @@ import { emailTriggersRouter } from "./server/routers/emailTriggers";
 import { createAdversaryIntelRouter } from "./server/routers/adversaryIntel";
 import { createEssentialEightRouter } from "./server/routers/essentialEight";
 import { createStudioRouter } from "./server/routers/studio";
+import { createMaturityRouter } from "./server/routers/maturity";
 
 
 // Context type definition
@@ -398,9 +400,28 @@ export const appRouter = router({
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
   studio: createStudioRouter(t, protectedProcedure),
-  advisor: createAdvisorRouter(t, clientProcedure),
+  advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
+    const sig = ctx.req.headers["x-signature"] as string | undefined;
+    const ts = ctx.req.headers["x-timestamp"] as string | undefined;
+    const secret = process.env.TOOL_HMAC_SECRET as string | undefined;
+    if (!secret || !sig || !ts) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Missing HMAC headers" });
+    }
+    const tsNum = parseInt(ts, 10);
+    if (!Number.isFinite(tsNum) || Math.abs(Date.now() - tsNum) > 5 * 60 * 1000) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Stale request" });
+    }
+    const message = `${path}:${ts}:${JSON.stringify(input ?? {})}`;
+    const expected = crypto.createHmac("sha256", secret).update(message).digest("hex");
+    const ok = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+    if (!ok) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid signature" });
+    }
+    return next();
+  }))),
 
   comments: createCommentsRouter(t, clientProcedure),
+  maturity: createMaturityRouter(t, clientProcedure),
 
   // New and Management Readiness Tools
   // management: createManagementRouter(t, protectedProcedure),

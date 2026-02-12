@@ -160,16 +160,7 @@ export default function SecuritySettings() {
       }
 
       const { data: aalInfo } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aalInfo?.currentLevel !== 'aal2') {
-        setEnrollPolicyError('Your authentication provider requires AAL2 to enroll new factors. Verify an existing authenticator to continue.');
-        const { data: lf } = await supabase.auth.mfa.listFactors();
-        const totp = lf?.factors?.find((f: any) => f.factor_type === 'totp' && f.status === 'verified') || lf?.factors?.find((f: any) => f.factor_type === 'totp');
-        setVerifyFactorId(totp?.id || undefined);
-        setShowVerifyModal(!!totp?.id);
-        setCurrentAal((aalInfo?.currentLevel as any) || null);
-        return;
-      }
-      setCurrentAal('aal2');
+      setCurrentAal((aalInfo?.currentLevel as any) || null);
 
       // 2. Start enrollment with a UNIQUE name
       const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '');

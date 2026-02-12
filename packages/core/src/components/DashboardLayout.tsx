@@ -178,6 +178,9 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
   if (purePath === "/projects") return `/clients/${clientId}/projects${queryStr}`;
   if (purePath === "/marketplace") return `/clients/${clientId}/marketplace${queryStr}`;
   if (purePath === "/essential-eight") return `/clients/${clientId}/essential-eight${queryStr}`;
+  if (purePath === "/nist-csf-2") return `/clients/${clientId}/nist-csf-2${queryStr}`;
+  if (purePath === "/cisa-ztmm-2") return `/clients/${clientId}/cisa-ztmm-2${queryStr}`;
+  if (purePath === "/cmmc-2") return `/clients/${clientId}/cmmc-2${queryStr}`;
 
   // Handle client-specific sub-routes
   const isClientSubRoute = clientSpecificMenuItems.some(cItem => cItem.path === purePath) ||
@@ -196,6 +199,9 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/implementation') ||
     purePath === '/asvs' ||
     purePath === '/samm' ||
+    purePath === '/nist-csf-2' ||
+    purePath === '/cisa-ztmm-2' ||
+    purePath === '/cmmc-2' ||
     purePath === '/metrics';
 
 
@@ -795,6 +801,9 @@ function DashboardLayoutContent({
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: Shield, label: "SAMM Maturity", path: "/samm" },
           { icon: ShieldCheck, label: "Essential Eight", path: "/essential-eight" },
+          { icon: Shield, label: "NIST CSF 2.0", path: "/nist-csf-2" },
+          { icon: Target, label: "CISA Zero Trust", path: "/cisa-ztmm-2" },
+          { icon: ShieldCheck, label: "CMMC 2.0", path: "/cmmc-2" },
           { icon: Zap, label: "Supply Chain (SCVS)", path: "/assurance/scvs" },
           { icon: Code, label: "App Security (ASVS)", path: "/asvs" },
           { icon: ShieldCheck, label: "OpenSSF Hygiene", path: "/assurance/openssf" },
@@ -809,13 +818,15 @@ function DashboardLayoutContent({
           { icon: Calendar, label: "Calendar", path: "/calendar" },
           { icon: ListTodo, label: "Tasks", path: "/tasks" },
           { icon: MessageSquare, label: "Communication", path: "/communication" },
-          { icon: Settings, label: "Client Settings", path: "/settings", submenu: [
-            { label: "Security", path: "/settings/security" },
-            { label: "Onboarding", path: "/settings/onboarding" },
-            { label: "Users", path: "/settings/users" },
-            { label: "Organization", path: "/settings/organization" },
-            { label: "Invitations", path: "/settings/invitations" },
-          ] },
+          {
+            icon: Settings, label: "Client Settings", path: "/settings", submenu: [
+              { label: "Security", path: "/settings/security" },
+              { label: "Onboarding", path: "/settings/onboarding" },
+              { label: "Users", path: "/settings/users" },
+              { label: "Organization", path: "/settings/organization" },
+              { label: "Invitations", path: "/settings/invitations" },
+            ]
+          },
           ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
         ]
       },

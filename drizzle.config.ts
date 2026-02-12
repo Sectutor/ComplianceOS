@@ -3,7 +3,10 @@ import { config } from "dotenv";
 config({ path: ".env" });
 
 export default defineConfig({
-    schema: "./packages/core/src/schema.ts",
+    schema: [
+        "./packages/core/src/schema.ts",
+        "./packages/core/src/db/maturity-schema.ts"
+    ],
     out: "./packages/core/drizzle",
     driver: "pg",
     dbCredentials: {
