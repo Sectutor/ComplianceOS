@@ -248,6 +248,7 @@ const DPIAQuestionnaire = lazy(() => import("./pages/privacy/DPIAQuestionnaire")
 const TransferDashboard = lazy(() => import("./pages/privacy/TransferDashboard"));
 const TIAWorkspace = lazy(() => import("./pages/privacy/TIAWorkspace"));
 const PrivacyOverview = lazy(() => import("./pages/privacy/PrivacyOverview"));
+const PrivacyAlignmentPage = lazy(() => import("./pages/privacy/PrivacyAlignmentPage"));
 const PrivacyLayout = lazy(() => import("./pages/privacy/PrivacyLayout").then(module => ({ default: module.PrivacyLayout })));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const QuestionnaireWorkspace = lazy(() => import("./pages/QuestionnaireWorkspace"));
@@ -1248,6 +1249,13 @@ function Router() {
           {(_params) => (
             <PrivacyLayout clientId={parseInt(_params.id)}>
               <PrivacyOverview />
+            </PrivacyLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/privacy/alignment-guide">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)}>
+              <PrivacyAlignmentPage />
             </PrivacyLayout>
           )}
         </Route>

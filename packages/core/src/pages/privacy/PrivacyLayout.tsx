@@ -32,6 +32,12 @@ export function PrivacyLayout({ clientId, children }: PrivacyLayoutProps) {
             badge: null
         },
         {
+            label: "Alignment",
+            href: `/clients/${clientId}/privacy/alignment-guide`,
+            icon: Globe,
+            badge: null
+        },
+        {
             label: "Dashboard",
             href: `/clients/${clientId}/privacy`,
             icon: LayoutDashboard,
