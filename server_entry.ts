@@ -1,5 +1,5 @@
 // Server Entry Point - Touched for restart at 2026-02-12 10:45
-import 'dotenv/config';
+import './env-loader';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';

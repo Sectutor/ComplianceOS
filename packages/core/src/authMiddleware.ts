@@ -79,8 +79,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
         // If DB connection fails, we should probably fail hard for API requests
         // instead of letting it pass as unauthorized/undefined
-        if (error.name === 'DatabaseConnectionError' || error.message.includes('connect')) {
-            res.status(503).json({ error: 'Database connection failed' });
+        if (error.name === 'DatabaseConnectionError' || error.message.includes('connect') || error.message.includes('getaddrinfo')) {
+            console.error('[AuthMiddleware] Database/Network Error:', error.message);
+            res.status(503).json({ error: 'Database connection failed', details: error.message });
             return;
         }
 
