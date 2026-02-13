@@ -184,6 +184,7 @@ const BusinessContinuityDashboard = lazy(() => import("./pages/business-continui
 
 const GdprAssessmentPage = lazy(() => import("./pages/privacy/assessments/GdprAssessmentPage"));
 const CcpaAssessmentPage = lazy(() => import("./pages/privacy/assessments/CcpaAssessmentPage"));
+const DynamicPrivacyAssessmentPage = lazy(() => import("./pages/privacy/assessments/DynamicPrivacyAssessmentPage"));
 const ROPADashboard = lazy(() => import("./pages/privacy/ROPADashboard"));
 const PrivacyDocsDashboard = lazy(() => import("./pages/privacy/PrivacyDocsDashboard"));
 const DataBreachRegister = lazy(() => import("./pages/privacy/DataBreachRegister"));
@@ -556,13 +557,6 @@ function Router() {
         <Route path="/auth/redeem-link" component={RedeemLink} />
         <Route path="/auth/accept-invite" component={AcceptInvite} />
 
-        {/* Privacy Assessments */}
-        <Route path="/clients/:id/privacy/assessment/gdpr">
-          {(_params) => <ProtectedRoute component={GdprAssessmentPage} />}
-        </Route>
-        <Route path="/clients/:id/privacy/assessment/ccpa">
-          {(_params) => <ProtectedRoute component={CcpaAssessmentPage} />}
-        </Route>
         <Route path="/complete-subscription">
           <ProtectedRoute component={CompleteSubscription} />
         </Route>
@@ -1105,10 +1099,8 @@ function Router() {
           {(_params) => <ProtectedRoute component={GapAnalysisEditor} />}
         </Route>
 
+
         {/* ISO 27001 Readiness */}
-        <Route path="/clients/:id/privacy/assessment/gdpr">
-          {(params) => <GdprAssessmentPage />}
-        </Route>
         <Route path="/clients/:id/readiness/wizard/:standardId?">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
@@ -1319,6 +1311,34 @@ function Router() {
           {(_params) => (
             <PrivacyLayout clientId={parseInt(_params.id)}>
               <DataBreachRegister />
+            </PrivacyLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/privacy/assessments/gdpr">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)}>
+              <GdprAssessmentPage />
+            </PrivacyLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/privacy/assessment/gdpr">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)}>
+              <GdprAssessmentPage />
+            </PrivacyLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/privacy/assessments/:type">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)}>
+              <DynamicPrivacyAssessmentPage />
+            </PrivacyLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/privacy/assessment/:type">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)}>
+              <DynamicPrivacyAssessmentPage />
             </PrivacyLayout>
           )}
         </Route>
@@ -1626,7 +1646,7 @@ function Router() {
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
-    </Suspense>
+    </Suspense >
   );
 }
 

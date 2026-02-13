@@ -1,393 +1,394 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
-import { 
-    CheckCircle2, Shield, Lock, FileKey, Server, Users, BookOpen, Scale, 
-    Globe, Database, Activity, LayoutDashboard, Eye, FileText, UserCheck, AlertTriangle
+import {
+    CheckCircle2, Shield, Lock, FileKey, Server, Users, BookOpen, Scale,
+    Globe, Database, Activity, LayoutDashboard, Eye, FileText, UserCheck, AlertTriangle,
+    FileCheck2, ShieldAlert
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@complianceos/ui/ui/tabs';
 import { cn } from '@/lib/utils';
+import { Button } from '@complianceos/ui/ui/button';
+
+import { regulations } from '@/data/regulations';
+import { Link, useParams } from 'wouter';
+import { useClientContext } from '@/contexts/ClientContext';
+
 
 export default function PrivacyAlignmentPage() {
-    
-    const iso27701Areas = [
-        {
-            id: 'pims',
-            title: 'PIMS Requirements',
-            standard: 'ISO 27701 Clause 5',
-            icon: Shield,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50',
-            requirements: [
-                'Understand context of the organization regarding privacy',
-                'Demonstrate leadership and commitment to PIMS',
-                'Plan actions to address privacy risks and opportunities'
-            ],
-            implementation: [
-                { feature: 'Context Manager', detail: 'Document internal/external privacy factors' },
-                { feature: 'Policy Engine', detail: 'Privacy policy management and versioning' },
-                { feature: 'Risk Register', detail: 'Integrated privacy risk assessment module' }
-            ]
-        },
-        {
-            id: 'controllers',
-            title: 'PII Controllers',
-            standard: 'ISO 27701 Clause 7',
-            icon: Users,
-            color: 'text-indigo-600',
-            bgColor: 'bg-indigo-50',
-            requirements: [
-                'Determine lawful basis for processing',
-                'Obtain and record consent',
-                'Provide privacy notices',
-                'Handle data subject rights'
-            ],
-            implementation: [
-                { feature: 'Consent Management', detail: 'Granular consent tracking and receipts' },
-                { feature: 'DSAR Portal', detail: 'Automated workflow for subject access requests' },
-                { feature: 'Privacy Notices', detail: 'Dynamic notice generation based on data map' }
-            ]
-        },
-        {
-            id: 'processors',
-            title: 'PII Processors',
-            standard: 'ISO 27701 Clause 8',
-            icon: Server,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
-            requirements: [
-                'Process data only on documented instructions',
-                'Ensure confidentiality of processing',
-                'Assist controller with obligations'
-            ],
-            implementation: [
-                { feature: 'Processing Records', detail: 'Automated Article 30 / Clause 8.2.6 records' },
-                { feature: 'Vendor Portal', detail: 'Secure channel for controller instructions' },
-                { feature: 'Data Segregation', detail: 'Logical separation of client data' }
-            ]
-        }
-    ];
+    const { clientId } = useParams<{ clientId: string }>();
+    const { selectedClientId } = useClientContext();
 
-    const hipaaAreas = [
-        {
-            id: 'privacy',
-            title: 'Privacy Rule',
-            standard: '45 CFR Part 160 & 164 Subparts A & E',
-            icon: Eye,
-            color: 'text-teal-600',
-            bgColor: 'bg-teal-50',
-            requirements: [
-                'Permitted uses and disclosures of PHI',
-                'Notice of Privacy Practices',
-                'Right to access and amend PHI'
-            ],
-            implementation: [
-                { feature: 'Disclosure Logging', detail: 'Track all PHI disclosures for accounting' },
-                { feature: 'NPP Management', detail: 'Version control for Notices of Privacy Practices' },
-                { feature: 'Patient Portal', detail: 'Secure interface for patient record access' }
-            ]
-        },
-        {
-            id: 'security',
-            title: 'Security Rule',
-            standard: '45 CFR Part 164 Subparts A & C',
-            icon: Lock,
-            color: 'text-slate-700',
-            bgColor: 'bg-slate-100',
-            requirements: [
-                'Administrative Safeguards (Risk Analysis, Training)',
-                'Physical Safeguards (Facility Access, Device Control)',
-                'Technical Safeguards (Access Control, Audit Controls)'
-            ],
-            implementation: [
-                { feature: 'SRA Tool', detail: 'Guided Security Risk Analysis workflow' },
-                { feature: 'Audit Trails', detail: 'HIPAA-compliant immutable logging' },
-                { feature: 'Encryption', detail: 'AES-256 at rest and TLS 1.2+ in transit' }
-            ]
-        },
-        {
-            id: 'breach',
-            title: 'Breach Notification',
-            standard: '45 CFR Part 164 Subpart D',
-            icon: AlertTriangle,
-            color: 'text-red-600',
-            bgColor: 'bg-red-50',
-            requirements: [
-                'Notify individuals of breaches of unsecured PHI',
-                'Notify HHS Secretary',
-                'Notify media for breaches affecting >500 residents'
-            ],
-            implementation: [
-                { feature: 'Incident Response', detail: 'Playbooks for breach determination and scoring' },
-                { feature: 'Notification Templates', detail: 'Pre-approved legal templates for notifications' },
-                { feature: 'Deadline Tracker', detail: 'Alerts for 60-day notification window' }
-            ]
-        }
-    ];
+    // Filter for privacy regulations only
+    const privacyFrameworks = regulations.filter(r => r.type === 'Privacy');
 
-    const gdprAreas = [
-        {
-            id: 'principles',
-            title: 'Principles',
-            standard: 'GDPR Chapter 2',
-            icon: Scale,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50',
-            requirements: [
-                'Lawfulness, fairness and transparency',
-                'Purpose limitation and Data minimization',
-                'Accuracy and Storage limitation'
-            ],
-            implementation: [
-                { feature: 'Data Mapping', detail: 'Inventory of processing purposes and retention' },
-                { feature: 'Retention Policies', detail: 'Automated deletion schedules' },
-                { feature: 'Lawful Basis', detail: 'Documentation of basis for each process' }
-            ]
-        },
-        {
-            id: 'rights',
-            title: 'Data Subject Rights',
-            standard: 'GDPR Chapter 3',
-            icon: UserCheck,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50',
-            requirements: [
-                'Right of access and rectification',
-                'Right to erasure (to be forgotten)',
-                'Right to data portability'
-            ],
-            implementation: [
-                { feature: 'DSAR Workflow', detail: 'End-to-end request management' },
-                { feature: 'Identity Verification', detail: 'Secure ID checks for requestors' },
-                { feature: 'Export Formats', detail: 'Machine-readable (JSON/CSV) data exports' }
-            ]
+    // Helper for icons (mapping IDs to lucide icons)
+    const getFrameworkIcon = (id: string) => {
+        switch (id) {
+            case 'iso27701': return Shield;
+            case 'gdpr':
+            case 'uk-gdpr': return Globe;
+            case 'ccpa':
+            case 'vcdpa':
+            case 'cpa':
+            case 'ctdpa':
+            case 'ucpa': return Scale;
+            case 'hipaa': return Activity;
+            case 'pipeda':
+            case 'lgpd': return Lock;
+            default: return FileText;
         }
-    ];
+    };
 
-    const ccpaAreas = [
-        {
-            id: 'consumer-rights',
-            title: 'Consumer Rights',
-            standard: 'CCPA / CPRA',
-            icon: FileKey,
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-50',
-            requirements: [
-                'Right to Know and Delete',
-                'Right to Opt-Out of Sale/Sharing',
-                'Right to Limit Use of Sensitive PI'
-            ],
-            implementation: [
-                { feature: 'Web Forms', detail: 'Embeddable "Do Not Sell" forms' },
-                { feature: 'Request Verification', detail: 'Verify consumer residency and identity' },
-                { feature: 'Opt-Out Signal', detail: 'Support for GPC (Global Privacy Control)' }
-            ]
+    // Helper for clause icons (mapping IDs to lucide icons)
+    const getClauseIcon = (frameworkId: string, clauseId: string) => {
+        switch (frameworkId) {
+            case 'iso27701':
+                switch (clauseId) {
+                    case 'pims': return Shield;
+                    case 'controllers': return Users;
+                    case 'processors': return Server;
+                    default: return FileText;
+                }
+            case 'hipaa':
+                switch (clauseId) {
+                    case 'privacy': return Eye;
+                    case 'security': return Lock;
+                    case 'breach': return AlertTriangle;
+                    default: return FileText;
+                }
+            case 'gdpr':
+                switch (clauseId) {
+                    case 'principles': return Scale;
+                    case 'rights': return UserCheck;
+                    default: return FileText;
+                }
+            case 'ccpa':
+                switch (clauseId) {
+                    case 'consumer-rights': return FileKey;
+                    default: return FileText;
+                }
+            default: return FileText;
         }
-    ];
+    };
 
-    const frameworks = [
-        { id: 'iso27701', label: 'ISO 27701', icon: Shield, areas: iso27701Areas },
-        { id: 'hipaa', label: 'HIPAA', icon: Activity, areas: hipaaAreas },
-        { id: 'gdpr', label: 'GDPR', icon: Globe, areas: gdprAreas },
-        { id: 'ccpa', label: 'CCPA', icon: FileText, areas: ccpaAreas },
-    ];
+    // Helper for clause colors
+    const getClauseColor = (frameworkId: string, clauseId: string) => {
+        switch (frameworkId) {
+            case 'iso27701':
+                switch (clauseId) {
+                    case 'pims': return 'text-blue-600';
+                    case 'controllers': return 'text-indigo-600';
+                    case 'processors': return 'text-purple-600';
+                    default: return 'text-gray-600';
+                }
+            case 'hipaa':
+                switch (clauseId) {
+                    case 'privacy': return 'text-teal-600';
+                    case 'security': return 'text-slate-700';
+                    case 'breach': return 'text-red-600';
+                    default: return 'text-gray-600';
+                }
+            case 'gdpr':
+                switch (clauseId) {
+                    case 'principles': return 'text-blue-600';
+                    case 'rights': return 'text-green-600';
+                    default: return 'text-gray-600';
+                }
+            case 'ccpa':
+                switch (clauseId) {
+                    case 'consumer-rights': return 'text-orange-600';
+                    default: return 'text-gray-600';
+                }
+            default: return 'text-gray-600';
+        }
+    };
+
+    // Helper for clause background colors
+    const getClauseBgColor = (frameworkId: string, clauseId: string) => {
+        switch (frameworkId) {
+            case 'iso27701':
+                switch (clauseId) {
+                    case 'pims': return 'bg-blue-50';
+                    case 'controllers': return 'bg-indigo-50';
+                    case 'processors': return 'bg-purple-50';
+                    default: return 'bg-gray-50';
+                }
+            case 'hipaa':
+                switch (clauseId) {
+                    case 'privacy': return 'bg-teal-50';
+                    case 'security': return 'bg-slate-100';
+                    case 'breach': return 'bg-red-50';
+                    default: return 'bg-gray-50';
+                }
+            case 'gdpr':
+                switch (clauseId) {
+                    case 'principles': return 'bg-blue-50';
+                    case 'rights': return 'bg-green-50';
+                    default: return 'bg-gray-50';
+                }
+            case 'ccpa':
+                switch (clauseId) {
+                    case 'consumer-rights': return 'bg-orange-50';
+                    default: return 'bg-gray-50';
+                }
+            default: return 'bg-gray-50';
+        }
+    };
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 p-6 lg:p-10">
             <div className="w-full space-y-8">
                 {/* Header */}
-                    <div className="text-center space-y-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 text-white mb-4">
-                            <Shield className="w-8 h-8" />
-                        </div>
-                        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                            Privacy Compliance Alignment
-                        </h1>
-                        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                            Comprehensive alignment with Global Privacy Standards and Regulations
-                        </p>
+                <div className="text-center space-y-6">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 text-white mb-4">
+                        <Shield className="w-8 h-8" />
                     </div>
+                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                        Privacy Compliance Alignment
+                    </h1>
+                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                        Comprehensive alignment with Global Privacy Standards and Regulations
+                    </p>
+                </div>
 
-                    {/* Framework Tabs */}
-                    <Tabs defaultValue="iso27701" className="space-y-8">
-                        <div className="flex justify-center">
-                            <TabsList className="h-auto p-1 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm flex-wrap justify-center">
-                                {frameworks.map(fw => (
-                                    <TabsTrigger 
-                                        key={fw.id} 
+                {/* Framework Tabs */}
+                <Tabs defaultValue="iso27701" className="space-y-8">
+                    <div className="flex justify-center">
+                        <TabsList className="h-auto p-1 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm flex-wrap justify-center overflow-x-auto shadow-inner">
+                            {privacyFrameworks.map(fw => {
+                                const Icon = getFrameworkIcon(fw.id);
+                                return (
+                                    <TabsTrigger
+                                        key={fw.id}
                                         value={fw.id}
                                         className="gap-2 px-6 py-3 text-sm font-medium data-[state=active]:bg-slate-800 data-[state=active]:text-white rounded-lg transition-all"
                                     >
-                                        <fw.icon className="h-4 w-4" />
-                                        {fw.label}
+                                        <Icon className="h-4 w-4" />
+                                        {fw.name}
                                     </TabsTrigger>
-                                ))}
-                            </TabsList>
-                        </div>
+                                );
+                            })}
+                        </TabsList>
+                    </div>
 
-                        {frameworks.map(fw => (
+                    {privacyFrameworks.map(fw => {
+                        const Icon = getFrameworkIcon(fw.id);
+                        return (
                             <TabsContent key={fw.id} value={fw.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {/* Framework Description Card */}
-                                <Card className="border-2 border-slate-300 bg-white shadow-lg">
-                                    <CardHeader className="bg-gradient-to-r from-slate-100 to-gray-100">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="p-2 bg-slate-800 rounded-lg text-white">
-                                                <fw.icon className="h-6 w-6" />
+                                <Card className="border-2 border-slate-300 bg-white shadow-lg overflow-hidden relative">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                                        <Icon className="w-32 h-32" />
+                                    </div>
+                                    <CardHeader className="bg-gradient-to-r from-slate-100 to-gray-50 border-b">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-3 bg-slate-800 rounded-xl text-white shadow-md">
+                                                    <Icon className="h-6 w-6" />
+                                                </div>
+                                                <div>
+                                                    <CardTitle className="text-2xl font-bold">{fw.name} Compliance</CardTitle>
+                                                    <CardDescription className="text-base mt-1">
+                                                        {fw.description}
+                                                    </CardDescription>
+                                                </div>
                                             </div>
-                                            <CardTitle className="text-2xl">{fw.label} Alignment</CardTitle>
+                                            <Link href={`/clients/${clientId}/privacy/assessments/${fw.id}`}>
+                                                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all flex gap-3 group">
+                                                    <Activity className="w-5 h-5 group-hover:animate-pulse" />
+                                                    Start Compliance Assessment
+                                                </Button>
+                                            </Link>
                                         </div>
-                                        <CardDescription className="text-base">
-                                            {fw.id === 'iso27701' && "Privacy Information Management System (PIMS) extension to ISO/IEC 27001."}
-                                            {fw.id === 'hipaa' && "US federal law protecting sensitive patient health information."}
-                                            {fw.id === 'gdpr' && "General Data Protection Regulation for EU data subjects."}
-                                            {fw.id === 'ccpa' && "California Consumer Privacy Act and CPRA amendments."}
-                                        </CardDescription>
                                     </CardHeader>
                                 </Card>
 
                                 {/* Areas Tabs */}
-                                <Tabs defaultValue={fw.areas[0].id} className="space-y-6">
-                                    <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-2 h-auto bg-transparent p-0">
-                                        {fw.areas.map((area) => (
-                                            <TabsTrigger
-                                                key={area.id}
-                                                value={area.id}
-                                                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-slate-900 data-[state=inactive]:text-slate-600 flex flex-col items-center gap-1 p-3 border border-transparent data-[state=active]:border-slate-200 hover:bg-white/50 transition-all rounded-lg"
-                                            >
-                                                <area.icon className={cn("w-5 h-5", area.color)} />
-                                                <span className="text-xs font-bold">{area.title}</span>
-                                            </TabsTrigger>
-                                        ))}
+                                <Tabs defaultValue={fw.articles[0]?.id} className="space-y-6">
+                                    <TabsList className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 h-auto bg-transparent p-0">
+                                        {fw.articles.slice(0, 10).map(article => {
+                                            const ClauseIcon = getClauseIcon(fw.id, article.id);
+                                            return (
+                                                <TabsTrigger
+                                                    key={article.id}
+                                                    value={article.id}
+                                                    className="h-auto py-4 px-4 flex flex-col items-center gap-2 border-2 border-slate-200 bg-white data-[state=active]:border-slate-800 data-[state=active]:bg-slate-50 rounded-xl transition-all shadow-sm hover:shadow-md"
+                                                >
+                                                    <ClauseIcon className={cn("h-6 w-6 mb-1", getClauseColor(fw.id, article.id))} />
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 line-clamp-1">Article {article.numericId}</span>
+                                                    <span className="text-sm font-semibold line-clamp-1">{article.title}</span>
+                                                </TabsTrigger>
+                                            );
+                                        })}
                                     </TabsList>
 
-                                    {fw.areas.map((area) => (
-                                        <TabsContent key={area.id} value={area.id} className="space-y-6 mt-4">
-                                            <Card className="border-2 shadow-lg">
-                                                <CardHeader className={`${area.bgColor} border-b`}>
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`p-2 rounded-lg bg-white shadow-sm`}>
-                                                                    <area.icon className={`w-6 h-6 ${area.color}`} />
+                                    {fw.articles.map(article => {
+                                        const ClauseIcon = getClauseIcon(fw.id, article.id);
+                                        const colorClass = getClauseColor(fw.id, article.id);
+                                        const bgColorClass = getClauseBgColor(fw.id, article.id);
+
+                                        return (
+                                            <TabsContent key={article.id} value={article.id} className="animate-in fade-in zoom-in-95 duration-300">
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                                    <Card className="border-none bg-white shadow-xl rounded-2xl overflow-hidden ring-1 ring-slate-200">
+                                                        <div className={cn("h-2", colorClass.replace('text', 'bg'))} />
+                                                        <CardHeader>
+                                                            <div className="flex items-center gap-4 mb-4">
+                                                                <div className={cn("p-4 rounded-2xl shadow-inner", bgColorClass)}>
+                                                                    <ClauseIcon className={cn("h-8 w-8", colorClass)} />
                                                                 </div>
                                                                 <div>
-                                                                    <CardTitle className="text-2xl">{area.title}</CardTitle>
-                                                                    <CardDescription className="text-sm font-medium">{area.standard}</CardDescription>
+                                                                    <Badge variant="outline" className="mb-1 uppercase tracking-widest text-[10px] font-black border-slate-300">
+                                                                        Regulatory Requirement
+                                                                    </Badge>
+                                                                    <CardTitle className="text-2xl font-bold tracking-tight">{article.title}</CardTitle>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <Badge variant="default" className="bg-green-600">
-                                                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                            Supported
-                                                        </Badge>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="pt-6 space-y-6">
-                                                    {/* Requirements */}
-                                                    <div>
-                                                        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                                            <BookOpen className="w-5 h-5 text-slate-600" />
-                                                            Standard Requirements
-                                                        </h3>
-                                                        <ul className="space-y-2">
-                                                            {area.requirements.map((req, idx) => (
-                                                                <li key={idx} className="flex items-start gap-2 text-sm">
-                                                                    <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                                                    <span>{req}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
+                                                            <CardDescription className="text-base leading-relaxed p-4 bg-slate-50 rounded-xl italic border-l-4 border-slate-300">
+                                                                {article.description}
+                                                            </CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent className="space-y-6">
+                                                            <h4 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
+                                                                <BookOpen className="h-5 w-5 text-slate-400" />
+                                                                Key Obligations
+                                                            </h4>
+                                                            <ul className="space-y-4">
+                                                                {(article.subArticles || []).map((req, idx) => (
+                                                                    <li key={idx} className="flex items-start gap-4 group">
+                                                                        <div className={cn("mt-1 p-1 rounded-full", bgColorClass)}>
+                                                                            <CheckCircle2 className={cn("h-4 w-4", colorClass)} />
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <p className="font-bold text-slate-800 leading-tight">{req.title}</p>
+                                                                            <p className="text-sm text-slate-500 leading-relaxed">{req.description}</p>
+                                                                        </div>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </CardContent>
+                                                    </Card>
 
-                                                    {/* Implementation */}
-                                                    <div>
-                                                        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                                            <Shield className="w-5 h-5 text-slate-700" />
-                                                            Platform Implementation
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            {area.implementation.map((impl, idx) => (
-                                                                <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                                                                    <div className="flex items-start justify-between mb-2">
-                                                                        <h4 className="font-semibold text-sm">{impl.feature}</h4>
-                                                                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
-                                                                            ✓ Supported
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <p className="text-xs text-muted-foreground">{impl.detail}</p>
+                                                    <Card className="border-none bg-slate-900 text-white shadow-2xl rounded-2xl overflow-hidden">
+                                                        <CardHeader className="pb-4">
+                                                            <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                                                                <div className="p-2 bg-blue-500/20 rounded-lg">
+                                                                    <LayoutDashboard className="h-6 w-6 text-blue-400" />
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        </TabsContent>
-                                    ))}
+                                                                Platform Implementation
+                                                            </CardTitle>
+                                                            <CardDescription className="text-slate-400">
+                                                                ComplianceOS technical and organizational controls to address this requirement.
+                                                            </CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent className="space-y-4 pt-4">
+                                                            {/* Dynamic implementation details Based on standard */}
+                                                            <div className="space-y-4">
+                                                                <div className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <h5 className="font-bold text-blue-400 flex items-center gap-2 group-hover:translate-x-1 transition-transform">
+                                                                            <FileCheck2 className="h-4 w-4" />
+                                                                            Integrated Audit Trails
+                                                                        </h5>
+                                                                        <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none">Active</Badge>
+                                                                    </div>
+                                                                    <p className="text-sm text-slate-400 leading-relaxed">Tamper-proof logging across all data processing activities with cryptographic verification.</p>
+                                                                </div>
+                                                                <div className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <h5 className="font-bold text-blue-400 flex items-center gap-2 group-hover:translate-x-1 transition-transform">
+                                                                            <ShieldAlert className="h-4 w-4" />
+                                                                            DPIA Engine
+                                                                        </h5>
+                                                                        <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-none">Ready</Badge>
+                                                                    </div>
+                                                                    <p className="text-sm text-slate-400 leading-relaxed">Automated triggers for High-Risk processing assessments based on your Data Inventory.</p>
+                                                                </div>
+                                                                <div className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <h5 className="font-bold text-blue-400 flex items-center gap-2 group-hover:translate-x-1 transition-transform">
+                                                                            <Lock className="h-4 w-4" />
+                                                                            Access Governance
+                                                                        </h5>
+                                                                        <Badge className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border-none">Review</Badge>
+                                                                    </div>
+                                                                    <p className="text-sm text-slate-400 leading-relaxed">RBAC controls and quarterly access reviews implemented through the Identity module.</p>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                            </TabsContent>
+                                        );
+                                    })}
                                 </Tabs>
                             </TabsContent>
-                        ))}
-                    </Tabs>
+                        );
+                    })}
+                </Tabs>
 
-                    {/* Strategic Value Card */}
-                    <Card className="border-2 border-slate-300 bg-gradient-to-br from-slate-100 to-gray-200 shadow-lg mt-12">
-                        <CardHeader>
-                            <CardTitle className="text-2xl flex items-center gap-2">
-                                <Scale className="w-6 h-6 text-slate-700" />
-                                Strategic Value
-                            </CardTitle>
-                            <CardDescription>
-                                Unified privacy management across global jurisdictions
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-slate-100 rounded-lg">
-                                            <Shield className="w-5 h-5 text-slate-700" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-sm mb-1">Global Compliance</h4>
-                                            <p className="text-xs text-muted-foreground">Map data once, satisfy GDPR, CCPA, and ISO requirements</p>
-                                        </div>
+                {/* Strategic Value Card */}
+                <Card className="border-2 border-slate-300 bg-gradient-to-br from-slate-100 to-gray-200 shadow-lg mt-12">
+                    <CardHeader>
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                            <Scale className="w-6 h-6 text-slate-700" />
+                            Strategic Value
+                        </CardTitle>
+                        <CardDescription>
+                            Unified privacy management across global jurisdictions
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg">
+                                        <Shield className="w-5 h-5 text-slate-700" />
                                     </div>
-                                </div>
-                                <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-slate-100 rounded-lg">
-                                            <UserCheck className="w-5 h-5 text-slate-700" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-sm mb-1">Trust Center</h4>
-                                            <p className="text-xs text-muted-foreground">Build customer trust with transparent privacy practices</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-slate-100 rounded-lg">
-                                            <Server className="w-5 h-5 text-slate-700" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-sm mb-1">Risk Reduction</h4>
-                                            <p className="text-xs text-muted-foreground">Minimize breach impact with proactive controls</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-slate-100 rounded-lg">
-                                            <Scale className="w-5 h-5 text-slate-700" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-sm mb-1">Audit Ready</h4>
-                                            <p className="text-xs text-muted-foreground">Instant reporting for regulators and auditors</p>
-                                        </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-1">Global Compliance</h4>
+                                        <p className="text-xs text-muted-foreground">Map data once, satisfy GDPR, CCPA, and ISO requirements</p>
                                     </div>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                            <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg">
+                                        <UserCheck className="w-5 h-5 text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-1">Trust Center</h4>
+                                        <p className="text-xs text-muted-foreground">Build customer trust with transparent privacy practices</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg">
+                                        <Server className="w-5 h-5 text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-1">Risk Reduction</h4>
+                                        <p className="text-xs text-muted-foreground">Minimize breach impact with proactive controls</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg">
+                                        <Scale className="w-5 h-5 text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-1">Audit Ready</h4>
+                                        <p className="text-xs text-muted-foreground">Instant reporting for regulators and auditors</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

@@ -384,7 +384,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
         getAssessment: clientProcedure
             .input(z.object({
                 clientId: z.number().optional(),
-                type: z.enum(["gdpr", "ccpa"])
+                type: z.string()
             }))
             .query(async ({ ctx, input }: { ctx: any, input: any }) => {
                 const db = await getDb();
@@ -405,7 +405,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
         saveAssessment: clientProcedure
             .input(z.object({
                 clientId: z.number(),
-                type: z.enum(["gdpr", "ccpa"]),
+                type: z.string(),
                 responses: z.record(z.object({
                     answer: z.string(),
                     notes: z.string().optional(),
