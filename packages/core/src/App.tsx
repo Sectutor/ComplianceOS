@@ -1,4 +1,4 @@
-// Refresh
+// Refresh - Force Rebuild for FedRAMP integration
 import { Toaster } from "@complianceos/ui/ui/sonner";
 
 import { BrandingProvider } from "./config/branding";
@@ -87,6 +87,24 @@ const FrameworksDashboard = lazy(() => import("./pages/FrameworksDashboard"));
 const RiskDashboard = lazy(() => import("./pages/risk/RiskDashboard"));
 const RiskOverview = lazy(() => import("./pages/risk/RiskOverview"));
 const FederalOverview = lazy(() => import("./pages/federal/FederalOverview"));
+
+const FedRAMPPackagesPage = lazy(() => import("./pages/federal/FedRAMPPackagesPage"));
+const FismaSystemsPage = lazy(() => import("./pages/federal/FismaSystemsPage"));
+const DfarsPage = lazy(() => import("./pages/federal/DfarsPage"));
+const RmfPage = lazy(() => import("./pages/federal/RmfPage"));
+const RmfWorkflowPage = lazy(() => import("./pages/federal/RmfWorkflowPage"));
+const StigsPage = lazy(() => import("./pages/federal/StigsPage"));
+const StigChecklistPage = lazy(() => import("./pages/federal/StigChecklistPage"));
+const Fips140Page = lazy(() => import("./pages/federal/Fips140Page"));
+const Nist800171AssessmentPage = lazy(() => import("./pages/federal/Nist800171AssessmentPage"));
+const FedRAMPPackageDetailPage = lazy(() => import("./pages/federal/FedRAMPPackageDetailPage"));
+const Nist80053AssessmentPage = lazy(() => import("./pages/federal/Nist80053AssessmentPage"));
+const NonComplianceReport = lazy(() => import("./pages/federal/NonComplianceReport"));
+const FISMAPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.FISMAPlaceholder })));
+const RMFPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.RMFPlaceholder })));
+const DFARSPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.DFARSPlaceholder })));
+const DISAStigPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.DISAStigPlaceholder })));
+const Fips140TrackingPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.Fips140TrackingPlaceholder })));
 const VendorOverview = lazy(() => import("./pages/tprm/VendorOverview"));
 const BusinessContinuityOverview = lazy(() => import("./pages/business-continuity/BusinessContinuityOverview"));
 const CyberOverview = lazy(() => import("./pages/cyber/CyberOverview"));
@@ -670,6 +688,9 @@ function Router() {
         <Route path="/clients/:id/cisa-ztmm-2">
           {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="cisa-ztmm-2" />} />}
         </Route>
+        <Route path="/clients/:id/c2m2-2.1">
+          {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="c2m2-2.1" />} />}
+        </Route>
         <Route path="/clients/:id/cmmc-2">
           {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="cmmc-2" />} />}
         </Route>
@@ -1125,6 +1146,66 @@ function Router() {
         </Route>
         <Route path="/clients/:id/compliance-obligations/:regId">
           {(_params) => <ProtectedRoute component={RegulationDetail} />}
+        </Route>
+        <Route path="/clients/:id/federal/fedramp">
+          {(_params) => <ProtectedRoute component={FedRAMPPackagesPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/fisma">
+          {(_params) => <ProtectedRoute component={FismaSystemsPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/dfars">
+          {(_params) => <ProtectedRoute component={DfarsPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/assessment-171">
+          {(_params) => <ProtectedRoute component={Nist800171AssessmentPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/rmf">
+          {(_params) => <ProtectedRoute component={RmfPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/rmf/:workflowId">
+          {(_params) => <ProtectedRoute component={RmfWorkflowPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/stigs">
+          {(_params) => <ProtectedRoute component={StigsPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/stigs/:checklistId">
+          {(_params) => <ProtectedRoute component={StigChecklistPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/fips-140">
+          {(_params) => <ProtectedRoute component={Fips140Page} />}
+        </Route>
+        <Route path="/clients/:id/federal/fedramp/:packageId">
+          {(_params) => <ProtectedRoute component={FedRAMPPackageDetailPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/nist-800-53">
+          {(_params) => <ProtectedRoute component={Nist80053AssessmentPage} />}
+        </Route>
+        {/* Alias for cleaner URL navigation */}
+        <Route path="/clients/:id/federal/assessment">
+          {(_params) => <ProtectedRoute component={Nist80053AssessmentPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/assessment-80053">
+          {(_params) => <ProtectedRoute component={Nist80053AssessmentPage} />}
+        </Route>
+        <Route path="/clients/:id/federal/gap-report">
+          {(_params) => <ProtectedRoute component={NonComplianceReport} />}
+        </Route>
+        {/* Redirect for legacy URL */}
+        <Route path="/clients/:id/federal/800-53">
+          {(_params) => <Redirect to={`/clients/${_params.id}/federal/nist-800-53`} />}
+        </Route>
+        <Route path="/clients/:id/federal/fisma">
+          {(_params) => <ProtectedRoute component={FISMAPlaceholder} />}
+        </Route>
+
+        <Route path="/clients/:id/federal/dfars">
+          {(_params) => <ProtectedRoute component={DFARSPlaceholder} />}
+        </Route>
+        <Route path="/clients/:id/federal/stigs">
+          {(_params) => <ProtectedRoute component={DISAStigPlaceholder} />}
+        </Route>
+        <Route path="/clients/:id/federal/fips-140">
+          {(_params) => <ProtectedRoute component={Fips140TrackingPlaceholder} />}
         </Route>
         <Route path="/clients/:id/federal/fips-199">
           {(_params) => <ProtectedRoute component={FipsCategorizationPage} />}

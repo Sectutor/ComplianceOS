@@ -177,6 +177,51 @@ export default function AssuranceOverview() {
                 "FCI & CUI protection",
                 "Certification readiness"
             ]
+        },
+        {
+            title: "C2M2 V2.1 Maturity",
+            headerTitle: "Energy & Infrastructure",
+            description: "Evaluate cybersecurity maturity using the C2M2 V2.1 model. Tailored for energy sector organizations and critical infrastructure.",
+            icon: Shield,
+            color: "from-blue-700 to-cyan-600",
+            textColor: "text-blue-700",
+            bgLight: "bg-blue-50",
+            path: `/clients/${clientId}/c2m2-2.1`,
+            benefits: [
+                "10 specialized domains",
+                "MIL 1-3 progression",
+                "Strategic resilience toolkit"
+            ]
+        },
+        {
+            title: "ISO 27001 Implementation",
+            headerTitle: "Information Security Standard",
+            description: "Manage your ISO 27001:2022 implementation. Track Annex A controls, link evidence, and prepare for certification.",
+            icon: Shield,
+            color: "from-blue-500 to-indigo-600",
+            textColor: "text-blue-600",
+            bgLight: "bg-blue-50",
+            path: `/clients/${clientId}/assurance/iso-27001`,
+            benefits: [
+                "93 Annex A controls",
+                "Domain-based grouping",
+                "Certification readiness tracking"
+            ]
+        },
+        {
+            title: "Cloud Controls Matrix (CCM)",
+            headerTitle: "Cloud Security Alliance",
+            description: "Assess cloud security posture against the CSA CCM v4.0. Covering 17 domains of cloud security excellence.",
+            icon: Shield,
+            color: "from-sky-500 to-blue-500",
+            textColor: "text-sky-600",
+            bgLight: "bg-sky-50",
+            path: `/clients/${clientId}/assurance/ccm`,
+            benefits: [
+                "197 control specifications",
+                "Cloud-native security",
+                "Shared responsibility mapping"
+            ]
         }
     ];
 

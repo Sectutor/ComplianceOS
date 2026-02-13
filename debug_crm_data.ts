@@ -1,8 +1,8 @@
 
 import { config } from "dotenv";
 config();
-import { getDb } from "./db";
-import { crmEngagements, crmContacts, crmActivities, clients, users, userClients } from "./schema";
+import { getDb } from "./packages/core/src/db";
+import { crmEngagements, crmContacts, crmActivities, clients, users, userClients } from "./packages/core/src/schema";
 import { eq, and } from "drizzle-orm"; // Added 'and' check
 
 async function main() {

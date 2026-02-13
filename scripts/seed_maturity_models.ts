@@ -80,8 +80,36 @@ async function main() {
         { frameworkId: "cmmc-2", code: "SI", name: "System and Information Integrity", description: "Ensuring systems and information are not changed without authorization.", order: 4 }
     ];
 
+    // 4. C2M2 V2.1
+    const c2m2 = {
+        id: "c2m2-2.1",
+        name: "C2M2 V2.1",
+        description: "Cybersecurity Capability Maturity Model Version 2.1",
+        version: "2.1",
+        logo: "/frameworks/c2m2.svg",
+        levels: [
+            { level: 1, name: "MIL 1", description: "Initial implementation of practices." },
+            { level: 2, name: "MIL 2", description: "Practices are documented and guided by policy." },
+            { level: 3, name: "MIL 3", description: "Practices are managed and institutionalized." }
+        ],
+        status: "active" as const
+    };
+
+    const c2m2Categories = [
+        { frameworkId: "c2m2-2.1", code: "ASSET", name: "Asset, Change, and Configuration Management", description: "Manage IT and OT assets and change control.", order: 1 },
+        { frameworkId: "c2m2-2.1", code: "THREAT", name: "Threat and Vulnerability Management", description: "Identify and mitigate threats and vulnerabilities.", order: 2 },
+        { frameworkId: "c2m2-2.1", code: "RISK", name: "Risk Management", description: "Identify, analyze, and mitigate cybersecurity risk.", order: 3 },
+        { frameworkId: "c2m2-2.1", code: "ACCESS", name: "Identity and Access Management", description: "Manage identities and control access to assets.", order: 4 },
+        { frameworkId: "c2m2-2.1", code: "SITUATION", name: "Situational Awareness", description: "Maintain awareness of cybersecurity status.", order: 5 },
+        { frameworkId: "c2m2-2.1", code: "RESPONSE", name: "Event and Incident Response", description: "Detect, analyze, and respond to events/incidents.", order: 6 },
+        { frameworkId: "c2m2-2.1", code: "THIRD-PARTIES", name: "Supply Chain Risk Management", description: "Manage risk from third-party partners and suppliers.", order: 7 },
+        { frameworkId: "c2m2-2.1", code: "WORKFORCE", name: "Workforce Management", description: "Manage cybersecurity workforce and training.", order: 8 },
+        { frameworkId: "c2m2-2.1", code: "ARCHITECTURE", name: "Cybersecurity Architecture", description: "Design and implement secure architecture.", order: 9 },
+        { frameworkId: "c2m2-2.1", code: "PROGRAM", name: "Cybersecurity Program Management", description: "Manage the enterprise cybersecurity program.", order: 10 }
+    ];
+
     // Seed Frameworks
-    const frameworks = [nistCsf2, ztmm2, cmmc2];
+    const frameworks = [nistCsf2, ztmm2, cmmc2, c2m2];
     for (const f of frameworks) {
         await db.insert(maturitySchema.maturityFrameworks).values(f as any).onConflictDoUpdate({
             target: maturitySchema.maturityFrameworks.id,
@@ -91,7 +119,7 @@ async function main() {
     }
 
     // Seed Categories
-    const categories = [...nistCategories, ...ztCategories, ...cmmcCategories];
+    const categories = [...nistCategories, ...ztCategories, ...cmmcCategories, ...c2m2Categories];
     for (const c of categories) {
         // Find existing or insert
         const existing = await db.select().from(maturitySchema.maturityCategories)
@@ -108,7 +136,7 @@ async function main() {
 
     // Helper functions for seeding requirements
     const insertedCats = await db.select().from(maturitySchema.maturityCategories);
-    const getCatId = (fId: string, code: string) => insertedCats.find(c => c.frameworkId === fId && c.code === code)?.id;
+    const getCatId = (fId: string, code: string) => insertedCats.find((c: any) => c.frameworkId === fId && c.code === code)?.id;
 
     // 4. Sample Requirements for NIST CSF 2.0
     const nistReqs = [
@@ -132,7 +160,14 @@ async function main() {
         { frameworkId: "cmmc-2", categoryCode: "SC", code: "SC.L1-3.13.1", title: "Monitor and protect communications", description: "Monitor, control, and protect organizational communications at external boundaries.", level: 1 }
     ];
 
-    const allReqs = [...nistReqs, ...ztReqs, ...cmmcReqs];
+    // 7. Sample Requirements for C2M2 V2.1
+    const c2m2Reqs = [
+        { frameworkId: "c2m2-2.1", categoryCode: "ASSET", code: "ASSET-1.1", title: "Asset Inventory", description: "IT and OT assets are identified and prioritized.", level: 1 },
+        { frameworkId: "c2m2-2.1", categoryCode: "RISK", code: "RISK-1.1", title: "Risk Identification", description: "Cybersecurity risks are identified and documented.", level: 1 },
+        { frameworkId: "c2m2-2.1", categoryCode: "ACCESS", code: "ACCESS-2.1", title: "Access Policies", description: "Policies for identity and access management are documented.", level: 2 }
+    ];
+
+    const allReqs = [...nistReqs, ...ztReqs, ...cmmcReqs, ...c2m2Reqs];
     for (const r of allReqs) {
         const { categoryCode, ...rest } = r;
         const catId = getCatId(r.frameworkId, categoryCode);

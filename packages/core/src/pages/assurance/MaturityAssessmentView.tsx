@@ -7,7 +7,9 @@ import { Progress } from "@complianceos/ui/ui/progress";
 import {
     Shield, Target, CheckCircle2, Info,
     ChevronRight, LayoutGrid, ClipboardCheck,
-    TrendingUp, FileText, Plus, Check, ExternalLink, Trash2
+    TrendingUp, FileText, Plus, Check, ExternalLink, Trash2,
+    Database, ShieldAlert, AlertTriangle, Lock, Eye, Zap,
+    Share2, Users, Layers, ClipboardList, Activity
 } from "lucide-react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -25,6 +27,20 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
     const frameworkId = initialFrameworkId || urlFrameworkId || "";
     const clientId = parseInt(id || "0");
     const [_location, setLocation] = useLocation();
+
+    // Category Icon Mapping 
+    const categoryIcons: Record<string, any> = {
+        "ASSET": Database,
+        "THREAT": ShieldAlert,
+        "RISK": AlertTriangle,
+        "ACCESS": Lock,
+        "SITUATION": Eye,
+        "RESPONSE": Zap,
+        "THIRD-PARTIES": Share2,
+        "WORKFORCE": Users,
+        "ARCHITECTURE": Layers,
+        "PROGRAM": ClipboardList
+    };
 
     // State
     const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -222,37 +238,49 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                         r.categoryId === parent.id || parent.children.some(c => c.id === r.categoryId)
                                     );
                                     const parentAchieved = assessments?.filter(a => parentReqs.some(r => r.id === a.requirementId) && a.isAchieved).length || 0;
+                                    const CategoryIcon = categoryIcons[parent.code] || Shield;
 
                                     return (
                                         <div key={parent.id} className="space-y-1">
                                             <button
                                                 onClick={() => setActiveCategoryId(parent.id)}
                                                 className={cn(
-                                                    "w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group",
-                                                    isExactlyActive ? "bg-slate-900 text-white shadow-lg" :
-                                                        hasActiveChild ? "bg-slate-100/50 border border-slate-200" : "hover:bg-slate-50"
+                                                    "w-full text-left p-2.5 rounded-2xl transition-all flex items-center justify-between group relative overflow-hidden",
+                                                    isExactlyActive ? "bg-slate-900 text-white shadow-xl shadow-slate-200/50 scale-[1.02]" :
+                                                        hasActiveChild ? "bg-slate-50 border border-slate-100" : "hover:bg-slate-50"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-3">
+                                                {isExactlyActive && (
+                                                    <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                                                )}
+                                                <div className="flex items-center gap-3.5">
                                                     <div className={cn(
-                                                        "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs",
-                                                        isExactlyActive ? "bg-primary text-white" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                                                        "w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all duration-300 border",
+                                                        isExactlyActive
+                                                            ? "bg-primary/20 border-primary/30 text-white shadow-inner"
+                                                            : "bg-white border-slate-100 text-slate-400 group-hover:border-slate-200 group-hover:shadow-sm"
                                                     )}>
-                                                        {parent.code}
+                                                        <CategoryIcon className={cn("w-5 h-5 mb-0.5", isExactlyActive ? "text-primary-foreground" : "text-slate-400 group-hover:text-primary")} />
+                                                        <span className="text-[7.5px] font-black uppercase tracking-tighter opacity-70">
+                                                            {parent.code.length > 6 ? parent.code.substring(0, 5) + '..' : parent.code}
+                                                        </span>
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm font-black truncate max-w-[150px]">{parent.name}</span>
+                                                    <div className="flex flex-col min-w-0">
                                                         <span className={cn(
-                                                            "text-[10px] font-bold",
-                                                            isExactlyActive ? "text-slate-400" : "text-slate-500"
+                                                            "text-sm font-black leading-tight truncate",
+                                                            isExactlyActive ? "text-white" : "text-slate-700"
+                                                        )}>{parent.name}</span>
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold mt-0.5",
+                                                            isExactlyActive ? "text-slate-400" : "text-slate-400"
                                                         )}>
                                                             {parentAchieved} / {parentReqs.length} met
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <ChevronRight className={cn(
-                                                    "w-4 h-4 transition-transform duration-200",
-                                                    parentActive ? "rotate-90 text-primary" : "text-slate-300"
+                                                    "w-4 h-4 transition-transform duration-300",
+                                                    parentActive ? "rotate-90 text-primary" : "text-slate-200 group-hover:text-slate-400"
                                                 )} />
                                             </button>
 
@@ -294,19 +322,29 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
 
                     {/* Main Assessment Area */}
                     <div className="col-span-12 lg:col-span-9 space-y-6">
-                        {activeCategory && (
-                            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
-                                <div className="flex items-center gap-4 mb-2">
-                                    <Badge className="bg-primary text-white px-3 py-1 rounded-full font-black text-xs">
-                                        {activeCategory.code}
-                                    </Badge>
-                                    <h2 className="text-2xl font-black text-slate-900">{activeCategory.name}</h2>
+                        {activeCategory && (() => {
+                            const ActiveCategoryIcon = categoryIcons[activeCategory.code] || Shield;
+                            return (
+                                <div className="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm mb-8">
+                                    <div className="flex items-center gap-5 mb-4">
+                                        <div className="p-4 bg-slate-900 rounded-[1.25rem] shadow-xl shadow-slate-200">
+                                            <ActiveCategoryIcon className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                                    {activeCategory.code}
+                                                </span>
+                                            </div>
+                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{activeCategory.name}</h2>
+                                        </div>
+                                    </div>
+                                    <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-3xl">
+                                        {activeCategory.description}
+                                    </p>
                                 </div>
-                                <p className="text-slate-500 font-medium">
-                                    {activeCategory.description}
-                                </p>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         <div className="space-y-4">
                             {filteredRequirements.length === 0 && activeCategoryId && (
@@ -388,12 +426,17 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="font-mono text-[10px] font-bold text-slate-500 border-slate-200">
+                                <Badge variant="outline" className="font-mono text-[10px] font-bold text-slate-400 border-slate-200 px-2 py-0 h-5">
                                     {requirement.code}
                                 </Badge>
                                 {levelInfo && (
-                                    <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-none text-[10px] font-bold">
-                                        Level {requirement.level}: {levelInfo.name}
+                                    <Badge className={cn(
+                                        "border-none text-[10px] font-black px-2 py-0 h-5 tracking-tight uppercase",
+                                        requirement.level === 1 ? "bg-blue-50 text-blue-600" :
+                                            requirement.level === 2 ? "bg-indigo-50 text-indigo-600" :
+                                                "bg-purple-50 text-purple-600"
+                                    )}>
+                                        MIL {requirement.level}: {levelInfo.name}
                                     </Badge>
                                 )}
                             </div>

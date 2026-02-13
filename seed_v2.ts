@@ -1,11 +1,11 @@
 
 import { config } from "dotenv";
 config();
-import { getDb } from "./db";
+import { getDb } from "./packages/core/src/db";
 import {
     clients, users, crmEngagements, crmActivities, crmContacts, userClients,
     controls, clientControls, evidence
-} from "./schema";
+} from "./packages/core/src/schema";
 import { eq, and } from "drizzle-orm";
 
 async function main() {

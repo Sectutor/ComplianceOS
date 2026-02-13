@@ -1,4 +1,4 @@
-// Server Entry Point - Touched for restart at 2026-02-12 10:45
+// Server Entry Point - Touched for restart at 2026-02-12 10:50
 import './env-loader';
 import express from 'express';
 import cors from 'cors';
@@ -113,7 +113,6 @@ app.get('/api/debug/connection', async (req, res) => {
     }
 });
 // APIs
-// APIs
 app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/ai', aiRouter);
@@ -136,34 +135,12 @@ if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     });
 }
 
-// Global error handler to ensure all errors return JSON
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error('[Server Error]', {
-        message: err.message,
-        stack: err.stack,
-        url: req.url,
-        method: req.method,
-    });
-
-    if (res.headersSent) {
-        return next(err);
-    }
-
-    res.status(500).json({
-        message: err.message || 'Internal Server Error',
-        code: 'INTERNAL_SERVER_ERROR',
-        data: null,
-    });
-});
-
 // TRPC Endpoint
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/trpc')) {
         console.log(`[TRPC Debug] ${req.method} ${req.url}`);
         console.log(`[TRPC Debug] Content-Type: ${req.headers['content-type']}`);
-        console.log(`[TRPC Debug] Body keys: ${Object.keys(req.body || {})}`);
         if (req.method === 'POST') {
-            // Safe log for potential base64 data - truncate
             const bodyStr = req.body ? JSON.stringify(req.body) : '{}';
             console.log(`[TRPC Debug] Body: ${bodyStr.substring(0, 500)}...`);
         }
@@ -191,6 +168,25 @@ if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
     threatScheduler.start();
 }
 
+// Global error handler to ensure all errors return JSON - MUST BE LAST
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[Server Error]', {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+    });
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(500).json({
+        message: err.message || 'Internal Server Error',
+        code: 'INTERNAL_SERVER_ERROR',
+        data: null,
+    });
+});
 
 // Only listen locally, Netlify calls the handler directly
 if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
@@ -200,4 +196,3 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         console.log(`-> TRPC endpoint: http://127.0.0.1:${port}/api/trpc\n`);
     });
 }
-

@@ -108,5 +108,63 @@ export const TECHNICAL_STANDARD_CONTENT: Record<string, StandardPractice[]> = {
             ],
             relatedAuditCode: "MASVS-1.1"
         }
+    ],
+    "ISO-27001": [
+        {
+            id: "ISO-V1",
+            framework: "ISO 27001",
+            name: "Organizational Controls (A.5)",
+            description: "Establishing policies, roles, and organizational safeguards.",
+            impact: "Creates the governance foundation for information security management.",
+            guidance: [
+                "Define and approve topic-specific security policies.",
+                "Establish clear roles and responsibilities for security tasks.",
+                "Implement segregation of duties to prevent unauthorized actions."
+            ],
+            nextSteps: [
+                "Conduct a management review of the ISMS policies.",
+                "Maintain an updated inventory of assets and owners.",
+                "Establish contact with relevant external authorities and groups."
+            ],
+            relatedAuditCode: "ISO-A.5"
+        },
+        {
+            id: "ISO-V2",
+            framework: "ISO 27001",
+            name: "Technological Controls (A.8)",
+            description: "Implementing technical safeguards for data and systems.",
+            impact: "Directly protects assets from cyber threats and unauthorized access.",
+            guidance: [
+                "Implement access control based on business requirements.",
+                "Use cryptography rules to protect sensitive data.",
+                "Establish configuration management for all system components."
+            ],
+            nextSteps: [
+                "Automate vulnerability scanning and patch management.",
+                "Configure centralized logging and monitoring.",
+                "Implement secure development lifecycles for custom software."
+            ],
+            relatedAuditCode: "ISO-A.8"
+        }
+    ],
+    "CCM": [
+        {
+            id: "CCM-V1",
+            framework: "CSA CCM",
+            name: "Application & Interface Security",
+            description: "Securing cloud applications and APIs.",
+            impact: "Protects the cloud service from web-based attacks and data exposure.",
+            guidance: [
+                "Verify that data input validation is performed at the application layer.",
+                "Implement secure API management and authentication.",
+                "Ensure separation of environments (Dev/Test/Prod)."
+            ],
+            nextSteps: [
+                "Perform dynamic application security testing (DAST).",
+                "Review API documentation for sensitive data leakage.",
+                "Implement Web Application Firewall (WAF) protections."
+            ],
+            relatedAuditCode: "CCM-AIS"
+        }
     ]
 };
