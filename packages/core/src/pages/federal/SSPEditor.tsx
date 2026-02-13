@@ -26,7 +26,8 @@ import {
     Link as LinkIcon,
     Trash2,
     ExternalLink,
-    Wand2
+    Wand2,
+    Zap
 } from "lucide-react";
 import { toast } from "sonner";
 
