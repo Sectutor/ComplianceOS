@@ -439,7 +439,14 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                     .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
                     .where(and(
                         eq(schema.clientControls.clientId, input.clientId),
-                        sql`${schema.controls.framework} IN (${frameworkName}, ${input.frameworkId.toUpperCase()}, ${input.frameworkId})`
+                        or(
+                            eq(schema.controls.framework, frameworkName),
+                            eq(schema.controls.framework, input.frameworkId.toUpperCase()),
+                            eq(schema.controls.framework, input.frameworkId),
+                            // Fuzzy matching for NIST variations
+                            ilike(schema.controls.framework, `%${input.frameworkId}%`),
+                            ilike(schema.controls.framework, 'NIST CSF%')
+                        )
                     ))
                     .orderBy(asc(schema.controls.controlId));
 

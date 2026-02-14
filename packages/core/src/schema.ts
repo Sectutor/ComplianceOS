@@ -1853,9 +1853,7 @@ export const policyTemplates = pgTable("policy_templates", {
 
 
   createdAt: timestamp("created_at").defaultNow(),
-
-
-
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 
@@ -3875,6 +3873,8 @@ export const userInvitations = pgTable("user_invitations", {
 
 
 
+  usedAt: timestamp("used_at"),
+  usedByUserId: integer("used_by_user_id"),
   expiresAt: timestamp("expires_at").notNull(),
 
 
@@ -5596,6 +5596,7 @@ export const assets = pgTable("assets", {
 
 
   lastReviewDate: timestamp("last_review_date"),
+  lastScannedAt: timestamp("last_scanned_at"),
 
 
 
@@ -14291,6 +14292,8 @@ export const magicLinks = pgTable("magic_links", {
   status: varchar("status", { length: 50 }).default("active"), // active, accepted, revoked
   createdById: integer("created_by_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  usedAt: timestamp("used_at"),
+  usedByUserId: integer("used_by_user_id"),
   expiresAt: timestamp("expires_at"), // Link expiration (different from access duration)
   usageLimit: integer("usage_limit").default(1), // null = unlimited
   useCount: integer("use_count").default(0),
@@ -14412,3 +14415,4 @@ export const federalInheritances = pgTable("federal_inheritances", {
 
 export type FederalInheritance = typeof federalInheritances.$inferSelect;
 export type InsertFederalInheritance = typeof federalInheritances.$inferInsert;
+

@@ -272,6 +272,25 @@ const ISOAuditManager = lazy(() => import("./pages/iso27001/ISOAuditManager"));
 const ISOManagementReview = lazy(() => import("./pages/iso27001/ISOManagementReview"));
 import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
+const NISTHub = lazy(() => import("./pages/nist/NISTHub"));
+const NIST80053Assessment = lazy(() => import("./pages/nist/NIST80053Assessment"));
+const Nist80053Baselines = lazy(() => import("./pages/nist/NIST80053Extras").then(m => ({ default: m.Nist80053Baselines })));
+const Nist80053Inheritance = lazy(() => import("./pages/nist/NIST80053Extras").then(m => ({ default: m.Nist80053Inheritance })));
+const Nist80053AssessmentsList = lazy(() => import("./pages/nist/NIST80053Extras").then(m => ({ default: m.Nist80053AssessmentsList })));
+const Nist80053Monitoring = lazy(() => import("./pages/nist/NIST80053Extras").then(m => ({ default: m.Nist80053Monitoring })));
+
+const NIST80037Dashboard = lazy(() => import("./pages/nist/NIST80037Dashboard"));
+const NIST80037Prepare = lazy(() => import("./pages/nist/NIST80037Prepare"));
+const NIST80037Categorize = lazy(() => import("./pages/nist/NIST80037Categorize"));
+const NIST80037Select = lazy(() => import("./pages/nist/NIST80037Select"));
+const NIST80037Implement = lazy(() => import("./pages/nist/NIST80037Implement"));
+const NIST80037Assess = lazy(() => import("./pages/nist/NIST80037Assess"));
+const NIST80037Authorize = lazy(() => import("./pages/nist/NIST80037Authorize"));
+const NIST80037Monitor = lazy(() => import("./pages/nist/NIST80037Monitor"));
+const NIST80030RiskAssessment = lazy(() => import("./pages/nist/NIST80030RiskAssessment"));
+const NIST80030ThreatModeling = lazy(() => import("./pages/nist/NIST80030ThreatModeling"));
+const NIST80030ImpactAnalysis = lazy(() => import("./pages/nist/NIST80030ImpactAnalysis"));
+const NistRmfPlaceholder = lazy(() => import("./pages/nist/NISTModulePlaceholder").then(m => ({ default: m.NistRmfPlaceholder })));
 const NISTDashboard = lazy(() => import("./pages/nist/NISTDashboard"));
 const NISTAssessment = lazy(() => import("./pages/nist/NISTAssessment"));
 const NISTProfiles = lazy(() => import("./pages/nist/NISTProfiles"));
@@ -699,6 +718,15 @@ function Router() {
           {(_params) => (
             <ProtectedRoute component={() => (
               <NISTLayout fullWidth>
+                <NISTHub />
+              </NISTLayout>
+            )} />
+          )}
+        </Route>
+        <Route path="/clients/:id/nist/dashboard">
+          {(_params) => (
+            <ProtectedRoute component={() => (
+              <NISTLayout fullWidth>
                 <NISTDashboard />
               </NISTLayout>
             )} />
@@ -739,6 +767,60 @@ function Router() {
               </NISTLayout>
             )} />
           )}
+        </Route>
+        <Route path="/clients/:id/nist/rmf">
+          {(_params) => <ProtectedRoute component={NIST80037Dashboard} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/prepare">
+          {(_params) => <ProtectedRoute component={NIST80037Prepare} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/categorize">
+          {(_params) => <ProtectedRoute component={NIST80037Categorize} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/select">
+          {(_params) => <ProtectedRoute component={NIST80037Select} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/implement">
+          {(_params) => <ProtectedRoute component={NIST80037Implement} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/assess">
+          {(_params) => <ProtectedRoute component={NIST80037Assess} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/authorize">
+          {(_params) => <ProtectedRoute component={NIST80037Authorize} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/monitor">
+          {(_params) => <ProtectedRoute component={NIST80037Monitor} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-30">
+          {(_params) => <ProtectedRoute component={NIST80030RiskAssessment} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-30/threats">
+          {(_params) => <ProtectedRoute component={NIST80030ThreatModeling} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-30/impact">
+          {(_params) => <ProtectedRoute component={NIST80030ImpactAnalysis} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-53">
+          {(_params) => <ProtectedRoute component={NIST80053Assessment} />}
+        </Route>
+        <Route path="/clients/:id/fedramp/:packageId/nist/800-53">
+          {(_params) => <ProtectedRoute component={NIST80053Assessment} />}
+        </Route>
+        <Route path="/clients/:id/fisma/:systemId/nist/800-53">
+          {(_params) => <ProtectedRoute component={NIST80053Assessment} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-53/baselines">
+          {(_params) => <ProtectedRoute component={Nist80053Baselines} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-53/inheritance">
+          {(_params) => <ProtectedRoute component={Nist80053Inheritance} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-53/assessments">
+          {(_params) => <ProtectedRoute component={Nist80053AssessmentsList} />}
+        </Route>
+        <Route path="/clients/:id/nist/800-53/monitoring">
+          {(_params) => <ProtectedRoute component={Nist80053Monitoring} />}
         </Route>
 
         <Route path="/clients/:id/nist-csf-2">

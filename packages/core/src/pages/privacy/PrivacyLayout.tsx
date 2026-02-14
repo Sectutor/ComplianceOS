@@ -16,9 +16,10 @@ import { trpc } from "@/lib/trpc";
 interface PrivacyLayoutProps {
     clientId: number;
     children: React.ReactNode;
+    fullWidth?: boolean;
 }
 
-export function PrivacyLayout({ clientId, children }: PrivacyLayoutProps) {
+export function PrivacyLayout({ clientId, children, fullWidth = false }: PrivacyLayoutProps) {
     const [location] = useLocation();
 
     // We could fetch privacy stats here for badges if needed
@@ -89,7 +90,7 @@ export function PrivacyLayout({ clientId, children }: PrivacyLayoutProps) {
 
     return (
         <DashboardLayout>
-            <div className="flex flex-col min-h-screen">
+            <div className={fullWidth ? "-m-6" : "flex flex-col min-h-screen"}>
                 <div className="border-b bg-white px-6">
                     <nav className="flex space-x-6 overflow-x-auto" aria-label="Tabs">
                         {navItems.map((item) => (

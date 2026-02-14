@@ -3,14 +3,15 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useClientContext } from "@/contexts/ClientContext";
-import { ShieldCheck, BarChart3, FileText, Target, ListTodo, Activity, LayoutDashboard } from "lucide-react";
+import { ShieldCheck, BarChart3, FileText, Target, ListTodo, Activity, LayoutDashboard, LayoutGrid } from "lucide-react";
 
 export default function NISTLayout({ children, fullWidth = false }: PropsWithChildren<{ fullWidth?: boolean }>) {
     const [location] = useLocation();
     const { selectedClientId } = useClientContext();
 
     const tabs = [
-        { name: "Dashboard", path: `/clients/${selectedClientId}/nist`, icon: LayoutDashboard },
+        { name: "Ecosystem Hub", path: `/clients/${selectedClientId}/nist`, icon: LayoutGrid },
+        { name: "Dashboard", path: `/clients/${selectedClientId}/nist/dashboard`, icon: LayoutDashboard },
         { name: "CSF Assessment", path: `/clients/${selectedClientId}/nist/assessment`, icon: ShieldCheck },
         { name: "Target Profiles", path: `/clients/${selectedClientId}/nist/profiles`, icon: Target },
         { name: "POAM & Remediation", path: `/clients/${selectedClientId}/nist/poam`, icon: ListTodo },

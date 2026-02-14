@@ -110,3 +110,19 @@ export const maturitySimulations = pgTable("maturity_simulations", {
     createdAt: timestamp("created_at").defaultNow(),
     createdBy: integer("created_by"),
 });
+
+// NIST Tiers (Organizational Profiles)
+export const nistTiers = pgTable("nist_tiers", {
+    id: serial("id").primaryKey(),
+    clientId: integer("client_id").notNull(),
+    functionCode: varchar("function_code", { length: 20 }).notNull(), // GV, ID, PR, DE, RS, RC
+    currentTier: integer("current_tier").default(1), // 1-4
+    targetTier: integer("target_tier").default(1), // 1-4
+    updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+    return {
+        clientFunctionIdx: uniqueIndex("idx_nist_tiers_client_function")
+            .on(table.clientId, table.functionCode),
+    };
+});
+

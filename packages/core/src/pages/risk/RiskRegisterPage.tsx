@@ -202,7 +202,7 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="primary"
+                        variant="default"
                         onClick={handleGenerateReport}
                         disabled={analyzing || !riskAssessments || riskAssessments.length === 0}
                         className="gap-2 shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 transition-all active:scale-[0.98] text-white"

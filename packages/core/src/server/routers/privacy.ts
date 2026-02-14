@@ -11,7 +11,7 @@ import {
     InsertProcessDataFlow
 } from "../../schema";
 import { getDb } from "../../db";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, count, sql, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const createPrivacyRouter = (t: any, clientProcedure: any) => {
@@ -382,6 +382,32 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
             }),
         // ==================== ASSESSMENTS ====================
 
+        listAssessments: clientProcedure
+            .input(z.object({
+                clientId: z.number().optional(),
+                typePrefix: z.string().optional()
+            }))
+            .query(async ({ ctx, input }: any) => {
+                const db = await getDb();
+                const clientId = ctx.clientId || input?.clientId;
+                if (!clientId) throw new TRPCError({ code: "BAD_REQUEST", message: "Client ID required" });
+
+                if (input.typePrefix) {
+                    return await db.select()
+                        .from(privacyAssessments)
+                        .where(and(
+                            eq(privacyAssessments.clientId, clientId),
+                            like(privacyAssessments.type, `${input.typePrefix}%`)
+                        ))
+                        .orderBy(desc(privacyAssessments.updatedAt));
+                }
+
+                return await db.select()
+                    .from(privacyAssessments)
+                    .where(eq(privacyAssessments.clientId, clientId))
+                    .orderBy(desc(privacyAssessments.updatedAt));
+            }),
+
         getAssessment: clientProcedure
             .input(z.object({
                 clientId: z.number().optional(),
@@ -407,13 +433,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
             .input(z.object({
                 clientId: z.number(),
                 type: z.string(),
-                responses: z.record(z.object({
-                    answer: z.string(),
-                    notes: z.string().optional(),
-                    owner: z.string().optional(),
-                    dueDate: z.string().optional(),
-                    lastReviewed: z.string().optional()
-                })),
+                responses: z.any().optional(),
                 status: z.enum(["not_started", "in_progress", "completed"]),
                 score: z.number().optional()
             }))

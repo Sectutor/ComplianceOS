@@ -6,9 +6,10 @@ import * as schema from "../../schema";
 import {
     riskAssessments, riskTreatments, treatmentControls,
     riskAssessmentStatusEnum,
-    threats, vulnerabilities
+    threats, vulnerabilities,
+    riskPolicyMappings
 } from "../../schema";
-import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
 import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
 import { logActivity } from "../../lib/audit";
 import { llmService } from "../../lib/llm/service";
@@ -1032,18 +1033,32 @@ ${reportData.conclusion}
 
         // Risk Assessments (alias for list)
         getRiskAssessments: procedure
-            .input(z.object({ clientId: z.coerce.number(), assetId: z.number().optional() }))
+            .input(z.object({
+                clientId: z.number(),
+                assetId: z.number().optional()
+            }))
             .query(async ({ input }: any) => {
                 const db = await getDb();
+
                 const conditions = [eq(riskAssessments.clientId, input.clientId)];
                 if (input.assetId) {
                     conditions.push(sql`${riskAssessments.contextSnapshot}->>'assetId' = ${input.assetId}::text`);
                 }
 
-                return await db.select()
+                const results = await db
+                    .select({
+                        ...getTableColumns(riskAssessments),
+                        treatmentCount: sql<number>`count(distinct ${riskTreatments.id})::int`.as('treatment_count'),
+                        policyCount: sql<number>`count(distinct ${riskPolicyMappings.id})::int`.as('policy_count'),
+                    })
                     .from(riskAssessments)
+                    .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .leftJoin(riskPolicyMappings, eq(riskPolicyMappings.riskAssessmentId, riskAssessments.id))
                     .where(and(...conditions))
-                    .orderBy(desc(riskAssessments.updatedAt));
+                    .groupBy(riskAssessments.id)
+                    .orderBy(desc(riskAssessments.createdAt));
+
+                return results;
             }),
 
         createRiskAssessment: procedure
@@ -1305,7 +1320,7 @@ ${reportData.conclusion}
                 vulnerability: z.string(),
                 framework: z.string().optional()
             }))
-            .mutation(async ({ input }) => {
+            .mutation(async ({ input }: any) => {
                 const { llmService } = await import('../../lib/llm/service');
                 const dbConn = await getDb();
 

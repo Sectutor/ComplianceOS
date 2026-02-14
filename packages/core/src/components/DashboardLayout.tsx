@@ -189,6 +189,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/vendors') ||
     purePath.startsWith('/business-continuity') ||
     purePath.startsWith('/federal') ||
+    purePath.startsWith('/nist') ||
     purePath.startsWith('/privacy') ||
     purePath.startsWith('/workflows') ||
     purePath.startsWith('/cyber') ||
@@ -686,10 +687,62 @@ function DashboardLayoutContent({
           { icon: FileText, label: "Internal Audit", path: "/iso27001/audit" },
           { icon: ShieldCheck, label: "Governance Review", path: "/iso27001/governance" },
         ]
-      }
-    );
-
-    groups.push(
+      },
+      {
+        label: "NIST Ecosystem",
+        items: [
+          { icon: LayoutGrid, label: "NIST Hub", path: "/nist" },
+          {
+            icon: ShieldCheck,
+            label: "NIST CSF 2.0",
+            path: "/nist/dashboard",
+            submenu: [
+              { label: "Dashboard", path: "/nist/dashboard" },
+              { label: "Control Assessment", path: "/nist/assessment" },
+              { label: "Tiers & Profiles", path: "/nist/profiles" },
+              { label: "POA&M Tracker", path: "/nist/poam" },
+              { label: "Document Hub", path: "/nist/documents" },
+            ]
+          },
+          {
+            icon: Activity,
+            label: "NIST SP 800-37 (RMF)",
+            path: "/nist/rmf",
+            submenu: [
+              { label: "Dashboard", path: "/nist/rmf" },
+              { label: "0. Prepare", path: "/nist/rmf/prepare" },
+              { label: "1. Categorize", path: "/nist/rmf/categorize" },
+              { label: "2. Select", path: "/nist/rmf/select" },
+              { label: "3. Implement", path: "/nist/rmf/implement" },
+              { label: "4. Assess", path: "/nist/rmf/assess" },
+              { label: "5. Authorize", path: "/nist/rmf/authorize" },
+              { label: "6. Monitor", path: "/nist/rmf/monitor" },
+            ]
+          },
+          {
+            icon: Target,
+            label: "NIST SP 800-30",
+            path: "/nist/800-30",
+            submenu: [
+              { label: "Risk Assessment", path: "/nist/800-30" },
+              { label: "Threat Modeling", path: "/nist/800-30/threats" },
+              { label: "Impact Analysis", path: "/nist/800-30/impact" },
+            ]
+          },
+          {
+            icon: Lock,
+            label: "NIST SP 800-53",
+            path: "/nist/800-53",
+            submenu: [
+              { label: "Control Catalog", path: "/nist/800-53" },
+              { label: "Baselines", path: "/nist/800-53/baselines" },
+              { label: "Inheritance", path: "/nist/800-53/inheritance" },
+              { label: "Assessments", path: "/nist/800-53/assessments" },
+              { label: "Continuous Monitoring", path: "/nist/800-53/monitoring" },
+            ]
+          },
+        ]
+      },
       {
         label: "Governance",
         items: [

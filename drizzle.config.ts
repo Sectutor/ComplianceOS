@@ -1,8 +1,14 @@
 import { defineConfig } from "drizzle-kit";
-import { config } from "dotenv";
-config({ path: ".env" });
+import * as dotenv from "dotenv";
+import fs from "fs";
+
+dotenv.config({ path: ".env" });
+if (fs.existsSync(".env.local")) {
+    dotenv.config({ path: ".env.local", override: true });
+}
 
 export default defineConfig({
+
     schema: [
         "./packages/core/src/schema.ts",
         "./packages/core/src/db/maturity-schema.ts"

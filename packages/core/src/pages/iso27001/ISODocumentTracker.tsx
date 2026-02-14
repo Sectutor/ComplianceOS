@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ISOLayout } from "./ISOLayout";
+import { useClientContext } from "@/contexts/ClientContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -144,8 +144,9 @@ const MANDATORY_DOCUMENTS: DocumentItem[] = [
     }
 ];
 
-export default function ISODocumentTracker({ params }: { params: { id: string } }) {
-    const clientId = parseInt(params.id || "0");
+export default function ISODocumentTracker({ params }: { params?: { id: string } }) {
+    const { selectedClientId } = useClientContext();
+    const clientId = parseInt(params?.id || selectedClientId?.toString() || "0");
     const [searchQuery, setSearchQuery] = useState("");
 
     // Status Badge Helper
@@ -172,8 +173,7 @@ export default function ISODocumentTracker({ params }: { params: { id: string } 
     );
 
     return (
-        <ISOLayout clientId={clientId}>
-            <div className="p-8 space-y-8 animate-in fade-in duration-500">
+        <div className="p-8 space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
@@ -320,6 +320,5 @@ export default function ISODocumentTracker({ params }: { params: { id: string } 
                     </CardContent>
                 </Card>
             </div>
-        </ISOLayout>
     );
 }

@@ -1,12 +1,5 @@
-
 import { Regulation } from "./types";
-import { gdpr } from "./gdpr";
 import { hipaa } from "./hipaa";
-import { nis2 } from "./nis2";
-import { dora } from "./dora";
-import { euAiAct } from "./eu_ai_act";
-import { cmmc } from "./cmmc";
-import { ccpa } from "./ccpa";
 import { iso27701 } from "./iso27701";
 import { iso29100 } from "./iso29100";
 import { coppa } from "./coppa";
@@ -23,9 +16,7 @@ import { australiaPrivacy } from "./australia_privacy";
 import { technicalPrivacy } from "./technical_privacy";
 
 export const regulations: Regulation[] = [
-    gdpr,
     ukGdpr,
-    ccpa,
     vcdpa,
     cpa,
     ctdpa,
@@ -40,10 +31,6 @@ export const regulations: Regulation[] = [
     appi,
     australiaPrivacy,
     technicalPrivacy,
-    nis2,
-    dora,
-    euAiAct,
-    cmmc
 ];
 
 export const getRegulation = (id: string): Regulation | undefined => {

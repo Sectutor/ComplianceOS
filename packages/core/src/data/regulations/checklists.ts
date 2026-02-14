@@ -28,6 +28,34 @@ export const privacyChecklists: Record<string, any[]> = {
             ]
         }
     ],
+    gdpr: [
+        {
+            id: "gdpr_principles",
+            category: "1. Principles (Art. 5)",
+            questions: [
+                { id: "gdpr_lawful_fair", text: "Lawfulness, fairness and transparency: processed lawfully, fairly and in a transparent manner?" },
+                { id: "gdpr_purpose_limit", text: "Purpose limitation: collected for specified, explicit and legitimate purposes?" },
+                { id: "gdpr_data_min", text: "Data minimization: adequate, relevant and limited to what is necessary?" },
+                { id: "gdpr_accuracy", text: "Accuracy: accurate and, where necessary, kept up to date?" },
+                { id: "gdpr_storage_limit", text: "Storage limitation: kept in a form which permits identification for no longer than is necessary?" },
+                { id: "gdpr_integrity", text: "Integrity and confidentiality: processed in a manner that ensures appropriate security?" },
+                { id: "gdpr_accountability", text: "Accountability: is the controller able to demonstrate compliance with the above?" }
+            ]
+        },
+        {
+            id: "gdpr_rights",
+            category: "2. Data Subject Rights (Art. 12-23)",
+            questions: [
+                { id: "gdpr_right_info", text: "Right to be informed provided?" },
+                { id: "gdpr_right_access", text: "Right of access procedures in place?" },
+                { id: "gdpr_right_rectification", text: "Right to rectification procedures in place?" },
+                { id: "gdpr_right_erasure", text: "Right to erasure ('right to be forgotten') procedures in place?" },
+                { id: "gdpr_right_restrict", text: "Right to restriction of processing procedures in place?" },
+                { id: "gdpr_right_portability", text: "Right to data portability procedures in place?" },
+                { id: "gdpr_right_object", text: "Right to object procedures in place?" }
+            ]
+        }
+    ],
     ccpa: [
         {
             id: "ccpa_rights",

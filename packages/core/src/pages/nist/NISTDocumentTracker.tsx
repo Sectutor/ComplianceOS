@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // Using relative imports to avoid potential alias issues on some environments
-import { useClientContext } from "../../contexts/ClientContext";
+import { useClientContext } from "@/contexts/ClientContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";

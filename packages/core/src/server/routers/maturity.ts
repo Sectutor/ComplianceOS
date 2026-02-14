@@ -267,8 +267,47 @@ export const createMaturityRouter = (t: any, clientProcedure: any) => {
 
                 return { success: true };
             }),
+
+        /**
+         * NIST Tiers (Organizational Profiles)
+         */
+        getNistTiers: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+            }))
+            .query(async ({ input }: { input: { clientId: number } }) => {
+                const dbConn = await db.getDb();
+                return await dbConn.select()
+                    .from(maturitySchema.nistTiers)
+                    .where(eq(maturitySchema.nistTiers.clientId, input.clientId));
+            }),
+
+        saveNistTier: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                functionCode: z.string(),
+                currentTier: z.number(),
+                targetTier: z.number(),
+            }))
+            .mutation(async ({ input }: { input: any }) => {
+                const dbConn = await db.getDb();
+                return await dbConn.insert(maturitySchema.nistTiers).values({
+                    clientId: input.clientId,
+                    functionCode: input.functionCode,
+                    currentTier: input.currentTier,
+                    targetTier: input.targetTier,
+                }).onConflictDoUpdate({
+                    target: [maturitySchema.nistTiers.clientId, maturitySchema.nistTiers.functionCode],
+                    set: {
+                        currentTier: input.currentTier,
+                        targetTier: input.targetTier,
+                        updatedAt: new Date(),
+                    }
+                });
+            }),
     });
 };
+
 
 /**
  * Helper to update client framework progress stats
