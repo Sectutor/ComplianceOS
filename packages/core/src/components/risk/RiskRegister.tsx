@@ -93,7 +93,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework }:
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
     const [aiActionRisk, setAiActionRisk] = useState<any>(null);
     const [aiTriageResults, setAiTriageResults] = useState<any>(null);
-    const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+    const [selectedAssetId, setSelectedAssetId] = useState<string | null>(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('assetId') || null;
+    });
 
     // Sorting state
     type SortField = 'assessmentId' | 'threatDescription' | 'likelihood' | 'impact' | 'inherentRisk' | 'residualRisk' | 'treatmentOption' | 'riskOwner' | 'priority' | 'status';

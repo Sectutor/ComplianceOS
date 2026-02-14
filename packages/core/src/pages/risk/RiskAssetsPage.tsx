@@ -401,7 +401,13 @@ function AssetInventoryTable({
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-sm">
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${asset.riskCount > 0 ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                                    <span
+                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:bg-opacity-80 transition-colors ${asset.riskCount > 0 ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLocation(`/clients/${asset.clientId}/risks/register?assetId=${asset.id}`);
+                                        }}
+                                    >
                                         {asset.riskCount || 0} Risks
                                     </span>
                                 </td>
