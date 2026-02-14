@@ -6,9 +6,8 @@ import { createEvidenceRouter } from "./server/routers/evidence";
 import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
 import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
 import { createAdvisorRouter } from "./server/routers/advisor";
-import { initTRPC, TRPCError } from "@trpc/server";
+import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
-import * as crypto from 'crypto';
 import { z } from "zod";
 import * as db from "./db";
 import { getDb } from "./db";
@@ -45,9 +44,22 @@ import { suggestControlsForTreatment } from "./lib/ai/controlSuggestions";
 import * as adversaryIntelService from "./lib/adversaryService";
 // threatIntel related schema tables removed
 
-// Initialize tRPC
-import { inferAsyncReturnType } from "@trpc/server";
-import { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+// Initialize tRPC imports
+import {
+  t,
+  router,
+  publicProcedure,
+  protectedProcedure,
+  adminProcedure,
+  clientProcedure,
+  clientEditorProcedure,
+  premiumClientProcedure,
+  checkClientAccess,
+  checkPremiumAccess,
+  isAuthed,
+  isAdmin,
+  requiresMFA
+} from "./server/trpc";
 import { createCrmRouter } from './lib/modules/crm/router';
 import { createSalesRouter } from './lib/modules/crm/sales-router';
 import { createFrameworkImportRouter } from './server/routers/frameworkImport';
@@ -111,166 +123,8 @@ import { createStudioRouter } from "./server/routers/studio";
 import { createMaturityRouter } from "./server/routers/maturity";
 
 
-// Context type definition
-export const createContext = ({ req, res }: CreateExpressContextOptions) => {
-  const headerClientId = req.headers['x-client-id'] ? parseInt(req.headers['x-client-id'] as string) : undefined;
-  return {
-    req,
-    res,
-    user: req.user,
-    clientId: (req as any).clientId || headerClientId as number | undefined,
-    aal: (req as any).aal as 'aal1' | 'aal2' | null,
-  };
-};
-export type Context = inferAsyncReturnType<typeof createContext>;
+// Procedures and Middleware are now imported from ./server/trpc
 
-const t = initTRPC.context<Context>().create({
-  // transformer: superjson,
-  errorFormatter({ shape, error }) {
-    console.error("TRPC Error (Global):", error);
-    return shape;
-  },
-});
-
-console.log("[Routers] SuperJSON loaded:", !!superjson);
-
-export const router = t.router;
-export const publicProcedure = t.procedure;
-
-const isAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx.user) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' });
-  }
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user,
-    },
-  });
-});
-
-const isAdmin = t.middleware(({ ctx, next }) => {
-  if (!ctx.user || (ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin')) {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
-  }
-  return next({ ctx });
-});
-
-const checkClientAccess = t.middleware(async (opts) => {
-  const { ctx, next } = opts;
-  // Safer input access that works with both batched and standard requests
-  const input = (opts as any).rawInput || (opts as any).input || {};
-
-  if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
-
-  const clientId = input?.clientId || input?.id || ctx.clientId;
-
-  console.log('[DEBUG checkClientAccess routers.ts] Path:', (opts as any).path);
-  console.log('[DEBUG checkClientAccess routers.ts] User:', ctx.user.id, 'Role:', ctx.user.role);
-  console.log('[DEBUG checkClientAccess routers.ts] ctx.clientId:', ctx.clientId);
-  console.log('[DEBUG checkClientAccess routers.ts] Resolved clientId:', clientId);
-
-  // Admins have implicit access
-  if (ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin') {
-    return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
-  }
-
-  if (!clientId) {
-    console.log('[DEBUG checkClientAccess routers.ts] No clientId found - THROWING FORBIDDEN');
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Client ID is required for this operation' });
-  }
-
-  const dbConn = await db.getDb();
-  const membership = await dbConn.select().from(userClients)
-    .where(and(eq(userClients.userId, ctx.user.id), eq(userClients.clientId, clientId)))
-    .limit(1);
-
-  if (membership.length === 0) {
-    console.log('[DEBUG checkClientAccess routers.ts] Membership not found for client:', clientId);
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace' });
-  }
-
-  return next({ ctx: { ...ctx, clientId, clientRole: membership[0].role } });
-});
-
-export const protectedProcedure = publicProcedure.use(isAuthed);
-export const adminProcedure = publicProcedure.use(isAuthed).use(isAdmin);
-export const clientProcedure = publicProcedure.use(isAuthed).use(checkClientAccess);
-
-const checkClientEditor = t.middleware(({ ctx, next }) => {
-  const clientRole = (ctx as any).clientRole;
-  if (clientRole !== 'owner' && clientRole !== 'admin' && clientRole !== 'editor') {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Read-only access' });
-  }
-  return next();
-});
-
-const clientEditorProcedure = clientProcedure.use(checkClientEditor);
-
-// Premium Feature Guard - Checks if client has Pro or Enterprise tier
-const checkPremiumAccess = t.middleware(async (opts) => {
-  const { ctx, next } = opts;
-  // Safer input access that works with both batched and standard requests
-  const input = (opts as any).rawInput || (opts as any).input || {};
-  const clientId = input?.clientId || input?.id || ctx.clientId;
-
-  // Global Admin/Owner bypass OR Client Owner/Admin bypass
-  if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin' ||
-    (ctx as any).clientRole === 'owner' || (ctx as any).clientRole === 'admin') {
-    console.log(`[PremiumGuard] Bypass for Global Admin or Client Owner/Admin`);
-    return next({ ctx: { ...ctx, isPremium: true } });
-  }
-
-  if (!clientId) {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required for premium features' });
-  }
-
-  try {
-    const dbConn = await db.getDb();
-    const [client] = await dbConn.select({ planTier: schema.clients.planTier })
-      .from(schema.clients)
-      .where(eq(schema.clients.id, clientId))
-      .limit(1);
-
-    if (!client) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
-    }
-
-    const isPremium = client.planTier === 'pro' || client.planTier === 'enterprise';
-    if (!isPremium) {
-      console.log(`[PremiumGuard] Access denied for client ${clientId} with plan tier: ${client.planTier}`);
-      throw new TRPCError({
-        code: 'PRECONDITION_FAILED',
-        message: 'This feature requires a Pro or Enterprise subscription. Please upgrade to access Vendor Risk Management.'
-      });
-    }
-
-    console.log(`[PremiumGuard] Access granted for client ${clientId} with plan tier: ${client.planTier}`);
-    return next({ ctx: { ...ctx, isPremium: true } });
-  } catch (err) {
-    if (err instanceof TRPCError) throw err;
-    console.error('[PremiumGuard] Error checking premium access:', err);
-    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify subscription status' });
-  }
-});
-
-// Premium client procedure - requires auth + client access + premium tier
-export const premiumClientProcedure = clientProcedure.use(checkPremiumAccess);
-const requiresMFA = t.middleware(async ({ ctx, next }) => {
-  const clientId = (ctx as any).clientId;
-  if (!clientId) return next();
-  const dbConn = await db.getDb();
-  const [client] = await dbConn.select({ requireMfa: schema.clients.requireMfa as any })
-    .from(schema.clients)
-    .where(eq(schema.clients.id, clientId))
-    .limit(1);
-  const must = !!client?.requireMfa;
-  const aal = (ctx as any).aal;
-  if (must && aal !== 'aal2') {
-    throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Multi-factor authentication required' });
-  }
-  return next();
-});
 
 const STANDARD_CONTROLS_CONTEXT = `
 AC-1: Access Control Policy and Procedures
