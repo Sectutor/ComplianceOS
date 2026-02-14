@@ -16,7 +16,7 @@ import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
 
 
-export default function RiskAssetsPage() {
+export default function RiskAssetsPage({ hideLayout = false }: { hideLayout?: boolean }) {
     const params = useParams();
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
@@ -96,80 +96,86 @@ export default function RiskAssetsPage() {
         </DashboardLayout>
     );
 
-    return (
-        <DashboardLayout>
-            <div className="space-y-6 w-full max-w-full p-6">
-                <div className="mb-2">
-                    <Breadcrumb
-                        items={[
-                            { label: "Clients", href: "/clients" },
-                            { label: client?.name || "Client", href: `/clients/${clientId}` },
-                            { label: "Risk Management", href: `/clients/${clientId}/risks` },
-                            { label: "Asset Inventory", href: `/clients/${clientId}/risks/assets` },
+    const content = (
+        <div className="space-y-6 w-full max-w-full p-6">
+            <div className="mb-2">
+                <Breadcrumb
+                    items={[
+                        { label: "Clients", href: "/clients" },
+                        { label: client?.name || "Client", href: `/clients/${clientId}` },
+                        { label: "Risk Management", href: `/clients/${clientId}/risks` },
+                        { label: "Asset Inventory", href: `/clients/${clientId}/risks/assets` },
+                    ]}
+                />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 -ml-3 text-muted-foreground hover:text-foreground"
+                    onClick={() => setLocation(`/clients/${clientId}/risks`)}
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Risk Dashboard
+                </Button>
+            </div>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Asset Inventory</h1>
+                    <p className="text-muted-foreground mt-1">Manage your organization's assets and their valuations.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => scanAllMutation.mutate({ clientId })}
+                        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 flex items-center gap-2 shadow-sm transition-colors"
+                        disabled={scanAllMutation.isPending}
+                        title="Scan all assets against NVD/KEV"
+                    >
+                        <Zap className="w-4 h-4" />
+                        {scanAllMutation.isPending ? "Scanning..." : "Scan All Assets"}
+                    </button>
+                    <button
+                        onClick={handleOpenAddDialog}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Asset
+                    </button>
+                    <PageGuide
+                        title="Asset Inventory"
+                        description="Maintain a complete registry of your organization’s critical information assets."
+                        rationale="You cannot protect what you don't know you have. A comprehensive asset inventory is the starting point for all risk assessments."
+                        howToUse={[
+                            { step: "Add Assets", description: "Use the 'Add Asset' button to register hardware, software, data, or people." },
+                            { step: "Value Assets", description: "Assign Confidentiality, Integrity, and Availability (CIA) scores to determine criticality." },
+                            { step: "Identify Threats", description: "Click the lightning bolt icon to see active threats relevant to that asset's technology stack." }
+                        ]}
+                        integrations={[
+                            { name: "Risk Assessment", description: "Assets selected here become the targets for risk scenarios." },
+                            { name: "Threat Intelligence", description: "The system automatically matches asset technologies (e.g. 'Windows') to CVEs and threat feeds." }
                         ]}
                     />
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 -ml-3 text-muted-foreground hover:text-foreground"
-                        onClick={() => setLocation(`/clients/${clientId}/risks`)}
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Risk Dashboard
-                    </Button>
                 </div>
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Asset Inventory</h1>
-                        <p className="text-muted-foreground mt-1">Manage your organization's assets and their valuations.</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => scanAllMutation.mutate({ clientId })}
-                            className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 flex items-center gap-2 shadow-sm transition-colors"
-                            disabled={scanAllMutation.isPending}
-                            title="Scan all assets against NVD/KEV"
-                        >
-                            <Zap className="w-4 h-4" />
-                            {scanAllMutation.isPending ? "Scanning..." : "Scan All Assets"}
-                        </button>
-                        <button
-                            onClick={handleOpenAddDialog}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Asset
-                        </button>
-                        <PageGuide
-                            title="Asset Inventory"
-                            description="Maintain a complete registry of your organization’s critical information assets."
-                            rationale="You cannot protect what you don't know you have. A comprehensive asset inventory is the starting point for all risk assessments."
-                            howToUse={[
-                                { step: "Add Assets", description: "Use the 'Add Asset' button to register hardware, software, data, or people." },
-                                { step: "Value Assets", description: "Assign Confidentiality, Integrity, and Availability (CIA) scores to determine criticality." },
-                                { step: "Identify Threats", description: "Click the lightning bolt icon to see active threats relevant to that asset's technology stack." }
-                            ]}
-                            integrations={[
-                                { name: "Risk Assessment", description: "Assets selected here become the targets for risk scenarios." },
-                                { name: "Threat Intelligence", description: "The system automatically matches asset technologies (e.g. 'Windows') to CVEs and threat feeds." }
-                            ]}
-                        />
-                    </div>
-                </div>
-
-                <div className="bg-card rounded-xl border shadow-sm min-h-[400px]">
-                    <AssetInventoryTable
-                        assets={assets || []}
-                        loading={loadingAssets}
-                        onEdit={handleEditAsset}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        SortableHeader={SortableHeader}
-                    />
-                </div>
-
-                {/* Asset Editor Dialog removed since it's now a standalone page */}
             </div>
+
+            <div className="bg-card rounded-xl border shadow-sm min-h-[400px]">
+                <AssetInventoryTable
+                    assets={assets || []}
+                    loading={loadingAssets}
+                    onEdit={handleEditAsset}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    SortableHeader={SortableHeader}
+                />
+            </div>
+
+            {/* Asset Editor Dialog removed since it's now a standalone page */}
+        </div>
+    );
+
+    if (hideLayout) return content;
+
+    return (
+        <DashboardLayout>
+            {content}
         </DashboardLayout>
     );
 }
@@ -294,6 +300,7 @@ function AssetInventoryTable({
                             <SortableHeader label="Asset Name" sortKey="name" />
                             <SortableHeader label="Type/Category" sortKey="type" />
                             <SortableHeader label="Description" sortKey="description" />
+                            <SortableHeader label="Class." sortKey="ciaValuation" />
                             <SortableHeader label="Active Threats" sortKey="activeThreats" />
                             <SortableHeader label="CIA" sortKey="ciaValuation" />
                             <SortableHeader label="Owner" sortKey="owner" />
@@ -314,7 +321,36 @@ function AssetInventoryTable({
                                 <td className="px-6 py-4 text-sm font-medium text-black">{asset.name}</td>
                                 <td className="px-6 py-4 text-sm text-gray-600">{asset.type}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500 max-w-[200px] truncate" title={asset.description}>{asset.description || '-'}</td>
-                                
+
+                                {/* Classification Badge */}
+                                <td className="px-6 py-4 text-sm">
+                                    {(() => {
+                                        const maxScore = Math.max(
+                                            Number(asset.valuationC) || 0,
+                                            Number(asset.valuationI) || 0,
+                                            Number(asset.valuationA) || 0
+                                        );
+                                        let classLabel = "Public";
+                                        let classColor = "bg-gray-100 text-gray-700 border-gray-200";
+
+                                        if (maxScore >= 4) {
+                                            classLabel = "Critical";
+                                            classColor = "bg-rose-100 text-rose-800 border-rose-200";
+                                        } else if (maxScore === 3) {
+                                            classLabel = "Confidential";
+                                            classColor = "bg-amber-100 text-amber-800 border-amber-200";
+                                        } else if (maxScore === 2) {
+                                            classLabel = "Internal";
+                                            classColor = "bg-blue-100 text-blue-800 border-blue-200";
+                                        }
+                                        return (
+                                            <Badge variant="outline" className={`font-semibold ${classColor}`}>
+                                                {classLabel}
+                                            </Badge>
+                                        );
+                                    })()}
+                                </td>
+
                                 {/* Moved Columns */}
                                 <td className="px-6 py-4 text-sm">
                                     {(() => {
@@ -376,7 +412,7 @@ function AssetInventoryTable({
                                 </td>
                             </tr>
                         ))}
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
 

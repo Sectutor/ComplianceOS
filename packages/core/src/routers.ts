@@ -96,6 +96,7 @@ import { createReportsRouter } from "./server/routers/reports";
 // import { createStrategicReportsRouter } from "./server/routers/strategicReports";
 import { createFindingsRouter } from "./server/routers/findings";
 import { createTrustCenterRouter } from "./server/routers/trustCenter";
+import { createIso27001Router } from "./server/routers/iso27001";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
@@ -343,6 +344,7 @@ export const appRouter = router({
   asvs: createAsvsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure),
+  iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
 
 
   dashboard: createDashboardRouter(t, adminProcedure, publicProcedure.use(isAuthed)),

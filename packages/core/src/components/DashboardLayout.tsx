@@ -193,6 +193,7 @@ function resolveNavigationPath(itemPath: string, clientId: number | null): strin
     purePath.startsWith('/workflows') ||
     purePath.startsWith('/cyber') ||
     purePath.startsWith('/ai-governance') ||
+    purePath.startsWith('/iso27001') ||
     purePath.startsWith('/roadmap') ||
     purePath.startsWith('/readiness') ||
     purePath.startsWith('/compliance-journey') ||
@@ -673,6 +674,17 @@ function DashboardLayoutContent({
           },
           { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
           { icon: Briefcase, label: "Audit Preparation", path: "/audit-hub" },
+        ]
+      },
+      {
+        label: "ISO 27001 ISMS",
+        items: [
+          { icon: LayoutDashboard, label: "Dashboard", path: "/iso27001" },
+          { icon: ClipboardList, label: "Statement of Applicability", path: "/iso27001/soa" },
+          { icon: AlertTriangle, label: "Risk Management", path: "/iso27001/risks" },
+          { icon: Database, label: "Asset Register", path: "/iso27001/assets" },
+          { icon: FileText, label: "Internal Audit", path: "/iso27001/audit" },
+          { icon: ShieldCheck, label: "Governance Review", path: "/iso27001/governance" },
         ]
       }
     );

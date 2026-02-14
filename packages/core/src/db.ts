@@ -1621,7 +1621,7 @@ export async function createClientControl(data: InsertClientControl) {
 
 
 
-export async function getClientControls(clientId: number) {
+export async function getClientControls(clientId: number, framework?: string) {
 
   const db = await getDb();
 
@@ -1686,7 +1686,14 @@ export async function getClientControls(clientId: number) {
 
     .leftJoin(controls, eq(clientControls.controlId, controls.id))
 
-    .where(eq(clientControls.clientId, clientId));
+    .where(and(
+      eq(clientControls.clientId, clientId),
+      framework
+        ? (['ISO 27001:2022', 'ISO 27001'].includes(framework)
+          ? inArray(controls.framework, ['ISO 27001:2022', 'ISO 27001'])
+          : eq(controls.framework, framework))
+        : undefined
+    ));
 
 
 

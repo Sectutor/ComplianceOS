@@ -261,7 +261,16 @@ const CyberIncidentsPage = lazy(() => import("./pages/cyber/CyberIncidentsPage")
 const CyberIncidentReporting = lazy(() => import("./pages/cyber/CyberIncidentReporting"));
 const CyberDocumentation = lazy(() => import("./pages/cyber/CyberDocumentation"));
 const CyberIncidentDetail = lazy(() => import("./pages/cyber/CyberIncidentDetail"));
-
+const ISODashboard = lazy(() => import("./pages/iso27001/ISODashboard"));
+const StatementOfApplicability = lazy(() => import("./pages/iso27001/StatementOfApplicability"));
+const ISOPlaceholder = lazy(() => import("./pages/iso27001/ISOPlaceholder"));
+const ISORiskManagement = lazy(() => import("./pages/iso27001/ISORiskManagement"));
+const ISOAssetRegister = lazy(() => import("./pages/iso27001/ISOAssetRegister"));
+const ISOContext = lazy(() => import("./pages/iso27001/ISOContext"));
+const ISODocumentTracker = lazy(() => import("./pages/iso27001/ISODocumentTracker"));
+const ISOAuditManager = lazy(() => import("./pages/iso27001/ISOAuditManager"));
+const ISOManagementReview = lazy(() => import("./pages/iso27001/ISOManagementReview"));
+import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
 const AIGovernance = lazy(() => import("./pages/ai-governance/AIGovernance"));
 
@@ -1364,6 +1373,42 @@ function Router() {
         </Route>
         <Route path="/clients/:id/cyber/documents">
           {(_params) => <ProtectedRoute component={CyberDocumentation} />}
+        </Route>
+
+        {/* ISO 27001 ISMS Routes */}
+        <Route path="/clients/:id/iso27001">
+          {(_params) => (
+            <ISOLayout clientId={parseInt(_params.id)}>
+              <ISODashboard />
+            </ISOLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/iso27001/soa">
+          {(_params) => (
+            <ISOLayout clientId={parseInt(_params.id)}>
+              <StatementOfApplicability />
+            </ISOLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/iso27001/risks">
+          {(_params) => <ProtectedRoute component={ISORiskManagement} />}
+        </Route>
+        <Route path="/clients/:id/iso27001/assets">
+          {(_params) => <ProtectedRoute component={ISOAssetRegister} />}
+        </Route>
+        <Route path="/clients/:id/iso27001/audit">
+          {(params) => (
+            <ProtectedRoute component={ISOAuditManager} {...params} />
+          )}
+        </Route>
+        <Route path="/clients/:id/iso27001/governance">
+          {(_params) => <ProtectedRoute component={ISOContext} />}
+        </Route>
+        <Route path="/clients/:id/iso27001/management-review">
+          {(_params) => <ProtectedRoute component={ISOManagementReview} />}
+        </Route>
+        <Route path="/clients/:id/iso27001/documents">
+          {(_params) => <ProtectedRoute component={ISODocumentTracker} />}
         </Route>
 
         <Route path="/clients/:id/privacy/documents">
