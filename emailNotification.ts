@@ -1,7 +1,7 @@
-import { notifyOwner } from "./notification";
-import * as db from "./db";
-import { CalendarEvent } from "./db";
-import * as schema from "./schema";
+import { notifyOwner } from "./packages/core/src/notification";
+import * as db from "./packages/core/src/db";
+import { CalendarEvent } from "./packages/core/src/db";
+import * as schema from "./packages/core/src/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -53,7 +53,7 @@ function formatEventsForNotification(events: CalendarEvent[], title: string): st
 }
 
 
-import { sendInternalSystemEmail } from "./lib/email/internalSender";
+import { sendInternalSystemEmail } from "./packages/core/src/lib/email/internalSender";
 
 // ... (keep existing imports)
 

@@ -23,6 +23,7 @@ import { PageGuide } from "@/components/PageGuide";
 
 export default function RiskRegisterPage({ hideLayout = false, framework, clientId: propClientId }: { hideLayout?: boolean, framework?: string, clientId?: number }) {
     const params = useParams<{ id: string }>();
+    const [, setLocation] = useLocation();
     const clientId = propClientId || (params.id ? parseInt(params.id) : 0);
 
     const [wizardOpen, setWizardOpen] = useState(false);
@@ -31,11 +32,15 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
     const [analyzing, setAnalyzing] = useState(false);
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [heatmapFilter, setHeatmapFilter] = useState<{ likelihood?: string; impact?: string; type?: string } | null>(null);
+    const [selectedAssetId, setSelectedAssetId] = useState<string | null>(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.get('assetId');
+    });
 
     const utils = trpc.useUtils();
     // Query for risk assessments
     const { data: riskAssessments } = trpc.risks.getRiskAssessments.useQuery(
-        { clientId },
+        { clientId, assetId: selectedAssetId ? Number(selectedAssetId) : undefined },
         { enabled: !!clientId }
     );
     const exportReportMutation = trpc.risks.exportReport.useMutation();
@@ -60,30 +65,50 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
         aiAnalysisMutation.mutate({ clientId });
     };
 
-    // Check for query params to auto-open wizard (e.g. from Asset Active Threats)
+    // Sync URL with selectedAssetId
+    useEffect(() => {
+        const url = new URL(window.location.href);
+        const currentAssetId = url.searchParams.get('assetId');
+
+        if (selectedAssetId) {
+            if (currentAssetId !== selectedAssetId) {
+                url.searchParams.set('assetId', selectedAssetId);
+                window.history.replaceState({}, '', url.toString());
+            }
+        } else if (currentAssetId) {
+            url.searchParams.delete('assetId');
+            window.history.replaceState({}, '', url.toString());
+        }
+    }, [selectedAssetId]);
+
     useEffect(() => {
         const searchParams = new URLSearchParams(window.location.search);
         const title = searchParams.get('title');
         const description = searchParams.get('description');
         const assetId = searchParams.get('assetId');
+        const vulnerabilityId = searchParams.get('vulnerabilityId');
+        const threatId = searchParams.get('threatId');
+        const openWizard = searchParams.get('openWizard') === 'true';
 
-        if (title || description) {
+        if (title || description || openWizard) {
             setEditingRisk({
-                riskName: title || '',
+                title: title || '',
                 description: description || '',
                 assetId: assetId ? parseInt(assetId) : undefined,
-                // Add defaults to ensure wizard handles it as a new risk
-                status: 'Open',
+                vulnerabilityId: vulnerabilityId ? parseInt(vulnerabilityId) : undefined,
+                threatId: threatId ? parseInt(threatId) : undefined,
+                status: 'draft',
                 likelihood: 1,
-                impact: 1
+                impact: 1,
+                assessmentType: 'asset'
             });
             setWizardOpen(true);
 
-            // Optional: Clean up URL to avoid reopening on refresh
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
+            const newUrl = new URL(window.location.href);
+            ['title', 'description', 'openWizard', 'vulnerabilityId', 'threatId'].forEach(p => newUrl.searchParams.delete(p));
+            window.history.replaceState({}, '', newUrl.toString());
         }
-    }, []);
+    }, [clientId]);
 
     if (!clientId) {
         return (
@@ -136,7 +161,6 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
 
     const content = (
         <div className="space-y-6">
-            {/* Breadcrumb Navigation */}
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
@@ -190,7 +214,12 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
                         )}
                         {analyzing ? "AI Analyzing Risks..." : "AI Management Report"}
                     </Button>
-                    <Button onClick={() => { setEditingRisk(null); setWizardOpen(true); }}>
+                    <Button onClick={() => {
+                        const searchParams = new URLSearchParams(window.location.search);
+                        const assetId = searchParams.get('assetId');
+                        setEditingRisk(assetId ? { assetId: parseInt(assetId), assessmentType: 'asset' } : null);
+                        setWizardOpen(true);
+                    }}>
                         <Plus className="w-4 h-4 mr-2" /> Add Risk
                     </Button>
                     <PageGuide
@@ -212,7 +241,6 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
                 </div>
             </div>
 
-            {/* Heatmaps Row */}
             {riskAssessments && riskAssessments.length > 0 && (
                 <div className="h-64 grid grid-cols-2 gap-4 mb-8">
                     <RiskHeatmap
@@ -232,10 +260,15 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
                 </div>
             )}
 
-            {/* Risk Register Table */}
-            <RiskRegister clientId={clientId} onEditRisk={handleEditRisk} heatmapFilter={heatmapFilter} framework={framework} />
+            <RiskRegister
+                clientId={clientId}
+                onEditRisk={handleEditRisk}
+                heatmapFilter={heatmapFilter}
+                framework={framework}
+                selectedAssetId={selectedAssetId}
+                onAssetChange={setSelectedAssetId}
+            />
 
-            {/* Wizard Modal */}
             <RiskAssessmentWizard
                 open={wizardOpen}
                 onOpenChange={setWizardOpen}
@@ -250,7 +283,6 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
                 }}
             />
 
-            {/* AI Report Modal */}
             <EnhancedDialog
                 open={reportModalOpen}
                 onOpenChange={setReportModalOpen}

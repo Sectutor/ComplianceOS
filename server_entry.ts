@@ -12,6 +12,8 @@ import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
 import { aiRouter } from './packages/core/src/server/routers/ai';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
+import redis from './packages/core/src/lib/redis';
+import rateLimit from 'express-rate-limit';
 
 export const app = express();
 const port = process.env.PORT || 3002;
@@ -22,6 +24,7 @@ console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(`- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'false' ? 'CORE (Open Source)' : 'PREMIUM (Full Access)'}`);
+console.log(`- REDIS: ${process.env.REDIS_HOST ? 'Configured' : 'Disabled'}`);
 
 
 // Add request logging for ALL routes BEFORE anything else
@@ -62,6 +65,19 @@ app.use(cors({
 // Parse JSON bodies with increased limit for uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Rate Limiting
+if (process.env.RATE_LIMITING_ENABLED === 'true') {
+    const limiter = rateLimit({
+        windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+        max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { status: 429, message: 'Too many requests, please try again later.' }
+    });
+    app.use('/api/', limiter);
+    console.log(`[RateLimit] Enabled: ${process.env.RATE_LIMIT_MAX_REQUESTS} reqs / ${process.env.RATE_LIMIT_WINDOW_MS}ms`);
+}
 
 // Apply Authentication Middleware to populate req.user
 app.use(authMiddleware);

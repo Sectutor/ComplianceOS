@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { getDb } from "./db";
-import { vendorDpas, dpaTemplates, vendors } from "./schema";
+import { getDb } from "./packages/core/src/db";
+import { vendorDpas, dpaTemplates, vendors } from "./packages/core/src/schema";
 import { eq } from "drizzle-orm";
 
 async function main() {

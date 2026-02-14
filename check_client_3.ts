@@ -1,5 +1,5 @@
-import { getDb } from "./db";
-import * as schema from "./schema";
+import { getDb } from "./packages/core/src/db";
+import * as schema from "./packages/core/src/schema";
 import { eq, count } from "drizzle-orm";
 import * as dotenv from "dotenv";
 

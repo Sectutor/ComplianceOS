@@ -1,7 +1,7 @@
 
 import 'dotenv/config';
-import { getDb } from './db';
-import { users, userClients, clients } from './schema';
+import { getDb } from './packages/core/src/db';
+import { users, userClients, clients } from './packages/core/src/schema';
 import { eq } from 'drizzle-orm';
 
 async function diagnose() {

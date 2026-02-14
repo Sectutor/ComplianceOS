@@ -16,6 +16,9 @@ interface RiskRegisterProps {
     onEditRisk: (risk: any) => void;
     heatmapFilter?: { likelihood?: string; impact?: string; type?: string } | null;
     framework?: string;
+    selectedAssetId?: string | null;
+    onAssetChange?: (id: string | null) => void;
+
 }
 
 // Risk level color mapping
@@ -83,7 +86,8 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 
-export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework }: RiskRegisterProps) {
+export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, selectedAssetId: propAssetId, onAssetChange }: RiskRegisterProps) {
+
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -93,10 +97,15 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework }:
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
     const [aiActionRisk, setAiActionRisk] = useState<any>(null);
     const [aiTriageResults, setAiTriageResults] = useState<any>(null);
-    const [selectedAssetId, setSelectedAssetId] = useState<string | null>(() => {
+    // Internal fallback if not provided via props
+    const [internalAssetId, setInternalAssetId] = useState<string | null>(() => {
         const params = new URLSearchParams(window.location.search);
         return params.get('assetId') || null;
     });
+
+    const selectedAssetId = propAssetId !== undefined ? propAssetId : internalAssetId;
+    const setSelectedAssetId = onAssetChange || setInternalAssetId;
+
 
     // Sorting state
     type SortField = 'assessmentId' | 'threatDescription' | 'likelihood' | 'impact' | 'inherentRisk' | 'residualRisk' | 'treatmentOption' | 'riskOwner' | 'priority' | 'status';

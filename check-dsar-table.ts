@@ -1,6 +1,8 @@
 
-import "dotenv/config";
-import { getDb } from "./db";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config();
+import { getDb } from "./packages/core/src/db";
 import { sql } from "drizzle-orm";
 
 async function main() {

@@ -16,6 +16,7 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
         user,
         clientId,
         aal,
+        ip: req.ip
     };
 };
 

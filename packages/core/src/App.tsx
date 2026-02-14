@@ -272,6 +272,13 @@ const ISOAuditManager = lazy(() => import("./pages/iso27001/ISOAuditManager"));
 const ISOManagementReview = lazy(() => import("./pages/iso27001/ISOManagementReview"));
 import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
+const NISTDashboard = lazy(() => import("./pages/nist/NISTDashboard"));
+const NISTAssessment = lazy(() => import("./pages/nist/NISTAssessment"));
+const NISTProfiles = lazy(() => import("./pages/nist/NISTProfiles"));
+const NISTPOAM = lazy(() => import("./pages/nist/NISTPOAM"));
+const NISTDocumentTracker = lazy(() => import("./pages/nist/NISTDocumentTracker"));
+import NISTLayout from "./pages/nist/NISTLayout";
+
 const AIGovernance = lazy(() => import("./pages/ai-governance/AIGovernance"));
 
 
@@ -686,6 +693,54 @@ function Router() {
         <Route path="/clients/:id/assurance/:frameworkId">
           {(_params) => <ProtectedRoute component={FrameworkImplementationView} />}
         </Route>
+
+        {/* NIST CSF Module */}
+        <Route path="/clients/:id/nist">
+          {(_params) => (
+            <ProtectedRoute component={() => (
+              <NISTLayout fullWidth>
+                <NISTDashboard />
+              </NISTLayout>
+            )} />
+          )}
+        </Route>
+        <Route path="/clients/:id/nist/assessment">
+          {(_params) => (
+            <ProtectedRoute component={() => (
+              <NISTLayout fullWidth>
+                <NISTAssessment />
+              </NISTLayout>
+            )} />
+          )}
+        </Route>
+        <Route path="/clients/:id/nist/profiles">
+          {(_params) => (
+            <ProtectedRoute component={() => (
+              <NISTLayout fullWidth>
+                <NISTProfiles />
+              </NISTLayout>
+            )} />
+          )}
+        </Route>
+        <Route path="/clients/:id/nist/poam">
+          {(_params) => (
+            <ProtectedRoute component={() => (
+              <NISTLayout fullWidth>
+                <NISTPOAM />
+              </NISTLayout>
+            )} />
+          )}
+        </Route>
+        <Route path="/clients/:id/nist/documents">
+          {(_params) => (
+            <ProtectedRoute component={() => (
+              <NISTLayout fullWidth>
+                <NISTDocumentTracker />
+              </NISTLayout>
+            )} />
+          )}
+        </Route>
+
         <Route path="/clients/:id/nist-csf-2">
           {(_params) => <ProtectedRoute component={() => <MaturityAssessmentView frameworkId="nist-csf-2" />} />}
         </Route>
@@ -1241,7 +1296,7 @@ function Router() {
         {/* Privacy Routes */}
         <Route path="/clients/:id/privacy">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <PrivacyDashboard />
             </PrivacyLayout>
           )}
@@ -1262,14 +1317,14 @@ function Router() {
         </Route>
         <Route path="/clients/:id/privacy/inventory">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <DataInventory />
             </PrivacyLayout>
           )}
         </Route>
         <Route path="/clients/:id/privacy/ropa">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <ROPADashboard />
             </PrivacyLayout>
           )}
@@ -1290,7 +1345,7 @@ function Router() {
         </Route>
         <Route path="/clients/:id/privacy/dpia">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <DPIAManager />
             </PrivacyLayout>
           )}
@@ -1304,7 +1359,7 @@ function Router() {
         </Route>
         <Route path="/clients/:id/privacy/transfers">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <TransferDashboard />
             </PrivacyLayout>
           )}

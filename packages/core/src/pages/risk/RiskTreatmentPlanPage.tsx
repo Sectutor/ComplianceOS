@@ -183,7 +183,7 @@ export default function RiskTreatmentPlanPage() {
                                         <TableCell className="align-top py-4">
                                             <div className="space-y-1">
                                                 <div className="font-medium text-slate-900 line-clamp-2">{treatment.strategy}</div>
-                                                <Link href={`/clients/${clientId}/risks/assessments/${treatment.riskAssessmentId}`}>
+                                                <Link href={`/clients/${clientId}/risks/register?openRiskId=${treatment.riskAssessmentId}`}>
                                                     <div className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer w-fit">
                                                         Risk: {treatment.riskTitle} ({treatment.riskId})
                                                     </div>
@@ -233,7 +233,7 @@ export default function RiskTreatmentPlanPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => setLocation(`/clients/${clientId}/risks/assessments/${treatment.riskAssessmentId}`)}
+                                                onClick={() => setLocation(`/clients/${clientId}/risks/register?openRiskId=${treatment.riskAssessmentId}`)}
                                             >
                                                 View Risk <ArrowRight className="w-4 h-4 ml-1" />
                                             </Button>

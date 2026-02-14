@@ -1,7 +1,9 @@
 
 import { config } from "dotenv";
-config();
+config({ path: ".env.local" });
+config(); // Fallback to .env for other variables if not in .env.local
 import { getDb } from "./packages/core/src/db";
+
 import {
     clients, users, crmEngagements, crmActivities, crmContacts, userClients,
     controls, clientControls, evidence
@@ -17,7 +19,7 @@ async function main() {
     }
 
     // 1. Create a "Demo Client" if not exists
-    const [existingClient] = await db.select().from(clients).where(eq(clients.domain, "acme-simulation.com")).limit(1);
+    const [existingClient] = await db.select().from(clients).where(eq(clients.name, "Acme Corp Simulation")).limit(1);
     let client = existingClient;
     let clientId = client?.id;
 
@@ -25,7 +27,6 @@ async function main() {
         console.log("Creating Simulation Client: Acme Corp Simulation...");
         const [newClient] = await db.insert(clients).values({
             name: "Acme Corp Simulation",
-            domain: "acme-simulation.com",
             industry: "FinTech",
             description: "High-growth fintech startup preparing for SOC 2 Type 2.",
             activeModules: ["crm", "controls", "policies"]

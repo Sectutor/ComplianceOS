@@ -1,10 +1,11 @@
 
 import { config } from "dotenv";
+config({ path: ".env.local" });
 config();
-import { getDb } from "./db";
+import { getDb } from "./packages/core/src/db";
 import {
     clients, users, crmEngagements, crmActivities, crmContacts, userClients, controls, clientControls, evidence
-} from "./schema";
+} from "./packages/core/src/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function seedComplianceSimulation() {
@@ -16,14 +17,13 @@ export async function seedComplianceSimulation() {
     }
 
     // 1. Create a "Demo Client" if not exists
-    const [existingClient] = await db.select().from(clients).where(eq(clients.domain, "acme-simulation.com")).limit(1);
+    const [existingClient] = await db.select().from(clients).where(eq(clients.name, "Acme Corp (Simulation)")).limit(1);
     let client = existingClient;
 
     if (!client) {
         console.log("Creating Simulation Client: Acme Corp (Simulation)...");
         const [newClient] = await db.insert(clients).values({
             name: "Acme Corp (Simulation)",
-            domain: "acme-simulation.com",
             industry: "FinTech",
             description: "High-growth fintech startup preparing for SOC 2 Type 2.",
             activeModules: ["crm", "controls", "policies"]

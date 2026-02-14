@@ -1,8 +1,10 @@
 
 import { config } from "dotenv";
-config();
+config({ path: ".env.local" });
+config(); // Fallback to .env for other variables if not in .env.local
 import { getDb } from "./packages/core/src/db";
 import { crmEngagements, crmContacts, crmActivities, clients, users, userClients } from "./packages/core/src/schema";
+
 import { eq, and } from "drizzle-orm"; // Added 'and' check
 
 async function main() {
@@ -14,14 +16,12 @@ async function main() {
     }
 
     const uniqueSuffix = Date.now().toString().slice(-4);
-    const domain = `acme-${uniqueSuffix}.com`;
 
     try {
         // 1. Client
         console.log("Creating Client...");
         const [newClient] = await db.insert(clients).values({
             name: `Acme Corp ${uniqueSuffix}`,
-            domain: domain,
             industry: "FinTech",
             activeModules: ["crm", "controls", "policies"]
         }).returning();
@@ -31,7 +31,7 @@ async function main() {
         // 2. User
         console.log("Creating User...");
         const [newUser] = await db.insert(users).values({
-            email: `sarah@${domain}`,
+            email: `sarah@acme-${uniqueSuffix}.com`,
             name: "Sarah Jenkins",
             openId: `sim-user-${uniqueSuffix}`,
             role: "admin"
@@ -59,7 +59,7 @@ async function main() {
             clientId,
             firstName: "Marcus",
             lastName: "Torres",
-            email: `marcus.cto@${domain}`,
+            email: `marcus.cto@acme-${uniqueSuffix}.com`,
             jobTitle: "CTO",
             isPrimary: true
         });

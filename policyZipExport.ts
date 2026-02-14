@@ -1,7 +1,7 @@
 import archiver from "archiver";
 import { Writable } from "stream";
-import * as db from "./db";
-import { generateProfessionalDocx, generateProfessionalHtml } from "./policyExportProfessional";
+import * as db from "./packages/core/src/db";
+import { generateProfessionalDocx, generateProfessionalHtml } from "./packages/core/src/policyExportProfessional";
 
 interface PolicyExportItem {
   id: number;
@@ -29,7 +29,7 @@ export async function generatePoliciesZip(clientId: number): Promise<Buffer> {
 
   // Get all policies for the client
   const policies = await db.getClientPolicies(clientId);
-  
+
   if (!policies || policies.length === 0) {
     throw new Error("No policies found for this client");
   }
@@ -55,11 +55,11 @@ export async function generatePoliciesZip(clientId: number): Promise<Buffer> {
   for (const policyData of policies) {
     const policy = policyData.clientPolicy;
     const template = policyData.template;
-    
+
     // Sanitize policy name for filename
     const safeName = policy.name.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "_");
     const folderName = `${safeName}_v${policy.version}`;
-    
+
     // Prepare export data
     const exportData = {
       name: policy.name,
@@ -115,7 +115,7 @@ function generateReadme(clientName: string, policyCount: number): string {
     month: "long",
     day: "numeric",
   });
-  
+
   return `
 ================================================================================
                         POLICY DOCUMENT EXPORT

@@ -121,6 +121,10 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     riskOwner: initialData.riskOwner || '',
                     priority: initialData.priority || 'Medium',
                 });
+                // If this is a new risk being created via a deep link/pre-fill, 
+                // skip the method selection and jump to scope definition
+                const isQuickStart = !initialData.id && (initialData.title || initialData.description || initialData.assetId);
+                setStep(isQuickStart ? 'scope' : 'method');
             } else {
                 setFormData({
                     assessmentType: 'asset',

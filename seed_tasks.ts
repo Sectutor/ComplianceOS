@@ -1,8 +1,8 @@
 
 import { config } from "dotenv";
 config();
-import { getDb } from "./db";
-import { remediationTasks } from "./schema";
+import { getDb } from "./packages/core/src/db";
+import { remediationTasks } from "./packages/core/src/schema";
 
 async function main() {
     console.log("Seeding Remediation Tasks (Blind Insert)...");

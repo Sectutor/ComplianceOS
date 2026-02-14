@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { sql } from "drizzle-orm";
-import { getDb } from "./db";
+import { getDb } from "./packages/core/src/db";
 
 async function runMigration() {
     console.log("Starting manual migration for report_logs...");

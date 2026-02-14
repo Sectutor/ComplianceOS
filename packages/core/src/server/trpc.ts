@@ -1,29 +1,15 @@
-
-import { initTRPC, TRPCError } from "@trpc/server";
-import superjson from "superjson";
-import { Context } from "./context";
+import { TRPCError } from "@trpc/server";
 import * as db from "../db";
 import * as schema from "../schema";
 import { userClients } from "../schema";
 import { eq, and, asc } from "drizzle-orm";
+import { rateLimiter } from "../lib/redis";
+import { router, publicProcedure, middleware, t } from "./trpc-base";
+export { router, publicProcedure, middleware, t };
 
-const t = initTRPC.context<Context>().create({
-    // transformer: superjson,
-    errorFormatter({ shape, error }) {
-        return {
-            ...shape,
-            data: {
-                ...shape.data,
-                zodError: error.cause instanceof Error ? error.cause.message : null,
-            },
-        };
-    },
-});
+// Import enterprise middlewares after defining base exports to avoid circular dependency issues
+import { performanceTracker, auditLogger } from "./enterprise-middleware";
 
-export { t };
-export const router = t.router;
-export const publicProcedure = t.procedure;
-export const middleware = t.middleware;
 
 export const isAuthed = middleware(async ({ ctx, next }) => {
     if (!ctx.user) {
@@ -43,6 +29,29 @@ export const isAuthed = middleware(async ({ ctx, next }) => {
             user: ctx.user,
         },
     });
+});
+
+/**
+ * Enterprise Rate Limiting Middleware
+ */
+export const rateLimit = middleware(async ({ ctx, next, path }) => {
+    // Skip rate limiting if disabled in env
+    if (process.env.RATE_LIMITING_ENABLED !== 'true') return next();
+
+    const identifier = ctx.user?.id?.toString() || ctx.ip || 'anonymous';
+    const limit = Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
+    const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000;
+
+    const limited = await rateLimiter.isRateLimited(`${path}:${identifier}`, limit, windowMs);
+
+    if (limited) {
+        throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: 'Too many requests. Please try again later.'
+        });
+    }
+
+    return next();
 });
 
 export const isAdmin = middleware(async ({ ctx, next }) => {
@@ -236,7 +245,7 @@ export const requiresMFA = middleware(async ({ ctx, next }) => {
     return next();
 });
 
-export const protectedProcedure = publicProcedure.use(isAuthed);
+export const protectedProcedure = publicProcedure.use(rateLimit).use(performanceTracker).use(auditLogger).use(isAuthed);
 export const adminProcedure = protectedProcedure.use(requiresMFA).use(isAdmin);
 export const clientProcedure = protectedProcedure.use(requiresMFA).use(checkClientAccess);
 export const clientEditorProcedure = clientProcedure.use(checkClientEditor);
