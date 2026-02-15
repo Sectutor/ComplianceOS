@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { useParams } from "wouter";
+import React, { useState, useEffect } from 'react';
+import { trpc } from '@/lib/trpc';
+import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
 import {
     ShieldCheck,
@@ -40,15 +41,125 @@ export default function NIST80037Select() {
     const { id } = useParams<{ id: string }>();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
+    const [showAllControls, setShowAllControls] = useState(false);
+    const [baselineLevel, setBaselineLevel] = useState("Moderate");
+    const [diagnosticsEnabled, setDiagnosticsEnabled] = useState(true);
+    const [assessmentFrequency, setAssessmentFrequency] = useState("QUARTERLY");
+    const [controls, setControls] = useState([
+        { id: "AC-2", title: "Account Management", family: "Access Control", tailoring: "Inherited (Common)", type: "Technical" },
+        { id: "AU-6", title: "Audit Record Review, Analysis, and Reporting", family: "Audit and Accountability", tailoring: "Tailored (Modified)", type: "Operational" },
+        { id: "PE-2", title: "Physical Access Authorizations", family: "Physical and Environmental", tailoring: "Not Applicable", type: "Management" },
+        { id: "SA-10", title: "Developer Configuration Management", family: "System and Services Acquisition", tailoring: "Selected", type: "Technical" }
+    ]);
+    const [monitoringPlan, setMonitoringPlan] = useState("");
+
+    const checklistQuery = trpc.checklist.get.useQuery({ clientId, checklistId: "nist-800-37-select" });
+    const categorizationQuery = trpc.checklist.get.useQuery({ clientId, checklistId: "nist-800-37-categorize" });
+
+    const [highWaterMark, setHighWaterMark] = useState("MODERATE");
+
+    useEffect(() => {
+        if (categorizationQuery.data?.items) {
+            const items = categorizationQuery.data.items as any;
+            if (items.objectives) {
+                const levels = Object.values(items.objectives).map((o: any) => o.level);
+                if (levels.includes("High")) setHighWaterMark("HIGH");
+                else if (levels.includes("Moderate")) setHighWaterMark("MODERATE");
+                else setHighWaterMark("LOW");
+            }
+        }
+    }, [categorizationQuery.data]);
+
+    const isAligned = highWaterMark === baselineLevel.toUpperCase();
+    const confidenceScore = isAligned ? 94 : 65;
+    const tailoredCount = controls.filter(c => c.tailoring !== "Inherited (Common)").length;
+    const inheritedCount = controls.filter(c => c.tailoring === "Inherited (Common)").length;
+
+    // Detailed Tailoring Stats
+    const scopingCount = controls.filter(c => c.tailoring === "Not Applicable" || c.tailoring === "Tailored (Modified)").length;
+    const compensatingCount = controls.filter(c => c.id.startsWith("New-")).length; // Mock: new controls = compensating for this demo
+    const parameterCount = controls.filter(c => c.tailoring === "Selected").length; // Mock: selected = parameter updates
+
+    const baselineTotals: Record<string, number> = {
+        "Low": 125,
+        "Moderate": 325,
+        "High": 542
+    };
+    const currentBaselineTotal = baselineTotals[baselineLevel] || 325;
+
+    const updateChecklistMutation = trpc.checklist.update.useMutation({
+        onSuccess: () => {
+            toast.success("Control Selection Saved", { description: "Initial baseline and tailoring actions updated." });
+            setIsSaving(false);
+            checklistQuery.refetch();
+        },
+        onError: () => {
+            setIsSaving(false);
+            toast.error("Failed to save selection");
+        }
+    });
+
+    useEffect(() => {
+        if (checklistQuery.data?.items) {
+            const items = checklistQuery.data.items as any;
+            if (items.baseline) setBaselineLevel(items.baseline);
+            if (items.controls) setControls(items.controls);
+            if (items.monitoring) setMonitoringPlan(items.monitoring);
+            if (items.diagnosticsEnabled !== undefined) setDiagnosticsEnabled(items.diagnosticsEnabled);
+            if (items.assessmentFrequency) setAssessmentFrequency(items.assessmentFrequency);
+        }
+    }, [checklistQuery.data]);
 
     const handleSave = () => {
         setIsSaving(true);
-        setTimeout(() => {
-            setIsSaving(false);
-            toast.success("Control Selection Saved", {
-                description: "Initial baseline and tailoring actions updated.",
-            });
-        }, 1500);
+        updateChecklistMutation.mutate({
+            clientId,
+            checklistId: "nist-800-37-select",
+            items: {
+                baseline: baselineLevel,
+                controls,
+                monitoring: monitoringPlan,
+                diagnosticsEnabled,
+                assessmentFrequency
+            }
+        });
+    };
+
+    const handleExportSSP = () => {
+        const content = `# System Security Plan (SSP) Draft\n\nBaseline: ${baselineLevel}\n\n## Controls\n${controls.map(c => `- ${c.id}: ${c.title} (${c.tailoring})`).join('\n')}\n\n## Monitoring\n${monitoringPlan}`;
+        const blob = new Blob([content], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SSP_Draft_Client_${clientId}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success("SSP Draft Exported");
+    };
+
+    const handleAiTailoring = () => {
+        toast.success("AI Tailoring applied to 3 controls");
+        setControls(prev => [
+            ...prev,
+            { id: "SC-7", title: "Boundary Protection", family: "System and Communications Protection", tailoring: "Tailored (Modified)", type: "Technical" }
+        ]);
+    };
+
+    const handleAddControl = () => {
+        setControls(prev => [...prev, { id: "New-1", title: "New Control", family: "System-Specific", tailoring: "Selected", type: "Operational" }]);
+        toast.success("New control added");
+    };
+
+    const handleToggleTailoring = (index: number) => {
+        const statuses = ["Inherited (Common)", "Tailored (Modified)", "Not Applicable", "Selected"];
+        setControls(prev => prev.map((c, i) => {
+            if (i === index) {
+                const currentIdx = statuses.indexOf(c.tailoring);
+                return { ...c, tailoring: statuses[(currentIdx + 1) % statuses.length] };
+            }
+            return c;
+        }));
     };
 
     return (
@@ -78,7 +189,7 @@ export default function NIST80037Select() {
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <Button variant="outline" className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-100 hover:bg-slate-50 text-slate-600">
+                        <Button variant="outline" onClick={handleExportSSP} className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-100 hover:bg-slate-50 text-slate-600">
                             Export SSP Draft
                         </Button>
                         <Button
@@ -100,23 +211,23 @@ export default function NIST80037Select() {
                             </CardHeader>
                             <CardContent className="space-y-6 relative z-10">
                                 <div className="text-center py-4 bg-white/10 rounded-[2rem] border border-white/10">
-                                    <h2 className="text-4xl font-black text-white tracking-tighter">MODERATE</h2>
-                                    <p className="text-emerald-300 text-[10px] font-black uppercase tracking-widest mt-1">FIPS-199 High Water Mark</p>
+                                    <h2 className="text-4xl font-black text-white tracking-tighter">{baselineLevel.toUpperCase()}</h2>
+                                    <p className="text-emerald-300 text-[10px] font-black uppercase tracking-widest mt-1">FIPS-199 Baseline</p>
                                 </div>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center text-xs font-bold text-emerald-200 uppercase tracking-wider">
                                         <span>Total Baseline Controls</span>
-                                        <span>325</span>
+                                        <span>{currentBaselineTotal}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs font-bold text-emerald-200 uppercase tracking-wider">
-                                        <span>Tailored Out (N/A)</span>
-                                        <span>42</span>
+                                        <span>Selected for System</span>
+                                        <span>{controls.length}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs font-bold text-emerald-200 uppercase tracking-wider">
-                                        <span>Common Controls</span>
-                                        <span>156</span>
+                                        <span>Inherited (Common)</span>
+                                        <span>{inheritedCount}</span>
                                     </div>
-                                    <Progress value={65} className="h-2 bg-emerald-800" indicatorClassName="bg-white" />
+                                    <Progress value={(inheritedCount / Math.max(controls.length, 1)) * 100} className="h-2 bg-emerald-800" indicatorClassName="bg-white" />
                                 </div>
                             </CardContent>
                             <ShieldCheck className="absolute -bottom-10 -left-10 w-48 h-48 text-white/5 -rotate-12" />
@@ -128,9 +239,9 @@ export default function NIST80037Select() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {[
-                                    { label: "Scoping Actions", count: 12, icon: Filter, color: "text-blue-500" },
-                                    { label: "Compensating Controls", count: 3, icon: ShieldAlert, color: "text-amber-500" },
-                                    { label: "Parameter Updates", count: 85, icon: Settings2, color: "text-emerald-500" }
+                                    { label: "Scoping Actions", count: scopingCount, icon: Filter, color: "text-blue-500" },
+                                    { label: "Compensating Controls", count: compensatingCount, icon: ShieldAlert, color: "text-amber-500" },
+                                    { label: "Parameter Updates", count: parameterCount, icon: Settings2, color: "text-emerald-500" }
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
                                         <div className="flex items-center gap-3">
@@ -148,19 +259,19 @@ export default function NIST80037Select() {
                         <Tabs defaultValue="baseline" className="w-full">
                             <div className="border-b px-8 bg-slate-50/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
-                                    <TabsTrigger value="baseline" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="baseline" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Baseline Selection
                                     </TabsTrigger>
-                                    <TabsTrigger value="list" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="list" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Control Tailoring
                                     </TabsTrigger>
-                                    <TabsTrigger value="monitoring" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="monitoring" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Monitoring Strategy
                                     </TabsTrigger>
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[650px]">
+                            <ScrollArea className="h-[900px]">
                                 <TabsContent value="baseline" className="p-10 space-y-10 m-0">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
@@ -171,21 +282,24 @@ export default function NIST80037Select() {
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             {[
                                                 { level: "Low", description: "Limited impact system. Standard baseline controls.", count: 125, color: "indigo" },
-                                                { level: "Moderate", description: "Serious adverse effect system. Comprehensive set.", count: 325, color: "emerald", active: true },
+                                                { level: "Moderate", description: "Serious adverse effect system. Comprehensive set.", count: 325, color: "emerald" },
                                                 { level: "High", description: "Severe adverse effect system. Maximal protection.", count: "500+", color: "rose" }
                                             ].map((lvl, i) => (
-                                                <div key={i} className={cn(
-                                                    "p-8 rounded-[3rem] border transition-all cursor-pointer relative group",
-                                                    lvl.active ? `bg-${lvl.color}-50 border-${lvl.color}-200 shadow-xl shadow-${lvl.color}-500/10` : "bg-white border-slate-100 hover:border-slate-200"
-                                                )}>
-                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-6", lvl.active ? `bg-${lvl.color}-500 text-white` : "bg-slate-100 text-slate-400 group-hover:bg-slate-200")}>
+                                                <div
+                                                    key={i}
+                                                    onClick={() => setBaselineLevel(lvl.level)}
+                                                    className={cn(
+                                                        "p-8 rounded-[3rem] border transition-all cursor-pointer relative group select-none",
+                                                        baselineLevel === lvl.level ? `bg-${lvl.color}-50 border-${lvl.color}-200 shadow-xl shadow-${lvl.color}-500/10` : "bg-white border-slate-100 hover:border-slate-200"
+                                                    )}>
+                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-6", baselineLevel === lvl.level ? `bg-${lvl.color}-500 text-white` : "bg-slate-100 text-slate-400 group-hover:bg-slate-200")}>
                                                         <ShieldCheck className="w-6 h-6" />
                                                     </div>
                                                     <h4 className="text-xl font-black text-slate-900 mb-2">{lvl.level} Impact</h4>
                                                     <p className="text-sm text-slate-500 font-medium mb-6">{lvl.description}</p>
                                                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                                                         <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lvl.count} Controls</span>
-                                                        {lvl.active && <CheckCircle2 className={`w-5 h-5 text-${lvl.color}-500`} />}
+                                                        {baselineLevel === lvl.level && <CheckCircle2 className={`w-5 h-5 text-${lvl.color}-500`} />}
                                                     </div>
                                                 </div>
                                             ))}
@@ -195,20 +309,22 @@ export default function NIST80037Select() {
                                             <div className="relative z-10 space-y-4 text-center md:text-left">
                                                 <h4 className="text-xl font-black tracking-tight">AI Assessment: Baseline Alignment</h4>
                                                 <p className="text-slate-400 font-medium max-w-lg leading-relaxed">
-                                                    Our AI analysis suggests that your Categorization High-Water Mark (MODERATE) perfectly aligns with the selected baseline. 12 recommended tailoring actions identified.
+                                                    {isAligned
+                                                        ? `Our AI analysis confirms that your Categorization High-Water Mark (${highWaterMark}) matches the selected baseline. ${tailoredCount} tailoring actions identified.`
+                                                        : `Warning: Your selected baseline (${baselineLevel.toUpperCase()}) does not match your Categorization High-Water Mark (${highWaterMark}). Consider adjusting to align with FIPS-199.`}
                                                 </p>
-                                                <Button className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold gap-2">
+                                                <Button onClick={handleAiTailoring} className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold gap-2">
                                                     <Zap className="w-4 h-4" /> Apply AI Tailoring Advice
                                                 </Button>
                                             </div>
                                             <div className="relative z-10 grid grid-cols-2 gap-4">
                                                 <div className="p-4 bg-white/5 rounded-2xl text-center border border-white/5">
-                                                    <p className="text-4xl font-black">94%</p>
+                                                    <p className="text-4xl font-black">{confidenceScore}%</p>
                                                     <p className="text-[10px] uppercase font-black tracking-widest text-emerald-400">Confidence</p>
                                                 </div>
                                                 <div className="p-4 bg-white/5 rounded-2xl text-center border border-white/5">
-                                                    <p className="text-4xl font-black">82</p>
-                                                    <p className="text-[10px] uppercase font-black tracking-widest text-indigo-400">Autocompleted</p>
+                                                    <p className="text-4xl font-black">{inheritedCount}</p>
+                                                    <p className="text-[10px] uppercase font-black tracking-widest text-indigo-400">Inherited</p>
                                                 </div>
                                             </div>
                                             <Dna className="absolute -bottom-20 -right-20 w-80 h-80 text-white/5 rotate-12" />
@@ -217,20 +333,45 @@ export default function NIST80037Select() {
                                 </TabsContent>
 
                                 <TabsContent value="list" className="p-10 space-y-8 m-0">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                         <div className="space-y-1">
                                             <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Control Scoping & Tailoring (SL-2)</h3>
-                                            <p className="text-sm text-slate-500 font-medium">Adjust the baseline controls to fit your specific operational context.</p>
+                                            <p className="text-sm text-slate-500 font-medium max-w-2xl">
+                                                Review the security controls in your selected baseline. Use this section to <strong>tailor</strong> controls (mark as N/A, modify, or add system-specific controls).
+                                                <br />
+                                                <span className="text-xs text-slate-400 italic">Currently showing {showAllControls ? "all baseline controls" : "only tailored/modified controls"}.</span>
+                                            </p>
                                         </div>
+                                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                                            <button
+                                                onClick={() => setShowAllControls(false)}
+                                                className={cn("px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all", !showAllControls ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")}
+                                            >
+                                                Tailored Only
+                                            </button>
+                                            <button
+                                                onClick={() => setShowAllControls(true)}
+                                                className={cn("px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all", showAllControls ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")}
+                                            >
+                                                All Controls
+                                            </button>
+                                        </div>
+                                        <Link href={`/clients/${clientId}/federal/ssp`}>
+                                            <Button variant="outline" className="rounded-xl h-10 px-4 font-bold text-xs uppercase tracking-widest gap-2 bg-white">
+                                                <FileText className="w-4 h-4 text-indigo-600" /> Manage in SSP Editor
+                                            </Button>
+                                        </Link>
                                     </div>
 
                                     <div className="space-y-6">
-                                        {[
-                                            { id: "AC-2", title: "Account Management", family: "Access Control", tailoring: "Inherited (Common)", type: "Technical" },
-                                            { id: "AU-6", title: "Audit Record Review, Analysis, and Reporting", family: "Audit and Accountability", tailoring: "Tailored (Modified)", type: "Operational" },
-                                            { id: "PE-2", title: "Physical Access Authorizations", family: "Physical and Environmental", tailoring: "Not Applicable", type: "Management" },
-                                            { id: "SA-10", title: "Developer Configuration Management", family: "System and Services Acquisition", tailoring: "Selected", type: "Technical" }
-                                        ].map((control, i) => (
+                                        {(showAllControls ? [...controls,
+                                        // Mock generic baseline controls when "All" is viewed
+                                        { id: "AC-1", title: "Policy and Procedures", family: "Access Control", tailoring: "Inherited (Common)", type: "Management" },
+                                        { id: "AC-3", title: "Access Enforcement", family: "Access Control", tailoring: "Inherited (Common)", type: "Technical" },
+                                        { id: "AC-4", title: "Information Flow Enforcement", family: "Access Control", tailoring: "Inherited (Common)", type: "Technical" },
+                                        { id: "AT-1", title: "Policy and Procedures", family: "Awareness and Training", tailoring: "Inherited (Common)", type: "Management" },
+                                        { id: "AT-2", title: "Security Awareness Training", family: "Awareness and Training", tailoring: "Inherited (Common)", type: "Operational" },
+                                        ] : controls).map((control, i) => (
                                             <div key={i} className="p-6 bg-white border rounded-[2.5rem] hover:shadow-lg transition-all group">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                                     <div className="flex items-center gap-5">
@@ -258,7 +399,11 @@ export default function NIST80037Select() {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <Button variant="outline" className="rounded-xl h-10 px-4 font-bold text-xs uppercase tracking-widest gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleToggleTailoring(i)}
+                                                            className="rounded-xl h-10 px-4 font-bold text-xs uppercase tracking-widest gap-2"
+                                                        >
                                                             <Settings2 className="w-4 h-4" /> Tailor
                                                         </Button>
                                                         <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-slate-300 hover:text-indigo-600">
@@ -270,7 +415,10 @@ export default function NIST80037Select() {
                                         ))}
                                     </div>
 
-                                    <Button className="w-full bg-slate-50 hover:bg-slate-100 border-2 border-dashed border-slate-200 text-slate-500 rounded-[2rem] h-20 text-lg font-black gap-3 mt-4">
+                                    <Button
+                                        onClick={handleAddControl}
+                                        className="w-full bg-slate-50 hover:bg-slate-100 border-2 border-dashed border-slate-200 text-slate-500 rounded-[2rem] h-20 text-lg font-black gap-3 mt-4"
+                                    >
                                         <Plus className="w-6 h-6" /> Add System-Specific Control
                                     </Button>
                                 </TabsContent>
@@ -289,17 +437,33 @@ export default function NIST80037Select() {
                                             </div>
 
                                             <div className="space-y-4 flex flex-col justify-center">
-                                                <div className="flex items-center justify-between p-4 bg-white border rounded-2xl">
+                                                <div
+                                                    onClick={() => setDiagnosticsEnabled(!diagnosticsEnabled)}
+                                                    className={cn(
+                                                        "flex items-center justify-between p-4 bg-white border rounded-2xl cursor-pointer hover:bg-slate-50 transition-all select-none",
+                                                        diagnosticsEnabled ? "border-emerald-200 shadow-md shadow-emerald-100" : "border-slate-200"
+                                                    )}
+                                                >
                                                     <div className="flex items-center gap-3 font-bold text-slate-700">
-                                                        <ScrollText className="w-5 h-5 text-indigo-500" /> Continuous Diagnostics
+                                                        <ScrollText className={cn("w-5 h-5", diagnosticsEnabled ? "text-emerald-500" : "text-slate-400")} />
+                                                        Continuous Diagnostics
                                                     </div>
-                                                    <Badge className="bg-emerald-50 text-emerald-700 font-black">ACTIVE</Badge>
+                                                    <Badge className={cn("font-black", diagnosticsEnabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
+                                                        {diagnosticsEnabled ? "ACTIVE" : "INACTIVE"}
+                                                    </Badge>
                                                 </div>
-                                                <div className="flex items-center justify-between p-4 bg-white border rounded-2xl">
+                                                <div
+                                                    onClick={() => {
+                                                        const freqs = ["MONTHLY", "QUARTERLY", "ANNUALLY"];
+                                                        const idx = freqs.indexOf(assessmentFrequency);
+                                                        setAssessmentFrequency(freqs[(idx + 1) % freqs.length]);
+                                                    }}
+                                                    className="flex items-center justify-between p-4 bg-white border rounded-2xl cursor-pointer hover:bg-slate-50 transition-all select-none"
+                                                >
                                                     <div className="flex items-center gap-3 font-bold text-slate-700">
                                                         <Network className="w-5 h-5 text-indigo-500" /> Periodic Assessment
                                                     </div>
-                                                    <Badge variant="outline" className="text-slate-400 font-black">QUARTERLY</Badge>
+                                                    <Badge variant="outline" className="text-slate-600 border-indigo-200 font-black bg-indigo-50">{assessmentFrequency}</Badge>
                                                 </div>
                                             </div>
                                         </div>
@@ -328,6 +492,8 @@ export default function NIST80037Select() {
                                                     <Textarea
                                                         placeholder="Describe the frequency and method of assessment for each control set..."
                                                         className="h-full rounded-[2rem] bg-white border-slate-200"
+                                                        value={monitoringPlan}
+                                                        onChange={(e) => setMonitoringPlan(e.target.value)}
                                                     />
                                                 </div>
                                             </div>

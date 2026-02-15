@@ -14,7 +14,7 @@ export default function NISTLayout({ children, fullWidth = false }: PropsWithChi
         { name: "Dashboard", path: `/clients/${selectedClientId}/nist/dashboard`, icon: LayoutDashboard },
         { name: "CSF Assessment", path: `/clients/${selectedClientId}/nist/assessment`, icon: ShieldCheck },
         { name: "Target Profiles", path: `/clients/${selectedClientId}/nist/profiles`, icon: Target },
-        { name: "POAM & Remediation", path: `/clients/${selectedClientId}/nist/poam`, icon: ListTodo },
+        { name: "POAM & Remediation", path: `/clients/${selectedClientId}/federal/poam`, icon: ListTodo },
         { name: "Documents", path: `/clients/${selectedClientId}/nist/documents`, icon: FileText },
     ];
 

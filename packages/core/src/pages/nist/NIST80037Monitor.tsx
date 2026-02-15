@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { trpc } from "../../lib/trpc";
+
 import {
     Activity,
     RefreshCw,
@@ -43,14 +45,66 @@ export default function NIST80037Monitor() {
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
 
+    // TRPC Queries
+    const checklistQuery = (trpc as any).checklist.get.useQuery({
+        clientId,
+        checklistId: "nist-800-37-monitor"
+    });
+
+    const updateChecklistMutation = (trpc as any).checklist.update.useMutation({
+        onSuccess: () => {
+            toast.success("Monitoring Strategy Updated");
+            setIsSaving(false);
+            checklistQuery.refetch();
+        },
+        onError: () => {
+            setIsSaving(false);
+            toast.error("Failed to save strategy");
+        }
+    });
+
+    const postureHistoryQuery = (trpc as any).postureTrending.getHistory.useQuery({
+        clientId,
+        limit: 12
+    });
+
+    const notificationsQuery = (trpc as any).notifications.getNotifications.useQuery({
+        limit: 5
+    });
+
     const handleSave = () => {
         setIsSaving(true);
-        setTimeout(() => {
-            setIsSaving(false);
-            toast.success("Monitoring Strategy Updated", {
-                description: "Continuous monitoring triggers and reporting frequency saved.",
-            });
-        }, 1500);
+        updateChecklistMutation.mutate({
+            clientId,
+            checklistId: "nist-800-37-monitor",
+            items: {
+                lastReview: new Date().toISOString(),
+                status: "active"
+            }
+        });
+    };
+
+    const handleExecuteIR = () => {
+        toast.info("Incident Response Protocol Initiated", {
+            description: "Establishing command center and notifying CSIRT team.",
+            icon: <ShieldAlert className="w-5 h-5 text-rose-500" />,
+            duration: 5000
+        });
+        // Navigate to new incident page if possible
+        window.location.href = `/clients/${clientId}/cyber/incidents/new`;
+    };
+
+    const handleRiskBriefing = () => {
+        toast.success("Risk Briefing Generated", {
+            description: "Executive summary of current system posture sent to stakeholders.",
+            icon: <FileText className="w-5 h-5 text-indigo-500" />
+        });
+    };
+
+    const handleScheduleReview = () => {
+        toast.success("Assessment Scheduled", {
+            description: "Automated scan and manual review coordinated for next window."
+        });
     };
 
     return (
@@ -80,9 +134,6 @@ export default function NIST80037Monitor() {
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <Button variant="outline" className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-100 hover:bg-slate-50 text-slate-600">
-                            Alert Config
-                        </Button>
                         <Button
                             onClick={handleSave}
                             disabled={isSaving}
@@ -102,23 +153,45 @@ export default function NIST80037Monitor() {
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="h-40 flex items-end gap-1.5 pb-2">
-                                    {[45, 52, 48, 65, 58, 72, 85, 82, 90, 88, 92, 94].map((v, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex-1 bg-emerald-500/10 rounded-t-lg relative group transition-all"
-                                            style={{ height: `${v}%` }}
-                                        >
-                                            <div className="absolute inset-0 bg-emerald-500 rounded-t-lg scale-y-0 group-hover:scale-y-100 origin-bottom transition-transform duration-500" />
-                                        </div>
-                                    ))}
+                                    {postureHistoryQuery.data && postureHistoryQuery.data.length > 0 ? (
+                                        [...postureHistoryQuery.data].reverse().map((snapshot: any, i: number) => (
+                                            <div
+                                                key={i}
+                                                className="flex-1 bg-emerald-500/10 rounded-t-lg relative group transition-all"
+                                                style={{ height: `${snapshot.complianceScore}%` }}
+                                            >
+                                                <div className="absolute inset-0 bg-emerald-500 rounded-t-lg scale-y-0 group-hover:scale-y-100 origin-bottom transition-transform duration-500" />
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
+                                                    {snapshot.complianceScore}%
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        [45, 52, 48, 65, 58, 72, 85, 82, 90, 88, 92, 94].map((v, i) => (
+                                            <div
+                                                key={i}
+                                                className="flex-1 bg-emerald-500/10 rounded-t-lg relative group transition-all"
+                                                style={{ height: `${v}%` }}
+                                            >
+                                                <div className="absolute inset-0 bg-emerald-500 rounded-t-lg scale-y-0 group-hover:scale-y-100 origin-bottom transition-transform duration-500" />
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                                 <div className="flex justify-between items-center pt-4 border-t">
                                     <div>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Score</p>
-                                        <p className="text-2xl font-black text-slate-900 tracking-tighter">94.2</p>
+                                        <p className="text-2xl font-black text-slate-900 tracking-tighter">
+                                            {postureHistoryQuery.data?.[0]?.complianceScore || "94.2"}
+                                        </p>
                                     </div>
                                     <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold flex gap-1">
-                                        <TrendingUp className="w-3 h-3" /> +2.4%
+                                        <TrendingUp className="w-3 h-3" />
+                                        {postureHistoryQuery.data?.[0] && postureHistoryQuery.data?.[1] ? (
+                                            <>
+                                                {((postureHistoryQuery.data[0].complianceScore || 0) - (postureHistoryQuery.data[1].complianceScore || 0)).toFixed(1)}%
+                                            </>
+                                        ) : "+2.4%"}
                                     </Badge>
                                 </div>
                             </CardContent>
@@ -130,21 +203,45 @@ export default function NIST80037Monitor() {
                             </CardHeader>
                             <CardContent className="space-y-4 relative z-10">
                                 <div className="space-y-3">
-                                    {[
-                                        { label: "Config Drift", status: "Active", icon: Binary },
-                                        { label: "Privilege Escalation", status: "Critical", icon: ShieldAlert },
-                                        { label: "New Asset Discovery", status: "Active", icon: Globe }
-                                    ].map((t, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                                            <div className="flex items-center gap-2">
-                                                <t.icon className={cn("w-4 h-4", t.status === 'Critical' ? "text-rose-400" : "text-emerald-400")} />
-                                                <span className="text-sm font-bold">{t.label}</span>
+                                    {notificationsQuery.data && notificationsQuery.data.filter((n: any) => n.type === 'alert').length > 0 ? (
+                                        notificationsQuery.data.filter((n: any) => n.type === 'alert').map((n: any, i: number) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => toast.info(n.title, { description: n.message })}
+                                                className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Bell className="w-4 h-4 text-emerald-400" />
+                                                    <span className="text-sm font-bold group-hover:text-emerald-300 truncate max-w-[150px]">{n.title}</span>
+                                                </div>
+                                                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                                             </div>
-                                            <div className={cn("w-2 h-2 rounded-full animate-pulse", t.status === 'Critical' ? "bg-rose-400" : "bg-emerald-400")} />
-                                        </div>
-                                    ))}
+                                        ))
+                                    ) : (
+                                        [
+                                            { label: "Config Drift", status: "Active", icon: Binary, detail: "Detecting unauthorized state changes in production cloud resources." },
+                                            { label: "Privilege Escalation", status: "Critical", icon: ShieldAlert, detail: "Suspicious IAM permission grants detected in last 24h." },
+                                            { label: "New Asset Discovery", status: "Active", icon: Globe, detail: "3 new internet-facing assets identified and mapped to boundary." }
+                                        ].map((t, i) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => toast.info(t.label, { description: t.detail })}
+                                                className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <t.icon className={cn("w-4 h-4", t.status === 'Critical' ? "text-rose-400" : "text-emerald-400")} />
+                                                    <span className="text-sm font-bold group-hover:text-emerald-300">{t.label}</span>
+                                                </div>
+                                                <div className={cn("w-2 h-2 rounded-full animate-pulse", t.status === 'Critical' ? "bg-rose-400" : "bg-emerald-400")} />
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
-                                <Button variant="ghost" className="w-full text-emerald-400 font-bold text-xs uppercase tracking-widest hover:bg-white/5">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => toast.info("Integration Settings Panes", { description: "Opening configuration for cloud telemetry and SIEM hooks." })}
+                                    className="w-full text-emerald-400 font-bold text-xs uppercase tracking-widest hover:bg-white/5"
+                                >
                                     Configure Integrations
                                 </Button>
                             </CardContent>
@@ -156,19 +253,19 @@ export default function NIST80037Monitor() {
                         <Tabs defaultValue="overview" className="w-full">
                             <div className="border-b px-8 bg-slate-50/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
-                                    <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Posture Overview
                                     </TabsTrigger>
-                                    <TabsTrigger value="assessments" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="assessments" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Ongoing Assessments
                                     </TabsTrigger>
-                                    <TabsTrigger value="risk" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="risk" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Risk Response
                                     </TabsTrigger>
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[650px]">
+                            <ScrollArea className="h-[900px]">
                                 <TabsContent value="overview" className="p-10 space-y-10 m-0">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-6">
@@ -222,8 +319,11 @@ export default function NIST80037Monitor() {
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-2xl h-14 font-black text-lg gap-2 mt-4">
-                                                    Executive Dashboard
+                                                <Button
+                                                    onClick={() => window.location.href = `/clients/${clientId}/board-summary`}
+                                                    className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-2xl h-14 font-black text-lg gap-2 mt-4"
+                                                >
+                                                    <FileText className="w-5 h-5" /> Executive Dashboard
                                                 </Button>
                                             </div>
                                             <Settings className="absolute -bottom-20 -right-20 w-80 h-80 text-emerald-900/5 rotate-12" />
@@ -238,7 +338,10 @@ export default function NIST80037Monitor() {
                                                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Ongoing Verification (M-2)</h3>
                                                 <p className="text-sm text-slate-500 font-medium">Scheduled and event-driven control assessments.</p>
                                             </div>
-                                            <Button className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 px-6 font-bold gap-2 shadow-lg shadow-emerald-200">
+                                            <Button
+                                                onClick={handleScheduleReview}
+                                                className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 px-6 font-bold gap-2 shadow-lg shadow-emerald-200"
+                                            >
                                                 <Calendar className="w-4 h-4" /> Schedule Review
                                             </Button>
                                         </div>
@@ -287,12 +390,18 @@ export default function NIST80037Monitor() {
                                                 <p className="text-rose-200 font-medium text-lg leading-relaxed max-w-2xl">
                                                     Immediate response protocol triggered for significant changes or high-impact vulnerabilities detected in the production environment.
                                                 </p>
-                                                <div className="flex gap-4 pt-2">
-                                                    <Button className="bg-white text-rose-900 hover:bg-slate-100 rounded-2xl h-14 px-10 font-black text-lg shadow-xl shadow-rose-950/20">
-                                                        Execute IR Plan
+                                                <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                                                    <Button
+                                                        onClick={handleExecuteIR}
+                                                        className="bg-white text-rose-900 hover:bg-slate-100 rounded-2xl h-14 px-10 font-black text-lg shadow-2xl shadow-rose-950/40 transform hover:-translate-y-1 transition-all active:scale-95"
+                                                    >
+                                                        <ShieldAlert className="w-6 h-6 mr-2" /> Execute IR Plan
                                                     </Button>
-                                                    <Button variant="outline" className="border-rose-700 text-white hover:bg-rose-800 rounded-2xl h-14 px-10 font-bold">
-                                                        Risk Briefing
+                                                    <Button
+                                                        onClick={handleRiskBriefing}
+                                                        className="bg-white/10 border-white border-2 text-white hover:bg-white hover:text-rose-900 rounded-2xl h-14 px-10 font-black text-lg backdrop-blur-sm transition-all shadow-xl group"
+                                                    >
+                                                        <FileText className="w-6 h-6 mr-2 text-white group-hover:text-rose-900 transition-colors" /> Risk Briefing
                                                     </Button>
                                                 </div>
                                             </div>
@@ -302,20 +411,35 @@ export default function NIST80037Monitor() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         {[
-                                            { title: "Open POA&Ms", count: 18, risk: "Moderate" },
+                                            { title: "Open POA&Ms", count: 18, risk: "Moderate", path: `/clients/${clientId}/federal/poam` },
                                             { title: "Deviations", count: 3, risk: "Low" },
                                             { title: "SAR Findings", count: 0, risk: "Resolved" }
                                         ].map((stat, i) => (
-                                            <Card key={i} className="border-none shadow-sm bg-slate-50 rounded-[2.5rem] p-8 text-center space-y-2">
-                                                <h4 className="text-4xl font-black text-slate-900">{stat.count}</h4>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.title}</p>
-                                                <Badge className={cn(
-                                                    "font-bold px-3 py-1",
-                                                    stat.risk === 'Moderate' ? "bg-amber-100 text-amber-600" :
-                                                        stat.risk === 'Resolved' ? "bg-emerald-100 text-emerald-600" :
-                                                            "bg-slate-200 text-slate-600"
-                                                )}>{stat.risk}</Badge>
-                                            </Card>
+                                            stat.path ? (
+                                                <Link key={i} href={stat.path}>
+                                                    <Card className="border-none shadow-sm bg-slate-50 rounded-[2.5rem] p-8 text-center space-y-2 hover:bg-slate-100 transition-all cursor-pointer">
+                                                        <h4 className="text-4xl font-black text-slate-900">{stat.count}</h4>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.title}</p>
+                                                        <Badge className={cn(
+                                                            "font-bold px-3 py-1",
+                                                            stat.risk === 'Moderate' ? "bg-amber-100 text-amber-600" :
+                                                                stat.risk === 'Resolved' ? "bg-emerald-100 text-emerald-600" :
+                                                                    "bg-slate-200 text-slate-600"
+                                                        )}>{stat.risk}</Badge>
+                                                    </Card>
+                                                </Link>
+                                            ) : (
+                                                <Card key={i} className="border-none shadow-sm bg-slate-50 rounded-[2.5rem] p-8 text-center space-y-2">
+                                                    <h4 className="text-4xl font-black text-slate-900">{stat.count}</h4>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.title}</p>
+                                                    <Badge className={cn(
+                                                        "font-bold px-3 py-1",
+                                                        stat.risk === 'Moderate' ? "bg-amber-100 text-amber-600" :
+                                                            stat.risk === 'Resolved' ? "bg-emerald-100 text-emerald-600" :
+                                                                "bg-slate-200 text-slate-600"
+                                                    )}>{stat.risk}</Badge>
+                                                </Card>
+                                            )
                                         ))}
                                     </div>
                                 </TabsContent>

@@ -287,6 +287,7 @@ const NIST80037Implement = lazy(() => import("./pages/nist/NIST80037Implement"))
 const NIST80037Assess = lazy(() => import("./pages/nist/NIST80037Assess"));
 const NIST80037Authorize = lazy(() => import("./pages/nist/NIST80037Authorize"));
 const NIST80037Monitor = lazy(() => import("./pages/nist/NIST80037Monitor"));
+const NISTSystemRegistry = lazy(() => import("./pages/nist/NISTSystemRegistry"));
 const NIST80030RiskAssessment = lazy(() => import("./pages/nist/NIST80030RiskAssessment"));
 const NIST80030ThreatModeling = lazy(() => import("./pages/nist/NIST80030ThreatModeling"));
 const NIST80030ImpactAnalysis = lazy(() => import("./pages/nist/NIST80030ImpactAnalysis"));
@@ -346,12 +347,15 @@ function UnifiedClientGuard({
       enabled: !!effectiveClientId,
       retry: false,
       staleTime: 1000 * 60 * 5,
-      onSuccess: (data) => {
-        if (data?.planTier) setPlanTier(data.planTier);
-        if (data?.userRole) setUserRole(data.userRole);
-      }
     }
   );
+
+  useEffect(() => {
+    if (client) {
+      if (client.planTier) setPlanTier(client.planTier);
+      if (client.userRole) setUserRole(client.userRole);
+    }
+  }, [client, setPlanTier, setUserRole]);
 
   useEffect(() => {
     if (userMe?.planTier && !client) setPlanTier(userMe.planTier);
@@ -767,6 +771,9 @@ function Router() {
               </NISTLayout>
             )} />
           )}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/systems">
+          {(_params) => <ProtectedRoute component={NISTSystemRegistry} />}
         </Route>
         <Route path="/clients/:id/nist/rmf">
           {(_params) => <ProtectedRoute component={NIST80037Dashboard} />}
@@ -1255,9 +1262,6 @@ function Router() {
         </Route>
         <Route path="/clients/:id/roadmap/:roadmapId">
           {(_params) => <ProtectedRoute component={RoadmapDetailsPage} />}
-        </Route>
-        <Route path="/clients/:id/readiness/roadmap">
-          {(_params) => <ProtectedRoute component={RoadmapPage} />}
         </Route>
         {/* Legacy redirect or alias if needed, keeping for robustness but user wants Strategic */}
         <Route path="/clients/:id/readiness/roadmap/:roadmapId">

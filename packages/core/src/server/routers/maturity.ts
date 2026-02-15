@@ -290,20 +290,28 @@ export const createMaturityRouter = (t: any, clientProcedure: any) => {
                 targetTier: z.number(),
             }))
             .mutation(async ({ input }: { input: any }) => {
-                const dbConn = await db.getDb();
-                return await dbConn.insert(maturitySchema.nistTiers).values({
-                    clientId: input.clientId,
-                    functionCode: input.functionCode,
-                    currentTier: input.currentTier,
-                    targetTier: input.targetTier,
-                }).onConflictDoUpdate({
-                    target: [maturitySchema.nistTiers.clientId, maturitySchema.nistTiers.functionCode],
-                    set: {
+                console.log('[TRPC] saveNistTier called with:', input);
+                try {
+                    const dbConn = await db.getDb();
+                    const result = await dbConn.insert(maturitySchema.nistTiers).values({
+                        clientId: input.clientId,
+                        functionCode: input.functionCode,
                         currentTier: input.currentTier,
                         targetTier: input.targetTier,
-                        updatedAt: new Date(),
-                    }
-                });
+                    }).onConflictDoUpdate({
+                        target: [maturitySchema.nistTiers.clientId, maturitySchema.nistTiers.functionCode],
+                        set: {
+                            currentTier: input.currentTier,
+                            targetTier: input.targetTier,
+                            updatedAt: new Date(),
+                        }
+                    }).returning();
+                    console.log('[TRPC] saveNistTier success:', result);
+                    return result;
+                } catch (e) {
+                    console.error('[TRPC] saveNistTier error:', e);
+                    throw e;
+                }
             }),
     });
 };

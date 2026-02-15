@@ -216,20 +216,58 @@ export default function NISTProfiles() {
             <div className="grid md:grid-cols-4 gap-6">
                 {TIERS.map((tier) => {
                     const isActive = (activeMode === 'current' ? Object.values(currentTiers) : Object.values(targetTiers)).some(t => t === tier.id);
+
+                    // Define specific styles for each tier
+                    const tierStyles = {
+                        1: {
+                            activeBg: "bg-slate-50",
+                            activeBorder: "border-slate-300",
+                            badgeParams: "bg-slate-600 text-white hover:bg-slate-700",
+                            ring: "ring-slate-200",
+                            iconColor: "text-slate-500"
+                        },
+                        2: {
+                            activeBg: "bg-blue-50",
+                            activeBorder: "border-blue-300",
+                            badgeParams: "bg-blue-600 text-white hover:bg-blue-700",
+                            ring: "ring-blue-200",
+                            iconColor: "text-blue-500"
+                        },
+                        3: {
+                            activeBg: "bg-violet-50",
+                            activeBorder: "border-violet-300",
+                            badgeParams: "bg-violet-600 text-white hover:bg-violet-700",
+                            ring: "ring-violet-200",
+                            iconColor: "text-violet-500"
+                        },
+                        4: {
+                            activeBg: "bg-emerald-50",
+                            activeBorder: "border-emerald-300",
+                            badgeParams: "bg-emerald-600 text-white hover:bg-emerald-700",
+                            ring: "ring-emerald-200",
+                            iconColor: "text-emerald-500"
+                        }
+                    }[tier.id as 1 | 2 | 3 | 4];
+
                     return (
                         <Card key={tier.id} className={cn(
-                            "transition-all duration-300",
-                            isActive ? "bg-white border-blue-200 shadow-md ring-1 ring-blue-50" : "bg-slate-50/50 border-slate-200 opacity-70"
+                            "transition-all duration-300 relative overflow-hidden",
+                            isActive
+                                ? `${tierStyles.activeBg} ${tierStyles.activeBorder} shadow-md ring-1 ${tierStyles.ring}`
+                                : "bg-slate-50/50 border-slate-200 opacity-60 grayscale-[0.5]"
                         )}>
-                            <CardHeader className="pb-2">
-                                <Badge variant={isActive ? "default" : "outline"} className={cn(
-                                    "w-fit mb-2",
-                                    isActive ? "bg-blue-600" : "border-slate-300 text-slate-500"
+                            {isActive && (
+                                <div className={cn("absolute top-0 right-0 w-24 h-24 -mr-6 -mt-6 rounded-full opacity-10 blur-xl", tierStyles.badgeParams.split(' ')[0])} />
+                            )}
+                            <CardHeader className="pb-2 relative z-10">
+                                <Badge variant="default" className={cn(
+                                    "w-fit mb-2 border-0",
+                                    isActive ? tierStyles.badgeParams : "bg-slate-200 text-slate-500 hover:bg-slate-300"
                                 )}>Tier {tier.id}</Badge>
-                                <CardTitle className="text-lg">{tier.name}</CardTitle>
+                                <CardTitle className={cn("text-lg", isActive && tierStyles.iconColor.replace('text-', 'text-'))}>{tier.name}</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-slate-500">{tier.description}</p>
+                            <CardContent className="relative z-10">
+                                <p className="text-sm text-slate-500 leading-relaxed">{tier.description}</p>
                             </CardContent>
                         </Card>
                     );
@@ -290,16 +328,24 @@ export default function NISTProfiles() {
                                             const isCurrent = currentTiers[func] === tier.id;
                                             const isTarget = targetTiers[func] === tier.id;
 
+                                            const tierColor = {
+                                                1: { bg: "bg-slate-50", border: "border-slate-300", ring: "ring-slate-400", solid: "bg-slate-500" },
+                                                2: { bg: "bg-blue-50", border: "border-blue-300", ring: "ring-blue-500", solid: "bg-blue-500" },
+                                                3: { bg: "bg-violet-50", border: "border-violet-300", ring: "ring-violet-500", solid: "bg-violet-500" },
+                                                4: { bg: "bg-emerald-50", border: "border-emerald-300", ring: "ring-emerald-500", solid: "bg-emerald-500" }
+                                            }[tier.id as 1 | 2 | 3 | 4];
+
                                             return (
                                                 <td key={tier.id} className="px-4 py-4 text-center">
                                                     <div
                                                         className={cn(
-                                                            "w-full h-16 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-1 group",
-                                                            "border-dashed border-slate-200 hover:border-blue-300 hover:bg-blue-50/30",
-                                                            isCurrent && !isTarget && "bg-slate-50 border-solid border-slate-300",
-                                                            isTarget && !isCurrent && "bg-blue-50/50 border-solid border-blue-200",
-                                                            isCurrent && isTarget && "bg-gradient-to-br from-slate-50 to-blue-50 border-solid border-blue-200 shadow-sm",
-                                                            (activeMode === 'current' ? isCurrent : isTarget) && "ring-2 ring-blue-500 ring-offset-2"
+                                                            "w-full h-16 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-1 group relative overflow-hidden",
+                                                            "border-dashed border-slate-200 hover:border-slate-300 hover:bg-slate-50/50",
+                                                            isCurrent && !isTarget && `${tierColor.bg} border-solid ${tierColor.border}`,
+                                                            isTarget && !isCurrent && `${tierColor.bg} border-solid ${tierColor.border} opacity-80`,
+                                                            isCurrent && isTarget && `${tierColor.bg} border-solid ${tierColor.border} shadow-sm`,
+                                                            // Active focus ring
+                                                            (activeMode === 'current' ? isCurrent : isTarget) && `ring-2 ${tierColor.ring} ring-offset-2 shadow-md`
                                                         )}
                                                         onClick={() => {
                                                             if (activeMode === 'current') {
@@ -309,17 +355,28 @@ export default function NISTProfiles() {
                                                             }
                                                         }}
                                                     >
-                                                        <div className="flex gap-1">
+                                                        {isCurrent && isTarget && (
+                                                            <div className={cn("absolute inset-0 opacity-10 blur-sm", tierColor.solid)} />
+                                                        )}
+
+                                                        <div className="flex gap-1.5 z-10">
+
                                                             {isCurrent && (
-                                                                <div className="w-2 h-2 rounded-full bg-slate-400 group-hover:scale-110 transition-transform" title="Current Tier" />
+                                                                <div className={cn(
+                                                                    "w-2.5 h-2.5 rounded-full shadow-sm transition-transform group-hover:scale-110",
+                                                                    isTarget ? "bg-slate-700" : tierColor.solid
+                                                                )} title="Current Tier" />
                                                             )}
                                                             {isTarget && (
-                                                                <div className="w-2 h-2 rounded-full bg-blue-500 group-hover:scale-110 transition-transform" title="Target Tier" />
+                                                                <div className={cn(
+                                                                    "w-2.5 h-2.5 rounded-full shadow-sm transition-transform group-hover:scale-110 ring-2 ring-white",
+                                                                    tierColor.solid
+                                                                )} title="Target Tier" />
                                                             )}
                                                         </div>
                                                         <span className={cn(
-                                                            "text-[10px] font-bold uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity",
-                                                            activeMode === 'current' ? "text-slate-500" : "text-blue-500"
+                                                            "text-[10px] font-bold uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity z-10",
+                                                            tierColor.solid.replace('bg-', 'text-')
                                                         )}>
                                                             Set {activeMode}
                                                         </span>
@@ -345,18 +402,31 @@ export default function NISTProfiles() {
                         {FUNCTIONS.map(func => {
                             const gap = targetTiers[func] - currentTiers[func];
                             if (gap <= 0) return null;
+
+                            const targetTierId = targetTiers[func] as 1 | 2 | 3 | 4;
+                            const targetColor = {
+                                1: "text-slate-600",
+                                2: "text-blue-600",
+                                3: "text-violet-600",
+                                4: "text-emerald-600"
+                            }[targetTierId];
+
                             return (
-                                <div key={func} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                <div key={func} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white rounded-md shadow-sm border border-slate-100">
-                                            <Target className="h-4 w-4 text-blue-600" />
+                                        <div className="p-2 bg-white rounded-md shadow-sm border border-slate-100 group-hover:border-slate-200">
+                                            <Target className={cn("h-4 w-4", targetColor)} />
                                         </div>
                                         <div>
-                                            <div className="font-bold text-sm">{func}</div>
-                                            <div className="text-xs text-slate-500">Tier {currentTiers[func]} → Tier {targetTiers[func]}</div>
+                                            <div className="font-bold text-sm text-slate-700">{func}</div>
+                                            <div className="text-xs text-slate-500 flex items-center gap-1">
+                                                <span>Tier {currentTiers[func]}</span>
+                                                <ArrowRight className="h-3 w-3 text-slate-300" />
+                                                <span className={cn("font-medium", targetColor)}>Tier {targetTiers[func]}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200">
+                                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200 shadow-sm">
                                         +{gap} Level{gap > 1 ? 's' : ''}
                                     </Badge>
                                 </div>

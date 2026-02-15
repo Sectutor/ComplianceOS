@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { trpc } from "../../lib/trpc";
 import {
     FileCheck,
     FileSignature,
@@ -40,25 +41,77 @@ export default function NIST80037Authorize() {
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
     const [isAuthorizing, setIsAuthorizing] = useState(false);
+    const [decision, setDecision] = useState<string | null>(null);
+    const [isSigned, setIsSigned] = useState(false);
 
-    const handleSave = () => {
+    // TRPC
+    const { data: checklistData, refetch } = (trpc as any).checklist.get.useQuery({
+        clientId,
+        checklistId: 'nist80037-authorization'
+    });
+
+    const updateChecklistMutation = (trpc as any).checklist.update.useMutation();
+
+    const currentDecision = checklistData?.items?.decision || decision;
+    const currentSignature = checklistData?.items?.isSigned || isSigned;
+
+    const handleSave = async () => {
         setIsSaving(true);
-        setTimeout(() => {
-            setIsSaving(false);
+        try {
+            await updateChecklistMutation.mutateAsync({
+                clientId,
+                checklistId: 'nist80037-authorization',
+                items: {
+                    ...checklistData?.items,
+                    decision: currentDecision,
+                    isSigned: currentSignature,
+                    lastSaved: new Date().toISOString()
+                }
+            });
             toast.success("Authorization Package Saved", {
                 description: "Risk determination and package updates recorded.",
             });
-        }, 1500);
+            refetch();
+        } catch (err) {
+            toast.error("Failed to save draft");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleAuthorize = () => {
+    const handleAuthorize = async () => {
+        if (!currentDecision) {
+            toast.error("Please select an authorization decision");
+            return;
+        }
+        if (!currentSignature) {
+            toast.error("AO Digital Signature is required");
+            return;
+        }
+
         setIsAuthorizing(true);
-        setTimeout(() => {
-            setIsAuthorizing(false);
-            toast.success("System Authorized (ATO)", {
-                description: "The Authority to Operate (ATO) has been officially granted.",
+        try {
+            await updateChecklistMutation.mutateAsync({
+                clientId,
+                checklistId: 'nist80037-authorization',
+                items: {
+                    ...checklistData?.items,
+                    decision: currentDecision,
+                    isSigned: currentSignature,
+                    status: 'granted',
+                    grantedAt: new Date().toISOString()
+                }
             });
-        }, 2000);
+            toast.success("System Authorized (ATO)", {
+                description: `The ${currentDecision} has been officially granted.`,
+            });
+            refetch();
+        } catch (err) {
+            toast.error("Failed to grant authorization");
+        } finally {
+            setIsAuthorizing(true);
+            setTimeout(() => setIsAuthorizing(false), 1000);
+        }
     };
 
     return (
@@ -115,7 +168,9 @@ export default function NIST80037Authorize() {
                             </CardHeader>
                             <CardContent className="space-y-6 relative z-10">
                                 <div className="text-center py-4 bg-white/10 rounded-[2rem] border border-white/10">
-                                    <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Pending</h2>
+                                    <h2 className="text-4xl font-black text-white tracking-tighter uppercase">
+                                        {checklistData?.items?.status === 'granted' ? "Authorized" : "Pending"}
+                                    </h2>
                                     <p className="text-indigo-300 text-[10px] font-black uppercase tracking-widest mt-1">Status of Decision</p>
                                 </div>
                                 <div className="space-y-4">
@@ -167,19 +222,19 @@ export default function NIST80037Authorize() {
                         <Tabs defaultValue="package" className="w-full">
                             <div className="border-b px-8 bg-slate-50/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
-                                    <TabsTrigger value="package" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-rose-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="package" className="data-[state=active]:bg-transparent data-[state=active]:text-rose-700 data-[state=active]:border-b-2 data-[state=active]:border-rose-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Authorization Package
                                     </TabsTrigger>
-                                    <TabsTrigger value="risk" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-rose-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="risk" className="data-[state=active]:bg-transparent data-[state=active]:text-rose-700 data-[state=active]:border-b-2 data-[state=active]:border-rose-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Risk Determination
                                     </TabsTrigger>
-                                    <TabsTrigger value="decision" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-rose-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="decision" className="data-[state=active]:bg-transparent data-[state=active]:text-rose-700 data-[state=active]:border-b-2 data-[state=active]:border-rose-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         ATO Decision
                                     </TabsTrigger>
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[650px]">
+                            <ScrollArea className="h-[900px]">
                                 <TabsContent value="package" className="p-10 space-y-10 m-0">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
@@ -189,26 +244,28 @@ export default function NIST80037Authorize() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             {[
-                                                { title: "SSP", desc: "System Security Plan", status: "Finalized", date: "Feb 14, 2026", icon: FileText, color: "indigo" },
-                                                { title: "SAR", desc: "Security Assessment Report", status: "Review Complete", date: "Feb 15, 2026", icon: ShieldCheck, color: "emerald" },
-                                                { title: "POA&M", desc: "Plan of Action & Milestones", status: "Active", date: "Ongoing", icon: AlertTriangle, color: "amber" }
+                                                { title: "SSP", desc: "System Security Plan", status: "Finalized", date: "Feb 14, 2026", icon: FileText, color: "indigo", path: `/clients/${clientId}/federal/ssp` },
+                                                { title: "SAR", desc: "Security Assessment Report", status: "Review Complete", date: "Feb 15, 2026", icon: ShieldCheck, color: "emerald", path: `/clients/${clientId}/federal/sar` },
+                                                { title: "POA&M", desc: "Plan of Action & Milestones", status: "Active", date: "Ongoing", icon: AlertTriangle, color: "amber", path: `/clients/${clientId}/federal/poam` }
                                             ].map((doc, i) => (
-                                                <div key={i} className="p-8 rounded-[3rem] border border-slate-100 bg-white hover:border-slate-200 transition-all group">
-                                                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6", `bg-${doc.color}-50 text-${doc.color}-600`)}>
-                                                        <doc.icon className="w-7 h-7" />
-                                                    </div>
-                                                    <h4 className="text-xl font-black text-slate-900 mb-1">{doc.title}</h4>
-                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">{doc.desc}</p>
-                                                    <div className="space-y-4">
-                                                        <div className="flex justify-between items-center text-[10px] font-black uppercase">
-                                                            <span className="text-slate-400">Status</span>
-                                                            <span className={cn(doc.status === 'Finalized' ? "text-emerald-500" : "text-slate-900")}>{doc.status}</span>
+                                                <Link key={i} href={doc.path}>
+                                                    <div className="p-8 rounded-[3rem] border border-slate-100 bg-white hover:border-slate-200 transition-all group cursor-pointer h-full">
+                                                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6", `bg-${doc.color}-50 text-${doc.color}-600`)}>
+                                                            <doc.icon className="w-7 h-7" />
                                                         </div>
-                                                        <Button variant="outline" className="w-full rounded-xl h-10 font-bold text-[10px] uppercase tracking-widest gap-2">
-                                                            <Download className="w-3.5 h-3.5" /> View Package
-                                                        </Button>
+                                                        <h4 className="text-xl font-black text-slate-900 mb-1">{doc.title}</h4>
+                                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">{doc.desc}</p>
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                                                                <span className="text-slate-400">Status</span>
+                                                                <span className={cn(doc.status === 'Finalized' ? "text-emerald-500" : "text-slate-900")}>{doc.status}</span>
+                                                            </div>
+                                                            <Button variant="outline" className="w-full rounded-xl h-10 font-bold text-[10px] uppercase tracking-widest gap-2">
+                                                                <Download className="w-3.5 h-3.5" /> View Package
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                </Link>
                                             ))}
                                         </div>
 
@@ -283,10 +340,25 @@ export default function NIST80037Authorize() {
                                             <div className="space-y-4">
                                                 <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Authorization Decision</Label>
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    {["ATO (Full)", "IATT (Test)", "ATO-w-Conditions", "Denied"].map((decision) => (
-                                                        <div key={decision} className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 cursor-pointer hover:border-rose-400 transition-colors">
-                                                            <div className="w-5 h-5 rounded-full border-2 border-slate-200" />
-                                                            <span className="font-bold text-sm text-slate-700">{decision}</span>
+                                                    {["ATO (Full)", "IATT (Test)", "ATO-w-Conditions", "Denied"].map((opt) => (
+                                                        <div
+                                                            key={opt}
+                                                            onClick={() => setDecision(opt)}
+                                                            className={cn(
+                                                                "flex items-center gap-3 p-4 bg-white rounded-2xl border-2 cursor-pointer transition-all",
+                                                                currentDecision === opt ? "border-rose-500 bg-rose-50/30" : "border-slate-100 hover:border-slate-200"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                currentDecision === opt ? "border-rose-500" : "border-slate-200"
+                                                            )}>
+                                                                {currentDecision === opt && <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />}
+                                                            </div>
+                                                            <span className={cn(
+                                                                "font-bold text-sm",
+                                                                currentDecision === opt ? "text-rose-900" : "text-slate-700"
+                                                            )}>{opt}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -294,13 +366,29 @@ export default function NIST80037Authorize() {
 
                                             <div className="space-y-4">
                                                 <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Signature Authority</Label>
-                                                <div className="flex items-center gap-6 p-6 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
-                                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
-                                                        <Plus className="w-8 h-8" />
+                                                <div
+                                                    onClick={() => setIsSigned(!currentSignature)}
+                                                    className={cn(
+                                                        "flex items-center gap-6 p-6 bg-white rounded-[2rem] border-2 border-dashed transition-all cursor-pointer",
+                                                        currentSignature ? "border-emerald-500 bg-emerald-50/30" : "border-slate-200 hover:border-rose-200"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "w-16 h-16 rounded-full flex items-center justify-center transition-all",
+                                                        currentSignature ? "bg-emerald-500 text-white" : "bg-slate-50 text-slate-300"
+                                                    )}>
+                                                        {currentSignature ? <ShieldCheck className="w-8 h-8" /> : <Plus className="w-8 h-8" />}
                                                     </div>
                                                     <div>
-                                                        <p className="text-lg font-black text-slate-900 uppercase tracking-tight">AO Digital Signature</p>
-                                                        <p className="text-xs font-bold text-slate-400">Click to provide PKI or Digital Signature</p>
+                                                        <p className={cn(
+                                                            "text-lg font-black uppercase tracking-tight",
+                                                            currentSignature ? "text-emerald-900" : "text-slate-900"
+                                                        )}>
+                                                            {currentSignature ? "Digital Signature Active" : "AO Digital Signature"}
+                                                        </p>
+                                                        <p className="text-xs font-bold text-slate-400">
+                                                            {currentSignature ? "Signature validated via PKI integration" : "Click to provide PKI or Digital Signature"}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>

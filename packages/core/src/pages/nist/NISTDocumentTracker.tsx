@@ -15,9 +15,32 @@ import {
     MoreHorizontal,
     Filter,
     Search,
-    FileCheck
+    FileCheck,
+    Link as LinkIcon,
+    Plus,
+    Loader2
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@complianceos/ui/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@complianceos/ui/ui/select";
+import { Label } from "@complianceos/ui/ui/label";
 import { Input } from "@complianceos/ui/ui/input";
+import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import {
     Table,
     TableBody,
@@ -34,7 +57,7 @@ import {
 } from "@complianceos/ui/ui/dropdown-menu";
 
 interface DocumentItem {
-    id: string;
+    id: string; // The "Requirement" ID (e.g. nist-doc-1)
     function: string;
     category: string;
     title: string;
@@ -43,6 +66,7 @@ interface DocumentItem {
     owner: string;
     lastUpdated?: string;
     version?: string;
+    linkedEvidenceId?: number; // Added to track linked evidence DB ID
 }
 
 const NIST_DOCUMENTS: DocumentItem[] = [
@@ -165,9 +189,137 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
     const { selectedClientId } = useClientContext();
     const clientId = parseInt(params?.id || selectedClientId?.toString() || "0");
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedDocForLink, setSelectedDocForLink] = useState<DocumentItem | null>(null);
+    const [selectedEvidenceIdToLink, setSelectedEvidenceIdToLink] = useState<string>("");
+    const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+    const [isFilesDialogOpen, setIsFilesDialogOpen] = useState(false);
+    const [selectedDocForFiles, setSelectedDocForFiles] = useState<DocumentItem | null>(null);
 
-    // Status Badge Helper
-    const getStatusBadge = (status: string) => {
+    // Fetch Evidence Data
+    const { data: evidenceList, isLoading, refetch } = trpc.evidence.list.useQuery(
+        { clientId },
+        { enabled: clientId > 0 }
+    );
+
+    const createEvidenceMutation = trpc.evidence.create.useMutation({
+        onSuccess: () => {
+            toast.success("Document added to evidence collection");
+            refetch();
+        },
+        onError: (err) => toast.error(`Failed to add document: ${err.message}`)
+    });
+
+    // Mutation for updating evidence (linking)
+    const updateMutation = trpc.evidence.updateStatus.useMutation({
+        onSuccess: () => {
+            toast.success("Evidence updated successfully"); // updateStatus usually implies verification, but here we might abuse it or need a real update
+            // Wait, I am using updateStatus in handleLinkEvidence in my thought process, but wait, updateStatus takes 'status'.
+            // It does NOT take description.
+            // I need to use 'update' if it exists.
+            // The previous file had `trpc.evidence.update` usage in Evidence.tsx, so it MUST exist.
+            // I will stick to 'update' here.
+            refetch();
+        },
+        onError: (err) => toast.error(`Failed to link evidence: ${err.message}`)
+    });
+
+    // START FIX: Use 'update' instead of 'updateStatus' because we are updating description.
+    const realUpdateMutation = trpc.evidence.update.useMutation({
+        onSuccess: () => {
+            toast.success("Evidence linked successfully");
+            setIsLinkDialogOpen(false);
+            refetch();
+        },
+        onError: (err) => toast.error(`Failed to link evidence: ${err.message}`)
+    });
+
+    const flagMutation = trpc.evidence.update.useMutation({
+        onSuccess: () => {
+            toast.success("Document flagged as outdated");
+            refetch();
+        },
+        onError: (err) => toast.error(`Failed to flag document: ${err.message}`)
+    });
+    // END FIX
+
+    // Helper to find linked evidence
+    const getLinkedEvidence = (doc: DocumentItem) => {
+        if (!evidenceList) return null;
+        return evidenceList.find(e =>
+            (e.description && e.description.includes(`[${doc.category}]`)) ||
+            (e.title === doc.title) ||
+            (e.evidenceId === doc.category) || // Match strictly on category code if used as evidenceId
+            (e.title && e.title.toLowerCase() === doc.title.toLowerCase())
+        );
+    };
+
+    // Helper to determine status from evidence
+    const getDocStatus = (doc: DocumentItem, linkedEvidence: any): DocumentItem["status"] => {
+        if (!linkedEvidence) return "not_started";
+        const status = linkedEvidence.status;
+        if (status === "verified") return "approved";
+        if (status === "pending" || status === "collected") return "review";
+        if (status === "draft") return "draft";
+        return "not_started";
+    };
+
+    // Helper to create evidence for a doc
+    const handleAddDocument = (doc: DocumentItem) => {
+        createEvidenceMutation.mutate({
+            clientId,
+            clientControlId: 0,
+            evidenceId: `NIST-${doc.category}`,
+            description: `${doc.title} [${doc.category}]`,
+            type: "Document",
+            status: "pending",
+            owner: doc.owner,
+            location: "Pending Upload"
+        });
+    };
+
+    // Helper to link existing evidence
+    const handleLinkEvidence = () => {
+        if (!selectedDocForLink || !selectedEvidenceIdToLink) return;
+
+        const evidence = evidenceList?.find(e => e.id.toString() === selectedEvidenceIdToLink);
+        if (!evidence) return;
+
+        // Append tag to description if not present
+        const tag = `[${selectedDocForLink.category}]`;
+        let newDesc = evidence.description || "";
+        if (!newDesc.includes(tag)) {
+            newDesc = `${newDesc} ${tag}`.trim();
+        }
+
+        realUpdateMutation.mutate({
+            id: evidence.id,
+            description: newDesc,
+            evidenceId: evidence.evidenceId
+        });
+    };
+
+    const handleFlagOutdated = (doc: DocumentItem) => {
+        const linked = getLinkedEvidence(doc);
+        if (!linked) return toast.error("No linked evidence to flag.");
+
+        flagMutation.mutate({
+            id: linked.id,
+            status: "pending",
+            description: linked.description
+        });
+    };
+
+    const handleViewFiles = (doc: DocumentItem) => {
+        const linked = getLinkedEvidence(doc);
+        if (!linked) {
+            toast.error("No linked evidence to view. Please add evidence first.");
+            return;
+        }
+        setSelectedDocForFiles(doc);
+        setIsFilesDialogOpen(true);
+    };
+
+    const statusBadge = (status: string) => {
         switch (status) {
             case "approved":
                 return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 italic">Approved</Badge>;
@@ -176,18 +328,27 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
             case "draft":
                 return <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 italic">Draft</Badge>;
             default:
-                return <Badge variant="outline" className="text-slate-500 border-slate-200 italic">Not Started</Badge>;
+                return <Badge variant="outline" className="text-slate-500 border-slate-200 italic">Missing</Badge>;
         }
     };
 
-    const filteredDocs = NIST_DOCUMENTS.filter(doc =>
+    const filteredDocs = NIST_DOCUMENTS.map(doc => {
+        const linked = getLinkedEvidence(doc);
+        return {
+            ...doc,
+            linkedEvidence: linked,
+            status: getDocStatus(doc, linked),
+            lastUpdated: linked?.lastVerified ? new Date(linked.lastVerified).toLocaleDateString() : (linked ? "Pending" : undefined),
+            version: linked ? "1.0" : undefined
+        };
+    }).filter(doc =>
         doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         doc.function.toLowerCase().includes(searchQuery.toLowerCase()) ||
         doc.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const completionPercentage = Math.round(
-        (NIST_DOCUMENTS.filter(d => d.status === "approved").length / NIST_DOCUMENTS.length) * 100
+        (filteredDocs.filter(d => d.status === "approved").length / NIST_DOCUMENTS.length) * 100
     );
 
     return (
@@ -229,19 +390,19 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
                         </div>
                         <div className="text-center">
                             <p className="text-2xl font-bold text-emerald-600">
-                                {NIST_DOCUMENTS.filter(d => d.status === "approved").length}
+                                {filteredDocs.filter(d => d.status === "approved").length}
                             </p>
                             <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-1">Approved</p>
                         </div>
                         <div className="text-center">
                             <p className="text-2xl font-bold text-amber-600">
-                                {NIST_DOCUMENTS.filter(d => d.status === "review").length}
+                                {filteredDocs.filter(d => d.status === "review").length}
                             </p>
                             <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-1">In Review</p>
                         </div>
                         <div className="text-center">
                             <p className="text-2xl font-bold text-slate-400">
-                                {NIST_DOCUMENTS.filter(d => d.status === "not_started").length}
+                                {filteredDocs.filter(d => d.status === "not_started").length}
                             </p>
                             <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-1">Missing</p>
                         </div>
@@ -298,9 +459,30 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
                                                 {doc.title}
                                             </p>
                                             <p className="text-xs text-slate-500 line-clamp-1">{doc.description}</p>
+
+                                            {/* Linked Evidence Indicator */}
+                                            {doc.linkedEvidence ? (
+                                                <div className="flex items-center gap-1.5 mt-1">
+                                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-slate-50 text-slate-600 font-normal border-slate-200">
+                                                        <LinkIcon className="h-3 w-3 mr-1 text-slate-400" />
+                                                        Linked: {doc.linkedEvidence.evidenceId}
+                                                    </Badge>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Button
+                                                        variant="link"
+                                                        className="h-auto p-0 text-[11px] text-[#5844ED] font-semibold"
+                                                        onClick={() => handleAddDocument(doc)}
+                                                        disabled={createEvidenceMutation.isPending}
+                                                    >
+                                                        {createEvidenceMutation.isPending ? "Adding..." : "+ Add to Evidence"}
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </TableCell>
-                                    <TableCell>{getStatusBadge(doc.status)}</TableCell>
+                                    <TableCell>{statusBadge(doc.status)}</TableCell>
                                     <TableCell className="text-sm text-slate-600">
                                         <div className="flex items-center gap-2">
                                             <div className="h-7 w-7 rounded-sm bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-200">
@@ -313,7 +495,7 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
                                         {doc.lastUpdated ? (
                                             <div className="flex flex-col">
                                                 <span className="font-medium text-slate-700">{doc.lastUpdated}</span>
-                                                <span className="text-[10px] text-slate-400 font-bold">VERSION {doc.version}</span>
+                                                <span className="text-[10px] text-slate-400 font-bold">VERSION {doc.version || '1.0'}</span>
                                             </div>
                                         ) : (
                                             <span className="text-slate-300 italic">No updates</span>
@@ -327,14 +509,27 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-56">
-                                                <DropdownMenuItem className="cursor-pointer">
-                                                    <FileText className="mr-2 h-4 w-4" /> View Document
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewFiles(doc)} disabled={!doc.linkedEvidence}>
+                                                    <FileText className={`mr-2 h-4 w-4 ${!doc.linkedEvidence ? 'text-slate-300' : ''}`} />
+                                                    <span className={!doc.linkedEvidence ? 'text-slate-300' : ''}>View Document</span>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer">
-                                                    <Upload className="mr-2 h-4 w-4" /> Upload New Version
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                                                    setSelectedDocForLink(doc);
+                                                    setIsLinkDialogOpen(true);
+                                                }}>
+                                                    <LinkIcon className="mr-2 h-4 w-4" /> Link Existing Evidence
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-rose-600 cursor-pointer">
-                                                    <AlertCircle className="mr-2 h-4 w-4" /> Flag as Outdated
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewFiles(doc)} disabled={!doc.linkedEvidence}>
+                                                    <Upload className={`mr-2 h-4 w-4 ${!doc.linkedEvidence ? 'text-slate-300' : ''}`} />
+                                                    <span className={!doc.linkedEvidence ? 'text-slate-300' : ''}>Upload New Version</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="text-rose-600 cursor-pointer focus:text-rose-600"
+                                                    onClick={() => handleFlagOutdated(doc)}
+                                                    disabled={!doc.linkedEvidence}
+                                                >
+                                                    <AlertCircle className={`mr-2 h-4 w-4 ${!doc.linkedEvidence ? 'text-slate-300' : ''}`} />
+                                                    <span className={!doc.linkedEvidence ? 'text-slate-300' : ''}>Flag as Outdated</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -345,8 +540,70 @@ export default function NISTDocumentTracker({ params }: { params?: { id: string 
                     </Table>
                 </CardContent>
             </Card>
+
+            <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Link Evidence</DialogTitle>
+                        <DialogDescription>
+                            Select an existing evidence item to link to <strong>{selectedDocForLink?.title}</strong>.
+                            This will tag the evidence with <code>[{selectedDocForLink?.category}]</code>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Evidence Item</Label>
+                            <Select onValueChange={setSelectedEvidenceIdToLink} value={selectedEvidenceIdToLink}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select evidence..." />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                    {evidenceList?.map((ev) => (
+                                        <SelectItem key={ev.id} value={ev.id.toString()}>
+                                            <span className="font-medium mr-2">{ev.evidenceId}</span>
+                                            <span className="text-slate-500 truncate max-w-[200px] inline-block align-bottom">
+                                                {ev.description || ev.title || "No description"}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleLinkEvidence}
+                            disabled={!selectedEvidenceIdToLink || realUpdateMutation.isPending}
+                        >
+                            {realUpdateMutation.isPending ? "Linking..." : "Link Evidence"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Files Dialog */}
+            <Dialog open={isFilesDialogOpen} onOpenChange={setIsFilesDialogOpen}>
+                <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Document Files: {selectedDocForFiles?.title}</DialogTitle>
+                        <DialogDescription>
+                            Manage files for this requirement. Uploading a new version here will update the evidence record.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto pr-2">
+                        {selectedDocForFiles?.linkedEvidence && (
+                            <EvidenceFileUpload
+                                evidenceId={selectedDocForFiles.linkedEvidence.id}
+                                clientId={clientId}
+                            />
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsFilesDialogOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
-
-// v2 - 2026-02-14 - Force refresh
