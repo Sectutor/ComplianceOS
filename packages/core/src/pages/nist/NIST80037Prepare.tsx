@@ -1,6 +1,6 @@
-
-import React, { useState } from 'react';
-import { useParams } from "wouter";
+import React, { useState, useRef, useEffect } from 'react';
+import { trpc } from '@/lib/trpc';
+import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
 import { Play } from "lucide-react";
 import { Users } from "lucide-react";
@@ -16,10 +16,16 @@ import { Building2 } from "lucide-react";
 import { Briefcase } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { Save } from "lucide-react";
+import { Info } from "lucide-react";
+import { FileText, Trash2, X, UserCog } from "lucide-react";
 
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { Avatar, AvatarFallback } from "@complianceos/ui/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@complianceos/ui/ui/dialog";
+
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
@@ -32,6 +38,8 @@ export default function NIST80037Prepare() {
     const { id } = useParams<{ id: string }>();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState<{ name: string, url: string, type: string }[]>([]);
+
 
     const handleSave = () => {
         setIsSaving(true);
@@ -41,6 +49,200 @@ export default function NIST80037Prepare() {
                 description: "System registration and risk strategy updated.",
             });
         }, 1500);
+    };
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const newFile = {
+                name: file.name,
+                url: URL.createObjectURL(file), // In a real app, this would be the S3 URL
+                type: file.type
+            };
+            setUploadedFiles(prev => [...prev, newFile]);
+            toast.success(`File attached: ${file.name}`, {
+                description: "Document added to system boundary evidence."
+            });
+        }
+    };
+
+    const removeFile = (index: number) => {
+        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const trpcContext = trpc.useContext();
+    const { data: checklistState } = trpc.checklist.get.useQuery({
+        clientId: clientId,
+        checklistId: "nist-800-37-prepare"
+    });
+
+    const updateChecklistMutation = trpc.checklist.update.useMutation({
+        onSuccess: () => {
+            trpcContext.checklist.get.invalidate();
+        }
+    });
+
+    const { data: employees = [] } = trpc.employees.list.useQuery({ clientId });
+
+    // Store role assignments in local state for now, synced with checklist items in production
+
+    const { data: orgRoles = [] } = trpc.orgRoles.list.useQuery({ clientId });
+
+    // Dynamic RMF Roles State
+    const [rmfRoles, setRmfRoles] = useState<{ id: string, title: string, icon: any, assigneeId: string | number | null }[]>([
+        { id: "ao", title: "Authorizing Official (AO)", icon: Building2, assigneeId: null },
+        { id: "ciso", title: "Chief Information Security Officer (CISO)", icon: Shield, assigneeId: null },
+        { id: "system_owner", title: "System Owner", icon: Briefcase, assigneeId: null },
+        { id: "isso", title: "Information System Security Officer (ISSO)", icon: Zap, assigneeId: null }
+    ]);
+
+    const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
+    const [newRoleData, setNewRoleData] = useState({ roleTitle: "", employeeId: "" });
+
+    // Default Roles Configuration
+    const defaultRolesBase = [
+        { id: "ao", title: "Authorizing Official (AO)", icon: Building2 },
+        { id: "ciso", title: "Chief Information Security Officer (CISO)", icon: Shield },
+        { id: "system_owner", title: "System Owner", icon: Briefcase },
+        { id: "isso", title: "Information System Security Officer (ISSO)", icon: Zap }
+    ];
+
+    // Hydrate roles from checklist state (piggyback on r1 task)
+    useEffect(() => {
+        const r1Item = checklistState?.items?.['r1'];
+        // Check if r1 is an object and has meta_roles
+        if (typeof r1Item === 'object' && r1Item?.meta_roles) {
+            const savedRoles = r1Item.meta_roles as any[];
+            const hydratedRoles = savedRoles.map(r => {
+                const defaultRole = defaultRolesBase.find(dr => dr.id === r.id);
+                return {
+                    ...r,
+                    icon: defaultRole ? defaultRole.icon : (r.iconName === 'UserCog' ? UserCog : Users)
+                };
+            });
+            setRmfRoles(hydratedRoles);
+        } else {
+            // Fallback defaults
+            setRmfRoles(defaultRolesBase.map(role => ({ ...role, assigneeId: null })));
+        }
+    }, [checklistState?.items]);
+
+    const saveRolesToBackend = (roles: typeof rmfRoles) => {
+        const rolesToSave = roles.map(r => {
+            const { icon, ...rest } = r;
+            if (r.id.startsWith('custom_')) {
+                return { ...rest, iconName: 'Users' };
+            }
+            return rest;
+        });
+
+        const currentR1 = checklistState?.items?.['r1'];
+        const r1Data = typeof currentR1 === 'object' ? currentR1 : { checked: false };
+
+        const newR1 = {
+            ...r1Data,
+            meta_roles: rolesToSave
+        };
+
+        const newItems = {
+            ...(checklistState?.items || {}),
+            r1: newR1
+        };
+
+        updateChecklistMutation.mutate({
+            clientId,
+            checklistId: "nist-800-37-prepare",
+            items: newItems
+        });
+    };
+
+    const handleAssignRole = (roleId: string, employeeId: string) => {
+        const updatedRoles = rmfRoles.map(r =>
+            r.id === roleId ? { ...r, assigneeId: employeeId } : r
+        );
+        setRmfRoles(updatedRoles);
+        saveRolesToBackend(updatedRoles);
+        toast.success("Role Assigned", {
+            description: `User has been assigned to this role.`
+        });
+    };
+
+    const handleRemoveAssignment = (roleId: string) => {
+        const updatedRoles = rmfRoles.map(r =>
+            r.id === roleId ? { ...r, assigneeId: null } : r
+        );
+        setRmfRoles(updatedRoles);
+        saveRolesToBackend(updatedRoles);
+        toast.info("Role Unassigned");
+    };
+
+    const handleAddRole = () => {
+        if (!newRoleData.roleTitle) return;
+
+        const newRole = {
+            id: `custom_${Date.now()}`,
+            title: newRoleData.roleTitle,
+            icon: Users, // Safe icon
+            assigneeId: newRoleData.employeeId || null
+        };
+
+        const updatedRoles = [...rmfRoles, newRole];
+        setRmfRoles(updatedRoles);
+        saveRolesToBackend(updatedRoles);
+
+        setIsAddRoleOpen(false);
+        setNewRoleData({ roleTitle: "", employeeId: "" });
+        toast.success("New RMF Role Added", {
+            description: `Added ${newRole.title} to the team.`
+        });
+    };
+
+    const handleDeleteRole = (roleId: string) => {
+        const updatedRoles = rmfRoles.filter(r => r.id !== roleId);
+        setRmfRoles(updatedRoles);
+        saveRolesToBackend(updatedRoles);
+        toast.success("Role Removed from RMF Team");
+    };
+
+    const checklistItems = [
+        { id: "r1", task: "R-1: Role Assignments" },
+        { id: "r2", task: "R-2: Risk Strategy" },
+        { id: "r3", task: "R-3: Org Risk Assessment" },
+        { id: "s1", task: "S-1: Mission Definition" },
+        { id: "s2", task: "S-2: System Boundary" },
+        { id: "s3", task: "S-3: Information Types" }
+    ];
+
+    const getStatus = (id: string) => {
+        const item = checklistState?.items?.[id];
+        // If it's a boolean (legacy), true=completed, false=pending
+        if (typeof item === 'boolean') return item ? 'completed' : 'pending';
+        // If object (new), check 'checked' property or custom 'status' if we add it later
+        if (typeof item === 'object') return item.checked ? 'completed' : 'pending';
+        return 'pending';
+    };
+
+    const toggleStatus = (id: string, currentStatus: string) => {
+        const newChecked = currentStatus !== 'completed';
+        const currentItem = checklistState?.items?.[id];
+        const itemData = typeof currentItem === 'object' ? currentItem : {};
+
+        const newItems = {
+            ...(checklistState?.items || {}),
+            [id]: { ...itemData, checked: newChecked }
+        };
+
+        updateChecklistMutation.mutate({
+            clientId,
+            checklistId: "nist-800-37-prepare",
+            items: newItems
+        });
     };
 
     return (
@@ -78,6 +280,19 @@ export default function NIST80037Prepare() {
                     </Button>
                 </div>
 
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex gap-4 items-start mb-8">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-600">
+                        <Info className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="font-bold text-blue-900 text-lg">Page Guide: Managing Your Progress</h3>
+                        <p className="text-blue-700 leading-relaxed font-medium">
+                            Use the <strong>Detailed Tabs</strong> on the right (System Identification, Boundary, etc.) to input your system data.
+                            The <strong>Prepare Task Checklist</strong> on the left is your personal tracker—manually mark items as "Completed" once you have finished the corresponding work in the tabs.
+                        </p>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* Progress Card */}
                     <Card className="lg:col-span-1 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/50 backdrop-blur-sm h-fit">
@@ -85,23 +300,17 @@ export default function NIST80037Prepare() {
                             <CardTitle className="text-xs font-black uppercase tracking-widest text-emerald-600">Prepare Task Checklist</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {[
-                                { task: "R-1: Role Assignments", status: "completed" },
-                                { task: "R-2: Risk Strategy", status: "completed" },
-                                { task: "R-3: Org Risk Assessment", status: "partial" },
-                                { task: "S-1: Mission Definition", status: "pending" },
-                                { task: "S-2: System Boundary", status: "pending" },
-                                { task: "S-3: Information Types", status: "pending" }
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-3 group cursor-pointer">
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${item.status === 'completed' ? 'bg-emerald-500 border-emerald-500 text-white' :
-                                        item.status === 'partial' ? 'border-amber-400 text-amber-500' : 'border-slate-200'
-                                        }`}>
-                                        {item.status === 'completed' && <CheckCircle2 className="w-4 h-4" />}
+                            {checklistItems.map((item, i) => {
+                                const status = getStatus(item.id);
+                                return (
+                                    <div key={i} className="flex items-center gap-3 group cursor-pointer" onClick={() => toggleStatus(item.id, status)}>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${status === 'completed' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200'}`}>
+                                            {status === 'completed' && <CheckCircle2 className="w-4 h-4" />}
+                                        </div>
+                                        <span className={`text-sm font-bold ${status === 'pending' ? 'text-slate-400 group-hover:text-slate-600' : 'text-slate-700'}`}>{item.task}</span>
                                     </div>
-                                    <span className={`text-sm font-bold ${item.status === 'pending' ? 'text-slate-400 group-hover:text-slate-600' : 'text-slate-700'}`}>{item.task}</span>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </CardContent>
                     </Card>
 
@@ -109,16 +318,16 @@ export default function NIST80037Prepare() {
                         <Tabs defaultValue="identification" className="w-full">
                             <div className="border-b px-8 bg-slate-50/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
-                                    <TabsTrigger value="identification" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="identification" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         System Identification
                                     </TabsTrigger>
-                                    <TabsTrigger value="boundary" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="boundary" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Boundary Definition
                                     </TabsTrigger>
-                                    <TabsTrigger value="roles" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="roles" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Roles & Stakeholders
                                     </TabsTrigger>
-                                    <TabsTrigger value="strategy" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
+                                    <TabsTrigger value="strategy" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Risk Strategy
                                     </TabsTrigger>
                                 </TabsList>
@@ -174,17 +383,55 @@ export default function NIST80037Prepare() {
                                                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Authorization Boundary (S-7)</h3>
                                                 <p className="text-sm text-slate-500 font-medium font-serif">Define the set of system components and data flows.</p>
                                             </div>
-                                            <Button variant="outline" className="rounded-xl border-dashed border-2 gap-2 h-12">
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                className="hidden"
+                                                accept="image/*,.pdf,.vsdx"
+                                                onChange={handleFileChange}
+                                            />
+                                            <Button variant="outline" onClick={handleImportClick} className="rounded-xl border-dashed border-2 gap-2 h-12">
                                                 <ExternalLink className="w-4 h-4" /> Import Diagram
                                             </Button>
                                         </div>
 
-                                        <div className="aspect-video bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 group hover:bg-slate-100/50 transition-all cursor-pointer">
-                                            <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-4 text-emerald-500">
-                                                <Target className="w-10 h-10" />
-                                            </div>
-                                            <p className="font-bold text-slate-500">Draft your boundary in Visual Architect</p>
-                                            <p className="text-xs font-medium mt-1">NIST 800-37 system boundary mapping tool</p>
+                                        <div className="space-y-4">
+                                            {uploadedFiles.length > 0 ? (
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {uploadedFiles.map((file, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-shadow group">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                                                                    <FileText className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-sm text-slate-800">{file.name}</p>
+                                                                    <a href={file.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 font-medium hover:underline">View Document</a>
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => removeFile(idx)}
+                                                                className="text-slate-400 hover:text-rose-500 hover:bg-rose-50"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
+                                                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 text-slate-400">
+                                                        <FileText className="w-8 h-8" />
+                                                    </div>
+                                                    <p className="font-bold text-slate-600">No documents uploaded</p>
+                                                    <p className="text-sm text-slate-500 max-w-sm mt-1 mb-4">Upload architecture diagrams, data flow charts, or network topology documents.</p>
+                                                    <Button variant="secondary" onClick={handleImportClick} className="bg-white border hover:bg-slate-50">
+                                                        Select Files
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -204,60 +451,79 @@ export default function NIST80037Prepare() {
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Management Role Assignments (R-1)</h3>
-                                            <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl gap-2">
-                                                <Plus className="w-4 h-4" /> Assign New Role
+                                            <Button onClick={() => setIsAddRoleOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl gap-2">
+                                                <Plus className="w-4 h-4" /> Add RMF Role
                                             </Button>
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-4">
-                                            <div className="p-6 bg-white border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-slate-900">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-100">
-                                                        <Building2 className="w-7 h-7" />
+                                            {rmfRoles.map((role) => {
+                                                const assignedEmployee = employees.find((e: any) => String(e.id) === String(role.assigneeId));
+                                                const isCustom = role.id.startsWith('custom_');
+
+                                                return (
+                                                    <div key={role.id} className="p-6 bg-white border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-slate-900 group">
+                                                        <div className="flex items-center gap-5">
+                                                            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-100 relative">
+                                                                <role.icon className="w-7 h-7" />
+                                                                {isCustom && (
+                                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border border-white" />
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{role.title}</p>
+                                                                {assignedEmployee ? (
+                                                                    <p className="text-lg font-bold text-slate-900">{assignedEmployee.firstName} {assignedEmployee.lastName}</p>
+                                                                ) : (
+                                                                    <p className="text-lg font-bold text-slate-300 italic">Unassigned</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            {assignedEmployee ? (
+                                                                <>
+                                                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-3">Assignee Verified</Badge>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="text-slate-400 hover:text-rose-500"
+                                                                        onClick={() => handleRemoveAssignment(role.id)}
+                                                                        title="Unassign User"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                <div className="w-64">
+                                                                    <Select onValueChange={(val) => handleAssignRole(role.id, val)}>
+                                                                        <SelectTrigger className="h-10 rounded-xl border-indigo-200 text-indigo-600 font-bold focus:ring-0">
+                                                                            <SelectValue placeholder="Assign Employee..." />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {employees.map((emp: any) => (
+                                                                                <SelectItem key={emp.id} value={emp.id.toString()} className="font-medium">
+                                                                                    {emp.firstName} {emp.lastName}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            )}
+
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200"
+                                                                onClick={() => handleDeleteRole(role.id)}
+                                                                title="Delete Role"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Authorizing Official (AO)</p>
-                                                        <p className="text-lg font-bold text-slate-900">Sarah Jenkins (CEO)</p>
-                                                    </div>
-                                                </div>
-                                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-3">Assignee Verified</Badge>
-                                            </div>
-                                            <div className="p-6 bg-white border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-slate-900">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-100">
-                                                        <Shield className="w-7 h-7" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Chief Information Security Officer (CISO)</p>
-                                                        <p className="text-lg font-bold text-slate-900">Marcus Chen</p>
-                                                    </div>
-                                                </div>
-                                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-3">Assignee Verified</Badge>
-                                            </div>
-                                            <div className="p-6 bg-white border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-slate-900">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-100">
-                                                        <Briefcase className="w-7 h-7" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">System Owner</p>
-                                                        <p className="text-lg font-bold text-rose-400 italic">David Miller</p>
-                                                    </div>
-                                                </div>
-                                                <Button size="sm" variant="ghost" className="text-indigo-600 font-bold underline">Assign Now</Button>
-                                            </div>
-                                            <div className="p-6 bg-white border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-slate-900">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-100">
-                                                        <Zap className="w-7 h-7" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Information System Security Officer (ISSO)</p>
-                                                        <p className="text-lg font-bold text-slate-900">Alex Rivera</p>
-                                                    </div>
-                                                </div>
-                                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-3">Assignee Verified</Badge>
-                                            </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 </TabsContent>
@@ -303,9 +569,11 @@ export default function NIST80037Prepare() {
                                                 </div>
                                                 <h4 className="font-extrabold text-slate-900">Stakeholder Identification (S-5)</h4>
                                                 <p className="text-xs text-slate-500 font-medium">Identify key stakeholders for security & privacy results</p>
-                                                <Button variant="ghost" className="mt-4 text-indigo-600 font-black h-12 uppercase tracking-widest text-[10px] group">
-                                                    Manage List <ArrowRight className="ml-2 w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                                                </Button>
+                                                <Link href={`/clients/${clientId}/people`}>
+                                                    <Button variant="ghost" className="mt-4 text-indigo-600 font-black h-12 uppercase tracking-widest text-[10px] group">
+                                                        Manage List <ArrowRight className="ml-2 w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                                                    </Button>
+                                                </Link>
                                             </div>
                                         </div>
                                     </div>
@@ -315,6 +583,68 @@ export default function NIST80037Prepare() {
                     </Card>
                 </div>
             </div>
+            {/* Add Role Dialog */}
+            <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add RMF Role</DialogTitle>
+                        <DialogDescription>
+                            Add a new role to your RMF team composition.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Role Title</Label>
+                            <div className="flex flex-col gap-2">
+                                <Input
+                                    placeholder="Enter role title..."
+                                    value={newRoleData.roleTitle}
+                                    onChange={(e) => setNewRoleData(prev => ({ ...prev, roleTitle: e.target.value }))}
+                                />
+                                {orgRoles.length > 0 && (
+                                    <Select
+                                        onValueChange={(val) => setNewRoleData(prev => ({ ...prev, roleTitle: val }))}
+                                    >
+                                        <SelectTrigger className="h-8 text-xs bg-slate-50">
+                                            <SelectValue placeholder="Or select from standard roles..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Privacy Officer">Privacy Officer</SelectItem>
+                                            <SelectItem value="System Administrator">System Administrator</SelectItem>
+                                            <SelectItem value="Data Steward">Data Steward</SelectItem>
+                                            {orgRoles.map((role: any) => (
+                                                <SelectItem key={role.id} value={role.title}>{role.title}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Assignee (Optional)</Label>
+                            <Select
+                                value={newRoleData.employeeId}
+                                onValueChange={(val) => setNewRoleData(prev => ({ ...prev, employeeId: val }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select employee..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {employees.map((emp: any) => (
+                                        <SelectItem key={emp.id} value={emp.id.toString()}>
+                                            {emp.firstName} {emp.lastName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddRoleOpen(false)}>Cancel</Button>
+                        <Button onClick={handleAddRole}>Add Role</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </NIST80037Layout>
     );
 }

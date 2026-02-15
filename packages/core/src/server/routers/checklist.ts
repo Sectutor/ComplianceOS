@@ -8,7 +8,7 @@ const checklistItemSchema = z.union([
     z.object({
         checked: z.boolean(),
         evidenceRequestId: z.number().optional()
-    })
+    }).passthrough()
 ]);
 
 export const createChecklistRouter = (t: any, clientProcedure: any) => t.router({
