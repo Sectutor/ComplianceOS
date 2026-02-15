@@ -149,7 +149,7 @@ export async function generateReadinessReport(clientId: number, regulationId: st
 
     // Calculate Score
     let yesCount = 0;
-    let totalQuestions = regulation.questions?.length || 0;
+    const totalQuestions = regulation.questions?.length || 0;
 
     if (totalQuestions === 0) throw new Error("No questions for this regulation");
 

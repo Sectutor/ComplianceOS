@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import NISTLayout from "./NISTLayout";
+import NIST80037Layout from "./NIST80037Layout";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -31,9 +31,10 @@ import { useLocation } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
 
 // Mock data until backend is ready
+// Note: IDs must match those in nistConstants.ts for consistency
 const MOCK_SYSTEMS = [
     {
-        id: 1,
+        id: "eco",
         name: "Enterprise Cloud Operations",
         acronym: "ECO",
         fipsImpact: "Moderate",
@@ -44,7 +45,7 @@ const MOCK_SYSTEMS = [
         controlsCount: 325
     },
     {
-        id: 2,
+        id: "hr",
         name: "Legacy HR Database",
         acronym: "HR-L",
         fipsImpact: "Low",
@@ -55,7 +56,7 @@ const MOCK_SYSTEMS = [
         controlsCount: 115
     },
     {
-        id: 3,
+        id: "payment",
         name: "Payment Gateway Portal",
         acronym: "PGP",
         fipsImpact: "High",
@@ -86,8 +87,11 @@ export default function NISTSystemRegistry() {
     const [systems, setSystems] = useState(MOCK_SYSTEMS);
 
     const handleCreate = () => {
+        // Generate a URL-friendly ID from the acronym
+        const systemId = newSystem.acronym.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        
         const newlyCreatedSystem = {
-            id: systems.length + 1,
+            id: systemId,
             name: newSystem.name,
             acronym: newSystem.acronym,
             fipsImpact: newSystem.fipsImpact,
@@ -117,7 +121,7 @@ export default function NISTSystemRegistry() {
     );
 
     return (
-        <NISTLayout>
+        <NIST80037Layout>
             <div className="space-y-6 max-w-7xl mx-auto">
                 <div className="flex flex-col gap-2">
                     <Breadcrumb
@@ -310,6 +314,6 @@ export default function NISTSystemRegistry() {
                     ))}
                 </div>
             </div>
-        </NISTLayout>
+        </NIST80037Layout>
     );
 }

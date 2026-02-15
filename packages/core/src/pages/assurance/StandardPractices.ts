@@ -111,9 +111,28 @@ export const TECHNICAL_STANDARD_CONTENT: Record<string, StandardPractice[]> = {
     ],
     "ISO-27001": [
         {
+            id: "ISO-V0",
+            framework: "ISO 27001",
+            name: "Management System Clauses (4-10)",
+            description: "Developing the core Information Security Management System (ISMS) framework.",
+            impact: "Ensures the sustainability and management buy-in for the entire security program.",
+            guidance: [
+                "Define the context and scope clearly to avoid 'compliance drift'.",
+                "Secure top management commitment through documented reviews and policy approvals.",
+                "Establish a robust risk assessment methodology (Clause 6.1.2) before selecting Annex A controls."
+            ],
+            nextSteps: [
+                "Conduct the first Internal Audit (Clause 9.2) to identify baseline gaps.",
+                "Hold a Management Review meeting to finalize the ISMS roadmap.",
+                "Define KPIs for monitoring ISMS effectiveness (Clause 9.1)."
+            ],
+            relatedAuditCode: "ISO-MS"
+        },
+        {
             id: "ISO-V1",
             framework: "ISO 27001",
             name: "Organizational Controls (A.5)",
+
             description: "Establishing policies, roles, and organizational safeguards.",
             impact: "Creates the governance foundation for information security management.",
             guidance: [

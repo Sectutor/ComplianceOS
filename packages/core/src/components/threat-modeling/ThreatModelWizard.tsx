@@ -1150,6 +1150,6 @@ export function ThreatModelWizard() {
             </div>
         </DashboardLayout>
     );
-};
+}
 
 

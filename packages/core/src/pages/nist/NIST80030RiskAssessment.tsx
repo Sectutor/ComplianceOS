@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Breadcrumb } from "@/components/Breadcrumb";
 import NIST80030Layout from "./NIST80030Layout";
+import { useNistSystemId } from "./useNistSystem";
 import {
     Dialog,
     DialogContent,
@@ -48,6 +48,7 @@ import ReactMarkdown from 'react-markdown';
 
 export default function NIST80030RiskAssessment() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const utils = trpc.useUtils();
 

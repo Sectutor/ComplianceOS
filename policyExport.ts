@@ -28,8 +28,8 @@ function parseContentToParagraphs(content: string): Paragraph[] {
   const paragraphs: Paragraph[] = [];
   const lines = content.split('\n');
 
-  let inTable = false;
-  let tableRows: string[][] = [];
+  const inTable = false;
+  const tableRows: string[][] = [];
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -104,7 +104,7 @@ function parseContentToParagraphs(content: string): Paragraph[] {
     } else {
       // Regular paragraph - handle inline formatting
       const children: TextRun[] = [];
-      let remaining = trimmedLine;
+      const remaining = trimmedLine;
 
       // Simple inline bold handling
       const boldRegex = /\*\*([^*]+)\*\*/g;

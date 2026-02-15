@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useParams, Link, useLocation } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 
 import { Play } from "lucide-react";
 import { Users } from "lucide-react";
@@ -37,9 +38,9 @@ import { toast } from "sonner";
 
 export default function NIST80037Prepare() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
-    const [_, setLocation] = useLocation();
 
 
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string, url: string, type: string }[]>([]);
@@ -94,7 +95,7 @@ export default function NIST80037Prepare() {
     const trpcContext = trpc.useContext();
     const { data: checklistState } = trpc.checklist.get.useQuery({
         clientId: clientId,
-        checklistId: "nist-800-37-prepare"
+        checklistId: `nist-800-37-prepare-${systemId}`
     });
 
     const updateChecklistMutation = trpc.checklist.update.useMutation({
@@ -205,7 +206,7 @@ export default function NIST80037Prepare() {
 
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-prepare",
+            checklistId: `nist-800-37-prepare-${systemId}`,
             items: newItems
         });
         setLinkedPolicyId(policyId);
@@ -227,7 +228,7 @@ export default function NIST80037Prepare() {
 
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-prepare",
+            checklistId: `nist-800-37-prepare-${systemId}`,
             items: newItems
         });
         setIsMatrixConfigOpen(false);
@@ -248,23 +249,15 @@ export default function NIST80037Prepare() {
             });
             setRmfRoles(hydratedRoles);
         } else {
+            // Reset to default roles if no data exists for this system context
             setRmfRoles(defaultRolesBase.map(role => ({ ...role, assigneeId: null })));
+            setStakeholders([]);
+            setRiskMatrix(defaultMatrix);
+            setLinkedPolicyId(null);
+            setUploadedFiles([]);
+            setUploadedPolicy(null);
         }
-
-        // Hydrate Stakeholders & Matrix (R-2)
-        const r2Item = checklistState?.items?.['r2'];
-        if (typeof r2Item === 'object') {
-            if (r2Item.meta_stakeholders) {
-                setStakeholders(r2Item.meta_stakeholders as any[]);
-            }
-            if (r2Item.meta_risk_matrix) {
-                setRiskMatrix(r2Item.meta_risk_matrix as any[]);
-            }
-            if (r2Item.meta_strategy_policy_id) {
-                setLinkedPolicyId(r2Item.meta_strategy_policy_id as number);
-            }
-        }
-    }, [checklistState?.items]);
+    }, [checklistState?.items, systemId]);
 
     const saveStakeholdersToBackend = (newList: typeof stakeholders) => {
         const currentR2 = checklistState?.items?.['r2'];
@@ -280,7 +273,7 @@ export default function NIST80037Prepare() {
 
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-prepare",
+            checklistId: `nist-800-37-prepare-${systemId}`,
             items: newItems
         });
     };
@@ -345,7 +338,7 @@ export default function NIST80037Prepare() {
 
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-prepare",
+            checklistId: `nist-800-37-prepare-${systemId}`,
             items: newItems
         });
     };
@@ -428,7 +421,7 @@ export default function NIST80037Prepare() {
 
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-prepare",
+            checklistId: `nist-800-37-prepare-${systemId}`,
             items: newItems
         });
     };

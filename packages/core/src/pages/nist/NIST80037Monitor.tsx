@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 import { trpc } from "../../lib/trpc";
 
 import {
@@ -42,13 +43,16 @@ import { cn } from "@/lib/utils";
 
 export default function NIST80037Monitor() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
 
     // TRPC Queries
     const checklistQuery = (trpc as any).checklist.get.useQuery({
         clientId,
-        checklistId: "nist-800-37-monitor"
+        checklistId: systemId ? `nist-800-37-monitor-${systemId}` : 'no-system'
+    }, {
+        enabled: !!systemId
     });
 
     const updateChecklistMutation = (trpc as any).checklist.update.useMutation({
@@ -73,10 +77,15 @@ export default function NIST80037Monitor() {
     });
 
     const handleSave = () => {
+        if (!systemId) {
+            toast.error("No system selected", { description: "Please select a system first." });
+            return;
+        }
+        
         setIsSaving(true);
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-monitor",
+            checklistId: `nist-800-37-monitor-${systemId}`,
             items: {
                 lastReview: new Date().toISOString(),
                 status: "active"

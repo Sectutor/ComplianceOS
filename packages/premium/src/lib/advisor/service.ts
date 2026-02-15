@@ -768,7 +768,7 @@ export async function reindexKnowledgeBase(
     const db = await getDb();
     if (!db) throw new Error('Database not available');
 
-    let stats = {
+    const stats = {
         policies: 0,
         evidence: 0,
         controls: 0,
@@ -981,8 +981,8 @@ export async function reindexKnowledgeBase(
                             'Informed stakeholder for';
 
                 // Construct meaningful content based on task type
-                let entityName = `Task ${a.taskId}`;
-                let context = '';
+                const entityName = `Task ${a.taskId}`;
+                const context = '';
 
                 // Ideally fetching the entity name here would be best, but for speed we'll use generic description
                 // In a real optimized system we'd join with the entity tables based on taskType

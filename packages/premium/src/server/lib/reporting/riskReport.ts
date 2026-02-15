@@ -177,7 +177,7 @@ function textToParagraphs(text: string | null | undefined): Paragraph[] {
   return lines.filter(line => line.trim()).map(line => {
     const trimmed = line.trim();
     let content = trimmed;
-    let pProps: any = { spacing: { after: 120 } };
+    const pProps: any = { spacing: { after: 120 } };
 
     const bulletMatch = trimmed.match(/^(\*|-)\s+(.*)/);
     const numberMatch = trimmed.match(/^(\d+)\.\s+(.*)/);

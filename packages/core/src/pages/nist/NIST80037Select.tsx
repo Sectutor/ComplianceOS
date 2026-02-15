@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 import {
     ShieldCheck,
     Filter,
@@ -39,6 +40,7 @@ import { cn } from "@/lib/utils";
 
 export default function NIST80037Select() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
     const [showAllControls, setShowAllControls] = useState(false);
@@ -53,22 +55,54 @@ export default function NIST80037Select() {
     ]);
     const [monitoringPlan, setMonitoringPlan] = useState("");
 
-    const checklistQuery = trpc.checklist.get.useQuery({ clientId, checklistId: "nist-800-37-select" });
-    const categorizationQuery = trpc.checklist.get.useQuery({ clientId, checklistId: "nist-800-37-categorize" });
+    // Reset local state when systemId changes
+    useEffect(() => {
+        setBaselineLevel("Moderate");
+        setDiagnosticsEnabled(true);
+        setAssessmentFrequency("QUARTERLY");
+        setControls([
+            { id: "AC-2", title: "Account Management", family: "Access Control", tailoring: "Inherited (Common)", type: "Technical" },
+            { id: "AU-6", title: "Audit Record Review, Analysis, and Reporting", family: "Audit and Accountability", tailoring: "Tailored (Modified)", type: "Operational" },
+            { id: "PE-2", title: "Physical Access Authorizations", family: "Physical and Environmental", tailoring: "Not Applicable", type: "Management" },
+            { id: "SA-10", title: "Developer Configuration Management", family: "System and Services Acquisition", tailoring: "Selected", type: "Technical" }
+        ]);
+        setMonitoringPlan("");
+        setHighWaterMark("MODERATE");
+    }, [systemId]);
+
+    const checklistQuery = trpc.checklist.get.useQuery({ 
+        clientId, 
+        checklistId: systemId ? `nist-800-37-select-${systemId}` : 'no-system' 
+    }, {
+        enabled: !!systemId
+    });
+    
+    const categorizationQuery = trpc.checklist.get.useQuery({ 
+        clientId, 
+        checklistId: systemId ? `nist-800-37-categorize-${systemId}` : 'no-system' 
+    }, {
+        enabled: !!systemId
+    });
 
     const [highWaterMark, setHighWaterMark] = useState("MODERATE");
 
     useEffect(() => {
         if (categorizationQuery.data?.items) {
             const items = categorizationQuery.data.items as any;
-            if (items.objectives) {
-                const levels = Object.values(items.objectives).map((o: any) => o.level);
-                if (levels.includes("High")) setHighWaterMark("HIGH");
-                else if (levels.includes("Moderate")) setHighWaterMark("MODERATE");
-                else setHighWaterMark("LOW");
+            if (items.c2_objectives) {
+                const levels = Object.values(items.c2_objectives).map((o: any) => o.level);
+                let calculatedHwm = "LOW";
+                if (levels.includes("High")) calculatedHwm = "HIGH";
+                else if (levels.includes("Moderate")) calculatedHwm = "MODERATE";
+
+                setHighWaterMark(calculatedHwm);
+                // If we don't have a saved baseline yet, default it to the HWM
+                if (!checklistQuery.data?.items) {
+                    setBaselineLevel(calculatedHwm.charAt(0) + calculatedHwm.slice(1).toLowerCase());
+                }
             }
         }
-    }, [categorizationQuery.data]);
+    }, [categorizationQuery.data, systemId, checklistQuery.data]);
 
     const isAligned = highWaterMark === baselineLevel.toUpperCase();
     const confidenceScore = isAligned ? 94 : 65;
@@ -108,13 +142,13 @@ export default function NIST80037Select() {
             if (items.diagnosticsEnabled !== undefined) setDiagnosticsEnabled(items.diagnosticsEnabled);
             if (items.assessmentFrequency) setAssessmentFrequency(items.assessmentFrequency);
         }
-    }, [checklistQuery.data]);
+    }, [checklistQuery.data, systemId]);
 
     const handleSave = () => {
         setIsSaving(true);
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-select",
+            checklistId: `nist-800-37-select-${systemId}`,
             items: {
                 baseline: baselineLevel,
                 controls,

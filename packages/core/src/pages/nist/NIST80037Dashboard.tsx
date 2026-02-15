@@ -33,21 +33,18 @@ import { useParams, Link, useLocation } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { cn } from "@/lib/utils";
+import { RMF_SYSTEMS } from './nistConstants';
+import { useNistSystemId } from "./useNistSystem";
 
 export default function NIST80037Dashboard() {
     const { id } = useParams<{ id: string }>();
     const [location, setLocation] = useLocation();
     const clientId = parseInt(id || "0");
 
-    const [activeSystemId, setActiveSystemId] = React.useState("eco");
+    const activeSystemId = useNistSystemId();
 
-    const systems = [
-        { id: "eco", name: "Enterprise Cloud Operations", impact: "Moderate", progress: 14, assessed: 12, total: 284, days: 45, ai: ["Boundary Definition Validated", "Information Type Mapping Done"] },
-        { id: "payment", name: "Payment Gateway Portal", impact: "High", progress: 68, assessed: 192, total: 542, days: 12, ai: ["System Interconnection Security", "Cryptographic Modules Verified", "Key Management Active"] },
-        { id: "hr", name: "Legacy HR Database", impact: "Low", progress: 100, assessed: 125, total: 125, days: 0, ai: ["Final Authorization Granted", "Ongoing Monitoring Active"] }
-    ];
-
-    const currentSystem = systems.find(s => s.id === activeSystemId) || systems[0];
+    const systems = RMF_SYSTEMS;
+    const currentSystem = activeSystemId ? systems.find(s => s.id === activeSystemId) || systems[0] : systems[0];
 
     const steps = [
         {
@@ -56,7 +53,7 @@ export default function NIST80037Dashboard() {
             description: "Essential activities to prepare the organization to manage security and privacy risks.",
             icon: Play,
             status: currentSystem.progress >= 5 ? "completed" : "active",
-            link: `/clients/${clientId}/nist/rmf/prepare`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/prepare?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         },
         {
             number: "1",
@@ -64,7 +61,7 @@ export default function NIST80037Dashboard() {
             description: "Categorize the system and the information processed based on impact analysis.",
             icon: Settings,
             status: currentSystem.progress >= 20 ? "completed" : (currentSystem.progress >= 5 ? "active" : "pending"),
-            link: `/clients/${clientId}/nist/rmf/categorize`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/categorize?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         },
         {
             number: "2",
@@ -72,7 +69,7 @@ export default function NIST80037Dashboard() {
             description: "Select an initial set of controls for the system and tailor as needed.",
             icon: Shield,
             status: currentSystem.progress >= 40 ? "completed" : (currentSystem.progress >= 20 ? "active" : "pending"),
-            link: `/clients/${clientId}/nist/rmf/select`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/select?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         },
         {
             number: "3",
@@ -80,7 +77,7 @@ export default function NIST80037Dashboard() {
             description: "Implement the controls and describe how they are employed within the system.",
             icon: Lock,
             status: currentSystem.progress >= 60 ? "completed" : (currentSystem.progress >= 40 ? "active" : "pending"),
-            link: `/clients/${clientId}/nist/rmf/implement`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/implement?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         },
         {
             number: "4",
@@ -88,7 +85,7 @@ export default function NIST80037Dashboard() {
             description: "Assess the controls to determine if they are implemented correctly and producing desired results.",
             icon: ClipboardList,
             status: currentSystem.progress >= 80 ? "completed" : (currentSystem.progress >= 60 ? "active" : "pending"),
-            link: `/clients/${clientId}/nist/rmf/assess`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/assess?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         },
         {
             number: "5",
@@ -96,7 +93,7 @@ export default function NIST80037Dashboard() {
             description: "Authorize system operation based on a determination of risk to organizational operations.",
             icon: FileCheck,
             status: currentSystem.progress >= 100 ? "completed" : (currentSystem.progress >= 80 ? "active" : "pending"),
-            link: `/clients/${clientId}/nist/rmf/authorize`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/authorize?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         },
         {
             number: "6",
@@ -104,7 +101,7 @@ export default function NIST80037Dashboard() {
             description: "Monitor the system and associated controls on an ongoing basis.",
             icon: Eye,
             status: currentSystem.progress >= 100 ? "active" : "pending",
-            link: `/clients/${clientId}/nist/rmf/monitor`
+            link: activeSystemId ? `/clients/${clientId}/nist/rmf/monitor?systemId=${activeSystemId}` : `/clients/${clientId}/nist/rmf/systems`
         }
     ];
 
@@ -119,47 +116,6 @@ export default function NIST80037Dashboard() {
                     ]}
                 />
 
-                {/* System Context Selector */}
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                            <Server className="w-6 h-6 text-slate-500" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Active RMF System Context</p>
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900 text-lg">{currentSystem.name}</span>
-                                <Badge variant="outline" className={cn(
-                                    "text-[10px] uppercase font-black tracking-widest",
-                                    currentSystem.impact === "High" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                                        currentSystem.impact === "Moderate" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                            "bg-indigo-50 text-indigo-700 border-indigo-200"
-                                )}>
-                                    FISMA {currentSystem.impact}
-                                </Badge>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <p className="text-xs font-medium text-slate-500 hidden md:block text-right max-w-[200px]">
-                            RMF steps are executed per-system. Switch systems here.
-                        </p>
-                        <Select value={activeSystemId} onValueChange={setActiveSystemId}>
-                            <SelectTrigger className="w-full md:w-[280px] h-12 bg-white border-slate-200 font-bold">
-                                <SelectValue placeholder="Select System..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {systems.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button onClick={() => setLocation(`/clients/${clientId}/nist/rmf/systems`)} className="h-12 w-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center p-0 shrink-0" title="Register New System">
-                            <Plus className="w-6 h-6" />
-                        </Button>
-                    </div>
-                </div>
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>

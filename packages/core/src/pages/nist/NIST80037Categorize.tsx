@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from "wouter";
 import { trpc } from '@/lib/trpc';
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 import {
     Settings,
     Database,
@@ -52,13 +53,16 @@ const NIST_CATALOG = [
 
 export default function NIST80037Categorize() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
 
     const trpcContext = trpc.useContext();
     const { data: checklistState, isLoading } = trpc.checklist.get.useQuery({
         clientId: clientId,
-        checklistId: "nist-800-37-categorize"
+        checklistId: systemId ? `nist-800-37-categorize-${systemId}` : 'no-system'
+    }, {
+        enabled: !!systemId // Only fetch if we have a systemId
     });
 
     const updateChecklistMutation = trpc.checklist.update.useMutation({
@@ -93,6 +97,20 @@ export default function NIST80037Categorize() {
     const [searchQuery, setSearchQuery] = useState("");
     const [newItem, setNewItem] = useState({ type: "", cat: "Business", impact: "Low" });
 
+    // Reset local state when systemId changes
+    useEffect(() => {
+        setObjectives({
+            confidentiality: { level: 'Low', rationale: '' },
+            integrity: { level: 'Low', rationale: '' },
+            availability: { level: 'Low', rationale: '' }
+        });
+        setInfoTypes([
+            { type: "Personally Identifiable Information (PII)", cat: "Privacy", impact: "High", icon: "Database" },
+            { type: "Financial Data", cat: "Business", impact: "Moderate", icon: "BarChart3" }
+        ]);
+        setCategorizationMethod("");
+    }, [systemId]);
+
     useEffect(() => {
         if (checklistState?.items) {
             const items = checklistState.items as any;
@@ -116,10 +134,15 @@ export default function NIST80037Categorize() {
     };
 
     const handleSave = () => {
+        if (!systemId) {
+            toast.error("No system selected", { description: "Please select a system first." });
+            return;
+        }
+        
         setIsSaving(true);
         updateChecklistMutation.mutate({
             clientId,
-            checklistId: "nist-800-37-categorize",
+            checklistId: `nist-800-37-categorize-${systemId}`,
             items: {
                 ...(checklistState?.items || {}),
                 c2_objectives: objectives,

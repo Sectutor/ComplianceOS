@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 import { trpc } from "../../lib/trpc";
 import {
     FileCheck,
@@ -38,29 +39,51 @@ import { cn } from "@/lib/utils";
 
 export default function NIST80037Authorize() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
     const [isAuthorizing, setIsAuthorizing] = useState(false);
     const [decision, setDecision] = useState<string | null>(null);
     const [isSigned, setIsSigned] = useState(false);
 
+    // Reset local state when systemId changes
+    useEffect(() => {
+        setDecision(null);
+        setIsSigned(false);
+    }, [systemId]);
+
     // TRPC
     const { data: checklistData, refetch } = (trpc as any).checklist.get.useQuery({
         clientId,
-        checklistId: 'nist80037-authorization'
+        checklistId: systemId ? `nist-800-37-authorize-${systemId}` : 'no-system'
+    }, {
+        enabled: !!systemId
     });
 
     const updateChecklistMutation = (trpc as any).checklist.update.useMutation();
 
-    const currentDecision = checklistData?.items?.decision || decision;
-    const currentSignature = checklistData?.items?.isSigned || isSigned;
+    useEffect(() => {
+        if (checklistData?.items) {
+            const items = checklistData.items as any;
+            if (items.decision) setDecision(items.decision);
+            if (items.isSigned !== undefined) setIsSigned(items.isSigned);
+        }
+    }, [checklistData]);
+
+    const currentDecision = decision;
+    const currentSignature = isSigned;
 
     const handleSave = async () => {
+        if (!systemId) {
+            toast.error("No system selected", { description: "Please select a system first." });
+            return;
+        }
+        
         setIsSaving(true);
         try {
             await updateChecklistMutation.mutateAsync({
                 clientId,
-                checklistId: 'nist80037-authorization',
+                checklistId: `nist-800-37-authorize-${systemId}`,
                 items: {
                     ...checklistData?.items,
                     decision: currentDecision,
@@ -80,6 +103,10 @@ export default function NIST80037Authorize() {
     };
 
     const handleAuthorize = async () => {
+        if (!systemId) {
+            toast.error("No system selected", { description: "Please select a system first." });
+            return;
+        }
         if (!currentDecision) {
             toast.error("Please select an authorization decision");
             return;
@@ -93,7 +120,7 @@ export default function NIST80037Authorize() {
         try {
             await updateChecklistMutation.mutateAsync({
                 clientId,
-                checklistId: 'nist80037-authorization',
+                checklistId: `nist-800-37-authorize-${systemId}`,
                 items: {
                     ...checklistData?.items,
                     decision: currentDecision,

@@ -3239,7 +3239,7 @@ ONLY return the JSON. No Markdown formatting.
           const items = await adversaryIntelService.fetchSecurityFeeds(input.limit);
 
           // Filter by source if specified
-          let filteredItems = input.source
+          const filteredItems = input.source
             ? items.filter(item => item.source === input.source)
             : items;
 
@@ -3605,7 +3605,7 @@ ONLY return the JSON. No Markdown formatting.
         // Combining is better for the user request.
 
         // 1. Project Tasks
-        let ptQuery = dbConn.select({
+        const ptQuery = dbConn.select({
           id: projectTasks.id,
           title: projectTasks.title,
           status: projectTasks.status,
@@ -4054,7 +4054,7 @@ ONLY return the JSON. No Markdown formatting.
         ];
 
         let score = 0;
-        let maxScore = requiredFields.length + recommendedFields.length;
+        const maxScore = requiredFields.length + recommendedFields.length;
 
         // Check required fields (weighted more heavily)
         requiredFields.forEach(field => {

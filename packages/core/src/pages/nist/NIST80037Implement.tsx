@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { trpc } from '../../lib/trpc';
 import { useParams, useLocation, Link } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 import {
     Hammer,
     ClipboardList,
@@ -43,7 +44,7 @@ import { cn } from "@/lib/utils";
 
 export default function NIST80037Implement() {
     const { id } = useParams<{ id: string }>();
-    const [location, setLocation] = useLocation();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
 
@@ -62,10 +63,28 @@ export default function NIST80037Implement() {
         { name: "Identification & Auth", progress: 95, color: "bg-rose-500" }
     ]);
 
+    // Reset local state when systemId changes
+    useEffect(() => {
+        setControls([
+            { id: "AC-2", title: "Account Management", status: "Implemented", type: "Technical", description: "Configured AWS IAM with role-based access control and MFA session enforcement." },
+            { id: "AU-6", title: "Audit Record Review", status: "Partially Implemented", type: "Operational", description: "Splunk dashboards configured; weekly review formal procedure still in draft." },
+            { id: "IA-2", title: "Identification and Authentication", status: "Implemented", type: "Technical", description: "Okta integration finalized with SAML 2.0 and mandatory FIDO2 hardware keys." },
+            { id: "CP-2", title: "Contingency Plan", status: "Planned", type: "Operational", description: "BIA completed. Full contingency plan drafting scheduled for Q3." }
+        ]);
+        setFamilies([
+            { name: "Access Control", progress: 85, color: "bg-indigo-500" },
+            { name: "Audit & Accountability", progress: 42, color: "bg-emerald-500" },
+            { name: "Configuration Management", progress: 60, color: "bg-amber-500" },
+            { name: "Identification & Auth", progress: 95, color: "bg-rose-500" }
+        ]);
+    }, [systemId]);
+
     // TRPC - Using any casting due to persistent stale type inference for these specific routers
     const { data: checklistData } = (trpc as any).checklist.get.useQuery({
         clientId,
-        checklistId: 'nist80037-implementation'
+        checklistId: systemId ? `nist-800-37-implement-${systemId}` : 'no-system'
+    }, {
+        enabled: !!systemId
     });
 
     const { data: activeIntegrations } = (trpc as any).integrations.listActive.useQuery({ clientId });
@@ -85,11 +104,16 @@ export default function NIST80037Implement() {
     }, [checklistData]);
 
     const handleSave = async () => {
+        if (!systemId) {
+            toast.error("No system selected", { description: "Please select a system first." });
+            return;
+        }
+        
         setIsSaving(true);
         try {
             await updateChecklistMutation.mutateAsync({
                 clientId,
-                checklistId: 'nist80037-implementation',
+                checklistId: `nist-800-37-implement-${systemId}`,
                 items: { controls, families }
             });
             toast.success("Implementation Progress Saved", {

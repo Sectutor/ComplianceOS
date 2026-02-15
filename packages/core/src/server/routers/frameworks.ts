@@ -412,12 +412,18 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                 // 1. Resolve framework name if it's a shortCode
                 let frameworkName = input.frameworkId;
                 const frameworks = await dbConn.select().from(schema.complianceFrameworks)
-                    .where(eq(schema.complianceFrameworks.shortCode, input.frameworkId.toUpperCase()))
+                    .where(or(
+                        eq(schema.complianceFrameworks.shortCode, input.frameworkId.toUpperCase()),
+                        eq(schema.complianceFrameworks.shortCode, input.frameworkId.toUpperCase().replace('-', '')),
+                        eq(schema.complianceFrameworks.shortCode, input.frameworkId.toUpperCase().replace(' ', '-'))
+                    ))
                     .limit(1);
 
                 if (frameworks.length > 0) {
                     frameworkName = frameworks[0].name;
                 }
+
+                console.log(`[FrameworksRouter] Querying for frameworkName: "${frameworkName}", inputId: "${input.frameworkId}"`);
 
                 // 2. Fetch controls with client status and evidence counts
                 const results = await dbConn.select({
@@ -442,13 +448,15 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         or(
                             eq(schema.controls.framework, frameworkName),
                             eq(schema.controls.framework, input.frameworkId.toUpperCase()),
-                            eq(schema.controls.framework, input.frameworkId),
-                            // Fuzzy matching for NIST variations
+                            eq(schema.controls.framework, input.frameworkId.toUpperCase().replace('-', ' ')),
+                            eq(schema.controls.framework, input.frameworkId.toUpperCase().replace('-', '')),
                             ilike(schema.controls.framework, `%${input.frameworkId}%`),
-                            ilike(schema.controls.framework, 'NIST CSF%')
+                            ilike(schema.controls.framework, frameworkName + "%")
                         )
                     ))
+
                     .orderBy(asc(schema.controls.controlId));
+
 
                 console.log(`[FrameworksRouter] Found ${results.length} controls for ${frameworkName}`);
                 return results;

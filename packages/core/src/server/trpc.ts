@@ -191,7 +191,7 @@ export const requiresMFA = middleware(async ({ ctx, next }) => {
     const aal = (ctx as any).aal;
     if (aal === 'aal2') return next(); // Already at max level
 
-    let clientId = (ctx as any).clientId;
+    const clientId = (ctx as any).clientId;
     const dbUser = ctx.user;
     if (!dbUser) return next();
 

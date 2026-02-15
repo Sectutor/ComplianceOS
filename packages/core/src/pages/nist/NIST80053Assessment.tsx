@@ -20,6 +20,7 @@ import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import NIST80053Layout from "./NIST80053Layout";
+import { useNistSystemId } from "./useNistSystem";
 import {
     Dialog,
     DialogContent,
@@ -70,10 +71,11 @@ const CONTROL_FAMILIES = [
 ];
 
 export default function NIST80053Assessment() {
-    const { id, packageId, systemId } = useParams<{ id: string; packageId?: string; systemId?: string }>();
+    const { id, packageId } = useParams<{ id: string; packageId?: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const sspId = packageId ? parseInt(packageId) : undefined;
-    const fismaSystemId = systemId ? parseInt(systemId) : undefined;
+    const fismaSystemId = systemId && !isNaN(parseInt(systemId)) ? parseInt(systemId) : undefined;
     const utils = trpc.useUtils();
 
     const [searchQuery, setSearchQuery] = useState("");

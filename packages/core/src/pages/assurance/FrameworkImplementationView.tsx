@@ -77,14 +77,27 @@ const FrameworkImplementationView: React.FC = () => {
     // 3. Find Strategic Overlay from StandardPractices.ts
     const getStrategicOverlay = (category: string | undefined) => {
         if (!category) return null;
-        const overlays = TECHNICAL_STANDARD_CONTENT[frameworkId?.toUpperCase() || ""] || [];
+        const normalizedFID = frameworkId?.toUpperCase() || "";
+        const overlays = TECHNICAL_STANDARD_CONTENT[normalizedFID] || [];
+
+        // 1. Try V-pattern (legacy/NIST)
         const match = category.match(/V(\d+):/);
         if (match) {
             const version = match[1];
-            return overlays.find(o => o.id.includes(`-V${version}`));
+            const vMatch = overlays.find(o => o.id.includes(`-V${version}`));
+            if (vMatch) return vMatch;
         }
-        return null;
+
+        // 2. Try Name Match (ISO and new frameworks)
+        // Check if category name is contained within or contains the overlay name
+        const nameMatch = overlays.find(o =>
+            category.toLowerCase().includes(o.name.toLowerCase().split('(')[0].trim()) ||
+            o.name.toLowerCase().includes(category.toLowerCase())
+        );
+
+        return nameMatch || null;
     };
+
 
     const overlay = getStrategicOverlay(activeCategory);
 

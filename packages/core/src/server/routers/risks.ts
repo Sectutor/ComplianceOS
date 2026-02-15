@@ -1116,7 +1116,7 @@ ${reportData.conclusion}
                 const { id, clientId, ...data } = input;
 
                 // Recalculate scores if likelihood or impact changed
-                let updateData: any = { ...data, updatedAt: new Date() };
+                const updateData: any = { ...data, updatedAt: new Date() };
                 if (data.likelihood !== undefined || data.impact !== undefined) {
                     const [current] = await db.select().from(riskAssessments).where(eq(riskAssessments.id, id));
                     const likelihood = data.likelihood !== undefined ? data.likelihood : Number(current.likelihood);

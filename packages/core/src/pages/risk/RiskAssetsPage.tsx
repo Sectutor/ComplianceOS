@@ -225,7 +225,7 @@ function AssetInventoryTable({
 
     const sortedAssets = React.useMemo(() => {
         if (!assets) return [];
-        let items = [...assets];
+        const items = [...assets];
 
         if (sortConfig !== null) {
             items.sort((a, b) => {

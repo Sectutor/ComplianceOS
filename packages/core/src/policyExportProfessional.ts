@@ -303,7 +303,7 @@ function parseMarkdownToParagraphs(content: string, sectionIndex?: number): (Par
 // Parse inline formatting (bold, italic)
 function parseInlineFormatting(text: string): TextRun[] {
   const runs: TextRun[] = [];
-  let remaining = text;
+  const remaining = text;
   let lastIndex = 0;
 
   // Handle bold text
@@ -796,7 +796,7 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
     const lines = markdown.split('\n');
     let inTable = false;
     let tableBuffer: string[] = [];
-    let result: string[] = [];
+    const result: string[] = [];
 
     for (const line of lines) {
       const trimmed = line.trim();

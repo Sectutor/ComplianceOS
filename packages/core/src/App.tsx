@@ -719,58 +719,22 @@ function Router() {
 
         {/* NIST CSF Module */}
         <Route path="/clients/:id/nist">
-          {(_params) => (
-            <ProtectedRoute component={() => (
-              <NISTLayout fullWidth>
-                <NISTHub />
-              </NISTLayout>
-            )} />
-          )}
+          {(_params) => <ProtectedRoute component={NISTHub} />}
         </Route>
         <Route path="/clients/:id/nist/dashboard">
-          {(_params) => (
-            <ProtectedRoute component={() => (
-              <NISTLayout fullWidth>
-                <NISTDashboard />
-              </NISTLayout>
-            )} />
-          )}
+          {(_params) => <ProtectedRoute component={NISTDashboard} />}
         </Route>
         <Route path="/clients/:id/nist/assessment">
-          {(_params) => (
-            <ProtectedRoute component={() => (
-              <NISTLayout fullWidth>
-                <NISTAssessment />
-              </NISTLayout>
-            )} />
-          )}
+          {(_params) => <ProtectedRoute component={NISTAssessment} />}
         </Route>
         <Route path="/clients/:id/nist/profiles">
-          {(_params) => (
-            <ProtectedRoute component={() => (
-              <NISTLayout fullWidth>
-                <NISTProfiles />
-              </NISTLayout>
-            )} />
-          )}
+          {(_params) => <ProtectedRoute component={NISTProfiles} />}
         </Route>
         <Route path="/clients/:id/nist/poam">
-          {(_params) => (
-            <ProtectedRoute component={() => (
-              <NISTLayout fullWidth>
-                <NISTPOAM />
-              </NISTLayout>
-            )} />
-          )}
+          {(_params) => <ProtectedRoute component={NISTPOAM} />}
         </Route>
         <Route path="/clients/:id/nist/documents">
-          {(_params) => (
-            <ProtectedRoute component={() => (
-              <NISTLayout fullWidth>
-                <NISTDocumentTracker />
-              </NISTLayout>
-            )} />
-          )}
+          {(_params) => <ProtectedRoute component={NISTDocumentTracker} />}
         </Route>
         <Route path="/clients/:id/nist/rmf/systems">
           {(_params) => <ProtectedRoute component={NISTSystemRegistry} />}
@@ -1826,6 +1790,87 @@ function Router() {
           <ProtectedRoute component={() => {
             const { selectedClientId } = useClientContext();
             return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/raci-matrix`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/assurance">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/assurance`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/assurance/:frameworkId">
+          {(params) => (
+            <ProtectedRoute component={() => {
+              const { selectedClientId } = useClientContext();
+              return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/assurance/${params.frameworkId}`} /> : <Redirect to="/clients" />;
+            }} />
+          )}
+        </Route>
+
+        <Route path="/nist-csf-2">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/nist-csf-2`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/cisa-ztmm-2">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/cisa-ztmm-2`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/cmmc-2">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/cmmc-2`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/c2m2-2.1">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/c2m2-2.1`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/essential-eight">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/essential-eight`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/samm">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/samm`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/asvs">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/asvs`} /> : <Redirect to="/clients" />;
+          }} />
+        </Route>
+
+        <Route path="/iso27001/:rest*">
+          {(params) => (
+            <ProtectedRoute component={() => {
+              const { selectedClientId } = useClientContext();
+              return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/iso27001/${params.rest}`} /> : <Redirect to="/clients" />;
+            }} />
+          )}
+        </Route>
+
+        <Route path="/iso27001">
+          <ProtectedRoute component={() => {
+            const { selectedClientId } = useClientContext();
+            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/iso27001`} /> : <Redirect to="/clients" />;
           }} />
         </Route>
 

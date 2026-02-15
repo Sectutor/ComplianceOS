@@ -28,7 +28,7 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 // Or just return all controls if "NIST SP 800-171 Rev 2" doesn't exist in DB as a distinct framework
                 // Currently our seed might not have "NIST SP 800-171 Rev 2" explicitly if it's using 800-53
                 
-                let framework = input?.framework;
+                const framework = input?.framework;
                 if (framework === "NIST SP 800-171 Rev 2") {
                     // Fallback to fetch all or fetch 800-53 and filter in UI? 
                     // Better: If DB has 171, use it. If not, try 800-53.

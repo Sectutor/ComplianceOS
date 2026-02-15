@@ -258,7 +258,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     // 2. Determine Owner User (Create if needed)
                     let ownerUserId = ctx.user.id;
                     let isNewUser = false;
-                    let targetEmail = input.adminEmail;
+                    const targetEmail = input.adminEmail;
 
                     if (input.adminEmail && input.adminEmail !== ctx.user.email) {
                         let existingUser = await db.getUserByEmail(input.adminEmail);

@@ -172,7 +172,7 @@ import { logger } from './lib/logger';
 
 let _sql: postgres.Sql | null = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 
 let _db: any | null = null;
 
@@ -4189,7 +4189,7 @@ export async function globalSearch(
 
   if (!filters?.type || filters.type === 'control') {
 
-    let controlQuery = db.select()
+    const controlQuery = db.select()
 
       .from(controls)
 

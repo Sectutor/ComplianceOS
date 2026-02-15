@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from "wouter";
 import { trpc } from '../../lib/trpc';
 import NIST80037Layout from "./NIST80037Layout";
+import { useNistSystemId } from "./useNistSystem";
 import {
     ClipboardList,
     CheckCircle2,
@@ -39,9 +40,9 @@ import { cn } from "@/lib/utils";
 
 export default function NIST80037Assess() {
     const { id } = useParams<{ id: string }>();
+    const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
-    const [, setLocation] = useLocation();
 
     // TRPC Queries - Using any casting due to persistent stale type inference
     const { data: findingsStats } = (trpc as any).findings.stats.useQuery({ clientId });
@@ -56,18 +57,40 @@ export default function NIST80037Assess() {
 
     const { data: checklistData } = (trpc as any).checklist.get.useQuery({
         clientId,
-        checklistId: 'nist80037-assessment'
+        checklistId: systemId ? `nist-800-37-assess-${systemId}` : 'no-system'
+    }, {
+        enabled: !!systemId
     });
 
     const updateChecklistMutation = (trpc as any).checklist.update.useMutation();
 
+    const [assessmentStatus, setAssessmentStatus] = useState<string>('pending');
+
+    // Reset local state when systemId changes
+    useEffect(() => {
+        setAssessmentStatus('pending');
+    }, [systemId]);
+
+    useEffect(() => {
+        if (checklistData?.items) {
+            const items = checklistData.items as any;
+            if (items.status) setAssessmentStatus(items.status);
+        }
+    }, [checklistData]);
+
     const handleSave = async () => {
+        if (!systemId) {
+            toast.error("No system selected", { description: "Please select a system first." });
+            return;
+        }
+        
         setIsSaving(true);
         try {
             await updateChecklistMutation.mutateAsync({
                 clientId,
-                checklistId: 'nist80037-assessment',
+                checklistId: `nist-800-37-assess-${systemId}`,
                 items: {
+                    ...checklistData?.items,
                     lastFinalized: new Date().toISOString(),
                     status: 'completed'
                 }

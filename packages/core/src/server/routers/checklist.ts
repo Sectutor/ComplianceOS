@@ -110,7 +110,7 @@ export const createChecklistRouter = (t: any, clientProcedure: any) => t.router(
                 ))
                 .limit(1);
 
-            let items: Record<string, any> = existing?.items || {};
+            const items: Record<string, any> = existing?.items || {};
             const currentTask = items[input.taskId];
 
             if (typeof currentTask === 'object' && currentTask !== null) {
