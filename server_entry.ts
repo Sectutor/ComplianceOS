@@ -14,7 +14,12 @@ import { uploadRouter } from './packages/core/src/server/routers/upload';
 import { aiRouter } from './packages/core/src/server/routers/ai';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import redis from './packages/core/src/lib/redis';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
+import { validateSecrets } from './packages/core/src/lib/secrets';
+
+// V14.1.2: Strict production secrets validation (AL 3)
+validateSecrets();
+import helmet from 'helmet';
 
 export const app = express();
 const port = process.env.PORT || 3002;
@@ -34,6 +39,20 @@ app.use((req, res, next) => {
     next();
 });
 
+// Security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://*.supabase.co", "https://*.netlify.app", "https://grcompliance.com"],
+        },
+    },
+}));
+
 // Configure CORS
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
 console.log('[CORS] Allowed Origins:', allowedOrigins);
@@ -43,16 +62,16 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        // Allow localhost, configured origins, Netlify domains, and production domain
-        if (
+        // Strict origin validation
+        const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
+        const isAllowedProd =
             allowedOrigins.indexOf(origin) !== -1 ||
-            origin.startsWith('http://localhost') ||
-            origin.startsWith('http://127.0.0.1') ||
             origin.endsWith('.netlify.app') ||
             origin === 'https://grcompliance.netlify.app' ||
             origin === 'https://grcompliance.com' ||
-            origin === 'https://www.grcompliance.com' || true // Permissive for debugging
-        ) {
+            origin === 'https://www.grcompliance.com';
+
+        if (isAllowedProd || (isLocal && process.env.NODE_ENV !== 'production')) {
             callback(null, true);
         } else {
             console.error(`[CORS] Rejected origin: ${origin}`);
@@ -83,8 +102,14 @@ if (process.env.RATE_LIMITING_ENABLED === 'true') {
 // Apply Authentication Middleware to populate req.user
 app.use(authMiddleware);
 
-// Serve static uploads
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Secure static uploads - must be after authMiddleware
+app.use('/uploads', (req: any, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required for media access' });
+    }
+    // Optional: Check client_id in path if we structure uploads by client
+    next();
+}, express.static(path.join(process.cwd(), 'uploads')));
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -92,8 +117,11 @@ app.get('/health', (req, res) => {
 });
 
 
-// Production Diagnostics Endpoint
-app.get('/api/debug/connection', async (req, res) => {
+// Production Diagnostics Endpoint - Restricted to Admins
+app.get('/api/debug/connection', async (req: any, res) => {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+        return res.status(403).json({ error: 'Unauthorized diagnostic access' });
+    }
     try {
         const db = await getDb();
         const start = Date.now();
@@ -134,8 +162,8 @@ app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/ai', aiRouter);
 
-// Serve uploads statically for local development
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Redundant local uploads removed for security
+// app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Serve static files in production (Docker)
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {

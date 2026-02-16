@@ -24,19 +24,51 @@ export const performanceTracker = middleware(async ({ path, type, next }) => {
 });
 
 /**
- * Enterprise Audit Logging
- * Logs all mutation requests for compliance audit trails
+ * Utility to sanitize mutation input for logging
+ * Removes sensitive fields like passwords, tokens, and binary data
  */
-export const auditLogger = middleware(async ({ path, type, next, ctx }) => {
+function sanitizeInput(input: any): any {
+    if (!input || typeof input !== 'object') return input;
+
+    // Deep clone to avoid mutating original
+    const sanitized = JSON.parse(JSON.stringify(input));
+    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'apiKey', 'data', 'content'];
+
+    const clean = (obj: any) => {
+        for (const key in obj) {
+            if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
+                obj[key] = '[REDACTED]';
+            } else if (typeof obj[key] === 'object') {
+                clean(obj[key]);
+            }
+        }
+    };
+
+    clean(sanitized);
+    return sanitized;
+}
+
+/**
+ * Enterprise Audit Logging
+ * Logs all mutation requests for compliance audit trails with attribution
+ */
+export const auditLogger = middleware(async (opts: any) => {
+    const { path, type, next, ctx, rawInput } = opts;
     const result = await next();
 
     if (type === 'mutation') {
+        const context = ctx as any;
         logger.info({
             message: 'Audit Log: Mutation',
             path,
-            user: (ctx as any).user?.email,
-            clientId: (ctx as any)?.clientId,
-            status: result.ok ? 'success' : 'failed'
+            user: context.user?.email || 'unauthenticated',
+            userId: context.user?.id,
+            clientId: context.clientId,
+            status: result.ok ? 'success' : 'failed',
+            ip: context.ip,
+            userAgent: context.userAgent,
+            input: result.ok ? sanitizeInput(rawInput) : undefined, // Only log input on success to avoid cluttering errors
+            errorCode: !result.ok ? (result as any).error?.code : undefined
         });
     }
 

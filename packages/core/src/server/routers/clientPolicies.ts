@@ -147,7 +147,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return newPolicy;
       }),
 
-    suggestSections: publicProcedure
+    suggestSections: clientProcedure
       .input(z.object({
         policyName: z.string(),
         industry: z.string().optional()

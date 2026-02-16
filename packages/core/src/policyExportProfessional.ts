@@ -46,6 +46,7 @@ interface PolicyExportData {
   contactEmail?: string | null;
   contactPhone?: string | null;
   address?: string | null;
+  verificationHash?: string; // AL 3 Integrity Control
 }
 
 // Brand colors
@@ -381,6 +382,7 @@ function createDocumentControlTable(policy: PolicyExportData): Table {
     ["Effective Date", new Date(policy.createdAt).toLocaleDateString()],
     ["Last Review Date", new Date(policy.updatedAt).toLocaleDateString()],
     ["Next Review Date", new Date(new Date(policy.updatedAt).setFullYear(new Date(policy.updatedAt).getFullYear() + 1)).toLocaleDateString()],
+    ["Verification Hash", policy.verificationHash ? `${policy.verificationHash.substring(0, 16)}...` : "N/A"],
   ];
 
   return new Table({
@@ -1181,6 +1183,13 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
     <div class="cover-version">Version ${policy.version}.0</div>
     <div class="cover-status">Status: ${policy.status.charAt(0).toUpperCase() + policy.status.slice(1)}</div>
     <div class="cover-date">${new Date(policy.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+    
+    ${policy.verificationHash ? `
+    <div style="margin-top: 40px; padding: 10px; border: 1px dashed #2563EB; background: #F0F7FF; border-radius: 4px; font-family: monospace; font-size: 8pt; color: #1E3A5F;">
+        <strong>SYSTEM AUTHENTICATED:</strong> ${policy.verificationHash}
+    </div>
+    ` : ''}
+
     <div class="cover-confidential">
       <div class="cover-confidential-label">CONFIDENTIAL</div>
       <div class="cover-confidential-text">This document contains confidential information. Unauthorized distribution is prohibited.</div>

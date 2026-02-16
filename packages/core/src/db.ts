@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 
 import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
+import { getSecret } from "./lib/secrets";
 
 import {
 
@@ -172,7 +173,7 @@ import { logger } from './lib/logger';
 
 let _sql: postgres.Sql | null = null;
 
- 
+
 
 let _db: any | null = null;
 
@@ -197,20 +198,16 @@ export class DatabaseConnectionError extends Error {
 export async function getDb(): Promise<NonNullable<typeof _db>> {
 
   if (!_db) {
-
-    if (!process.env.DATABASE_URL) {
-
+    const databaseUrl = getSecret('DATABASE_URL');
+    if (!databaseUrl) {
       throw new DatabaseConnectionError("DATABASE_URL environment variable is not set");
-
     }
 
     console.log('[DB] Attempting to connect to database...');
 
     try {
-
       if (!_sql) {
-
-        _sql = postgres(process.env.DATABASE_URL, {
+        _sql = postgres(databaseUrl, {
           ssl: { rejectUnauthorized: false }, // Critical for Supabase Transaction Pooler compatibility
           prepare: false, // Required for Supabase Transaction Pooler (port 6543)
           idle_timeout: 60, // Close idle connections after 60s (increased from 20s)

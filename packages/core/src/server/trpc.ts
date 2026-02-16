@@ -32,22 +32,34 @@ export const isAuthed = middleware(async ({ ctx, next }) => {
 });
 
 /**
- * Enterprise Rate Limiting Middleware
+ * Enterprise Rate Limiting Middleware - AL 3 Tiered Implementation
  */
 export const rateLimit = middleware(async ({ ctx, next, path }) => {
     // Skip rate limiting if disabled in env
     if (process.env.RATE_LIMITING_ENABLED !== 'true') return next();
 
+    const isAuthed = !!ctx.user;
+    const isPremium = (ctx as any).isPremium;
+    const isSensitive = path.includes('ai') || path.includes('auth') || path.includes('users.create') || path.includes('export');
+
     const identifier = ctx.user?.id?.toString() || ctx.ip || 'anonymous';
-    const limit = Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
+
+    // Tiered Logic
+    let limit = Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
+    if (!isAuthed) limit = Math.ceil(limit / 2); // Unauthed is 50% stricter
+    if (isPremium) limit = limit * 2; // Premium has 2x capacity
+    if (isSensitive) limit = Math.min(limit, 10); // Sensitive paths limited to 10 per window
+
     const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000;
 
-    const limited = await rateLimiter.isRateLimited(`${path}:${identifier}`, limit, windowMs);
+    const limited = await rateLimiter.isRateLimited(`rl:${path}:${identifier}`, limit, windowMs);
 
     if (limited) {
         throw new TRPCError({
             code: 'TOO_MANY_REQUESTS',
-            message: 'Too many requests. Please try again later.'
+            message: isSensitive
+                ? 'Rate limit exceeded for sensitive operation. Please wait before trying again.'
+                : 'Too many requests. Please try again later.'
         });
     }
 
@@ -187,54 +199,42 @@ export const checkPremiumAccess = middleware(async (opts) => {
     }
 });
 
-export const requiresMFA = middleware(async ({ ctx, next }) => {
+/**
+ * MFA Enforcement Middleware - AL 3 High Assurance
+ * Enforces aal2 for all privileged/sensitive operations.
+ */
+export const requiresMFA = middleware(async ({ ctx, next, path }) => {
     const aal = (ctx as any).aal;
+    const dbUser = ctx.user;
+    if (!dbUser) return next();
+
+    // AL 3: Mandatory MFA for all Global Admins and Owners
+    const isPrivilegedRole = dbUser.role === 'admin' || dbUser.role === 'super_admin' || dbUser.role === 'owner';
+
     if (aal === 'aal2') return next(); // Already at max level
 
     const clientId = (ctx as any).clientId;
-    const dbUser = ctx.user;
-    if (!dbUser) return next();
 
     try {
         const dbConn = await db.getDb();
 
-        // Strategy: 
-        // 1. If we have a clientId, check that specific client's requirement.
-        // 2. If no clientId (global context), check if ANY of the user's memberships require MFA.
+        let must = isPrivilegedRole; // Forced for admins
 
-        let must = false;
-        if (clientId) {
+        if (!must && clientId) {
+            // Check specific client's requirement for standard users
             const [client] = await dbConn.select({ requireMfa: schema.clients.requireMfa })
                 .from(schema.clients)
                 .where(eq(schema.clients.id, clientId))
                 .limit(1);
             must = !!client?.requireMfa;
-        } else {
-            // Check all memberships for user
-            const memberships = await dbConn.select({ requireMfa: schema.clients.requireMfa })
-                .from(schema.userClients)
-                .innerJoin(schema.clients, eq(schema.userClients.clientId, schema.clients.id))
-                .where(eq(schema.userClients.userId, dbUser.id));
-
-            must = memberships.some((m: any) => !!m.requireMfa);
         }
 
         if (must && aal !== 'aal2') {
-            // Second check: Does the user actually have factors enrolled?
-            // If they don't have factors, they can't verify 'aal2' anyway.
-            // We return next() and let the frontend handle the redirect to enrollment.
-            // HOWEVER, if they DO have factors (Supabase currentLevel < nextLevel),
-            // then we MUST throw to trigger the challenge modal.
-
-            // Since we don't want to call Supabase Auth API from the backend on every request,
-            // we rely on the client-side event listener and aal check in AppWithMFA.
-            // But to force the first request to fail, we can throw here if we suspect they need it.
-
-            // For now, let's keep it simple: if Org requires it and AAL is 1, throw.
-            // This will trigger the CustomEvent('require-mfa') in main.tsx
             throw new TRPCError({
                 code: 'PRECONDITION_FAILED',
-                message: 'Multi-factor authentication required'
+                message: isPrivilegedRole
+                    ? 'Administrative access requires active Multi-factor Authentication (MFA).'
+                    : 'This organization requires Multi-factor authentication to proceed.'
             });
         }
     } catch (err) {

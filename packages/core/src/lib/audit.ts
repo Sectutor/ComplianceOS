@@ -34,8 +34,8 @@ export async function logActivity(params: LogActivityParams, tx?: any) {
             entityId,
             details: details ? JSON.stringify(details) : null,
             severity: severity || 'info',
-            // Ip and UserAgent could be extracted if `req` was passed and running in an env that supports it
-            // For now we leave them null or implement later
+            ipAddress: params.req ? (params.req.headers.get('x-forwarded-for') || (params.req as any).socket?.remoteAddress) : null,
+            userAgent: params.req ? params.req.headers.get('user-agent') : null,
         });
     } catch (error) {
         console.error("Failed to log activity:", error);

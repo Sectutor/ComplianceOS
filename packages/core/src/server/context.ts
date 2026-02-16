@@ -16,7 +16,8 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
         user,
         clientId,
         aal,
-        ip: req.ip
+        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent']
     };
 };
 
