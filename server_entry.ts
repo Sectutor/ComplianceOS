@@ -1,4 +1,66 @@
-import './packages/core/src/polyfill';
+// CRITICAL: Polyfill MUST run before any other code is evaluated
+(function polyfill() {
+    const g: any = typeof globalThis !== 'undefined' ? globalThis : typeof global !== 'undefined' ? global : {};
+
+    // Core Graphics
+    if (typeof g.DOMMatrix === 'undefined') {
+        g.DOMMatrix = class DOMMatrix {
+            constructor() { }
+            static fromFloat32Array() { return new DOMMatrix(); }
+            static fromFloat64Array() { return new DOMMatrix(); }
+            static fromMatrix() { return new DOMMatrix(); }
+        };
+    }
+
+    // Window & Document
+    if (typeof g.window === 'undefined') g.window = g;
+    if (typeof g.self === 'undefined') g.self = g;
+    if (typeof g.document === 'undefined') {
+        g.document = {
+            createElement: () => ({
+                setAttribute: () => { },
+                style: {},
+                appendChild: () => { },
+                getContext: () => ({ fillRect: () => { }, measureText: () => ({ width: 0 }) })
+            }),
+            getElementsByTagName: () => [],
+            documentElement: { style: {} },
+            addEventListener: () => { },
+            removeEventListener: () => { },
+            cookie: '',
+        };
+    }
+
+    // Location & Navigator
+    if (typeof g.location === 'undefined') {
+        g.location = {
+            href: 'https://app.grcompliance.com/',
+            origin: 'https://app.grcompliance.com',
+            protocol: 'https:',
+            host: 'app.grcompliance.com',
+            hostname: 'app.grcompliance.com',
+            port: '',
+            pathname: '/',
+            search: '',
+            hash: '',
+            assign: () => { },
+            replace: () => { },
+            reload: () => { },
+            toString: () => 'https://app.grcompliance.com/',
+        };
+    }
+    if (typeof g.navigator === 'undefined') g.navigator = { userAgent: 'Node.js', platform: 'Node.js', languages: ['en-US'] };
+
+    // Classes
+    if (typeof g.Node === 'undefined') g.Node = class Node { };
+    if (typeof g.Element === 'undefined') g.Element = class Element { };
+    if (typeof g.HTMLElement === 'undefined') g.HTMLElement = class HTMLElement extends g.Element { };
+
+    // Storage
+    if (typeof g.localStorage === 'undefined') g.localStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
+    if (typeof g.sessionStorage === 'undefined') g.sessionStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
+})();
+
 import './env-loader';
 import express from 'express';
 import cors from 'cors';
@@ -135,7 +197,24 @@ app.get('/health', async (req, res) => {
 
 
 // Production Diagnostics Endpoint - Restricted to Admins
-app.get('/api/debug/connection', async (req: any, res) => {
+// Diagnostic endpoint to check polyfills
+app.get('/debug/globals', (req: express.Request, res: express.Response) => {
+    const g = global as any;
+    res.json({
+        DOMMatrix: typeof g.DOMMatrix,
+        window: typeof g.window,
+        document: typeof g.document,
+        location: typeof g.location,
+        location_type: Object.prototype.toString.call(g.location),
+        location_href: g.location?.href,
+        navigator: typeof g.navigator,
+        userAgent: g.navigator?.userAgent,
+        process_env_NETLIFY: !!process.env.NETLIFY,
+        process_env_NODE_ENV: process.env.NODE_ENV,
+    });
+});
+
+app.get('/debug/connection', async (req: any, res) => {
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
         return res.status(403).json({ error: 'Unauthorized diagnostic access' });
     }
