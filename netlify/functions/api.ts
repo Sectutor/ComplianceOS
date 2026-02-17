@@ -1,6 +1,8 @@
 // CRITICAL: Polyfill MUST run before any other code is evaluated
 (function polyfill() {
     const g: any = typeof globalThis !== 'undefined' ? globalThis : typeof global !== 'undefined' ? global : {};
+
+    // Core Graphics
     if (typeof g.DOMMatrix === 'undefined') {
         g.DOMMatrix = class DOMMatrix {
             constructor() { }
@@ -9,18 +11,54 @@
             static fromMatrix() { return new DOMMatrix(); }
         };
     }
+
+    // Window & Document
     if (typeof g.window === 'undefined') g.window = g;
+    if (typeof g.self === 'undefined') g.self = g;
     if (typeof g.document === 'undefined') {
         g.document = {
-            createElement: () => ({ setAttribute: () => { }, style: {}, appendChild: () => { } }),
+            createElement: () => ({
+                setAttribute: () => { },
+                style: {},
+                appendChild: () => { },
+                getContext: () => ({ fillRect: () => { }, measureText: () => ({ width: 0 }) })
+            }),
             getElementsByTagName: () => [],
             documentElement: { style: {} },
             addEventListener: () => { },
             removeEventListener: () => { },
+            cookie: '',
         };
     }
-    if (typeof g.navigator === 'undefined') g.navigator = { userAgent: 'Node.js' };
-    if (typeof g.location === 'undefined') g.location = { href: '', origin: '' };
+
+    // Location & Navigator
+    if (typeof g.location === 'undefined') {
+        g.location = {
+            href: 'https://app.grcompliance.com/',
+            origin: 'https://app.grcompliance.com',
+            protocol: 'https:',
+            host: 'app.grcompliance.com',
+            hostname: 'app.grcompliance.com',
+            port: '',
+            pathname: '/',
+            search: '',
+            hash: '',
+            assign: () => { },
+            replace: () => { },
+            reload: () => { },
+            toString: () => 'https://app.grcompliance.com/',
+        };
+    }
+    if (typeof g.navigator === 'undefined') g.navigator = { userAgent: 'Node.js', platform: 'Node.js', languages: ['en-US'] };
+
+    // Classes
+    if (typeof g.Node === 'undefined') g.Node = class Node { };
+    if (typeof g.Element === 'undefined') g.Element = class Element { };
+    if (typeof g.HTMLElement === 'undefined') g.HTMLElement = class HTMLElement extends g.Element { };
+
+    // Storage
+    if (typeof g.localStorage === 'undefined') g.localStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
+    if (typeof g.sessionStorage === 'undefined') g.sessionStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
 })();
 
 import serverless from "serverless-http";
