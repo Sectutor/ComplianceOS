@@ -12,24 +12,9 @@
         };
     }
 
-    // Window & Document
+    // Window & self
     if (typeof g.window === 'undefined') g.window = g;
     if (typeof g.self === 'undefined') g.self = g;
-    if (typeof g.document === 'undefined') {
-        g.document = {
-            createElement: () => ({
-                setAttribute: () => { },
-                style: {},
-                appendChild: () => { },
-                getContext: () => ({ fillRect: () => { }, measureText: () => ({ width: 0 }) })
-            }),
-            getElementsByTagName: () => [],
-            documentElement: { style: {} },
-            addEventListener: () => { },
-            removeEventListener: () => { },
-            cookie: '',
-        };
-    }
 
     // Location & Navigator
     if (typeof g.location === 'undefined') {
