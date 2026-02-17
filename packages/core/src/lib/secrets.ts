@@ -27,7 +27,10 @@ const REQUIRED_SECRETS_PROD: SecretKey[] = [
 export function validateSecrets() {
     if (process.env.NODE_ENV !== 'production') return;
 
-    const missing = REQUIRED_SECRETS_PROD.filter(key => !process.env[key]);
+    const missing = REQUIRED_SECRETS_PROD.filter(key => {
+        const val = process.env[key] || process.env[`VITE_${key}`];
+        return !val;
+    });
 
     if (missing.length > 0) {
         const errorMsg = `CRITICAL: Missing required production secrets: ${missing.join(', ')}`;
@@ -42,10 +45,10 @@ export function validateSecrets() {
  * Gets a secret with a fallback and optional validation.
  */
 export function getSecret(key: SecretKey, fallback?: string): string {
-    const value = process.env[key] || fallback;
+    const value = process.env[key] || process.env[`VITE_${key}`] || fallback;
 
     if (!value && REQUIRED_SECRETS_PROD.includes(key) && process.env.NODE_ENV === 'production') {
-        throw new Error(`CRITICAL: Secret ${key} is required in production but not found.`);
+        throw new Error(`CRITICAL: Secret ${key} (or VITE_${key}) is required in production but not found.`);
     }
 
     return value || '';
