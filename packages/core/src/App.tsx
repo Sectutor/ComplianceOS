@@ -587,6 +587,23 @@ function VendorsAlias() {
   return <Redirect to="/clients" />;
 }
 
+/**
+ * RootHub handles domain-based routing for the landing page vs. application entrance.
+ * Main domain (grcompliance.com) serves the marketing landing page.
+ * App subdomain (app.grcompliance.com) serves the login page directly.
+ */
+function RootHub() {
+  const hostname = window.location.hostname;
+  // Localhost or app. subdomain leads to the login/app experience
+  const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+
+  if (isAppDomain) {
+    return <LoginPage />;
+  }
+
+  return <Home />;
+}
+
 
 function PageLoader() {
   return (
@@ -632,8 +649,8 @@ function Router() {
         <Route path="/portal/request/:token" component={ConsolidatedRequestPortal} />
         <Route path="/portal/assessment/:token" component={VendorAssessmentPortal} />
 
-        {/* Home/Landing Page - Public (shows landing for unauthenticated, dashboard links for authenticated) */}
-        <Route path="/" component={LoginPage} />
+        {/* Domain-Aware Root Route */}
+        <Route path="/" component={RootHub} />
 
         {/* License Test Page - For testing license validation system */}
         <Route path="/license-test">
