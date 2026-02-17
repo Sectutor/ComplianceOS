@@ -48,8 +48,8 @@
     // NOTE: 'document' is omitted to avoid triggering browser-detection in @trpc/server
 })();
 
-import serverless from "serverless-http";
-import { app } from "../../server_entry";
+const serverless = require("serverless-http");
+const { app } = require("../../server_entry");
 
 export const handler = serverless(app, {
     binary: [
