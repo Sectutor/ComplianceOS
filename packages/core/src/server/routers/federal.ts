@@ -1671,3 +1671,4 @@ export const createFederalRouter = (t: typeof tType, clientProcedure: typeof cpT
                 };
             }),
     });
+}
