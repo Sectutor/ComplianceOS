@@ -12,7 +12,9 @@ import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
 import { aiRouter } from './packages/core/src/server/routers/ai';
+import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroad';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
+import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
@@ -161,6 +163,7 @@ app.get('/api/debug/connection', async (req: any, res) => {
 app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/webhooks', gumroadWebhookRouter);
 
 // Redundant local uploads removed for security
 // app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -213,6 +216,12 @@ if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
     threatScheduler.start();
 }
 
+// License renewal scheduler
+if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
+    licenseRenewalScheduler.start();
+    console.log('[Server] License renewal scheduler started');
+}
+
 // Global error handler to ensure all errors return JSON - MUST BE LAST
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('[Server Error]', {
@@ -235,9 +244,10 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Only listen locally, Netlify calls the handler directly
 if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
-    app.listen(Number(port), '127.0.0.1', () => {
-        console.log(`\n🚀 Server listening specifically on http://127.0.0.1:${port}`);
-        console.log(`-> Health check: http://127.0.0.1:${port}/health`);
-        console.log(`-> TRPC endpoint: http://127.0.0.1:${port}/api/trpc\n`);
+    const listenAddr = process.env.LISTEN_ADDR || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
+    app.listen(Number(port), listenAddr, () => {
+        console.log(`\n🚀 Server listening specifically on http://${listenAddr}:${port}`);
+        console.log(`-> Health check: http://${listenAddr}:${port}/health`);
+        console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
     });
 }
