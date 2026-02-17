@@ -9,7 +9,7 @@ import { llmService } from "../../lib/llm/service";
 
 import { t as tType, clientProcedure as cpType, checkPremiumAccess } from "../trpc";
 
-export const createFederalRouter = (t: typeof tType, clientProcedure: typeof cpType) => {
+export const createFederalRouter = (t: any, clientProcedure: any) => {
     // Federal Compliance is a Premium Feature
     const premiumProcedure = clientProcedure.use(checkPremiumAccess);
 

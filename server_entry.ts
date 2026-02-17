@@ -2,6 +2,16 @@
 import './env-loader';
 import express from 'express';
 import cors from 'cors';
+
+// Polyfill DOMMatrix for Node.js environment (required by some PDF/Canvas libraries)
+if (typeof (global as any).DOMMatrix === 'undefined') {
+    (global as any).DOMMatrix = class DOMMatrix {
+        constructor() { }
+        static fromFloat32Array() { return new DOMMatrix(); }
+        static fromFloat64Array() { return new DOMMatrix(); }
+        static fromMatrix() { return new DOMMatrix(); }
+    };
+}
 import path from 'path';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
