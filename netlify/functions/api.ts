@@ -10,6 +10,8 @@
             static fromFloat64Array() { return new DOMMatrix(); }
             static fromMatrix() { return new DOMMatrix(); }
         };
+        // Also assign to global directly for some bundlers
+        if (typeof global !== 'undefined') (global as any).DOMMatrix = g.DOMMatrix;
     }
 
     // Window & self
@@ -44,6 +46,8 @@
     // Storage
     if (typeof g.localStorage === 'undefined') g.localStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
     if (typeof g.sessionStorage === 'undefined') g.sessionStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
+
+    console.log("[Polyfill] Initialized. DOMMatrix available:", typeof g.DOMMatrix);
 })();
 
 const serverless = require("serverless-http");
