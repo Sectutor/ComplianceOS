@@ -174,6 +174,15 @@ export const checkPremiumAccess = middleware(async (opts) => {
     const input = rawInput as any;
     const clientId = input?.clientId || ctx.clientId;
 
+    // STRICT CHECK: Premium must be enabled in environment
+    // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
+    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Premium features are disabled in this environment. Please upgrade to the Enterprise Edition.'
+        });
+    }
+
     if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin') {
         return next({ ctx: { ...ctx, isPremium: true } });
     }
@@ -183,15 +192,6 @@ export const checkPremiumAccess = middleware(async (opts) => {
     }
 
     try {
-        // STRICT CHECK: Premium must be enabled in environment
-        // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
-        if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-            throw new TRPCError({
-                code: 'FORBIDDEN',
-                message: 'Premium features are disabled in this environment.'
-            });
-        }
-
         const dbConn = await db.getDb();
         const [client] = await dbConn.select({ planTier: schema.clients.planTier })
             .from(schema.clients)
@@ -264,7 +264,27 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
     return next();
 });
 
-export const protectedProcedure = publicProcedure.use(rateLimit).use(performanceTracker).use(auditLogger).use(isAuthed);
+
+/**
+ * Demo Mode Guard
+ * Blocks all mutations in demo environment, except for authentication-related ones.
+ */
+export const demoModeGuard = middleware(async ({ ctx, type, path, next }) => {
+    if (process.env.VITE_APP_MODE === 'demo' && type === 'mutation') {
+        const allowedMutations = ['auth.', 'users.login', 'users.register', 'users.logout'];
+        const isAllowed = allowedMutations.some(p => path.startsWith(p));
+
+        if (!isAllowed) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'This is a read-only demo environment. Data modifications are disabled.'
+            });
+        }
+    }
+    return next();
+});
+
+export const protectedProcedure = publicProcedure.use(rateLimit).use(performanceTracker).use(auditLogger).use(demoModeGuard).use(isAuthed);
 export const adminProcedure = protectedProcedure.use(requiresMFA).use(isAdmin);
 export const clientProcedure = protectedProcedure.use(requiresMFA).use(checkClientAccess);
 export const clientEditorProcedure = clientProcedure.use(checkClientEditor);

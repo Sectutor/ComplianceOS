@@ -54,10 +54,10 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const { isCommunityEdition, isTrialEdition } = useLicense();
-  
+
   const isCommunity = isCommunityEdition();
   const isTrial = isTrialEdition();
-  
+
   const getFeatureIcon = () => {
     if (featureId.includes('ai.')) return <Zap className="w-6 h-6" />;
     if (featureId.includes('advisor.')) return <Users className="w-6 h-6" />;
@@ -67,7 +67,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
     if (featureId.includes('integration.')) return <Cloud className="w-6 h-6" />;
     return <Lock className="w-6 h-6" />;
   };
-  
+
   const getDialogSize = () => {
     switch (size) {
       case 'sm': return 'max-w-md';
@@ -75,11 +75,11 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
       default: return 'max-w-lg';
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      
+
       <DialogContent className={`${getDialogSize()} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
@@ -101,7 +101,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             </div>
           </div>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Feature highlight */}
           <div className="bg-muted/50 p-4 rounded-lg">
@@ -132,7 +132,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               </li>
             </ul>
           </div>
-          
+
           {/* Edition comparison */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border rounded-lg p-4">
@@ -163,13 +163,17 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
                 </li>
               </ul>
             </div>
-            
+
             <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
               <div className="flex items-center gap-2 mb-3">
                 <Crown className="w-4 h-4 text-primary" />
                 <h4 className="font-medium">Enterprise Edition</h4>
               </div>
               <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span>Federal Compliance (FedRAMP, CMMC)</span>
+                </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500" />
                   <span>AI-Powered Intelligence</span>
@@ -193,7 +197,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               </ul>
             </div>
           </div>
-          
+
           {/* Pricing info */}
           <div className="bg-muted/30 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Pricing</h4>
@@ -216,7 +220,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             </div>
           </div>
         </div>
-        
+
         <DialogFooter className="flex flex-col sm:flex-row gap-3">
           {showTrialOption && !isTrial && (
             <Button
@@ -231,7 +235,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               Start 30-Day Trial
             </Button>
           )}
-          
+
           <Button
             className="sm:flex-1"
             onClick={() => {
@@ -242,7 +246,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             View Pricing & Upgrade
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-          
+
           <Button
             variant="ghost"
             onClick={() => setOpen(false)}
@@ -251,7 +255,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 
@@ -263,9 +267,9 @@ export const InlineUpgradePrompt: React.FC<{
   compact?: boolean;
 }> = ({ featureName = 'this feature', compact = false }) => {
   const { isCommunityEdition } = useLicense();
-  
+
   if (!isCommunityEdition()) return null;
-  
+
   if (compact) {
     return (
       <div className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 px-2 py-1 rounded">
@@ -274,7 +278,7 @@ export const InlineUpgradePrompt: React.FC<{
       </div>
     );
   }
-  
+
   return (
     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-lg">
       <div className="flex items-center gap-3">
@@ -305,9 +309,9 @@ export const InlineUpgradePrompt: React.FC<{
  */
 export const FloatingUpgradeButton: React.FC = () => {
   const { isCommunityEdition } = useLicense();
-  
+
   if (!isCommunityEdition()) return null;
-  
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <UpgradePrompt

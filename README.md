@@ -82,16 +82,30 @@ Prepare for and respond to cyber incidents.
 - **Cyber Assessments**: Regular maturity assessments against cyber frameworks.
 
 
-## ⚖️ Why GRCompliance?
+## ⚖️ Core vs Enterprise
+GRCompliance operates on an **Open Core** model. We believe security should be accessible to everyone, but advanced automation and specialized frameworks require sustained development.
 
-| Feature | 🚀 GRCompliance | 📉 Spreadsheets | 🏢 Commercial (Vanta/Drata) |
+| Feature | 🟢 Community (Core) | 💎 Enterprise (Premium) |
+| :--- | :---: | :---: |
+| **Frameworks** | ISO 27001, SOC 2, HIPAA, GDPR | **+ FedRAMP, CMMC, NIST 800-53** |
+| **Risk Management** | ISO 31000 Risk Engine | **+ Threat Intelligence, AI Analysis** |
+| **Multi-Tenancy** | Single Workspace | **Unlimited Workspaces (MSP Mode)** |
+| **Automation** | Standard Evidence Collection | **Advanced API Integrations** |
+| **Support** | Community via GitHub | **SLA + Dedicated Success Manager** |
+| **Release Cycle** | Stable Quarterly Releases | **Continuous "Edge" Updates** |
+
+### 🎓 The "Feature Graduation" Philosophy
+We use a time-delayed open source model. New, cutting-edge features (like AI Governance or new Federal standards) are initially released to **Premium** users to fund development. After a stabilization period (typically 3-6 months), these features are "graduated" into the **Community** edition, ensuring the open source platform gets more powerful over time.
+
+## 🏆 Why GRCompliance?
+
+| Metric | 🚀 GRCompliance | 📉 Spreadsheets | 🏢 Commercial (Vanta/Drata) |
 | :--- | :---: | :---: | :---: |
-| **Cost** | **Free (Open Source)** | Free | $15,000+ / year |
-| **Data Privacy** | **Your Cloud / On-Prem** | Local Files | Third-Party Cloud |
-| **Customization** | **Unlimited (Code access)** | High | Rigid / Restricted |
-| **Extensibility** | **Open Addon System** | None | Closed Ecosystem |
-| **Lock-in** | **None** | None | High (Proprietary Data) |
-| **Automation** | **Automated Evidence** | Manual | Automated |
+| **Cost** | **Free (Self-Hosted)** | Free | $15,000+ / year |
+| **Data Privacy** | **On-Prem / Private Cloud** | Local Files | Third-Party SaaS |
+| **Customization** | **Full Code Access** | High | Rigid |
+| **Vendor Lock-in** | **None (Open Data)** | None | High |
+| **Speed** | **Instant Setup** | Manual | Weeks of Sales Calls |
 
 ## 🏗️ Architecture
 

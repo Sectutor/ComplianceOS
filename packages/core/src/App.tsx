@@ -410,8 +410,8 @@ function UnifiedClientGuard({
       globalRole
     });
 
-    if (!enabledInBuild && !isGlobalAdmin) {
-      console.log('[DEBUG UnifiedClientGuard] Redirecting: !enabledInBuild && !isGlobalAdmin');
+    if (!enabledInBuild) {
+      console.log('[DEBUG UnifiedClientGuard] Redirecting: Premium features disabled in build');
       return <Redirect to="/upgrade-required" />;
     }
     if (!isPremium) {
@@ -1281,10 +1281,10 @@ function Router() {
 
         {/* Federal Compliance Hub Routes */}
         <Route path="/clients/:id/federal/overview">
-          {(_params) => <ProtectedRoute component={FederalOverview} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalOverview} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal">
-          {(_params) => <ProtectedRoute component={FederalComplianceDashboard} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalComplianceDashboard} /></UnifiedClientGuard>}
         </Route>
 
         <Route path="/clients/:id/compliance-obligations">
@@ -1294,89 +1294,89 @@ function Router() {
           {(_params) => <ProtectedRoute component={RegulationDetail} />}
         </Route>
         <Route path="/clients/:id/federal/fedramp">
-          {(_params) => <ProtectedRoute component={FedRAMPPackagesPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FedRAMPPackagesPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/fisma">
-          {(_params) => <ProtectedRoute component={FismaSystemsPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FismaSystemsPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/dfars">
-          {(_params) => <ProtectedRoute component={DfarsPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={DfarsPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/assessment-171">
-          {(_params) => <ProtectedRoute component={Nist800171AssessmentPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={Nist800171AssessmentPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/rmf">
-          {(_params) => <ProtectedRoute component={RmfPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={RmfPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/rmf/:workflowId">
-          {(_params) => <ProtectedRoute component={RmfWorkflowPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={RmfWorkflowPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/stigs">
-          {(_params) => <ProtectedRoute component={StigsPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={StigsPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/stigs/:checklistId">
-          {(_params) => <ProtectedRoute component={StigChecklistPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={StigChecklistPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/fips-140">
-          {(_params) => <ProtectedRoute component={Fips140Page} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={Fips140Page} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/fedramp/:packageId">
-          {(_params) => <ProtectedRoute component={FedRAMPPackageDetailPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FedRAMPPackageDetailPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/nist-800-53">
-          {(_params) => <ProtectedRoute component={Nist80053AssessmentPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={Nist80053AssessmentPage} /></UnifiedClientGuard>}
         </Route>
         {/* Alias for cleaner URL navigation */}
         <Route path="/clients/:id/federal/assessment">
-          {(_params) => <ProtectedRoute component={Nist80053AssessmentPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={Nist80053AssessmentPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/assessment-80053">
-          {(_params) => <ProtectedRoute component={Nist80053AssessmentPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={Nist80053AssessmentPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/gap-report">
-          {(_params) => <ProtectedRoute component={NonComplianceReport} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={NonComplianceReport} /></UnifiedClientGuard>}
         </Route>
         {/* Redirect for legacy URL */}
         <Route path="/clients/:id/federal/800-53">
           {(_params) => <Redirect to={`/clients/${_params.id}/federal/nist-800-53`} />}
         </Route>
         <Route path="/clients/:id/federal/fisma">
-          {(_params) => <ProtectedRoute component={FISMAPlaceholder} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FISMAPlaceholder} /></UnifiedClientGuard>}
         </Route>
 
         <Route path="/clients/:id/federal/dfars">
-          {(_params) => <ProtectedRoute component={DFARSPlaceholder} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={DFARSPlaceholder} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/stigs">
-          {(_params) => <ProtectedRoute component={DISAStigPlaceholder} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={DISAStigPlaceholder} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/fips-140">
-          {(_params) => <ProtectedRoute component={Fips140TrackingPlaceholder} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={Fips140TrackingPlaceholder} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/fips-199">
-          {(_params) => <ProtectedRoute component={FipsCategorizationPage} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FipsCategorizationPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/poam">
-          {(_params) => <ProtectedRoute component={POAMTracker} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={POAMTracker} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/ssp-171">
-          {(_params) => <ProtectedRoute component={SSPEditor} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SSPEditor} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/ssp-172">
-          {(_params) => <ProtectedRoute component={SSPEditor} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SSPEditor} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/sar-171">
-          {(_params) => <ProtectedRoute component={SARViewer} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SARViewer} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/sar-172">
-          {(_params) => <ProtectedRoute component={SARViewer} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SARViewer} /></UnifiedClientGuard>}
         </Route>
         {/* Generic SAR and SSP routes for simpler navigation */}
         <Route path="/clients/:id/federal/sar">
-          {(_params) => <ProtectedRoute component={SARViewer} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SARViewer} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/ssp">
-          {(_params) => <ProtectedRoute component={SSPEditor} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SSPEditor} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/alignment-guide">
           {(_params) => <ProtectedRoute component={FederalAlignmentPage} />}

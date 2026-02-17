@@ -18,6 +18,7 @@ COPY . .
 # We navigate to packages/core because that's where the vite app lives
 WORKDIR /app/packages/core
 # Skip type checking (tsc) to allow build to proceed despite existing type errors
+ENV VITE_ENABLE_PREMIUM=true
 RUN npx vite build
 
 # Stage 2: Production Runtime

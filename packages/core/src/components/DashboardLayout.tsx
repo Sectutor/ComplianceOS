@@ -840,8 +840,11 @@ function DashboardLayoutContent({
           { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
           { icon: Link, label: "Mappings", path: "/mappings" },
         ]
-      },
-      {
+      }
+    );
+
+    if (isPremium) {
+      groups.push({
         label: "Federal Compliance",
         items: [
           { icon: Building2, label: "Overview", path: "/federal" },
@@ -859,7 +862,10 @@ function DashboardLayoutContent({
           { icon: ClipboardList, label: "SAR Report", path: "/federal/sar" },
           { icon: Zap, label: "POA&M (NIST 171)", path: "/federal/poam" },
         ]
-      },
+      });
+    }
+
+    groups.push(
       {
         label: "Business Continuity",
         items: [

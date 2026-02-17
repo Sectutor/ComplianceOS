@@ -3,16 +3,17 @@
 ## Overview
 
 A comprehensive dual-licensing system for ComplianceOS that enables:
-- **AGPLv3 Community Edition** - Open source build with limited features
-- **Commercial Enterprise Edition** - Full-featured build requiring license activation
-- **Trial Edition** - Time-limited evaluation of enterprise features
+- **Community Edition (Open Core)** - Free, open source build. Verified by `VITE_ENABLE_PREMIUM=false` to globally disable enterprise features.
+- **Enterprise Edition** - Full-featured commercial build. Requires a valid license key to unlock premium modules.
+- **Trial Edition** - Time-limited evaluation of enterprise features.
 
 ## Architecture
 
 ### 1. Dual-Licensing Build System
-- Three build configurations defined in `package.json`: `AGPLv3`, `COMMERCIAL`, `TRIAL`
-- Build-time feature gating via environment variable `BUILD_TYPE`
-- Feature flag system controls 40+ license-gated features
+- **Strict Enforcement**: The environment variable `VITE_ENABLE_PREMIUM` is the single source of truth. 
+  - If set to `'false'`, **ALL** premium features are disabled at the API and UI level, regardless of user role.
+  - If set to `'true'`, features are gated by the client's subscription tier in the database.
+- **Open Core Model**: Core compliance features are always available. Advanced modules (Federal, AI, etc.) are "graduated" to Core over time.
 
 ### 2. Database Schema
 Located at `packages/core/src/schema/licenses.ts`:
@@ -23,8 +24,10 @@ Located at `packages/core/src/schema/licenses.ts`:
 - `license_configurations` - Configuration for license management
 
 ### 3. License Validation & Activation
-- **Frontend**: [ClientLicenseActivation.tsx](file:///D:/OneDrive%20-%20Intellfence/WebDev/ComplianceOS/packages/core/src/pages/ClientLicenseActivation.tsx) - Self-service license activation page
-- **Backend**: [license-validator.ts](file:///D:/OneDrive%20-%20Intellfence/WebDev/ComplianceOS/packages/core/src/lib/gumroad/license-validator.ts) - Gumroad API integration
+- **Frontend**: [ClientLicenseActivation.tsx](file:///D:/OneDrive%20-%20Intellfence/WebDev/ComplianceOS/packages/core/src/pages/ClientLicenseActivation.tsx) - How users input their key.
+- **Backend**: [gumroad.ts](file:///D:/OneDrive%20-%20Intellfence/WebDev/ComplianceOS/packages/core/src/server/routers/gumroad.ts) - Handles validation logic.
+  - **Automatic Upgrades**: Successfully activating a license automatically upgrades the client's `planTier` to `enterprise` (or `pro`) and sets `subscriptionStatus` to `active`.
+  - **Automatic Downgrades**: Deactivating a license immediately reverts the client to the `free` tier.
 - **Database Service**: [licenseDbService.ts](file:///D:/OneDrive%20-%20Intellfence/WebDev/ComplianceOS/packages/core/src/lib/license/licenseDbService.ts) - CRUD operations
 
 ### 4. Automated Renewal Reminder System
@@ -121,10 +124,11 @@ Check server logs for scheduler activity:
 ## API Endpoints
 
 ### tRPC Procedures (`packages/core/src/server/routers/gumroad.ts`)
-- `gumroad.validateLicense` - Validate license key
+- `gumroad.validateLicense` - Validate license key (read-only check)
+- `gumroad.activateLicense` - Activates key and **upgrades client tier**
+- `gumroad.deactivateLicense` - Deactivates key and **downgrades client to free**
 - `gumroad.getLicenseAnalytics` - Get analytics data
 - `gumroad.getExpiringLicenses` - Get licenses expiring soon
-- `gumroad.triggerRenewalReminders` - Manual trigger (admin only)
 
 ## Email Integration
 
@@ -163,7 +167,7 @@ Email templates support:
 ## Deployment
 
 ### Production Checklist
-- [ ] Set `BUILD_TYPE=COMMERCIAL` in production
+- [ ] Set `VITE_ENABLE_PREMIUM=true` to enable Enterprise feature gating
 - [ ] Configure email service (SendGrid/SMTP)
 - [ ] Set `ADMIN_EMAIL` for notifications
 - [ ] Enable `ENABLE_LICENSE_RENEWAL_SCHEDULER=true`

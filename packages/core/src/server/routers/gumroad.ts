@@ -10,6 +10,9 @@ import { getGumroadClient } from "../../lib/gumroad";
 import { getEnhancedLicenseValidator } from "../../lib/gumroad/license-validator";
 import { config } from "../../lib/config";
 import { licenseDbService } from "../../lib/license/licenseDbService";
+import * as db from "../../db";
+import { clients } from "../../schema";
+import { eq } from "drizzle-orm";
 
 export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any, publicProcedure: any) => {
   return t.router({
@@ -341,6 +344,32 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
             });
           }
 
+          // CRITICAL FIX: Update Client Plan Tier
+          // The license is active, but we must update the client's tier in the main table
+          // so the rest of the app knows they are Premium/Enterprise.
+          const dbConn = await db.getDb();
+
+          // Map license type to DB plan tier
+          let targetTier = 'enterprise';
+          const typeStr = String(licenseInfo.type); // Cast to string to avoid TS errors with enum mismatch
+
+          if (typeStr === 'community') targetTier = 'free';
+          else if (typeStr === 'trial') targetTier = 'pro';
+          else if (typeStr === 'startup') targetTier = 'startup';
+          else if (typeStr === 'pro') targetTier = 'pro';
+          // else default to enterprise
+
+          console.log(`[License] Upgrading client ${input.clientId} to ${targetTier} (License: ${input.licenseKey.substring(0, 8)}...)`);
+
+          await dbConn.update(clients)
+            .set({
+              planTier: targetTier,
+              subscriptionStatus: 'active',
+              subscriptionEndDate: licenseInfo.expiresAt ? new Date(licenseInfo.expiresAt) : null,
+              updatedAt: new Date()
+            })
+            .where(eq(clients.id, input.clientId));
+
           return {
             success: true,
             license: {
@@ -416,6 +445,22 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
               message: 'Failed to deactivate license'
             });
           }
+
+
+          // CRITICAL FIX: Downgrade Client Plan Tier
+          // When a license is deactivated, we must revert the client to the free tier
+          // to prevent unauthorized access to premium features.
+          const dbConn = await db.getDb();
+          console.log(`[License] Downgrading client ${input.clientId} to free (License Deactivated)`);
+
+          await dbConn.update(clients)
+            .set({
+              planTier: 'free',
+              subscriptionStatus: 'canceled',
+              subscriptionEndDate: new Date(),
+              updatedAt: new Date()
+            })
+            .where(eq(clients.id, input.clientId));
 
           // Log the deactivation
           await licenseDbService.createValidationLog({
