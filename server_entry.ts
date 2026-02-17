@@ -10,40 +10,23 @@
             static fromFloat64Array() { return new DOMMatrix(); }
             static fromMatrix() { return new DOMMatrix(); }
         };
+        if (typeof global !== 'undefined') (global as any).DOMMatrix = g.DOMMatrix;
     }
 
-    // Window & self
-    if (typeof g.window === 'undefined') g.window = g;
-    if (typeof g.self === 'undefined') g.self = g;
-
-    // Location & Navigator
-    if (typeof g.location === 'undefined') {
-        g.location = {
+    // Minimal Location for libraries that expect it
+    if (typeof (g as any).location === 'undefined') {
+        (g as any).location = {
             href: 'https://app.grcompliance.com/',
             origin: 'https://app.grcompliance.com',
             protocol: 'https:',
             host: 'app.grcompliance.com',
             hostname: 'app.grcompliance.com',
-            port: '',
             pathname: '/',
             search: '',
             hash: '',
-            assign: () => { },
-            replace: () => { },
-            reload: () => { },
             toString: () => 'https://app.grcompliance.com/',
         };
     }
-    if (typeof g.navigator === 'undefined') g.navigator = { userAgent: 'Node.js', platform: 'Node.js', languages: ['en-US'] };
-
-    // Classes
-    if (typeof g.Node === 'undefined') g.Node = class Node { };
-    if (typeof g.Element === 'undefined') g.Element = class Element { };
-    if (typeof g.HTMLElement === 'undefined') g.HTMLElement = class HTMLElement extends g.Element { };
-
-    // Storage
-    if (typeof g.localStorage === 'undefined') g.localStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
-    if (typeof g.sessionStorage === 'undefined') g.sessionStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
 })();
 
 import './env-loader';
