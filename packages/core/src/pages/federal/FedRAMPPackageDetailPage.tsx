@@ -232,7 +232,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
 
     return (
         <DashboardLayout>
-            <div className="space-y-8 pb-20 px-6">
+            <div className="space-y-8 py-8 animate-in fade-in duration-500">
                 <Breadcrumb
                     items={[
                         { label: "Dashboard", href: `/clients/${clientId}/dashboard` },

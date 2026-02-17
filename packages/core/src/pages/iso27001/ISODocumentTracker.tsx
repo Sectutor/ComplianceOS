@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useClientContext } from "@/contexts/ClientContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -31,6 +33,25 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@complianceos/ui/ui/dropdown-menu";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@complianceos/ui/ui/sheet";
+import { Label } from "@complianceos/ui/ui/label";
+import {
+    Clock,
+    User,
+    History,
+    MessageSquare,
+    ChevronRight,
+    Download,
+    Eye,
+    Save
+} from "lucide-react";
+import { Separator } from "@complianceos/ui/ui/separator";
 
 interface DocumentItem {
     id: string;
@@ -144,10 +165,13 @@ const MANDATORY_DOCUMENTS: DocumentItem[] = [
     }
 ];
 
+import { ISOLayout } from "./ISOLayout";
+
 export default function ISODocumentTracker({ params }: { params?: { id: string } }) {
     const { selectedClientId } = useClientContext();
     const clientId = parseInt(params?.id || selectedClientId?.toString() || "0");
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null);
 
     // Status Badge Helper
     const getStatusBadge = (status: string) => {
@@ -168,12 +192,20 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
         doc.clause.includes(searchQuery)
     );
 
+    const handleOpenDocument = (doc: DocumentItem) => {
+        setSelectedDoc(doc);
+        toast.info(`Opening ${doc.title}`, {
+            description: `Loading document for clause ${doc.clause}`,
+        });
+    };
+
     const completionPercentage = Math.round(
         (MANDATORY_DOCUMENTS.filter(d => d.status === "approved").length / MANDATORY_DOCUMENTS.length) * 100
     );
 
     return (
-        <div className="p-8 space-y-8 animate-in fade-in duration-500">
+        <ISOLayout clientId={clientId}>
+            <div className="p-8 space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
@@ -262,7 +294,11 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                             </TableHeader>
                             <TableBody>
                                 {filteredDocs.map((doc) => (
-                                    <TableRow key={doc.id} className="group hover:bg-slate-50/50">
+                                    <TableRow
+                                        key={doc.id}
+                                        className="group hover:bg-slate-50/50 cursor-pointer select-none"
+                                        onDoubleClick={() => handleOpenDocument(doc)}
+                                    >
                                         <TableCell className="font-mono text-xs font-medium text-slate-500">
                                             {doc.clause}
                                         </TableCell>
@@ -301,7 +337,7 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleOpenDocument(doc)}>
                                                         <FileText className="mr-2 h-4 w-4" /> View Document
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem>
@@ -320,5 +356,149 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Document Details Sheet */}
+            <Sheet open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
+                <SheetContent className="sm:max-w-xl md:max-w-2xl overflow-y-auto">
+                    <SheetHeader className="pb-6 border-b">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="font-mono text-xs font-bold px-2 py-1 bg-indigo-50 text-indigo-600 rounded">
+                                ISO 27001 Clause {selectedDoc?.clause}
+                            </span>
+                            {selectedDoc && getStatusBadge(selectedDoc.status)}
+                        </div>
+                        <SheetTitle className="text-2xl font-bold text-slate-900">
+                            {selectedDoc?.title}
+                        </SheetTitle>
+                        <SheetDescription className="text-slate-500 pt-2">
+                            {selectedDoc?.description}
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="py-8 space-y-8">
+                        {/* Status & Ownership */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Document Owner</Label>
+                                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
+                                        {selectedDoc?.owner.charAt(0)}
+                                    </div>
+                                    <span className="font-medium text-slate-700">{selectedDoc?.owner}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Last Revision</Label>
+                                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <Clock className="h-4 w-4 text-slate-400" />
+                                    <span className="font-medium text-slate-700">{selectedDoc?.lastUpdated || "N/A"}</span>
+                                    {selectedDoc?.version && (
+                                        <Badge variant="outline" className="ml-auto text-[10px]">v{selectedDoc.version}</Badge>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Document Content / Placeholder */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-indigo-600" /> Document Content
+                                </h4>
+                                <Button size="sm" variant="ghost" className="text-indigo-600 gap-2">
+                                    <Download className="h-4 w-4" /> Download PDF
+                                </Button>
+                            </div>
+
+                            <div className="p-6 rounded-2xl bg-slate-900 text-slate-300 font-mono text-sm leading-relaxed border border-slate-800 shadow-inner min-h-[300px]">
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">01</span>
+                                    <span># {selectedDoc?.title}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">02</span>
+                                    <span className="text-slate-500">// ISO 27001:{selectedDoc?.clause} requirements compliant</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">03</span>
+                                    <span></span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">04</span>
+                                    <span className="text-indigo-400">POLICY_SCOPE</span> = "{selectedDoc?.description}"
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">05</span>
+                                    <span></span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">06</span>
+                                    <span className="text-emerald-400">DOCUMENT_INFO</span> = [
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">07</span>
+                                    <span>  OWNER: 0x{selectedDoc?.owner.toUpperCase().replace(/\s/g, '_')},</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">08</span>
+                                    <span>  STATUS: <span className="text-amber-400">{selectedDoc?.status.toUpperCase()}</span>,</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">09</span>
+                                    <span>  VERSION: {selectedDoc?.version || "0.0.1"}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="text-slate-600">10</span>
+                                    <span className="text-emerald-400">]</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Recent Activity */}
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                <History className="h-4 w-4 text-indigo-600" /> Audit History
+                            </h4>
+                            <div className="space-y-4">
+                                {[
+                                    { user: "Jane CISO", action: "Approved version 1.0", date: "2 days ago", icon: CheckCircle2, color: "text-emerald-500" },
+                                    { user: "System AI", action: "Policy alignment check passed", date: "3 days ago", icon: Eye, color: "text-blue-500" },
+                                    { user: "Mike Ops", action: "Modified draft", date: "5 days ago", icon: Save, color: "text-slate-400" },
+                                ].map((activity, i) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                        <div className={cn("p-2 rounded-full bg-slate-50", activity.color)}>
+                                            <activity.icon className="h-3 w-3" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-xs font-bold text-slate-700">{activity.user}</p>
+                                            <p className="text-xs text-slate-500">{activity.action}</p>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">{activity.date}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="sticky bottom-0 bg-white border-t p-6 -mx-6 flex items-center justify-between">
+                        <Button variant="outline" className="gap-2" onClick={() => setSelectedDoc(null)}>
+                            Close Viewer
+                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" className="gap-2">
+                                <MessageSquare className="h-4 w-4" /> Add Comment
+                            </Button>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+                                Edit Document
+                            </Button>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
+        </ISOLayout>
     );
 }

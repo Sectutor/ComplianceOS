@@ -7,7 +7,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { llmService } from "../../lib/llm/service";
 
-export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
+import { t as tType, clientProcedure as cpType } from "../trpc";
+
+export const createFederalRouter = (t: typeof tType, clientProcedure: typeof cpType) => t.router({
     // FIPS 199 Categorization
     getFipsCategorization: clientProcedure
         .input(z.object({ clientId: z.number() }))
@@ -611,7 +613,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }))
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
-            
+
             // 1. Get SSP details to find/create POA&M
             const [ssp] = await dbConn.select().from(schema.federalSSPs).where(eq(schema.federalSSPs.id, input.sspId));
             if (!ssp) throw new Error("SSP not found");
@@ -642,10 +644,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
                 .where(and(
                     eq(schema.federalSspControls.sspId, input.sspId)
                 ));
-            
-            const gaps = controls.filter((c: any) => 
-                c.implementationStatus === 'planned' || 
-                c.implementationStatus === 'partial' || 
+
+            const gaps = controls.filter((c: any) =>
+                c.implementationStatus === 'planned' ||
+                c.implementationStatus === 'partial' ||
                 c.implementationStatus === 'not_implemented'
             );
 
@@ -1132,7 +1134,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
                     eq(schema.federalNist80053Assessments.clientId, input.clientId),
                     eq(schema.federalNist80053Assessments.fismaSystemId, input.systemId)
                 ));
-            
+
             // Delete the system
             const [deleted] = await dbConn.delete(schema.federalFismaSystems)
                 .where(and(
@@ -1198,7 +1200,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }))
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
-            
+
             const conditions = [
                 eq(schema.federalNist80053Assessments.clientId, input.clientId),
                 eq(schema.federalNist80053Assessments.controlId, input.controlId),
@@ -1279,7 +1281,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
             // Delete items first
             await dbConn.delete(schema.federalDisaStigItems)
                 .where(eq(schema.federalDisaStigItems.checklistId, input.id));
-            
+
             // Delete checklist
             const [deleted] = await dbConn.delete(schema.federalDisaStigChecklists)
                 .where(and(
@@ -1361,9 +1363,9 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
                 assetName: schema.assets.name,
                 assetType: schema.assets.type
             })
-            .from(schema.federalFips140ModuleAssets)
-            .leftJoin(schema.assets, eq(schema.federalFips140ModuleAssets.assetId, schema.assets.id))
-            .where(inArray(schema.federalFips140ModuleAssets.fipsModuleId, moduleIds));
+                .from(schema.federalFips140ModuleAssets)
+                .leftJoin(schema.assets, eq(schema.federalFips140ModuleAssets.assetId, schema.assets.id))
+                .where(inArray(schema.federalFips140ModuleAssets.fipsModuleId, moduleIds));
 
             // Group assets by module
             const assetsByModule = linkedAssets.reduce((acc: any, curr: any) => {
@@ -1397,7 +1399,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
             const { assetIds, ...rest } = input;
-            
+
             const [mod] = await dbConn.insert(schema.federalFips140Modules).values({
                 ...rest,
                 status: 'Active',
@@ -1411,7 +1413,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
                     }))
                 );
             }
-            
+
             return mod;
         }),
 
@@ -1430,7 +1432,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
             const { id, assetIds, ...updates } = input;
-            
+
             const [mod] = await dbConn.update(schema.federalFips140Modules)
                 .set({ ...updates, updatedAt: new Date() })
                 .where(and(
@@ -1443,7 +1445,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
                 // Sync assets: Delete existing, Insert new
                 await dbConn.delete(schema.federalFips140ModuleAssets)
                     .where(eq(schema.federalFips140ModuleAssets.fipsModuleId, id));
-                
+
                 if (assetIds.length > 0) {
                     await dbConn.insert(schema.federalFips140ModuleAssets).values(
                         assetIds.map((assetId: number) => ({
@@ -1538,7 +1540,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
 
     // Export NIST 800-53 Package
     exportNist80053Package: clientProcedure
-        .input(z.object({ 
+        .input(z.object({
             clientId: z.number(),
             sspId: z.number().optional(),
             fismaSystemId: z.number().optional(),
@@ -1547,7 +1549,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }))
         .mutation(async ({ input }: any) => {
             const dbConn = await getDb();
-            
+
             const conditions = [
                 eq(schema.federalNist80053Assessments.clientId, input.clientId)
             ];
@@ -1603,8 +1605,8 @@ export const createFederalRouter = (t: any, clientProcedure: any) => t.router({
         }),
 
     getNonCompliantMetrics: clientProcedure
-        .input(z.object({ 
-            clientId: z.number(), 
+        .input(z.object({
+            clientId: z.number(),
             sspId: z.number().optional(),
             fismaSystemId: z.number().optional(),
             sprsAssessmentId: z.number().optional(),

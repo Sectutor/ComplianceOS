@@ -6,7 +6,7 @@
 
 **The Open Source Operating System for Governance, Risk, and Compliance.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.0-61DAFB.svg)](https://reactjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
@@ -173,7 +173,29 @@ Please read our [Contributing Guide](./CONTRIBUTING.md) to get started.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+ComplianceOS uses a dual-licensing model:
+
+### Community Edition (AGPLv3)
+The core ComplianceOS platform is licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**. This allows you to:
+- Use, modify, and distribute the software for free
+- Self-host for personal or business use
+- Contribute improvements back to the community
+
+**Important**: The AGPLv3 requires that if you modify the software and make it available as a network service, you must make your modifications available under the same license.
+
+### Enterprise Edition (Commercial)
+For organizations requiring advanced features, enterprise support, or commercial use rights, we offer a **Commercial License** that includes:
+- AI-Powered Intelligence Suite
+- Advisor & MSP Features (white-labeling)
+- Enterprise Scalability
+- Professional Support & SLA
+- Commercial use rights
+
+For commercial licensing inquiries, please contact us at [sales@complianceos.com](mailto:sales@complianceos.com).
+
+### License Files
+- [AGPLv3 License](./LICENSE) - Community Edition
+- [Commercial License Template](./LICENSE-COMMERCIAL.md) - Enterprise Edition
 
 ---
 

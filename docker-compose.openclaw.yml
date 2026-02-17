@@ -7,11 +7,18 @@ services:
     environment:
       - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
       - TOOL_HMAC_SECRET=${TOOL_HMAC_SECRET}
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/complianceos
+    networks:
+      - complianceos-network
     ports:
       - "${OPENCLAW_PORT:-18789}:18789"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:${OPENCLAW_PORT:-18789}/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -fs http://localhost:18789/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 12
+
+networks:
+  complianceos-network:
+    external: true

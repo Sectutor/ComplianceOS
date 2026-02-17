@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AdvisorProvider } from "./contexts/AdvisorContext";
 import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
+import DashboardLayout from "@/components/DashboardLayout";
 
 import { lazy, Suspense, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -49,9 +50,9 @@ const UserInvitations = lazy(() => import("./pages/admin/UserInvitations"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 // Premium components moved to @complianceos/premium
 // const CloudIntegrations = lazy(() => import("./pages/admin/CloudIntegrations"));
-const IssueTrackerSettings = lazy(() => import("./pages/admin/IssueTrackerSettings"));
 const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
+const LicenseManagement = lazy(() => import("./pages/admin/LicenseManagement"));
 const ClientSettings = lazy(() => import("./pages/ClientSettings"));
 const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings"));
 const SecuritySettings = lazy(() => import("./pages/settings/SecuritySettings"));
@@ -67,6 +68,7 @@ const ClientEmail = lazy(() => import("./pages/ClientEmail").then(module => ({ d
 const ClientTasksPage = lazy(() => import("./pages/ClientTasksPage"));
 const AuditReadinessPage = lazy(() => import("./pages/compliance/AuditReadinessPage"));
 const ClientCompliancePage = lazy(() => import("./pages/ClientCompliancePage"));
+const ClientLicenseActivation = lazy(() => import("./pages/ClientLicenseActivation"));
 
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -127,6 +129,7 @@ const RoadmapCreatePage = lazy(() => import("@/components/roadmap/RoadmapCreateP
 const RoadmapTemplates = lazy(() => import("@/components/roadmap/RoadmapTemplates"));
 const StrategicReportsPage = lazy(() => import("./pages/roadmap/StrategicReportsPage"));
 const StrategicReportEditor = lazy(() => import("./pages/roadmap/StrategicReportEditor"));
+const LicenseTestPage = lazy(() => import("./pages/LicenseTestPage"));
 const RoadmapEditPage = lazy(() => import("./pages/readiness/RoadmapEditPageFixed"));
 
 const ImplementationDashboard = lazy(() => import("./components/implementation/ImplementationDashboard"));
@@ -261,6 +264,7 @@ const CyberIncidentsPage = lazy(() => import("./pages/cyber/CyberIncidentsPage")
 const CyberIncidentReporting = lazy(() => import("./pages/cyber/CyberIncidentReporting"));
 const CyberDocumentation = lazy(() => import("./pages/cyber/CyberDocumentation"));
 const CyberIncidentDetail = lazy(() => import("./pages/cyber/CyberIncidentDetail"));
+const CyberLayout = lazy(() => import("./pages/cyber/CyberLayout"));
 const ISODashboard = lazy(() => import("./pages/iso27001/ISODashboard"));
 const StatementOfApplicability = lazy(() => import("./pages/iso27001/StatementOfApplicability"));
 const ISOPlaceholder = lazy(() => import("./pages/iso27001/ISOPlaceholder"));
@@ -362,6 +366,14 @@ function UnifiedClientGuard({
   }, [userMe, setPlanTier, client]);
 
   if (error?.data?.code === 'PRECONDITION_FAILED') {
+    const message = error.message?.toLowerCase() || '';
+    console.log('[DEBUG UnifiedClientGuard] PRECONDITION_FAILED caught:', { message });
+
+    // Distinguish between MFA requirement and Upgrade requirement
+    if (message.includes('mfa') || message.includes('multi-factor')) {
+      return <Redirect to="/settings/security" />;
+    }
+
     return <Redirect to="/upgrade-required" />;
   }
 
@@ -622,14 +634,20 @@ function Router() {
 
         {/* Home/Landing Page - Public (shows landing for unauthenticated, dashboard links for authenticated) */}
         <Route path="/" component={Home} />
+
+        {/* License Test Page - For testing license validation system */}
+        <Route path="/license-test">
+          <ProtectedRoute component={LicenseTestPage} />
+        </Route>
+
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} />
         </Route>
         <Route path="/sales">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={SalesDashboard} /></UnifiedClientGuard>}
+          {(_params) => <AdminLayout><UnifiedClientGuard requirePremium><ProtectedRoute component={SalesDashboard} /></UnifiedClientGuard></AdminLayout>}
         </Route>
         <Route path="/sales/waitlist">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={WaitlistManagement} /></UnifiedClientGuard>}
+          {(_params) => <AdminLayout><UnifiedClientGuard requirePremium><ProtectedRoute component={WaitlistManagement} /></UnifiedClientGuard></AdminLayout>}
         </Route>
 
         <Route path="/clients">
@@ -948,6 +966,9 @@ function Router() {
         <Route path="/clients/:id/settings">
           {(_params) => <ProtectedRoute component={ClientSettings} />}
         </Route>
+        <Route path="/clients/:id/license">
+          {(_params) => <ProtectedRoute component={ClientLicenseActivation} />}
+        </Route>
         <Route path="/clients/:id/activity">
           {(_params) => <ProtectedRoute component={ClientActivity} />}
         </Route>
@@ -1028,16 +1049,34 @@ function Router() {
           <OverdueAssessmentsAlias />
         </Route>
         <Route path="/clients/:id/vendors/assessments/overdue">
-          {(_params) => <ProtectedRoute component={OverdueAssessmentsPage} />}
+          {(_params) => (
+            <ProtectedRoute>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <OverdueAssessmentsPage />
+              </TPRMLayout>
+            </ProtectedRoute>
+          )}
         </Route>
         <Route path="/clients/:id/tprm">
           {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
         </Route>
         <Route path="/clients/:id/vendors/overview-guide">
-          {(_params) => <PremiumGuard><ProtectedRoute component={VendorOverview} /></PremiumGuard>}
+          {(_params) => (
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <VendorOverview />
+              </TPRMLayout>
+            </PremiumGuard>
+          )}
         </Route>
         <Route path="/clients/:id/vendors/alignment-guide">
-          {(_params) => <PremiumGuard><ProtectedRoute component={VendorAlignmentPage} /></PremiumGuard>}
+          {(_params) => (
+            <PremiumGuard>
+              <TPRMLayout clientId={parseInt(_params.id)}>
+                <VendorAlignmentPage />
+              </TPRMLayout>
+            </PremiumGuard>
+          )}
         </Route>
         <Route path="/clients/:id/vendors/overview">
           {(_params) => (
@@ -1193,7 +1232,7 @@ function Router() {
           {(_params) => <ProtectedRoute component={RiskVulnerabilityEditor} />}
         </Route>
         <Route path="/clients/:clientId/risks/assets/:assetId">
-          {(_params) => <ProtectedRoute component={RiskAssetEditor} />}
+          {(params) => <ProtectedRoute component={RiskAssetEditor} {...params} />}
         </Route>
         <Route path="/clients/:clientId/risks/threats/:threatId">
           {(_params) => <ProtectedRoute component={RiskThreatEditor} />}
@@ -1381,14 +1420,14 @@ function Router() {
         </Route>
         <Route path="/clients/:id/privacy/dsar">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <DSARManager />
             </PrivacyLayout>
           )}
         </Route>
         <Route path="/clients/:id/privacy/dsar/:dsarId">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
               <DsarDetail />
             </PrivacyLayout>
           )}
@@ -1459,41 +1498,61 @@ function Router() {
 
         {/* Cyber Resilience Routes */}
         <Route path="/clients/:id/cyber/overview">
-          {(_params) => <ProtectedRoute component={CyberOverview} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberOverview />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber">
-          {(_params) => <ProtectedRoute component={CyberDashboard} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberDashboard />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber/assessment">
-          {(_params) => <ProtectedRoute component={CyberAssessment} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberAssessment />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber/incidents/new">
-          {(_params) => <ProtectedRoute component={CyberIncidentReporting} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberIncidentReporting />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber/incidents/:incidentId">
-          {(_params) => <ProtectedRoute component={CyberIncidentDetail} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberIncidentDetail />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber/incidents">
-          {(_params) => <ProtectedRoute component={CyberIncidentsPage} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberIncidentsPage />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber/documents">
-          {(_params) => <ProtectedRoute component={CyberDocumentation} />}
+          {(_params) => (
+            <CyberLayout>
+              <CyberDocumentation />
+            </CyberLayout>
+          )}
         </Route>
 
         {/* ISO 27001 ISMS Routes */}
         <Route path="/clients/:id/iso27001">
-          {(_params) => (
-            <ISOLayout clientId={parseInt(_params.id)}>
-              <ISODashboard />
-            </ISOLayout>
-          )}
+          {(_params) => <ProtectedRoute component={ISODashboard} />}
         </Route>
         <Route path="/clients/:id/iso27001/soa">
-          {(_params) => (
-            <ISOLayout clientId={parseInt(_params.id)}>
-              <StatementOfApplicability />
-            </ISOLayout>
-          )}
+          {(_params) => <ProtectedRoute component={StatementOfApplicability} />}
         </Route>
         <Route path="/clients/:id/iso27001/risks">
           {(_params) => <ProtectedRoute component={ISORiskManagement} />}
@@ -1517,7 +1576,11 @@ function Router() {
         </Route>
 
         <Route path="/clients/:id/privacy/documents">
-          {(_params) => <ProtectedRoute component={PrivacyDocsDashboard} />}
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+              <PrivacyDocsDashboard />
+            </PrivacyLayout>
+          )}
         </Route>
 
         {/* Reuse PolicyEditor but maybe wrapped or just passed ID. 
@@ -1606,23 +1669,35 @@ function Router() {
         <Route path="/mappings">
           <ProtectedRoute component={Mappings} />
         </Route>
-        <Route path="/settings">
-          <Redirect to="/settings/security" />
-        </Route>
-        <Route path="/settings/users">
-          <ProtectedRoute component={UserManagement} />
-        </Route>
-        <Route path="/settings/organization">
-          <ProtectedRoute component={OrganizationManagement} />
-        </Route>
-        <Route path="/settings/onboarding">
-          <ProtectedRoute component={OnboardingSettings} />
-        </Route>
-        <Route path="/settings/security">
-          <ProtectedRoute component={SecuritySettings} />
-        </Route>
-        <Route path="/settings/invitations">
-          <ProtectedRoute component={UserInvitations} />
+        <Route path="/settings/:rest*">
+          {(_params) => (
+            <DashboardLayout>
+              <Switch>
+                <Route path="/settings/users">
+                  <ProtectedRoute component={UserManagement} />
+                </Route>
+                <Route path="/settings/organization">
+                  <ProtectedRoute component={OrganizationManagement} />
+                </Route>
+                <Route path="/settings/onboarding">
+                  <ProtectedRoute component={() => <OnboardingSettings hideLayout />} />
+                </Route>
+                <Route path="/settings/security">
+                  <ProtectedRoute component={SecuritySettings} />
+                </Route>
+                <Route path="/settings/invitations">
+                  <ProtectedRoute component={UserInvitations} />
+                </Route>
+                <Route path="/settings">
+                  <Redirect to="/settings/security" />
+                </Route>
+                {/* Default redirect for unmatched settings subroutes */}
+                <Route>
+                  <Redirect to="/settings/security" />
+                </Route>
+              </Switch>
+            </DashboardLayout>
+          )}
         </Route>
         <Route path="/evidence">
           <ProtectedRoute component={Evidence} />
@@ -1663,8 +1738,9 @@ function Router() {
               <Route path="/admin/audit" component={() => <ProtectedRoute component={AuditLogs} />} />
               <Route path="/admin/llm" component={() => <ProtectedRoute component={LLMSettings} />} />
               {/* <Route path="/admin/cloud" component={() => <ProtectedRoute component={CloudIntegrations} />} /> */}
-              <Route path="/admin/billing" component={() => <ProtectedRoute component={AdminBilling} />} />
-              <Route path="/admin/issue-tracker" component={() => <ProtectedRoute component={IssueTrackerSettings} />} />
+              <Route path="/admin/billing" component={() => <Redirect to="/clients/730/settings?tab=billing" />} />
+              <Route path="/admin/license" component={() => <ProtectedRoute component={LicenseManagement} />} />
+
               {/* <Route path="/admin/integrations" component={() => <ProtectedRoute component={Integrations} />} /> */}
 
               {/* Default admin route */}

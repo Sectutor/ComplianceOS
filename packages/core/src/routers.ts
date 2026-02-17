@@ -121,6 +121,7 @@ import { createAdversaryIntelRouter } from "./server/routers/adversaryIntel";
 import { createEssentialEightRouter } from "./server/routers/essentialEight";
 import { createStudioRouter } from "./server/routers/studio";
 import { createMaturityRouter } from "./server/routers/maturity";
+import { createGumroadRouter } from "./server/routers/gumroad";
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -184,6 +185,7 @@ export const appRouter = router({
   sales: createSalesRouter(t, clientProcedure),
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
+  gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
   frameworks: createFrameworksRouter(t, protectedProcedure),
   frameworkImport: createFrameworkImportRouter(t, clientProcedure),
   frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
@@ -197,7 +199,7 @@ export const appRouter = router({
   essentialEight: createEssentialEightRouter(t, clientProcedure),
   asvs: createAsvsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
-  intake: createIntakeRouter(t, clientProcedure),
+  intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
   iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
 
 
@@ -2491,10 +2493,25 @@ ONLY return the JSON. No Markdown formatting.
         return suggestions;
       }),
 
-    listAllSuggestions: clientProcedure
-      .query(async () => {
+    listAllSuggestions: protectedProcedure
+      .query(async ({ ctx }) => {
         const dbConn = await db.getDb();
-        const clientsList = await dbConn.select().from(schema.clients);
+
+        let clientsList;
+        if (ctx.user.role === 'super_admin') {
+          clientsList = await dbConn.select().from(schema.clients);
+        } else {
+          // Regular user/consultant: only get clients they are a member of
+          const results = await dbConn.select({
+            id: schema.clients.id,
+            name: schema.clients.name
+          })
+            .from(schema.clients)
+            .innerJoin(schema.userClients, eq(schema.clients.id, schema.userClients.clientId))
+            .where(eq(schema.userClients.userId, ctx.user.id));
+
+          clientsList = results;
+        }
 
         const allSuggestions = [];
 
@@ -2543,13 +2560,20 @@ ONLY return the JSON. No Markdown formatting.
         return allSuggestions;
       }),
 
-    applyRecommendation: clientProcedure
+    applyRecommendation: protectedProcedure
       .input(z.object({
         clientId: z.number(),
         suggestionId: z.string(),
         action: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        if (input.clientId > 0 && ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin') {
+          const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
+          if (!hasAccess) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this client.' });
+          }
+        }
+
         // In a real app, this would perform the action (e.g., create a task)
         return { success: true, message: `Recommendation ${input.suggestionId} applied successfully.` };
       })
@@ -2684,7 +2708,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Security Check
-        const isSuperAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner';
+        const isSuperAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
 
         // If filtering by client, ensure user has access to THAT client
         if (input.clientId) {
@@ -2862,7 +2886,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Access Control Logic
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner';
+        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
         const isClientAdmin = ['owner', 'admin'].includes(ctx.clientRole || '');
         const hasFullAccess = isGlobalAdmin || isClientAdmin;
 

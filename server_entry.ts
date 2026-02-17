@@ -1,4 +1,4 @@
-// Server Entry Point - Touched for restart at 2026-02-14 09:30
+// Server Entry Point - Touched for restart at 2026-02-17 07:15
 import './env-loader';
 import express from 'express';
 import cors from 'cors';
@@ -27,6 +27,14 @@ export const app = express();
 const port = process.env.PORT || 3002;
 // Force restart
 console.log(`[Server] Initializing... Last update: ${new Date().toISOString()}`);
+
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL] Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 console.log('[Server Start] Environment Check:');
 console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
@@ -114,8 +122,15 @@ app.use('/uploads', (req: any, res, next) => {
 }, express.static(path.join(process.cwd(), 'uploads')));
 
 // Health Check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date(), update: '2026-02-07 12:20' });
+app.get('/health', async (req, res) => {
+    try {
+        const dbConn = await getDb();
+        await dbConn.execute(sql`SELECT 1`);
+        res.status(200).json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+    } catch (e: any) {
+        console.error('[Health] Database connection check failed:', e);
+        res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
+    }
 });
 
 

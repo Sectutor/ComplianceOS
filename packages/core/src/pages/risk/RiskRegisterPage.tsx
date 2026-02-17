@@ -21,7 +21,7 @@ import {
 import { usePageHelp } from '@/hooks/usePageHelp';
 import { PageGuide } from "@/components/PageGuide";
 
-export default function RiskRegisterPage({ hideLayout = false, framework, clientId: propClientId }: { hideLayout?: boolean, framework?: string, clientId?: number }) {
+export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = false, framework, clientId: propClientId }: { hideLayout?: boolean, hideBreadcrumb?: boolean, framework?: string, clientId?: number }) {
     const params = useParams<{ id: string }>();
     const [, setLocation] = useLocation();
     const clientId = propClientId || (params.id ? parseInt(params.id) : 0);
@@ -161,31 +161,33 @@ export default function RiskRegisterPage({ hideLayout = false, framework, client
 
     const content = (
         <div className="space-y-6">
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href={`/clients/${clientId}`}>
-                                <Home className="w-4 h-4" />
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator>
-                        <ChevronRight className="w-4 h-4" />
-                    </BreadcrumbSeparator>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href={`/clients/${clientId}/risks`}>Risk Management</Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator>
-                        <ChevronRight className="w-4 h-4" />
-                    </BreadcrumbSeparator>
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>Risk Register</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+            {!hideBreadcrumb && (
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href={`/clients/${clientId}`}>
+                                    <Home className="w-4 h-4" />
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator>
+                            <ChevronRight className="w-4 h-4" />
+                        </BreadcrumbSeparator>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href={`/clients/${clientId}/risks`}>Risk Management</Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator>
+                            <ChevronRight className="w-4 h-4" />
+                        </BreadcrumbSeparator>
+                        <BreadcrumbItem>
+                            <BreadcrumbPage>Risk Register</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            )}
 
             <div className="flex items-center justify-between">
                 <div>

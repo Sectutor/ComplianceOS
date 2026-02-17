@@ -88,7 +88,6 @@ const adminMenuItems = [
   { label: "Audit Logs", path: "/admin/audit" },
   { label: "LLM Settings", path: "/admin/llm" },
   // { label: "Integrations Marketplace", path: "/admin/integrations" },
-  { label: "Issue Trackers", path: "/admin/issue-tracker" },
   { label: "Billing", path: "/admin/billing" },
   { label: "Waitlist Management", path: "/sales/waitlist" },
 ];
@@ -586,7 +585,7 @@ function DashboardLayoutContent({
 
   // Robust role check: use DB user if available, otherwise fall back to auth metadata
   const userRole = dbUser?.role || user?.user_metadata?.role || user?.app_metadata?.role;
-  const isAdminOrOwner = userRole === 'admin' || userRole === 'owner';
+  const isAdminOrOwner = userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin';
 
   // Group Definition
   const groups = [
@@ -1298,7 +1297,7 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div className="flex border-b h-14 items-center justify-between bg-white/80 px-4 md:px-6 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0,03)]">
+        <div className="flex border-b h-14 items-center justify-between bg-white/80 pl-4 pr-4 md:pl-20 md:pr-8 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0,03)]">
           <div className="flex items-center gap-3">
             {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background shadow-sm border" />}
             <div className="flex items-center gap-2">
@@ -1315,7 +1314,7 @@ function DashboardLayoutContent({
             <NotificationCenter />
           </div>
         </div>
-        <div className="flex-1 p-4 md:p-6">{children}</div>
+        <div className="flex-1 pl-4 pr-4 py-8 md:pl-20 md:pr-8">{children}</div>
 
         {/* AI Copilot Button - Global Access */}
         <CopilotButton clientId={persistentClientId || undefined} />

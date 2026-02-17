@@ -14,6 +14,8 @@ services:
     depends_on:
       - db
     restart: unless-stopped
+    networks:
+      - complianceos-network
     # Run database migrations before starting the server
     command: sh -c "npx drizzle-kit push:pg && npx tsx server_entry.ts"
 
@@ -27,6 +29,12 @@ services:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - complianceos-network
+
+networks:
+  complianceos-network:
+    name: complianceos-network
 
 volumes:
   db_data:

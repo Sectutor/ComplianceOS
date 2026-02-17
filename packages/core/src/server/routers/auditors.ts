@@ -231,7 +231,8 @@ export const createAuditorsRouter = (t: any, adminProcedure: any, clientProcedur
             }
 
             // 3. Generate hash for current DB record
-            const systemSecret = process.env.ENCRYPTION_KEY || 'default-secret-for-integrity';
+            const { getActiveKey } = await import("../../lib/secrets");
+            const systemSecret = getActiveKey();
             const currentHash = crypto
                 .createHmac('sha256', systemSecret)
                 .update(`${policy.id}:${policy.updatedAt?.getTime()}:${content}`)

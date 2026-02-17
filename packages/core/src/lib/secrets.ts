@@ -53,16 +53,47 @@ export function getSecret(key: SecretKey, fallback?: string): string {
 
 /**
  * Specifically for ENCRYPTION_KEY to ensure it matches length requirements
+ * supports single key or versioned keys: "v1:key1,v2:key2"
  */
-export function getEncryptionKey(): string {
-    const key = getSecret('ENCRYPTION_KEY');
+export function getEncryptionKeys(): Record<string, string> {
+    const keyString = getSecret('ENCRYPTION_KEY');
     const DEFAULT_DEV_KEY = 'default-dev-key-must-be-32-bytes-long!';
 
-    if (process.env.NODE_ENV === 'production') {
-        if (!key || key === DEFAULT_DEV_KEY) {
-            throw new Error('SECURE ENCRYPTION_KEY must be provided in production');
-        }
+    // Default fallback if nothing is set
+    if (!keyString) {
+        return { 'v1': DEFAULT_DEV_KEY };
     }
 
-    return key || DEFAULT_DEV_KEY;
+    // Try to parse versioned keys
+    if (keyString.includes(':')) {
+        const keys: Record<string, string> = {};
+        keyString.split(',').forEach(part => {
+            const [version, key] = part.split(':');
+            if (version && key) {
+                keys[version.trim()] = key.trim();
+            }
+        });
+        return keys;
+    }
+
+    // Single unversioned key fallback
+    return { 'v1': keyString };
+}
+
+/**
+ * Returns the latest (active) encryption key version
+ */
+export function getActiveKeyVersion(): string {
+    const keys = getEncryptionKeys();
+    const versions = Object.keys(keys).sort(); // Simple lexicographical sort
+    return versions[versions.length - 1] || 'v1';
+}
+
+/**
+ * Returns the actual key string for the active version
+ */
+export function getActiveKey(): string {
+    const keys = getEncryptionKeys();
+    const version = getActiveKeyVersion();
+    return keys[version];
 }

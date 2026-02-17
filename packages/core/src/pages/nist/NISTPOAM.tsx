@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ReactElement } from "react";
 
 import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -95,7 +95,7 @@ export default function NISTPOAM() {
     const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId });
     const { data: risks } = trpc.risks.getAll.useQuery({ clientId });
 
-    const createPoam = trpc.federal.createPoam.useMutation({
+    const createPoamMutation = trpc.federal.createPoam.useMutation({
         onSuccess: (data) => {
             toast.success("POA&M Created");
             refetchPoams();
@@ -106,7 +106,7 @@ export default function NISTPOAM() {
     const handleCreatePlan = () => {
         const title = window.prompt("Enter a title for the new POA&M Plan:", `NIST POA&M ${new Date().getFullYear()}`);
         if (title) {
-            createPoam.mutate({ clientId, title });
+            createPoamMutation.mutate({ clientId, title });
         }
     };
 
@@ -234,8 +234,8 @@ export default function NISTPOAM() {
                         No Plan of Action & Milestones document found. Initialize one to start tracking weaknesses and remediation efforts.
                     </p>
                     <div className="flex gap-3">
-                        <Button onClick={() => createPoam.mutate({ clientId, title: "NIST POA&M" })} disabled={createPoam.isPending} className="bg-blue-600 hover:bg-blue-700">
-                            {createPoam.isPending ? "Initializing..." : "Create POA&M Document"}
+                        <Button onClick={() => createPoamMutation.mutate({ clientId, title: "NIST POA&M" })} disabled={createPoamMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+                            {createPoamMutation.isPending ? "Initializing..." : "Create POA&M Document"}
                         </Button>
                     </div>
                 </div>

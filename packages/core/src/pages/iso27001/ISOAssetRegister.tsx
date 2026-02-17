@@ -9,7 +9,7 @@ export default function ISOAssetRegister() {
 
     return (
         <ISOLayout clientId={clientId}>
-            <RiskAssetsPage hideLayout={true} />
+            <RiskAssetsPage hideLayout={true} hideBreadcrumb={true} />
         </ISOLayout>
     );
 }

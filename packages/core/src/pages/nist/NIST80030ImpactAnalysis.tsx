@@ -62,7 +62,7 @@ export default function NIST80030ImpactAnalysis() {
 
     return (
         <NIST80030Layout>
-            <div className="space-y-8 max-w-7xl mx-auto pb-20">
+            <div className="space-y-8 max-w-5xl pb-20">
                 <Breadcrumb
                     items={[
                         { label: "Dashboard", href: `/dashboard` },
@@ -287,3 +287,4 @@ export default function NIST80030ImpactAnalysis() {
 export const NIST80030ImpactAnalysisPlaceholder = () => (
     <div className="p-8">Placeholder for Impact Analysis</div>
 );
+

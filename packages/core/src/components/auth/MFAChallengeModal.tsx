@@ -67,6 +67,25 @@ export default function MFAChallengeModal({ open, onOpenChange, factorId: initia
 
     setLoading(true);
     try {
+      console.log("[MFA Verify Debug] Attempting verify with factor:", selectedFactorId);
+
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession) {
+        console.error("[MFA Verify Debug] No active session found. User might have been signed out.");
+      } else {
+        // Basic JWT check for sub claim
+        const parts = currentSession.access_token.split('.');
+        if (parts.length === 3) {
+          try {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            console.log("[MFA Verify Debug] Token Payload:", { sub: payload.sub, aal: payload.aal, aud: payload.aud });
+            if (!payload.sub) console.warn("[MFA Verify Debug] CRITICAL: sub claim is MISSING in access_token!");
+          } catch (e) {
+            console.error("[MFA Verify Debug] Failed to decode JWT payload safely.");
+          }
+        }
+      }
+
       const { data, error } = await supabase.auth.mfa.challengeAndVerify({
         factorId: selectedFactorId,
         code: cleanCode

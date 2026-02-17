@@ -16,7 +16,7 @@ import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
 
 
-export default function RiskAssetsPage({ hideLayout = false }: { hideLayout?: boolean }) {
+export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = false }: { hideLayout?: boolean, hideBreadcrumb?: boolean }) {
     const params = useParams();
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
@@ -98,25 +98,27 @@ export default function RiskAssetsPage({ hideLayout = false }: { hideLayout?: bo
 
     const content = (
         <div className="space-y-6 w-full max-w-full p-6">
-            <div className="mb-2">
-                <Breadcrumb
-                    items={[
-                        { label: "Clients", href: "/clients" },
-                        { label: client?.name || "Client", href: `/clients/${clientId}` },
-                        { label: "Risk Management", href: `/clients/${clientId}/risks` },
-                        { label: "Asset Inventory", href: `/clients/${clientId}/risks/assets` },
-                    ]}
-                />
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 -ml-3 text-muted-foreground hover:text-foreground"
-                    onClick={() => setLocation(`/clients/${clientId}/risks`)}
-                >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Risk Dashboard
-                </Button>
-            </div>
+            {!hideBreadcrumb && (
+                <div className="mb-2">
+                    <Breadcrumb
+                        items={[
+                            { label: "Clients", href: "/clients" },
+                            { label: client?.name || "Client", href: `/clients/${clientId}` },
+                            { label: "Risk Management", href: `/clients/${clientId}/risks` },
+                            { label: "Asset Inventory", href: `/clients/${clientId}/risks/assets` },
+                        ]}
+                    />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 -ml-3 text-muted-foreground hover:text-foreground"
+                        onClick={() => setLocation(`/clients/${clientId}/risks`)}
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back to Risk Dashboard
+                    </Button>
+                </div>
+            )}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Asset Inventory</h1>

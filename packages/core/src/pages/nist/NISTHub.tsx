@@ -128,7 +128,7 @@ export default function NISTHub() {
 
     return (
         <NISTEcosystemLayout standard="hub">
-            <div className="space-y-8 max-w-7xl mx-auto">
+            <div className="space-y-8 max-w-5xl">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -226,3 +226,4 @@ export default function NISTHub() {
         </NISTEcosystemLayout>
     );
 }
+

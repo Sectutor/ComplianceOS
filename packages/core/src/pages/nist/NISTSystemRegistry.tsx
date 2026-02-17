@@ -122,7 +122,7 @@ export default function NISTSystemRegistry() {
 
     return (
         <NIST80037Layout>
-            <div className="space-y-6 max-w-7xl mx-auto">
+            <div className="space-y-6 max-w-5xl">
                 <div className="flex flex-col gap-2">
                     <Breadcrumb
                         items={[
@@ -317,3 +317,4 @@ export default function NISTSystemRegistry() {
         </NIST80037Layout>
     );
 }
+

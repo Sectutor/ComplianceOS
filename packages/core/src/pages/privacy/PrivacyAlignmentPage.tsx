@@ -138,8 +138,8 @@ export default function PrivacyAlignmentPage() {
 
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 p-6 lg:p-10">
-            <div className="w-full space-y-8">
+        <div className="space-y-12 animate-in fade-in duration-700">
+            <div className="w-full space-y-12">
                 {/* Header */}
                 <div className="text-center space-y-6">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 text-white mb-4">
@@ -154,18 +154,18 @@ export default function PrivacyAlignmentPage() {
                 </div>
 
                 {/* Framework Tabs */}
-                <Tabs defaultValue="iso27701" className="space-y-8">
+                <Tabs defaultValue="iso27701" className="space-y-10">
                     <div className="flex justify-center">
-                        <TabsList className="h-auto p-1 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm flex-wrap justify-center overflow-x-auto shadow-inner">
+                        <TabsList className="h-auto p-1.5 bg-[#1C4D8D] rounded-2xl shadow-2xl flex-wrap justify-center overflow-x-auto border border-white/10">
                             {privacyFrameworks.map(fw => {
                                 const Icon = getFrameworkIcon(fw.id);
                                 return (
                                     <TabsTrigger
                                         key={fw.id}
                                         value={fw.id}
-                                        className="gap-2 px-6 py-3 text-sm font-medium data-[state=active]:bg-slate-800 data-[state=active]:text-white rounded-lg transition-all"
+                                        className="gap-2 px-8 py-3.5 text-sm font-bold data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white text-white/80 hover:bg-[#3ABEF9] hover:text-white rounded-xl transition-all duration-300"
                                     >
-                                        <Icon className="h-4 w-4" />
+                                        <Icon className="h-4.5 w-4.5" />
                                         {fw.name}
                                     </TabsTrigger>
                                 );
@@ -206,19 +206,23 @@ export default function PrivacyAlignmentPage() {
                                 </Card>
 
                                 {/* Areas Tabs */}
-                                <Tabs defaultValue={fw.articles[0]?.id} className="space-y-6">
-                                    <TabsList className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 h-auto bg-transparent p-0">
+                                <Tabs defaultValue={fw.articles[0]?.id} className="space-y-8">
+                                    <TabsList className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 h-auto bg-transparent p-0">
                                         {fw.articles.slice(0, 10).map(article => {
                                             const ClauseIcon = getClauseIcon(fw.id, article.id);
                                             return (
                                                 <TabsTrigger
                                                     key={article.id}
                                                     value={article.id}
-                                                    className="h-auto py-4 px-4 flex flex-col items-center gap-2 border-2 border-slate-200 bg-white data-[state=active]:border-slate-800 data-[state=active]:bg-slate-50 rounded-xl transition-all shadow-sm hover:shadow-md"
+                                                    className="h-auto py-5 px-4 flex flex-col items-center gap-3 border border-slate-200 bg-white data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:border-[#1C4D8D] rounded-2xl transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group/article"
                                                 >
-                                                    <ClauseIcon className={cn("h-6 w-6 mb-1", getClauseColor(fw.id, article.id))} />
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 line-clamp-1">Article {article.numericId}</span>
-                                                    <span className="text-sm font-semibold line-clamp-1">{article.title}</span>
+                                                    <div className={cn("p-2.5 rounded-xl group-data-[state=active]/article:bg-white/10 transition-colors", getClauseBgColor(fw.id, article.id))}>
+                                                        <ClauseIcon className={cn("h-6 w-6", getClauseColor(fw.id, article.id), "group-data-[state=active]/article:text-white")} />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-60 mb-1 block">Article {article.numericId}</span>
+                                                        <span className="text-sm font-bold line-clamp-1">{article.title}</span>
+                                                    </div>
                                                 </TabsTrigger>
                                             );
                                         })}

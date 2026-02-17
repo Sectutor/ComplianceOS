@@ -107,7 +107,7 @@ export default function NIST80037Dashboard() {
 
     return (
         <NIST80037Layout>
-            <div className="space-y-8 max-w-7xl mx-auto">
+            <div className="space-y-8 max-w-5xl">
                 <Breadcrumb
                     items={[
                         { label: "Dashboard", href: `/dashboard` },
@@ -235,3 +235,4 @@ export default function NIST80037Dashboard() {
         </NIST80037Layout>
     );
 }
+

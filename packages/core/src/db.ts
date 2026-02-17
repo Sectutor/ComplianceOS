@@ -579,13 +579,24 @@ const ROLE_HIERARCHY = {
 
 export async function isUserAllowedForClient(userId: number, clientId: number, minRole?: 'owner' | 'admin' | 'editor' | 'viewer' | 'auditor') {
   const db = await getDb();
+  console.log(`[DEBUG isUserAllowedForClient] Checking userId=${userId}, clientId=${clientId}, minRole=${minRole}`);
 
+  // 1. Check Global Role First
+  const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+  console.log(`[DEBUG isUserAllowedForClient] Found user global role: ${user?.role}`);
+  if (user && (user.role === 'admin' || user.role === 'owner' || user.role === 'super_admin')) {
+    console.log('[DEBUG isUserAllowedForClient] Global admin access granted');
+    return true; // Global admins have access to everything
+  }
+
+  // 2. Check Specific Client Membership
   const results = await db.select().from(userClients)
     .where(and(
       eq(userClients.userId, userId),
       eq(userClients.clientId, clientId)
     ));
 
+  console.log(`[DEBUG isUserAllowedForClient] Membership search results: ${results.length}`);
   if (results.length === 0) return false;
 
   const userRole = results[0].role as keyof typeof ROLE_HIERARCHY;
@@ -594,7 +605,9 @@ export async function isUserAllowedForClient(userId: number, clientId: number, m
   if (minRole) {
     const userLevel = ROLE_HIERARCHY[userRole] || 0;
     const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
-    return userLevel >= requiredLevel;
+    const result = userLevel >= requiredLevel;
+    console.log(`[DEBUG isUserAllowedForClient] Role level check: user=${userLevel}, required=${requiredLevel} -> ${result}`);
+    return result;
   }
 
   return true;

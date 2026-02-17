@@ -67,159 +67,196 @@ export default function DPIAQuestionnaire() {
 
     if (templatesLoading) {
         return (
-            <PrivacyLayout clientId={clientId}>
-                <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>
-            </PrivacyLayout>
+            <div className="flex flex-col items-center justify-center p-24 space-y-4">
+                <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                <p className="text-slate-400 font-medium animate-pulse">Loading assessment template...</p>
+            </div>
         );
     }
 
     if (!selectedTemplate) {
         return (
-            <PrivacyLayout clientId={clientId}>
-                <div className="p-8 text-center text-muted-foreground">
-                    <AlertTriangle className="mx-auto h-12 w-12 mb-4 text-amber-500" />
-                    <h2 className="text-xl font-bold">Template Not Found</h2>
-                    <p>The requested assessment template could not be loaded.</p>
-                    <Button variant="link" onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}>
-                        Return to Dashboard
-                    </Button>
+            <div className="p-12 text-center space-y-4 animate-in fade-in duration-500">
+                <div className="mx-auto h-20 w-20 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300">
+                    <AlertTriangle className="h-10 w-10" />
                 </div>
-            </PrivacyLayout>
+                <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-slate-900">Template Not Found</h2>
+                    <p className="text-slate-500 max-w-sm mx-auto">The requested assessment template could not be loaded or doesn't exist.</p>
+                </div>
+                <Button
+                    variant="link"
+                    onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
+                    className="text-[#3ABEF9] font-bold"
+                >
+                    Return to DPIA Dashboard
+                </Button>
+            </div>
         );
     }
 
     const content = selectedTemplate.templateContent as any; // Type assertion
 
     return (
-        <PrivacyLayout clientId={clientId}>
-            <div className="space-y-6 max-w-4xl mx-auto pb-12">
+        <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-5xl mx-auto w-full">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}>
-                        <ArrowLeft className="h-4 w-4" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
+                        className="h-11 w-11 rounded-xl hover:bg-slate-100 text-slate-500"
+                    >
+                        <ArrowLeft className="h-6 w-6" />
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">New Assessment</h1>
-                        <p className="text-muted-foreground">Based on template: {selectedTemplate.name}</p>
-                    </div>
-                    <div className="ml-auto">
-                        <Button onClick={handleSave} disabled={saveMutation.isLoading}>
-                            {saveMutation.isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            Save Assessment
-                        </Button>
+                    <div className="space-y-0.5">
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Initialize Assessment</h1>
+                        <p className="text-slate-500 text-lg">Questionnaire: {selectedTemplate.name}</p>
                     </div>
                 </div>
-
-                <div className="grid gap-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Assessment Details</CardTitle>
-                            <CardDescription>Define the scope of this DPIA.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Assessment Title</Label>
-                                <Input
-                                    value={projectTitle}
-                                    onChange={e => setProjectTitle(e.target.value)}
-                                    placeholder="e.g. HR System Upgrade - 2024"
-                                />
-                                <p className="text-xs text-muted-foreground">A unique name for this assessment instance.</p>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Description of Processing</Label>
-                                <Textarea
-                                    className="min-h-[100px]"
-                                    placeholder="Describe the nature, scope, context and purposes of the processing..."
-                                    value={projectDesc}
-                                    onChange={e => setProjectDesc(e.target.value)}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Screening Questions</CardTitle>
-                            <CardDescription>Answer the following questions to determine risks.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {content?.screeningQuestions?.map((q: any) => (
-                                <div key={q.id} className="space-y-2 p-4 border rounded-md bg-slate-50/50">
-                                    <Label className="flex items-center gap-2 text-base font-medium">
-                                        {q.question}
-                                        {q.required && <span className="text-red-500">*</span>}
-                                    </Label>
-                                    {q.description && (
-                                        <p className="text-sm text-muted-foreground mb-2">{q.description}</p>
-                                    )}
-
-                                    <div className="pt-2">
-                                        {q.type === 'text' && (
-                                            <Input
-                                                value={responses[q.id] || ''}
-                                                onChange={e => setResponses({ ...responses, [q.id]: e.target.value })}
-                                            />
-                                        )}
-
-                                        {q.type === 'boolean' && (
-                                            <Select
-                                                value={responses[q.id]}
-                                                onValueChange={val => setResponses({ ...responses, [q.id]: val })}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="yes">Yes</SelectItem>
-                                                    <SelectItem value="no">No</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-
-                                        {q.type === 'select' && (
-                                            <Select
-                                                value={responses[q.id]}
-                                                onValueChange={val => setResponses({ ...responses, [q.id]: val })}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select option..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {q.options?.map((opt: string) => (
-                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                            {(!content?.screeningQuestions || content.screeningQuestions.length === 0) && (
-                                <p className="text-muted-foreground italic">No screening questions defined in this template.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {content?.riskFactors && content.riskFactors.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Risk Factors</CardTitle>
-                                <CardDescription>Key risk factors associated with this template.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                                    {content.riskFactors.map((r: any, idx: number) => (
-                                        <li key={idx}>
-                                            <span className="font-medium text-foreground">{r.factor}</span>
-                                            {r.description && <span className="block text-xs mt-1 ml-1">— {r.description}</span>}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    )}
+                <div className="flex gap-3">
+                    <Button
+                        onClick={handleSave}
+                        disabled={saveMutation.isLoading}
+                        className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                    >
+                        {saveMutation.isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
+                        Finalize & Save
+                    </Button>
                 </div>
             </div>
-        </PrivacyLayout>
+
+            <div className="grid gap-8 max-w-5xl mx-auto w-full pb-20">
+                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                        <CardTitle className="text-xl font-bold text-slate-900">Core Assessment Details</CardTitle>
+                        <CardDescription className="text-slate-500">Define the organizational scope and title for this DPIA project.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                        <div className="space-y-2.5">
+                            <Label className="text-slate-700 font-bold">Assessment Instance Title</Label>
+                            <Input
+                                value={projectTitle}
+                                onChange={e => setProjectTitle(e.target.value)}
+                                placeholder="e.g. Q4 2024 CRM Integration Impact Assessment"
+                                className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            />
+                            <p className="text-xs text-slate-400">Provide a descriptive name to distinguish this assessment from others using the same template.</p>
+                        </div>
+                        <div className="space-y-2.5">
+                            <Label className="text-slate-700 font-bold">Scope & Processing Context</Label>
+                            <Textarea
+                                className="min-h-[120px] rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 p-4"
+                                placeholder="Describe the nature, scope, context and purposes of the data processing activity..."
+                                value={projectDesc}
+                                onChange={e => setProjectDesc(e.target.value)}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                        <CardTitle className="text-xl font-bold text-slate-900">Assessment Questionnaire</CardTitle>
+                        <CardDescription className="text-slate-500">Respond to the screening questions to determine privacy risks.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8 pt-8">
+                        {content?.screeningQuestions?.map((q: any) => (
+                            <div key={q.id} className="space-y-4 group">
+                                <Label className="flex items-start gap-3 text-lg font-bold text-slate-800 leading-snug">
+                                    <div className="mt-1 h-5 w-5 rounded-full bg-sky-50 flex items-center justify-center text-[#3ABEF9] text-[10px] shrink-0 border border-sky-100">
+                                        ?
+                                    </div>
+                                    <span className="flex-1">
+                                        {q.question}
+                                        {q.required && <span className="text-rose-500 ml-1 font-black">*</span>}
+                                    </span>
+                                </Label>
+                                {q.description && (
+                                    <div className="ml-8 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-500 italic">
+                                        {q.description}
+                                    </div>
+                                )}
+
+                                <div className="ml-8">
+                                    {q.type === 'text' && (
+                                        <Input
+                                            value={responses[q.id] || ''}
+                                            onChange={e => setResponses({ ...responses, [q.id]: e.target.value })}
+                                            className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                            placeholder="Provide detailed response..."
+                                        />
+                                    )}
+
+                                    {q.type === 'boolean' && (
+                                        <Select
+                                            value={responses[q.id]}
+                                            onValueChange={val => setResponses({ ...responses, [q.id]: val })}
+                                        >
+                                            <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                                                <SelectValue placeholder="Select binary response..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="yes" className="font-medium text-emerald-600">Yes / Affirmative</SelectItem>
+                                                <SelectItem value="no" className="font-medium text-slate-600">No / Negative</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+
+                                    {q.type === 'select' && (
+                                        <Select
+                                            value={responses[q.id]}
+                                            onValueChange={val => setResponses({ ...responses, [q.id]: val })}
+                                        >
+                                            <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                                                <SelectValue placeholder="Select from available options..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {q.options?.map((opt: string) => (
+                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                                <Separator className="mt-8 opacity-50" />
+                            </div>
+                        ))}
+                        {(!content?.screeningQuestions || content.screeningQuestions.length === 0) && (
+                            <div className="text-center py-12 text-slate-400 font-medium italic">
+                                No questions are defined in this template configuration.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {content?.riskFactors && content.riskFactors.length > 0 && (
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-[#1C4D8D] text-white overflow-hidden overflow-hidden ring-1 ring-white/10">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                <AlertTriangle className="h-6 w-6 text-amber-400" />
+                                Identified Risk Catalysts
+                            </CardTitle>
+                            <CardDescription className="text-white/60">Key factors that may increase the overall risk profile based on this template.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-2">
+                            <div className="grid gap-3">
+                                {content.riskFactors.map((r: any, idx: number) => (
+                                    <div key={idx} className="p-4 bg-white/10 rounded-xl border border-white/10 flex gap-4 items-start">
+                                        <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="font-bold text-white block">{r.factor}</span>
+                                            {r.description && <span className="text-xs text-white/50 leading-relaxed block">{r.description}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        </div>
     );
 }

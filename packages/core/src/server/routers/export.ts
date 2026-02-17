@@ -58,9 +58,10 @@ async function getPolicyData(policyId: number) {
 
     // V14.5.1: Data Integrity Signature (AL 3)
     // Create a verification hash of the content to ensure integrity
-    const crypto = await import('crypto');
-    const systemSecret = process.env.ENCRYPTION_KEY || 'default-secret-for-integrity';
-    const verificationHash = crypto
+    const cryptoNode = await import('crypto');
+    const { getActiveKey } = await import('../../lib/secrets');
+    const systemSecret = getActiveKey();
+    const verificationHash = cryptoNode
         .createHmac('sha256', systemSecret)
         .update(`${policy.id}:${policy.updatedAt?.getTime()}:${content}`)
         .digest('hex');

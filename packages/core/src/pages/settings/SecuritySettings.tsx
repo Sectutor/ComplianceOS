@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -291,7 +290,7 @@ export default function SecuritySettings() {
   };
 
   return (
-    <DashboardLayout>
+    <div className="space-y-6 animate-in fade-in duration-500">
       <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'Security', active: true }]} />
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -498,6 +497,6 @@ export default function SecuritySettings() {
         }}
         factorId={verifyFactorId}
       />
-    </DashboardLayout>
+    </div>
   );
 }

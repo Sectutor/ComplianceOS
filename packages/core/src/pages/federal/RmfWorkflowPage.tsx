@@ -35,7 +35,7 @@ export default function RmfWorkflowPage() {
     const workflow = workflows?.find((w: any) => w.id === rmfWorkflowId);
 
     const [selectedStepId, setSelectedStepId] = useState<string>("prepare");
-    
+
     // Find index of selected step
     const currentStepIndex = NIST_RMF_WORKFLOW.steps.findIndex(s => s.id === selectedStepId);
     const currentStepData = NIST_RMF_WORKFLOW.steps[currentStepIndex];
@@ -69,7 +69,7 @@ export default function RmfWorkflowPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-8 space-y-8 max-w-7xl mx-auto">
+            <div className="pl-6 pr-6 py-8 md:pl-20 md:pr-8 space-y-8">
                 <Breadcrumb items={[
                     { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                     { label: "Federal Compliance", href: `/clients/${clientId}/federal` },
@@ -86,7 +86,7 @@ export default function RmfWorkflowPage() {
                         <p className="text-slate-500 text-lg">NIST Risk Management Framework Authorization Cycle</p>
                     </div>
                     <div className="flex items-center gap-2">
-                         <Link href={`/clients/${clientId}/federal/rmf`}>
+                        <Link href={`/clients/${clientId}/federal/rmf`}>
                             <Button variant="ghost" className="rounded-xl gap-2 text-slate-500 hover:text-slate-900">
                                 <ArrowLeft className="w-4 h-4" />
                                 Back to Workflows
@@ -106,7 +106,7 @@ export default function RmfWorkflowPage() {
                                 {NIST_RMF_WORKFLOW.steps.map((step, index) => {
                                     const status = getStepStatus(index);
                                     const isActive = step.id === selectedStepId;
-                                    
+
                                     let statusColor = "bg-slate-200";
                                     if (status === 'completed') statusColor = "bg-emerald-500";
                                     else if (status === 'in_progress') statusColor = "bg-blue-500";
@@ -115,9 +115,8 @@ export default function RmfWorkflowPage() {
                                         <button
                                             key={step.id}
                                             onClick={() => setSelectedStepId(step.id)}
-                                            className={`w-full text-left p-3 rounded-xl mb-1 flex items-start gap-3 transition-all ${
-                                                isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "hover:bg-slate-50 text-slate-600"
-                                            }`}
+                                            className={`w-full text-left p-3 rounded-xl mb-1 flex items-start gap-3 transition-all ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "hover:bg-slate-50 text-slate-600"
+                                                }`}
                                         >
                                             <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${statusColor}`} />
                                             <div className="flex-1 min-w-0">
@@ -151,24 +150,24 @@ export default function RmfWorkflowPage() {
                                     <div className="flex flex-col gap-2 min-w-[150px]">
                                         <Label className="text-xs font-bold uppercase text-slate-400">Step Status</Label>
                                         <div className="flex gap-1">
-                                            <Button 
-                                                size="sm" 
+                                            <Button
+                                                size="sm"
                                                 variant={getStepStatus(currentStepIndex) === 'not_started' ? "default" : "outline"}
                                                 className={`flex-1 rounded-l-xl ${getStepStatus(currentStepIndex) === 'not_started' ? 'bg-slate-200 text-slate-600 hover:bg-slate-300' : ''}`}
                                                 onClick={() => handleStatusChange('not_started')}
                                             >
                                                 Todo
                                             </Button>
-                                            <Button 
-                                                size="sm" 
+                                            <Button
+                                                size="sm"
                                                 variant={getStepStatus(currentStepIndex) === 'in_progress' ? "default" : "outline"}
                                                 className={`flex-1 rounded-none ${getStepStatus(currentStepIndex) === 'in_progress' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
                                                 onClick={() => handleStatusChange('in_progress')}
                                             >
                                                 Active
                                             </Button>
-                                            <Button 
-                                                size="sm" 
+                                            <Button
+                                                size="sm"
                                                 variant={getStepStatus(currentStepIndex) === 'completed' ? "default" : "outline"}
                                                 className={`flex-1 rounded-r-xl ${getStepStatus(currentStepIndex) === 'completed' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                                                 onClick={() => handleStatusChange('completed')}
@@ -204,7 +203,7 @@ export default function RmfWorkflowPage() {
                                         <p className="text-blue-200 mb-6 text-sm">
                                             Launch the dedicated tools for this phase of the RMF lifecycle.
                                         </p>
-                                        
+
                                         {currentStepData.id === 'assess' ? (
                                             <div className="flex gap-4">
                                                 <Link href={`/clients/${clientId}/federal/assessment-80053?rmfWorkflowId=${rmfWorkflowId}`}>
@@ -219,7 +218,7 @@ export default function RmfWorkflowPage() {
                                                 </Button>
                                             </div>
                                         ) : currentStepData.id === 'categorize' ? (
-                                             <div className="flex gap-4">
+                                            <div className="flex gap-4">
                                                 <Button className="bg-white text-slate-900 hover:bg-blue-50 font-bold rounded-xl h-11">
                                                     <Activity className="w-4 h-4 mr-2" />
                                                     FIPS 199 Analysis

@@ -132,7 +132,7 @@ export default function FedRAMPPackagesPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-8 space-y-8 max-w-7xl mx-auto">
+            <div className="space-y-8 py-8 animate-in fade-in duration-500">
                 <Breadcrumb items={[
                     { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                     { label: "Federal Compliance", href: `/clients/${clientId}/federal` },
@@ -228,10 +228,10 @@ export default function FedRAMPPackagesPage() {
                                 </Button>
                                 <Button
                                     onClick={handleCreate}
-                                    disabled={createMutation.isLoading}
+                                    disabled={createMutation.isPending}
                                     className="h-12 bg-sky-600 hover:bg-sky-700 rounded-xl font-bold px-8"
                                 >
-                                    {createMutation.isLoading ? "Creating..." : "Create Package"}
+                                    {createMutation.isPending ? "Creating..." : "Create Package"}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -436,9 +436,9 @@ export default function FedRAMPPackagesPage() {
                         <AlertDialogAction
                             onClick={handleDelete}
                             className="rounded-xl h-12 bg-rose-600 hover:bg-rose-700 text-white font-bold px-8"
-                            disabled={deleteMutation.isLoading}
+                            disabled={deleteMutation.isPending}
                         >
-                            {deleteMutation.isLoading ? "Deleting..." : "Delete Package"}
+                            {deleteMutation.isPending ? "Deleting..." : "Delete Package"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

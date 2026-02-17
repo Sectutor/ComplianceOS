@@ -209,7 +209,7 @@ export default function NISTEcosystemLayout({
                 {/* System Selection Context Bar (Specifically for RMF/800-30) */}
                 {(standard === 'rmf' || standard === '800-30') && (
                     <div className="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-4">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-7xl mx-auto">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-5xl">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
                                     <Server className="w-5 h-5 text-slate-500" />
@@ -254,10 +254,11 @@ export default function NISTEcosystemLayout({
                     </div>
                 )}
 
-                <div key={systemId} className="flex-1 px-4 md:px-8 py-8">
+                <div key={systemId} className="flex-1 pl-4 pr-4 md:pl-20 md:pr-8 py-8">
                     {fullWidth ? <div className="-m-8">{children}</div> : children}
                 </div>
             </div>
         </DashboardLayout>
     );
 }
+

@@ -15,7 +15,7 @@ export default function ISORiskManagement() {
 
     return (
         <ISOLayout clientId={clientId}>
-            <RiskRegisterPage hideLayout={true} />
+            <RiskRegisterPage hideLayout={true} hideBreadcrumb={true} />
         </ISOLayout>
     );
 }

@@ -25,10 +25,17 @@ const ASSET_TYPES = [
     'Site / Facility'
 ];
 
-export default function RiskAssetEditor() {
+export default function RiskAssetEditor(props: any) {
     const [location, setLocation] = useLocation();
-    const [_, params] = useRoute('/clients/:clientId/risks/assets/:assetId');
+    const [match, localParams] = useRoute('/clients/:clientId/risks/assets/:assetId');
+
+    // Prefer props from parent router, fallback to local route match
+    const params = props.clientId ? props : (match ? localParams : null);
+
     const clientId = params?.clientId ? parseInt(params.clientId) : 0;
+
+    console.log('[RiskAssetEditor] Params Debug:', { props, match, localParams, finalParams: params, parsedClientId: clientId });
+
     const assetIdParam = params?.assetId;
     const isNew = assetIdParam === 'new';
     const dbId = !isNew && assetIdParam ? parseInt(assetIdParam) : null;
@@ -141,18 +148,22 @@ export default function RiskAssetEditor() {
             };
 
             if (dbId) {
+                console.log('[RiskAssetEditor] Updating asset', { dbId, clientId, commonData });
                 await updateMutation.mutateAsync({
                     id: dbId,
+                    clientId: clientId, // Ensuring clientId is passed
                     ...commonData,
                 });
             } else {
+                console.log('[RiskAssetEditor] Creating asset', { clientId, commonData });
                 await createMutation.mutateAsync({
                     clientId,
                     ...commonData,
                 });
             }
         } catch (error) {
-            console.error(error);
+            console.error('[RiskAssetEditor] Submit error:', error);
+            toast.error(`Submit failed: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -528,8 +539,8 @@ export default function RiskAssetEditor() {
                                                                 </td>
                                                                 <td className="px-6 py-4 text-sm text-gray-500">
                                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${risk.riskLevel === 'High' || risk.riskLevel === 'Critical' ? 'bg-red-100 text-red-800' :
-                                                                            risk.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-800' :
-                                                                                'bg-blue-100 text-blue-800'
+                                                                        risk.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-800' :
+                                                                            'bg-blue-100 text-blue-800'
                                                                         }`}>
                                                                         {risk.riskLevel || 'Unrated'}
                                                                     </span>
