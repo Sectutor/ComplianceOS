@@ -633,7 +633,7 @@ function Router() {
         <Route path="/portal/assessment/:token" component={VendorAssessmentPortal} />
 
         {/* Home/Landing Page - Public (shows landing for unauthenticated, dashboard links for authenticated) */}
-        <Route path="/" component={Home} />
+        <Route path="/" component={LoginPage} />
 
         {/* License Test Page - For testing license validation system */}
         <Route path="/license-test">
