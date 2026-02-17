@@ -44,14 +44,12 @@
     // Storage
     if (typeof g.localStorage === 'undefined') g.localStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
     if (typeof g.sessionStorage === 'undefined') g.sessionStorage = { getItem: () => null, setItem: () => { }, removeItem: () => { }, clear: () => { } };
-
-    // NOTE: 'document' is omitted to avoid triggering browser-detection in @trpc/server
 })();
 
 const serverless = require("serverless-http");
 const { app } = require("../../server_entry");
 
-export const handler = serverless(app, {
+module.exports.handler = serverless(app, {
     binary: [
         'application/zip',
         'application/pdf',
