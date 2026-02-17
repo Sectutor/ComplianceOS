@@ -13,6 +13,15 @@
         if (typeof global !== 'undefined') (global as any).DOMMatrix = g.DOMMatrix;
     }
 
+    // Ensure 'process' is available as some bundlers might hide it
+    if (typeof g.process === 'undefined' && typeof require !== 'undefined') {
+        try {
+            g.process = require('process');
+        } catch (e) {
+            // ignore
+        }
+    }
+
     // Minimal Location for libraries that expect it
     if (typeof (g as any).location === 'undefined') {
         (g as any).location = {
@@ -29,11 +38,9 @@
     }
 
     console.log("Environment check:", {
-        process_defined: typeof process !== 'undefined',
-        env_defined: typeof process !== 'undefined' && !!process.env,
-        window_defined: typeof (g as any).window !== 'undefined',
-        self_defined: typeof (g as any).self !== 'undefined',
-        document_defined: typeof (g as any).document !== 'undefined'
+        process_defined: typeof g.process !== 'undefined',
+        env_defined: g.process && !!g.process.env,
+        DOMMatrix_defined: typeof g.DOMMatrix !== 'undefined'
     });
 })();
 
@@ -41,33 +48,34 @@ const serverless = require("serverless-http");
 
 let app;
 try {
-    app = require("../../server_entry").app;
+    // Use dynamic import/require to avoid top-level failures if possible
+    const serverEntry = require("../../server_entry");
+    app = serverEntry.app;
 } catch (e) {
     console.error("FAILED TO LOAD APP:", e);
-    exports.handler = async (event: any, context: any) => {
+    // Keep a fallback handler
+    module.exports.handler = async (event: any) => {
         return {
             statusCode: 500,
             body: JSON.stringify({
-                error: "Failed to load application",
+                error: "Initialization Error",
                 message: e.message,
                 stack: e.stack,
-                env: {
-                    NODE_ENV: process.env.NODE_ENV,
-                    NETLIFY: process.env.NETLIFY,
-                    window: typeof (global as any).window
+                diagnostics: {
+                    process: typeof process,
+                    env: process ? !!process.env : false
                 }
             })
         };
     };
+    return; // Stop execution
 }
 
-if (app) {
-    exports.handler = serverless(app, {
-        binary: [
-            'application/zip',
-            'application/pdf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'image/*',
-        ]
-    });
-}
+module.exports.handler = serverless(app, {
+    binary: [
+        'application/zip',
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/*',
+    ]
+});
