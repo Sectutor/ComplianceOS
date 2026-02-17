@@ -114,8 +114,27 @@ export const checkClientAccess = middleware(async (opts) => {
         });
     }
 
-    // Enforce maxClients limit for owned clients
-    if (member.role === 'owner') {
+    // ARCHITECTURE ENFORCEMENT: Community Edition Single-Tenancy
+    // This cannot be overridden by database values.
+    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+        // In Community Edition, authorized users can only access their FIRST workspace.
+        const allMemberships = await dbConn.select()
+            .from(userClients)
+            .where(eq(userClients.userId, ctx.user.id))
+            .orderBy(asc(userClients.joinedAt));
+
+        // If they have multiple (e.g. from a previous trial), they can only access the first one.
+        // This effectively renders multi-tenancy dead in the water for the open source build.
+        if (allMemberships.length > 0 && allMemberships[0].clientId !== clientId) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
+            });
+        }
+    }
+
+    // Enforce maxClients limit for owned clients (Premium/Standard limits)
+    if (member.role === 'owner' && process.env.VITE_ENABLE_PREMIUM !== 'false') {
         const fullUser = await db.getUserById(ctx.user.id);
         const maxClients = fullUser?.maxClients || 2;
 

@@ -50,6 +50,7 @@ export default function QuestionnairesDashboard() {
   const queryParams = new URLSearchParams(window.location.search);
   const initialStatus = queryParams.get("status") || "all";
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [questionnaireToDelete, setQuestionnaireToDelete] = useState<any>(null);
 
   const { data: questionnaires, refetch } = trpc.questionnaire.list.useQuery({ clientId });
 
