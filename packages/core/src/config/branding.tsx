@@ -64,7 +64,7 @@ export const BrandLogo = ({ className = "", showText = false, invert = false }: 
     const scale = (logoSize / 100) * 2; // Even larger base scale
 
     // Check if we have the white logo file
-    const displayLogo = invert ? '/src/assets/logo-white.svg' : configLogoUrl;
+    const displayLogo = invert ? '/src/assets/logo-white.svg?v=2' : configLogoUrl;
 
     return (
         <div className={`flex items-center gap-3 ${className}`}>
