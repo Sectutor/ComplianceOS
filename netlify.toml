@@ -1,6 +1,6 @@
 [build]
   base = "."
-  command = "npm --prefix packages/core install --legacy-peer-deps && npm --prefix packages/core run build"
+  command = "npm ci --legacy-peer-deps && npm run build -w @complianceos/core"
   publish = "packages/core/dist"
 
 [build.environment]
