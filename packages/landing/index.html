@@ -53,32 +53,43 @@
     </nav>
 
     <!-- Hero Section -->
-    <div class="bg-white pt-20 pb-24 sm:pt-32 sm:pb-40">
+    <!-- Hero Section -->
+    <div class="bg-white pt-20 pb-24 sm:pt-32 sm:pb-40 overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="max-w-3xl">
-                <div
-                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#003366] mb-8 border border-blue-100 uppercase tracking-widest">
-                    Enterprise GRC Platform
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div class="max-w-2xl">
+                    <div
+                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#003366] mb-8 border border-blue-100 uppercase tracking-widest">
+                        Enterprise GRC Platform
+                    </div>
+
+                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
+                        Compliance that moves as fast as you do.
+                    </h1>
+
+                    <p class="text-xl text-slate-600 leading-relaxed mb-12 max-w-lg">
+                        Automate your SOC 2, ISO 27001, and NIST RMF audits. We partner with security-forward teams to
+                        build
+                        scalable, evidence-based compliance programs.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-5">
+                        <a href="https://app.grcompliance.com/waitlist"
+                            class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded bg-[#003366] text-white hover:bg-[#002244] transition-all shadow-sm">
+                            Request Vetted Access
+                        </a>
+                        <a href="https://demo.grcompliance.com"
+                            class="inline-flex items-center justify-center px-8 py-4 border border-slate-200 text-lg font-bold rounded bg-white text-slate-800 hover:border-slate-300 transition-all shadow-sm">
+                            View Product Demo
+                        </a>
+                    </div>
                 </div>
-
-                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
-                    Compliance that moves as fast as you do.
-                </h1>
-
-                <p class="text-xl text-slate-600 leading-relaxed mb-12 max-w-2xl">
-                    Automate your SOC 2, ISO 27001, and NIST RMF audits. We partner with security-forward teams to build
-                    scalable, evidence-based compliance programs.
-                </p>
-
-                <div class="flex flex-col sm:flex-row gap-5">
-                    <a href="https://app.grcompliance.com/waitlist"
-                        class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded bg-[#003366] text-white hover:bg-[#002244] transition-all shadow-sm">
-                        Request Vetted Access
-                    </a>
-                    <a href="https://demo.grcompliance.com"
-                        class="inline-flex items-center justify-center px-8 py-4 border border-slate-200 text-lg font-bold rounded bg-white text-slate-800 hover:border-slate-300 transition-all shadow-sm">
-                        View Product Demo
-                    </a>
+                <div class="hidden lg:block relative z-10">
+                    <div
+                        class="absolute -inset-4 bg-gradient-to-tr from-blue-100 to-[#003366]/10 rounded-3xl -z-10 transform rotate-2">
+                    </div>
+                    <img src="assets/screenshots/dashboard.png" alt="ComplianceOS Platform Interface"
+                        class="relative rounded-xl shadow-2xl border border-slate-200 w-full transform -rotate-1 hover:rotate-0 transition-transform duration-700" />
                 </div>
             </div>
         </div>
