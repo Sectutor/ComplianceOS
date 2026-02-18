@@ -116,16 +116,16 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-slate-900 leading-normal tracking-tight flex flex-col">
       {/* Navbar */}
-      <nav className="bg-[#003366] sticky top-0 z-50 shadow-md">
+      <nav className="bg-white sticky top-0 z-50 shadow-sm border-b border-slate-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20">
+          <div className="flex justify-between h-24">
             <div className="flex items-center">
-              <BrandLogo invert showText={false} className="h-16" />
+              <BrandLogo showText={false} className="h-20" />
             </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-blue-50 hover:text-white transition-colors text-sm font-semibold">Platform</a>
-              <a href="#process" className="text-blue-50 hover:text-white transition-colors text-sm font-semibold">How it works</a>
-              <Button asChild className="bg-[#00A36C] hover:bg-[#008F5D] text-white px-6 py-2.5 rounded shadow-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 border-none">
+            <div className="hidden md:flex items-center space-x-10">
+              <a href="#features" className="text-slate-600 hover:text-[#003366] transition-colors text-sm font-bold uppercase tracking-wider">Platform</a>
+              <a href="#process" className="text-slate-600 hover:text-[#003366] transition-colors text-sm font-bold uppercase tracking-wider">How it works</a>
+              <Button asChild className="bg-[#003366] hover:bg-[#002244] text-white px-8 py-3 rounded-lg shadow-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 border-none">
                 <a href="/waitlist">Join the Waitlist</a>
               </Button>
             </div>
