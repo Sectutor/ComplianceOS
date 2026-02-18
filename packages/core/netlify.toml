@@ -1,8 +1,9 @@
-# Build settings are now managed in the Netlify UI to avoid monorepo conflicts
-# App Site: command="npm run build --workspace @complianceos/core", publish="packages/core/dist"
-# Landing Site: command="echo static", publish="."
+[build]
+  command = "npm run build --workspace @complianceos/core"
+  publish = "dist"
 
 [functions]
+  directory = "../../netlify/functions"
 
 [functions.node_bundle]
   external_node_modules = ["postgres", "pdf-parse", "puppeteer", "docx", "archiver", "xlsx", "turndown", "openai"]
