@@ -2,13 +2,13 @@
   <!-- Modern Shield Icon - Transparent version -->
   <path d="M80 20C100 20 120 25 140 35V80C140 120 80 145 80 145C80 145 20 120 20 80V35C40 25 60 20 80 20Z" 
         stroke="white" 
-        stroke-width="6" 
+        stroke-width="8" 
         stroke-linejoin="round"
         stroke-opacity="0.7"
         fill="none" />
   <path d="M45 85L70 110L130 50" 
         stroke="white" 
-        stroke-width="10" 
+        stroke-width="12" 
         stroke-linecap="round" 
         stroke-linejoin="round"
         stroke-opacity="0.7" />
