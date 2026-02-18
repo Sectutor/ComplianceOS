@@ -61,16 +61,19 @@ export const useBranding = () => {
 
 export const BrandLogo = ({ className = "", showText = false, invert = false }: { className?: string, showText?: boolean, invert?: boolean }) => {
     const { appName, logoUrl: configLogoUrl, logoSize } = useBranding();
-    const scale = (logoSize / 100) * 1.8; // Larger base scale
+    const scale = (logoSize / 100) * 2; // Even larger base scale
+
+    // Check if we have the white logo file
+    const displayLogo = invert ? '/src/assets/logo-white.svg' : configLogoUrl;
 
     return (
         <div className={`flex items-center gap-3 ${className}`}>
-            {configLogoUrl ? (
+            {displayLogo ? (
                 <img
-                    src={configLogoUrl}
+                    src={displayLogo}
                     alt={appName}
-                    className="h-16 w-auto object-contain transition-all"
-                    style={{ height: `${4 * scale}rem` }}
+                    className="h-24 w-auto object-contain transition-all"
+                    style={{ height: `${5 * scale}rem` }}
                 />
             ) : (
                 <div
