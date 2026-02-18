@@ -6,6 +6,7 @@
 [build.environment]
   NPM_FLAGS = "--include=dev"
   NODE_OPTIONS = "--max-old-space-size=4096"
+  PYTHON_VERSION = "3.12"
 
 [functions]
 
