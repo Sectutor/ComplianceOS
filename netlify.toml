@@ -1,7 +1,7 @@
 [build]
-  base = "packages/core"
-  command = "npm install && npm run build"
-  publish = "dist"
+  base = "."
+  command = "npm --prefix packages/core install && npm --prefix packages/core run build"
+  publish = "packages/core/dist"
 
 [build.environment]
   NPM_FLAGS = "--include=dev"
