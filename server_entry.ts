@@ -152,7 +152,7 @@ app.use('/uploads', (req: any, res, next) => {
 }, express.static(path.join(process.cwd(), 'uploads')));
 
 // Health Check
-app.get('/health', async (req, res) => {
+app.get(['/health', '/api/health'], async (req, res) => {
     try {
         const dbConn = await getDb();
         await dbConn.execute(sql`SELECT 1`);
@@ -166,7 +166,7 @@ app.get('/health', async (req, res) => {
 
 // Production Diagnostics Endpoint - Restricted to Admins
 // Diagnostic endpoint to check polyfills
-app.get('/debug/globals', (req: express.Request, res: express.Response) => {
+app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: express.Response) => {
     const g = global as any;
     res.json({
         DOMMatrix: typeof g.DOMMatrix,
@@ -182,7 +182,7 @@ app.get('/debug/globals', (req: express.Request, res: express.Response) => {
     });
 });
 
-app.get('/debug/connection', async (req: any, res) => {
+app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) => {
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
         return res.status(403).json({ error: 'Unauthorized diagnostic access' });
     }
