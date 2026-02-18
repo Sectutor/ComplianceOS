@@ -591,11 +591,19 @@ function VendorsAlias() {
  * RootHub handles domain-based routing for the landing page vs. application entrance.
  * Main domain (grcompliance.com) serves the marketing landing page.
  * App subdomain (app.grcompliance.com) serves the login page directly.
+ * 
+ * SECURITY: This component acts as a gatekeeper to ensure functional app code
+ * is only executed on the designated app subdomain.
  */
 function RootHub() {
   const hostname = window.location.hostname;
-  // Localhost or app. subdomain leads to the login/app experience
   const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+
+  // If on main domain but trying to access the app, redirect to proper subdomain
+  if (!isAppDomain && (hostname.includes('grcompliance.com') || hostname.includes('grcompliance.com'))) {
+    window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
+    return null;
+  }
 
   if (isAppDomain) {
     return <LoginPage />;
@@ -619,6 +627,19 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
+        {/* Domain Enforcement for App Routes */}
+        <Route path="/(login|signup|auth|dashboard|clients|controls|settings|evidence|policy-templates)">
+          {() => {
+            const hostname = window.location.hostname;
+            const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+            if (!isAppDomain && hostname.includes('grcompliance.com')) {
+              window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
+              return null;
+            }
+            return null; // Continue to next match
+          }}
+        </Route>
+
         {/* Public Routes */}
         <Route path="/login" component={LoginPage} />
         <Route path="/signup" component={SignUpPage} />
