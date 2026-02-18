@@ -5,6 +5,7 @@
 
 [build.environment]
   NPM_FLAGS = "--include=dev"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [functions]
 
