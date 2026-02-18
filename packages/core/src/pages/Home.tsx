@@ -120,7 +120,7 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
-              <BrandLogo invert showText={false} className="h-12" />
+              <BrandLogo invert showText={false} className="h-16" />
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-blue-50 hover:text-white transition-colors text-sm font-semibold">Platform</a>

@@ -12,7 +12,8 @@ interface BrandingContextType extends BrandingConfig {
     resetBranding: () => void;
 }
 
-import logoUrl from '../assets/logo.png';
+import logoUrl from '../assets/logo.svg';
+import logoWhiteUrl from '../assets/logo-white.svg';
 
 const defaultBranding: BrandingConfig = {
     appName: 'GRCompliance',
@@ -60,20 +61,21 @@ export const useBranding = () => {
 };
 
 export const BrandLogo = ({ className = "", showText = true, invert = false }: { className?: string, showText?: boolean, invert?: boolean }) => {
-    const { appName, logoUrl, logoSize } = useBranding();
-    const scale = (logoSize / 100) * 1.5; // Scale up the logo larger
+    const { appName, logoUrl: configLogoUrl, logoSize } = useBranding();
+    const scale = (logoSize / 100) * 1.5;
+
+    // Use white logo if inverted or if explicitly requested
+    const displayLogo = invert ? logoWhiteUrl : configLogoUrl;
 
     return (
         <div className={`flex items-center gap-3 ${className}`}>
-            {logoUrl ? (
-                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100/10">
-                    <img
-                        src={logoUrl}
-                        alt={appName}
-                        className="h-12 w-auto object-contain transition-all"
-                        style={{ height: `${3 * scale}rem` }} // Increased base size
-                    />
-                </div>
+            {displayLogo ? (
+                <img
+                    src={displayLogo}
+                    alt={appName}
+                    className="h-12 w-auto object-contain transition-all"
+                    style={{ height: `${3 * scale}rem` }}
+                />
             ) : (
                 <div
                     className={`${invert ? 'bg-white/20' : 'bg-blue-600/10'} p-2 rounded-lg transition-all`}
