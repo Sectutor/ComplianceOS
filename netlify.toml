@@ -17,6 +17,11 @@
   external_node_modules = ["postgres", "pdf-parse", "puppeteer", "docx", "archiver", "xlsx", "turndown", "openai"]
 
 [[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api/health"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
