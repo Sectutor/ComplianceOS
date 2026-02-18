@@ -626,20 +626,19 @@ function PageLoader() {
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
-      <Switch>
-        {/* Domain Enforcement for App Routes */}
-        <Route path="/(login|signup|auth|dashboard|clients|controls|settings|evidence|policy-templates)">
-          {() => {
-            const hostname = window.location.hostname;
-            const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
-            if (!isAppDomain && hostname.includes('grcompliance.com')) {
-              window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
-              return null;
-            }
-            return null; // Continue to next match
-          }}
-        </Route>
+      {/* Domain Enforcement for App Routes - Outside Switch to avoid blocking matches */}
+      <Route path="/(login|signup|auth|dashboard|clients|controls|settings|evidence|policy-templates)">
+        {() => {
+          const hostname = window.location.hostname;
+          const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+          if (!isAppDomain && hostname.includes('grcompliance.com')) {
+            window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
+          }
+          return null;
+        }}
+      </Route>
 
+      <Switch>
         {/* Public Routes */}
         <Route path="/login" component={LoginPage} />
         <Route path="/signup" component={SignUpPage} />
