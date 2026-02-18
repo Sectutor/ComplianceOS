@@ -54,6 +54,18 @@ validateSecrets();
 import helmet from 'helmet';
 
 export const app = express();
+
+// Health Check - Moving to top to bypass potential middleware issues
+app.get(['/health', '/api/health'], async (req, res) => {
+    try {
+        const dbConn = await getDb();
+        await dbConn.execute(sql`SELECT 1`);
+        res.status(200).json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+    } catch (e: any) {
+        console.error('[Health] Database connection check failed:', e);
+        res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
+    }
+});
 const port = process.env.PORT || 3002;
 // Force restart
 console.log(`[Server] Initializing... Last update: ${new Date().toISOString()}`);
@@ -151,17 +163,6 @@ app.use('/uploads', (req: any, res, next) => {
     next();
 }, express.static(path.join(process.cwd(), 'uploads')));
 
-// Health Check
-app.get(['/health', '/api/health'], async (req, res) => {
-    try {
-        const dbConn = await getDb();
-        await dbConn.execute(sql`SELECT 1`);
-        res.status(200).json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
-    } catch (e: any) {
-        console.error('[Health] Database connection check failed:', e);
-        res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
-    }
-});
 
 
 // Production Diagnostics Endpoint - Restricted to Admins
