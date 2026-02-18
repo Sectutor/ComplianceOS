@@ -1,6 +1,6 @@
 [build]
   base = "."
-  command = "npm run build --workspace @complianceos/core"
+  command = "npm install && npm run build -w @complianceos/core"
   publish = "packages/core/dist"
 
 [build.environment]
