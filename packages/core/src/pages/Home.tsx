@@ -206,7 +206,7 @@ export default function Home() {
         </div>
 
         {/* Features Section */}
-        <div id="features" class="py-24 sm:py-32 bg-slate-50 border-t border-slate-100">
+        <div id="features" className="py-24 sm:py-32 bg-slate-50 border-t border-slate-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-20 items-center">
               <div>
