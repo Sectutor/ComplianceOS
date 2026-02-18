@@ -8,6 +8,7 @@
   NODE_OPTIONS = "--max-old-space-size=4096"
   PYTHON_VERSION = "3.12"
   SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_OMIT_PATHS = "node_modules,.netlify,packages/*/node_modules"
 
 [functions]
 
