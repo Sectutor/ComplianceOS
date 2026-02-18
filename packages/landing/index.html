@@ -84,12 +84,31 @@
                         </a>
                     </div>
                 </div>
-                <div class="hidden lg:block relative z-10">
+                <div class="hidden lg:block relative z-10 pl-4">
+                    <!-- Subtle background glow -->
                     <div
-                        class="absolute -inset-4 bg-gradient-to-tr from-blue-100 to-[#003366]/10 rounded-3xl -z-10 transform rotate-2">
+                        class="absolute -top-12 -right-12 -bottom-12 -left-4 bg-gradient-to-tr from-blue-50 to-[#003366]/5 rounded-[3rem] -z-10 blur-2xl">
                     </div>
-                    <img src="assets/screenshots/dashboard.png" alt="ComplianceOS Platform Interface"
-                        class="relative rounded-xl shadow-2xl border border-slate-200 w-full transform -rotate-1 hover:rotate-0 transition-transform duration-700" />
+
+                    <!-- Browser Window Frame -->
+                    <div
+                        class="rounded-xl shadow-2xl border border-slate-200 bg-white overflow-hidden transform hover:-translate-y-1 transition-transform duration-500">
+                        <!-- Browser Toolbar -->
+                        <div class="bg-slate-50 border-b border-slate-100 flex items-center px-4 py-3 gap-2">
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                            <div class="ml-2 flex-1">
+                                <div class="bg-white border border-slate-200 rounded-md h-6 w-3/4 mx-auto"></div>
+                            </div>
+                        </div>
+                        <!-- App Screenshot -->
+                        <div class="relative bg-white">
+                            <img src="assets/screenshots/dashboard.png" alt="ComplianceOS Dashboard Interface"
+                                class="w-full h-auto" />
+                            <!-- Optional Fade/Overlay if needed, kept clean for now -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
