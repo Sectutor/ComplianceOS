@@ -73,9 +73,9 @@ export default function Home() {
               </CardHeader>
             </Card>
 
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-emerald-500" onClick={() => setLocation('/controls')}>
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-[#00A36C]" onClick={() => setLocation('/controls')}>
               <CardHeader>
-                <Shield className="h-10 w-10 text-emerald-500 mb-2" />
+                <Shield className="h-10 w-10 text-[#00A36C] mb-2" />
                 <CardTitle>Control Library</CardTitle>
                 <CardDescription>Master library of ISO 27001 & SOC 2 controls</CardDescription>
               </CardHeader>
@@ -116,18 +116,16 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-slate-900 leading-normal tracking-tight flex flex-col">
       {/* Navbar */}
-      <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
+      <nav className="bg-[#003366] sticky top-0 z-50 shadow-md">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-20">
             <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-xl font-bold text-slate-900 tracking-tight">GRCompliance</span>
-              </div>
+              <BrandLogo invert showText={false} className="h-12" />
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-slate-600 hover:text-indigo-600 transition-colors text-sm font-medium">Platform</a>
-              <a href="#process" className="text-slate-600 hover:text-indigo-600 transition-colors text-sm font-medium">How it works</a>
-              <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded text-sm font-semibold transition-all">
+              <a href="#features" className="text-blue-50 hover:text-white transition-colors text-sm font-semibold">Platform</a>
+              <a href="#process" className="text-blue-50 hover:text-white transition-colors text-sm font-semibold">How it works</a>
+              <Button asChild className="bg-[#00A36C] hover:bg-[#008F5D] text-white px-6 py-2.5 rounded shadow-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 border-none">
                 <a href="/waitlist">Join the Waitlist</a>
               </Button>
             </div>
@@ -140,7 +138,7 @@ export default function Home() {
         <div className="bg-white pt-20 pb-24 sm:pt-32 sm:pb-40">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 mb-8 border border-indigo-100 uppercase tracking-widest">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#003366] mb-8 border border-blue-100 uppercase tracking-widest">
                 Enterprise GRC Platform
               </div>
 
@@ -154,7 +152,7 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-5">
-                <Button size="lg" asChild className="h-14 px-8 text-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm">
+                <Button size="lg" asChild className="h-14 px-8 text-lg font-bold bg-[#003366] text-white hover:bg-[#002244] transition-all shadow-sm">
                   <a href="/waitlist">Request Vetted Access</a>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="h-14 px-8 text-lg font-bold border-slate-200 bg-white text-slate-800 hover:border-slate-300 transition-all shadow-sm">
@@ -187,17 +185,17 @@ export default function Home() {
 
             <div className="grid md:grid-cols-3 gap-12 sm:gap-16">
               <div>
-                <div className="text-indigo-600 font-bold mb-6 text-sm tracking-widest uppercase">Phase 01</div>
+                <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 01</div>
                 <h3 className="text-xl font-bold text-slate-900 mb-4">Application</h3>
                 <p className="text-slate-600 leading-relaxed">Join our waitlist and share your organization's compliance goals and existing technical landscape.</p>
               </div>
               <div>
-                <div className="text-indigo-600 font-bold mb-6 text-sm tracking-widest uppercase">Phase 02</div>
+                <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 02</div>
                 <h3 className="text-xl font-bold text-slate-900 mb-4">Discovery</h3>
                 <p className="text-slate-600 leading-relaxed">We host a discovery session to map our automation engines to your specific infrastructure and controls.</p>
               </div>
               <div>
-                <div className="text-indigo-600 font-bold mb-6 text-sm tracking-widest uppercase">Phase 03</div>
+                <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 03</div>
                 <h3 className="text-xl font-bold text-slate-900 mb-4">Provisioning</h3>
                 <p className="text-slate-600 leading-relaxed">Approved partners receive a private instance with pre-configured framework templates and API integrations.</p>
               </div>
@@ -216,19 +214,19 @@ export default function Home() {
                 <div className="space-y-6">
                   <div className="flex gap-4">
                     <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-emerald-600" />
+                      <Check className="w-4 h-4 text-[#00A36C]" />
                     </div>
                     <p className="text-slate-800 font-semibold italic">500+ pre-mapped control libraries.</p>
                   </div>
                   <div className="flex gap-4">
                     <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-emerald-600" />
+                      <Check className="w-4 h-4 text-[#00A36C]" />
                     </div>
                     <p className="text-slate-800 font-semibold italic">Real-time gap analysis and alerting.</p>
                   </div>
                   <div className="flex gap-4">
                     <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-emerald-600" />
+                      <Check className="w-4 h-4 text-[#00A36C]" />
                     </div>
                     <p className="text-slate-800 font-semibold italic">Isolated infrastructure for every client.</p>
                   </div>
@@ -239,24 +237,24 @@ export default function Home() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center pb-4 border-b border-slate-100">
                     <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Trust Center</span>
-                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded">Live Sync On</span>
+                    <span className="text-[10px] font-bold bg-blue-50 text-[#003366] px-2 py-1 rounded">Live Sync On</span>
                   </div>
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded flex items-center justify-between">
                     <span className="text-sm font-bold text-slate-700">Access Management</span>
                     <div className="w-24 h-2 bg-slate-200 rounded overflow-hidden">
-                      <div className="w-[85%] h-full bg-indigo-500"></div>
+                      <div className="w-[85%] h-full bg-[#00A36C]"></div>
                     </div>
                   </div>
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded flex items-center justify-between opacity-60">
                     <span className="text-sm font-bold text-slate-700">Encryption Controls</span>
                     <div className="w-24 h-2 bg-slate-200 rounded overflow-hidden">
-                      <div className="w-[40%] h-full bg-indigo-500"></div>
+                      <div className="w-[40%] h-full bg-[#00A36C]"></div>
                     </div>
                   </div>
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded flex items-center justify-between">
                     <span className="text-sm font-bold text-slate-700">Data Minimization</span>
                     <div className="w-24 h-2 bg-slate-200 rounded overflow-hidden">
-                      <div className="w-full h-full bg-indigo-500"></div>
+                      <div className="w-full h-full bg-[#00A36C]"></div>
                     </div>
                   </div>
                 </div>
@@ -266,10 +264,10 @@ export default function Home() {
         </div>
 
         {/* Final CTA */}
-        <div className="bg-indigo-600 py-24 sm:py-32">
+        <div className="bg-[#003366] py-24 sm:py-32">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-8 tracking-tight">Limited capacity available for 2026 onboarding.</h2>
-            <Button size="lg" asChild className="h-16 px-10 text-xl font-extrabold rounded bg-white text-indigo-700 hover:bg-slate-50 transition-all shadow-xl">
+            <Button size="lg" asChild className="h-16 px-10 text-xl font-extrabold rounded bg-white text-[#003366] hover:bg-slate-50 transition-all shadow-xl">
               <a href="/waitlist">Secure your spot on the Waitlist</a>
             </Button>
           </div>

@@ -12,10 +12,12 @@ interface BrandingContextType extends BrandingConfig {
     resetBranding: () => void;
 }
 
+import logoUrl from '../assets/logo.png';
+
 const defaultBranding: BrandingConfig = {
     appName: 'GRCompliance',
-    logoUrl: null,
-    primaryColor: '#0066CC',
+    logoUrl: logoUrl,
+    primaryColor: '#003366',
     logoSize: 100,
 };
 
@@ -57,7 +59,7 @@ export const useBranding = () => {
     return context;
 };
 
-export const BrandLogo = ({ className = "", showText = true }: { className?: string, showText?: boolean }) => {
+export const BrandLogo = ({ className = "", showText = true, invert = false }: { className?: string, showText?: boolean, invert?: boolean }) => {
     const { appName, logoUrl, logoSize } = useBranding();
     const scale = logoSize / 100;
 
@@ -67,12 +69,12 @@ export const BrandLogo = ({ className = "", showText = true }: { className?: str
                 <img
                     src={logoUrl}
                     alt={appName}
-                    className="h-10 w-auto object-contain transition-all"
+                    className={`h-10 w-auto object-contain transition-all ${invert ? 'brightness-0 invert' : ''}`}
                     style={{ height: `${2.5 * scale}rem` }} // Base 2.5rem (h-10) * scale
                 />
             ) : (
                 <div
-                    className="bg-blue-600/10 p-2 rounded-lg transition-all"
+                    className={`${invert ? 'bg-white/20' : 'bg-blue-600/10'} p-2 rounded-lg transition-all`}
                     style={{ transform: `scale(${scale})` }}
                 >
                     <svg
@@ -83,13 +85,13 @@ export const BrandLogo = ({ className = "", showText = true }: { className?: str
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="h-8 w-8 text-blue-600"
+                        className={`h-8 w-8 ${invert ? 'text-white' : 'text-blue-600'}`}
                     >
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                     </svg>
                 </div>
             )}
-            {showText && <span className="font-bold text-xl tracking-tight">{appName}</span>}
+            {showText && <span className={`font-bold text-xl tracking-tight ${invert ? 'text-white' : ''}`}>{appName}</span>}
         </div>
     );
 };
