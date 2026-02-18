@@ -3,6 +3,9 @@
   command = "npm run build --workspace @complianceos/core"
   publish = "packages/core/dist"
 
+[build.environment]
+  NPM_FLAGS = "--include=dev"
+
 [functions]
 
 [functions.node_bundle]
