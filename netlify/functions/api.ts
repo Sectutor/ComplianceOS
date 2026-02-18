@@ -36,46 +36,39 @@
             toString: () => 'https://app.grcompliance.com/',
         };
     }
-
-    console.log("Environment check:", {
-        process_defined: typeof g.process !== 'undefined',
-        env_defined: g.process && !!g.process.env,
-        DOMMatrix_defined: typeof g.DOMMatrix !== 'undefined'
-    });
 })();
 
 const serverless = require("serverless-http");
 
 let app;
+let loadError: any = null;
+
 try {
-    // Use dynamic import/require to avoid top-level failures if possible
     const serverEntry = require("../../server_entry");
     app = serverEntry.app;
 } catch (e) {
     console.error("FAILED TO LOAD APP:", e);
-    // Keep a fallback handler
+    loadError = e;
+}
+
+if (app) {
+    module.exports.handler = serverless(app, {
+        binary: [
+            'application/zip',
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/*',
+        ]
+    });
+} else {
     module.exports.handler = async (event: any) => {
         return {
             statusCode: 500,
             body: JSON.stringify({
                 error: "Initialization Error",
-                message: e.message,
-                stack: e.stack,
-                diagnostics: {
-                    process: typeof process,
-                    env: process ? !!process.env : false
-                }
+                message: loadError?.message || "App failed to load",
+                stack: loadError?.stack
             })
         };
     };
-    return; // Stop execution
 }
-
-module.exports.handler = serverless(app, {
-    binary: [
-        'application/zip',
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'image/*',
-    ]
-});
