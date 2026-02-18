@@ -123,7 +123,9 @@ app.use(cors({
             origin === 'https://grcompliance.com' ||
             origin === 'https://www.grcompliance.com';
 
-        if (isAllowedProd || (isLocal && process.env.NODE_ENV !== 'production')) {
+        // Always allow localhost/127.0.0.1 for local development ease, regardless of NODE_ENV
+        // This unblocks local testing where ports might vary (e.g., landing on 5174, app on 5173)
+        if (isAllowedProd || isLocal) {
             callback(null, true);
         } else {
             console.error(`[CORS] Rejected origin: ${origin}`);
