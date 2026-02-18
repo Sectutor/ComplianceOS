@@ -226,9 +226,10 @@
                 <div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-sm font-bold">
                     <a href="https://app.grcompliance.com/login"
                         class="text-slate-400 hover:text-slate-900 transition-colors">Client Login</a>
-                    <a href="#" class="text-slate-400 hover:text-slate-900 transition-colors">Privacy</a>
-                    <a href="#" class="text-slate-400 hover:text-slate-900 transition-colors">Terms</a>
-                    <a href="#" class="text-slate-400 hover:text-slate-900 transition-colors">Cookie Policy</a>
+                    <a href="privacy.html" class="text-slate-400 hover:text-slate-900 transition-colors">Privacy</a>
+                    <a href="terms.html" class="text-slate-400 hover:text-slate-900 transition-colors">Terms</a>
+                    <a href="cookies.html" class="text-slate-400 hover:text-slate-900 transition-colors">Cookie
+                        Policy</a>
                 </div>
             </div>
             <div class="mt-16 pt-8 border-t border-slate-50 text-center">
@@ -238,6 +239,59 @@
             </div>
         </div>
     </footer>
+
+    <!-- Cookie Banner -->
+    <div id="cookie-banner"
+        class="fixed bottom-8 left-8 right-8 md:left-auto md:max-w-md bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 z-[100] transform translate-y-32 transition-transform duration-500">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                    </path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-bold text-slate-900 mb-2">Respecting your privacy</h4>
+                <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                    We use cookies to improve your vetting experience and analyze our platform performance. By clicking
+                    "Accept", you agree to our <a href="cookies.html" class="text-indigo-600 underline">Cookie
+                        Policy</a>.
+                </p>
+                <div class="flex gap-3">
+                    <button onclick="acceptCookies()"
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded transition-colors">Accept
+                        All</button>
+                    <button onclick="hideBanner()"
+                        class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded transition-colors">Decline</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function acceptCookies() {
+            localStorage.setItem('cookie-consent', 'accepted');
+            hideBanner();
+        }
+
+        function hideBanner() {
+            document.getElementById('cookie-banner').classList.add('translate-y-96');
+            setTimeout(() => {
+                document.getElementById('cookie-banner').style.display = 'none';
+            }, 500);
+        }
+
+        window.onload = function () {
+            if (!localStorage.getItem('cookie-consent')) {
+                setTimeout(() => {
+                    document.getElementById('cookie-banner').classList.remove('translate-y-32');
+                }, 1000);
+            } else {
+                document.getElementById('cookie-banner').style.display = 'none';
+            }
+        };
+    </script>
 
 </body>
 
