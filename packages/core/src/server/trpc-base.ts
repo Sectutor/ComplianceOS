@@ -1,4 +1,4 @@
-
+import "../polyfill";
 import { initTRPC } from "@trpc/server";
 import { Context } from "./context";
 import superjson from "superjson";
