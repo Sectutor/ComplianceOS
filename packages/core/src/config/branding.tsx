@@ -26,12 +26,12 @@ const BrandingContext = createContext<BrandingContextType | undefined>(undefined
 export const BrandingProvider = ({ children }: { children: React.ReactNode }) => {
     // Load from localStorage if available
     const [config, setConfig] = useState<BrandingConfig>(() => {
-        const saved = localStorage.getItem('branding-config');
+        const saved = localStorage.getItem('branding-config-v2');
         return saved ? JSON.parse(saved) : defaultBranding;
     });
 
     useEffect(() => {
-        localStorage.setItem('branding-config', JSON.stringify(config));
+        localStorage.setItem('branding-config-v2', JSON.stringify(config));
         // Apply primary color to CSS variable if needed
         document.documentElement.style.setProperty('--primary', config.primaryColor);
     }, [config]);
@@ -64,7 +64,7 @@ export const BrandLogo = ({ className = "", showText = false, invert = false }: 
     const scale = (logoSize / 100) * 2; // Even larger base scale
 
     // Check if we have the white logo file
-    const displayLogo = invert ? '/src/assets/logo-white.svg?v=2' : configLogoUrl;
+    const displayLogo = configLogoUrl;
 
     return (
         <div className={`flex items-center gap-3 ${className}`}>
