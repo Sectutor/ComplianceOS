@@ -61,17 +61,19 @@ export const useBranding = () => {
 
 export const BrandLogo = ({ className = "", showText = true, invert = false }: { className?: string, showText?: boolean, invert?: boolean }) => {
     const { appName, logoUrl, logoSize } = useBranding();
-    const scale = logoSize / 100;
+    const scale = (logoSize / 100) * 1.5; // Scale up the logo larger
 
     return (
         <div className={`flex items-center gap-3 ${className}`}>
             {logoUrl ? (
-                <img
-                    src={logoUrl}
-                    alt={appName}
-                    className={`h-10 w-auto object-contain transition-all ${invert ? 'brightness-0 invert' : ''}`}
-                    style={{ height: `${2.5 * scale}rem` }} // Base 2.5rem (h-10) * scale
-                />
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100/10">
+                    <img
+                        src={logoUrl}
+                        alt={appName}
+                        className="h-12 w-auto object-contain transition-all"
+                        style={{ height: `${3 * scale}rem` }} // Increased base size
+                    />
+                </div>
             ) : (
                 <div
                     className={`${invert ? 'bg-white/20' : 'bg-blue-600/10'} p-2 rounded-lg transition-all`}
