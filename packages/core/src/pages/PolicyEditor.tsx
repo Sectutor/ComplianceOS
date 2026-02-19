@@ -732,7 +732,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
     return (
         <DashboardLayout>
-            <div className="space-y-6">
+            <div className="w-full max-w-full space-y-6 pl-4 pr-4 py-8 md:pl-20 md:pr-8">
                 <Breadcrumb
                     items={[
                         { label: "Clients", href: "/clients" },
@@ -832,12 +832,37 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         </CardDescription>
                                     </div>
                                     <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
-                                        <TabsList>
-                                            <TabsTrigger value="edit">Edit</TabsTrigger>
-                                            <TabsTrigger value="preview">Preview</TabsTrigger>
-                                            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-                                            <TabsTrigger value="employees">Employees</TabsTrigger>
-                                            <TabsTrigger value="history">History</TabsTrigger>
+                                        <TabsList className="bg-transparent p-0 gap-2 h-auto flex-wrap">
+                                            <TabsTrigger
+                                                value="edit"
+                                                className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-t-lg data-[state=active]:shadow-none"
+                                            >
+                                                Edit
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="preview"
+                                                className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-t-lg data-[state=active]:shadow-none"
+                                            >
+                                                Preview
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="integrations"
+                                                className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-t-lg data-[state=active]:shadow-none"
+                                            >
+                                                Integrations
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="employees"
+                                                className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-t-lg data-[state=active]:shadow-none"
+                                            >
+                                                Employees
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="history"
+                                                className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-t-lg data-[state=active]:shadow-none"
+                                            >
+                                                History
+                                            </TabsTrigger>
                                         </TabsList>
                                     </Tabs>
                                 </div>
@@ -1795,20 +1820,25 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 <Button
-                                    variant="outline"
-                                    className="w-full justify-start"
+                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
                                     onClick={() => setShowDistributionDialog(true)}
                                 >
                                     <Users className="mr-2 h-4 w-4" />
                                     Assign to Employees
                                 </Button>
 
-                                <Button variant="outline" className="w-full justify-start" onClick={handleAiFixPlaceholders}>
+                                <Button
+                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                    onClick={handleAiFixPlaceholders}
+                                >
                                     <Sparkles className="mr-2 h-4 w-4" />
                                     Fix Placeholders
                                 </Button>
 
-                                <Button variant="outline" className="w-full justify-start" onClick={handleExportWord}>
+                                <Button
+                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                    onClick={handleExportWord}
+                                >
                                     <FileText className="mr-2 h-4 w-4" />
                                     Export as Word
                                 </Button>
@@ -1820,6 +1850,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         clientId,
                                         policyId,
                                         onRewrite: (html: string) => setContent(html),
+                                        className: "w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold",
+                                        variant: "ghost"
                                     }}
                                 />
                                 {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
@@ -1827,7 +1859,10 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         Enable Premium (VITE_ENABLE_PREMIUM=true) to use AI rewrite
                                     </div>
                                 )}
-                                <Button variant="outline" className="w-full justify-start" onClick={() => setShowPublishDialog(true)}>
+                                <Button
+                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                    onClick={() => setShowPublishDialog(true)}
+                                >
                                     <History className="mr-2 h-4 w-4" />
                                     Publish Version
                                 </Button>
