@@ -11,7 +11,8 @@ export default function RichTextEditor({
   className,
   minHeight = "500px",
   onAiRewrite,
-  onAiFix
+  onAiFix,
+  onCheckCompliance
 }: {
   value: string;
   onChange: (html: string) => void;
@@ -19,6 +20,7 @@ export default function RichTextEditor({
   minHeight?: string;
   onAiRewrite?: () => void;
   onAiFix?: () => void;
+  onCheckCompliance?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
@@ -216,6 +218,19 @@ export default function RichTextEditor({
               <p>Start each numbered clause as a new paragraph</p>
             </TooltipContent>
           </Tooltip>
+          {onCheckCompliance && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={onCheckCompliance} className="text-amber-700 border-amber-200 hover:bg-amber-50">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Check Compliance
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Verify policy completeness and scan for issues</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       )}
       <style>{`

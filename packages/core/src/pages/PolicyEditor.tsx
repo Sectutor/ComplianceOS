@@ -19,7 +19,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import RichTextEditor from "@/components/RichTextEditor";
 import TurndownService from "turndown";
 
-// @ts-expect-error - html-docx-js-typescript types are missing
 import { asBlob } from "html-docx-js-typescript";
 import { saveAs } from "file-saver";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@complianceos/ui/ui/command";
@@ -32,7 +31,9 @@ import { Slot } from "@/registry";
 import { SlotNames } from "@/registry/slotNames";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import { PageGuide } from "@/components/PageGuide";
+
 import PolicyLinter from "@/components/policy/PolicyLinter";
+import { AiRewriteDialog } from "@/components/policy/AiRewriteDialog";
 
 // Helper logic for Policy Analysis
 
@@ -122,6 +123,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
     const { data: availableRisks } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
     const { data: availableControls } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: clientData } = trpc.clients.get.useQuery({ id: clientId }, { enabled: !!clientId });
+    const { data: employeesList } = trpc.employees.list.useQuery({ clientId }, { enabled: !!clientId });
 
     const { data: assignments, isLoading: loadingAssignments } = trpc.policyManagement.getAssignments.useQuery(
         { policyId },
@@ -171,6 +173,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
     const [selectedRisk, setSelectedRisk] = useState<any>(null);
     const [selectedControl, setSelectedControl] = useState<any>(null);
     const [showDistributionDialog, setShowDistributionDialog] = useState(false);
+    const [showRewriteDialog, setShowRewriteDialog] = useState(false);
 
     // Initialize turndown service for HTML to markdown conversion (matching PolicyTemplates.tsx pattern)
     // Initialize turndown service for HTML to markdown conversion (matching PolicyTemplates.tsx pattern)
@@ -453,33 +456,53 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
         }
     };
 
-    const handleAiRewrite = async () => {
+    const handleAiRewrite = () => {
+        setShowRewriteDialog(true);
+    };
+
+    const executeAiRewrite = async (instruction: string) => {
         if (!content || !clientId) return;
-        try {
-            toast.info("Rewriting policy with AI...");
-            const res = await refineMutation.mutateAsync({
-                clientId,
-                content,
-                instruction: "Improve clarity, tone, and formatting.",
-                mode: 'refine',
-                context: {
-                    clientName: policyData?.clientName || clientData?.name || "the Organization",
+
+        toast.promise(
+            async () => {
+                const res = await refineMutation.mutateAsync({
+                    clientId,
+                    content,
+                    instruction: instruction || "Improve clarity, tone, and formatting.",
+                    mode: 'refine',
+                    context: {
+                        clientName: policyData?.clientName || clientData?.name || "the Organization",
+                    }
+                });
+
+                const text = res.content || "";
+                const cleaned = cleanGeneratedHtml(text);
+                const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
+
+                setContent(html);
+                setShowRewriteDialog(false);
+                return "Policy rewritten successfully";
+            },
+            {
+                loading: 'Rewriting policy with AI... This process may take a minute.',
+                success: (msg) => msg,
+                error: (err) => {
+                    console.error("AI Rewrite failed:", err);
+                    return "Failed to rewrite policy";
                 }
-            });
+            }
+        );
+    };
 
-            const text = res.content || "";
-            const cleaned = cleanGeneratedHtml(text);
-            const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
-
-            setContent(html);
-            toast.success("Policy rewritten successfully");
-        } catch (error: any) {
-            console.error("AI Rewrite failed:", error);
-            toast.error("Failed to rewrite policy");
+    const handleCheckCompliance = () => {
+        const element = document.getElementById("policy-linter-section");
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+            toast.info("Review compliance checks below");
         }
     };
 
-    const handleAiFix = async () => {
+    const handleAiFixPlaceholders = async () => {
         if (!content || !clientId) return;
 
         let clientName = clientData?.name || policyData?.clientName || "the Organization";
@@ -495,29 +518,35 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
             }
         }
 
-        try {
-            toast.info(`Fixing placeholders for ${clientName}...`);
-            const res = await refineMutation.mutateAsync({
-                clientId,
-                content,
-                instruction: "Identify and fix placeholders.",
-                mode: 'fix_placeholders',
-                context: {
-                    clientName: clientName,
-                    industry: industry
+        toast.promise(
+            async () => {
+                const res = await refineMutation.mutateAsync({
+                    clientId,
+                    content,
+                    instruction: "Identify and fix placeholders.",
+                    mode: 'fix_placeholders',
+                    context: {
+                        clientName: clientName,
+                        industry: industry
+                    }
+                });
+
+                const text = res.content || "";
+                const cleaned = cleanGeneratedHtml(text);
+                const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
+
+                setContent(html);
+                return "Placeholders fixed successfully";
+            },
+            {
+                loading: `Fixing placeholders for ${clientName}...`,
+                success: (msg) => msg,
+                error: (err) => {
+                    console.error("AI Fix failed:", err);
+                    return "Failed to fix placeholders";
                 }
-            });
-
-            const text = res.content || "";
-            const cleaned = cleanGeneratedHtml(text);
-            const html = /<[a-z][\s\S]*>/i.test(cleaned) ? cleaned : (marked.parse(cleaned, { async: false }) as string);
-
-            setContent(html);
-            toast.success("Placeholders fixed successfully");
-        } catch (error: any) {
-            console.error("AI Fix failed:", error);
-            toast.error("Failed to fix placeholders");
-        }
+            }
+        );
     };
 
     const handleLinkRisk = async () => {
@@ -603,6 +632,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
 
 
+
+
     const handleExportWord = async () => {
         try {
             const htmlString = `
@@ -632,7 +663,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
             `;
 
             const blob = await asBlob(htmlString);
-            saveAs(blob, `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`);
+            saveAs(blob as Blob, `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`);
             toast.success("Word export downloaded");
         } catch (error) {
             console.error("Export failed:", error);
@@ -686,6 +717,12 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Policies
                     </Button>
+                    <AiRewriteDialog
+                        open={showRewriteDialog}
+                        onOpenChange={setShowRewriteDialog}
+                        onRewrite={executeAiRewrite}
+                        isPending={refineMutation.isPending}
+                    />
                 </div>
             </DashboardLayout>
         );
@@ -825,7 +862,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     onChange={setContent}
                                                     className="min-h-[400px]"
                                                     onAiRewrite={handleAiRewrite}
-                                                    onAiFix={handleAiFix}
+                                                    onAiFix={handleAiFixPlaceholders}
+                                                    onCheckCompliance={handleCheckCompliance}
                                                 />
                                             ) : (
                                                 <div className="min-h-[400px] flex items-center justify-center bg-slate-50 rounded-lg border">
@@ -833,18 +871,22 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 </div>
                                             )}
                                         </div>
-                                        <PolicyLinter
-                                            content={content}
-                                            onInsertSection={(html) => {
-                                                setContent((prev) => `${prev || ""}\n${html}`);
-                                            }}
-                                            onReplaceContent={(html) => {
-                                                setContent(html);
-                                            }}
-                                            clientId={clientId}
-                                            policyId={policyId}
-                                            orgName={clientData?.name}
-                                        />
+                                        <div id="policy-linter-section">
+                                            <PolicyLinter
+                                                content={content}
+                                                onInsertSection={(html) => {
+                                                    setContent((prev) => `${prev || ""}\n${html}`);
+                                                }}
+                                                onReplaceContent={(html) => {
+                                                    setContent(html);
+                                                }}
+                                                clientId={clientId}
+                                                policyId={policyId}
+                                                orgName={clientData?.name}
+                                                onPublish={() => setShowPublishDialog(true)}
+                                                onExportWord={handleExportWord}
+                                            />
+                                        </div>
                                     </TabsContent>
                                     <TabsContent value="preview" className="m-0">
                                         <div className="prose prose-sm max-w-none">
@@ -1692,12 +1734,25 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                                 <div>
                                     <Label htmlFor="policy-owner">Owner</Label>
-                                    <Input
-                                        id="policy-owner"
+                                    <Select
                                         value={owner}
-                                        onChange={(e) => setOwner(e.target.value)}
-                                        placeholder="Policy owner or department"
-                                    />
+                                        onValueChange={setOwner}
+                                    >
+                                        <SelectTrigger id="policy-owner">
+                                            <SelectValue placeholder="Select policy owner" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                                            {employeesList?.map((employee: any) => {
+                                                const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.email;
+                                                return (
+                                                    <SelectItem key={employee.id} value={fullName}>
+                                                        {fullName}
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
                                 <div>
@@ -1748,6 +1803,11 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     Assign to Employees
                                 </Button>
 
+                                <Button variant="outline" className="w-full justify-start" onClick={handleAiFixPlaceholders}>
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    Fix Placeholders
+                                </Button>
+
                                 <Button variant="outline" className="w-full justify-start" onClick={handleExportWord}>
                                     <FileText className="mr-2 h-4 w-4" />
                                     Export as Word
@@ -1767,18 +1827,17 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         Enable Premium (VITE_ENABLE_PREMIUM=true) to use AI rewrite
                                     </div>
                                 )}
+                                <Button variant="outline" className="w-full justify-start" onClick={() => setShowPublishDialog(true)}>
+                                    <History className="mr-2 h-4 w-4" />
+                                    Publish Version
+                                </Button>
+
                                 <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start">
-                                            <History className="mr-2 h-4 w-4" />
-                                            Publish Version
-                                        </Button>
-                                    </DialogTrigger>
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle>Publish New Version</DialogTitle>
                                             <DialogDescription>
-                                                Create a permanent snapshot of the current draft. This version will be listed in the history and can be restored later.
+                                                Create a new version snapshot. This will mark the policy as "Approved" and save the current content to history.
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4">
@@ -1810,10 +1869,6 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
-                                <Button variant="outline" className="w-full justify-start">
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Create Version
-                                </Button>
                             </CardContent>
                         </Card>
                     </div>
@@ -1843,6 +1898,12 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 clientId={clientId}
                 open={showDistributionDialog}
                 onOpenChange={setShowDistributionDialog}
+            />
+            <AiRewriteDialog
+                open={showRewriteDialog}
+                onOpenChange={setShowRewriteDialog}
+                onRewrite={executeAiRewrite}
+                isPending={refineMutation.isPending}
             />
         </DashboardLayout>
     );

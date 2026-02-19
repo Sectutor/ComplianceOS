@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
+import { Checkbox } from "@complianceos/ui/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Sparkles, Loader2, Wand2, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -39,6 +40,8 @@ import RichTextEditor from "@/components/RichTextEditor";
 import { marked } from "marked";
 import TurndownService from "turndown";
 
+import { TailoringQuestionsEditor } from "@/components/policy/TailoringQuestionsEditor";
+
 const DEFAULT_SECTIONS = [
   "Purpose",
   "Scope",
@@ -63,7 +66,7 @@ const sanitizeHtml = (html: string, title: string) => {
   if (bodyMatch) s = bodyMatch[1];
   s = s.replace(/<\/?(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
   s = s.replace(/<section([^>]*)>/gi, "<div$1>").replace(/<\/section>/gi, "</div>");
-  if (!/\<h1[\s\S]*?\>/.test(s)) {
+  if (!/\<h1[\s\S]*?\>/.test(s) && !/^\s*#\s/.test(s)) {
     s = `<h1>${title || "Information Security Policy"}</h1>\n${s}`;
   }
   return s.trim();
@@ -125,6 +128,8 @@ const improveContentFallback = (content: string, template?: any, enhanceBaseline
   return s;
 };
 
+
+
 export default function PolicyTemplates() {
   const { user, session } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -150,6 +155,8 @@ export default function PolicyTemplates() {
 
   // State for RTE content in Create Dialog
   const [createContent, setCreateContent] = useState("");
+  const [selectedTemplates, setSelectedTemplates] = useState<number[]>([]);
+  const [isBulkGenerateOpen, setIsBulkGenerateOpen] = useState(false);
 
   const { selectedClientId } = useClientContext();
 
@@ -158,25 +165,24 @@ export default function PolicyTemplates() {
     clientId: selectedClientId || undefined
   });
 
+  const clientsQuery = trpc.clients.list.useQuery({}, { enabled: !selectedClientId && isBulkGenerateOpen });
+
+
   const turndownService = useMemo(() => new TurndownService(), []);
 
   const createMutation = trpc.policyTemplates.create.useMutation({
     onSuccess: () => {
-      toast.success("Template created successfully");
       setIsCreateOpen(false);
       setCreateContent(""); // Reset content
       refetch();
     },
-    onError: (error) => toast.error(error.message),
   });
 
   const updateMutation = trpc.policyTemplates.update.useMutation({
     onSuccess: () => {
-      toast.success("Template updated successfully");
       setEditingTemplate(null);
       refetch();
     },
-    onError: (error) => toast.error(error.message),
   });
 
   const deleteMutation = trpc.policyTemplates.delete.useMutation({
@@ -295,14 +301,22 @@ export default function PolicyTemplates() {
     // TRANSITION: Save HTML directly to preserve rich formatting.
     const contentToSave = createContent;
 
-    createMutation.mutate({
-      templateId: formData.get("templateId") as string,
-      name: formData.get("name") as string,
-      framework: selectedFramework,
-      sections: sections,
-      content: contentToSave,
-      clientId: selectedClientId || undefined
-    });
+    toast.promise(
+      createMutation.mutateAsync({
+        templateId: formData.get("templateId") as string,
+        name: formData.get("name") as string,
+        framework: selectedFramework,
+        sections: sections,
+        content: contentToSave,
+        clientId: selectedClientId || undefined,
+        tailoringQuestions: formData.get("tailoringQuestions") ? JSON.parse(formData.get("tailoringQuestions") as string) : undefined
+      }),
+      {
+        loading: 'Creating template...',
+        success: 'Template created successfully',
+        error: 'Failed to create template'
+      }
+    );
   };
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>, id: number, content: string) => {
@@ -314,14 +328,22 @@ export default function PolicyTemplates() {
     // TRANSITION: Save HTML directly to preserve rich formatting.
     const contentToSave = content;
 
-    updateMutation.mutate({
-      id,
-      templateId: formData.get("templateId") as string,
-      name: formData.get("name") as string,
-      framework: formData.get("framework") as string,
-      sections: sections,
-      content: contentToSave,
-    });
+    toast.promise(
+      updateMutation.mutateAsync({
+        id,
+        templateId: formData.get("templateId") as string,
+        name: formData.get("name") as string,
+        framework: formData.get("framework") as string,
+        sections: sections,
+        content: contentToSave,
+        tailoringQuestions: formData.get("tailoringQuestions") ? JSON.parse(formData.get("tailoringQuestions") as string) : undefined
+      }),
+      {
+        loading: 'Updating template...',
+        success: 'Template updated successfully',
+        error: 'Failed to update template'
+      }
+    );
   };
 
   const viewedTemplate = templates?.find(t => t.id === viewingTemplate);
@@ -359,89 +381,98 @@ export default function PolicyTemplates() {
               Manage reusable policy templates for ISO 27001 and SOC 2
             </p>
           </div>
-          <EnhancedDialog
-            open={isCreateOpen}
-            onOpenChange={setIsCreateOpen}
-            title="Create Policy Template"
-            description="Create a reusable policy template with placeholders for client-specific details."
-            size="xl" // Larger for RTE
-            footer={
-              <div className="flex justify-end gap-2 w-full">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Wand2 className="mr-2 h-4 w-4" />
+              {selectedTemplates.length > 0 ? `Generate ${selectedTemplates.length} Policies` : "Bulk Generate Policies"}
+            </Button>
+            <EnhancedDialog
+              open={isCreateOpen}
+              onOpenChange={setIsCreateOpen}
+              title="Create Policy Template"
+              description="Create a reusable policy template with placeholders for client-specific details."
+              size="xl" // Larger for RTE
+              footer={
+                <div className="flex justify-end gap-2 w-full">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const form = document.getElementById('create-template-form') as HTMLFormElement;
+                      if (form) form.requestSubmit();
+                    }}
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending ? "Creating..." : "Create Template"}
+                  </Button>
+                </div>
+              }
+              trigger={
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Template
                 </Button>
-                <Button
-                  onClick={() => {
-                    const form = document.getElementById('create-template-form') as HTMLFormElement;
-                    if (form) form.requestSubmit();
-                  }}
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? "Creating..." : "Create Template"}
-                </Button>
-              </div>
-            }
-            trigger={
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Template
-              </Button>
-            }
-          >
-            <form id="create-template-form" onSubmit={handleCreate} onReset={() => {
-              setSelectedFramework("");
-              setCreateContent("");
-            }}>
-              <div className="grid gap-4 py-4 max-h-[75vh] overflow-y-auto pr-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="templateId">Template ID *</Label>
-                    <Input id="templateId" name="templateId" required defaultValue={getNextTemplateId()} />
+              }
+            >
+              <form id="create-template-form" onSubmit={handleCreate} onReset={() => {
+                setSelectedFramework("");
+                setCreateContent("");
+              }}>
+                <div className="grid gap-4 py-4 max-h-[75vh] overflow-y-auto pr-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="templateId">Template ID *</Label>
+                      <Input id="templateId" name="templateId" required defaultValue={getNextTemplateId()} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="framework">Framework *</Label>
+                      <Select value={selectedFramework} onValueChange={setSelectedFramework}>
+                        <SelectTrigger className={!selectedFramework ? "border-red-500" : ""}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ISO 27001">ISO 27001</SelectItem>
+                          <SelectItem value="SOC 2">SOC 2</SelectItem>
+                          <SelectItem value="ISO 27001 / SOC 2">ISO 27001 / SOC 2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="framework">Framework *</Label>
-                    <Select value={selectedFramework} onValueChange={setSelectedFramework}>
-                      <SelectTrigger className={!selectedFramework ? "border-red-500" : ""}>
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ISO 27001">ISO 27001</SelectItem>
-                        <SelectItem value="SOC 2">SOC 2</SelectItem>
-                        <SelectItem value="ISO 27001 / SOC 2">ISO 27001 / SOC 2</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="name">Template Name *</Label>
+                    <Input id="name" name="name" required placeholder="Access Control Policy" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="sections">Sections (one per line)</Label>
+                    <Textarea
+                      name="sections"
+                      rows={4}
+                      defaultValue={DEFAULT_SECTIONS.join('\n')}
+                      placeholder="Purpose&#10;Scope&#10;Policy Statement..."
+                    />
+                  </div>
+                  <div className="grid gap-2 border-2 border-slate-100 p-4 rounded-xl bg-slate-50/30">
+                    <TailoringQuestionsEditor />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Template Content</Label>
+                    <RichTextEditor
+                      value={createContent}
+                      onChange={setCreateContent}
+                      className="min-h-[300px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Available placeholders: {"{{company_name}}"}, {"{{system_scope}}"}, {"{{policy_name}}"}, {"{{effective_date}}"}, {"{{review_date}}"}
+                    </p>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Template Name *</Label>
-                  <Input id="name" name="name" required placeholder="Access Control Policy" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="sections">Sections (one per line)</Label>
-                  <Textarea
-                    name="sections"
-                    rows={4}
-                    defaultValue={DEFAULT_SECTIONS.join('\n')}
-                    placeholder="Purpose&#10;Scope&#10;Policy Statement..."
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Template Content</Label>
-                  <RichTextEditor
-                    value={createContent}
-                    onChange={setCreateContent}
-                    className="min-h-[300px]"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Available placeholders: {"{{company_name}}"}, {"{{system_scope}}"}, {"{{policy_name}}"}, {"{{effective_date}}"}, {"{{review_date}}"}
-                  </p>
-                </div>
-              </div>
-            </form>
-          </EnhancedDialog>
-          <Button variant="outline" onClick={() => { setIsUpgradeOpen(true); setUpgradeReport(null); }}>
-            Upgrade Templates
-          </Button>
+              </form>
+            </EnhancedDialog>
+            <Button variant="outline" onClick={() => { setIsUpgradeOpen(true); setUpgradeReport(null); }}>
+              Upgrade Templates
+            </Button>
+          </div>
         </div>
 
         {/* Quick Guide Card */}
@@ -758,6 +789,17 @@ export default function PolicyTemplates() {
               <Table className="table-fancy">
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        checked={selectedTemplates.length > 0 && selectedTemplates.length === filteredTemplates?.length}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedTemplates(filteredTemplates?.map(t => t.id) || []);
+                          else setSelectedTemplates([]);
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="w-[120px]">ID</TableHead>
                     <TableHead>Template Name</TableHead>
                     <TableHead>Frameworks</TableHead>
@@ -770,6 +812,17 @@ export default function PolicyTemplates() {
                     const sections = Array.isArray(template.sections) ? template.sections : [];
                     return (
                       <TableRow key={template.id}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={selectedTemplates.includes(template.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedTemplates(prev => [...prev, template.id]);
+                              else setSelectedTemplates(prev => prev.filter(id => id !== template.id));
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-mono text-sm">{template.templateId}</TableCell>
                         <TableCell className="font-medium">{template.name}</TableCell>
                         <TableCell>
@@ -874,8 +927,8 @@ export default function PolicyTemplates() {
                   <h4 className="font-medium mb-2">Sections</h4>
                   <div className="flex flex-wrap gap-2">
                     {sectionsList.map((section, i) => (
-                      <span key={i} className="px-3 py-1 bg-muted rounded-full text-sm">
-                        {String(section)}
+                      <span key={i} className="px-3 py-1 bg-muted rounded-full text-xs font-medium border border-slate-200">
+                        {typeof section === 'object' && section !== null ? (section as any).title || 'Section' : String(section)}
                       </span>
                     ))}
                   </div>
@@ -935,7 +988,7 @@ export default function PolicyTemplates() {
           <form id="ai-improve-form" onSubmit={(e) => {
             e.preventDefault();
             if (isImproving) return;
-            const systemPrompt = "You are an expert compliance policy editor. Improve the provided policy template content: enhance clarity, structure, and completeness; keep headings; avoid placeholders; output clean HTML only.";
+            const systemPrompt = "You are an expert compliance policy editor. Improve the policy template to be highly professional, industry-standard, and compliant. Enhance clarity, structure, and completeness using formal business language and active voice. Output in standard Markdown format. Use '#' for top-level headings and '##' for sections. CRITICAL: You MUST insert two newlines (\\n\\n) before every heading and between paragraphs. Do not wrap output in markdown code blocks (```).";
             const userPrompt = improvedContent || improveTarget?.content || "";
             const run = async () => {
               setIsImproving(true);
@@ -1047,6 +1100,16 @@ export default function PolicyTemplates() {
           onOpenChange={setIsGenerateOpen}
           template={templateToGenerate}
         />
+
+        <BulkDeployDialog
+          open={isBulkGenerateOpen}
+          onOpenChange={setIsBulkGenerateOpen}
+          clients={clientsQuery.data || []}
+          allTemplates={templates || []}
+          initialSelectedIds={selectedTemplates}
+          contextClientId={selectedClientId}
+          onSuccess={() => setSelectedTemplates([])}
+        />
       </div>
     </DashboardLayout>
   );
@@ -1059,8 +1122,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [customInstruction, setCustomInstruction] = useState("");
   const [tailorToIndustry, setTailorToIndustry] = useState(true);
-  const [previewContent, setPreviewContent] = useState<string>("");
-  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
 
   const { data: clients, isLoading: isLoadingClients } = trpc.clients.list.useQuery({}, {
     enabled: open
@@ -1074,40 +1136,31 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
       } else if (clients && clients.length === 1) {
         setSelectedClientId(clients[0].id);
       }
+
+      // Initialize defaults for questions
+      if (template?.tailoringQuestions) {
+        const defaults: Record<string, any> = {};
+        template.tailoringQuestions.forEach((q: any) => {
+          if (q.defaultValue !== undefined) defaults[q.id] = q.defaultValue;
+        });
+        setAnswers(defaults);
+      }
     }
-  }, [open, contextClientId, clients]);
+  }, [open, contextClientId, clients, template]);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin';
 
   const generateMutation = trpc.clientPolicies.create.useMutation({
     onSuccess: (data: any) => {
-      toast.success("Policy generated successfully");
       onOpenChange(false);
       // Navigate to the new policy
       if (data?.id && data?.clientId) {
         setLocation(`/clients/${data.clientId}/policies/${data.id}`);
       }
     },
-    onError: (error) => toast.error(error.message),
   });
 
-  const previewMutation = trpc.policyTemplates.preview.useMutation({
-    onSuccess: (data: any) => {
-      const title = template?.name || "Information Security Policy";
-      const content = data?.content || "";
-      const isHtml = /<[a-z][\s\S]*>/i.test(content);
-      const html = isHtml ? content : (marked.parse(content, { async: false }) as string);
-      const sanitized = sanitizeHtml(html, title);
-      setPreviewContent(sanitized);
-      setIsGeneratingPreview(false);
-    },
-    onError: () => {
-      const fallback = improveContentFallback(template?.content || "", template);
-      setPreviewContent(fallback);
-      setIsGeneratingPreview(false);
-      toast.warning("Preview unavailable; applied baseline formatting");
-    }
-  });
+
 
   const handleGenerate = () => {
     if (!selectedClientId) {
@@ -1116,19 +1169,32 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
     }
 
     const title = template?.name || "Information Security Policy";
-    const fallbackHtml = improveContentFallback(template?.content || "", template);
-    const contentToUse = previewContent || fallbackHtml;
 
-    generateMutation.mutate({
-      clientId: selectedClientId,
-      templateId: template.id,
-      name: template.name,
-      content: sanitizeHtml(contentToUse, title),
-      tailor: tailorToIndustry,
-      instruction: customInstruction || undefined,
-      status: 'draft',
-      module: 'general'
-    });
+    // Always trigger backend generation by omitting content
+    const contentToSend = undefined;
+
+    toast.promise(
+      generateMutation.mutateAsync({
+        clientId: selectedClientId,
+        templateId: template.id,
+        name: template.name,
+        content: contentToSend,
+        tailor: tailorToIndustry,
+        instruction: customInstruction || undefined,
+        status: 'draft',
+        module: 'general',
+        answers: answers
+      }),
+      {
+        loading: 'Generating comprehensive policy with AI... This may take a minute.',
+        success: 'Policy generated successfully',
+        error: 'Failed to generate policy'
+      }
+    );
+  };
+
+  const handleAnswerChange = (id: string, value: any) => {
+    setAnswers(prev => ({ ...prev, [id]: value }));
   };
 
   return (
@@ -1152,15 +1218,15 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
         </div>
       }
     >
-      <div className="space-y-4 py-4">
+      <div className="space-y-6 py-4">
         <div className="grid gap-2">
-          <Label>Select Client *</Label>
+          <Label className="text-base font-semibold">Select Client *</Label>
           <Select
             value={selectedClientId?.toString()}
             onValueChange={(val) => setSelectedClientId(parseInt(val))}
-            disabled={!isAdmin && !!selectedClientId} // Lock for non-admins if client is already selected
+            disabled={!isAdmin && !!selectedClientId}
           >
-            <SelectTrigger>
+            <SelectTrigger className="border-2">
               <SelectValue placeholder={isLoadingClients ? "Loading clients..." : "Select a client"} />
             </SelectTrigger>
             <SelectContent>
@@ -1171,55 +1237,68 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
               ))}
             </SelectContent>
           </Select>
-          {!isAdmin && selectedClientId && (
-            <p className="text-xs text-muted-foreground italic">
-              Policy will be generated for your active organization.
-            </p>
-          )}
         </div>
 
+        {template?.tailoringQuestions && template.tailoringQuestions.length > 0 && (
+          <div className="bg-slate-50 p-6 rounded-xl border-2 border-slate-100 space-y-4">
+            <h4 className="font-bold flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              Tailoring Questionnaire
+            </h4>
+            <div className="grid gap-6">
+              {template.tailoringQuestions.map((q: any) => (
+                <div key={q.id} className="grid gap-2">
+                  <Label htmlFor={q.id} className="font-medium">{q.question}</Label>
+                  {q.type === 'boolean' ? (
+                    <div className="flex items-center space-x-2 bg-white p-3 rounded-lg border">
+                      <input
+                        type="checkbox"
+                        id={q.id}
+                        checked={!!answers[q.id]}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.checked)}
+                        className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-muted-foreground">{answers[q.id] ? 'Yes' : 'No'}</span>
+                    </div>
+                  ) : q.type === 'select' ? (
+                    <Select value={answers[q.id]} onValueChange={(val) => handleAnswerChange(q.id, val)}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder={q.placeholder || "Select option..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {q.options?.map((opt: string) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id={q.id}
+                      type={q.type}
+                      placeholder={q.placeholder}
+                      value={answers[q.id] || ''}
+                      onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                      className="bg-white"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-2">
-          <Label htmlFor="instruction">Custom Instructions (Optional)</Label>
+          <Label htmlFor="instruction" className="font-semibold">Custom AI Instructions</Label>
           <Textarea
             id="instruction"
             placeholder="e.g. Include specific requirements for our cloud infrastructure..."
             value={customInstruction}
             onChange={(e) => setCustomInstruction(e.target.value)}
-            rows={3}
+            rows={2}
           />
         </div>
 
-        <div className="flex">
-          <Button
-            type="button"
-            onClick={() => {
-              if (!selectedClientId) {
-                toast.error("Please select a client");
-                return;
-              }
-              setIsGeneratingPreview(true);
-              previewMutation.mutate({
-                clientId: selectedClientId,
-                templateId: template?.id,
-                tailor: tailorToIndustry,
-                instruction: customInstruction || undefined
-              });
-            }}
-            disabled={isGeneratingPreview}
-            className="w-full"
-          >
-            {isGeneratingPreview ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Preview...
-              </>
-            ) : (
-              "Generate Preview"
-            )}
-          </Button>
-        </div>
-
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 bg-slate-50 p-4 rounded-lg border">
           <input
             type="checkbox"
             id="tailor"
@@ -1227,18 +1306,9 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
             onChange={(e) => setTailorToIndustry(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
-          <Label htmlFor="tailor" className="text-sm font-normal">
-            Tailor content to client's industry and context
+          <Label htmlFor="tailor" className="text-sm font-medium cursor-pointer flex-1">
+            Auto-tailor to client context (Industry, Content)
           </Label>
-        </div>
-
-        <div className="grid gap-2">
-          <Label>Policy Content Preview</Label>
-          <RichTextEditor
-            value={previewContent || (template?.content || "")}
-            onChange={setPreviewContent}
-            minHeight="400px"
-          />
         </div>
       </div>
     </EnhancedDialog>
@@ -1246,19 +1316,26 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
 }
 
 function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, updateMutation, handleUpdate, onGenerate }: any) {
-  const sections = Array.isArray(template.sections) ? template.sections : [];
+  const sections = Array.isArray(template.sections)
+    ? template.sections.map((s: any) => typeof s === 'object' && s !== null ? (s.title || 'Section') : String(s))
+    : [];
 
   // Convert existing markdown to HTML for RTE
   // We use useMemo to avoid re-parsing on every render, but we need to handle when template changes
   const [content, setContent] = useState(() => {
+    // Sanitize initial content to remove code blocks if present
     const rawContent = template.content || "";
-    const isHtml = /<[a-z][\s\S]*>/i.test(rawContent);
-    if (isHtml) return rawContent;
+    // We use sanitizeHtml from parent scope which strips code blocks and handles decoding
+    // This fixes issues where AI output was saved as a code block
+    const cleanContent = sanitizeHtml(rawContent, template.name);
+
+    const isHtml = /<[a-z][\s\S]*>/i.test(cleanContent);
+    if (isHtml) return cleanContent;
 
     try {
-      return marked.parse(rawContent, { async: false }) as string;
+      return marked.parse(cleanContent, { async: false }) as string;
     } catch {
-      return rawContent;
+      return cleanContent;
     }
   });
 
@@ -1336,6 +1413,12 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
               defaultValue={sections.join('\n')}
             />
           </div>
+          <div className="grid gap-2 border-2 border-slate-200 p-4 rounded-xl bg-slate-50/50">
+            <TailoringQuestionsEditor
+              initialQuestions={template.tailoringQuestions || []}
+              policyName={template.name}
+            />
+          </div>
           <div className="grid gap-2">
             <Label>Template Content</Label>
             <RichTextEditor
@@ -1346,6 +1429,379 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
           </div>
         </div>
       </form>
+    </EnhancedDialog>
+  );
+}
+
+
+/** Inline wizard dialog for deploying selected templates to a client from PolicyTemplates page */
+function BulkDeployDialog({
+  open,
+  onOpenChange,
+  clients,
+  allTemplates,
+  initialSelectedIds,
+  contextClientId,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  clients: any[];
+  allTemplates: any[];
+  initialSelectedIds: number[];
+  contextClientId: number | null;
+  onSuccess?: () => void;
+}) {
+  const [, setLocation] = useLocation();
+  const bulkDeployMutation = trpc.policyTemplates.bulkDeploy.useMutation();
+
+  const [step, setStep] = useState(1);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [wizardSelectedIds, setWizardSelectedIds] = useState<number[]>([]);
+  const [tailor, setTailor] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [customInstruction, setCustomInstruction] = useState("");
+
+  // Progress State
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [completedResults, setCompletedResults] = useState<{ id: number; name: string; status: 'success' | 'error' }[]>([]);
+
+  // Initialize state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setStep(1);
+      setWizardSelectedIds(initialSelectedIds.length > 0 ? initialSelectedIds : []);
+      setIsGenerating(false);
+      setProgress({ current: 0, total: 0 });
+      setCompletedResults([]);
+
+      if (contextClientId) {
+        setSelectedClientId(contextClientId);
+      } else if (clients.length === 1) {
+        setSelectedClientId(clients[0].id);
+      }
+    }
+  }, [open, initialSelectedIds, contextClientId, clients]);
+
+  const handleNext = () => {
+    if (step === 1 && wizardSelectedIds.length === 0) {
+      toast.error("Please select at least one template");
+      return;
+    }
+    setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    setStep(step - 1);
+  };
+
+  const handleRun = async () => {
+    if (!selectedClientId || wizardSelectedIds.length === 0) return;
+
+    setIsGenerating(true);
+    setProgress({ current: 0, total: wizardSelectedIds.length });
+    const results: { id: number; name: string; status: 'success' | 'error' }[] = [];
+
+    // Loop through selected templates and generate strictly sequentially to show progress
+    for (let i = 0; i < wizardSelectedIds.length; i++) {
+      const templateId = wizardSelectedIds[i];
+      const templateName = allTemplates.find(t => t.id === templateId)?.name || `Template ${templateId}`;
+
+      try {
+        await bulkDeployMutation.mutateAsync({
+          clientId: selectedClientId,
+          templateIds: [templateId], // Single item batch
+          tailor: tailor,
+          instruction: customInstruction.trim() ? `${customInstruction} (Professional and detailed generation)` : "Professional and detailed generation from template",
+          answers: {}
+        });
+        results.push({ id: templateId, name: templateName, status: 'success' });
+      } catch (e) {
+        console.error(`Failed to generate policy from template ${templateId}`, e);
+        results.push({ id: templateId, name: templateName, status: 'error' });
+      }
+
+      setProgress({ current: i + 1, total: wizardSelectedIds.length });
+    }
+
+    setCompletedResults(results);
+    setIsGenerating(false);
+    setStep(3); // Summary step (was 4)
+  };
+
+  const getTitle = () => {
+    if (step === 1) return "Select Policies to Generate";
+    if (step === 3) return "Generation Complete";
+    return "Review & Generate";
+  };
+
+  const renderProgress = () => {
+    const percent = Math.round((progress.current / progress.total) * 100);
+    return (
+      <div className="space-y-6 py-8">
+        <div className="text-center space-y-2">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+          <h3 className="text-lg font-medium">Generating Policies...</h3>
+          <p className="text-sm text-muted-foreground">{progress.current} of {progress.total} completed</p>
+        </div>
+        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+          <div
+            className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${percent}%` }}
+          ></div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStep = () => {
+    if (isGenerating) {
+      return renderProgress();
+    }
+
+    if (step === 1) {
+      const filteredTemplates = allTemplates.filter(t =>
+        t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      const allFilteredSelected = filteredTemplates.length > 0 && filteredTemplates.every(t => wizardSelectedIds.includes(t.id));
+
+      return (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search templates..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="select-all"
+                  checked={allFilteredSelected}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      const newIds = [...new Set([...wizardSelectedIds, ...filteredTemplates.map(t => t.id)])];
+                      setWizardSelectedIds(newIds);
+                    } else {
+                      const idsToRemove = new Set(filteredTemplates.map(t => t.id));
+                      setWizardSelectedIds(wizardSelectedIds.filter(id => !idsToRemove.has(id)));
+                    }
+                  }}
+                />
+                <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">Select All {searchTerm && '(Filtered)'}</label>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">
+                {wizardSelectedIds.length} selected
+              </div>
+            </div>
+          </div>
+
+          <div className="border rounded-md h-[400px] overflow-y-auto p-2 bg-slate-50">
+            {filteredTemplates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <FileText className="h-8 w-8 mb-2 opacity-50" />
+                <p>{searchTerm ? "No matching templates" : "No templates available"}</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredTemplates.map(t => (
+                  <div key={t.id} className="flex items-start gap-2 p-2 hover:bg-white rounded border border-transparent hover:border-slate-200 transition-colors">
+                    <Checkbox
+                      id={`t-${t.id}`}
+                      checked={wizardSelectedIds.includes(t.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) setWizardSelectedIds(prev => [...prev, t.id]);
+                        else setWizardSelectedIds(prev => prev.filter(id => id !== t.id));
+                      }}
+                    />
+                    <div className="grid gap-0.5">
+                      <label htmlFor={`t-${t.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                        {t.name}
+                      </label>
+                      {t.description && <p className="text-xs text-muted-foreground line-clamp-1">{t.description}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2: Review
+    if (step === 2) {
+      return (
+        <div className="space-y-6 py-4">
+          <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Selected Client:</span>
+              <span className="font-medium">{clients.find(c => c.id === selectedClientId)?.name || 'Unknown'}</span>
+            </div>
+            {!selectedClientId && (
+              <div className="p-2 mb-2 bg-red-50 text-red-600 text-xs rounded border border-red-200">
+                Warning: No client context found. Generation may fail. Please select a client in the sidebar.
+              </div>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Policies to Generate:</span>
+              <Tag className="font-medium">{wizardSelectedIds.length} Policies</Tag>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 border rounded-lg bg-indigo-50/50 border-indigo-100">
+            <Sparkles className="h-5 w-5 text-indigo-600 mt-0.5" />
+            <div className="grid gap-1.5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="tailor"
+                  checked={tailor}
+                  onCheckedChange={(c) => setTailor(!!c)}
+                />
+                <label htmlFor="tailor" className="font-semibold text-indigo-900 cursor-pointer">
+                  AI Professional Tailoring
+                </label>
+              </div>
+              <p className="text-xs text-indigo-700/80 pl-6">
+                When enabled, our AI will deeply analyze the client's industry ({clients.find(c => c.id === selectedClientId)?.industry || 'N/A'}) and customize the policy content to be professional, specific, and compliant.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Additional AI Instructions (Optional)</Label>
+            <Textarea
+              placeholder="E.g., Focus on ISO 27001 requirements, use formal UK English, or emphasize data privacy..."
+              value={customInstruction}
+              onChange={(e) => setCustomInstruction(e.target.value)}
+              className="resize-none h-20"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Step 3: Summary
+    if (step === 3) {
+      const successes = completedResults.filter(r => r.status === 'success');
+      const errors = completedResults.filter(r => r.status === 'error');
+
+      return (
+        <div className="space-y-6 py-2">
+          <div className="flex items-center gap-3 p-4 bg-green-50 text-green-700 rounded-md border border-green-200">
+            <CheckCircle2 className="h-6 w-6 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold">Process Complete</h3>
+              <p className="text-sm">Successfully generated {successes.length} policies.</p>
+              {errors.length > 0 && <p className="text-sm text-red-600 mt-1">{errors.length} failed.</p>}
+            </div>
+          </div>
+
+          <div className="border rounded-md max-h-[300px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Policy Name</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {completedResults.map((result) => (
+                  <TableRow key={result.id}>
+                    <TableCell className="font-medium">{result.name}</TableCell>
+                    <TableCell>
+                      {result.status === 'success' ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Success</Badge>
+                      ) : (
+                        <Badge variant="destructive">Error</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const Tag = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 ${className}`}>
+      {children}
+    </span>
+  );
+
+  return (
+    <EnhancedDialog
+      open={open}
+      onOpenChange={(val) => {
+        if (isGenerating && !val) return; // Prevent closing while generating
+        onOpenChange(val);
+      }}
+      title={getTitle()}
+      description={step === 3 ? `Process finished.` : `Step ${step} of 2`}
+      size="lg"
+      footer={
+        <div className="flex justify-between w-full">
+          {step > 1 && step < 3 && !isGenerating ? (
+            <Button variant="outline" onClick={handleBack}>
+              Back
+            </Button>
+          ) : (
+            <Button
+              variant={step === 3 ? "outline" : "ghost"}
+              onClick={() => {
+                if (step === 3 && onSuccess) onSuccess();
+                onOpenChange(false);
+              }}
+              disabled={isGenerating}
+              className={step === 1 ? "" : "invisible"} // Hide cancel on other steps if desired, but keep layout
+            >
+              {step === 3 ? "Close" : "Cancel"}
+            </Button>
+          )}
+
+          <div className="flex gap-2">
+            {!isGenerating && step === 1 && (
+              <Button onClick={handleNext} disabled={step === 1 && wizardSelectedIds.length === 0}>
+                Next <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+
+            {!isGenerating && step === 2 && (
+              <Button
+                disabled={!selectedClientId || wizardSelectedIds.length === 0}
+                onClick={handleRun}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white min-w-[150px]"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Start Generating
+              </Button>
+            )}
+
+            {!isGenerating && step === 3 && (
+              <Button onClick={() => {
+                if (onSuccess) onSuccess();
+                onOpenChange(false);
+                if (selectedClientId) setLocation(`/clients/${selectedClientId}/policies`);
+              }}
+              >
+                View Generated Policies <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      }
+    >
+      {renderStep()}
     </EnhancedDialog>
   );
 }

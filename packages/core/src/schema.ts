@@ -1837,13 +1837,18 @@ export const policyTemplates = pgTable("policy_templates", {
 
 
     optional: boolean;
-
-
-
     defaultEnabled: boolean;
+    condition?: string;
+  }[]>(),
 
-
-
+  tailoringQuestions: json("tailoring_questions").$type<{
+    id: string;
+    question: string;
+    type: 'boolean' | 'text' | 'select' | 'number';
+    options?: string[];
+    defaultValue?: any;
+    placeholder?: string;
+    category?: string;
   }[]>(),
 
 
@@ -2039,9 +2044,7 @@ export const clientPolicies = pgTable("client_policies", {
 
 
   createdAt: timestamp("created_at").defaultNow(),
-
-
-
+  tailoringAnswers: json("tailoring_answers").$type<Record<string, any>>(),
 }, (table) => {
 
 

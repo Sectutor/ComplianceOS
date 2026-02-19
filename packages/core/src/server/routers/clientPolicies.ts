@@ -73,6 +73,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         sections: z.array(z.string()).optional(),
         module: z.enum(["general", "privacy", "cyber"]).optional().default("general"),
         isAiGenerated: z.boolean().optional(),
+        answers: z.record(z.any()).optional()
       }))
       .mutation(async ({ input }: any) => {
         const data = { ...input };
@@ -106,14 +107,16 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
               // Generate from Template
               const generatedContent = await policyGenerator.generate(data.clientId, data.templateId, {
                 tailorToIndustry: data.tailor,
-                customInstruction: data.instruction
+                customInstruction: data.instruction,
+                answers: data.answers
               });
               data.content = generatedContent;
             } else if (data.sections && data.sections.length > 0) {
               // Generate from Blank with Sections
               const generatedContent = await policyGenerator.generateFromSections(data.clientId, data.name, data.sections, {
                 tailorToIndustry: data.tailor,
-                customInstruction: data.instruction
+                customInstruction: data.instruction,
+                answers: data.answers
               });
               data.content = generatedContent;
             }
@@ -125,8 +128,9 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           }
         }
 
-        // Remove extra fields
-        const { tailor, instruction, sections, ...insertData } = data;
+        // Remove extra fields and map answers to tailoringAnswers
+        const { tailor, instruction, sections, answers, ...insertData } = data;
+        (insertData as any).tailoringAnswers = answers;
 
         // Ensure status is valid or default
         if (!insertData.status) insertData.status = "draft";

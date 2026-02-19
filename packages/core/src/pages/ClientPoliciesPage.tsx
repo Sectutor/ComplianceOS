@@ -13,7 +13,8 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, FileText, Plus, Trash2, Edit, FileDown, Sparkles, FileSearch, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Trash2, Edit, FileDown, Sparkles, FileSearch, Send, Loader2, Layers } from "lucide-react";
+import { BulkGenerateDialog } from "@/components/policy/BulkGenerateDialog";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import PolicyReviewDialog from "@/components/PolicyReviewDialog";
 import {
@@ -67,6 +68,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     const [customInstruction, setCustomInstruction] = useState("");
     const [deletePolicyId, setDeletePolicyId] = useState<number | null>(null);
     const [distributionPolicyId, setDistributionPolicyId] = useState<number | null>(null);
+    const [isBulkGenerateOpen, setIsBulkGenerateOpen] = useState(false);
     const [editedContent, setEditedContent] = useState("");
     const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
@@ -106,7 +108,12 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
             if (data.content) {
                 const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
                 const title = nameInput?.value || "Information Security Policy";
-                setEditedContent(ensureTitleHeading(data.content, title));
+                try {
+                    const html = marked.parse(data.content, { async: false }) as string;
+                    setEditedContent(ensureTitleHeading(html, title));
+                } catch {
+                    setEditedContent(ensureTitleHeading(data.content, title));
+                }
             }
             setIsFetchingPreview(false);
         },
@@ -121,7 +128,12 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
         if (streamedContent) {
             const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
             const title = nameInput?.value || "Information Security Policy";
-            setEditedContent(ensureTitleHeading(streamedContent, title));
+            try {
+                const html = marked.parse(streamedContent, { async: false }) as string;
+                setEditedContent(ensureTitleHeading(html, title));
+            } catch {
+                setEditedContent(ensureTitleHeading(streamedContent, title));
+            }
         }
     }, [streamedContent]);
 
@@ -160,21 +172,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
         onError: (error) => toast.error(error.message),
     });
 
-    const bulkGeneratePoliciesMutation = trpc.clientPolicies.generateBulk.useMutation({
-        onSuccess: () => {
-            toast.success("All policies generated!");
-            refetchPolicies();
-        },
-        onError: (error) => toast.error(error.message),
-    });
-
-    const handleBulkGeneratePolicies = () => {
-        if (!client?.name) {
-            toast.error("Client name is required");
-            return;
-        }
-        bulkGeneratePoliciesMutation.mutate({ clientId, companyName: client.name });
-    };
+    // Bulk generation is now handled by the BulkGenerateDialog component
 
     const handleAddPolicy = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -247,10 +245,11 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && !hideLayout && (
                         <Button
                             variant="outline"
-                            onClick={handleBulkGeneratePolicies}
-                            disabled={bulkGeneratePoliciesMutation.isPending}
+                            onClick={() => setIsBulkGenerateOpen(true)}
+                            className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
                         >
-                            {bulkGeneratePoliciesMutation.isPending ? 'Generating...' : 'Generate All Policies'}
+                            <Layers className="mr-2 h-4 w-4" />
+                            Bulk Generate
                         </Button>
                     )}
                     <Button onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} className="bg-sky-600 hover:bg-sky-700 text-white">
@@ -448,6 +447,17 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     open={isPolicyReviewOpen}
                     onOpenChange={setIsPolicyReviewOpen}
                     clientId={clientId}
+                />
+            )}
+
+            {/* Bulk Generate Dialog */}
+            {!hideLayout && (
+                <BulkGenerateDialog
+                    open={isBulkGenerateOpen}
+                    onOpenChange={setIsBulkGenerateOpen}
+                    clientId={clientId}
+                    clientName={client?.name || "Client"}
+                    onComplete={() => refetchPolicies()}
                 />
             )}
 

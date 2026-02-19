@@ -1059,7 +1059,7 @@ function DashboardLayoutContent({
             <Dialog open={brandingOpen} onOpenChange={setBrandingOpen}>
               <DialogTrigger asChild>
                 <div className="cursor-pointer hover:opacity-80 transition-opacity w-full h-full flex items-center">
-                  <BrandLogo className="text-white scale-110 origin-left" showText={!isCollapsed} />
+                  <BrandLogo className="text-white origin-left" showText={!isCollapsed} />
                 </div>
               </DialogTrigger>
               <DialogContent>
