@@ -2044,7 +2044,12 @@ export const clientPolicies = pgTable("client_policies", {
 
 
   createdAt: timestamp("created_at").defaultNow(),
-  tailoringAnswers: json("tailoring_answers").$type<Record<string, any>>(),
+
+  // Collaboration Process
+  reviewers: jsonb("reviewers").$type<string[]>(), // Array of emails or user IDs assigned for review
+  reviewDueDate: timestamp("review_due_date"),
+  approvalStatus: varchar("approval_status", { length: 50 }).default("pending"), // pending, requested, changes_requested, approved
+  tailoringAnswers: jsonb("tailoring_answers").$type<Record<string, any>>(),
 }, (table) => {
 
 
@@ -3810,9 +3815,16 @@ export const comments = pgTable("comments", {
   entityId: integer("entity_id").notNull(),
 
   content: text("content").notNull(),
-
+  parentId: integer("parent_id"), // For threading (replies)
+  isResolved: boolean("is_resolved").default(false),
+  resolvedBy: integer("resolved_by"),
+  resolvedAt: timestamp("resolved_at"),
+  context: json("context").$type<{
+    quote?: string; // The text highlighted
+    selector?: string; // CSS selector or unique identifier within the document
+    sectionId?: string; // If using a structured editor with section IDs
+  }>(),
   createdAt: timestamp("created_at").defaultNow(),
-
   updatedAt: timestamp("updated_at").defaultNow(),
 
 }, (table) => {
@@ -14418,4 +14430,6 @@ export const federalInheritances = pgTable("federal_inheritances", {
 
 export type FederalInheritance = typeof federalInheritances.$inferSelect;
 export type InsertFederalInheritance = typeof federalInheritances.$inferInsert;
+
+
 

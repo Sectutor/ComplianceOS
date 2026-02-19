@@ -134,6 +134,8 @@ export function PolicyLinter({
   onPublish,
   onExportWord,
   orgName,
+  publishDisabled,
+  publishTooltip,
 }: {
   content: string;
   onInsertSection: (htmlToAppend: string) => void;
@@ -143,6 +145,8 @@ export function PolicyLinter({
   onPublish?: () => void;
   onExportWord?: () => void;
   orgName?: string;
+  publishDisabled?: boolean;
+  publishTooltip?: string;
 }) {
   const contentText = useMemo(() => normalizeText(content || ""), [content]);
 
@@ -293,10 +297,27 @@ export function PolicyLinter({
             <p className="text-xs text-muted-foreground mb-3">Your policy is ready — here are your next steps:</p>
             <div className="flex gap-3">
               {onPublish && (
-                <Button size="sm" onClick={onPublish} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md">
-                  <Shield className="mr-2 h-4 w-4" />
-                  Publish Policy
-                </Button>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="sm"
+                    onClick={onPublish}
+                    disabled={publishDisabled}
+                    className={cn(
+                      "bg-gradient-to-r shadow-md text-white px-6",
+                      publishDisabled
+                        ? "from-slate-400 to-slate-500 cursor-not-allowed opacity-80"
+                        : "from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:scale-105 transition-all"
+                    )}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Publish Policy
+                  </Button>
+                  {publishDisabled && publishTooltip && (
+                    <span className="text-[10px] text-slate-500 mt-1.5 font-medium uppercase tracking-tight">
+                      {publishTooltip}
+                    </span>
+                  )}
+                </div>
               )}
               {onExportWord && (
                 <Button variant="outline" size="sm" onClick={onExportWord} className="border-green-200 hover:bg-green-50">

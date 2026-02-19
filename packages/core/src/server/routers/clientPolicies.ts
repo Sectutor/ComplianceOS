@@ -7,6 +7,9 @@ import { getDb } from "../../db";
 import { policyGenerator } from "../../lib/policy/policy-generation";
 import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
+import { notifyUsers } from "../../lib/notificationService";
+import { EmailService } from "../../lib/email/service";
+
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
   return t.router({
@@ -57,6 +60,28 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to the specified client context" });
         }
         return result;
+      }),
+    activity: clientProcedure
+      .input(z.object({
+        policyId: z.number(),
+        clientId: z.number()
+      }))
+      .query(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+
+        return await dbConn.select({
+          log: schema.auditLogs,
+          user: schema.users
+        })
+          .from(schema.auditLogs)
+          .leftJoin(schema.users, eq(schema.auditLogs.userId, schema.users.id))
+          .where(and(
+            eq(schema.auditLogs.clientId, input.clientId),
+            eq(schema.auditLogs.entityType, 'policy'),
+            eq(schema.auditLogs.entityId, input.policyId)
+          ))
+          .orderBy(desc(schema.auditLogs.createdAt))
+          .limit(50);
       }),
     create: clientEditorProcedure
       .input(z.object({
@@ -139,6 +164,17 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         const newPolicy = await db.createClientPolicy(insertData as any);
         console.log(`[PolicyCreate] Saved policy with ID: ${newPolicy?.id}`);
 
+        if (newPolicy) {
+          await logActivity({
+            userId: ctx.user.id,
+            clientId: insertData.clientId,
+            action: 'create',
+            entityType: 'policy',
+            entityId: newPolicy.id,
+            details: { name: newPolicy.name }
+          });
+        }
+
         // Indexing removed for Core split
         // if (newPolicy && newPolicy.content) {
         //   try {
@@ -168,9 +204,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         status: z.enum(["draft", "review", "approved", "archived"]).optional(),
         owner: z.string().optional(),
         version: z.number().optional(),
+        reviewers: z.array(z.string()).optional(),
+        reviewDueDate: z.string().optional(), // ISO date string
+        approvalStatus: z.enum(["pending", "requested", "changes_requested", "approved"]).optional(),
       }))
-      .mutation(async ({ input }: any) => {
-        const { id, clientId, ...data } = input;
+      .mutation(async ({ input, ctx }: any) => {
+        const { id, clientId, reviewDueDate, ...data } = input;
 
         // Safeguard: verify policy belongs to this client
         const existing = await db.getClientPolicyById(id);
@@ -179,12 +218,210 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
         }
 
-        await db.updateClientPolicy(id, data);
+        const updateData: any = { ...data };
+        if (reviewDueDate) updateData.reviewDueDate = new Date(reviewDueDate);
+
+        await db.updateClientPolicy(id, updateData);
+
+        // Log Activity for significant updates
+        if (data.content || data.name || data.status || data.owner || data.approvalStatus) {
+          await logActivity({
+            userId: ctx.user.id,
+            action: 'update',
+            entityType: 'policy',
+            entityId: id,
+            clientId: clientId,
+            details: {
+              changes: Object.keys(data),
+              version: existing.clientPolicy.version
+            }
+          });
+        }
 
         // Re-index updated policy
         // Re-index updated policy - removed for Core split
 
         return { success: true };
+      }),
+
+    requestReview: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number(),
+        reviewers: z.array(z.string()),
+        dueDate: z.string().optional(),
+        message: z.string().optional()
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        const { id, clientId, reviewers, dueDate, message } = input;
+
+        await db.updateClientPolicy(id, {
+          approvalStatus: 'requested',
+          reviewers: reviewers,
+          reviewDueDate: dueDate ? new Date(dueDate) : null,
+          status: 'review',
+          updatedAt: new Date()
+        });
+
+        await logActivity({
+          userId: ctx.user.id,
+          action: 'request_review',
+          entityType: 'policy',
+          entityId: id,
+          clientId: clientId,
+          details: { reviewers, dueDate, message }
+        });
+
+        // Send Notifications to Reviewers
+        try {
+          const dbConn = await db.getDb();
+          const policyResult = await db.getClientPolicyById(id);
+          const policyName = policyResult?.clientPolicy?.name || "Policy";
+
+          // Find Users associated with these Reviewers (matching by email)
+          const reviewerDetails = await dbConn.select({
+            id: employees.id,
+            email: employees.email,
+            firstName: employees.firstName,
+            lastName: employees.lastName
+          })
+            .from(employees)
+            .where(inArray(employees.id, reviewers.map(r => parseInt(r))));
+
+          if (reviewerDetails.length > 0) {
+            const reviewerEmails = reviewerDetails.map(r => r.email);
+            const userResults = await dbConn.select({ id: users.id, email: users.email })
+              .from(users)
+              .where(inArray(users.email, reviewerEmails));
+
+            const userIds = userResults.map(u => u.id);
+
+            // 1. In-App Notifications
+            if (userIds.length > 0) {
+              await notifyUsers(userIds, {
+                type: "policy_review_requested",
+                title: "Policy Review Requested",
+                message: `${ctx.user.name || 'A team member'} has requested your review for the policy: ${policyName}.`,
+                link: `/clients/${clientId}/policies/${id}`,
+                relatedEntityType: "policy",
+                relatedEntityId: id
+              });
+            }
+
+            // 2. Email Notifications
+            for (const reviewer of reviewerDetails) {
+              await EmailService.send({
+                to: reviewer.email,
+                subject: `Review Requested: ${policyName}`,
+                html: `
+                  <div style="font-family: sans-serif; color: #374151;">
+                    <h2>Policy Review Requested</h2>
+                    <p>Hello ${reviewer.firstName},</p>
+                    <p><strong>${ctx.user.name || 'A team member'}</strong> has requested that you review the following policy:</p>
+                    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                      <p><strong>Policy:</strong> ${policyName}</p>
+                      ${dueDate ? `<p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>` : ''}
+                      ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
+                    </div>
+                    <p>Please log in to the ComplianceOS dashboard to review and provide your feedback.</p>
+                    <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
+                       style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
+                      View Policy
+                    </a>
+                  </div>
+                `,
+                clientId: clientId
+              });
+            }
+          }
+        } catch (error) {
+          console.error("[PolicyReview] Notification failed:", error);
+        }
+
+        return { success: true };
+
+      }),
+
+    submitApproval: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number(),
+        decision: z.enum(['approved', 'changes_requested']),
+        notes: z.string().optional()
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        const { id, clientId, decision, notes } = input;
+
+        await db.updateClientPolicy(id, {
+          approvalStatus: decision,
+          updatedAt: new Date()
+        });
+
+        await logActivity({
+          userId: ctx.user.id,
+          action: decision === 'approved' ? 'approve_policy' : 'reject_policy',
+          entityType: 'policy',
+          entityId: id,
+          clientId: clientId,
+          details: { notes }
+        });
+
+        // Notify Policy Owner/Creator
+        try {
+          const dbConn = await db.getDb();
+          const policyResult = await db.getClientPolicyById(id);
+          const policy = policyResult?.clientPolicy;
+          if (policy) {
+            // Find user id for the owner (if owner is set as an identifier) or just notify the original creator
+            // For now, let's assume we want to notify whoever is the 'owner' if we can find them,
+            // or just log it for the next time they visit.
+
+            // If the policy has an 'owner' email, let's use that.
+            if (policy.owner && policy.owner.includes('@')) {
+              const [ownerUser] = await dbConn.select({ id: users.id })
+                .from(users)
+                .where(eq(users.email, policy.owner))
+                .limit(1);
+
+              if (ownerUser) {
+                await notifyUsers([ownerUser.id], {
+                  type: decision === 'approved' ? 'policy_approved' : 'policy_changes_requested',
+                  title: decision === 'approved' ? 'Policy Approved' : 'Changes Requested on Policy',
+                  message: `${ctx.user.name || 'A reviewer'} has ${decision === 'approved' ? 'approved' : 'requested changes to'} your policy: ${policy.name}.`,
+                  link: `/clients/${clientId}/policies/${id}`,
+                  relatedEntityType: "policy",
+                  relatedEntityId: id,
+                  metadata: { notes }
+                });
+              }
+
+              await EmailService.send({
+                to: policy.owner,
+                subject: `Policy Review Update: ${policy.name}`,
+                html: `
+                      <div style="font-family: sans-serif; color: #374151;">
+                        <h2>Policy Review Decision</h2>
+                        <p>A decision has been made on the policy: <strong>${policy.name}</strong></p>
+                        <div style="background-color: ${decision === 'approved' ? '#ecfdf5' : '#fef2f2'}; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid ${decision === 'approved' ? '#10b981' : '#ef4444'};">
+                          <p><strong>Decision:</strong> <span style="font-weight: bold; color: ${decision === 'approved' ? '#059669' : '#dc2626'}; text-transform: uppercase;">${decision.replace('_', ' ')}</span></p>
+                          ${notes ? `<p><strong>Notes/Feedback:</strong> ${notes}</p>` : ''}
+                        </div>
+                        <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
+                           style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
+                          View Policy
+                        </a>
+                      </div>
+                    `,
+                clientId: clientId
+              });
+            }
+          }
+        } catch (error) {
+          console.error("[PolicyApproval] Notification failed:", error);
+        }
+
+        return { success: true };
+
       }),
     delete: clientEditorProcedure
       .input(z.object({ id: z.number(), clientId: z.number() }))
@@ -316,6 +553,29 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           .leftJoin(users, eq(policyVersions.publishedBy, users.id))
           .where(eq(policyVersions.clientPolicyId, input.policyId))
           .orderBy(desc(policyVersions.createdAt));
+      }),
+
+    activity: clientProcedure
+      .input(z.object({
+        policyId: z.number(),
+        clientId: z.number()
+      }))
+      .query(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+
+        return await dbConn.select({
+          log: schema.auditLogs,
+          user: schema.users
+        })
+          .from(schema.auditLogs)
+          .leftJoin(schema.users, eq(schema.auditLogs.userId, schema.users.id))
+          .where(and(
+            eq(schema.auditLogs.clientId, input.clientId),
+            eq(schema.auditLogs.entityType, 'policy'),
+            eq(schema.auditLogs.entityId, input.policyId)
+          ))
+          .orderBy(desc(schema.auditLogs.createdAt))
+          .limit(50);
       }),
 
     restore: clientEditorProcedure
@@ -598,6 +858,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         return { content: updatedContent };
       }),
+
+
 
   });
 };
