@@ -690,10 +690,10 @@ function DashboardLayoutContent({
       {
         label: "NIST Ecosystem",
         items: [
-          { icon: LayoutGrid, label: "NIST Hub", path: "/nist" },
+          { icon: LayoutGrid, label: "Ecosystem Hub", path: "/nist" },
           {
             icon: ShieldCheck,
-            label: "NIST CSF 2.0",
+            label: "Command Center",
             path: "/nist/dashboard",
             submenu: [
               { label: "Dashboard", path: "/nist/dashboard" },
@@ -705,7 +705,7 @@ function DashboardLayoutContent({
           },
           {
             icon: Activity,
-            label: "NIST SP 800-37 (RMF)",
+            label: "Systems & Scoping",
             path: "/nist/rmf",
             submenu: [
               { label: "Dashboard", path: "/nist/rmf" },
@@ -720,7 +720,7 @@ function DashboardLayoutContent({
           },
           {
             icon: Target,
-            label: "NIST SP 800-30",
+            label: "Risk Assessment",
             path: "/nist/800-30",
             submenu: [
               { label: "Risk Assessment", path: "/nist/800-30" },
@@ -730,7 +730,7 @@ function DashboardLayoutContent({
           },
           {
             icon: Lock,
-            label: "NIST SP 800-53",
+            label: "Control Center",
             path: "/nist/800-53",
             submenu: [
               { label: "Control Catalog", path: "/nist/800-53" },
