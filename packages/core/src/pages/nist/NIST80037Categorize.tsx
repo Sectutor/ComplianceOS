@@ -138,7 +138,7 @@ export default function NIST80037Categorize() {
             toast.error("No system selected", { description: "Please select a system first." });
             return;
         }
-        
+
         setIsSaving(true);
         updateChecklistMutation.mutate({
             clientId,
@@ -295,7 +295,7 @@ export default function NIST80037Categorize() {
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[900px]">
+                            <div className="pb-8">
                                 <TabsContent value="inventory" className="p-10 space-y-8 m-0">
                                     <div className="flex justify-between items-center">
                                         <div className="space-y-1">
@@ -512,7 +512,7 @@ export default function NIST80037Categorize() {
                                         </div>
                                     </div>
                                 </TabsContent>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </Card>
                 </div>

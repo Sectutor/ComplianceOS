@@ -261,7 +261,7 @@ export default function NIST80037Authorize() {
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[900px]">
+                            <div className="pb-8">
                                 <TabsContent value="package" className="p-10 space-y-10 m-0">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
@@ -455,7 +455,7 @@ export default function NIST80037Authorize() {
                                         </Button>
                                     </div>
                                 </TabsContent>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </Card>
                 </div>

@@ -37,15 +37,15 @@ export default function NIST80037Layout({ children, showJourneyStepper = true }:
 
     return (
         <NISTEcosystemLayout standard="rmf" fullWidth>
-            <div className="flex h-[calc(100vh-12rem)] pb-8 mt-4 mx-8">
+            <div className="flex pb-8 mt-4 mx-8 min-h-screen relative">
                 {/* Unified Compliance Journey Left Stepper */}
-                <div className="w-80 shrink-0 border-r border-slate-200 bg-slate-50/50 rounded-bl-3xl p-6 overflow-y-auto hidden lg:block relative">
+                <div className="w-80 shrink-0 border-r border-slate-200 bg-slate-50/50 rounded-bl-3xl p-6 hidden lg:block relative">
                     <div className="mb-8">
                         <h2 className="text-xl font-black text-slate-900 tracking-tight">Compliance Journey</h2>
                         <p className="text-xs text-slate-500 font-medium mt-1">Guided standard workflow</p>
                     </div>
 
-                    <div className="space-y-6 relative">
+                    <div className="space-y-6 relative sticky top-8">
                         {/* Connecting Line */}
                         <div className="absolute left-[1.15rem] top-4 bottom-8 w-0.5 bg-slate-200 -z-10" />
 
@@ -91,7 +91,7 @@ export default function NIST80037Layout({ children, showJourneyStepper = true }:
                 </div>
 
                 {/* Right Content Area */}
-                <div className="flex-1 overflow-y-auto px-8 lg:px-12 py-6 relative">
+                <div className="flex-1 px-8 lg:px-12 py-6 relative">
                     {children}
                 </div>
             </div>

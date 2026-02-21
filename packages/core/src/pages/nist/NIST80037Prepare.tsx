@@ -524,7 +524,7 @@ export default function NIST80037Prepare() {
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[900px]">
+                            <div className="pb-8">
                                 <TabsContent value="identification" className="p-10 space-y-8 m-0">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-4 md:col-span-2">
@@ -902,7 +902,7 @@ export default function NIST80037Prepare() {
                                         </div>
                                     </div>
                                 </TabsContent>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </Card>
                 </div>

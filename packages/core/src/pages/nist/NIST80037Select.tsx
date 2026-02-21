@@ -70,16 +70,16 @@ export default function NIST80037Select() {
         setHighWaterMark("MODERATE");
     }, [systemId]);
 
-    const checklistQuery = trpc.checklist.get.useQuery({ 
-        clientId, 
-        checklistId: systemId ? `nist-800-37-select-${systemId}` : 'no-system' 
+    const checklistQuery = trpc.checklist.get.useQuery({
+        clientId,
+        checklistId: systemId ? `nist-800-37-select-${systemId}` : 'no-system'
     }, {
         enabled: !!systemId
     });
-    
-    const categorizationQuery = trpc.checklist.get.useQuery({ 
-        clientId, 
-        checklistId: systemId ? `nist-800-37-categorize-${systemId}` : 'no-system' 
+
+    const categorizationQuery = trpc.checklist.get.useQuery({
+        clientId,
+        checklistId: systemId ? `nist-800-37-categorize-${systemId}` : 'no-system'
     }, {
         enabled: !!systemId
     });
@@ -305,7 +305,7 @@ export default function NIST80037Select() {
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[900px]">
+                            <div className="pb-8">
                                 <TabsContent value="baseline" className="p-10 space-y-10 m-0">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
@@ -534,7 +534,7 @@ export default function NIST80037Select() {
                                         </div>
                                     </div>
                                 </TabsContent>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </Card>
                 </div>

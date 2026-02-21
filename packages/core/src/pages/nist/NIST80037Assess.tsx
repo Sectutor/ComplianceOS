@@ -227,7 +227,7 @@ export default function NIST80037Assess() {
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[900px]">
+                            <div className="pb-8">
                                 <TabsContent value="plan" className="p-10 space-y-10 m-0">
                                     <div className="space-y-6">
                                         <div className="flex justify-between items-center">
@@ -418,7 +418,7 @@ export default function NIST80037Assess() {
                                         </div>
                                     </div>
                                 </TabsContent>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </Card>
                 </div>

@@ -81,7 +81,7 @@ export default function NIST80037Monitor() {
             toast.error("No system selected", { description: "Please select a system first." });
             return;
         }
-        
+
         setIsSaving(true);
         updateChecklistMutation.mutate({
             clientId,
@@ -274,7 +274,7 @@ export default function NIST80037Monitor() {
                                 </TabsList>
                             </div>
 
-                            <ScrollArea className="h-[900px]">
+                            <div className="pb-8">
                                 <TabsContent value="overview" className="p-10 space-y-10 m-0">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-6">
@@ -439,7 +439,7 @@ export default function NIST80037Monitor() {
                                         ))}
                                     </div>
                                 </TabsContent>
-                            </ScrollArea>
+                            </div>
                         </Tabs>
                     </Card>
                 </div>
