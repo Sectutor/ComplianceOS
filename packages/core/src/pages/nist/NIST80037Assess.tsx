@@ -43,6 +43,7 @@ export default function NIST80037Assess() {
     const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const [isSaving, setIsSaving] = useState(false);
+    const [, setLocation] = useLocation();
 
     // TRPC Queries - Using any casting due to persistent stale type inference
     const { data: findingsStats } = (trpc as any).findings.stats.useQuery({ clientId });
@@ -83,7 +84,7 @@ export default function NIST80037Assess() {
             toast.error("No system selected", { description: "Please select a system first." });
             return;
         }
-        
+
         setIsSaving(true);
         try {
             await updateChecklistMutation.mutateAsync({
@@ -105,8 +106,8 @@ export default function NIST80037Assess() {
         }
     };
 
-    // Derived stats
-    const openPoamItems = poams?.reduce((acc: number, p: any) => acc + (p.openItems || 0), 0) || 18; // Fallback to mock if query empty
+    // Derived stats - use real data or show 0 if no data
+    const openPoamItems = poams?.reduce((acc: number, p: any) => acc + (p.openItems || 0), 0) || 0;
     const highFindings = findingsStats?.bySeverity.find((s: any) => s.severity === 'high')?.count || 0;
     const medFindings = findingsStats?.bySeverity.find((s: any) => s.severity === 'medium')?.count || 0;
     const lowFindings = findingsStats?.bySeverity.find((s: any) => s.severity === 'low')?.count || 0;
@@ -194,9 +195,9 @@ export default function NIST80037Assess() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {[
-                                    { label: "High Risk", count: highFindings || 2, icon: AlertCircle, color: "text-rose-500", bg: "bg-rose-50" },
-                                    { label: "Moderate Risk", count: medFindings || 11, icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-50" },
-                                    { label: "Low Risk", count: lowFindings || 5, icon: AlertCircle, color: "text-blue-500", bg: "bg-blue-50" }
+                                    { label: "High Risk", count: highFindings, icon: AlertCircle, color: "text-rose-500", bg: "bg-rose-50" },
+                                    { label: "Moderate Risk", count: medFindings, icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-50" },
+                                    { label: "Low Risk", count: lowFindings, icon: AlertCircle, color: "text-blue-500", bg: "bg-blue-50" }
                                 ].map((item, i) => (
                                     <div key={i} className={cn("flex items-center justify-between p-3 rounded-xl", item.bg)}>
                                         <div className="flex items-center gap-3">
@@ -310,12 +311,7 @@ export default function NIST80037Assess() {
                                     </div>
 
                                     <div className="space-y-4">
-                                        {(sarFindings && sarFindings.length > 0 ? sarFindings : [
-                                            { controlId: "AC-2", observation: "Account Management Narratives confirmed.", result: "Satisfied", examiner: "J. Miller", date: "Feb 10, 2026" },
-                                            { controlId: "AU-6", observation: "Audit Review logs missing for 3 days.", result: "Other than Satisfied", examiner: "S. Chen", date: "Feb 12, 2026" },
-                                            { controlId: "IA-2", observation: "MFA active for all accounts.", result: "Satisfied", examiner: "J. Miller", date: "Feb 11, 2026" },
-                                            { controlId: "CP-2", observation: "Pending walkthrough.", result: "Not Started", examiner: "Unassigned", date: "-" }
-                                        ]).map((ctrl: any, i: number) => (
+                                        {(sarFindings && sarFindings.length > 0 ? sarFindings : []).map((ctrl: any, i: number) => (
                                             <div key={i} className="p-6 bg-white border rounded-[2.5rem] flex items-center justify-between hover:shadow-lg transition-all group">
                                                 <div className="flex items-center gap-5">
                                                     <div className={cn(

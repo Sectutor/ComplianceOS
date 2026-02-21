@@ -47,6 +47,10 @@ export interface UsageMetadata {
 }
 
 export class LLMService {
+    // Cache for provider configuration ( TTL: 5 minutes)
+    private static providerCache: { providers: LLMProvider[]; timestamp: number } | null = null;
+    private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
     /**
      * Get the highest priority enabled provider
      */
@@ -54,6 +58,14 @@ export class LLMService {
      * Get the configured provider for a feature, or fallback to highest priority
      */
     private async getProviders(feature?: string): Promise<LLMProvider[]> {
+        // Check cache first
+        const now = Date.now();
+        if (LLMService.providerCache && 
+            (now - LLMService.providerCache.timestamp) < LLMService.CACHE_TTL_MS) {
+            console.log('[LLMService] Using cached providers');
+            return LLMService.providerCache.providers;
+        }
+
         const db = await getDb();
         if (!db) return [];
 
@@ -90,7 +102,17 @@ export class LLMService {
             }
         }
 
+        // Update cache
+        LLMService.providerCache = { providers, timestamp: now };
+
         return providers;
+    }
+
+    /**
+     * Clear the provider cache (useful when providers are updated)
+     */
+    public static clearCache(): void {
+        LLMService.providerCache = null;
     }
 
     /**

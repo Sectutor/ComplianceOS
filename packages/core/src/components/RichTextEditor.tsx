@@ -259,7 +259,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
   return (
     <div className={`rich-text-editor-wrapper bg-slate-50 rounded-lg border border-slate-200 ${className}`}>
       {(onAiRewrite || onAiFix) && (
-        <div className="flex items-center justify-end gap-2 mb-2 p-2 bg-white rounded border border-slate-200 shadow-sm">
+        <div className="flex items-center flex-nowrap overflow-x-auto no-scrollbar justify-start md:justify-end gap-2 mb-2 p-2 bg-white rounded border border-slate-200 shadow-sm w-full">
           {onAiRewrite && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -268,10 +268,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   size="sm"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleManualAction(onAiRewrite)}
-                  className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                  className="text-purple-600 border-purple-200 hover:bg-purple-50 flex-shrink-0"
                 >
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Rewrite with AI
+                  <Wand2 className="sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Rewrite with AI</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -287,10 +287,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   size="sm"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleManualAction(onAiFix)}
-                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 flex-shrink-0"
                 >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Fix with AI
+                  <Sparkles className="sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Fix with AI</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -310,8 +310,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   const formatted = ensureEnumerationParagraphs(raw);
                   quillRef.current.clipboard.dangerouslyPasteHTML(formatted);
                 }}
+                className="flex-shrink-0"
               >
-                Format paragraphs
+                <span className="hidden sm:inline">Format paragraphs</span>
+                <span className="sm:hidden">Format</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -326,10 +328,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   size="sm"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleManualAction(onCheckCompliance)}
-                  className="text-amber-700 border-amber-200 hover:bg-amber-50"
+                  className="text-amber-700 border-amber-200 hover:bg-amber-50 flex-shrink-0"
                 >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Check Compliance
+                  <Sparkles className="sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Check Compliance</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -353,9 +355,9 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                     } else {
                       toast.info("Highlight text to add a comment");
                     }
-                  }} className="text-blue-600 border-blue-200 hover:bg-blue-50">
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Add Comment
+                  }} className="text-blue-600 border-blue-200 hover:bg-blue-50 flex-shrink-0">
+                  <MessageSquare className="sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Add Comment</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

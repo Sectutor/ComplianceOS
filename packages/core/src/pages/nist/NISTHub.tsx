@@ -48,9 +48,9 @@ export default function NISTHub() {
     const standards = [
         {
             id: "csf",
-            title: "NIST CSF 2.0",
-            subtitle: "Cybersecurity Framework",
-            description: "The common language for managing cybersecurity risk through 6 core functions.",
+            title: "Command Center",
+            subtitle: "Unified Progress & Actions",
+            description: "High-level readiness metrics mapped across the NIST Cybersecurity Framework 2.0 functions.",
             icon: Shield,
             status: "active",
             progress: csfProgress,
@@ -61,10 +61,10 @@ export default function NISTHub() {
         },
         {
             id: "rmf",
-            title: "NIST SP 800-37",
-            subtitle: "Risk Management Framework",
-            description: "A 7-step process for system authorization and continuous monitoring.",
-            icon: Activity,
+            title: "Systems & Scoping",
+            subtitle: "FISMA System Context",
+            description: "Define boundaries, categorize data impact, and authorize systems through the Risk Management Framework.",
+            icon: LayoutGrid,
             status: "active",
             progress: 0,
             link: `/clients/${selectedClientId}/nist/rmf`,
@@ -73,36 +73,10 @@ export default function NISTHub() {
             bgColor: "bg-emerald-50/50"
         },
         {
-            id: "ra",
-            title: "NIST SP 800-30",
-            subtitle: "Risk Assessment Guide",
-            description: "Detailed methodology for identifying and estimating risk likelihood and impact.",
-            icon: Target,
-            status: "active",
-            progress: 0,
-            link: `/clients/${selectedClientId}/nist/800-30`,
-            color: "text-amber-600",
-            borderColor: "border-amber-200",
-            bgColor: "bg-amber-50/50"
-        },
-        {
-            id: "org",
-            title: "NIST SP 800-39",
-            subtitle: "Organizational Risk",
-            description: "High-level risk governance aligning business mission with technical security.",
-            icon: Users,
-            status: "placeholder",
-            progress: 0,
-            link: "#",
-            color: "text-purple-600",
-            borderColor: "border-purple-200",
-            bgColor: "bg-purple-50/50"
-        },
-        {
             id: "control",
-            title: "NIST SP 800-53",
-            subtitle: "Security & Privacy Controls",
-            description: "The catalog of technical, operational, and management security controls.",
+            title: "Control Center",
+            subtitle: "Cross-mapped Controls",
+            description: "Manage internal controls and baselines mapped directly to the NIST SP 800-53 catalog.",
             icon: Lock,
             status: "active",
             progress: 0,
@@ -112,17 +86,43 @@ export default function NISTHub() {
             bgColor: "bg-indigo-50/50"
         },
         {
-            id: "supply",
-            title: "NIST 800-161",
-            subtitle: "Supply Chain Risk",
-            description: "Cybersecurity risk management for systems and organizations.",
-            icon: Truck,
-            status: "placeholder",
+            id: "ra",
+            title: "Risk Management",
+            subtitle: "Threats & Impact Modeling",
+            description: "Identify and estimate risk likelihood and impact aligned with NIST SP 800-30.",
+            icon: Target,
+            status: "active",
             progress: 0,
-            link: "#",
+            link: `/clients/${selectedClientId}/nist/800-30`,
+            color: "text-amber-600",
+            borderColor: "border-amber-200",
+            bgColor: "bg-amber-50/50"
+        },
+        {
+            id: "evidence",
+            title: "Evidence & Audits",
+            subtitle: "Continuous Verification",
+            description: "Centralized repository for documents, automated connector evidence, and audit logs.",
+            icon: CheckCircle2,
+            status: "active",
+            progress: 0, // Placeholder
+            link: `/clients/${selectedClientId}/evidence`,
             color: "text-rose-600",
             borderColor: "border-rose-200",
             bgColor: "bg-rose-50/50"
+        },
+        {
+            id: "org",
+            title: "Strategy & Governance",
+            subtitle: "Executive Alignment",
+            description: "Link cybersecurity strategy directly to your business mission and organizational goals.",
+            icon: Users,
+            status: "placeholder",
+            progress: 0,
+            link: "#",
+            color: "text-purple-600",
+            borderColor: "border-purple-200",
+            bgColor: "bg-purple-50/50"
         }
     ];
 

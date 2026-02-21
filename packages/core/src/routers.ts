@@ -122,6 +122,7 @@ import { createEssentialEightRouter } from "./server/routers/essentialEight";
 import { createStudioRouter } from "./server/routers/studio";
 import { createMaturityRouter } from "./server/routers/maturity";
 import { createGumroadRouter } from "./server/routers/gumroad";
+import { feedbackRouter } from "./server/routers/feedback";
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -258,6 +259,7 @@ export const appRouter = router({
     systems: createAiSystemsRouter(t, clientProcedure),
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
+  feedback: feedbackRouter,
   studio: createStudioRouter(t, protectedProcedure),
   advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
     const sig = ctx.req.headers["x-signature"] as string | undefined;

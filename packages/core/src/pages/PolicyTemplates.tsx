@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, Sparkles, Loader2, Wand2, ChevronRight } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, XCircle, Clock, Sparkles, Loader2, Wand2, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -160,10 +160,14 @@ export default function PolicyTemplates() {
 
   const { selectedClientId } = useClientContext();
 
-  const { data: templates, isLoading, refetch } = trpc.policyTemplates.list.useQuery({
-    framework: frameworkFilter,
-    clientId: selectedClientId || undefined
-  });
+  // Fetch templates - always load them when dialog is open
+  const { data: templates, isLoading: isLoadingTemplates, refetch } = trpc.policyTemplates.list.useQuery(
+    {
+      framework: frameworkFilter,
+      clientId: selectedClientId || undefined
+    },
+    { enabled: true }
+  );
 
   const clientsQuery = trpc.clients.list.useQuery({}, { enabled: !selectedClientId && isBulkGenerateOpen });
 
@@ -366,7 +370,7 @@ export default function PolicyTemplates() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 w-full max-w-full pl-4 pr-4 py-8 md:pl-20 md:pr-8">
         <Breadcrumb
           items={[
             { label: "Policy Templates" },
@@ -382,7 +386,7 @@ export default function PolicyTemplates() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
               <Wand2 className="mr-2 h-4 w-4" />
               {selectedTemplates.length > 0 ? `Generate ${selectedTemplates.length} Policies` : "Bulk Generate Policies"}
             </Button>
@@ -638,42 +642,44 @@ export default function PolicyTemplates() {
         </EnhancedDialog>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4">
+          <div className="relative flex-1 w-full sm:min-w-[250px] sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search templates..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
-          <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
-            <SelectTrigger className="w-48">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Frameworks</SelectItem>
-              <SelectItem value="ISO 27001">ISO 27001</SelectItem>
-              <SelectItem value="SOC 2">SOC 2</SelectItem>
-              <SelectItem value="ISO 27001 / SOC 2">ISO 27001 / SOC 2</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-2 border rounded-md p-1 bg-muted/50">
-            <ToggleGroup type="single" value={viewMode} onValueChange={(val) => val && setViewMode(val as any)}>
-              <ToggleGroupItem value="grid" aria-label="Grid view" className="h-8 w-8 p-0">
-                <LayoutGrid className="h-4 w-4" />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0">
-                <List className="h-4 w-4" />
-              </ToggleGroupItem>
-            </ToggleGroup>
+          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+            <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <Filter className="mr-2 h-4 w-4 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Frameworks</SelectItem>
+                <SelectItem value="ISO 27001">ISO 27001</SelectItem>
+                <SelectItem value="SOC 2">SOC 2</SelectItem>
+                <SelectItem value="ISO 27001 / SOC 2">ISO 27001 / SOC 2</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 border rounded-md p-1 bg-muted/50 max-sm:ml-auto">
+              <ToggleGroup type="single" value={viewMode} onValueChange={(val) => val && setViewMode(val as any)}>
+                <ToggleGroupItem value="grid" aria-label="Grid view" className="h-8 w-8 p-0 data-[state=on]:bg-[#3ABEF9] data-[state=on]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
+                  <LayoutGrid className="h-4 w-4 shrink-0" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0 data-[state=on]:bg-[#3ABEF9] data-[state=on]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
+                  <List className="h-4 w-4 shrink-0" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
         </div>
 
         {/* Templates Grid */}
-        {isLoading ? (
+        {isLoadingTemplates ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Card key={i}>
@@ -1106,6 +1112,7 @@ export default function PolicyTemplates() {
           onOpenChange={setIsBulkGenerateOpen}
           clients={clientsQuery.data || []}
           allTemplates={templates || []}
+          isLoadingTemplates={isLoadingTemplates}
           initialSelectedIds={selectedTemplates}
           contextClientId={selectedClientId}
           onSuccess={() => setSelectedTemplates([])}
@@ -1440,6 +1447,7 @@ function BulkDeployDialog({
   onOpenChange,
   clients,
   allTemplates,
+  isLoadingTemplates,
   initialSelectedIds,
   contextClientId,
   onSuccess,
@@ -1448,6 +1456,7 @@ function BulkDeployDialog({
   onOpenChange: (open: boolean) => void;
   clients: any[];
   allTemplates: any[];
+  isLoadingTemplates?: boolean;
   initialSelectedIds: number[];
   contextClientId: number | null;
   onSuccess?: () => void;
@@ -1465,24 +1474,34 @@ function BulkDeployDialog({
   // Progress State
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [completedResults, setCompletedResults] = useState<{ id: number; name: string; status: 'success' | 'error' }[]>([]);
+  const [completedResults, setCompletedResults] = useState<{ id: number; policyId?: number; name: string; status: 'success' | 'error' }[]>([]);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Initialize state when dialog opens
+  // Initialize state when dialog opens - only once per open
   useEffect(() => {
-    if (open) {
+    if (open && !hasInitialized) {
       setStep(1);
       setWizardSelectedIds(initialSelectedIds.length > 0 ? initialSelectedIds : []);
       setIsGenerating(false);
       setProgress({ current: 0, total: 0 });
       setCompletedResults([]);
-
-      if (contextClientId) {
-        setSelectedClientId(contextClientId);
-      } else if (clients.length === 1) {
-        setSelectedClientId(clients[0].id);
-      }
+      setHasInitialized(true);
     }
-  }, [open, initialSelectedIds, contextClientId, clients]);
+    if (!open) {
+      setHasInitialized(false);
+    }
+  }, [open, hasInitialized, initialSelectedIds]);
+
+  // Handle client selection separately when contextClientId or clients change
+  useEffect(() => {
+    if (!hasInitialized) return;
+    
+    if (contextClientId) {
+      setSelectedClientId(contextClientId);
+    } else if (clients.length === 1) {
+      setSelectedClientId(clients[0].id);
+    }
+  }, [contextClientId, clients, hasInitialized]);
 
   const handleNext = () => {
     if (step === 1 && wizardSelectedIds.length === 0) {
@@ -1509,14 +1528,15 @@ function BulkDeployDialog({
       const templateName = allTemplates.find(t => t.id === templateId)?.name || `Template ${templateId}`;
 
       try {
-        await bulkDeployMutation.mutateAsync({
+        const response = await bulkDeployMutation.mutateAsync({
           clientId: selectedClientId,
           templateIds: [templateId], // Single item batch
           tailor: tailor,
           instruction: customInstruction.trim() ? `${customInstruction} (Professional and detailed generation)` : "Professional and detailed generation from template",
           answers: {}
         });
-        results.push({ id: templateId, name: templateName, status: 'success' });
+        const newPolicyId = response.deployed?.[0]?.policyId;
+        results.push({ id: templateId, policyId: newPolicyId, name: templateName, status: 'success' });
       } catch (e) {
         console.error(`Failed to generate policy from template ${templateId}`, e);
         results.push({ id: templateId, name: templateName, status: 'error' });
@@ -1537,19 +1557,107 @@ function BulkDeployDialog({
   };
 
   const renderProgress = () => {
-    const percent = Math.round((progress.current / progress.total) * 100);
+    const percent = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+    const remaining = progress.total - progress.current;
+    const estimatedMinutes = remaining * 1;
+    const selectedTemplateNames = allTemplates
+      .filter(t => wizardSelectedIds.includes(t.id))
+      .map(t => t.name);
+
     return (
-      <div className="space-y-6 py-8">
+      <div className="space-y-5 py-4">
+        {/* Header */}
         <div className="text-center space-y-2">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
-          <h3 className="text-lg font-medium">Generating Policies...</h3>
-          <p className="text-sm text-muted-foreground">{progress.current} of {progress.total} completed</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white border-2 border-[#3ABEF9] shadow-md mb-1">
+            <Loader2 className="h-8 w-8 animate-spin text-[#1C4D8D]" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800">Generating Policies...</h3>
+          <p className="text-sm text-slate-500">
+            {progress.current} of {progress.total} completed &bull; <span className="font-semibold text-[#1C4D8D]">{percent}%</span>
+          </p>
         </div>
-        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-          <div
-            className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${percent}%` }}
-          ></div>
+
+        {/* Progress bar */}
+        <div className="space-y-2">
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div
+              className="h-3 rounded-full transition-all duration-500 ease-out"
+              style={{
+                width: `${Math.max(percent, 3)}%`,
+                background: 'linear-gradient(90deg, #1C4D8D 0%, #3ABEF9 100%)',
+              }}
+            />
+          </div>
+          <div className="flex justify-between text-xs font-medium text-slate-500">
+            <span>{progress.current} done</span>
+            <span>{remaining} remaining</span>
+          </div>
+        </div>
+
+        {/* Time estimate info */}
+        <div className="flex items-start gap-3 p-3.5 rounded-lg bg-[#1C4D8D]/5 border border-[#1C4D8D]/15">
+          <Clock className="h-5 w-5 text-[#1C4D8D] mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-slate-700">
+              {remaining > 0
+                ? `Estimated ~${estimatedMinutes} minute${estimatedMinutes !== 1 ? 's' : ''} remaining`
+                : 'Finishing up...'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Each policy is generated individually using AI. Generating many policies at once may take several minutes. Please do not close this dialog.
+            </p>
+          </div>
+        </div>
+
+        {/* Per-policy status list */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="px-4 py-2.5 bg-[#1C4D8D] border-b">
+            <p className="text-xs font-semibold text-white uppercase tracking-wider">Policy Generation Status</p>
+          </div>
+          <div className="max-h-[200px] overflow-y-auto bg-white">
+            {selectedTemplateNames.map((name, idx) => {
+              const result = completedResults.find(r => r.name === name);
+              const isCurrent = !result && idx === progress.current;
+
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-100 last:border-b-0 ${isCurrent ? 'bg-[#3ABEF9]/8' : 'bg-white'
+                    }`}
+                >
+                  <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                    {result?.status === 'success' ? (
+                      <CheckCircle2 className="h-4.5 w-4.5 text-green-600" />
+                    ) : result?.status === 'error' ? (
+                      <XCircle className="h-4.5 w-4.5 text-red-600" />
+                    ) : isCurrent ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-[#1C4D8D]" />
+                    ) : (
+                      <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+                    )}
+                  </div>
+                  <span className={`flex-1 truncate ${result?.status === 'success' ? 'text-slate-600' :
+                    result?.status === 'error' ? 'text-red-700' :
+                      isCurrent ? 'font-semibold text-[#1C4D8D]' :
+                        'text-slate-400'
+                    }`}>
+                    {name}
+                  </span>
+                  <span className="text-xs font-medium flex-shrink-0">
+                    {result?.status === 'success' ? (
+                      <span className="text-green-600">Done</span>
+                    ) : result?.status === 'error' ? (
+                      <span className="text-red-600">Failed</span>
+                    ) : isCurrent ? (
+                      <span className="text-[#1C4D8D] animate-pulse">Generating...</span>
+                    ) : (
+                      <span className="text-slate-400">Queued</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -1603,7 +1711,12 @@ function BulkDeployDialog({
           </div>
 
           <div className="border rounded-md h-[400px] overflow-y-auto p-2 bg-slate-50">
-            {filteredTemplates.length === 0 ? (
+            {isLoadingTemplates ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>Loading templates...</p>
+              </div>
+            ) : filteredTemplates.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <FileText className="h-8 w-8 mb-2 opacity-50" />
                 <p>{searchTerm ? "No matching templates" : "No templates available"}</p>
@@ -1655,8 +1768,8 @@ function BulkDeployDialog({
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-4 border rounded-lg bg-indigo-50/50 border-indigo-100">
-            <Sparkles className="h-5 w-5 text-indigo-600 mt-0.5" />
+          <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#3ABEF9]/10 border-[#3ABEF9]/20">
+            <Sparkles className="h-5 w-5 text-[#3ABEF9] mt-0.5" />
             <div className="grid gap-1.5">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -1664,11 +1777,11 @@ function BulkDeployDialog({
                   checked={tailor}
                   onCheckedChange={(c) => setTailor(!!c)}
                 />
-                <label htmlFor="tailor" className="font-semibold text-indigo-900 cursor-pointer">
+                <label htmlFor="tailor" className="font-semibold text-[#1C4D8D] cursor-pointer">
                   AI Professional Tailoring
                 </label>
               </div>
-              <p className="text-xs text-indigo-700/80 pl-6">
+              <p className="text-xs text-[#1C4D8D]/80 pl-6">
                 When enabled, our AI will deeply analyze the client's industry ({clients.find(c => c.id === selectedClientId)?.industry || 'N/A'}) and customize the policy content to be professional, specific, and compliant.
               </p>
             </div>
@@ -1780,23 +1893,36 @@ function BulkDeployDialog({
               <Button
                 disabled={!selectedClientId || wizardSelectedIds.length === 0}
                 onClick={handleRun}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white min-w-[150px]"
+                className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold min-w-[150px]"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Start Generating
               </Button>
             )}
 
-            {!isGenerating && step === 3 && (
-              <Button onClick={() => {
-                if (onSuccess) onSuccess();
-                onOpenChange(false);
-                if (selectedClientId) setLocation(`/clients/${selectedClientId}/policies`);
-              }}
-              >
-                View Generated Policies <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
+            {!isGenerating && step === 3 && (() => {
+              const successes = completedResults.filter(r => r.status === 'success');
+              if (successes.length === 1 && successes[0].policyId && selectedClientId) {
+                return (
+                  <Button onClick={() => {
+                    if (onSuccess) onSuccess();
+                    onOpenChange(false);
+                    setLocation(`/clients/${selectedClientId}/policies/${successes[0].policyId}`);
+                  }}>
+                    Open Policy <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                );
+              }
+              return (
+                <Button onClick={() => {
+                  if (onSuccess) onSuccess();
+                  onOpenChange(false);
+                  if (selectedClientId) setLocation(`/clients/${selectedClientId}/policies`);
+                }}>
+                  View Generated Policies <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              );
+            })()}
           </div>
         </div>
       }

@@ -52,13 +52,13 @@ export default function NISTEcosystemLayout({
     const { id } = useParams<{ id: string }>();
     const clientId = selectedClientId || parseInt(id || "0");
 
-    // Top-level standards in the ecosystem
+    // Top-level actionable centers in the ecosystem
     const ecosystemStandards = [
         { id: 'hub', name: "Ecosystem Hub", path: `/clients/${clientId}/nist`, icon: LayoutGrid, color: "text-slate-600" },
-        { id: 'csf', name: "CSF 2.0", path: `/clients/${clientId}/nist/dashboard`, icon: ShieldCheck, color: "text-blue-600" },
-        { id: 'rmf', name: "RMF (800-37)", path: `/clients/${clientId}/nist/rmf`, icon: Activity, color: "text-emerald-600" },
-        { id: '800-30', name: "Risk (800-30)", path: `/clients/${clientId}/nist/800-30`, icon: Target, color: "text-amber-600" },
-        { id: '800-53', name: "Controls (800-53)", path: `/clients/${clientId}/nist/800-53`, icon: Lock, color: "text-indigo-600" },
+        { id: 'csf', name: "Command Center", path: `/clients/${clientId}/nist/dashboard`, icon: ShieldCheck, color: "text-blue-600" },
+        { id: 'rmf', name: "Systems & Scoping", path: `/clients/${clientId}/nist/rmf`, icon: Activity, color: "text-emerald-600" },
+        { id: '800-30', name: "Risk Assessment", path: `/clients/${clientId}/nist/800-30`, icon: Target, color: "text-amber-600" },
+        { id: '800-53', name: "Control Center", path: `/clients/${clientId}/nist/800-53`, icon: Lock, color: "text-indigo-600" },
     ];
 
     const systemId = useNistSystemId();

@@ -236,7 +236,9 @@ export class PolicyGenerator {
             const response = await this.llmService.generate({
                 systemPrompt: "You are a helpful compliance assistant. Return only a JSON array of strings.",
                 userPrompt: prompt,
-                feature: 'policy_generation'
+                feature: 'policy_generation',
+                maxTokens: 1000,
+                temperature: 0.3
             }, { endpoint: 'suggest_sections' });
             const text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
             const sections = JSON.parse(text);
@@ -270,7 +272,8 @@ export class PolicyGenerator {
             const response = await this.llmService.generate({
                 systemPrompt,
                 userPrompt,
-                feature: 'policy_question_generation'
+                feature: 'policy_question_generation',
+                maxTokens: 2000
             }, { endpoint: 'suggest_questions' });
 
             let text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -413,7 +416,8 @@ Directives:
             const response = await this.llmService.generate({
                 systemPrompt,
                 userPrompt,
-                feature: 'policy_generation'
+                feature: 'policy_generation',
+                maxTokens: 6000
             }, { clientId, endpoint: 'incorporate_linter_sections' });
 
             return response.text;
@@ -438,60 +442,74 @@ Directives:
 
         try {
             const systemPrompt = `You are an expert Chief Information Security Officer (CISO) and Compliance Architect with 20+ years of experience.
-            You are writing a comprehensive, legally robust, and practical ${policyName} for a client.
-            Your output must be in ${languageName}.
-            Your output must be in Markdown format.
-            Do not strip out important sections.
-            EXPAND on the content to make it thorough.
-            `;
+You are writing a comprehensive, legally robust, and practical ${policyName} for a client.
+Your output must be in ${languageName}.
+Your output must be in Markdown format.
+Do not strip out important sections.
+EXPAND on the content to make it thorough.
+
+CRITICAL FORMATTING RULE: Every sub-section must follow this exact structure:
+1. A brief 1-3 sentence policy statement paragraph that declares the policy position.
+2. Followed by bullet points (using "- " markdown syntax) listing the specific requirements, procedures, responsibilities, and implementation details.
+Never write long dense paragraphs. Always break details into bullet points after the statement.`;
 
             const userPrompt = `
-            CLIENT PROFILE:
-            Name: ${client.name}
-            Industry: ${client.industry || 'Technology/General'}
-            Size: ${client.size || 'Mid-sized'}
-            Region: ${client.region || 'US/Global'}
+CLIENT PROFILE:
+Name: ${client.name}
+Industry: ${client.industry || 'Technology/General'}
+Size: ${client.size || 'Mid-sized'}
+Region: ${client.region || 'US/Global'}
 
-            TAILORING CONTEXT (User Responses):
-            ${answerContext || 'No specific tailoring context provided.'}
+TAILORING CONTEXT (User Responses):
+${answerContext || 'No specific tailoring context provided.'}
 
-            TASK:
-            Generate a comprehensive, detailed, and industry-tailored "${policyName}".
-            Use the provided "Reference Content" as a starting point, but do not be limited by it. 
-            You must EXPAND, DETAILED, and PROFESSIONALIZE the content.
-            The final policy should be ready for audit review (SOC2, ISO 27001, HIPAA compatible where relevant).
+TASK:
+Generate a comprehensive, detailed, and industry-tailored "${policyName}".
+Use the provided "Reference Content" as a starting point, but do not be limited by it.
+You must EXPAND, DETAIL, and PROFESSIONALIZE the content.
+The final policy should be ready for audit review (SOC2, ISO 27001, HIPAA compatible where relevant).
 
-            USER INSTRUCTION:
-            ${customInstruction ? `> ${customInstruction}` : 'No specific custom instructions provided. Focus on industry best practices.'}
+USER INSTRUCTION:
+${customInstruction ? `> ${customInstruction}` : 'No specific custom instructions provided. Focus on industry best practices.'}
 
-            REQUIREMENTS:
-            1. **Detailed & Comprehensive**: Avoid generic one-liners. Write full, explanatory paragraphs and clear bullet points.
-            2. **Industry Specific**: Since the client is in ${client.industry || 'General'}, include specific terminology and concerns relevant to this sector.
-            3. **Context Aware**: Use the "TAILORING CONTEXT" above to specifically include or exclude relevant clauses (e.g. if PII is processed, strictly enforce privacy controls).
-            4. **Structure**: Use clear Markdown headers (#, ##, ###). CRITICAL: Insert double newlines (\n\n) before every header and paragraph. Do not produce a single block of text. Do not use code blocks.
-            5. **No Placeholders**: Do NOT leave any placeholders like [Date], [Company Name], etc. Use the Client Profile data to fill them in logically.
-            6. **Language**: Write strictly in ${languageName}.
+REQUIREMENTS:
+1. **Structured Format**: Each sub-section MUST follow this pattern: Start with a brief, authoritative 1-3 sentence policy statement paragraph that declares the policy position. Then follow with bullet points (using "- " markdown syntax) that provide the specific requirements, procedures, responsibilities, and implementation details. This pattern must be consistent across ALL sections. Never write long dense paragraphs without bullet points.
+2. **Detailed and Comprehensive**: Each bullet point should be specific and actionable. Include measurable criteria, responsible parties, timelines, and specific technical or procedural requirements where applicable.
+3. **Industry Specific**: Since the client is in ${client.industry || 'General'}, include specific terminology, threats, regulatory requirements, and concerns relevant to this sector.
+4. **Context Aware**: Use the "TAILORING CONTEXT" above to specifically include or exclude relevant clauses (e.g. if PII is processed, strictly enforce privacy controls).
+5. **Structure**: Use clear Markdown headers (#, ##, ###). Insert double newlines before every header and paragraph. Do not produce a single block of text. Do not use code blocks.
+6. **No Placeholders**: Do NOT leave any placeholders like [Date], [Company Name], etc. Use the Client Profile data to fill them in logically.
+7. **Language**: Write strictly in ${languageName}.
 
-            EXAMPLE OUTPUT (STRICTLY FOLLOW THIS SPACING):
-            # Policy Title
+EXAMPLE OUTPUT (STRICTLY FOLLOW THIS FORMAT):
+# Policy Title
 
-            ## 1.0 Purpose
+## 1.0 Purpose
 
-            This is the purpose statement with clear separation.
+This policy establishes the mandatory framework for managing and controlling access to information assets and operational environments.
 
-            ## 2.0 Scope
+- The primary objective is to protect the confidentiality, integrity, and availability (CIA triad) of all information assets.
+- Access shall be granted strictly based on verified business need, the principle of least privilege, and robust accountability mechanisms.
+- This policy applies to all employees, contractors, and third-party users who access company systems.
 
-            This is the scope statement.
+## 2.0 Scope
 
-            REFERENCE CONTENT (Use this as a base, but significantly improve and expand it):
-            ${content}
-            `;
+This policy applies to all information systems, applications, and data repositories owned or managed by the organization.
+
+- All employees, contractors, temporary staff, and third-party service providers with access to company systems are subject to this policy.
+- This includes on-premises systems, cloud-hosted environments, remote access solutions, and mobile devices.
+- Exceptions to this policy must be formally documented and approved by the CISO.
+
+REFERENCE CONTENT (Use as a base, but significantly improve, expand, and reformat using the statement + bullet points pattern shown above):
+${content}
+`;
 
             const response = await this.llmService.generate({
                 systemPrompt,
                 userPrompt,
                 feature: 'policy_generation_comprehensive',
-                temperature: 0.4
+                temperature: 0.4,
+                maxTokens: 8000
             }, { clientId: client.id, endpoint: 'tailor_policy_comprehensive' });
 
             return response.text;
@@ -504,3 +522,4 @@ Directives:
 }
 
 export const policyGenerator = new PolicyGenerator();
+

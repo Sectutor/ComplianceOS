@@ -14,6 +14,7 @@ import { AdvisorProvider } from "./contexts/AdvisorContext";
 import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SystemFeedbackModal } from "@/components/SystemFeedbackModal";
 
 import { lazy, Suspense, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -53,6 +54,7 @@ const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const AddonManager = lazy(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
 const LicenseManagement = lazy(() => import("./pages/admin/LicenseManagement"));
+const SystemFeedbackPage = lazy(() => import("./pages/admin/SystemFeedbackPage"));
 const ClientSettings = lazy(() => import("./pages/ClientSettings"));
 const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings"));
 const SecuritySettings = lazy(() => import("./pages/settings/SecuritySettings"));
@@ -685,6 +687,10 @@ function Router() {
         </Route>
         <Route path="/sales/waitlist">
           {(_params) => <AdminLayout><UnifiedClientGuard requirePremium><ProtectedRoute component={WaitlistManagement} /></UnifiedClientGuard></AdminLayout>}
+        </Route>
+
+        <Route path="/admin/system-feedback">
+          {(_params) => <AdminLayout><UnifiedClientGuard requireManagement><ProtectedRoute component={SystemFeedbackPage} /></UnifiedClientGuard></AdminLayout>}
         </Route>
 
         <Route path="/clients">
@@ -2004,6 +2010,7 @@ function App() {
               <ThemeProvider defaultTheme="light">
                 <TooltipProvider>
                   <Toaster />
+                  <SystemFeedbackModal />
                   <GDPRBanner />
                   <Router />
                 </TooltipProvider>
