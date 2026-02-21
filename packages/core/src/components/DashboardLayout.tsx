@@ -709,13 +709,8 @@ function DashboardLayoutContent({
             path: "/nist/rmf",
             submenu: [
               { label: "Dashboard", path: "/nist/rmf" },
-              { label: "0. Prepare", path: "/nist/rmf/prepare" },
-              { label: "1. Categorize", path: "/nist/rmf/categorize" },
-              { label: "2. Select", path: "/nist/rmf/select" },
-              { label: "3. Implement", path: "/nist/rmf/implement" },
-              { label: "4. Assess", path: "/nist/rmf/assess" },
-              { label: "5. Authorize", path: "/nist/rmf/authorize" },
-              { label: "6. Monitor", path: "/nist/rmf/monitor" },
+              { label: "Compliance Journey", path: "/nist/rmf/prepare" },
+              { label: "Evidence & Artifacts", path: "/nist/rmf/artifacts" },
             ]
           },
           {
