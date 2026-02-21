@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { clientPolicies, clientControls, controls, regulationMappings, notificationLog, users, policyVersions, riskPolicyMappings, riskAssessments, controlPolicyMappings, policyTemplates } from "../../schema";
+import { clientPolicies, clientControls, controls, regulationMappings, notificationLog, users, policyVersions, riskPolicyMappings, riskAssessments, controlPolicyMappings, policyTemplates, employees } from "../../schema";
 import { logActivity } from "../../lib/audit";
 import * as db from "../../db";
 import { getDb } from "../../db";
@@ -100,7 +100,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         isAiGenerated: z.boolean().optional(),
         answers: z.record(z.any()).optional()
       }))
-      .mutation(async ({ input }: any) => {
+      .mutation(async ({ input, ctx }: any) => {
         const data = { ...input };
 
         // Check Plan Limits
@@ -136,6 +136,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                 answers: data.answers
               });
               data.content = generatedContent;
+              console.log(`[PolicyCreate] Generation from template complete. Content length: ${generatedContent?.length || 0}`);
             } else if (data.sections && data.sections.length > 0) {
               // Generate from Blank with Sections
               const generatedContent = await policyGenerator.generateFromSections(data.clientId, data.name, data.sections, {
@@ -144,13 +145,21 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                 answers: data.answers
               });
               data.content = generatedContent;
+              console.log(`[PolicyCreate] Generation from sections complete. Content length: ${generatedContent?.length || 0}`);
             }
             // Mark as AI generated
             (data as any).isAiGenerated = true;
             console.log(`[PolicyCreate] Generation complete. Length: ${data.content?.length || 0}`);
           } catch (e) {
             console.error("[PolicyCreate] Policy Generation failed:", e);
+            // Throw error instead of silently creating empty policy
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to generate policy content. Please try again or provide content manually."
+            });
           }
+        } else {
+          console.log(`[PolicyCreate] Skipping generation - content provided or no template/sections specified`);
         }
 
         // Remove extra fields and map answers to tailoringAnswers
@@ -205,7 +214,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         owner: z.string().optional(),
         version: z.number().optional(),
         reviewers: z.array(z.string()).optional(),
-        reviewDueDate: z.string().optional(), // ISO date string
+        reviewDueDate: z.string().nullable().optional(), // ISO date string, null to clear
         approvalStatus: z.enum(["pending", "requested", "changes_requested", "approved"]).optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
@@ -219,7 +228,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         }
 
         const updateData: any = { ...data };
-        if (reviewDueDate) updateData.reviewDueDate = new Date(reviewDueDate);
+        if (reviewDueDate !== undefined) updateData.reviewDueDate = reviewDueDate ? new Date(reviewDueDate) : null;
 
         await db.updateClientPolicy(id, updateData);
 
@@ -255,6 +264,35 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .mutation(async ({ input, ctx }: any) => {
         const { id, clientId, reviewers, dueDate, message } = input;
 
+        // Get current policy to validate state
+        const existingPolicy = await db.getClientPolicyById(id);
+        if (!existingPolicy) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found" });
+        }
+
+        if (existingPolicy.clientPolicy.clientId !== clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
+        }
+
+        // Validate policy is in correct state for requesting review
+        if (existingPolicy.clientPolicy.status !== 'draft' && existingPolicy.clientPolicy.status !== 'review') {
+          console.warn(`[PolicyReview] Invalid state transition: policy ${id} is ${existingPolicy.clientPolicy.status}, expected draft or review`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Cannot request review for policy in '${existingPolicy.clientPolicy.status}' status. Policy must be in 'draft' or 'review' status.`
+          });
+        }
+
+        // Validate reviewers
+        if (!reviewers || reviewers.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "At least one reviewer is required"
+          });
+        }
+
+        console.log(`[PolicyReview] Request review for policy ${id}, client ${clientId}`);
+
         await db.updateClientPolicy(id, {
           approvalStatus: 'requested',
           reviewers: reviewers,
@@ -286,15 +324,15 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
             lastName: employees.lastName
           })
             .from(employees)
-            .where(inArray(employees.id, reviewers.map(r => parseInt(r))));
+            .where(inArray(employees.id, reviewers.map((r: string) => parseInt(r, 10))));
 
           if (reviewerDetails.length > 0) {
-            const reviewerEmails = reviewerDetails.map(r => r.email);
+            const reviewerEmails = reviewerDetails.map((r: typeof reviewerDetails[number]) => r.email);
             const userResults = await dbConn.select({ id: users.id, email: users.email })
               .from(users)
               .where(inArray(users.email, reviewerEmails));
 
-            const userIds = userResults.map(u => u.id);
+            const userIds = userResults.map((u: typeof userResults[number]) => u.id);
 
             // 1. In-App Notifications
             if (userIds.length > 0) {
@@ -352,8 +390,33 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .mutation(async ({ input, ctx }: any) => {
         const { id, clientId, decision, notes } = input;
 
+        // Get current policy to validate state
+        const existingPolicy = await db.getClientPolicyById(id);
+        if (!existingPolicy) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found" });
+        }
+
+        if (existingPolicy.clientPolicy.clientId !== clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
+        }
+
+        // Validate policy is in correct state for review decision
+        if (existingPolicy.clientPolicy.status !== 'review') {
+          console.warn(`[PolicyReview] Invalid state transition: policy ${id} is ${existingPolicy.clientPolicy.status}, expected review`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Cannot review policy in '${existingPolicy.clientPolicy.status}' status. Policy must be in 'review' status.`
+          });
+        }
+
+        // Determine new status based on decision
+        const newStatus = decision === 'approved' ? 'approved' : 'draft';
+
+        console.log(`[PolicyReview] Decision for policy ${id}: ${decision}, new status: ${newStatus}`);
+
         await db.updateClientPolicy(id, {
           approvalStatus: decision,
+          status: newStatus,
           updatedAt: new Date()
         });
 
@@ -500,23 +563,28 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         });
         if (!policy) throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found or access denied" });
 
-        // Create Version Snapshot
-        const newVersionStr = input.version || `v${(policy.version || 0) + 1}.0`;
+        // Calculate consistent version numbers
+        const currentVersionNum = Number(policy.version) || 0;
+        const newVersionNum = currentVersionNum + 1;
+        const newVersionStr = input.version || `v${newVersionNum}.0`;
 
+        console.log(`[PolicyPublish] Publishing policy ${input.id}: v${currentVersionNum} -> ${newVersionStr} (num: ${newVersionNum})`);
+
+        // Create Version Snapshot
         await dbConn.insert(policyVersions).values({
           clientPolicyId: policy.id,
           version: newVersionStr,
           content: policy.content,
           status: 'approved',
           description: input.notes,
-          publishedBy: (ctx.user as any)?.id // Safe cast
+          publishedBy: (ctx.user as any)?.id
         });
 
-        // Update Main Policy
+        // Update Main Policy with consistent version number
         await dbConn.update(clientPolicies)
           .set({
             status: 'approved',
-            version: (policy.version || 0) + 1,
+            version: newVersionNum,
             updatedAt: new Date()
           })
           .where(eq(clientPolicies.id, policy.id));
@@ -545,6 +613,21 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
 
+        // First verify the policy belongs to this client
+        const policy = await dbConn.query.clientPolicies.findFirst({
+          where: and(
+            eq(clientPolicies.id, input.policyId),
+            eq(clientPolicies.clientId, input.clientId)
+          )
+        });
+
+        if (!policy) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Policy not found or does not belong to this client"
+          });
+        }
+
         return await dbConn.select({
           version: policyVersions,
           publisher: users
@@ -553,29 +636,6 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           .leftJoin(users, eq(policyVersions.publishedBy, users.id))
           .where(eq(policyVersions.clientPolicyId, input.policyId))
           .orderBy(desc(policyVersions.createdAt));
-      }),
-
-    activity: clientProcedure
-      .input(z.object({
-        policyId: z.number(),
-        clientId: z.number()
-      }))
-      .query(async ({ input }: any) => {
-        const dbConn = await db.getDb();
-
-        return await dbConn.select({
-          log: schema.auditLogs,
-          user: schema.users
-        })
-          .from(schema.auditLogs)
-          .leftJoin(schema.users, eq(schema.auditLogs.userId, schema.users.id))
-          .where(and(
-            eq(schema.auditLogs.clientId, input.clientId),
-            eq(schema.auditLogs.entityType, 'policy'),
-            eq(schema.auditLogs.entityId, input.policyId)
-          ))
-          .orderBy(desc(schema.auditLogs.createdAt))
-          .limit(50);
       }),
 
     restore: clientEditorProcedure
@@ -602,11 +662,27 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this client" });
         }
 
-        // Update the policy
+        const currentVersionNum = Number(policy.clientPolicy.version) || 0;
+        const newVersionNum = currentVersionNum + 1;
+
+        console.log(`[PolicyRestore] Restoring policy ${input.policyId} to version ${version.version}, new version will be ${newVersionNum}`);
+
+        // Create a version snapshot of current state before restoring
+        await dbConn.insert(policyVersions).values({
+          clientPolicyId: policy.clientPolicy.id,
+          version: `v${currentVersionNum}.0-pre-restore`,
+          content: policy.clientPolicy.content,
+          status: 'draft',
+          description: `Auto-snapshot before restoring to ${version.version}`,
+          publishedBy: (ctx.user as any)?.id
+        });
+
+        // Update the policy with restored content
         await dbConn.update(clientPolicies)
           .set({
             content: version.content,
-            status: 'draft', // Revert to draft
+            status: 'draft',
+            version: newVersionNum,
             updatedAt: new Date()
           })
           .where(eq(clientPolicies.id, input.policyId));

@@ -2050,6 +2050,8 @@ export const clientPolicies = pgTable("client_policies", {
   reviewDueDate: timestamp("review_due_date"),
   approvalStatus: varchar("approval_status", { length: 50 }).default("pending"), // pending, requested, changes_requested, approved
   tailoringAnswers: jsonb("tailoring_answers").$type<Record<string, any>>(),
+  lastReviewAlertSentAt: timestamp("last_review_alert_sent_at"),
+  nextReviewDate: timestamp("next_review_date"),
 }, (table) => {
 
 
@@ -14431,5 +14433,28 @@ export const federalInheritances = pgTable("federal_inheritances", {
 export type FederalInheritance = typeof federalInheritances.$inferSelect;
 export type InsertFederalInheritance = typeof federalInheritances.$inferInsert;
 
+// ==========================================
+// SYSTEM FEEDBACK & BUG REPORTING
+// ==========================================
 
+export const systemFeedback = pgTable("system_feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  clientId: integer("client_id"),
+  type: varchar("type", { length: 50 }).notNull(), // 'bug', 'feature', 'improvement'
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  url: varchar("url", { length: 1024 }),
+  status: varchar("status", { length: 50 }).default("new"), // 'new', 'evaluated', 'planned', 'in_progress', 'completed', 'rejected'
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    statusIdx: index("idx_feedback_status").on(table.status),
+    typeIdx: index("idx_feedback_type").on(table.type),
+  };
+});
 
+export type SystemFeedback = typeof systemFeedback.$inferSelect;
+export type InsertSystemFeedback = typeof systemFeedback.$inferInsert;

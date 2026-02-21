@@ -45,6 +45,7 @@ import { aiRouter } from './packages/core/src/server/routers/ai';
 import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroad';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
+import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
@@ -287,6 +288,12 @@ if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
     console.log('[Server] License renewal scheduler started');
 }
 
+// Policy review scheduler
+if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
+    policyReviewScheduler.start();
+    console.log('[Server] Policy review scheduler started');
+}
+
 // Global error handler to ensure all errors return JSON - MUST BE LAST
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('[Server Error]', {
@@ -316,3 +323,5 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
     });
 }
+
+
