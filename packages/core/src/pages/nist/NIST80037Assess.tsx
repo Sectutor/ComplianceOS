@@ -232,7 +232,7 @@ export default function NIST80037Assess() {
                                     <div className="space-y-6">
                                         <div className="flex justify-between items-center">
                                             <div className="space-y-1">
-                                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Assessment Planning (A-1)</h3>
+                                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Assessment Planning</h3>
                                                 <p className="text-slate-500 font-medium">Select assessors and define the technical testing methodology.</p>
                                             </div>
                                             <Link href={`/clients/${clientId}/federal/sar`}>
@@ -299,7 +299,7 @@ export default function NIST80037Assess() {
                                 <TabsContent value="results" className="p-10 space-y-8 m-0">
                                     <div className="flex justify-between items-center">
                                         <div className="space-y-1">
-                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Verification Activities (A-2)</h3>
+                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Verification Activities</h3>
                                             <p className="text-sm text-slate-500 font-medium">Records and results for each control verification step.</p>
                                         </div>
                                         <div className="flex gap-2">

@@ -85,14 +85,9 @@ export default function NISTEcosystemLayout({
                 ];
             case 'rmf':
                 return [
-                    { name: "Dashboard", path: `/clients/${clientId}/nist/rmf${query}`, icon: LayoutDashboard },
-                    { name: "0. Prepare", path: `/clients/${clientId}/nist/rmf/prepare${query}`, icon: Play },
-                    { name: "1. Categorize", path: `/clients/${clientId}/nist/rmf/categorize${query}`, icon: Settings },
-                    { name: "2. Select", path: `/clients/${clientId}/nist/rmf/select${query}`, icon: ShieldCheck },
-                    { name: "3. Implement", path: `/clients/${clientId}/nist/rmf/implement${query}`, icon: Lock },
-                    { name: "4. Assess", path: `/clients/${clientId}/nist/rmf/assess${query}`, icon: ClipboardList },
-                    { name: "5. Authorize", path: `/clients/${clientId}/nist/rmf/authorize${query}`, icon: FileText },
-                    { name: "6. Monitor", path: `/clients/${clientId}/nist/rmf/monitor${query}`, icon: Eye },
+                    { name: "System Posture", path: `/clients/${clientId}/nist/rmf${query}`, icon: LayoutDashboard },
+                    { name: "Compliance Journey", path: `/clients/${clientId}/nist/rmf/prepare${query}`, icon: Play },
+                    { name: "Evidence & Artifacts", path: `/clients/${clientId}/nist/rmf/artifacts${query}`, icon: FileText },
                 ];
             case '800-30':
                 return [
@@ -234,7 +229,7 @@ export default function NISTEcosystemLayout({
                                 <p className="text-[10px] font-bold text-slate-400 hidden xl:block text-right max-w-[150px] uppercase tracking-tighter">
                                     Global System Focus
                                 </p>
-                                <Select value={systemId} onValueChange={handleSystemChange}>
+                                <Select value={systemId || undefined} onValueChange={handleSystemChange}>
                                     <SelectTrigger className="w-full md:w-[240px] h-10 bg-white border-slate-200 font-bold text-sm">
                                         <SelectValue placeholder="Select System..." />
                                     </SelectTrigger>
