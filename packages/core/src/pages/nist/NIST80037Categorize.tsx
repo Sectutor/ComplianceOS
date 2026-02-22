@@ -266,10 +266,9 @@ export default function NIST80037Categorize() {
             <div className="space-y-8 w-full pb-20">
                 <Breadcrumb
                     items={[
-                        { label: "Dashboard", href: `/dashboard` },
-                        { label: "NIST Hub", href: `/clients/${clientId}/nist` },
+                        { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                         { label: "SP 800-37 (RMF)", href: `/clients/${clientId}/nist/rmf` },
-                        { label: "Step 1: Categorize" },
+                        { label: "Step 1: Categorize" }
                     ]}
                 />
 

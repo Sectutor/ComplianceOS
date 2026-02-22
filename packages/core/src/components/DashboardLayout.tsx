@@ -689,56 +689,7 @@ function DashboardLayoutContent({
           { icon: ShieldCheck, label: "Governance Review", path: "/iso27001/governance" },
         ]
       },
-      {
-        label: "NIST Ecosystem",
-        items: [
-          { icon: LayoutGrid, label: "Ecosystem Hub", path: "/nist" },
-          {
-            icon: ShieldCheck,
-            label: "Command Center",
-            path: "/nist/dashboard",
-            submenu: [
-              { label: "Dashboard", path: "/nist/dashboard" },
-              { label: "Control Assessment", path: "/nist/assessment" },
-              { label: "Tiers & Profiles", path: "/nist/profiles" },
-              { label: "POA&M Tracker", path: "/nist/poam" },
-              { label: "Document Hub", path: "/nist/documents" },
-            ]
-          },
-          {
-            icon: Activity,
-            label: "Systems & Scoping",
-            path: "/nist/rmf",
-            submenu: [
-              { label: "Dashboard", path: "/nist/rmf" },
-              { label: "Compliance Journey", path: "/nist/rmf/prepare" },
-              { label: "Evidence & Artifacts", path: "/nist/rmf/artifacts" },
-            ]
-          },
-          {
-            icon: Target,
-            label: "Risk Assessment",
-            path: "/nist/800-30",
-            submenu: [
-              { label: "Risk Assessment", path: "/nist/800-30" },
-              { label: "Threat Modeling", path: "/nist/800-30/threats" },
-              { label: "Impact Analysis", path: "/nist/800-30/impact" },
-            ]
-          },
-          {
-            icon: Lock,
-            label: "Control Center",
-            path: "/nist/800-53",
-            submenu: [
-              { label: "Control Catalog", path: "/nist/800-53" },
-              { label: "Baselines", path: "/nist/800-53/baselines" },
-              { label: "Inheritance", path: "/nist/800-53/inheritance" },
-              { label: "Assessments", path: "/nist/800-53/assessments" },
-              { label: "Continuous Monitoring", path: "/nist/800-53/monitoring" },
-            ]
-          },
-        ]
-      },
+
       {
         label: "Governance",
         items: [

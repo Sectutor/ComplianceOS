@@ -138,8 +138,7 @@ export default function NIST80037Dashboard() {
             <div className="space-y-8 w-full pb-20">
                 <Breadcrumb
                     items={[
-                        { label: "Dashboard", href: `/dashboard` },
-                        { label: "NIST Hub", href: `/clients/${clientId}/nist` },
+                        { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                         { label: "SP 800-37 (RMF)" },
                     ]}
                 />

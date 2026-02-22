@@ -90,6 +90,18 @@ export default function NIST80037Assess() {
     const [editTeam, setEditTeam] = useState<{ name: string, role: string }[]>([]);
     const [editScope, setEditScope] = useState<string>("");
 
+    const [isAddFindingOpen, setIsAddFindingOpen] = useState(false);
+    const [findingForm, setFindingForm] = useState({
+        controlId: "",
+        observation: "",
+        result: "Satisfied",
+        riskLevel: "Low"
+    });
+
+    const createSARMutation = (trpc as any).federal.createSAR.useMutation();
+    const saveSarFindingMutation = (trpc as any).federal.saveSarFinding.useMutation();
+    const createFindingMutation = (trpc as any).findings.create.useMutation();
+
     const checklistItems = checklistData?.items as any;
     const assessmentTeam = checklistItems?.assessmentTeam || [
         { name: latestSAR?.assessorName || "Independent Assessor", role: "Lead Auditor" },
@@ -175,6 +187,65 @@ export default function NIST80037Assess() {
         setIsEditPlanOpen(true);
     };
 
+    const handleSaveNewFinding = async () => {
+        if (!systemId) {
+            toast.error("No system selected");
+            return;
+        }
+        setIsSaving(true);
+        try {
+            let sarId = latestSAR?.id;
+            if (!sarId) {
+                const newSar = await createSARMutation.mutateAsync({
+                    clientId,
+                    fismaSystemId,
+                    title: `SAR for System ${fismaSystemId}`,
+                    framework: "NIST 800-37"
+                });
+                sarId = newSar.id;
+            }
+
+            await saveSarFindingMutation.mutateAsync({
+                clientId,
+                sarId,
+                controlId: findingForm.controlId,
+                observation: findingForm.observation,
+                result: findingForm.result,
+                riskLevel: findingForm.riskLevel,
+                status: findingForm.result === "Satisfied" ? "closed" : "open"
+            });
+
+            if (findingForm.result !== 'Satisfied' && (findingForm.riskLevel === 'High' || findingForm.riskLevel === 'Moderate' || findingForm.riskLevel === 'Low')) {
+                const severityMap: Record<string, string> = {
+                    'High': 'high',
+                    'Moderate': 'medium',
+                    'Low': 'low'
+                };
+
+                await createFindingMutation.mutateAsync({
+                    clientId,
+                    title: `${findingForm.controlId} Assessment Failure`,
+                    description: findingForm.observation,
+                    severity: severityMap[findingForm.riskLevel] || 'low',
+                });
+            }
+
+            toast.success("Finding Logged Successfully");
+            setIsAddFindingOpen(false);
+            utils.federal.getSarFindings.invalidate();
+            setFindingForm({
+                controlId: "",
+                observation: "",
+                result: "Satisfied",
+                riskLevel: "Low"
+            });
+        } catch (e) {
+            toast.error("Failed to log finding.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     // Derived stats - Dynamic based on Implement Phase mappings and SAR Findings!
     const openPoamItems = poams?.reduce((acc: number, p: any) => acc + (p.openItems || 0), 0) || 0;
 
@@ -193,10 +264,9 @@ export default function NIST80037Assess() {
             <div className="space-y-8 w-full pb-20">
                 <Breadcrumb
                     items={[
-                        { label: "Dashboard", href: `/dashboard` },
-                        { label: "NIST Hub", href: `/clients/${clientId}/nist` },
+                        { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                         { label: "SP 800-37 (RMF)", href: `/clients/${clientId}/nist/rmf` },
-                        { label: "Step 4: Assess" },
+                        { label: "Step 4: Assess" }
                     ]}
                 />
 
@@ -360,6 +430,9 @@ export default function NIST80037Assess() {
                                             <p className="text-sm text-slate-500 font-medium">Records and results for each control verification step.</p>
                                         </div>
                                         <div className="flex gap-2">
+                                            <Button onClick={() => setIsAddFindingOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold h-10 px-4">
+                                                <Plus className="w-4 h-4 mr-2" /> Log Finding
+                                            </Button>
                                             <div className="relative">
                                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                                 <Input placeholder="Filter controls..." className="pl-9 h-10 w-64 rounded-xl border-slate-200" />
@@ -572,6 +645,104 @@ export default function NIST80037Assess() {
                                 className="bg-amber-600 hover:bg-amber-700 font-bold rounded-xl h-11 px-6 text-white shadow-lg shadow-amber-600/20"
                             >
                                 {isSaving ? "Saving..." : "Save Assessment Plan"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Log Finding Dialog */}
+                <Dialog open={isAddFindingOpen} onOpenChange={setIsAddFindingOpen}>
+                    <DialogContent className="max-w-xl p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
+                        <DialogHeader className="p-8 pb-4 bg-slate-50 border-b border-slate-100">
+                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                                <Plus className="w-6 h-6 text-amber-600" />
+                                Log Assessment Finding
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        <div className="p-8 space-y-6 bg-white">
+                            <div className="space-y-4">
+                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Control ID</Label>
+                                <Input
+                                    className="bg-slate-50 border-slate-200 h-11 rounded-xl font-medium"
+                                    placeholder="e.g., AC-2"
+                                    value={findingForm.controlId}
+                                    onChange={(e) => setFindingForm({ ...findingForm, controlId: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Result</Label>
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setFindingForm({ ...findingForm, result: 'Satisfied' })}
+                                        className={cn(
+                                            "flex-1 h-12 rounded-xl font-bold border-2 transition-all",
+                                            findingForm.result === 'Satisfied' ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "border-slate-200 text-slate-500 bg-white"
+                                        )}
+                                    >
+                                        Satisfied
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setFindingForm({ ...findingForm, result: 'Other than Satisfied' })}
+                                        className={cn(
+                                            "flex-1 h-12 rounded-xl font-bold border-2 transition-all",
+                                            findingForm.result === 'Other than Satisfied' ? "bg-rose-50 border-rose-500 text-rose-700" : "border-slate-200 text-slate-500 bg-white"
+                                        )}
+                                    >
+                                        Other than Satisfied
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Risk Level</Label>
+                                <div className="flex gap-4">
+                                    {['Low', 'Moderate', 'High'].map((level) => (
+                                        <Button
+                                            key={level}
+                                            variant="outline"
+                                            onClick={() => setFindingForm({ ...findingForm, riskLevel: level })}
+                                            className={cn(
+                                                "flex-1 h-12 rounded-xl font-bold border-2 transition-all",
+                                                findingForm.riskLevel === level
+                                                    ? (level === 'High' ? "bg-rose-50 border-rose-500 text-rose-700" : level === 'Moderate' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-blue-50 border-blue-500 text-blue-700")
+                                                    : "border-slate-200 text-slate-500 bg-white"
+                                            )}
+                                        >
+                                            {level}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Observation</Label>
+                                <Textarea
+                                    className="min-h-[100px] border-slate-200 rounded-[1.5rem] p-4 bg-slate-50 font-medium"
+                                    placeholder="Describe the assessment findings and testing details..."
+                                    value={findingForm.observation}
+                                    onChange={(e) => setFindingForm({ ...findingForm, observation: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsAddFindingOpen(false)}
+                                className="font-bold text-slate-500 hover:text-slate-900"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSaveNewFinding}
+                                disabled={isSaving || !findingForm.controlId || !findingForm.observation}
+                                className="bg-amber-600 hover:bg-amber-700 font-bold rounded-xl h-11 px-6 text-white shadow-lg shadow-amber-600/20"
+                            >
+                                {isSaving ? "Saving..." : "Log verified finding"}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

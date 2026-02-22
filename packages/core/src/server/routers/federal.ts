@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, isNull } from "drizzle-orm";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -20,15 +21,25 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
             .query(async ({ input }: any) => {
                 const dbConn = await getDb();
                 const filters = [eq(schema.fipsCategorizations.clientId, input.clientId)];
-                if (input.fismaSystemId) filters.push(eq(schema.fipsCategorizations.fismaSystemId, input.fismaSystemId));
+                if (input.fismaSystemId) {
+                    filters.push(eq(schema.fipsCategorizations.fismaSystemId, input.fismaSystemId));
+                }
 
                 const results = await dbConn.select().from(schema.fipsCategorizations)
                     .where(and(...filters))
                     .orderBy(desc(schema.fipsCategorizations.createdAt));
-                return results[0] || null; // Return latest
+
+                return results[0] || null;
             }),
 
-        saveFipsCategorization: clientProcedure
+        listFipsInformationTypes: premiumProcedure
+            .query(async () => {
+                const dbConn = await getDb();
+                return await dbConn.select().from(schema.fips199InformationTypesRef)
+                    .orderBy(schema.fips199InformationTypesRef.category, schema.fips199InformationTypesRef.name);
+            }),
+
+        saveFipsCategorization: premiumProcedure
             .input(z.object({
                 clientId: z.number(),
                 fismaSystemId: z.number().optional(),
@@ -46,30 +57,45 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
+                console.log('[saveFipsCategorization] Input:', JSON.stringify(input));
 
-                // Try to find existing first
-                const existing = await dbConn.select().from(schema.fipsCategorizations)
-                    .where(and(
-                        eq(schema.fipsCategorizations.clientId, input.clientId),
-                        input.fismaSystemId ? eq(schema.fipsCategorizations.fismaSystemId, input.fismaSystemId) : undefined
-                    ))
-                    .limit(1);
+                try {
+                    // Try to find existing first
+                    const filters = [eq(schema.fipsCategorizations.clientId, input.clientId)];
+                    if (input.fismaSystemId) {
+                        filters.push(eq(schema.fipsCategorizations.fismaSystemId, input.fismaSystemId));
+                    } else {
+                        // If no system ID, look for records where it's null
+                        filters.push(isNull(schema.fipsCategorizations.fismaSystemId));
+                    }
 
-                if (existing.length > 0) {
-                    const [updated] = await dbConn.update(schema.fipsCategorizations)
-                        .set({
+                    const existing = await dbConn.select().from(schema.fipsCategorizations)
+                        .where(and(...filters))
+                        .limit(1);
+
+                    if (existing.length > 0) {
+                        const [updated] = await dbConn.update(schema.fipsCategorizations)
+                            .set({
+                                ...input,
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(schema.fipsCategorizations.id, existing[0].id))
+                            .returning();
+                        return updated;
+                    } else {
+                        const [result] = await dbConn.insert(schema.fipsCategorizations).values({
                             ...input,
                             updatedAt: new Date(),
-                        })
-                        .where(eq(schema.fipsCategorizations.id, existing[0].id))
-                        .returning();
-                    return updated;
-                } else {
-                    const [result] = await dbConn.insert(schema.fipsCategorizations).values({
-                        ...input,
-                        updatedAt: new Date(),
-                    }).returning();
-                    return result;
+                        }).returning();
+                        return result;
+                    }
+                } catch (error: any) {
+                    console.error('[saveFipsCategorization] Error:', error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to save FIPS categorization: ${error.message || 'Unknown error'}`,
+                        cause: error
+                    });
                 }
             }),
 
@@ -132,17 +158,75 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
                 id: z.number(),
                 content: z.string(),
+                systemName: z.string().optional(),
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
                 const [ssp] = await dbConn.update(schema.federalSSPs)
                     .set({
                         content: input.content,
+                        systemName: input.systemName,
                         updatedAt: new Date(),
                     })
                     .where(eq(schema.federalSSPs.id, input.id))
                     .returning();
                 return ssp;
+            }),
+
+        getSspControls: clientProcedure
+            .input(z.object({ clientId: z.number(), sspId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                return await dbConn.select().from(schema.federalSspControls)
+                    .where(eq(schema.federalSspControls.sspId, input.sspId));
+            }),
+
+        saveSspControls: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                sspId: z.number(),
+                controls: z.array(z.object({
+                    controlId: z.string(),
+                    implementationStatus: z.string().optional(),
+                    implementationDescription: z.string().optional(),
+                    responsibleRole: z.string().optional(),
+                }))
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                const existing = await dbConn.select().from(schema.federalSspControls)
+                    .where(eq(schema.federalSspControls.sspId, input.sspId));
+
+                const existingMap = new Map(existing.map((e: any) => [e.controlId, e]));
+
+                const results = [];
+                for (const c of input.controls) {
+                    if (existingMap.has(c.controlId)) {
+                        const ex = existingMap.get(c.controlId);
+                        const [updated] = await dbConn.update(schema.federalSspControls)
+                            .set({
+                                implementationStatus: c.implementationStatus ?? ex.implementationStatus,
+                                implementationDescription: c.implementationDescription ?? ex.implementationDescription,
+                                responsibleRole: c.responsibleRole ?? ex.responsibleRole,
+                                updatedAt: new Date()
+                            })
+                            .where(eq(schema.federalSspControls.id, ex.id))
+                            .returning();
+                        results.push(updated);
+                    } else {
+                        const [inserted] = await dbConn.insert(schema.federalSspControls).values({
+                            sspId: input.sspId,
+                            controlId: c.controlId,
+                            implementationStatus: c.implementationStatus || 'not_implemented',
+                            implementationDescription: c.implementationDescription || null,
+                            responsibleRole: c.responsibleRole || null,
+                        }).returning();
+                        results.push(inserted);
+                    }
+                }
+
+                return results;
             }),
 
         // SAR (Security Assessment Report)
@@ -217,6 +301,15 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                     .where(eq(schema.federalSARs.id, id))
                     .returning();
                 return sar;
+            }),
+
+        getSAR: clientProcedure
+            .input(z.object({ clientId: z.number(), id: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const [sar] = await dbConn.select().from(schema.federalSARs)
+                    .where(and(eq(schema.federalSARs.clientId, input.clientId), eq(schema.federalSARs.id, input.id)));
+                return sar || null;
             }),
 
         // POA&M

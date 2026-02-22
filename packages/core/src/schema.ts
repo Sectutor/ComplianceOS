@@ -11172,6 +11172,22 @@ export type InsertFederalSAR = typeof federalSARs.$inferInsert;
 
 
 
+// FIPS 199 Categorization Reference Data (NIST SP 800-60)
+export const fips199InformationTypesRef = pgTable("fips_199_information_types_ref", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(), // e.g. C.3.2.1
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }), // Mission-Based, Service-Based, etc.
+  provisionalConfidentiality: varchar("provisional_confidentiality", { length: 20 }).notNull(), // low, moderate, high, na
+  provisionalIntegrity: varchar("provisional_integrity", { length: 20 }).notNull(),
+  provisionalAvailability: varchar("provisional_availability", { length: 20 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type Fips199InformationTypeRef = typeof fips199InformationTypesRef.$inferSelect;
+export type InsertFips199InformationTypeRef = typeof fips199InformationTypesRef.$inferInsert;
+
 export const fipsCategorizations = pgTable("fips_categorizations", {
 
   id: serial("id").primaryKey(),
@@ -11182,17 +11198,11 @@ export const fipsCategorizations = pgTable("fips_categorizations", {
   systemName: varchar("system_name", { length: 255 }),
 
   informationTypes: json("information_types").$type<{
-
-    type: string;
-
-    description: string;
-
-    confidentiality: 'low' | 'moderate' | 'high';
-
-    integrity: 'low' | 'moderate' | 'high';
-
-    availability: 'low' | 'moderate' | 'high';
-
+    id: string; // Reference code e.g. C.3.2.1
+    name: string;
+    confidentiality: { provisional: string; adjusted: string; rationale: string };
+    integrity: { provisional: string; adjusted: string; rationale: string };
+    availability: { provisional: string; adjusted: string; rationale: string };
   }[]>(),
 
   confidentialityImpact: varchar("confidentiality_impact", { length: 20 }),
