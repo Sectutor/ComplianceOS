@@ -83,13 +83,15 @@ const learningZoneMenuItem = {
 };
 
 const adminMenuItems = [
+  { label: "Organizations", path: "/admin/organizations" },
   { label: "User Management", path: "/admin/user-management" },
   { label: "User Invitations", path: "/admin/invitations" },
   { label: "Audit Logs", path: "/admin/audit" },
   { label: "LLM Settings", path: "/admin/llm" },
-  // { label: "Integrations Marketplace", path: "/admin/integrations" },
   { label: "Billing", path: "/admin/billing" },
   { label: "Waitlist Management", path: "/sales/waitlist" },
+  { label: "Global CRM", path: "/admin/crm" },
+  { label: "System Feedback", path: "/admin/system-feedback" },
 ];
 
 const adminMenuItem = {

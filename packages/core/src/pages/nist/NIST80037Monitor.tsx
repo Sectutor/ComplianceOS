@@ -118,7 +118,7 @@ export default function NIST80037Monitor() {
 
     return (
         <NIST80037Layout>
-            <div className="space-y-8 max-w-5xl pb-20">
+            <div className="space-y-8 w-full pb-20">
                 <Breadcrumb
                     items={[
                         { label: "Dashboard", href: `/dashboard` },
@@ -258,7 +258,7 @@ export default function NIST80037Monitor() {
                         </Card>
                     </div>
 
-                    <Card className="lg:col-span-3 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2.5rem] overflow-hidden">
+                    <div className="lg:col-span-3">
                         <Tabs defaultValue="overview" className="w-full">
                             <div className="border-b px-8 bg-slate-50/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
@@ -441,7 +441,7 @@ export default function NIST80037Monitor() {
                                 </TabsContent>
                             </div>
                         </Tabs>
-                    </Card>
+                    </div>
                 </div>
             </div>
         </NIST80037Layout>

@@ -75,7 +75,7 @@ export default function NIST80053Assessment() {
     const systemId = useNistSystemId();
     const clientId = parseInt(id || "0");
     const sspId = packageId ? parseInt(packageId) : undefined;
-    const fismaSystemId = systemId && !isNaN(parseInt(systemId)) ? parseInt(systemId) : undefined;
+    const fismaSystemId = systemId;
     const utils = trpc.useUtils();
 
     const [searchQuery, setSearchQuery] = useState("");

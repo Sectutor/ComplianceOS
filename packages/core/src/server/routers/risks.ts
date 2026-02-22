@@ -461,6 +461,7 @@ ${reportData.conclusion}
                 sortOrder: z.enum(["asc", "desc"]).default("desc"),
                 projectId: z.coerce.number().optional(),
                 category: z.string().optional(),
+                fismaSystemId: z.coerce.number().optional(),
             }))
             .query(async ({ input, ctx }: any) => {
                 const db = await getDb();
@@ -474,7 +475,8 @@ ${reportData.conclusion}
                         ilike(riskAssessments.assessmentId, `%${input.search}%`)
                     ) : undefined,
                     input.projectId ? eq(riskAssessments.projectId, input.projectId) : undefined,
-                    input.category ? eq(riskAssessments.category, input.category) : undefined
+                    input.category ? eq(riskAssessments.category, input.category) : undefined,
+                    input.fismaSystemId ? eq(riskAssessments.fismaSystemId, input.fismaSystemId) : undefined
                 ].filter(Boolean);
 
                 const [total] = await db.select({ count: sql<number>`count(*)` })
@@ -573,6 +575,7 @@ ${reportData.conclusion}
                 nextReviewDate: z.string().optional(),
                 controlIds: z.array(z.number()).optional(),
                 aiRmfCategory: z.string().optional(),
+                fismaSystemId: z.coerce.number().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 // MICRO-RBAC: Only Owners/Editors can edit
@@ -598,6 +601,7 @@ ${reportData.conclusion}
                         status: input.status,
                         contextSnapshot: input.contextSnapshot,
                         riskOwner: input.riskOwner,
+                        fismaSystemId: input.fismaSystemId,
                         treatmentOption: input.treatmentOption,
                         priority: input.priority,
                         residualScore: input.residualScore,
@@ -1087,7 +1091,7 @@ ${reportData.conclusion}
                 // Validate likelihood and impact are in range
                 const likelihood = Math.max(1, Math.min(5, input.likelihood));
                 const impact = Math.max(1, Math.min(5, input.impact));
-                
+
                 const inherentScore = likelihood * impact;
                 const inherentRisk = getMatrixScoreLevel(inherentScore);
 
@@ -1251,7 +1255,7 @@ ${reportData.conclusion}
                     estimatedCost: input.estimatedCost,
                     status: 'planned'
                 } as any).returning();
-                
+
                 if (input.riskAssessmentId) {
                     await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "treatment", entityId: treatment.id, details: { strategy: treatment.strategy } });
                 }

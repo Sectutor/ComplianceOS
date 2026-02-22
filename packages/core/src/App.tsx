@@ -293,6 +293,7 @@ const NIST80037Implement = lazy(() => import("./pages/nist/NIST80037Implement"))
 const NIST80037Assess = lazy(() => import("./pages/nist/NIST80037Assess"));
 const NIST80037Authorize = lazy(() => import("./pages/nist/NIST80037Authorize"));
 const NIST80037Monitor = lazy(() => import("./pages/nist/NIST80037Monitor"));
+const NIST80037Artifacts = lazy(() => import("./pages/nist/NIST80037Artifacts"));
 const NISTSystemRegistry = lazy(() => import("./pages/nist/NISTSystemRegistry"));
 const NIST80030RiskAssessment = lazy(() => import("./pages/nist/NIST80030RiskAssessment"));
 const NIST80030ThreatModeling = lazy(() => import("./pages/nist/NIST80030ThreatModeling"));
@@ -823,6 +824,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/nist/rmf/monitor">
           {(_params) => <ProtectedRoute component={NIST80037Monitor} />}
+        </Route>
+        <Route path="/clients/:id/nist/rmf/artifacts">
+          {(_params) => <ProtectedRoute component={NIST80037Artifacts} />}
         </Route>
         <Route path="/clients/:id/nist/800-30">
           {(_params) => <ProtectedRoute component={NIST80030RiskAssessment} />}

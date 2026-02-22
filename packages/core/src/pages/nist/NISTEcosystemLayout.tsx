@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Link, useLocation, useParams } from "wouter";
 import { cn } from "@/lib/utils";
 import { useClientContext } from "@/contexts/ClientContext";
+import { trpc } from "@/lib/trpc";
 import {
     ShieldCheck,
     BarChart3,
@@ -30,7 +31,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@complianceos/ui/ui/select";
-import { RMF_SYSTEMS } from "./nistConstants";
 import { Plus, Server } from "lucide-react";
 import { useNistSystemId } from "./useNistSystem";
 
@@ -62,6 +62,11 @@ export default function NISTEcosystemLayout({
     ];
 
     const systemId = useNistSystemId();
+
+    const { data: systems, isLoading } = trpc.federal.listFismaSystems.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
 
     const handleSystemChange = (id: string) => {
         const params = new URLSearchParams(window.location.search);
@@ -103,25 +108,23 @@ export default function NISTEcosystemLayout({
                     { name: "Assessments", path: `/clients/${clientId}/nist/800-53/assessments${query}`, icon: ClipboardList },
                     { name: "Monitoring", path: `/clients/${clientId}/nist/800-53/monitoring${query}`, icon: Activity },
                 ];
-            default:
-                return [];
         }
     }, [standard, clientId, systemId]);
 
-
-    const currentSystem = systemId ? RMF_SYSTEMS.find(s => s.id === systemId) || RMF_SYSTEMS[0] : RMF_SYSTEMS[0];
+    const fetchedSystems = systems || [];
+    const currentSystem = systemId ? fetchedSystems.find((s: any) => s.id.toString() === systemId) || fetchedSystems[0] : fetchedSystems[0];
 
     const activeStandard = ecosystemStandards.find(s => s.id === standard);
 
     return (
         <DashboardLayout>
-            <div className={cn("flex flex-col min-h-screen", fullWidth && "-m-6")}>
+            <div className="-mt-8 -mb-8 -mx-4 md:-ml-20 md:-mr-8 flex flex-col min-h-screen">
 
 
                 {/* System Selection Context Bar (Specifically for RMF/800-30) */}
                 {(standard === 'rmf' || standard === '800-30') && (
                     <div className="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-4">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-5xl">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
                                     <Server className="w-5 h-5 text-slate-500" />
@@ -129,15 +132,17 @@ export default function NISTEcosystemLayout({
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none mb-1">Active RMF System Context</p>
                                     <div className="flex items-center gap-2">
-                                        <span className="font-bold text-slate-900">{currentSystem.name}</span>
-                                        <Badge variant="outline" className={cn(
-                                            "text-[9px] uppercase font-black tracking-widest px-2 py-0 h-4",
-                                            currentSystem.impact === "High" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                                                currentSystem.impact === "Moderate" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                                    "bg-indigo-50 text-indigo-700 border-indigo-200"
-                                        )}>
-                                            FISMA {currentSystem.impact}
-                                        </Badge>
+                                        <span className="font-bold text-slate-900">{currentSystem?.name || 'No System Selected'}</span>
+                                        {currentSystem?.fips199Overall && (
+                                            <Badge variant="outline" className={cn(
+                                                "text-[9px] uppercase font-black tracking-widest px-2 py-0 h-4",
+                                                currentSystem.fips199Overall === "High" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                                                    currentSystem.fips199Overall === "Moderate" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                                        "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                            )}>
+                                                FISMA {currentSystem.fips199Overall}
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -146,14 +151,20 @@ export default function NISTEcosystemLayout({
                                 <p className="text-[10px] font-bold text-slate-400 hidden xl:block text-right max-w-[150px] uppercase tracking-tighter">
                                     Global System Focus
                                 </p>
-                                <Select value={systemId || undefined} onValueChange={handleSystemChange}>
+                                <Select value={systemId?.toString() || undefined} onValueChange={handleSystemChange}>
                                     <SelectTrigger className="w-full md:w-[240px] h-10 bg-white border-slate-200 font-bold text-sm">
                                         <SelectValue placeholder="Select System..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {RMF_SYSTEMS.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
+                                        {isLoading ? (
+                                            <SelectItem value="loading" disabled>Loading systems...</SelectItem>
+                                        ) : fetchedSystems.length === 0 ? (
+                                            <SelectItem value="none" disabled>No systems registered</SelectItem>
+                                        ) : (
+                                            fetchedSystems.map((s: any) => (
+                                                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                            ))
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <Link href={`/clients/${clientId}/nist/rmf/systems`}>
@@ -166,8 +177,8 @@ export default function NISTEcosystemLayout({
                     </div>
                 )}
 
-                <div key={systemId} className="flex-1 pl-4 pr-4 md:pl-20 md:pr-8 py-8">
-                    {fullWidth ? <div className="-m-8">{children}</div> : children}
+                <div key={systemId} className={cn("flex-1", fullWidth ? "py-4" : "pl-4 pr-4 md:pl-20 md:pr-8 py-8")}>
+                    {children}
                 </div>
             </div>
         </DashboardLayout>

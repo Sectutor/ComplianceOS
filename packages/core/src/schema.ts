@@ -2184,7 +2184,7 @@ export const evidence = pgTable("evidence", {
 
   evidenceId: varchar("evidence_id", { length: 50 }).notNull(),
 
-
+  systemId: varchar("system_id", { length: 50 }),
 
   description: text("description"),
 
@@ -6833,6 +6833,7 @@ export const riskAssessments = pgTable("risk_assessments", {
 
 
   projectId: integer("project_id"),
+  fismaSystemId: integer("fisma_system_id"),
 
 
 
@@ -11070,6 +11071,7 @@ export const federalSSPs = pgTable("federal_ssps", {
   id: serial("id").primaryKey(),
 
   clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
 
   title: varchar("title", { length: 255 }).notNull(),
 
@@ -11108,6 +11110,7 @@ export const federalSARs = pgTable("federal_sars", {
   id: serial("id").primaryKey(),
 
   clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
 
   sspId: integer("ssp_id"),// .references(() => federalSSPs.id), (Avoiding circular or missing reference errors if added in one go)
 
@@ -11174,6 +11177,7 @@ export const fipsCategorizations = pgTable("fips_categorizations", {
   id: serial("id").primaryKey(),
 
   clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
 
   systemName: varchar("system_name", { length: 255 }),
 
@@ -11192,12 +11196,17 @@ export const fipsCategorizations = pgTable("fips_categorizations", {
   }[]>(),
 
   confidentialityImpact: varchar("confidentiality_impact", { length: 20 }),
+  confidentialityRationale: text("confidentiality_rationale"),
 
   integrityImpact: varchar("integrity_impact", { length: 20 }),
+  integrityRationale: text("integrity_rationale"),
 
   availabilityImpact: varchar("availability_impact", { length: 20 }),
+  availabilityRationale: text("availability_rationale"),
 
   highWaterMark: varchar("high_water_mark", { length: 20 }),
+
+  metadata: json("metadata").default({}),
 
   status: varchar("status", { length: 50 }).default('draft'),
 
@@ -11220,6 +11229,7 @@ export const federalPoams = pgTable("federal_poams", {
   id: serial("id").primaryKey(),
 
   clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
 
   title: varchar("title", { length: 255 }).notNull(),
 
@@ -11500,9 +11510,13 @@ export const federalFismaSystems = pgTable("federal_fisma_systems", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  acronym: varchar("acronym", { length: 20 }), // System acronym e.g. ECO, HRIS
+  owner: varchar("owner", { length: 255 }), // System owner name
   fips199Overall: varchar("fips_199_overall", { length: 20 }), // Low, Moderate, High
   description: text("description"),
   status: varchar("status", { length: 50 }), // Active, Retired, Planned
+  controlsCount: integer("controls_count").default(0), // Computed: linked controls
+  assetsCount: integer("assets_count").default(0), // Computed: linked assets
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -14458,3 +14472,89 @@ export const systemFeedback = pgTable("system_feedback", {
 
 export type SystemFeedback = typeof systemFeedback.$inferSelect;
 export type InsertSystemFeedback = typeof systemFeedback.$inferInsert;
+
+// ==========================================
+// NIST SP 800-30 - Risk Assessment Tables
+// ==========================================
+
+export const nist80030ThreatSources = pgTable("nist_80030_threat_sources", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
+  type: varchar("type", { length: 100 }).notNull(), // Adversarial, Accidental, Structural, Environmental
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  capability: varchar("capability", { length: 50 }), // Very High, High, Moderate, Low, Very Low
+  intent: varchar("intent", { length: 50 }), // Very High, High, Moderate, Low, Very Low
+  targeting: varchar("targeting", { length: 50 }), // Very High, High, Moderate, Low, Very Low
+  motive: varchar("motive", { length: 255 }),
+  rangeOfEffects: varchar("range_of_effects", { length: 255 }),
+  status: varchar("status", { length: 50 }).default("active"), // active, inactive, archived
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientTypeIdx: index("idx_n80030_ts_client_type").on(table.clientId, table.type),
+  };
+});
+
+export type Nist80030ThreatSource = typeof nist80030ThreatSources.$inferSelect;
+export type InsertNist80030ThreatSource = typeof nist80030ThreatSources.$inferInsert;
+
+export const nist80030ThreatEvents = pgTable("nist_80030_threat_events", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
+  threatSourceId: integer("threat_source_id"), // FK to nist80030ThreatSources
+  eventId: varchar("event_id", { length: 50 }), // TE-01, TE-02, etc.
+  name: varchar("name", { length: 500 }).notNull(),
+  description: text("description"),
+  sourceType: varchar("source_type", { length: 100 }), // Adversarial, Accidental, Structural, Environmental
+  relevance: varchar("relevance", { length: 50 }), // Confirmed, Expected, Predicted, Possible, N/A
+  likelihood: varchar("likelihood", { length: 50 }), // Very High, High, Moderate, Low, Very Low
+  vulnerabilitiesPredispositions: text("vulnerabilities_predispositions"),
+  targetedAssets: text("targeted_assets"),
+  status: varchar("status", { length: 50 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_n80030_te_client").on(table.clientId),
+    sourceIdx: index("idx_n80030_te_source").on(table.threatSourceId),
+  };
+});
+
+export type Nist80030ThreatEvent = typeof nist80030ThreatEvents.$inferSelect;
+export type InsertNist80030ThreatEvent = typeof nist80030ThreatEvents.$inferInsert;
+
+export const nist80030ImpactAssessments = pgTable("nist_80030_impact_assessments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  fismaSystemId: integer("fisma_system_id"),
+  domain: varchar("domain", { length: 255 }).notNull(), // Business Operations, Corporate Assets, Personnel Safety, National Interests, etc.
+  ciaType: varchar("cia_type", { length: 50 }), // Confidentiality, Integrity, Availability or null for domain-level
+  magnitude: varchar("magnitude", { length: 50 }).notNull(), // Critical, High, Moderate, Low, Very Low
+  magnitudeScore: integer("magnitude_score").default(0), // 0-100 numeric score
+  description: text("description"),
+  rationale: text("rationale"),
+  // Contributing factors
+  factorName: varchar("factor_name", { length: 255 }),
+  factorLevel: varchar("factor_level", { length: 50 }),
+  factorType: varchar("factor_type", { length: 50 }), // Amplifier, Dampener
+  factorDescription: text("factor_description"),
+  // Economic impact
+  estimatedDailyImpact: integer("estimated_daily_impact"), // In cents
+  revenueLossPct: integer("revenue_loss_pct"),
+  legalFinesPct: integer("legal_fines_pct"),
+  brandEquityPct: integer("brand_equity_pct"),
+  status: varchar("status", { length: 50 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientDomainIdx: index("idx_n80030_ia_client_domain").on(table.clientId, table.domain),
+  };
+});
+
+export type Nist80030ImpactAssessment = typeof nist80030ImpactAssessments.$inferSelect;
+export type InsertNist80030ImpactAssessment = typeof nist80030ImpactAssessments.$inferInsert;

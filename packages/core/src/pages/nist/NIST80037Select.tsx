@@ -77,9 +77,9 @@ export default function NIST80037Select() {
         enabled: !!systemId
     });
 
-    const categorizationQuery = trpc.checklist.get.useQuery({
+    const categorizationQuery = trpc.federal.getFipsCategorization.useQuery({
         clientId,
-        checklistId: systemId ? `nist-800-37-categorize-${systemId}` : 'no-system'
+        fismaSystemId: systemId ? systemId : undefined
     }, {
         enabled: !!systemId
     });
@@ -87,19 +87,12 @@ export default function NIST80037Select() {
     const [highWaterMark, setHighWaterMark] = useState("MODERATE");
 
     useEffect(() => {
-        if (categorizationQuery.data?.items) {
-            const items = categorizationQuery.data.items as any;
-            if (items.c2_objectives) {
-                const levels = Object.values(items.c2_objectives).map((o: any) => o.level);
-                let calculatedHwm = "LOW";
-                if (levels.includes("High")) calculatedHwm = "HIGH";
-                else if (levels.includes("Moderate")) calculatedHwm = "MODERATE";
-
-                setHighWaterMark(calculatedHwm);
-                // If we don't have a saved baseline yet, default it to the HWM
-                if (!checklistQuery.data?.items) {
-                    setBaselineLevel(calculatedHwm.charAt(0) + calculatedHwm.slice(1).toLowerCase());
-                }
+        if (categorizationQuery.data?.highWaterMark) {
+            const calculatedHwm = categorizationQuery.data.highWaterMark.toUpperCase();
+            setHighWaterMark(calculatedHwm);
+            // If we don't have a saved baseline yet, default it to the HWM
+            if (!checklistQuery.data?.items) {
+                setBaselineLevel(calculatedHwm.charAt(0) + calculatedHwm.slice(1).toLowerCase());
             }
         }
     }, [categorizationQuery.data, systemId, checklistQuery.data]);
@@ -198,7 +191,7 @@ export default function NIST80037Select() {
 
     return (
         <NIST80037Layout>
-            <div className="space-y-8 max-w-5xl pb-20">
+            <div className="space-y-8 w-full pb-20">
                 <Breadcrumb
                     items={[
                         { label: "Dashboard", href: `/dashboard` },
@@ -289,7 +282,7 @@ export default function NIST80037Select() {
                         </Card>
                     </div>
 
-                    <Card className="lg:col-span-3 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2.5rem] overflow-hidden">
+                    <div className="lg:col-span-3">
                         <Tabs defaultValue="baseline" className="w-full">
                             <div className="border-b px-8 bg-slate-50/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
@@ -536,7 +529,7 @@ export default function NIST80037Select() {
                                 </TabsContent>
                             </div>
                         </Tabs>
-                    </Card>
+                    </div>
                 </div>
             </div>
         </NIST80037Layout>

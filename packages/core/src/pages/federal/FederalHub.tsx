@@ -87,7 +87,7 @@ export default function FederalHub() {
 
     return (
         <DashboardLayout>
-            <div className="p-8 space-y-6 max-w-7xl mx-auto">
+            <div className="p-8 space-y-6 w-full">
                 <Breadcrumb items={[
                     { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                     { label: "Federal Compliance Hub" }

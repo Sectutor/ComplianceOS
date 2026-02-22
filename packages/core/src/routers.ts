@@ -80,6 +80,7 @@ import { createGovernanceRouter } from "./server/routers/governance";
 import { createAutopilotRouter } from "./server/routers/autopilot";
 import { createGapAnalysisRouter } from "./server/routers/gapAnalysis";
 import { createFederalRouter } from "./server/routers/federal";
+import { createNist80030Router } from "./server/routers/nist80030";
 import { createActionsRouter } from "./server/routers/actions";
 import { createCalendarRouter } from "./server/routers/calendar";
 import { createClientsRouter } from "./server/routers/clients";
@@ -194,6 +195,7 @@ export const appRouter = router({
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
   federal: createFederalRouter(t, clientProcedure),
+  nist80030: createNist80030Router(t, clientProcedure),
   readiness: createReadinessRouter(t, clientProcedure),
   samm: createSammRouter(t, clientProcedure),
   sammV2: createSammV2Router(t, clientProcedure),

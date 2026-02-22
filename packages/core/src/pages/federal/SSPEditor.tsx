@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -79,17 +79,26 @@ export default function SSPEditor() {
         enabled: !!currentSSP?.id
     });
 
-    // Mutations for controls management
     const saveSspControlMutation = trpc.federal.saveSspControl.useMutation();
     const deleteSspControlMutation = trpc.federal.deleteSspControl.useMutation();
     const createControlMutation = trpc.federal.createControl.useMutation();
     const createSSPMutation = trpc.federal.createSSP.useMutation();
-    const saveFipsMutation = trpc.federal.saveFipsCategorization.useMutation();
+    const saveFipsMutation = trpc.federal.saveSspFipsCategorization.useMutation({
+        onSuccess: () => {
+            utils.federal.getSspFipsCategorization.invalidate({ clientId, sspId: currentSSP?.id || 0 });
+        }
+    });
+    const updateSSPMutation = trpc.federal.updateSSP.useMutation({
+        onSuccess: () => {
+            // Invalidate the SSP list cache so data persists when navigating away/back
+            utils.federal.listSSPs.invalidate({ clientId });
+        }
+    });
     const syncPoamMutation = trpc.federal.syncSspToPoam.useMutation();
     const utils = trpc.useUtils();
 
-    // Fetch FIPS Categorization
-    const { data: fipsCategorization } = trpc.federal.getFipsCategorization.useQuery({
+    // Fetch FIPS Categorization (SSP-specific)
+    const { data: fipsCategorization } = trpc.federal.getSspFipsCategorization.useQuery({
         clientId,
         sspId: currentSSP?.id || 0
     }, {
@@ -111,6 +120,8 @@ export default function SSPEditor() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Initialize section data from current SSP
     useEffect(() => {
@@ -155,6 +166,8 @@ export default function SSPEditor() {
                 lastUpdated: new Date().toISOString()
             }
         }));
+        setHasUnsavedChanges(true);
+        scheduleAutoSave(section);
     };
 
     const updateCheckbox = (section: string, field: string, value: boolean) => {
@@ -166,7 +179,35 @@ export default function SSPEditor() {
                 lastUpdated: new Date().toISOString()
             }
         }));
+        setHasUnsavedChanges(true);
+        scheduleAutoSave(section);
     };
+
+    // Auto-save: debounce 2s after last change
+    const lastEditedSectionRef = useRef<string>('overview');
+    const scheduleAutoSave = useCallback((section: string) => {
+        lastEditedSectionRef.current = section;
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+        }
+        autoSaveTimerRef.current = setTimeout(() => {
+            // Trigger save without setting isSaving to avoid UI flicker
+            if (currentSSP) {
+                const latestSection = lastEditedSectionRef.current;
+                // We need to read the latest sectionData at save time
+                handleAutoSave(latestSection);
+            }
+        }, 2000);
+    }, [currentSSP]);
+
+    // Cleanup auto-save on unmount — save immediately if there are pending changes
+    useEffect(() => {
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+            }
+        };
+    }, []);
 
     // Control management handlers
     const handleControlToggle = async (controlId: string, checked: boolean) => {
@@ -384,7 +425,7 @@ export default function SSPEditor() {
 
         // Calculate filled required fields
         const filledRequiredCount = requiredFields.filter(field => data[field] && data[field].trim().length > 0).length;
-        
+
         // Calculate total filled fields (including optional ones)
         const totalFilledCount = Object.entries(data)
             .filter(([key, value]) => key !== 'lastUpdated' && typeof value === 'string' && value.trim().length > 0)
@@ -397,13 +438,13 @@ export default function SSPEditor() {
 
     const handleSyncPoam = async () => {
         if (!currentSSP?.id) return;
-        
+
         try {
             const result = await syncPoamMutation.mutateAsync({
                 clientId,
                 sspId: currentSSP.id
             });
-            
+
             if (result.addedCount > 0) {
                 toast.success(`Generated ${result.addedCount} POA&M items from gaps`);
             } else {
@@ -415,13 +456,10 @@ export default function SSPEditor() {
         }
     };
 
-    const handleSaveSection = async (section: string) => {
-        if (!currentSSP) {
-            toast.error("No SSP found to update");
-            return;
-        }
+    // Silent auto-save (no loading spinner, subtle toast)
+    const handleAutoSave = async (section: string) => {
+        if (!currentSSP || !hasUnsavedChanges) return;
 
-        setIsSaving(true);
         try {
             const content = {
                 ...sectionData,
@@ -431,7 +469,44 @@ export default function SSPEditor() {
                 }
             };
 
-            await trpc.federal.updateSSP.mutate({
+            await updateSSPMutation.mutateAsync({
+                clientId,
+                id: currentSSP.id,
+                content: JSON.stringify(content)
+            });
+
+            setHasUnsavedChanges(false);
+            // Subtle feedback — no intrusive toast
+            console.log(`[SSP] Auto-saved section: ${section}`);
+        } catch (error) {
+            console.error("Auto-save failed:", error);
+            // Don't toast on auto-save failure — the user can still manually save
+        }
+    };
+
+    const handleSaveSection = async (section: string) => {
+        if (!currentSSP) {
+            toast.error("No SSP found to update");
+            return;
+        }
+
+        setIsSaving(true);
+        // Cancel any pending auto-save
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            autoSaveTimerRef.current = null;
+        }
+        try {
+            const content = {
+                ...sectionData,
+                [section]: {
+                    ...sectionData[section],
+                    lastUpdated: new Date().toISOString()
+                }
+            };
+
+            // Use the mutation hook instead of raw .mutate() so the cache is properly invalidated
+            await updateSSPMutation.mutateAsync({
                 clientId,
                 id: currentSSP.id,
                 content: JSON.stringify(content)
@@ -452,6 +527,7 @@ export default function SSPEditor() {
             }
 
             toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} section saved successfully`);
+            setHasUnsavedChanges(false);
         } catch (error) {
             console.error("Error saving section:", error);
             toast.error("Failed to save section");
@@ -525,18 +601,20 @@ export default function SSPEditor() {
 
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Breadcrumb
-                    items={[
-                        { label: "Clients", href: "/clients" },
-                        { label: `Client ${clientId}`, href: `/clients/${clientId}` },
-                        { label: "Federal Compliance", href: `/clients/${clientId}/federal` },
-                        { label: frameworkLabel, href: `/clients/${clientId}/federal/${frameworkSlug}` }
-                    ]}
-                />
+            <div className="pb-20">
+                <div className="px-6 pt-6 pb-2">
+                    <Breadcrumb
+                        items={[
+                            { label: "Clients", href: "/clients" },
+                            { label: `Client ${clientId}`, href: `/clients/${clientId}` },
+                            { label: "Federal Compliance", href: `/clients/${clientId}/federal` },
+                            { label: frameworkLabel, href: `/clients/${clientId}/federal/${frameworkSlug}` }
+                        ]}
+                    />
+                </div>
 
-                <div className="mt-8">
-                    <div className="flex items-center justify-between mb-8">
+                <div className="sticky top-0 z-40 bg-slate-50/90 backdrop-blur-xl py-4 px-6 border-b border-slate-200 shadow-sm mb-6">
+                    <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
                                 System Security Plan Editor
@@ -560,11 +638,13 @@ export default function SSPEditor() {
                             </Button>
                         </div>
                     </div>
+                </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 2xl:grid-cols-5 gap-8 items-start">
                         {/* Left sidebar - Navigation */}
-                        <div className="lg:col-span-1">
-                            <Card className="border-slate-200 shadow-sm sticky top-8">
+                        <div className="lg:col-span-1 sticky top-28 z-30">
+                            <Card className="border-slate-200 shadow-xl shadow-slate-200/40 bg-white/80 backdrop-blur-xl">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-lg font-bold text-slate-900">Sections</CardTitle>
                                     <CardDescription>Complete all sections for a comprehensive SSP</CardDescription>
@@ -645,7 +725,7 @@ export default function SSPEditor() {
                         </div>
 
                         {/* Main content area */}
-                        <div className="lg:col-span-3">
+                        <div className="lg:col-span-3 2xl:col-span-4">
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <TabsList className="grid grid-cols-6 mb-8">
                                     <TabsTrigger value="overview">Overview</TabsTrigger>

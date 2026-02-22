@@ -37,7 +37,7 @@ export default function NIST80037Layout({ children, showJourneyStepper = true }:
 
     return (
         <NISTEcosystemLayout standard="rmf" fullWidth>
-            <div className="flex pb-8 mt-4 mx-8 min-h-screen relative">
+            <div className="flex pb-8 mt-4 mx-4 md:mx-8 min-h-screen relative">
                 {/* Unified Compliance Journey Left Stepper */}
                 <div className="w-80 shrink-0 border-r border-slate-200 bg-slate-50/50 rounded-bl-3xl p-6 hidden lg:block relative">
                     <div className="mb-8">
