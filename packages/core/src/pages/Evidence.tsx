@@ -549,29 +549,30 @@ export default function Evidence() {
         </div>
 
         {/* Framework Selector - High Assurance Implementation */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-8">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-premium p-6 mb-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-5">
-              <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-[#5844ED]/10 text-[#5844ED] border border-[#5844ED]/20 shadow-inner">
-                <Shield className="h-7 w-7" />
+              <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-[#5844ED] to-blue-600 text-white shadow-lg shadow-[#5844ED]/20 hover:scale-105 transition-transform duration-300">
+                <Shield className="h-8 w-8" />
               </div>
               <div>
-                <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-2 block leading-none">Compliance Identity</Label>
+                <Label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#5844ED]/70 mb-2 block leading-none">Compliance Identity</Label>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
                     {frameworkFilter === 'all' ? 'Consolidated Frameworks' : frameworkFilter}
                   </h2>
-                  <Badge className="bg-[#5844ED]/5 text-[#5844ED] border-[#5844ED]/10 shadow-none h-6 px-2.5 text-[10px] font-bold animate-pulse">LIVE VIEW</Badge>
+                  <Badge className="bg-[#5844ED]/10 text-[#5844ED] border-[#5844ED]/20 shadow-none h-6 px-3 text-[10px] font-black tracking-wider animate-pulse uppercase">LIVE VIEW</Badge>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm backdrop-blur-sm">
                 <div className="relative group ml-1">
-                  <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-[#5844ED] transition-colors" />
                   <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
-                    <SelectTrigger className="w-[300px] h-10 pl-10 bg-white border-slate-200 hover:border-slate-300 transition-all rounded-lg font-bold text-slate-700 shadow-sm">
+                    <SelectTrigger className="w-[320px] h-11 pl-10 bg-white border-transparent hover:bg-slate-50 transition-all rounded-xl font-bold text-slate-700 shadow-sm focus:ring-[#5844ED]/20 relative">
                       <SelectValue placeholder="Switch Framework..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200 shadow-2xl">
@@ -582,7 +583,7 @@ export default function Evidence() {
                       </SelectItem>
                       <Separator className="my-2" />
                       {uniqueFrameworks.map(fw => (
-                        <SelectItem key={fw} value={fw} className="rounded-lg mb-1 focus:bg-[#5844ED]/5 focus:text-[#5844ED]">
+                        <SelectItem key={fw} value={fw} className="rounded-lg mb-1 focus:bg-[#5844ED]/5 focus:text-[#5844ED] font-medium">
                           {fw}
                         </SelectItem>
                       ))}
@@ -590,28 +591,28 @@ export default function Evidence() {
                   </Select>
                 </div>
 
-                <div className="h-6 w-[1px] bg-slate-200 mx-1" />
+                <div className="h-7 w-[1px] bg-slate-200 mx-1" />
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px] h-10 bg-transparent border-transparent hover:bg-white transition-all rounded-lg font-bold text-slate-500 gap-2">
+                  <SelectTrigger className="w-[140px] h-11 bg-transparent border-transparent hover:bg-white transition-all rounded-xl font-bold text-slate-500 gap-2">
                     <Filter className="h-4 w-4 opacity-50" />
                     <SelectValue placeholder="Filter" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="all">All Documents</SelectItem>
-                    <SelectItem value="need_documents">Need Docs</SelectItem>
-                    <SelectItem value="ok">Verified OK</SelectItem>
+                  <SelectContent className="rounded-xl shadow-xl">
+                    <SelectItem value="all" className="font-medium">All Documents</SelectItem>
+                    <SelectItem value="need_documents" className="font-medium">Need Docs</SelectItem>
+                    <SelectItem value="ok" className="font-medium">Verified OK</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="relative group w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <div className="relative group w-full md:w-72">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#5844ED] transition-colors" />
                 <Input
                   placeholder="Search in view..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-12 md:h-10 pl-10 border-slate-200 bg-white rounded-xl shadow-sm focus:ring-[#5844ED]/10 transition-shadow"
+                  className="h-14 md:h-11 pl-11 border-white/60 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm focus:ring-[#5844ED]/20 focus:border-[#5844ED]/30 transition-all font-medium"
                 />
               </div>
             </div>
@@ -619,48 +620,52 @@ export default function Evidence() {
         </div>
 
         {/* Global Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="border-none bg-white shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-blue-600" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300">
+            <CardContent className="p-6 flex items-center gap-5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                <BookOpen className="h-7 w-7 text-white" />
               </div>
-              <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Controls</div>
-                <div className="text-xl font-bold text-slate-900">{groupedData.reduce((acc, cat) => acc + cat.totalItems, 0)}</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-none bg-white shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-green-50 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Verified OK</div>
-                <div className="text-xl font-bold text-slate-900">{groupedData.reduce((acc, cat) => acc + cat.okItems, 0)}</div>
+              <div className="flex-1">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Total Controls</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + cat.totalItems, 0)}</div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-none bg-white shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
+
+          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300">
+            <CardContent className="p-6 flex items-center gap-5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+                <CheckCircle2 className="h-7 w-7 text-white" />
               </div>
-              <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Missing Docs</div>
-                <div className="text-xl font-bold text-slate-900">{groupedData.reduce((acc, cat) => acc + (cat.totalItems - cat.okItems), 0)}</div>
+              <div className="flex-1">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Verified OK</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + cat.okItems, 0)}</div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-none bg-[#5844ED]/5 border border-[#5844ED]/10 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-[#5844ED] flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-white" />
+
+          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300 border-l-4 border-l-amber-500">
+            <CardContent className="p-6 flex items-center gap-5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-110 group-hover:rotate-12 transition-transform">
+                <AlertCircle className="h-7 w-7 text-white" />
               </div>
-              <div>
-                <div className="text-[10px] font-bold text-[#5844ED] uppercase tracking-wider">Completion</div>
-                <div className="text-xl font-bold text-slate-900">
+              <div className="flex-1">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Missing Docs</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + (cat.totalItems - cat.okItems), 0)}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none bg-gradient-to-br from-[#5844ED] to-[#7E6EF2] text-white shadow-premium hover-lift transition-all duration-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+            <CardContent className="p-6 flex items-center gap-5 relative z-10">
+              <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:bg-white/30 transition-colors">
+                <BarChart3 className="h-7 w-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-[11px] font-black text-white/80 uppercase tracking-widest mb-1 drop-shadow-sm">Completion Rate</div>
+                <div className="text-3xl font-black text-white tracking-tight drop-shadow-md">
                   {Math.round((groupedData.reduce((acc, cat) => acc + cat.okItems, 0) / (groupedData.reduce((acc, cat) => acc + cat.totalItems, 0) || 1)) * 100)}%
                 </div>
               </div>

@@ -57,16 +57,21 @@ export default function RiskRegister() {
         <DashboardLayout>
             <div className="space-y-6 max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Risk Management</h1>
-                        <p className="text-gray-500 dark:text-slate-400 mt-1">Identify, Assess, and Treat security risks according to ISO 27005.</p>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium">
+                    <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#3ABEF9] to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <Shield className="h-7 w-7 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Risk Management</h1>
+                            <p className="text-slate-500 font-medium mt-1">Identify, Assess, and Treat security risks according to ISO 27005.</p>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-3">
                         {activeTab === 'assets' ? (
                             <button
                                 onClick={() => setIsAddAssetOpen(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 shadow-sm shadow-blue-200 dark:shadow-none transition-colors"
+                                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#3ABEF9] text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2 transition-all hover:-translate-y-0.5"
                             >
                                 <Plus className="w-4 h-4" />
                                 Add to Inventory
@@ -74,7 +79,7 @@ export default function RiskRegister() {
                         ) : (
                             <button
                                 onClick={() => setActiveTab('assets')}
-                                className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 shadow-sm transition-colors"
+                                className="px-5 py-2.5 bg-white/80 border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 shadow-sm transition-all hover:border-blue-200 hover:text-blue-600"
                             >
                                 <Database className="w-4 h-4" />
                                 Asset Inventory
@@ -86,7 +91,7 @@ export default function RiskRegister() {
                                 setSelectedScenario(null);
                                 setIsWizardOpen(true);
                             }}
-                            className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 shadow-sm transition-colors"
+                            className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 flex items-center gap-2 shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-0.5"
                         >
                             <Shield className="w-4 h-4" />
                             Risk Assessment
@@ -95,47 +100,45 @@ export default function RiskRegister() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {[
                         { label: 'Total Risks', value: scenarios?.length || 0, icon: Shield, color: 'blue' },
-                        { label: 'High Risks', value: scenarios?.filter(s => (s.inherentScore || 0) >= 15).length || 0, icon: AlertTriangle, color: 'red' },
-                        { label: 'Mitigated', value: scenarios?.filter(s => s.status === 'treated').length || 0, icon: CheckCircle, color: 'green' },
+                        { label: 'High Risks', value: scenarios?.filter(s => (s.inherentScore || 0) >= 15).length || 0, icon: AlertTriangle, color: 'rose' },
+                        { label: 'Mitigated', value: scenarios?.filter(s => s.status === 'treated').length || 0, icon: CheckCircle, color: 'emerald' },
                         { label: 'Critical Assets', value: assets?.filter(a => (a.valuationA || 0) >= 4).length || 0, icon: Database, color: 'purple' },
                     ].map((stat, i) => (
-                        <div key={i} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
+                        <div key={i} className="bg-white/60 backdrop-blur-xl p-5 rounded-3xl border border-white/40 shadow-premium flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
                             <div>
-                                <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">{stat.label}</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
+                                <p className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide mb-1">{stat.label}</p>
+                                <p className="text-4xl font-black text-slate-900">{stat.value}</p>
                             </div>
-                            <div className={`p-3 rounded-lg bg-${stat.color}-50 dark:bg-${stat.color}-900/20 text-${stat.color}-600 dark:text-${stat.color}-400`}>
-                                <stat.icon className="w-5 h-5" />
+                            <div className={`p-4 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 shadow-inner group-hover:scale-110 transition-transform duration-300 ${stat.color === 'rose' && stat.value > 0 ? 'bg-rose-500 text-white shadow-rose-500/30' : ''}`}>
+                                <stat.icon className="w-7 h-7" />
                             </div>
                         </div>
                     ))}
                 </div>
 
                 {/* Tabs */}
-                <div className="border-b border-gray-200 dark:border-slate-800">
-                    <nav className="-mb-px flex space-x-8">
-                        {[
-                            { id: 'overview', label: 'Overview' },
-                            { id: 'register', label: 'Risk Register' },
-                            { id: 'assets', label: 'Asset Inventory' },
-                        ].map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`
-                    whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
-                    ${activeTab === tab.id
-                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-700'}
-                `}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                    </nav>
+                <div className="bg-white/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/60 inline-flex shadow-sm">
+                    {[
+                        { id: 'overview', label: 'Overview' },
+                        { id: 'register', label: 'Risk Register' },
+                        { id: 'assets', label: 'Asset Inventory' },
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`
+                                px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300
+                                ${activeTab === tab.id
+                                    ? 'bg-white text-[#5844ED] shadow-md border border-white/80'
+                                    : 'text-slate-500 hover:bg-white/50 hover:text-slate-800 border border-transparent'}
+                            `}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Content Area */}

@@ -389,7 +389,7 @@ function UnifiedClientGuard({
       globalRole
     });
 
-    if (!enabledInBuild) {
+    if (!enabledInBuild && !isGlobalAdmin && clientRole !== 'owner' && clientRole !== 'admin') {
       console.log('[DEBUG UnifiedClientGuard] Redirecting: Premium features disabled in build');
       return <Redirect to="/upgrade-required" />;
     }

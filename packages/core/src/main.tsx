@@ -71,7 +71,10 @@ queryClient.getQueryCache().subscribe((event: any) => {
   if (event.type === "updated" && event.action?.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
-    if (error instanceof TRPCClientError && error?.data?.code === 'PRECONDITION_FAILED' && error.message === 'Multi-factor authentication required' && typeof window !== 'undefined') {
+    if (error instanceof TRPCClientError &&
+      error?.data?.code === 'PRECONDITION_FAILED' &&
+      (error.message === 'Multi-factor authentication required' || error.message.includes('Administrative access requires active Multi-factor Authentication')) &&
+      typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('require-mfa'));
     }
     if (error instanceof TRPCClientError && error.message === "NOT_FOUND") return;
@@ -83,7 +86,10 @@ queryClient.getMutationCache().subscribe((event: any) => {
   if (event.type === "updated" && event.action?.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    if (error instanceof TRPCClientError && error?.data?.code === 'PRECONDITION_FAILED' && error.message === 'Multi-factor authentication required' && typeof window !== 'undefined') {
+    if (error instanceof TRPCClientError &&
+      error?.data?.code === 'PRECONDITION_FAILED' &&
+      (error.message === 'Multi-factor authentication required' || error.message.includes('Administrative access requires active Multi-factor Authentication')) &&
+      typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('require-mfa'));
     }
     console.error("[API Mutation Error]", error);
@@ -224,6 +230,7 @@ function AppWithMFA() {
           setShowMFAScreen(o);
           // If they close it without verifying, we might want to re-check AAL 
           // to ensure they aren't bypassing it if it's mandatory.
+          // Note: we let the modal handle the rejection logic properly 
         }}
         factorId={factorId}
       />

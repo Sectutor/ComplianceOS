@@ -74,7 +74,7 @@
     "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.0",
     "file-saver": "^2.0.5",
-    "framer-motion": "^11.0.24",
+    "framer-motion": "^11.18.2",
     "helmet": "^8.1.0",
     "html-docx-js-typescript": "^0.1.5",
     "html2canvas": "^1.4.1",

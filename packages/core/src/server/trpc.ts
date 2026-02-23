@@ -174,6 +174,12 @@ export const checkPremiumAccess = middleware(async (opts) => {
     const input = rawInput as any;
     const clientId = input?.clientId || ctx.clientId;
 
+    // Allow global admins or client admins/owners to bypass all checks including environment flags
+    const clientRole = (ctx as any).clientRole;
+    if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin' || clientRole === 'owner' || clientRole === 'admin') {
+        return next({ ctx: { ...ctx, isPremium: true } });
+    }
+
     // STRICT CHECK: Premium must be enabled in environment
     // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
     if (process.env.VITE_ENABLE_PREMIUM === 'false') {
@@ -181,10 +187,6 @@ export const checkPremiumAccess = middleware(async (opts) => {
             code: 'FORBIDDEN',
             message: 'Premium features are disabled in this environment. Please upgrade to the Enterprise Edition.'
         });
-    }
-
-    if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin') {
-        return next({ ctx: { ...ctx, isPremium: true } });
     }
 
     if (!clientId) {
