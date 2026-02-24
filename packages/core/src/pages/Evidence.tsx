@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import { Separator } from "@complianceos/ui/ui/separator";
+import { authedFetch } from "@/lib/authedFetch";
 
 export default function Evidence() {
   const { id } = useParams<{ id: string }>();
@@ -286,7 +287,7 @@ export default function Evidence() {
                 const extension = file.name.split('.').pop() || '';
                 const generatedFilename = `evidence-${evidence.id}-${timestamp}-${randomSuffix}.${extension}`;
 
-                const res = await fetch('/api/upload', {
+                const res = await authedFetch('/api/upload', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

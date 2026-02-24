@@ -92,7 +92,7 @@ export default function GapAnalysisEditor() {
     // 2. Get unique domains and sort them (Specific to the filtered framework)
     const domains = Array.from(new Set(controlsByFramework.map(c => c.category).filter(Boolean))).sort();
 
-    // 3. Apply UI Filters (Domain & Search)
+    // 3. Apply UI Filters (Domain & Search) then sort by priority score (highest first)
     const filteredControls = controlsByFramework.filter(c => {
         // Domain Filter
         if (filterDomain !== "All" && c.category !== filterDomain) return false;
@@ -105,6 +105,11 @@ export default function GapAnalysisEditor() {
                 c.description?.toLowerCase().includes(search);
         }
         return true;
+    }).sort((a, b) => {
+        // Sort by priority score descending (scored gaps first, then unscored)
+        const scoreA = getResponse(a.controlId)?.priorityScore ?? -1;
+        const scoreB = getResponse(b.controlId)?.priorityScore ?? -1;
+        return (scoreB as number) - (scoreA as number);
     }) || [];
 
     // Reset filter if the selected domain is no longer valid for the current set
@@ -155,9 +160,8 @@ export default function GapAnalysisEditor() {
     const handlePrioritize = async () => {
         try {
             setPrioritizing(true);
-            await calculatePrioritiesMutation.mutateAsync({ assessmentId });
-            toast.success("Gaps prioritized! Refresh to see scores.");
-            // Refetch data
+            const result = await calculatePrioritiesMutation.mutateAsync({ assessmentId });
+            toast.success(`${(result as any)?.scored ?? 0} gaps prioritized by risk. Reloading...`);
             window.location.reload();
         } catch (error) {
             console.error(error);

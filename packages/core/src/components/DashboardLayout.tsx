@@ -602,7 +602,7 @@ function DashboardLayoutContent({
       ]
     },
     {
-      label: "Assessments & Questionnaires",
+      label: "Assessments",
       items: [
         { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires", isPremium: true },
         { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
@@ -1323,9 +1323,9 @@ function CollapsibleGroup({
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="group/collapsible">
       <SidebarGroup className="py-1">
         <SidebarGroupLabel asChild>
-          <CollapsibleTrigger className="flex w-full items-center text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors px-4 py-2 mt-4">
-            {highlightMatch(group.label, menuSearch)}
-            <ChevronRight className="ml-auto h-3 w-3 transition-transform group-data-[state=open]/collapsible:rotate-90 opacity-40" />
+          <CollapsibleTrigger className="flex w-full justify-start items-center text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors px-4 py-2 mt-4 overflow-hidden">
+            <span className="truncate whitespace-nowrap flex-1">{highlightMatch(group.label, menuSearch)}</span>
+            <ChevronRight className="ml-1 h-3 w-3 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90 opacity-40" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
         <CollapsibleContent className="mt-1">
@@ -1350,7 +1350,7 @@ function CollapsibleGroup({
                         <item.icon
                           className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
                         />
-                        <span className="ml-2 uppercase text-[11px] tracking-wide flex-1">{highlightMatch(item.label, menuSearch)}</span>
+                        <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(item.label, menuSearch)}</span>
                         {item.isPremium && (
                           <Badge className="ml-auto bg-indigo-500/20 text-indigo-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
                             Pro
@@ -1423,9 +1423,9 @@ function CollapsibleMenuItem({
           : "text-slate-300 hover:text-white hover:bg-white/5"
           }`}
       >
-        <div className="flex items-center gap-2">
-          <item.icon className={`h-4.5 w-4.5 min-w-[1.125rem] ${isVisuallyActive ? "text-white" : "text-slate-400"}`} />
-          <span className="ml-2">{highlightMatch(item.label, currentSearch)}</span>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <item.icon className={`h-4.5 w-4.5 min-w-[1.125rem] shrink-0 ${isVisuallyActive ? "text-white" : "text-slate-400"}`} />
+          <span className="ml-2 uppercase text-[11px] tracking-wide truncate flex-1">{highlightMatch(item.label, currentSearch)}</span>
         </div>
         {!isCollapsed && (
           <div className="ml-auto opacity-60">
@@ -1450,7 +1450,7 @@ function CollapsibleMenuItem({
                   : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
               >
-                <span className="ml-1">{highlightMatch(subItem.label, currentSearch)}</span>
+                <span className="ml-1 truncate text-[11px] uppercase tracking-wide">{highlightMatch(subItem.label, currentSearch)}</span>
               </SidebarMenuButton>
             );
           })}

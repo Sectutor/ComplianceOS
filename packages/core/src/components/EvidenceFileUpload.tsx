@@ -7,6 +7,7 @@ import { Input } from "@complianceos/ui/ui/input";
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { authedFetch } from "@/lib/authedFetch";
 
 // Force HMR update
 
@@ -179,7 +180,7 @@ export default function EvidenceFileUpload({ evidenceId, clientId }: EvidenceFil
               );
 
               // Upload to server side storage via proxy
-              const response = await fetch('/api/upload', {
+              const response = await authedFetch('/api/upload', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

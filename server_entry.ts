@@ -37,7 +37,7 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
 import { createContext } from './packages/core/src/server/context';
 import { authMiddleware } from './packages/core/src/authMiddleware';
-import { getDb } from './packages/core/src/db';
+import { getDb, resetDb } from './packages/core/src/db';
 import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
@@ -71,12 +71,24 @@ const port = process.env.PORT || 3002;
 // Force restart
 console.log(`[Server] Initializing... Last update: ${new Date().toISOString()}`);
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', (err: any) => {
     console.error('[FATAL] Uncaught Exception:', err);
+    // Reset DB pool on connection-related errors to allow recovery
+    if (err?.code === 'ERR_INVALID_ARG_TYPE' || err?.message?.includes('connect') || err?.message?.includes('address')) {
+        console.warn('[DB] Resetting DB pool due to uncaughtException...');
+        resetDb().catch(() => { });
+    }
+    // Do NOT exit — let the server recover gracefully
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason: any, promise) => {
     console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+    // Reset DB pool on connection-related errors so the next request reconnects cleanly
+    if (reason?.code === 'ERR_INVALID_ARG_TYPE' || reason?.message?.includes('connect') || reason?.message?.includes('address') || reason?.code === 'ECONNRESET' || reason?.code === 'ECONNREFUSED') {
+        console.warn('[DB] Resetting DB pool due to unhandledRejection...');
+        resetDb().catch(() => { });
+    }
+    // Do NOT exit — TRPC and Express will surface the error as a 500
 });
 
 console.log('[Server Start] Environment Check:');
