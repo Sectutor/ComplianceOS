@@ -125,7 +125,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
     const { data: availableRisks } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
     const { data: availableControls } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: clientData } = trpc.clients.get.useQuery({ id: clientId }, { enabled: !!clientId });
-    const { data: employeesList } = trpc.employees.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId }, { enabled: !!clientId });
 
     const { data: assignments, isLoading: loadingAssignments } = trpc.policyManagement.getAssignments.useQuery(
         { policyId },
@@ -2328,11 +2328,11 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="unassigned">Unassigned</SelectItem>
-                                            {employeesList?.map((employee: any) => {
-                                                const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.email;
+                                            {workspaceMembers?.map((member: any) => {
+                                                const displayName = member.name || member.email;
                                                 return (
-                                                    <SelectItem key={employee.id} value={fullName}>
-                                                        {fullName}
+                                                    <SelectItem key={member.id} value={member.email}>
+                                                        {displayName}
                                                     </SelectItem>
                                                 );
                                             })}
@@ -2405,14 +2405,14 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 <Label>Reviewers</Label>
                                                 {/* Simple multi-select placeholder */}
                                                 <div className="border rounded-md p-2 max-h-40 overflow-y-auto">
-                                                    {employeesList?.map((emp: any) => {
-                                                        const id = String(emp.id); // Ensure string ID
+                                                    {workspaceMembers?.map((member: any) => {
+                                                        const id = String(member.id); // Ensure string ID
                                                         const isSelected = selectedReviewers.includes(id);
                                                         return (
-                                                            <div key={emp.id} className="flex items-center space-x-2 py-1">
+                                                            <div key={member.id} className="flex items-center space-x-2 py-1">
                                                                 <input
                                                                     type="checkbox"
-                                                                    id={`reviewer-${emp.id}`}
+                                                                    id={`reviewer-${member.id}`}
                                                                     checked={isSelected}
                                                                     onChange={(e) => {
                                                                         if (e.target.checked) {
@@ -2423,14 +2423,14 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                     }}
                                                                     className="rounded border-gray-300"
                                                                 />
-                                                                <label htmlFor={`reviewer-${emp.id}`} className="text-sm cursor-pointer select-none">
-                                                                    {emp.firstName} {emp.lastName} ({emp.email})
+                                                                <label htmlFor={`reviewer-${member.id}`} className="text-sm cursor-pointer select-none">
+                                                                    {member.name || member.email}
                                                                 </label>
                                                             </div>
                                                         );
                                                     })}
-                                                    {(!employeesList || employeesList.length === 0) && (
-                                                        <div className="text-sm text-muted-foreground p-2">No employees found.</div>
+                                                    {(!workspaceMembers || workspaceMembers.length === 0) && (
+                                                        <div className="text-sm text-muted-foreground p-2">No workspace members found.</div>
                                                     )}
                                                 </div>
                                             </div>
