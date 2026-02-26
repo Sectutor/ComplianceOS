@@ -45,6 +45,12 @@ export default defineConfig({
                 target: 'http://127.0.0.1:3002',
                 changeOrigin: true,
                 secure: false,
+                bypass: (req) => {
+                    // Do not proxy OAuth callback routes - handle them in the frontend
+                    if (req.url?.includes('/api/oauth/')) {
+                        return req.url;
+                    }
+                }
             },
             '/uploads': {
                 target: 'http://127.0.0.1:3002',

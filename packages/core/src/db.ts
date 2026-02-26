@@ -33,6 +33,7 @@ import {
   evidenceFiles, InsertEvidenceFile, EvidenceFile,
 
   notificationSettings, InsertNotificationSettings, NotificationSettings,
+  threatAlertSettings, InsertThreatAlertSettings, ThreatAlertSettings,
 
   notificationLog, InsertNotificationLog, NotificationLog,
 

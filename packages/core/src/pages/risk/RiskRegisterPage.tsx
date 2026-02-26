@@ -264,7 +264,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                 </div>
 
                 {riskAssessments && riskAssessments.length > 0 && (
-                    <div className="h-64 grid grid-cols-2 gap-4 mb-8">
+                    <div className="grid grid-cols-2 gap-4 mb-8 min-h-[300px]">
                         <RiskHeatmap
                             assessments={riskAssessments || []}
                             type="inherent"

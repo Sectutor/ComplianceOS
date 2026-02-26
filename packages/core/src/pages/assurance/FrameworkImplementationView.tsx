@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@complianceos/ui/ui/dialog";
+import { Label } from "@complianceos/ui/ui/label";
 import ReactMarkdown from 'react-markdown';
 import { PageGuide } from "@/components/PageGuide";
 

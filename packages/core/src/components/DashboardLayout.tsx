@@ -873,6 +873,7 @@ function DashboardLayoutContent({
               { label: "Users", path: "/settings/users" },
               { label: "Organization", path: "/settings/organization" },
               { label: "Invitations", path: "/settings/invitations" },
+              { label: "Integrations", path: "/settings/integrations" },
             ]
           },
           ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),

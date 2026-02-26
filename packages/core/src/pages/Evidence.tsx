@@ -12,6 +12,7 @@ import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid } from "lucide-react";
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
+import { GoogleDriveFileBrowser } from "@/components/integrations/GoogleDriveFileBrowser";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useState, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
@@ -38,6 +39,7 @@ export default function Evidence() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<number | null>(null);
   const [viewingFiles, setViewingFiles] = useState<number | null>(null);
+  const [googleDriveBrowserOpen, setGoogleDriveBrowserOpen] = useState<boolean>(false);
   const [selectedClientControlId, setSelectedClientControlId] = useState<string>("");
   const [selectedOwner, setSelectedOwner] = useState<string>("");
   const [selectedRaci, setSelectedRaci] = useState<string>("R");
@@ -858,6 +860,17 @@ export default function Evidence() {
           footer={<Button onClick={() => setViewingFiles(null)}>Close</Button>}
         >
           <div className="py-4 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Upload Files</h3>
+              <Button
+                variant="outline"
+                onClick={() => setGoogleDriveBrowserOpen(true)}
+                className="gap-2"
+              >
+                <span className="text-lg">📁</span>
+                Import from Google Drive
+              </Button>
+            </div>
             <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
             <div className="pt-4 border-t border-slate-100">
               <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
@@ -868,6 +881,19 @@ export default function Evidence() {
             </div>
           </div>
         </EnhancedDialog>
+      )}
+
+      {/* Google Drive Import Dialog */}
+      {viewingFiles && (
+        <GoogleDriveFileBrowser
+          evidenceId={viewingFiles}
+          clientId={clientId}
+          open={googleDriveBrowserOpen}
+          onOpenChange={setGoogleDriveBrowserOpen}
+          onImportComplete={() => {
+            // Refetch files after import
+          }}
+        />
       )}
 
       <AlertDialog open={!!evidenceToDelete} onOpenChange={(open) => !open && setEvidenceToDelete(null)}>

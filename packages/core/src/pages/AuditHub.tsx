@@ -1145,7 +1145,33 @@ export default function AuditHub() {
                         ) : activeSection === 'findings' ? (
                             <AuditFindings clientId={clientId} />
                         ) : activeSection === 'discussions' ? (
-                            <AuditDiscussions clientId={clientId} />
+                            <AuditDiscussions
+                                clientId={clientId}
+                                onNavigateToEvidence={(id) => {
+                                    // Try to find the evidence request by various ID formats
+                                    const idStr = String(id);
+                                    const req = auditRequests.find(r => {
+                                        // Direct match on id
+                                        if (r.id === idStr) return true;
+                                        // Match on original.id
+                                        if (r.original?.id === idStr) return true;
+                                        // Match on original.evidenceId
+                                        if (r.original?.evidenceId === idStr) return true;
+                                        // Match EV- prefix format
+                                        if (`EV-${r.id}` === idStr || `EV-${r.original?.evidenceId}` === idStr) return true;
+                                        return false;
+                                    });
+                                    
+                                    if (req) {
+                                        console.log("[AuditHub] Navigating to evidence request:", req.id);
+                                        setActiveSection('pbc');
+                                        setSelectedRequest(req);
+                                    } else {
+                                        console.warn("[AuditHub] Evidence request not found for id:", id);
+                                        toast.error("Evidence request not found.");
+                                    }
+                                }}
+                            />
                         ) : null}
                     </div>
                 </div>
@@ -1864,7 +1890,7 @@ function AuditFindings({ clientId }: { clientId: number }) {
     );
 }
 
-function AuditDiscussions({ clientId }: { clientId: number }) {
+function AuditDiscussions({ clientId, onNavigateToEvidence }: { clientId: number, onNavigateToEvidence: (id: string | number) => void }) {
     const { data: comments, isLoading } = trpc.evidence.getAllComments.useQuery({ clientId });
 
     return (
@@ -1914,6 +1940,7 @@ function AuditDiscussions({ clientId }: { clientId: number }) {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 bg-slate-50 border border-slate-100"
+                                                    onClick={() => onNavigateToEvidence(comment.evidenceId)}
                                                 >
                                                     View Context <ArrowRight className="ml-1.5 h-3 w-3" />
                                                 </Button>

@@ -24,6 +24,34 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
+
+// Helper to determine compliance status based on rate
+function getComplianceStatus(rate: number) {
+  if (rate >= 80) {
+    return { label: 'SYSTEM OPTIMAL', pingColor: 'bg-emerald-400', dotColor: 'bg-emerald-500', textColor: 'text-emerald-500' };
+  }
+  if (rate >= 50) {
+    return { label: 'SYSTEM ACCEPTABLE', pingColor: 'bg-amber-400', dotColor: 'bg-amber-500', textColor: 'text-amber-500' };
+  }
+  return { label: 'CRITICAL POSTURE', pingColor: 'bg-rose-400', dotColor: 'bg-rose-500', textColor: 'text-rose-500' };
+}
+
+// Status indicator component with clear, readable logic
+function StatusIndicator({ rate }: { rate: number }) {
+  const status = getComplianceStatus(rate);
+  
+  return (
+    <>
+      <span className="flex h-2 w-2 relative">
+        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.pingColor}`}></span>
+        <span className={`relative inline-flex rounded-full h-2 w-2 ${status.dotColor}`}></span>
+      </span>
+      <span className={`text-xs font-bold tracking-wider ${status.textColor}`}>
+        {status.label}
+      </span>
+    </>
+  );
+}
 import {
   PieChart as RechartsPie,
   Pie,
@@ -402,11 +430,7 @@ export default function Dashboard() {
                     color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
                   />
                   <div className="mt-8 flex items-center justify-center gap-2">
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                    </span>
-                    <span className="text-xs font-bold text-blue-400 tracking-wider">SYSTEM OPTIMAL</span>
+                    <StatusIndicator rate={overallComplianceRate} />
                   </div>
                 </div>
               </div>
