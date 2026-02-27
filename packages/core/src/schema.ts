@@ -903,6 +903,10 @@ export const clients = pgTable("clients", {
   brandPrimaryColor: varchar("brand_primary_color", { length: 20 }),
   brandSecondaryColor: varchar("brand_secondary_color", { length: 20 }),
   portalTitle: varchar("portal_title", { length: 255 }),
+  sidebarBg: varchar("sidebar_bg", { length: 20 }),
+  sidebarFg: varchar("sidebar_fg", { length: 20 }),
+  headingFont: varchar("heading_font", { length: 100 }),
+  bodyFont: varchar("body_font", { length: 100 }),
 
   weeklyFocus: text("weekly_focus"), // Advisor-set goal for Model 2
 
@@ -14751,3 +14755,38 @@ export const nist80030ImpactAssessments = pgTable("nist_80030_impact_assessments
 
 export type Nist80030ImpactAssessment = typeof nist80030ImpactAssessments.$inferSelect;
 export type InsertNist80030ImpactAssessment = typeof nist80030ImpactAssessments.$inferInsert;
+
+// ============================================================================
+// Learning Content - Editable learning guides stored in database
+// ============================================================================
+
+export const learningFrameworks = pgTable("learning_frameworks", {
+  id: serial("id").primaryKey(),
+  frameworkId: varchar("framework_id", { length: 50 }).notNull().unique(), // e.g., "iso-27001", "soc-2"
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  color: varchar("color", { length: 50 }).default("bg-blue-600"), // Tailwind color class
+  icon: varchar("icon", { length: 100 }), // Lucide icon name
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const learningSections = pgTable("learning_sections", {
+  id: serial("id").primaryKey(),
+  frameworkId: integer("framework_id").notNull(),
+  sectionId: varchar("section_id", { length: 100 }).notNull(), // e.g., "intro", "cia-triad"
+  title: varchar("title", { length: 255 }).notNull(),
+  icon: varchar("icon", { length: 100 }), // Lucide icon name
+  content: text("content").notNull(), // HTML content
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    frameworkIdx: index("idx_learning_sections_framework").on(table.frameworkId),
+    uniqueSection: uniqueIndex("idx_learning_sections_unique").on(table.frameworkId, table.sectionId),
+  };
+});

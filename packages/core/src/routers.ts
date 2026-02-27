@@ -103,6 +103,7 @@ import { createGlobalVendorsRouter } from "./server/routers/globalVendors";
 import { integrationsRouter } from "./server/routers/integrations";
 import { createKnowledgeBaseRouter } from "./server/routers/knowledgeBase";
 import { createQuestionnaireRouter } from "./server/routers/questionnaire";
+import { createLearningRouter } from "./server/routers/learning";
 import { createTaskAssignmentsRouter } from "./server/routers/taskAssignments";
 import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
 import { createReportsRouter } from "./server/routers/reports";
@@ -172,6 +173,7 @@ SI-4: Information System Monitoring
 
 
 import { createAuditorsRouter } from "./server/routers/auditors";
+import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 
 export const appRouter = router({
   evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
@@ -191,6 +193,7 @@ export const appRouter = router({
   frameworks: createFrameworksRouter(t, protectedProcedure),
   frameworkImport: createFrameworkImportRouter(t, clientProcedure),
   frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
+  requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
   autopilot: createAutopilotRouter(t, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
@@ -246,6 +249,8 @@ export const appRouter = router({
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
+
+  learning: createLearningRouter(t, publicProcedure, adminProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
   training: createTrainingRouter(t, clientProcedure, clientEditorProcedure),
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
