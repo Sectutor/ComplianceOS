@@ -125,6 +125,7 @@ import { createStudioRouter } from "./server/routers/studio";
 import { createMaturityRouter } from "./server/routers/maturity";
 import { createGumroadRouter } from "./server/routers/gumroad";
 import { feedbackRouter } from "./server/routers/feedback";
+import { createBackupRestoreRouter } from "./server/routers/backupRestore";
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -174,8 +175,10 @@ SI-4: Information System Monitoring
 
 import { createAuditorsRouter } from "./server/routers/auditors";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
+import { createProgramGuidesRouter } from "./server/routers/programGuides";
 
 export const appRouter = router({
+  programGuides: createProgramGuidesRouter(t, clientProcedure),
   evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
   actions: createActionsRouter(t, clientProcedure),
   auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
@@ -245,7 +248,7 @@ export const appRouter = router({
   privacyEnhancements: createPrivacyEnhancementsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   cyber: createCyberRouter(t, clientProcedure),
   assets: createAssetsRouter(t, clientProcedure, clientEditorProcedure),
-  integrations: integrationsRouter ? integrationsRouter(t, clientProcedure, isAuthed) : router({}),
+  integrations: integrationsRouter ? integrationsRouter(t, clientProcedure, publicProcedure, isAuthed) : router({}),
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
@@ -268,6 +271,7 @@ export const appRouter = router({
   }),
   feedback: feedbackRouter,
   studio: createStudioRouter(t, protectedProcedure),
+  backupRestore: createBackupRestoreRouter(t, clientProcedure),
   advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
     const sig = ctx.req.headers["x-signature"] as string | undefined;
     const ts = ctx.req.headers["x-timestamp"] as string | undefined;

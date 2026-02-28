@@ -1,7 +1,7 @@
 // Refresh - Force Rebuild for FedRAMP integration
 import { Toaster } from "@complianceos/ui/ui/sonner";
 
-import { BrandingProvider } from "./config/branding";
+import { BrandingProvider, useBranding } from "./config/branding";
 import { TooltipProvider } from "@complianceos/ui/ui/tooltip";
 import GDPRBanner from "@/components/GDPRBanner";
 import NotFound from "@/pages/NotFound";
@@ -89,6 +89,7 @@ const ISO27001ReadinessChecklist = lazy(() => import("./pages/learning/ISO27001R
 const RegulationsDashboard = lazy(() => import("./pages/RegulationsDashboard"));
 const RegulationDetail = lazy(() => import("./pages/RegulationDetail"));
 const FrameworksDashboard = lazy(() => import("./pages/FrameworksDashboard"));
+const ComplianceRequirementsPage = lazy(() => import("./pages/ComplianceRequirementsPage"));
 
 const RiskDashboard = lazy(() => import("./pages/risk/RiskDashboard"));
 const RiskOverview = lazy(() => import("./pages/risk/RiskOverview"));
@@ -117,6 +118,12 @@ const VendorOverview = lazy(() => import("./pages/tprm/VendorOverview"));
 const BusinessContinuityOverview = lazy(() => import("./pages/business-continuity/BusinessContinuityOverview"));
 const CyberOverview = lazy(() => import("./pages/cyber/CyberOverview"));
 const GovernanceDashboard = lazy(() => import("./pages/governance/GovernanceDashboard"));
+const GovernanceProgramGuide = lazy(() => import("./pages/governance/GovernanceProgramGuide"));
+const FederalProgramGuide = lazy(() => import("./pages/federal/FederalProgramGuide"));
+const RiskProgramGuide = lazy(() => import("./pages/risk/RiskProgramGuide"));
+const VendorProgramGuide = lazy(() => import("./pages/tprm/VendorProgramGuide"));
+const PrivacyProgramGuide = lazy(() => import("./pages/privacy/PrivacyProgramGuide"));
+const BCPProgramGuide = lazy(() => import("./pages/business-continuity/BCPProgramGuide"));
 const ComplianceOverview = lazy(() => import("./pages/compliance/ComplianceOverview"));
 const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview"));
 const SAMMView = lazy(() => import("@/pages/assurance/SAMMView"));
@@ -302,11 +309,48 @@ const VendorAssessmentPortal = lazy(() => import("./pages/portal/VendorAssessmen
 // const Integrations = lazy(() => import("./pages/admin/Integrations"));
 const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
 const GitHubOAuthCallback = lazy(() => import("./pages/api/oauth/github/callback"));
-const SlackOAuthCallback = lazy(() => import("./pages/api/oauth/slack/callback"));
+const SlackOAuthCallback = lazy(() => import("./pages/api/oauth/slack/callback").then(module => ({ default: module.SlackOAuthCallback })));
 
 const SecurityProjectsDashboard = lazy(() => import("./pages/projects/ProjectsDashboard").then(m => ({ default: m.ProjectsDashboard })));
 const SecurityProjectDetail = lazy(() => import("./pages/projects/ProjectDetail").then(m => ({ default: m.ProjectDetail })));
 
+
+function GlobalBrandingSync() {
+  const { selectedClientId } = useClientContext();
+  const [location] = useLocation();
+  const urlClientMatch = location.match(/\/clients\/(\d+)/);
+  const urlClientId = urlClientMatch ? parseInt(urlClientMatch[1], 10) : null;
+  const effectiveClientId = selectedClientId || urlClientId;
+
+  const { data: client } = trpc.clients.get.useQuery(
+    { id: effectiveClientId as number },
+    {
+      enabled: !!effectiveClientId,
+      retry: false,
+      staleTime: 1000 * 60 * 5,
+    }
+  );
+
+  const { updateBranding } = useBranding();
+
+  useEffect(() => {
+    if (client) {
+      const brandingUpdates: Partial<import("./config/branding").BrandingConfig> = {};
+      if (client.brandPrimaryColor) brandingUpdates.primaryColor = client.brandPrimaryColor;
+      if (client.sidebarBg) brandingUpdates.sidebarBg = client.sidebarBg;
+      if (client.headingFont) brandingUpdates.headingFont = client.headingFont;
+      if (client.bodyFont) brandingUpdates.bodyFont = client.bodyFont;
+      if (client.logoUrl) brandingUpdates.logoUrl = client.logoUrl;
+      if (client.portalTitle) brandingUpdates.portalTitle = client.portalTitle;
+
+      if (Object.keys(brandingUpdates).length > 0) {
+        updateBranding(brandingUpdates);
+      }
+    }
+  }, [client, updateBranding]);
+
+  return null;
+}
 
 // Unified Client Guard - Handles both Premium and Management checks
 // This ensures that client data is fetched ONCE and shared across all guards
@@ -319,7 +363,7 @@ function UnifiedClientGuard({
   requirePremium?: boolean,
   requireManagement?: boolean
 }) {
-  const { selectedClientId, setPlanTier, setUserRole, userRole: contextRole } = useClientContext();
+  const { selectedClientId, setPlanTier, setUserRole, userRole: contextRole, setIsPremiumStatus } = useClientContext();
   const [location] = useLocation();
 
   // Extract client ID from URL as fallback
@@ -352,15 +396,22 @@ function UnifiedClientGuard({
     if (userMe?.planTier && !client) setPlanTier(userMe.planTier);
   }, [userMe, setPlanTier, client]);
 
+  const tier = client?.planTier || userMe?.planTier;
+  const clientRole = client?.userRole || contextRole;
+  const globalRole = userMe?.role;
+  const isGlobalAdmin = ['admin', 'owner', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
+  const isAdminOrOwner = isGlobalAdmin || clientRole === 'owner' || clientRole === 'admin';
+  const isPremiumContext = tier === 'pro' || tier === 'enterprise' || isAdminOrOwner || clientRole === 'owner' || clientRole === 'admin';
+
+  useEffect(() => {
+    setIsPremiumStatus(isPremiumContext);
+  }, [isPremiumContext, setIsPremiumStatus]);
+
   if (error?.data?.code === 'PRECONDITION_FAILED') {
     const message = error.message?.toLowerCase() || '';
-    console.log('[DEBUG UnifiedClientGuard] PRECONDITION_FAILED caught:', { message });
-
-    // Distinguish between MFA requirement and Upgrade requirement
     if (message.includes('mfa') || message.includes('multi-factor')) {
       return <Redirect to="/settings/security" />;
     }
-
     return <Redirect to="/upgrade-required" />;
   }
 
@@ -370,49 +421,22 @@ function UnifiedClientGuard({
 
   if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
-  const tier = client?.planTier || userMe?.planTier;
-  const clientRole = client?.userRole || contextRole;
-  const globalRole = userMe?.role;
-  const isGlobalAdmin = globalRole === 'admin' || globalRole === 'owner' || globalRole === 'super_admin';
-
-  // 1. Premium Check (if required)
-  if (error) {
-    console.error('[DEBUG UnifiedClientGuard] TRPC error:', error);
-  }
-
   if (requirePremium) {
     const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
-    const isPremium = tier === 'pro' || tier === 'enterprise' ||
-      isGlobalAdmin ||
-      clientRole === 'owner' || clientRole === 'admin';
-
-    console.log('[DEBUG UnifiedClientGuard]', {
-      requirePremium,
-      enabledInBuild,
-      isGlobalAdmin,
-      isPremium,
-      tier,
-      clientRole,
-      effectiveClientId,
-      globalRole
-    });
+    const isPremium = isPremiumContext;
 
     if (!enabledInBuild && !isGlobalAdmin && clientRole !== 'owner' && clientRole !== 'admin') {
-      console.log('[DEBUG UnifiedClientGuard] Redirecting: Premium features disabled in build');
       return <Redirect to="/upgrade-required" />;
     }
     if (!isPremium) {
-      console.log('[DEBUG UnifiedClientGuard] Redirecting: !isPremium');
       return <Redirect to="/upgrade-required" />;
     }
   }
 
-  // 2. Management Check (if required)
   if (requireManagement) {
-    const isAuthorized = isGlobalAdmin ||
-      clientRole === 'owner' || clientRole === 'admin';
-
-    if (!isAuthorized) return <Redirect to="/dashboard" />;
+    if (!isAdminOrOwner) {
+      return <Redirect to="/dashboard" />;
+    }
   }
 
   return <>{children}</>;
@@ -567,6 +591,17 @@ function CyberAlias() {
   return <Redirect to="/clients" />;
 }
 
+function NIS2AssessmentAlias() {
+  const { selectedClientId } = useClientContext();
+
+  if (selectedClientId) {
+    return <Redirect to={`/clients/${selectedClientId}/nis2-assessment`} />;
+  }
+  return <Redirect to="/clients" />;
+}
+
+
+
 function VendorsAlias() {
   const { selectedClientId } = useClientContext();
   const search = window.location.search;
@@ -704,6 +739,24 @@ function Router() {
         </Route>
         <Route path="/clients/:id/governance/alignment-guide">
           <ProtectedRoute component={GovernanceAlignmentPage} />
+        </Route>
+        <Route path="/clients/:id/governance/program-guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/federal/program-guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/risks/program-guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={RiskProgramGuide} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/vendors/program-guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={VendorProgramGuide} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/privacy/program-guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={PrivacyProgramGuide} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/business-continuity/program-guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={BCPProgramGuide} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/governance">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}
@@ -1642,6 +1695,8 @@ function Router() {
           <ProtectedRoute component={CyberAlias} />
         </Route>
 
+
+
         <Route path="/controls">
           <ProtectedRoute component={Controls} />
         </Route>
@@ -1840,6 +1895,9 @@ function Router() {
         <Route path="/frameworks">
           <ProtectedRoute component={FrameworksDashboard} />
         </Route>
+        <Route path="/compliance-requirements">
+          <ProtectedRoute component={ComplianceRequirementsPage} />
+        </Route>
 
         {/* Route Aliases for better UX */}
         <Route path="/people">
@@ -1949,6 +2007,7 @@ function App() {
       <BrandingProvider>
         <AuthProvider>
           <ClientContextProvider>
+            <GlobalBrandingSync />
             <AdvisorProvider>
               <ThemeProvider defaultTheme="light">
                 <TooltipProvider>

@@ -102,9 +102,11 @@ export default function GovernanceDashboard() {
                                 </p>
                             </div>
                         </div>
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold whitespace-nowrap">
-                            View Guide <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
+                        <Link href={`/clients/${clientId}/governance/program-guide`}>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold whitespace-nowrap">
+                                View Guide <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                        </Link>
                     </CardContent>
                 </Card>
 

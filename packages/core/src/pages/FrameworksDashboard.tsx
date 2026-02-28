@@ -109,18 +109,20 @@ export default function FrameworksDashboard() {
     );
 
     const { user } = useAuth();
-    const { userRole: clientRole } = useClientContext();
+    const { userRole: clientRole, isPremiumStatus } = useClientContext();
     const isGlobalAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin';
     const isClientAdmin = clientRole === 'owner' || clientRole === 'admin';
     const hasPremiumTier = client?.planTier === 'pro' || client?.planTier === 'enterprise';
 
     // Admins bypass the environment check
-    const isPremium = isGlobalAdmin || isClientAdmin || (hasPremiumTier && import.meta.env.VITE_ENABLE_PREMIUM !== 'false');
+    const isPremium = isPremiumStatus;
 
 
     const filteredFrameworks = frameworks.filter(fw =>
-        fw.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        fw.description.toLowerCase().includes(searchQuery.toLowerCase())
+        !fw.isObligation && (
+            fw.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            fw.description.toLowerCase().includes(searchQuery.toLowerCase())
+        )
     );
 
     const getStats = (fwName: string) => {

@@ -574,6 +574,7 @@ export async function getUserClients(userId: number) {
 
 
 export async function getUserById(id: number) {
+  console.log('[DEBUG getUserById] id:', id, 'type:', typeof id);
   const db = await getDb();
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result[0];

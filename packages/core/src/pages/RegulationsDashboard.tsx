@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { regulations } from "@/data/regulations";
+import { frameworks } from "@/data/frameworks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
-import { ArrowRight, Scale, Shield, Target, Rocket, Activity, AlertCircle } from "lucide-react";
+import { Input } from "@complianceos/ui/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@complianceos/ui/ui/select";
+import { ArrowRight, Scale, Shield, Target, Rocket, Activity, AlertCircle, Search, ChevronDown, ChevronRight as ChevronRightIcon, FileText, ClipboardCheck, LayoutList, Database, FileCheck } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 
@@ -154,6 +164,7 @@ export default function RegulationsDashboard() {
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Regulations */}
                     {regulations.map((reg) => {
                         const regStats = getStats(reg.name);
                         const progressColor = getProgressColor(regStats.percentage);
@@ -193,6 +204,53 @@ export default function RegulationsDashboard() {
                                         />
                                         <span className={`mt-3 text-xs font-black uppercase tracking-wider ${regStats.percentage > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
                                             {regStats.percentage > 0 ? `${regStats.percentage}% Done` : 'Not Started'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </Card>
+                        );
+                    })}
+
+                    {/* Standard Frameworks & Obligatory Certifications */}
+                    {frameworks.filter(f => f.isObligation).map((fw) => {
+                        const fwStats = getStats(fw.name);
+                        const progressColor = getProgressColor(fwStats.percentage);
+
+                        return (
+                            <Card key={fw.id} className="group hover:border-white/60 bg-white/60 backdrop-blur-xl border border-white/40 shadow-premium transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden rounded-3xl relative" onClick={() => setLocation(`/clients/${clientId}/compliance-obligations/${fw.id}`)}>
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                                <div className="p-6 flex h-full gap-6 relative z-10">
+                                    {/* Left Side: Info */}
+                                    <div className="flex-1 flex flex-col min-w-0">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <RegulationLogo logo={fw.logo} name={fw.name} />
+                                            <Badge variant="secondary" className="bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm hover:bg-blue-50 px-3 py-1 text-xs uppercase tracking-wider">{fw.type}</Badge>
+                                        </div>
+
+                                        <div className="mb-auto">
+                                            <h3 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors leading-tight mb-2 tracking-tight">
+                                                {fw.name}
+                                            </h3>
+                                            <p className="text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                                                {fw.description}
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center text-sm font-bold text-primary group-hover:translate-x-1 transition-transform">
+                                            View Details <ArrowRight className="ml-1.5 h-4 w-4" />
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side: Progress */}
+                                    <div className="flex flex-col items-center justify-center border-l dashed border-slate-200/50 pl-6 min-w-[120px]">
+                                        <CircularProgress
+                                            value={fwStats.percentage}
+                                            size={100}
+                                            strokeWidth={10}
+                                            color={progressColor}
+                                        />
+                                        <span className={`mt-3 text-xs font-black uppercase tracking-wider ${fwStats.percentage > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
+                                            {fwStats.percentage > 0 ? `${fwStats.percentage}% Done` : 'Not Started'}
                                         </span>
                                     </div>
                                 </div>

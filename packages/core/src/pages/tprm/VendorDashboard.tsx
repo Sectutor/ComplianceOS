@@ -86,7 +86,7 @@ export default function VendorDashboard() {
                                 </p>
                             </div>
                         </div>
-                        <Link href={`/clients/${clientId}/vendors/overview-guide`}>
+                        <Link href={`/clients/${clientId}/vendors/program-guide`}>
                             <Button className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold whitespace-nowrap shadow-lg h-11 px-6 rounded-xl transition-all hover:scale-105 active:scale-95">
                                 View Program Guide <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
@@ -209,7 +209,7 @@ export default function VendorDashboard() {
                     </Card>
 
                     {/* Compliance Guide Card */}
-                    <div className="md:col-span-2 p-5 rounded-3xl border-2 border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white shadow-premium flex flex-col justify-center cursor-pointer hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group" onClick={() => window.location.href = `/clients/${clientId}/vendors/alignment-guide`}>
+                    <div className="md:col-span-2 p-5 rounded-3xl border-2 border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white shadow-premium flex flex-col justify-center cursor-pointer hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group" onClick={() => window.location.href = `/clients/${clientId}/vendors/program-guide`}>
                         <div className="flex justify-between items-center">
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-3 mb-2">

@@ -222,7 +222,7 @@ export default function FederalComplianceDashboard() {
                                 </p>
                             </div>
                         </div>
-                        <Link href={`/clients/${clientId}/federal/alignment-guide`}>
+                        <Link href={`/clients/${clientId}/federal/program-guide`}>
                             <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold whitespace-nowrap">
                                 View Guide <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>

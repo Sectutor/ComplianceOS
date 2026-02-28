@@ -14285,6 +14285,26 @@ export const frameworkKnowledgeMappings = pgTable("framework_knowledge_mappings"
 export type FrameworkKnowledgeMapping = typeof frameworkKnowledgeMappings.$inferSelect;
 export type InsertFrameworkKnowledgeMapping = typeof frameworkKnowledgeMappings.$inferInsert;
 
+export const programGuideAssignments = pgTable("program_guide_assignments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  guideType: varchar("guide_type", { length: 50 }).notNull(), // 'privacy', 'risk', 'vendor', 'governance', 'business-continuity'
+  stepId: varchar("step_id", { length: 50 }).notNull(), // 'bia', 'scenarios', etc.
+  userId: integer("user_id").notNull(), // Link to users table
+  targetDate: timestamp("target_date"),
+  assignedBy: integer("assigned_by"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_pga_client").on(table.clientId),
+    uniqueStepIdx: uniqueIndex("idx_pga_unique_step").on(table.clientId, table.guideType, table.stepId),
+  }
+});
+
+export type ProgramGuideAssignment = typeof programGuideAssignments.$inferSelect;
+export type InsertProgramGuideAssignment = typeof programGuideAssignments.$inferInsert;
+
 // ==========================================
 // TRUST CENTER & NDA GATEKEEPING
 // ==========================================

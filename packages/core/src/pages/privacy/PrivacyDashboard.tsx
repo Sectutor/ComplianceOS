@@ -29,6 +29,26 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                 </div>
             </div>
 
+            {/* Privacy Program Overview Callout */}
+            <Card className="bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-100 mb-6">
+                <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex gap-4 items-center">
+                        <div className="p-3 bg-indigo-100 rounded-xl hidden sm:block">
+                            <FileText className="w-8 h-8 text-indigo-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-indigo-900 text-lg">Privacy Program Guidance</h3>
+                            <p className="text-indigo-700/80 max-w-2xl">
+                                New to Data Privacy? View our comprehensive overview of GDPR, CCPA, and general privacy requirements to get your program started.
+                            </p>
+                        </div>
+                    </div>
+                    <Button onClick={() => setLocation(`/clients/${clientId}/privacy/program-guide`)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold whitespace-nowrap">
+                        View Guide
+                    </Button>
+                </CardContent>
+            </Card>
+
             {statsLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
                     <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />

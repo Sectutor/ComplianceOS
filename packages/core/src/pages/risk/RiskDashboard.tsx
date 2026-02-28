@@ -106,7 +106,7 @@ export default function RiskDashboard() {
                 </div>
 
                 {/* Risk Management Overview Callout */}
-                <Card className="bg-gradient-to-r from-slate-900 to-orange-900 text-white border-0 shadow-2xl overflow-hidden group cursor-pointer" onClick={() => setLocation(`/clients/${clientId}/risks/overview`)}>
+                <Card className="bg-gradient-to-r from-slate-900 to-orange-900 text-white border-0 shadow-2xl overflow-hidden group cursor-pointer" onClick={() => setLocation(`/clients/${clientId}/risks/program-guide`)}>
                     <CardContent className="p-0 relative">
                         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-orange-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
                         <div className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
@@ -223,7 +223,7 @@ export default function RiskDashboard() {
                     ))}
 
                     {/* Compliance Guide Card */}
-                    <div className="p-4 rounded-xl border border-amber-200 bg-white shadow-sm flex flex-col justify-between cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group" onClick={() => window.location.href = `/clients/${clientId}/risks/alignment-guide`}>
+                    <div className="p-4 rounded-xl border border-amber-200 bg-white shadow-sm flex flex-col justify-between cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group" onClick={() => window.location.href = `/clients/${clientId}/risks/program-guide`}>
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2 mb-1">

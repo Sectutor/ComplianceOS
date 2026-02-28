@@ -80,7 +80,7 @@ export default function BusinessContinuityDashboard() {
                                 </p>
                             </div>
                         </div>
-                        <Link href={`/clients/${clientId}/business-continuity/overview`}>
+                        <Link href={`/clients/${clientId}/business-continuity/program-guide`}>
                             <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold whitespace-nowrap">
                                 View Program Guide <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
@@ -288,7 +288,7 @@ export default function BusinessContinuityDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="card-enhanced border-l-4 border-l-indigo-600 bg-indigo-50/50 cursor-pointer hover:bg-indigo-100/50 transition-colors group" onClick={() => window.location.href = `/clients/${clientId}/business-continuity/iso22301`}>
+                    <Card className="card-enhanced border-l-4 border-l-indigo-600 bg-indigo-50/50 cursor-pointer hover:bg-indigo-100/50 transition-colors group" onClick={() => window.location.href = `/clients/${clientId}/business-continuity/program-guide`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <div className="flex items-center gap-2">
                                 <CardTitle className="text-sm font-medium text-indigo-900">ISO 22301 Standards</CardTitle>

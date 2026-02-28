@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @complianceos/core",
+    "dev:full": "npx concurrently \"npm run server\" \"npm run dev\"",
     "dev:community": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false npm run dev -w @complianceos/core",
     "dev:enterprise": "npx cross-env BUILD_TYPE=COMMERCIAL VITE_ENABLE_PREMIUM=true npm run dev -w @complianceos/core",
     "dev:trial": "npx cross-env BUILD_TYPE=TRIAL VITE_ENABLE_PREMIUM=true npm run dev -w @complianceos/core",

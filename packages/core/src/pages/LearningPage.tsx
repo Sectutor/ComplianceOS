@@ -118,9 +118,7 @@ function EditableSection({ section, onUpdate }: EditableSectionProps) {
                             Save
                         </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        💡 Note: Changes will be saved to local state. Database storage coming soon!
-                    </p>
+
                 </div>
             ) : (
                 <div
