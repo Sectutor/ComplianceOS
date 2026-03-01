@@ -36,17 +36,40 @@ export default function VendorDashboard() {
                     <PageGuide
                         title="Vendor Risk Management"
                         description="Overview of vendor ecosystem and risk posture."
-                        rationale="Monitor vendor compliance and security posture to mitigate supply chain risks."
+                        rationale="Monitor vendor compliance and security posture to mitigate supply chain risks. Your supply chain is often your weakest security link."
                         howToUse={[
-                            { step: "Distribution", description: "View vendors by criticality (High, Medium, Low)." },
-                            { step: "Discovery", description: "Find and onboard new vendors." },
-                            { step: "Reviews", description: "Track active security assessments." }
+                            {
+                                step: "Supply Chain Intel",
+                                description: "Monitor OSINT and Dark Web feeds for potential breaches in your 3rd and 4th-party ecosystem.",
+                                targetId: "vendor-intel-banner"
+                            },
+                            {
+                                step: "Follow Lifecycle",
+                                description: "Follow the 5-step lifecycle: Discover, Profile, Assess, Analyze, and Monitor.",
+                                targetId: "vendor-lifecycle-workflow"
+                            },
+                        ]}
+                        integrations={[
+                            { name: "Global Catalog", description: "Standard security profiles for 10,000+ vendors." },
+                            { name: "Risk Register", description: "Escalate supply chain risks to the corporate level." }
+                        ]}
+                        scenarios={[
+                            {
+                                title: "Assessing a High-Risk SaaS Provider",
+                                example: "You are onboarding a new HR management system that will process sensitive employee PII.",
+                                auditTip: "Focus on the 'Assess' phase of the lifecycle. Use a 'Full Security Review' template and require a SOC 2 Type II report as mandatory evidence."
+                            },
+                            {
+                                title: "Identifying 4th Party Risk",
+                                example: "One of your critical vendors is hosted on a cloud provider that just announced a major vulnerability.",
+                                auditTip: "Use 'Supply Chain Intel' to see which of your vendors rely on that specific cloud provider. This allows you to proactively reach out to them before a breach occurs."
+                            }
                         ]}
                     />
                 </div>
 
                 {/* AI Supply Chain Intelligence Banner */}
-                <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 p-1 rounded-2xl shadow-xl mb-6">
+                <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 p-1 rounded-2xl shadow-xl mb-6" id="vendor-intel-banner">
                     <div className="bg-slate-900/40 backdrop-blur-xl rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 border border-white/10">
                         <div className="flex items-center gap-4">
                             <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400">
@@ -95,7 +118,7 @@ export default function VendorDashboard() {
                 </Card>
 
                 {/* Workflow Introduction Section */}
-                <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl overflow-hidden relative mb-6 animate-fade-in delay-200">
+                <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl overflow-hidden relative mb-6 animate-fade-in delay-200" id="vendor-lifecycle-workflow">
                     <div className="absolute top-0 right-0 p-32 bg-purple-500/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 p-32 bg-blue-500/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
                     <CardHeader className="relative z-10 pb-2">
@@ -180,7 +203,7 @@ export default function VendorDashboard() {
                 </Card>
 
                 {/* Key Performance Indicators */}
-                <div className="grid gap-6 md:grid-cols-4">
+                <div className="grid gap-6 md:grid-cols-4" id="vendor-stats-summary">
                     <Card className="hover-lift border-none shadow-premium bg-white/60 backdrop-blur-xl group">
                         <CardContent className="pt-6">
                             <div className="flex items-center gap-5">
@@ -229,7 +252,7 @@ export default function VendorDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <Card className="h-[420px] border-none shadow-premium bg-white/60 backdrop-blur-xl hover-lift">
+                    <Card className="h-[420px] border-none shadow-premium bg-white/60 backdrop-blur-xl hover-lift" id="vendor-risk-distribution">
                         <CardHeader className="pb-0 border-b border-slate-100/50">
                             <CardTitle className="text-xl font-bold tracking-tight">Distribution by Criticality</CardTitle>
                             <CardDescription className="font-medium text-slate-500">Breakdown of vendors by assigned risk level</CardDescription>

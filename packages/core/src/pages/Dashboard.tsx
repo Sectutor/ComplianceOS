@@ -21,6 +21,7 @@ import { Label } from "@complianceos/ui/ui/label";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
@@ -374,11 +375,40 @@ export default function Dashboard() {
           <div className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none"></div>
         </div>
         <div className="relative z-10 space-y-8">
-          <Breadcrumb
-            items={[
-              { label: "Dashboard" },
-            ]}
-          />
+          <div className="flex items-center justify-between">
+            <Breadcrumb
+              items={[
+                { label: "Dashboard" },
+              ]}
+            />
+            <PageGuide
+              title="Command Center"
+              description="Your strategic hub for organizational compliance and risk posture."
+              rationale="The dashboard aggregates data across all contexts to give you high-level visibility into compliance trends and critical gaps."
+              howToUse={[
+                { step: "Analyze Posture", description: "View the 'Live Posture Score' for real-time compliance readiness.", targetId: "dash-posture-score" },
+                { step: "Track Benchmarks", description: "Monitor compliance trends over time against target goals.", targetId: "dash-compliance-trend" },
+                { step: "Critical Actions", description: "Address 'AI Posture Insights' and 'Overdue Assessments' immediately.", targetId: "dash-critical-actions" },
+                { step: "Switch Context", description: "Filter view by specific organization nodes (clients) or frameworks.", targetId: "dash-filters-bar" }
+              ]}
+              scenarios={[
+                {
+                  title: "Weekly Executive Briefing",
+                  example: "The CEO asks for a compliance summary before a board meeting. You need to show that the organizational risk is within tolerance.",
+                  auditTip: "Focus on the 'Executive View' and 'Live Posture Score'. Auditors appreciate seeing that senior leadership actively monitors these metrics as part of Governance."
+                },
+                {
+                  title: "Investigating Posture Drift",
+                  example: "You notice the compliance score dropped by 5% overnight. You need to identify if this is a data error or a security regression.",
+                  auditTip: "Check 'AI Posture Insights'. A drop often signifies expired evidence or new assets coming into scope that haven't been implemented yet."
+                }
+              ]}
+              integrations={[
+                { name: "Risk Management", description: "High-risk items are automatically escalated to the dashboard." },
+                { name: "Compliance Modules", description: "Data from ISO, SOC 2, and NIST feeds directly into your score." }
+              ]}
+            />
+          </div>
 
 
           {/* Animated Welcome & AI Command Center */}
@@ -402,7 +432,8 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm shadow-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden group"
+                className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden group"
+                id="dash-critical-actions"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent group-hover:from-blue-500/20 transition-all duration-700 pointer-events-none" />
                 <div className="flex items-center justify-between mb-4 relative z-10">
@@ -447,6 +478,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, type: "spring" }}
               className="w-full lg:w-96 shrink-0"
+              id="dash-posture-score"
             >
               {/* Real-time Posture Score */}
               <div className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm rounded-3xl p-8 relative overflow-hidden group shadow-2xl h-full flex flex-col items-center justify-center text-center">
@@ -472,7 +504,7 @@ export default function Dashboard() {
           </div>
 
           {/* Filters & Actions Header */}
-          <div className="flex items-center flex-wrap justify-between mt-8 relative z-10 pb-4 border-b border-slate-200">
+          <div className="flex items-center flex-wrap justify-between mt-8 relative z-10 pb-4 border-b border-slate-200" id="dash-filters-bar">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Command Interface</h2>
               {/* View Mode Toggle */}
@@ -594,7 +626,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Compliance Trend Chart */}
-                <Card className="col-span-full bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
+                <Card className="col-span-full bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200" id="dash-compliance-trend">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-50 pointer-events-none" />
                   <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
                     <CardTitle className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">

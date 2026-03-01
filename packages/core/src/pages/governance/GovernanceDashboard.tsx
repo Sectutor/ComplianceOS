@@ -74,11 +74,35 @@ export default function GovernanceDashboard() {
                     <PageGuide
                         title="Governance Dashboard"
                         description="Establish robust governance, manage policies, and orchestrate compliance workflows."
-                        rationale="A strong governance framework ensures that security activities are aligned with business goals and compliance requirements."
+                        rationale="A strong governance framework ensures that security activities are aligned with business goals and compliance requirements. This dashboard provides a 'Single Pane of Glass' for your entire GRC program."
                         howToUse={[
-                            { step: "Monitor Health", description: "Track your overall Governance Health Score and key compliance metrics." },
-                            { step: "Review Controls", description: "Check the 'Control Readiness' card to see implementation progress." },
-                            { step: "Manage Tasks", description: "Use 'Quick Actions' to draft policies or manage tasks." }
+                            {
+                                step: "Monitor Health",
+                                description: "Track your overall Governance Health Score, which aggregates policy status and control implementation.",
+                                targetId: "gov-health-score"
+                            },
+                            {
+                                step: "Program Lifecycle",
+                                description: "Follow the 6-step linear workflow from defining roles (RACI) to strategic planning.",
+                                targetId: "gov-program-workflow"
+                            },
+                            {
+                                step: "Action Center",
+                                description: "Quickly access policy drafting, control mapping, and risk management tools.",
+                                targetId: "gov-quick-actions"
+                            }
+                        ]}
+                        scenarios={[
+                            {
+                                title: "Starting a New Framework",
+                                example: "You've been asked to comply with SOC 2 but don't know where to begin.",
+                                auditTip: "Start with 'Step 1: Roles' in the Program Workflow. Defining a RACI matrix is the first thing auditors look for to prove 'Management Oversight' exists."
+                            },
+                            {
+                                title: "Weekly Security Review",
+                                example: "You need to report on compliance progress to the CISO every Friday.",
+                                auditTip: "Check the 'Governance Activity' chart. It shows the velocity of your team—if 'Created' tasks are much higher than 'Completed', your program might be stalling."
+                            }
                         ]}
                         integrations={[
                             { name: "Policies", description: "Draft and approve policies." },
@@ -111,7 +135,7 @@ export default function GovernanceDashboard() {
                 </Card>
 
                 {/* Workflow Introduction Section */}
-                <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg overflow-hidden relative">
+                <Card id="gov-program-workflow" className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg overflow-hidden relative">
                     <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -210,7 +234,7 @@ export default function GovernanceDashboard() {
                 </Card>
 
                 {/* Metrics Grid */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div id="gov-health-score" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {/* Governance Health Score */}
                     <Card className="card-enhanced border-l-4 border-l-indigo-600 bg-indigo-50/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -342,7 +366,7 @@ export default function GovernanceDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="col-span-1">
+                    <Card id="gov-quick-actions" className="col-span-1">
                         <CardHeader>
                             <CardTitle>Quick Actions</CardTitle>
                             <CardDescription>Common governance tasks</CardDescription>

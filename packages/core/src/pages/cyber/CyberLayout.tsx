@@ -11,7 +11,7 @@ export default function CyberLayout({ children }: PropsWithChildren) {
     const { selectedClientId } = useClientContext();
 
     const tabs = [
-        { name: "NIS3 Assessment", path: `/clients/${selectedClientId}/cyber/assessment`, icon: ShieldCheck },
+        { name: "Cyber Resilience", path: `/clients/${selectedClientId}/cyber`, icon: ShieldCheck },
     ];
 
     return (

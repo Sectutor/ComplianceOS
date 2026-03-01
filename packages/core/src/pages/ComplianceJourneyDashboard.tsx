@@ -18,11 +18,13 @@ import {
     Target,
     BrainCircuit,
     Calendar,
-    AlertTriangle
+    AlertTriangle,
+    Shield
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageGuide } from "@/components/PageGuide";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -145,7 +147,7 @@ export default function ComplianceJourneyDashboard() {
         <DashboardLayout>
             <div className="min-h-screen bg-slate-50/50 pb-20 overflow-hidden">
                 {/* Premium Header / Hero */}
-                <div className="relative bg-white border-b border-slate-200 pt-10 pb-16 px-4 md:px-20 overflow-hidden">
+                <div id="journey-hero" className="relative bg-white border-b border-slate-200 pt-10 pb-16 px-4 md:px-20 overflow-hidden">
                     {/* Background glow effects */}
                     <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 blur-3xl opacity-50 z-0 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-100 to-emerald-100 blur-3xl opacity-50 z-0 pointer-events-none" />
@@ -158,7 +160,48 @@ export default function ComplianceJourneyDashboard() {
                             ]}
                             className="mb-8"
                         />
-                        <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
+
+                        <PageGuide
+                            title="Compliance Journey Roadmap"
+                            description="Navigate the three main phases of your compliance program."
+                            rationale="Compliance is a marathon, not a sprint. This journey map helps you visualize exactly where you are and what the AI predicts for your certification timeline."
+                            howToUse={[
+                                {
+                                    step: "AI Predictions",
+                                    description: "Monitor the 'AI Prediction' card to see your estimated audit readiness date based on current velocity.",
+                                    targetId: "journey-ai-prediction"
+                                },
+                                {
+                                    step: "Progress Tracking",
+                                    description: "The 'Overall Progress' card uses weighted metrics (30% readiness, 70% evidence) to show true maturity.",
+                                    targetId: "journey-overall-progress"
+                                },
+                                {
+                                    step: "Phase Unlocking",
+                                    description: "Phases are sequentially locked to ensure you don't collect evidence before the framework is properly scoped.",
+                                    targetId: "journey-stages"
+                                },
+                                {
+                                    step: "Next Best Action",
+                                    description: "Always check the dynamic banner for the single most important task right now.",
+                                    targetId: "journey-next-action"
+                                }
+                            ]}
+                            scenarios={[
+                                {
+                                    title: "Explaining Timeline to Board",
+                                    example: "The CEO wants to know when the company will be 'SOC 2 Ready' for a big enterprise deal.",
+                                    auditTip: "Use the AI Prediction widget. It calculates velocity from your manual work and automated evidence to provide a data-driven date, rather than a best-guess estimate."
+                                },
+                                {
+                                    title: "Stuck in Discovery",
+                                    example: "You've finished the Readiness Assessment but don't know why 'Evidence Collection' is still locked.",
+                                    auditTip: "Check the unlock criteria on the Level 2 card. Most frameworks require at least 40% readiness score to ensure you've defined the scope before you start uploading documents."
+                                }
+                            ]}
+                        />
+
+                        <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mt-8">
                             <div className="max-w-2xl">
                                 <motion.div
                                     initial={{ opacity: 0, x: -20 }}
@@ -189,7 +232,7 @@ export default function ComplianceJourneyDashboard() {
                                 transition={{ duration: 0.5, delay: 0.3 }}
                                 className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch gap-4"
                             >
-                                <div className="bg-white/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 min-w-[280px] flex-1">
+                                <div id="journey-ai-prediction" className="bg-white/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 min-w-[280px] flex-1">
                                     <div className="flex justify-between items-center mb-4">
                                         <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm">
                                             <BrainCircuit className="w-4 h-4" />
@@ -207,7 +250,7 @@ export default function ComplianceJourneyDashboard() {
                                     </p>
                                 </div>
 
-                                <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl min-w-[240px] flex-1 relative overflow-hidden text-white flex flex-col justify-center">
+                                <div id="journey-overall-progress" className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl min-w-[240px] flex-1 relative overflow-hidden text-white flex flex-col justify-center">
                                     <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10" />
                                     <div className="relative z-10">
                                         <div className="flex justify-between text-sm font-medium mb-3 text-slate-300">
@@ -235,6 +278,7 @@ export default function ComplianceJourneyDashboard() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.4 }}
                             className="mb-12 bg-white border border-indigo-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden"
+                            id="journey-next-action"
                         >
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
                             <div className="flex items-center gap-4">
@@ -276,6 +320,7 @@ export default function ComplianceJourneyDashboard() {
                             initial="hidden"
                             animate="visible"
                             className="grid lg:grid-cols-3 gap-8"
+                            id="journey-stages"
                         >
                             {stages.map((stage, index) => {
                                 const isLocked = stage.locked;

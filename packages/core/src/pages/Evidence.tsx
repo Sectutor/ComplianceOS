@@ -19,6 +19,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@complianceos/ui/ui/accordion";
 import { Badge } from "@complianceos/ui/ui/badge";
+import { PageGuide } from "@/components/PageGuide";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -367,12 +368,58 @@ export default function Evidence() {
               <Button variant="ghost" size="sm" onClick={() => setLocation(`/clients/${clientId}`)} className="h-8 w-8 p-0">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Documents</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Evidence & Documents</h1>
             </div>
-            <p className="text-slate-500 ml-10">{client?.name} &bull; Evidence Tracking</p>
+            <p className="text-slate-500 ml-10">{client?.name} &bull; Phase 2: Implementation</p>
           </div>
+
+          <PageGuide
+            title="Evidence Command Center"
+            description="Manage your compliance implementation through structured evidence collection."
+            rationale="An auditor doesn't take your word for it—they need proof. This screen allows you to map documents (SOPs, screenshots, logs) to specific master controls, proving your security posture."
+            howToUse={[
+              {
+                step: "Framework Selection",
+                description: "Filter by framework (e.g., NIST 800-53) to see which controls are missing evidence.",
+                targetId: "evidence-framework-selector"
+              },
+              {
+                step: "Search Controls",
+                description: "Quickly find a specific control by its ID or keyword to review its existing evidence.",
+                targetId: "evidence-search"
+              },
+              {
+                step: "Upload Documents",
+                description: "Click 'Add document' to link a new piece of evidence to a control. You can upload files or link external URLs.",
+                targetId: "evidence-add-document"
+              },
+              {
+                step: "Monitor Status",
+                description: "Track 'Verified OK' vs 'Missing Docs' to see where remediation resources are needed most.",
+                targetId: "evidence-stats-summary"
+              },
+              {
+                step: "Bulk Export",
+                description: "Use the 'Export all' button to generate a ZIP file of all evidence for your auditor.",
+                targetId: "evidence-export-all"
+              }
+            ]}
+            scenarios={[
+              {
+                title: "Preparing for Stage 2 Audit",
+                example: "The auditor is arriving tomorrow and you need to ensure every 'Implemented' control has a 'Verified' document.",
+                auditTip: "Set the Status filter to 'Needs Documents'. This will highlight the 'Empty' controls. Every control marked as 'Implemented' in Phase 1 MUST have at least one verified document in Phase 2."
+              },
+              {
+                title: "Handling Multi-Framework Audits",
+                example: "You are being audited for both SOC 2 and ISO 27001 at the same time.",
+                auditTip: "Use the 'Framework Filter'. ComplianceOS uses 'Evidence Inheritance'—if you upload a password policy for SOC 2, it automatically maps to the equivalent ISO 27001 control to save you dual-work."
+              }
+            ]}
+          />
+
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden sm:flex">
+            <Button id="evidence-export-all" variant="outline" size="sm" className="hidden sm:flex">
               <Download className="mr-2 h-4 w-4" /> Export all
             </Button>
             <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => setLocation(`/clients/${clientId}/evidence/overview`)}>
@@ -382,7 +429,7 @@ export default function Evidence() {
               open={isAddOpen}
               onOpenChange={setIsAddOpen}
               trigger={
-                <Button className="bg-[#5844ED] hover:bg-[#4736C9] font-semibold">
+                <Button className="bg-[#5844ED] hover:bg-[#4736C9] font-semibold" id="evidence-add-document">
                   <Plus className="mr-2 h-4 w-4" /> Add document
                 </Button>
               }
@@ -552,7 +599,7 @@ export default function Evidence() {
         </div>
 
         {/* Framework Selector - High Assurance Implementation */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-premium p-6 mb-8 relative overflow-hidden">
+        <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-premium p-6 mb-8 relative overflow-hidden" id="evidence-framework-selector">
           <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-5">
@@ -596,7 +643,7 @@ export default function Evidence() {
 
                 <div className="h-7 w-[1px] bg-slate-200 mx-1" />
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select id="evidence-filter-status" value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[140px] h-11 bg-transparent border-transparent hover:bg-white transition-all rounded-xl font-bold text-slate-500 gap-2">
                     <Filter className="h-4 w-4 opacity-50" />
                     <SelectValue placeholder="Filter" />
@@ -612,6 +659,7 @@ export default function Evidence() {
               <div className="relative group w-full md:w-72">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#5844ED] transition-colors" />
                 <Input
+                  id="evidence-search"
                   placeholder="Search in view..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -623,7 +671,7 @@ export default function Evidence() {
         </div>
 
         {/* Global Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="evidence-stats-summary">
           <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300">
             <CardContent className="p-6 flex items-center gap-5">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
@@ -677,252 +725,258 @@ export default function Evidence() {
         </div>
 
         {/* Main Content - Categories */}
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full rounded-xl" />
-            <Skeleton className="h-40 w-full rounded-xl" />
-          </div>
-        ) : groupedData.length > 0 ? (
-          <div className="space-y-8">
-            {groupedData.map((category) => (
-              <div key={category.name} className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h2 className="text-xl font-bold text-slate-900">{category.name}</h2>
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
-                    <div className={`h-2.5 w-2.5 rounded-full border ${category.okItems === category.totalItems ? 'bg-green-500 border-green-200' : 'bg-amber-400 border-amber-200'}`} />
-                    {category.okItems} / {category.totalItems} OK
+        {
+          isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-40 w-full rounded-xl" />
+              <Skeleton className="h-40 w-full rounded-xl" />
+            </div>
+          ) : groupedData.length > 0 ? (
+            <div className="space-y-8" id="evidence-domain-list">
+              {groupedData.map((category) => (
+                <div key={category.name} className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h2 className="text-xl font-bold text-slate-900">{category.name}</h2>
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                      <div className={`h-2.5 w-2.5 rounded-full border ${category.okItems === category.totalItems ? 'bg-green-500 border-green-200' : 'bg-amber-400 border-amber-200'}`} />
+                      {category.okItems} / {category.totalItems} OK
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <Accordion type="multiple" defaultValue={Object.keys(category.subgroups)} className="divide-y divide-slate-100">
+                      {Object.values(category.subgroups).map((subgroup: any) => (
+                        <AccordionItem key={subgroup.name} value={subgroup.name} className="border-none">
+                          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-slate-50 transition-all group border-b border-transparent data-[state=open]:border-slate-100">
+                            <div className="flex items-center justify-between w-full pr-6">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center h-6 w-6 rounded-md bg-slate-100 group-data-[state=open]:bg-[#5844ED]/10 group-data-[state=open]:text-[#5844ED] transition-colors">
+                                  <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
+                                </div>
+                                <span className="font-bold text-slate-700 tracking-tight">{subgroup.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {subgroup.items.some((i: any) => i.evidence.length === 0) && (
+                                  <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold px-2 py-0 h-6 border-amber-100 border shadow-sm">
+                                    {subgroup.items.filter((i: any) => i.evidence.length === 0).length} Action Required
+                                  </Badge>
+                                )}
+                                <Badge className="bg-slate-50 text-slate-500 font-medium px-2 py-0 h-6 border-slate-100 border shadow-none">
+                                  {subgroup.items.length} Controls
+                                </Badge>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="border-t border-slate-100 bg-slate-50/30">
+                              <Table>
+                                <TableBody>
+                                  {subgroup.items.map((item: any) => (
+                                    <TableRow key={item.clientControl.id} className="hover:bg-white group/row border-b border-slate-100 last:border-0 transition-colors">
+                                      <TableCell className="w-12 text-center text-slate-400 font-mono text-[10px] opacity-50 group-hover/row:opacity-100">
+                                        {item.clientControl.clientControlId}
+                                      </TableCell>
+                                      <TableCell className="max-w-[300px]">
+                                        <div className="font-semibold text-slate-800">{item.control?.name}</div>
+                                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.control?.description}</div>
+                                      </TableCell>
+                                      <TableCell>
+                                        {item.evidence.length > 0 ? (
+                                          <div className="flex flex-wrap gap-2">
+                                            {item.evidence.map((ev: any) => (
+                                              <div key={ev.evidence.id} className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-slate-200 text-xs shadow-sm group/ev">
+                                                  <span className="font-medium text-slate-700">{ev.evidence.evidenceId}</span>
+                                                  <span className={`h-1.5 w-1.5 rounded-full ${ev.evidence.status === 'verified' ? 'bg-green-500' :
+                                                    ev.evidence.status === 'pending' ? 'bg-blue-400' :
+                                                      ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-slate-300'
+                                                    }`} />
+
+                                                  {ev.isInherited && (
+                                                    <Badge variant="outline" className="h-4 px-1 text-[10px] bg-slate-50 text-slate-500 border-slate-200 font-normal">
+                                                      Inherited
+                                                    </Badge>
+                                                  )}
+
+                                                  <div className="flex items-center gap-1 ml-1 opacity-0 group-hover/ev:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setViewingFiles(ev.evidence.id)}>
+                                                      <Paperclip className="h-3 w-3" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={() => handleDelete(ev.evidence)}>
+                                                      <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                                {ev.isInherited && (
+                                                  <div className="text-[10px] text-slate-400 ml-1 flex items-center gap-1">
+                                                    <Shield className="h-2.5 w-2.5" />
+                                                    via {ev.sourceFramework} {ev.sourceControlId}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full border border-dashed border-slate-300" onClick={() => {
+                                              setSelectedClientControlId(item.clientControl.id.toString());
+                                              setIsAddOpen(true);
+                                            }}>
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2 text-slate-400 italic text-sm">
+                                            <AlertCircle className="h-3.5 w-3.5" />
+                                            No evidence provided
+                                            <Button variant="link" size="sm" className="h-fit p-0 ml-1 text-[#5844ED] font-semibold" onClick={() => {
+                                              setSelectedClientControlId(item.clientControl.id.toString());
+                                              setIsAddOpen(true);
+                                            }}>
+                                              Add document
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="w-40">
+                                        <div className="flex items-center gap-2 text-slate-600 text-xs">
+                                          <User className="h-3 w-3 text-slate-400" />
+                                          {item.clientControl.owner || "Unassigned"}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="w-10">
+                                        <EnhancedDialog
+                                          open={viewingFiles === item.evidence[0]?.evidence.id} // Simple shim for view
+                                          onOpenChange={(open) => !open && setViewingFiles(null)}
+                                          trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400"><Info className="h-4 w-4" /></Button>}
+                                          title="Control Details"
+                                          size="lg"
+                                        >
+                                          <div className="space-y-4 py-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div>
+                                                <Label className="text-xs text-slate-400 uppercase tracking-wider">Framework</Label>
+                                                <div className="font-medium">{item.control?.framework}</div>
+                                              </div>
+                                              <div>
+                                                <Label className="text-xs text-slate-400 uppercase tracking-wider">Frequency</Label>
+                                                <div className="font-medium">{item.control?.frequency || "Continuous"}</div>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <Label className="text-xs text-slate-400 uppercase tracking-wider">Implementation Guidance</Label>
+                                              <p className="text-sm text-slate-600 mt-1">{item.control?.implementationGuidance || "No guidance available"}</p>
+                                            </div>
+                                          </div>
+                                        </EnhancedDialog>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
                   </div>
                 </div>
-
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  <Accordion type="multiple" defaultValue={Object.keys(category.subgroups)} className="divide-y divide-slate-100">
-                    {Object.values(category.subgroups).map((subgroup: any) => (
-                      <AccordionItem key={subgroup.name} value={subgroup.name} className="border-none">
-                        <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-slate-50 transition-all group border-b border-transparent data-[state=open]:border-slate-100">
-                          <div className="flex items-center justify-between w-full pr-6">
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center justify-center h-6 w-6 rounded-md bg-slate-100 group-data-[state=open]:bg-[#5844ED]/10 group-data-[state=open]:text-[#5844ED] transition-colors">
-                                <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-                              </div>
-                              <span className="font-bold text-slate-700 tracking-tight">{subgroup.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {subgroup.items.some((i: any) => i.evidence.length === 0) && (
-                                <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold px-2 py-0 h-6 border-amber-100 border shadow-sm">
-                                  {subgroup.items.filter((i: any) => i.evidence.length === 0).length} Action Required
-                                </Badge>
-                              )}
-                              <Badge className="bg-slate-50 text-slate-500 font-medium px-2 py-0 h-6 border-slate-100 border shadow-none">
-                                {subgroup.items.length} Controls
-                              </Badge>
-                            </div>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="border-t border-slate-100 bg-slate-50/30">
-                            <Table>
-                              <TableBody>
-                                {subgroup.items.map((item: any) => (
-                                  <TableRow key={item.clientControl.id} className="hover:bg-white group/row border-b border-slate-100 last:border-0 transition-colors">
-                                    <TableCell className="w-12 text-center text-slate-400 font-mono text-[10px] opacity-50 group-hover/row:opacity-100">
-                                      {item.clientControl.clientControlId}
-                                    </TableCell>
-                                    <TableCell className="max-w-[300px]">
-                                      <div className="font-semibold text-slate-800">{item.control?.name}</div>
-                                      <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.control?.description}</div>
-                                    </TableCell>
-                                    <TableCell>
-                                      {item.evidence.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
-                                          {item.evidence.map((ev: any) => (
-                                            <div key={ev.evidence.id} className="flex flex-col gap-1">
-                                              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-slate-200 text-xs shadow-sm group/ev">
-                                                <span className="font-medium text-slate-700">{ev.evidence.evidenceId}</span>
-                                                <span className={`h-1.5 w-1.5 rounded-full ${ev.evidence.status === 'verified' ? 'bg-green-500' :
-                                                  ev.evidence.status === 'pending' ? 'bg-blue-400' :
-                                                    ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-slate-300'
-                                                  }`} />
-
-                                                {ev.isInherited && (
-                                                  <Badge variant="outline" className="h-4 px-1 text-[10px] bg-slate-50 text-slate-500 border-slate-200 font-normal">
-                                                    Inherited
-                                                  </Badge>
-                                                )}
-
-                                                <div className="flex items-center gap-1 ml-1 opacity-0 group-hover/ev:opacity-100 transition-opacity">
-                                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setViewingFiles(ev.evidence.id)}>
-                                                    <Paperclip className="h-3 w-3" />
-                                                  </Button>
-                                                  <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={() => handleDelete(ev.evidence)}>
-                                                    <Trash2 className="h-3 w-3" />
-                                                  </Button>
-                                                </div>
-                                              </div>
-                                              {ev.isInherited && (
-                                                <div className="text-[10px] text-slate-400 ml-1 flex items-center gap-1">
-                                                  <Shield className="h-2.5 w-2.5" />
-                                                  via {ev.sourceFramework} {ev.sourceControlId}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ))}
-                                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full border border-dashed border-slate-300" onClick={() => {
-                                            setSelectedClientControlId(item.clientControl.id.toString());
-                                            setIsAddOpen(true);
-                                          }}>
-                                            <Plus className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center gap-2 text-slate-400 italic text-sm">
-                                          <AlertCircle className="h-3.5 w-3.5" />
-                                          No evidence provided
-                                          <Button variant="link" size="sm" className="h-fit p-0 ml-1 text-[#5844ED] font-semibold" onClick={() => {
-                                            setSelectedClientControlId(item.clientControl.id.toString());
-                                            setIsAddOpen(true);
-                                          }}>
-                                            Add document
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="w-40">
-                                      <div className="flex items-center gap-2 text-slate-600 text-xs">
-                                        <User className="h-3 w-3 text-slate-400" />
-                                        {item.clientControl.owner || "Unassigned"}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="w-10">
-                                      <EnhancedDialog
-                                        open={viewingFiles === item.evidence[0]?.evidence.id} // Simple shim for view
-                                        onOpenChange={(open) => !open && setViewingFiles(null)}
-                                        trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400"><Info className="h-4 w-4" /></Button>}
-                                        title="Control Details"
-                                        size="lg"
-                                      >
-                                        <div className="space-y-4 py-4">
-                                          <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                              <Label className="text-xs text-slate-400 uppercase tracking-wider">Framework</Label>
-                                              <div className="font-medium">{item.control?.framework}</div>
-                                            </div>
-                                            <div>
-                                              <Label className="text-xs text-slate-400 uppercase tracking-wider">Frequency</Label>
-                                              <div className="font-medium">{item.control?.frequency || "Continuous"}</div>
-                                            </div>
-                                          </div>
-                                          <div>
-                                            <Label className="text-xs text-slate-400 uppercase tracking-wider">Implementation Guidance</Label>
-                                            <p className="text-sm text-slate-600 mt-1">{item.control?.implementationGuidance || "No guidance available"}</p>
-                                          </div>
-                                        </div>
-                                      </EnhancedDialog>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Card className="py-20 border-dashed border-2">
-            <CardContent className="text-center">
-              <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Shield className="h-10 w-10 text-slate-300" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">No documents found</h3>
-              <p className="text-slate-500 max-w-sm mx-auto mb-8">
-                Try adjusting your search or filters to find what you're looking for.
-              </p>
-              <Button variant="outline" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setFrameworkFilter("all"); }}>
-                Clear all filters
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Persistence and Management Dialogs */}
-      {viewingFiles !== null && (
-        <EnhancedDialog
-          open={viewingFiles !== null}
-          onOpenChange={(open) => !open && setViewingFiles(null)}
-          title="Evidence Files"
-          description="Manage attachments and view analysis results"
-          size="lg"
-          footer={<Button onClick={() => setViewingFiles(null)}>Close</Button>}
-        >
-          <div className="py-4 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Upload Files</h3>
-              <Button
-                variant="outline"
-                onClick={() => setGoogleDriveBrowserOpen(true)}
-                className="gap-2"
-              >
-                <span className="text-lg">📁</span>
-                Import from Google Drive
-              </Button>
+              ))}
             </div>
-            <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
-            <div className="pt-4 border-t border-slate-100">
-              <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
-              <EvidenceAnalysisButton
-                evidenceId={viewingFiles}
-                controlName={evidenceList?.find(e => e.id === viewingFiles)?.control?.name}
-              />
-            </div>
-          </div>
-        </EnhancedDialog>
-      )}
-
-      {/* Google Drive Import Dialog */}
-      {viewingFiles && (
-        <GoogleDriveFileBrowser
-          evidenceId={viewingFiles}
-          clientId={clientId}
-          open={googleDriveBrowserOpen}
-          onOpenChange={setGoogleDriveBrowserOpen}
-          onImportComplete={() => {
-            // Refetch files after import
-          }}
-        />
-      )}
-
-      <AlertDialog open={!!evidenceToDelete} onOpenChange={(open) => !open && setEvidenceToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Evidence?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this evidence? This action cannot be undone.
-              {evidenceToDelete && evidenceToDelete.status === 'verified' && (
-                <div className="mt-2 p-2 bg-amber-50 rounded text-amber-800 text-sm border border-amber-200">
-                  Warning: This evidence is marked as <b>Verified</b>. Deleting it may impact compliance status.
+          ) : (
+            <Card className="py-20 border-dashed border-2">
+              <CardContent className="text-center">
+                <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Shield className="h-10 w-10 text-slate-300" />
                 </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDelete();
-              }}
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No documents found</h3>
+                <p className="text-slate-500 max-w-sm mx-auto mb-8">
+                  Try adjusting your search or filters to find what you're looking for.
+                </p>
+                <Button variant="outline" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setFrameworkFilter("all"); }}>
+                  Clear all filters
+                </Button>
+              </CardContent>
+            </Card>
+          )
+        }
+
+        {/* Persistence and Management Dialogs */}
+        {
+          viewingFiles !== null && (
+            <EnhancedDialog
+              open={viewingFiles !== null}
+              onOpenChange={(open) => !open && setViewingFiles(null)}
+              title="Evidence Files"
+              description="Manage attachments and view analysis results"
+              size="lg"
+              footer={<Button onClick={() => setViewingFiles(null)}>Close</Button>}
             >
-              Delete Evidence
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <div className="py-4 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Upload Files</h3>
+                  <Button
+                    variant="outline"
+                    onClick={() => setGoogleDriveBrowserOpen(true)}
+                    className="gap-2"
+                  >
+                    <span className="text-lg">📁</span>
+                    Import from Google Drive
+                  </Button>
+                </div>
+                <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
+                <div className="pt-4 border-t border-slate-100">
+                  <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
+                  <EvidenceAnalysisButton
+                    evidenceId={viewingFiles}
+                    controlName={evidenceList?.find(e => e.id === viewingFiles)?.control?.name}
+                  />
+                </div>
+              </div>
+            </EnhancedDialog>
+          )
+        }
+
+        {/* Google Drive Import Dialog */}
+        {
+          viewingFiles && (
+            <GoogleDriveFileBrowser
+              evidenceId={viewingFiles}
+              clientId={clientId}
+              open={googleDriveBrowserOpen}
+              onOpenChange={setGoogleDriveBrowserOpen}
+              onImportComplete={() => {
+                // Refetch files after import
+              }}
+            />
+          )
+        }
+
+        <AlertDialog open={!!evidenceToDelete} onOpenChange={(open) => !open && setEvidenceToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Evidence?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this evidence? This action cannot be undone.
+                {evidenceToDelete && evidenceToDelete.status === 'verified' && (
+                  <div className="mt-2 p-2 bg-amber-50 rounded text-amber-800 text-sm border border-amber-200">
+                    Warning: This evidence is marked as <b>Verified</b>. Deleting it may impact compliance status.
+                  </div>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={(e) => {
+                  e.preventDefault();
+                  confirmDelete();
+                }}
+              >
+                Delete Evidence
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </DashboardLayout>
   );
 }

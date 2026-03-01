@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@complianceos/ui/ui/ta
 import { Input } from '@complianceos/ui/ui/input';
 import { Bug, Search, AlertTriangle, FileWarning, Globe, Hash, Mail, Plus, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { PageGuide } from '@/components/PageGuide';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 const mockIOCs = [
     { id: 'IOC-001', indicator: '192.168.1.100', type: 'ip', reputation: 'malicious', confidence: 85, source: 'AlienVault OTX', tags: ['c2', 'botnet'] },
@@ -53,17 +55,52 @@ export default function ThreatIntelDashboard() {
             <div className="p-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-orange-600 rounded-xl">
-                                <Bug className="h-8 w-8 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold text-slate-900">Threat Intelligence</h1>
-                                <p className="text-slate-500">IOC Database & Threat Reports</p>
-                            </div>
-                        </div>
+                        <Breadcrumb items={[{ label: "Cyber Resilience", href: `/clients/${clientId}/cyber` }, { label: "Threat Intelligence" }]} />
                         <div className="flex gap-3">
-                            <div className="relative">
+                            <PageGuide
+                                title="Threat Intelligence"
+                                description="Operationalize threat data with IOC tracking, intel reports, and active feed management."
+                                rationale="Threat intelligence converts raw data into actionable insights that help defenders understand, prioritize, and respond to threats. It shifts security from reactive to proactive."
+                                howToUse={[
+                                    {
+                                        step: "Search IOCs",
+                                        description: "Use the search bar to look up specific IP addresses, domains, or file hashes against your intel database.",
+                                        targetId: "ti-ioc-search"
+                                    },
+                                    {
+                                        step: "Add New IOC",
+                                        description: "Manually add new Indicators of Compromise discovered during an investigation.",
+                                        targetId: "ti-add-ioc-btn"
+                                    },
+                                    {
+                                        step: "Review Reports",
+                                        description: "Consume curated threat intelligence reports from trusted sources like CISA and US-CERT.",
+                                        targetId: "ti-reports-tab"
+                                    },
+                                    {
+                                        step: "Manage Feeds",
+                                        description: "Configure and monitor your active threat intelligence subscriptions.",
+                                        targetId: "ti-feeds-tab"
+                                    }
+                                ]}
+                                scenarios={[
+                                    {
+                                        title: "Confirming a Compromise",
+                                        example: "An analyst observes a suspicious outbound connection. Search for the destination IP in the IOC database to confirm if it's a known malicious C2 server.",
+                                        auditTip: "Auditors look for 'IOC Integration'. Ensure your SIEM is cross-referencing logs against this IOC database through an automated feed."
+                                    },
+                                    {
+                                        title: "Proactive APT Defense",
+                                        example: "A new threat report indicates APT29 is targeting your sector. Review the extracted IOCs and block them at your perimeter before an attack occurs.",
+                                        auditTip: "Document every proactive block as 'Preventive Control Evidence'. This is strong evidence during cybersecurity audits for frameworks like NIS2 and ISO 27001."
+                                    }
+                                ]}
+                                integrations={[
+                                    { name: "SIEM", description: "IOC feeds are pushed to SIEM for automatic correlation with network logs." },
+                                    { name: "SOAR", description: "High-confidence IOCs can trigger automated SOAR playbooks." }
+                                ]}
+                            />
+                            <div id="ti-ioc-search" className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                 <Input
                                     placeholder="Search IOCs..."
@@ -72,7 +109,7 @@ export default function ThreatIntelDashboard() {
                                     className="pl-10 bg-white border-slate-300 w-64"
                                 />
                             </div>
-                            <Button className="bg-orange-600 hover:bg-orange-700">
+                            <Button id="ti-add-ioc-btn" className="bg-orange-600 hover:bg-orange-700">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add IOC
                             </Button>
@@ -129,8 +166,8 @@ export default function ThreatIntelDashboard() {
                     <Tabs defaultValue="iocs" className="space-y-4">
                         <TabsList className="bg-white border-slate-200">
                             <TabsTrigger value="iocs" className="data-[state=active]:bg-orange-600">Indicators of Compromise</TabsTrigger>
-                            <TabsTrigger value="reports" className="data-[state=active]:bg-orange-600">Threat Reports</TabsTrigger>
-                            <TabsTrigger value="feeds" className="data-[state=active]:bg-orange-600">Threat Feeds</TabsTrigger>
+                            <TabsTrigger id="ti-reports-tab" value="reports" className="data-[state=active]:bg-orange-600">Threat Reports</TabsTrigger>
+                            <TabsTrigger id="ti-feeds-tab" value="feeds" className="data-[state=active]:bg-orange-600">Threat Feeds</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="iocs">

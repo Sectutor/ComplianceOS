@@ -237,7 +237,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button onClick={() => {
+                        <Button id="risk-reg-add-btn" onClick={() => {
                             const searchParams = new URLSearchParams(window.location.search);
                             const assetId = searchParams.get('assetId');
                             setEditingRisk(assetId ? { assetId: parseInt(assetId), assessmentType: 'asset' } : null);
@@ -250,14 +250,33 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                             description="Identify, assess, and treat risks to your organization."
                             rationale="A comprehensive risk register is the foundation of information security. It documents potential threats, their likelihood and impact, and the controls you've put in place to mitigate them."
                             howToUse={[
-                                { step: "Add Risks", description: "Click 'Add Risk' to use the wizard for documenting new threats." },
-                                { step: "Assess Risk", description: "Score inherent risk (before controls) and residual risk (after controls)." },
-                                { step: "Assign Owners", description: "Designate a risk owner responsible for monitoring and mitigation." },
-                                { step: "Analyze Heatmaps", description: "Use the heatmaps to visualize your highest-priority risks." }
+                                {
+                                    step: "Log New Threats",
+                                    description: "Click 'Add Risk' to use the wizard for documenting new threats.",
+                                    targetId: "risk-reg-add-btn"
+                                },
+                                {
+                                    step: "Analyze Heatmaps",
+                                    description: "Use the heatmaps to identify where your highest priority risks lie.",
+                                    targetId: "risk-reg-heatmap"
+                                },
+                                {
+                                    step: "Residual View",
+                                    description: "Check the 'Residual Risk' heatmap to see the effectiveness of your controls.",
+                                    targetId: "risk-reg-residual-heatmap"
+                                }
                             ]}
-                            integrations={[
-                                { name: "Controls", description: "Mitigating controls are linked directly from the Control Library." },
-                                { name: "Audits", description: "This register serves as primary evidence for risk management standards (e.g., ISO 27001 Clause 6)." }
+                            scenarios={[
+                                {
+                                    title: "Responding to a New Zero-Day Threat",
+                                    example: "A major vulnerability (like Log4j) is announced. You need to assess the risk to your client's specific environment.",
+                                    auditTip: "Add a new risk entry. Don't worry about controls yet. Assess the 'Inherent Risk' as critical. Once you apply a patch, update the entry with the 'Patching' control to show the reduction in 'Residual Risk'."
+                                },
+                                {
+                                    title: "Quarterly Risk Posture Report",
+                                    example: "You need to prove to stakeholders that risks are being actively managed and reduced over time.",
+                                    auditTip: "Use the Comparison view between Inherent and Residual heatmaps. The visual 'shift' toward the bottom-left is the best evidence of a functioning Risk Management Framework (ISO 27001 Clause 6.1)."
+                                }
                             ]}
                         />
                     </div>
@@ -265,20 +284,24 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
 
                 {riskAssessments && riskAssessments.length > 0 && (
                     <div className="grid grid-cols-2 gap-4 mb-8 min-h-[300px]">
-                        <RiskHeatmap
-                            assessments={riskAssessments || []}
-                            type="inherent"
-                            activeFilter={heatmapFilter}
-                            onFilterChange={setHeatmapFilter}
-                            title="Inherent Risk"
-                        />
-                        <RiskHeatmap
-                            assessments={riskAssessments || []}
-                            type="residual"
-                            activeFilter={heatmapFilter}
-                            onFilterChange={setHeatmapFilter}
-                            title="Residual Risk"
-                        />
+                        <div id="risk-reg-heatmap">
+                            <RiskHeatmap
+                                assessments={riskAssessments || []}
+                                type="inherent"
+                                activeFilter={heatmapFilter}
+                                onFilterChange={setHeatmapFilter}
+                                title="Inherent Risk"
+                            />
+                        </div>
+                        <div id="risk-reg-residual-heatmap">
+                            <RiskHeatmap
+                                assessments={riskAssessments || []}
+                                type="residual"
+                                activeFilter={heatmapFilter}
+                                onFilterChange={setHeatmapFilter}
+                                title="Residual Risk"
+                            />
+                        </div>
                     </div>
                 )}
 

@@ -64,6 +64,20 @@
   --animate-bounce-in: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --animate-count-up: count-up 1s ease-out;
   --animate-progress-indeterminate: progress-indeterminate 1.5s infinite linear;
+  --animate-pulse-highlight: pulse-highlight 1.5s ease-in-out infinite;
+
+  @keyframes pulse-highlight {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.6);
+      border-color: rgba(14, 165, 233, 1);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+      border-color: rgba(14, 165, 233, 0.4);
+      transform: scale(1.02);
+    }
+  }
 
   @keyframes accordion-down {
     from {

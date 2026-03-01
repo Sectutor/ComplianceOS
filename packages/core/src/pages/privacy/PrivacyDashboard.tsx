@@ -27,6 +27,45 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Privacy Dashboard</h1>
                     <p className="text-slate-500 text-lg">Central hub for privacy program operations and compliance intelligence.</p>
                 </div>
+
+                <PageGuide
+                    title="Privacy Dashboard"
+                    description="Orchestrate your Data Privacy program, manage Subject Rights (DSAR), and PII inventory."
+                    rationale="Data privacy is not just a checkbox—it's a legal requirement under GDPR, CCPA, and others. This dashboard centralizes high-risk data processing activities."
+                    howToUse={[
+                        {
+                            step: "PII Inventory",
+                            description: "Monitor the count of data assets containing Personal Identifiable Information.",
+                            targetId: "privacy-pii-assets"
+                        },
+                        {
+                            step: "DSAR Management",
+                            description: "Track 'Data Subject Access Requests' to ensure they are handled within legal timeframes (usually 30 days).",
+                            targetId: "privacy-active-dsars"
+                        },
+                        {
+                            step: "Assessments",
+                            description: "Complete DPIAs (Data Protection Impact Assessments) for high-risk processing activities.",
+                            targetId: "privacy-impact-tasks"
+                        }
+                    ]}
+                    scenarios={[
+                        {
+                            title: "Regulatory Audit Response",
+                            example: "A regulator asks for your 'Record of Processing Activities' (ROPA).",
+                            auditTip: "Check the 'PII Assets' card. Every asset registered here should have a corresponding DPIA if the processing is 'High Risk'. Auditors look for this mapping to prove 'Privacy by Design'."
+                        },
+                        {
+                            title: "Handling a Data Breach",
+                            example: "You suspect a data export was unauthorized.",
+                            auditTip: "Immediately look at 'Impact Tasks'. Use the 'Recent Assessments' widget to find any existing DPIA for that data flow to understand the sensitivity of the compromised data."
+                        }
+                    ]}
+                    integrations={[
+                        { name: "DSAR Portal", description: "Collect requests from consumers." },
+                        { name: "Asset Register", description: "Link PII tags to physical/cloud assets." }
+                    ]}
+                />
             </div>
 
             {/* Privacy Program Overview Callout */}
@@ -43,7 +82,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                             </p>
                         </div>
                     </div>
-                    <Button onClick={() => setLocation(`/clients/${clientId}/privacy/program-guide`)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold whitespace-nowrap">
+                    <Button id="privacy-program-guide" onClick={() => setLocation(`/clients/${clientId}/privacy/program-guide`)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold whitespace-nowrap">
                         View Guide
                     </Button>
                 </CardContent>
@@ -56,7 +95,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card id="privacy-pii-assets" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">PII Assets</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#3ABEF9]">
@@ -69,7 +108,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card id="privacy-active-dsars" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">Active DSARs</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
@@ -82,7 +121,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card id="privacy-impact-tasks" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">Impact Tasks</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
@@ -95,7 +134,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card id="privacy-health-score" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">Health Score</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
@@ -111,7 +150,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
             )}
 
             <div className="grid gap-8 lg:grid-cols-2">
-                <Card className="border-slate-200 shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white">
+                <Card id="privacy-recent-dsars" className="border-slate-200 shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white">
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-6">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-lg font-bold text-slate-900">Recent DSAR Requests</CardTitle>
@@ -156,7 +195,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                     </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white">
+                <Card id="privacy-recent-assessments" className="border-slate-200 shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white">
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-6">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-lg font-bold text-slate-900">Recent Assessments</CardTitle>

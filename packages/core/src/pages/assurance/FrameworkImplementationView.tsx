@@ -4,7 +4,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Shield, BookOpen, CheckCircle2, ListChecks, ArrowRight, Info, ExternalLink, Activity, Clock, AlertCircle, Sparkles, X, Loader2 } from "lucide-react";
+import {
+    Shield, BookOpen, CheckCircle2, ListChecks, ArrowRight, Info, ExternalLink, Activity, Clock, AlertCircle, Sparkles, X, Loader2,
+    Database, ShieldAlert, AlertTriangle, Lock, Target, Zap, Activity as ActivityIcon, Share2, Users, Layers, ClipboardList, Search, FileText, Settings, Layout, Key, UserCheck, Globe, HardDrive, Smartphone, Cloud, ShieldCheck, Eye
+} from "lucide-react";
 import { useParams, useLocation } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { TECHNICAL_STANDARD_CONTENT } from "./StandardPractices";
@@ -16,6 +19,98 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@complianceos/ui/ui/label";
 import ReactMarkdown from 'react-markdown';
 import { PageGuide } from "@/components/PageGuide";
+import { cn } from "@/lib/utils";
+
+const categoryIcons: Record<string, any> = {
+    // ISO 27001
+    "ISO-MS": ClipboardList,
+    "ISO-A.5": Users,
+    "ISO-A.6": UserCheck,
+    "ISO-A.7": Shield,
+    "ISO-A.8": Settings,
+    "A.5": Users,
+    "A.8": HardDrive,
+
+    // NIST/General
+    "GV": Shield,
+    "ID": Target,
+    "PR": Lock,
+    "DE": Eye,
+    "RS": Zap,
+    "RC": ActivityIcon,
+
+    // SCVS
+    "SCVS-V1": Layers,
+    "SCVS-V2": Share2,
+
+    // ASVS
+    "ASVS-V1": Layout,
+    "ASVS-V2": Key,
+    "ASVS-V3": ShieldCheck,
+    "ASVS-V4": Lock,
+
+    // MASVS
+    "MASVS-V1": Smartphone,
+    "MASVS-V2": Database,
+
+    // OPENSSF
+    "OPENSSF-OSPS": Globe,
+
+    // CCM
+    "CCM-V1": Cloud,
+};
+
+const categoryColors: Record<string, string> = {
+    // ISO 27001
+    "ISO-MS": "#3ABEF9",
+    "ISO-A.5": "#A78BFA",
+    "ISO-A.8": "#60A5FA",
+    "A.5": "#A78BFA",
+    "A.8": "#60A5FA",
+
+    // NIST
+    "GV": "#3ABEF9",
+    "ID": "#60A5FA",
+    "PR": "#A78BFA",
+    "DE": "#FBBF24",
+    "RS": "#F87171",
+    "RC": "#34D399",
+
+    // SCVS
+    "SCVS-V1": "#3ABEF9",
+    "SCVS-V2": "#FBBF24",
+
+    // ASVS
+    "ASVS-V1": "#3ABEF9",
+    "ASVS-V2": "#60A5FA",
+    "ASVS-V3": "#A78BFA",
+    "ASVS-V4": "#FBBF24",
+
+    // MASVS
+    "MASVS-V1": "#FB7185",
+    "MASVS-V2": "#3ABEF9",
+
+    // OPENSSF
+    "OPENSSF-OSPS": "#2DD4BF",
+
+    // CCM
+    "CCM-V1": "#818CF8",
+};
+
+const getCategoryMeta = (cat: string, frameworkId?: string) => {
+    const normalizedFID = frameworkId?.toUpperCase() || "";
+
+    // Try to find a code like A.5 or V1
+    const isoMatch = cat.match(/A\.\d+/);
+    const vMatch = cat.match(/V\d+/);
+
+    const key = isoMatch ? isoMatch[0] : (vMatch ? `${normalizedFID}-${vMatch[0]}` : cat);
+
+    return {
+        color: categoryColors[key] || categoryColors[cat] || "#0f172a",
+        icon: categoryIcons[key] || categoryIcons[cat] || Shield
+    };
+};
 
 const FrameworkImplementationView: React.FC = () => {
     const { id: clientId, frameworkId } = useParams<{ id: string, frameworkId: string }>();
@@ -27,10 +122,10 @@ const FrameworkImplementationView: React.FC = () => {
     const [guidanceContent, setGuidanceContent] = useState<string>("");
 
     const getGuidanceMutation = trpc.advisor.getImplementationGuidance.useMutation({
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
             setGuidanceContent(data.guidance);
         },
-        onError: (err) => {
+        onError: (err: any) => {
             toast.error("Failed to generate guidance");
             console.error(err);
         }
@@ -100,7 +195,7 @@ const FrameworkImplementationView: React.FC = () => {
     };
 
 
-    const overlay = getStrategicOverlay(activeCategory);
+    const overlay = getStrategicOverlay(activeCategory ?? undefined);
 
     if (isLoading) {
         return (
@@ -130,8 +225,11 @@ const FrameworkImplementationView: React.FC = () => {
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full -ml-32 -mb-32 blur-3xl pointer-events-none" />
                     <div className="space-y-4 relative z-10 w-full">
                         <div className="flex items-center gap-5">
-                            <div className="p-4 bg-gradient-to-br from-[#0284c7] to-[#0369a1] rounded-2xl shadow-lg shadow-[#0284c7]/20 hover:scale-105 transition-transform duration-300">
-                                <Shield className="w-9 h-9 text-white" />
+                            <div
+                                className="p-4 rounded-2xl shadow-lg transition-transform duration-300"
+                                style={{ backgroundColor: getCategoryMeta(activeCategory || "", frameworkId).color }}
+                            >
+                                <Shield className="w-9 h-9 text-black" />
                             </div>
                             <div>
                                 <Label className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#0284c7]/80 mb-1.5 block leading-none">Implementation Phase</Label>
@@ -150,10 +248,21 @@ const FrameworkImplementationView: React.FC = () => {
                             description="Interactive guide to implementing technical controls."
                             rationale="Bridge the gap between requirements and technical reality with step-by-step verification."
                             howToUse={[
-                                { step: "Select Domain", description: "Choose a category from the sidebar to focus your efforts." },
-                                { step: "Review Control", description: "Read the requirements and description." },
-                                { step: "AI Guidance", description: "Click 'AI Implementation Guide' for tailored advice." },
-                                { step: "Verify & Update", description: "Check status in Audit Hub and update the state here." }
+                                {
+                                    step: "Select Domain",
+                                    description: "Choose a category from the sidebar to focus your efforts.",
+                                    targetId: "impl-category-sidebar"
+                                },
+                                {
+                                    step: "AI Guidance",
+                                    description: "Click 'AI Implementation Guide' for tailored technical advice tailored to your stack.",
+                                    targetId: "impl-ai-button"
+                                },
+                                {
+                                    step: "Verify & Update",
+                                    description: "Check status in Audit Hub and update the state here.",
+                                    targetId: "impl-controls-list"
+                                }
                             ]}
                             integrations={[
                                 { name: "Audit Hub", description: "Direct link to evidence collection." },
@@ -177,36 +286,66 @@ const FrameworkImplementationView: React.FC = () => {
 
                 {categories.length > 0 && (
                     <div className="grid lg:grid-cols-12 gap-8">
-                        {/* Sidebar: Categories */}
-                        <div className="lg:col-span-4 space-y-4">
+                        <div className="lg:col-span-4 space-y-4" id="impl-category-sidebar">
                             <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2 drop-shadow-sm">Domains & Categories</h3>
                             <ScrollArea className="h-[calc(100vh-350px)] pr-4">
                                 <div className="space-y-3">
-                                    {categories.map((cat) => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setSelectedPractice(cat)}
-                                            className={`w-full text-left p-5 rounded-2xl transition-all duration-300 border-2 shadow-sm group relative overflow-hidden ${activeCategory === cat
-                                                ? "bg-gradient-to-br from-[#0284c7] to-blue-600 border-transparent text-white shadow-xl shadow-blue-500/20 scale-[1.02]"
-                                                : "bg-white/80 backdrop-blur-sm border-white/60 text-slate-700 hover:border-blue-300 hover:shadow-md hover:bg-white"
-                                                }`}
-                                        >
-                                            {activeCategory === cat && (
-                                                <div className="absolute inset-0 bg-white/10 w-full h-full animate-shimmer" style={{ backgroundImage: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)", transform: "skewX(-20deg)" }} />
-                                            )}
-                                            <div className="flex justify-between items-start gap-4 relative z-10">
-                                                <div className="space-y-1.5 flex-1">
-                                                    <h4 className={`font-black leading-tight line-clamp-2 ${activeCategory === cat ? 'text-white' : 'text-slate-800'}`}>{cat}</h4>
-                                                    <div className="flex items-center gap-2">
-                                                        <Badge className={`text-[10px] py-0.5 px-2.5 font-bold shadow-sm border-none ${activeCategory === cat ? "bg-white/20 text-white backdrop-blur-md" : "bg-slate-100 text-slate-600"}`}>
-                                                            {groupedControls[cat].length} Controls
-                                                        </Badge>
+                                    {categories.map((cat) => {
+                                        const meta = getCategoryMeta(cat, frameworkId);
+                                        const isActive = activeCategory === cat;
+                                        const Icon = meta.icon;
+
+                                        return (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setSelectedPractice(cat)}
+                                                className={cn(
+                                                    "w-full text-left p-5 rounded-2xl transition-all duration-300 border-2 shadow-sm group relative overflow-hidden",
+                                                    isActive
+                                                        ? "shadow-xl shadow-blue-500/10 scale-[1.02] border-transparent"
+                                                        : "bg-white/80 backdrop-blur-sm border-white/60 text-slate-700 hover:border-blue-300 hover:shadow-md hover:bg-white"
+                                                )}
+                                                style={isActive ? {
+                                                    backgroundColor: meta.color,
+                                                    color: "black"
+                                                } : {}}
+                                            >
+                                                {isActive && (
+                                                    <div className="absolute inset-0 bg-white/10 w-full h-full animate-shimmer" style={{ backgroundImage: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)", transform: "skewX(-20deg)" }} />
+                                                )}
+                                                <div className="flex justify-between items-start gap-4 relative z-10">
+                                                    <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 border shrink-0",
+                                                            isActive
+                                                                ? "bg-black/10 border-black/20 text-black shadow-inner"
+                                                                : "bg-slate-50 border-slate-100 text-slate-400 group-hover:border-blue-200 group-hover:text-blue-500"
+                                                        )}>
+                                                            <Icon className="w-5 h-5" />
+                                                        </div>
+                                                        <div className="space-y-1 overflow-hidden">
+                                                            <h4 className={cn(
+                                                                "font-black leading-tight line-clamp-2",
+                                                                isActive ? 'text-black' : 'text-slate-800'
+                                                            )}>{cat}</h4>
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge className={cn(
+                                                                    "text-[10px] py-0.5 px-2.5 font-bold shadow-sm border-none",
+                                                                    isActive ? "bg-black/10 text-black backdrop-blur-md" : "bg-slate-100 text-slate-600"
+                                                                )}>
+                                                                    {groupedControls[cat].length} Controls
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
                                                     </div>
+                                                    <ArrowRight className={cn(
+                                                        "w-5 h-5 shrink-0 mt-2.5 transition-transform duration-300",
+                                                        isActive ? "translate-x-1 text-black" : "group-hover:translate-x-1 opacity-40 group-hover:text-blue-500 group-hover:opacity-100"
+                                                    )} />
                                                 </div>
-                                                <ArrowRight className={`w-5 h-5 shrink-0 mt-1 transition-transform duration-300 ${activeCategory === cat ? "translate-x-1" : "group-hover:translate-x-1 opacity-40 group-hover:text-blue-500 group-hover:opacity-100"}`} />
-                                            </div>
-                                        </button>
-                                    ))}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </ScrollArea>
                         </div>

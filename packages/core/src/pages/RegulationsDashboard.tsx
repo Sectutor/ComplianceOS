@@ -22,6 +22,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { CircularProgress } from "@complianceos/ui/ui/circular-progress";
+import { PageGuide } from "@/components/PageGuide";
 
 function RegulationLogo({ logo, name }: { logo?: string; name: string }) {
     const [error, setError] = useState(false);
@@ -87,29 +88,70 @@ export default function RegulationsDashboard() {
                         <h1 className="text-2xl font-bold">Compliance Obligations</h1>
                         <p className="text-muted-foreground">Manage your mandatory regulatory requirements distinct from voluntary frameworks.</p>
                     </div>
-                    <Button
-                        onClick={async (e) => {
-                            e.stopPropagation();
-                            toast.promise(generateReport.mutateAsync({ clientId }), {
-                                loading: 'Generating Report...',
-                                success: (data) => {
-                                    const link = document.createElement('a');
-                                    link.href = `data:application/pdf;base64,${data.pdfBase64}`;
-                                    link.download = data.filename;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    return 'Report downloaded successfully';
+                    <div className="flex gap-2">
+                        <PageGuide
+                            title="Compliance Obligations"
+                            description="Manage mandatory regulatory requirements and statutory obligations."
+                            rationale="Regulatory compliance is not optional. Unlike voluntary frameworks, these are legal requirements based on your jurisdiction and industry. This dashboard helps you track the 'must-haves' to avoid legal and financial penalties."
+                            howToUse={[
+                                {
+                                    step: "Gap Analysis",
+                                    description: "Download a comprehensive report showing exactly where you stand against legal requirements.",
+                                    targetId: "reg-gap-analysis-btn"
                                 },
-                                error: 'Failed to generate report'
-                            });
-                        }}
-                    >
-                        Download Gap Analysis
-                    </Button>
+                                {
+                                    step: "Domain Links",
+                                    description: "Quickly navigate to Risk, Controls, or Implementation to address specific gaps.",
+                                    targetId: "reg-quick-links"
+                                },
+                                {
+                                    step: "Track Mandates",
+                                    description: "Monitor progress of GDPR, HIPAA, or other mandatory regulations relevant to your business.",
+                                    targetId: "reg-grid-container"
+                                }
+                            ]}
+                            scenarios={[
+                                {
+                                    title: "Responding to a Legal Inquiry",
+                                    example: "Your legal department asks for a status update on GDPR compliance for a new region.",
+                                    auditTip: "Use 'Download Gap Analysis'. It produces an executive-ready PDF that shows exactly which regulatory articles are implemented and where the remaining risks lie."
+                                },
+                                {
+                                    title: "Prioritizing Mandatory Work",
+                                    example: "You have limited resources and need to decide between working on SOC 2 (voluntary) or HIPAA (mandatory).",
+                                    auditTip: "Mandatory regulations in this dashboard usually carry higher legal risk. Focus on any regulation in the 'Red' (<30%) zone here first before voluntary standards."
+                                }
+                            ]}
+                            integrations={[
+                                { name: "Internal Controls", description: "Satisfying a regulation automatically updates linked internal controls." },
+                                { name: "Risk Register", description: "Regulatory failures are flagged as high-impact risks." }
+                            ]}
+                        />
+                        <Button
+                            id="reg-gap-analysis-btn"
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                toast.promise(generateReport.mutateAsync({ clientId }), {
+                                    loading: 'Generating Report...',
+                                    success: (data) => {
+                                        const link = document.createElement('a');
+                                        link.href = `data:application/pdf;base64,${data.pdfBase64}`;
+                                        link.download = data.filename;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        return 'Report downloaded successfully';
+                                    },
+                                    error: 'Failed to generate report'
+                                });
+                            }}
+                        >
+                            Download Gap Analysis
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
+                <div id="reg-quick-links" className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
                     <Card
                         className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white border border-white/40 bg-white/60 backdrop-blur-xl shadow-premium rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                         onClick={() => setLocation(`/clients/${clientId}/roadmap`)}
@@ -163,7 +205,7 @@ export default function RegulationsDashboard() {
                     </Card>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div id="reg-grid-container" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {/* Regulations */}
                     {regulations.map((reg) => {
                         const regStats = getStats(reg.name);

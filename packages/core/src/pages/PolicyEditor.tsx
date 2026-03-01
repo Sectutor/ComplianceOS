@@ -897,6 +897,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                             </Button>
                         )}
                         <Button
+                            id="policy-save-btn"
                             onClick={handleSave}
                             disabled={isSaving || updatePolicyMutation.isPending || !isContentReady}
                         >
@@ -971,14 +972,38 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                             description="Build, manage, and distribute your organizational policies."
                             rationale="Policies are the foundation of compliance. This editor ensures they are not just text files, but integrated living documents connected to your risks and controls."
                             howToUse={[
-                                { step: "Structure Policy", description: "Use the Rich Text Editor to build well-formatted, readable policies." },
-                                { step: "Link Integrations", description: "Connect your policy to the Risks it mitigates and Controls it enforces." },
-                                { step: "Publish Version", description: "Create a locked, timestamped record of the policy for auditors." },
-                                { step: "Track Attestation", description: "Monitor employee acknowledgment in the Employees tab." }
+                                {
+                                    step: "Policy Header",
+                                    description: "Define the official name and ownership of this policy document.",
+                                    targetId: "policy-name"
+                                },
+                                {
+                                    step: "AI-Assisted Writing",
+                                    description: "Use the 'Rewrite' or 'Fix' buttons in the editor to improve technical language.",
+                                    targetId: "rte-ai-rewrite"
+                                },
+                                {
+                                    step: "Commit Changes",
+                                    description: "Always save your progress to update the live draft.",
+                                    targetId: "policy-save-btn"
+                                },
+                                {
+                                    step: "Governance Audit",
+                                    description: "Switch to 'History' to see the trail of changes and published versions.",
+                                    targetId: "policy-tab-history"
+                                }
                             ]}
-                            integrations={[
-                                { name: "Risk Register", description: "Link to source risks." },
-                                { name: "Audit Hub", description: "Export results as evidence." }
+                            scenarios={[
+                                {
+                                    title: "Responding to Audit Feedback",
+                                    example: "An auditor notes that your 'Access Control Policy' doesn't explicitly mention MFA for remote access.",
+                                    auditTip: "Use the Rich Text Editor to insert the missing clause. Before saving, use the 'Check Compliance' button (Sparkles icon) to ensure you haven't introduced any new gaps or broken placeholders."
+                                },
+                                {
+                                    title: "Annual Policy Review Cycle",
+                                    example: "It's been 12 months since the 'Data Retention Policy' was last updated.",
+                                    auditTip: "Check the 'History' tab. If no changes were needed, publish a new version with the note 'Annual review completed: no changes required'. This creates a fresh timestamp for auditors proving active governance."
+                                }
                             ]}
                         />
 
@@ -995,33 +1020,38 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     </div>
                                     <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full xl:w-auto max-w-full">
                                         <div className="w-full overflow-x-auto no-scrollbar">
-                                            <TabsList className="bg-transparent p-0 gap-1 h-auto flex w-max min-w-full">
+                                            <TabsList id="policy-view-tabs" className="bg-transparent p-0 gap-1 h-auto flex w-max min-w-full">
                                                 <TabsTrigger
                                                     value="edit"
+                                                    id="policy-tab-edit"
                                                     className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Edit
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="preview"
+                                                    id="policy-tab-preview"
                                                     className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Preview
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="links"
+                                                    id="policy-tab-links"
                                                     className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Links
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="employees"
+                                                    id="policy-tab-employees"
                                                     className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Employees
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="history"
+                                                    id="policy-tab-history"
                                                     className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     History

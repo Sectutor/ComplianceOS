@@ -157,10 +157,38 @@ export default function FrameworksDashboard() {
                         description="Learn how to adopt and implement compliance standards efficiently."
                         rationale="Compliance frameworks provide the structure for your security program. Proper implementation ensures you meet regulatory requirements while building a robust security posture."
                         howToUse={[
-                            { step: "Browse Standards", description: "Search for frameworks like SOC 2, ISO 27001, or NIST in our library." },
-                            { step: "Adopt & Import", description: "Select a framework to import its controls into your Control Workbench." },
-                            { step: "Track Progress", description: "Monitor implementation status across all active frameworks via the dashboard." },
-                            { step: "Custom Frameworks", description: "Pro and Enterprise users can import proprietary control sets." }
+                            {
+                                step: "Browse Standards",
+                                description: "Search for frameworks like SOC 2, ISO 27001, or NIST in our library.",
+                                targetId: "fw-search-bar"
+                            },
+                            {
+                                step: "Adopt & Import",
+                                description: "Select a framework to import its controls into your Control Workbench.",
+                                targetId: "fw-import-standard-btn"
+                            },
+                            {
+                                step: "Track Progress",
+                                description: "Monitor implementation status across all active frameworks via the dashboard.",
+                                targetId: "fw-grid-container"
+                            },
+                            {
+                                step: "Custom Frameworks",
+                                description: "Pro and Enterprise users can import proprietary control sets.",
+                                targetId: "fw-import-custom-btn"
+                            }
+                        ]}
+                        scenarios={[
+                            {
+                                title: "Multi-Framework Strategy",
+                                example: "You need to comply with both ISO 27001 and SOC 2.",
+                                auditTip: "Import both frameworks. ComplianceOS automatically deduplicates controls. Implementing a 'Password Complexity' control once will satisfy both frameworks simultaneously."
+                            },
+                            {
+                                title: "Handling Custom Audit Scopes",
+                                example: "Your client has a specific proprietary security questionnaire.",
+                                auditTip: "Use 'Import Custom'. Our engine converts CSV/Excel mappings into live, trackable controls, allowing you to manage custom requirements just like international standards."
+                            }
                         ]}
                         integrations={[
                             { name: "Ready Wizards", description: "Launch step-by-step readiness assessments for any standard." },
@@ -171,7 +199,7 @@ export default function FrameworksDashboard() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center space-x-2 bg-white p-2 rounded-lg border shadow-sm flex-1 max-w-md">
+                    <div id="fw-search-bar" className="flex items-center space-x-2 bg-white p-2 rounded-lg border shadow-sm flex-1 max-w-md">
                         <Search className="h-5 w-5 text-gray-400 ml-2" />
                         <Input
                             className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -181,12 +209,13 @@ export default function FrameworksDashboard() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="gap-2">
+                        <Button id="fw-import-standard-btn" onClick={() => setIsImportDialogOpen(true)} variant="outline" className="gap-2">
                             <Upload className="h-4 w-4" />
                             Import Standard
                         </Button>
                         {/* Premium Feature: Import Custom - only for pro/enterprise */}
                         <Button
+                            id="fw-import-custom-btn"
                             onClick={() => isPremium ? setIsCustomImportOpen(true) : setLocation('/upgrade-required?feature=custom-frameworks')}
                             variant={isPremium ? "default" : "secondary"}
                             className="gap-2"
@@ -222,7 +251,7 @@ export default function FrameworksDashboard() {
                     />
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="fw-grid-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredFrameworks.map((fw) => (
                         <FrameworkCard
                             key={fw.id}

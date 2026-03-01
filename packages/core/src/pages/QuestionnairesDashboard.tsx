@@ -99,9 +99,21 @@ export default function QuestionnairesDashboard() {
               description="Manage incoming and outgoing security assessments."
               rationale="Streamlines the vendor risk assessment process using AI automation."
               howToUse={[
-                { step: "Upload Assessment", description: "Import Excel or CSV questionnaires." },
-                { step: "Auto-Fill", description: "Use AI to answer questions from your Knowledge Base." },
-                { step: "Review & Export", description: "Validate answers and export back to original format." }
+                { step: "Upload Assessment", description: "Import Excel or CSV questionnaires.", targetId: "quest-upload-button" },
+                { step: "Review Status", description: "Track progress of each questionnaire assessment.", targetId: "quest-filter-tabs" },
+                { step: "Manage List", description: "Open or delete existing assessments from the list.", targetId: "quest-table-list" }
+              ]}
+              scenarios={[
+                {
+                  title: "Emergency Vendor Review",
+                  example: "A department needs to use a new AI tool by Friday, but its security profile is unknown.",
+                  auditTip: "Prioritize the assessment and use 'Auto-Fill' to draft answers. Document the business urgency and any temporary compensating controls."
+                },
+                {
+                  title: "Periodic Vendor Re-evaluation",
+                  example: "A Tier-1 supplier's annual review is due today.",
+                  auditTip: "Switch to 'Completed' to find last year's review. Highlight any previously noted weaknesses to see if they've been remediated."
+                }
               ]}
               integrations={[
                 { name: "Knowledge Base", description: "Source for AI answers." },
@@ -115,6 +127,7 @@ export default function QuestionnairesDashboard() {
             <Button
               className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white font-bold shadow-md transition-all hover:scale-[1.02]"
               onClick={() => setLocation(`/clients/${clientId}/questionnaire-workspace`)}
+              id="quest-upload-button"
             >
               <Plus className="w-4 h-4 mr-2" />
               Upload Questionnaire
@@ -123,7 +136,7 @@ export default function QuestionnairesDashboard() {
         </div>
 
         <div className="space-y-4 mb-6">
-          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full" id="quest-filter-tabs">
             <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl">
               <TabsTrigger
                 value="all"
@@ -166,7 +179,7 @@ export default function QuestionnairesDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white" id="quest-table-list">
           <Table>
             <TableHeader>
               <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
