@@ -1,3 +1,4 @@
+import { PageGuide } from "@/components/PageGuide";
 import React from 'react';
 import { useLocation } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";

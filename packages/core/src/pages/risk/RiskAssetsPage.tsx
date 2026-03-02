@@ -21,22 +21,22 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
 
-    // Determine effective client ID
-    const effectiveClientId = routeClientId || authClient?.id;
+    // Determine effective client ID - prefer route param, then auth context
+    const effectiveClientId = routeClientId || authClient?.id || 0;
 
     const { data: fetchedClient, isLoading: loadingClientDetails } = trpc.clients.get.useQuery(
-        { id: effectiveClientId || 0 },
-        { enabled: !!effectiveClientId && !authClient }
+        { id: effectiveClientId },
+        { enabled: !!effectiveClientId && effectiveClientId > 0 && !authClient }
     );
 
     const client = authClient || fetchedClient;
-    const clientId = client?.id || 0;
+    const clientId = client?.id || effectiveClientId || 0;
 
     const [location, setLocation] = useLocation();
 
-    const { data: assets, isLoading: loadingAssets, refetch: refetchAssets } = trpc.risks.getAssets.useQuery(
+    const { data: assets, isLoading: loadingAssets, refetch: refetchAssets, error: assetsError } = trpc.risks.getAssets.useQuery(
         { clientId },
-        { enabled: !!clientId }
+        { enabled: clientId > 0 }
     );
     const scanAllMutation = trpc.threatIntel.scanAllAssets.useMutation({
         onSuccess: (data) => {
@@ -44,7 +44,10 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
             toast.success(`Scanned ${data.results?.length || 0} assets, found ${total} suggestions`);
             refetchAssets();
         },
-        onError: (err) => toast.error(`Scan failed: ${err.message}`)
+        onError: (err) => {
+            console.error('Scan failed:', err);
+            toast.error(`Scan failed: ${err.message}`);
+        }
     });
 
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -306,7 +309,7 @@ function AssetInventoryTable({
     }, [assets, sortConfig, securityFeeds]);
 
     if (loading) return <div className="p-8 text-center text-muted-foreground">Loading assets...</div>;
-    if (assets.length === 0) return (
+    if (!assets || assets.length === 0) return (
         <div className="p-12 text-center">
             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
                 <Database className="w-8 h-8 text-muted-foreground" />

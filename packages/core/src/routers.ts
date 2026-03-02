@@ -21,7 +21,7 @@ import { createVendorRequestsRouter } from "./server/routers/vendorRequests";
 import { createThreatIntelRouter } from "./server/routers/threatIntel";
 import { createAsvsRouter } from "./server/routers/asvs";
 // Premium import placeholders
-// import { createSubprocessorsRouter } from "./server/routers/subprocessors";
+import { createSubprocessorsRouter } from "./server/routers/subprocessors";
 import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
 // import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
 import * as schema from "./schema";
@@ -126,6 +126,8 @@ import { createMaturityRouter } from "./server/routers/maturity";
 import { createGumroadRouter } from "./server/routers/gumroad";
 import { feedbackRouter } from "./server/routers/feedback";
 import { createBackupRestoreRouter } from "./server/routers/backupRestore";
+import { createRiskSettingsRouter } from "./server/routers/riskSettings";
+import { createKrisRouter } from "./server/routers/kris";
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -219,6 +221,8 @@ export const appRouter = router({
 
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
+  riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
+  kris: createKrisRouter(t, clientProcedure),
   metrics: createMetricsRouter(t, clientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
   projects: createProjectsRouter(t, clientProcedure),
@@ -257,9 +261,9 @@ export const appRouter = router({
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
   training: createTrainingRouter(t, clientProcedure, clientEditorProcedure),
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
-  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure),
+  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
-  // subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
+  subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
@@ -453,40 +457,7 @@ export const appRouter = router({
       }),
   }),
 
-  riskSettings: router({
-    get: clientProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        return await db.getRiskSettings(input.clientId);
-      }),
-    update: adminProcedure
-      .input(z.object({
-        clientId: z.number(),
-        scope: z.string().optional(),
-        context: z.string().optional(),
-        riskAppetite: z.string().optional(),
-        methodology: z.string().optional(),
-        riskTolerance: z.array(z.object({
-          category: z.string(),
-          threshold: z.string(),
-          unit: z.string()
-        })).optional(),
-        impactCriteria: z.array(z.object({
-          level: z.number(),
-          name: z.string(),
-          description: z.string()
-        })).optional(),
-        likelihoodCriteria: z.array(z.object({
-          level: z.number(),
-          name: z.string(),
-          description: z.string()
-        })).optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const { clientId, ...rest } = input;
-        return await db.upsertRiskSettings({ clientId, ...rest } as any);
-      }),
-  }),
+  // Removed duplicated riskSettings router block
 
 
 
@@ -1424,6 +1395,44 @@ export const appRouter = router({
         }).returning();
 
         return draft;
+      }),
+
+    send: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        subject: z.string(),
+        to: z.array(z.string()),
+        cc: z.array(z.string()).default([]),
+        bcc: z.array(z.string()).default([]),
+        body: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+
+        // Create the sent email record
+        const userEmail = ctx.session?.user?.email;
+        if (!userEmail) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User email required to send emails'
+          });
+        }
+
+        const [sent] = await db.insert(schema.emailMessages).values({
+          clientId: input.clientId,
+          userId: ctx.session?.user?.id || 0,
+          folder: 'sent',
+          status: 'sent',
+          subject: input.subject,
+          body: input.body,
+          to: input.to,
+          cc: input.cc,
+          bcc: input.bcc,
+          isRead: true,
+          from: userEmail
+        }).returning();
+
+        return sent;
       }),
 
     updateDraft: clientEditorProcedure

@@ -516,41 +516,6 @@ function DashboardLayoutContent({
       ]
     },
     {
-      label: "Assessments",
-      items: [
-        { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires", isPremium: true },
-        { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
-        {
-          icon: ShieldCheck,
-          label: "Security Assessments",
-          path: "/assurance",
-          submenu: [
-            { label: "Assurance Overview", path: "/assurance" },
-            { label: "NIS2 Assessment", path: "/cyber/assessment" },
-            { label: "NIST CSF 2.0", path: "/nist-csf-2" },
-            { label: "ISO 27001", path: "/assurance/iso-27001" },
-            { label: "Cloud Controls (CCM)", path: "/assurance/ccm" },
-            { label: "C2M2 V2.1", path: "/c2m2-2.1" },
-            { label: "CISA Zero Trust", path: "/cisa-ztmm-2" },
-            { label: "CMMC 2.0", path: "/cmmc-2" },
-            { label: "Essential Eight", path: "/essential-eight" },
-            { label: "SAMM Maturity", path: "/samm" },
-            { label: "App Security (ASVS)", path: "/asvs" },
-          ]
-        },
-        { icon: ShieldAlert, label: "Vendor Assessments", path: "/vendors/reviews" },
-        {
-          icon: Target,
-          label: "Specialized Surveys",
-          path: "/assessments/specialized",
-          submenu: [
-            { label: "DPI Assessment", path: "/privacy/dpia" },
-            { label: "Business Impact (BIA)", path: "/business-continuity/bia" },
-          ]
-        },
-      ]
-    },
-    {
       label: "Libraries & Knowledge",
       items: [
         { icon: Shield, label: "Global Control Library", path: "/controls" },
@@ -598,7 +563,6 @@ function DashboardLayoutContent({
           { icon: ClipboardList, label: "Statement of Applicability", path: "/iso27001/soa" },
           { icon: AlertTriangle, label: "Risk Management", path: "/iso27001/risks" },
           { icon: Database, label: "Asset Register", path: "/iso27001/assets" },
-          { icon: FileText, label: "Internal Audit", path: "/iso27001/audit" },
           { icon: ShieldCheck, label: "Governance Review", path: "/iso27001/governance" },
         ]
       },
@@ -637,16 +601,16 @@ function DashboardLayoutContent({
         label: "Risk Management",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/risks" },
-          { icon: ClipboardCheck, label: "Risk Assessments", path: "/risks/assessments" },
-          { icon: ListTodo, label: "Risk Register", path: "/risks/register" },
-          { icon: FileText, label: "Risk Reports", path: "/risks/report" },
           { icon: LayoutGrid, label: "Risk Framework", path: "/risks/framework" },
+          { icon: ClipboardCheck, label: "Risk Assessments", path: "/risks/assessments" },
+          { icon: Compass, label: "Guided Assessment", path: "/risks/guided" },
+          { icon: ListTodo, label: "Risk Register", path: "/risks/register" },
           { icon: Database, label: "Assets", path: "/risks/assets" },
           { icon: AlertTriangle, label: "Threats", path: "/risks/threats" },
           { icon: Bug, label: "Vulnerabilities", path: "/risks/vulnerabilities" },
-          { icon: Compass, label: "Guided Assessment", path: "/risks/guided" },
           { icon: ShieldCheck, label: "Treatment Plan", path: "/risks/treatment-plan" },
           { icon: BookOpen, label: "Alignment Guide", path: "/risks/alignment-guide" },
+          { icon: FileText, label: "Risk Reports", path: "/risks/report" },
           // Premium: Adversary Intelligence (conditionally added below)
         ]
       }
@@ -691,6 +655,8 @@ function DashboardLayoutContent({
           { icon: Building2, label: "All Vendors", path: "/vendors/all" },
           { icon: Search, label: "Discovery", path: "/vendors/discovery" },
           { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
+          { icon: ClipboardList, label: "Questionnaires", path: "/questionnaires" },
+          { icon: Target, label: "Assessment Templates", path: "/vendors/templates" },
         ]
       });
     }
@@ -767,10 +733,16 @@ function DashboardLayoutContent({
           ...(clientInfo?.serviceModel === 'managed' && enabledInBuild ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
           { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
-          { icon: Briefcase, label: "Audit Preparation", path: "/audit-hub" },
           { icon: Zap, label: "Supply Chain (SCVS)", path: "/assurance/scvs" },
           { icon: ShieldCheck, label: "OpenSSF Hygiene", path: "/assurance/openssf" },
           { icon: Radar, label: "Mobile App Sec", path: "/assurance/masvs" },
+        ]
+      },
+      {
+        label: "Audit Hub",
+        items: [
+          { icon: ShieldCheck, label: "Audit Manager", path: `/clients/${persistentClientId}/audit-manager` },
+          { icon: Briefcase, label: "Audit Preparation", path: `/clients/${persistentClientId}/audit-hub` },
         ]
       },
       {

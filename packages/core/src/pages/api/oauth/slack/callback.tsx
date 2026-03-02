@@ -1,26 +1,42 @@
 import React, { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useClientContext } from '@/contexts/ClientContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 export function SlackOAuthCallback() {
-    const location = useLocation();
-    const navigate = useNavigate();
+    const [location, setLocation] = useLocation();
     const { selectedClientId } = useClientContext();
-    const clientId = selectedClientId || 1;
     const hasExchanged = useRef(false);
+
+    // Use client from session if available
+    // CRITICAL: Never fall back to clientId=1 - this is a security risk
+    // that could cause OAuth integrations to attach to the wrong client
+    let clientId = selectedClientId || parseInt(sessionStorage.getItem('last_client_id') || '0');
+
+    if (!selectedClientId && sessionStorage.getItem('last_client_id')) {
+        console.warn('[SlackOAuth] No selectedClientId, falling back to session client ID:', clientId);
+    } else if (!selectedClientId) {
+        // CRITICAL SECURITY FIX: Do NOT fall back to clientId=1
+        // Instead, show an error and require explicit client selection
+        console.error('[SlackOAuth] No client in session - OAuth requires explicit client selection');
+        toast.error('No client selected. Please select a client workspace before connecting integrations.');
+        setLocation('/settings/integrations');
+        return;
+    }
+
+    const isValidClient = clientId !== null && clientId !== undefined && clientId > 0;
 
     const mutation = trpc.integrations.handleOAuthCallback.useMutation({
         onSuccess: () => {
             toast.success('Slack connected successfully');
-            navigate('/settings/integrations');
+            setLocation('/settings/integrations');
         },
         onError: (error) => {
             console.error('[SlackOAuth] Error:', error);
             toast.error(`Failed to connect Slack: ${error.message}`);
-            navigate('/settings/integrations');
+            setLocation('/settings/integrations');
         }
     });
 
@@ -32,13 +48,20 @@ export function SlackOAuthCallback() {
 
         if (error) {
             toast.error(`Slack Error: ${error}`);
-            navigate('/settings/integrations');
+            setLocation('/settings/integrations');
             return;
         }
 
         if (!code) {
             toast.error('No code received from Slack');
-            navigate('/settings/integrations');
+            setLocation('/settings/integrations');
+            return;
+        }
+
+        // CRITICAL: Validate client selection before proceeding with OAuth
+        if (!isValidClient) {
+            toast.error('No client selected. Please select a client workspace before connecting integrations.');
+            setLocation('/settings/integrations');
             return;
         }
 
@@ -46,7 +69,7 @@ export function SlackOAuthCallback() {
         const savedState = sessionStorage.getItem("slack_oauth_state");
         if (state && savedState && state !== savedState) {
             toast.error('Invalid state parameter. Possible CSRF attack.');
-            navigate('/settings/integrations');
+            setLocation('/settings/integrations');
             return;
         }
 
@@ -62,7 +85,7 @@ export function SlackOAuthCallback() {
             // Clear state after use
             sessionStorage.removeItem("slack_oauth_state");
         }
-    }, [location.search, clientId, navigate, mutation]);
+    }, [location, clientId, setLocation, mutation]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">

@@ -21,7 +21,8 @@ import {
   Trash2,
   ExternalLink,
   Search,
-  Filter
+  Filter,
+  Upload
 } from "lucide-react";
 import { Input } from "@complianceos/ui/ui/input";
 import {
@@ -124,14 +125,27 @@ export default function QuestionnairesDashboard() {
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
-            <Button
-              className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white font-bold shadow-md transition-all hover:scale-[1.02]"
-              onClick={() => setLocation(`/clients/${clientId}/questionnaire-workspace`)}
-              id="quest-upload-button"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Upload Questionnaire
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white font-bold shadow-md transition-all hover:scale-[1.02]"
+                  id="quest-upload-button"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Questionnaire
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setLocation(`/clients/${clientId}/questionnaire-workspace`)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template`)}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Use Template
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -187,7 +201,6 @@ export default function QuestionnairesDashboard() {
                 <TableHead className="text-white font-semibold py-4">Progress</TableHead>
                 <TableHead className="text-white font-semibold py-4">Status</TableHead>
                 <TableHead className="text-white font-semibold py-4">Account / Sender</TableHead>
-                <TableHead className="text-white font-semibold py-4">Product</TableHead>
                 <TableHead className="text-white font-semibold py-4">Date Added</TableHead>
                 <TableHead className="text-white font-semibold py-4">Due Date</TableHead>
                 <TableHead className="w-[50px] text-white font-semibold py-4"></TableHead>
@@ -204,8 +217,11 @@ export default function QuestionnairesDashboard() {
                     <div className="font-semibold">{q.name}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="w-full max-w-[100px] bg-slate-100 rounded-full h-2.5">
-                      <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${q.progress}%` }}></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-full max-w-[100px] bg-slate-100 rounded-full h-2.5">
+                        <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${q.progress}%` }}></div>
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{q.progress ?? 0}%</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -220,7 +236,6 @@ export default function QuestionnairesDashboard() {
                     </span>
                   </TableCell>
                   <TableCell>{q.senderName || '-'}</TableCell>
-                  <TableCell>{q.productName || 'Default'}</TableCell>
                   <TableCell>{format(new Date(q.createdAt!), 'MM/dd/yyyy')}</TableCell>
                   <TableCell>{q.dueDate ? format(new Date(q.dueDate), 'MM/dd/yyyy') : '-'}</TableCell>
                   <TableCell>
@@ -244,10 +259,25 @@ export default function QuestionnairesDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
-              {questionnaires?.length === 0 && (
+              {filteredQuestionnaires?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                    No questionnaires found. Upload one to get started.
+                  <TableCell colSpan={7} className="py-16">
+                    <div className="flex flex-col items-center justify-center gap-4 text-center">
+                      <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-700">No questionnaires yet</p>
+                        <p className="text-sm text-muted-foreground mt-1">Upload a security questionnaire to get started.</p>
+                      </div>
+                      <Button
+                        className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white"
+                        onClick={() => setLocation(`/clients/${clientId}/questionnaire-workspace`)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Upload Questionnaire
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

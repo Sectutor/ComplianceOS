@@ -1,17 +1,17 @@
-import { Shield, FileText, BookOpen, Sparkles, Link, ClipboardCheck, AlertTriangle, Code, Activity, Compass, Flag, Brain, Building2, Users, FileBarChart, Calendar, Bell, Settings, ListTodo, MessageSquare, History, GraduationCap, Palette, ClipboardList } from "lucide-react";
+import { Shield, FileText, BookOpen, Sparkles, Link, ClipboardCheck, AlertTriangle, Code, Activity, Compass, Flag, Brain, Building2, Users, FileBarChart, Calendar, Bell, Settings, ListTodo, MessageSquare, History, GraduationCap, Palette, ClipboardList, ShieldCheck } from "lucide-react";
 
 export const clientSpecificMenuItems = [
     { icon: Shield, label: "Controls", path: "/client-controls" },
     { icon: ClipboardList, label: "Requirements", path: "/compliance-requirements" },
     { icon: FileText, label: "Policies", path: "/client-policies" },
     { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
-    { icon: Sparkles, label: "AI Questionnaires", path: "/questionnaires", isPremium: true },
     { icon: Link, label: "Mappings", path: "/mappings" },
 
     { icon: ClipboardCheck, label: "Evidence", path: "/evidence" },
     { icon: AlertTriangle, label: "Risk Management", path: "/risks" },
     { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
     { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
+    { icon: ShieldCheck, label: "Audit Manager", path: "/audit-manager" },
     { icon: Compass, label: "Compliance Journey", path: "/journey" },
     { icon: Flag, label: "Discovery Wizard", path: "/readiness/wizard" },
     { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
@@ -44,6 +44,9 @@ export function resolveNavigationPath(itemPath: string, clientId: number | null)
     const [purePath, query] = itemPath.split('?');
     const queryStr = query ? `?${query}` : '';
 
+    // Public questionnaire routes (vendor response tokens) should not be rewritten
+    if (purePath.startsWith('/questionnaire/')) return itemPath;
+
     if (purePath === "/governance") return `/clients/${clientId}/governance${queryStr}`;
     if (purePath === "/governance/workbench") return `/clients/${clientId}/governance/workbench${queryStr}`;
     if (purePath === "/compliance") return `/clients/${clientId}/compliance${queryStr}`;
@@ -69,6 +72,7 @@ export function resolveNavigationPath(itemPath: string, clientId: number | null)
     if (purePath === "/training/management") return `/clients/${clientId}/training/management${queryStr}`;
     if (purePath === "/personnel-compliance") return `/clients/${clientId}/personnel-compliance${queryStr}`;
     if (purePath === "/audit-hub") return `/clients/${clientId}/audit-hub${queryStr}`;
+    if (purePath === "/audit-manager") return `/clients/${clientId}/audit-manager${queryStr}`;
     if (purePath === "/reports") return `/clients/${clientId}/reports${queryStr}`;
     if (purePath === "/trust-center") return `/trust-center/${clientId}${queryStr}`;
     if (purePath === "/projects") return `/clients/${clientId}/projects${queryStr}`;
@@ -81,6 +85,7 @@ export function resolveNavigationPath(itemPath: string, clientId: number | null)
     if (purePath === "/settings") return `/clients/${clientId}/settings${queryStr}`;
     if (purePath === "/compliance-obligations") return `/clients/${clientId}/compliance-obligations${queryStr}`;
     if (purePath === "/frameworks") return `/frameworks${queryStr}`;
+    if (purePath === "/questionnaires") return `/clients/${clientId}/questionnaires${queryStr}`;
 
     const isClientSubRoute = clientSpecificMenuItems.some(cItem => cItem.path === purePath) ||
         purePath.startsWith('/risks') ||

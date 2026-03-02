@@ -54,7 +54,7 @@ export default function ISODashboard() {
             title: "Internal Audit",
             description: "Plan and track ISO internal audit cycles.",
             icon: FileText,
-            path: `/clients/${clientId}/iso27001/audit`,
+            path: `/clients/${clientId}/audit-manager`,
             progress: 10,
             status: "Scheduled"
         }

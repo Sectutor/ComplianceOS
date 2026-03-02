@@ -7,8 +7,8 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Input } from "@complianceos/ui/ui/input";
 import { learningContent, FrameworkLearning, LearningSection } from "@/data/learningContent";
 import { toast } from "sonner";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
 
 // Map icon names to components
 const iconMap: Record<string, any> = {

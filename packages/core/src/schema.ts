@@ -13193,13 +13193,30 @@ export const questionnaires = pgTable("questionnaires", {
 
   productName: text("product_name"),
 
-  status: varchar("status", { length: 50 }).default("open"), // open, in_progress, completed, archived
+  status: varchar("status", { length: 50 }).default("open"), // open, in_progress, completed, archived, vendor_pending, pending_review
 
   progress: integer("progress").default(0),
 
   dueDate: timestamp("due_date"),
 
   ownerId: integer("owner_id"), // FK to users
+
+  // Vendor assessment fields
+  vendorName: text("vendor_name"),
+  vendorEmail: text("vendor_email"),
+  vendorToken: text("vendor_token"),
+  vendorLinkExpiresAt: timestamp("vendor_link_expires_at"),
+
+  // Enhanced workflow fields
+  category: varchar("category", { length: 100 }),
+  priority: varchar("priority", { length: 20 }).default('medium'),
+  controlId: text("control_id"),
+  controlFramework: varchar("control_framework", { length: 50 }),
+  remediationDeadline: timestamp("remediation_deadline"),
+  answeredBy: integer("answered_by").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  version: integer("version").default(1),
 
   createdAt: timestamp("created_at").defaultNow(),
 
@@ -13212,6 +13229,9 @@ export const questionnaires = pgTable("questionnaires", {
     clientIdx: index("idx_qn_client").on(table.clientId),
 
     statusIdx: index("idx_qn_status").on(table.status),
+
+    // Unique index for vendor token to prevent duplicates and enable efficient lookups
+    vendorTokenIdx: uniqueIndex("idx_qn_vendor_token").on(table.vendorToken),
 
   };
 
@@ -13241,15 +13261,27 @@ export const questionnaireQuestions = pgTable("questionnaire_questions", {
 
   tags: json("tags").$type<string[]>().default([]), // Tags for categorization
 
+  // New fields for enhanced workflow
+  category: varchar("category", { length: 100 }), // e.g., "Access Control", "Data Security"
+  priority: varchar("priority", { length: 20 }).default('medium'), // high, medium, low
+  controlId: text("control_id"), // Maps to compliance control
+  controlFramework: varchar("control_framework", { length: 50 }), // ISO27001, NIST, etc.
+  remediationDeadline: timestamp("remediation_deadline"),
+
   access: varchar("access", { length: 50 }).default("internal"), // internal, external, confidential
 
   assigneeId: integer("assignee_id").references(() => users.id), // Assigned user
+  answeredBy: integer("answered_by").references(() => users.id), // Who answered
+  approvedBy: integer("approved_by").references(() => users.id), // Who approved
+  approvedAt: timestamp("approved_at"), // When approved
 
   confidence: integer("confidence"),
 
   sources: json("sources").$type<any[]>().default([]),
 
-  status: varchar("status", { length: 50 }).default("pending"), // pending, approved, flagged
+  status: varchar("status", { length: 50 }).default("pending"), // pending, approved, flagged, needs_review
+
+  version: integer("version").default(1), // For versioning
 
   createdAt: timestamp("created_at").defaultNow(),
 

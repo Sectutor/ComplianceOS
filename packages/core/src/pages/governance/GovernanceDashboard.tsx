@@ -170,7 +170,7 @@ export default function GovernanceDashboard() {
                                     icon: Shield,
                                     color: "text-emerald-400",
                                     bg: "bg-emerald-900/50",
-                                    isComplete: (readinessData?.controlStats?.implemented || 0) > 0
+                                    isComplete: (readinessData?.coverage?.controlStats?.implemented || 0) > 0
                                 },
                                 {
                                     step: "3. Risks",
@@ -190,7 +190,7 @@ export default function GovernanceDashboard() {
                                     icon: FileText,
                                     color: "text-amber-400",
                                     bg: "bg-amber-900/50",
-                                    isComplete: (readinessData?.policyStats?.approved || 0) > 0
+                                    isComplete: (readinessData?.coverage?.policyStats?.approved || 0) > 0
                                 },
                                 {
                                     step: "5. Automate",
@@ -256,7 +256,7 @@ export default function GovernanceDashboard() {
                         <CardContent>
                             <div className="text-3xl font-bold text-amber-700">{policyPercentage}%</div>
                             <p className="text-xs text-amber-600 mt-1">
-                                {readinessData?.policyStats?.approved || 0} / {readinessData?.policyStats?.total || 0} Approved
+                                {readinessData?.coverage?.policyStats?.approved || 0} / {readinessData?.coverage?.policyStats?.total || 0} Approved
                             </p>
                         </CardContent>
                     </Card>
@@ -270,7 +270,7 @@ export default function GovernanceDashboard() {
                         <CardContent>
                             <div className="text-3xl font-bold text-emerald-700">{controlPercentage}%</div>
                             <p className="text-xs text-emerald-600 mt-1">
-                                {readinessData?.controlStats?.implemented || 0} / {readinessData?.controlStats?.total || 0} Implemented
+                                {readinessData?.coverage?.controlStats?.implemented || 0} / {readinessData?.coverage?.controlStats?.total || 0} Implemented
                             </p>
                         </CardContent>
                     </Card>

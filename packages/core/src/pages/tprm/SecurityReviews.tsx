@@ -290,8 +290,8 @@ export default function SecurityReviews() {
                 <div className="flex justify-between items-center">
                     <div>
                         <PageGuide
-                            title="Security Reviews"
-                            description="Manage active security assessments and audit workflows."
+                            title="Assessment Projects"
+                            description="Manage active assessment projects and workflows."
                             rationale="Systematic evaluation of vendor security controls reduces third-party risk."
                             moduleId="vendor-security-reviews"
                             isTrainingRequirement={true}

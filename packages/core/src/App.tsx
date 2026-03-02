@@ -290,6 +290,7 @@ const ISOAssetRegister = lazy(() => import("./pages/iso27001/ISOAssetRegister"))
 const ISOContext = lazy(() => import("./pages/iso27001/ISOContext"));
 const ISODocumentTracker = lazy(() => import("./pages/iso27001/ISODocumentTracker"));
 const ISOAuditManager = lazy(() => import("./pages/iso27001/ISOAuditManager"));
+const AuditManager = lazy(() => import("./pages/AuditManager"));
 const ISOManagementReview = lazy(() => import("./pages/iso27001/ISOManagementReview"));
 import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
@@ -305,6 +306,7 @@ const TrainingManagement = lazy(() => import("./pages/TrainingManagement"));
 const UIPatternShowcase = lazy(() => import("./pages/UIPatternShowcase"));
 const ConsolidatedRequestPortal = lazy(() => import("./pages/portal/ConsolidatedRequestPortal"));
 const VendorAssessmentPortal = lazy(() => import("./pages/portal/VendorAssessmentPortal"));
+const VendorQuestionnairePortal = lazy(() => import("./pages/VendorQuestionnairePortal"));
 
 // const Integrations = lazy(() => import("./pages/admin/Integrations"));
 const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
@@ -695,7 +697,7 @@ function Router() {
         <Route path="/waitlist" component={WaitlistPage} />
         <Route path="/respond-gap/:token" component={GapQuestionnaireResponse} />
         {/* Public Questionnaire Route */}
-        <Route path="/questionnaire/:token" component={GapQuestionnaireResponse} />
+        <Route path="/questionnaire/:token" component={VendorQuestionnairePortal} />
 
 
 
@@ -1609,6 +1611,11 @@ function Router() {
         </Route>
         <Route path="/clients/:id/iso27001/documents">
           {(_params) => <ProtectedRoute component={ISODocumentTracker} />}
+        </Route>
+        <Route path="/clients/:id/audit-manager">
+          {(params) => (
+            <ProtectedRoute component={AuditManager} {...params} />
+          )}
         </Route>
 
         <Route path="/clients/:id/privacy/documents">

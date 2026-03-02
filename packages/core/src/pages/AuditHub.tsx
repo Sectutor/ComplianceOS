@@ -98,7 +98,7 @@ export default function AuditHub() {
     const { user } = useAuth();
     // Determine if we should show the Auditor View (Restricted Clean Room)
     // Check for 'auditor' role or explicit 'view=auditor' query param for testing/admin preview
-    const isAuditorView = user?.user_metadata?.role === 'auditor' || window.location.search.includes('view=auditor');
+    const isAuditorView = user?.user_metadata?.role === 'auditor' || (typeof window !== 'undefined' ? window.location.search.includes('view=auditor') : false);
     const Layout = isAuditorView ? AuditorLayout : DashboardLayout;
 
     const [inviteOpen, setInviteOpen] = useState(false);
@@ -317,7 +317,7 @@ export default function AuditHub() {
         }
     });
 
-    const { data: clientControlsList } = trpc.clientControls.list.useQuery({ clientId }, { enabled: createRequestOpen });
+    const { data: clientControlsList } = trpc.clientControls.list.useQuery({ clientId }, { enabled: createRequestOpen && !!clientId });
 
     const handleCreateRequest = () => {
         if (!newRequestData.description || !newRequestData.clientControlId) {
@@ -325,9 +325,15 @@ export default function AuditHub() {
             return;
         }
 
+        const controlId = parseInt(newRequestData.clientControlId);
+        if (isNaN(controlId) || controlId <= 0) {
+            toast.error("Please select a valid control");
+            return;
+        }
+
         createEvidenceMutation.mutate({
             clientId,
-            clientControlId: parseInt(newRequestData.clientControlId),
+            clientControlId: controlId,
             evidenceId: newRequestData.evidenceId || `MANUAL-${Date.now().toString().slice(-4)}`,
             description: newRequestData.description,
             owner: newRequestData.owner,
@@ -1161,7 +1167,7 @@ export default function AuditHub() {
                                         if (`EV-${r.id}` === idStr || `EV-${r.original?.evidenceId}` === idStr) return true;
                                         return false;
                                     });
-                                    
+
                                     if (req) {
                                         console.log("[AuditHub] Navigating to evidence request:", req.id);
                                         setActiveSection('pbc');
