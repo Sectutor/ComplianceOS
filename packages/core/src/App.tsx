@@ -1477,6 +1477,13 @@ function Router() {
             </PrivacyLayout>
           )}
         </Route>
+        <Route path="/clients/:id/privacy/dpia/new">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)}>
+              <DPIAQuestionnaire />
+            </PrivacyLayout>
+          )}
+        </Route>
         <Route path="/clients/:id/privacy/dpia/:dpiaId/questionnaire">
           {(_params) => (
             <PrivacyLayout clientId={parseInt(_params.id)}>
