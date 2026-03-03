@@ -677,6 +677,7 @@ function DashboardLayoutContent({
         label: "Federal Compliance",
         items: [
           { icon: Building2, label: "Overview", path: "/federal" },
+          { icon: FileText, label: "Contract Tracker", path: "/federal/contracts" },
           { icon: Cloud, label: "FedRAMP Packages", path: "/federal/fedramp" },
           { icon: ShieldCheck, label: "NIST 800-53 Rev 5", path: "/federal/800-53" },
           { icon: ClipboardList, label: "FISMA Reporting", path: "/federal/fisma" },

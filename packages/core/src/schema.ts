@@ -5695,7 +5695,10 @@ export const assets = pgTable("assets", {
 
 
 
-
+  // Federal / DFARS CUI Boundary Extension
+  cuiScope: boolean("cui_scope").default(false), // Is this asset in the CUI enclave?
+  cuiCategory: varchar("cui_category", { length: 100 }), // CUI category: CDI, CTI, ITAR, etc.
+  cuiJustification: text("cui_justification"), // Why this asset is in/out of CUI scope
 
 
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -14842,3 +14845,36 @@ export const learningSections = pgTable("learning_sections", {
     uniqueSection: uniqueIndex("idx_learning_sections_unique").on(table.frameworkId, table.sectionId),
   };
 });
+
+// ============================================================================
+// Federal Contracts (DFARS/CMMC)
+// ============================================================================
+
+export const federalContracts = pgTable("federal_contracts", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  agencyName: varchar("agency_name", { length: 255 }),
+  contractNumber: varchar("contract_number", { length: 255 }),
+  type: varchar("type", { length: 50 }).default("prime"), // prime, subcontractor
+  status: varchar("status", { length: 50 }).default("active"), // active, prospective, completed
+  fismaSystemId: integer("fisma_system_id"), // Optional scoping
+  dfars7012: boolean("dfars_7012").default(false),
+  dfars7019: boolean("dfars_7019").default(false),
+  dfars7020: boolean("dfars_7020").default(false),
+  dfars7021: boolean("dfars_7021").default(false),
+  far5220421: boolean("far_52_204_21").default(false),
+  cmmcLevel: varchar("cmmc_level", { length: 20 }),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_fed_ctrcts_client").on(table.clientId),
+  };
+});
+
+export type FederalContract = typeof federalContracts.$inferSelect;
+export type InsertFederalContract = typeof federalContracts.$inferInsert;

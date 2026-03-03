@@ -6,7 +6,7 @@ import { Input } from '@complianceos/ui/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@complianceos/ui/ui/select';
 import { Textarea } from '@complianceos/ui/ui/textarea';
 import { trpc } from '@/lib/trpc';
-import { Database, Loader2, Save, ArrowLeft, Calendar, Shield, Info, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Database, Loader2, Save, ArrowLeft, Calendar, Shield, Info, AlertTriangle, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Separator } from '@complianceos/ui/ui/separator';
@@ -14,6 +14,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import ThreatIntelPanel from '@/components/risk/ThreatIntelPanel';
 import { PageGuide } from "@/components/PageGuide";
+import { Switch } from '@complianceos/ui/ui/switch';
 
 const ASSET_TYPES = [
     'Hardware',
@@ -23,6 +24,18 @@ const ASSET_TYPES = [
     'Service',
     'Intangible / Reputation',
     'Site / Facility'
+];
+
+const CUI_CATEGORIES = [
+    'CDI (Covered Defense Information)',
+    'CTI (Controlled Technical Information)',
+    'ITAR (Export Controlled)',
+    'FOUO (For Official Use Only)',
+    'LES (Law Enforcement Sensitive)',
+    'PII (Personally Identifiable Info)',
+    'PHI (Protected Health Info)',
+    'Proprietary Business',
+    'Other',
 ];
 
 export default function RiskAssetEditor(props: any) {
@@ -60,6 +73,10 @@ export default function RiskAssetEditor(props: any) {
         productName: '',
         version: '',
         technologies: [] as string[],
+        // CUI Boundary
+        cuiScope: false,
+        cuiCategory: '',
+        cuiJustification: '',
     });
 
     // Queries
@@ -99,6 +116,9 @@ export default function RiskAssetEditor(props: any) {
                 productName: existingAsset.productName || '',
                 version: existingAsset.version || '',
                 technologies: (existingAsset.technologies as string[]) || [],
+                cuiScope: existingAsset.cuiScope || false,
+                cuiCategory: (existingAsset as any).cuiCategory || '',
+                cuiJustification: (existingAsset as any).cuiJustification || '',
             });
         }
     }, [existingAsset]);
@@ -145,6 +165,9 @@ export default function RiskAssetEditor(props: any) {
                 productName: formData.productName || undefined,
                 version: formData.version || undefined,
                 technologies: formData.technologies.length > 0 ? formData.technologies : undefined,
+                cuiScope: formData.cuiScope,
+                cuiCategory: formData.cuiCategory || undefined,
+                cuiJustification: formData.cuiJustification || undefined,
             };
 
             if (dbId) {
@@ -241,6 +264,7 @@ export default function RiskAssetEditor(props: any) {
                                 ...(!isNew && ['Software', 'Hardware'].includes(formData.type)
                                     ? [{ id: 'threatIntel', label: 'Threat Intel', icon: AlertTriangle, desc: 'Vulnerabilities' }]
                                     : []),
+                                { id: 'cuiScope', label: 'CUI Scope', icon: ShieldCheck, desc: 'DFARS Boundary' },
                                 ...(!isNew ? [{ id: 'risks', label: 'Linked Risks', icon: ShieldAlert, desc: 'Risk Scenarios' }] : []),
                             ].map((section) => (
                                 <button
@@ -505,6 +529,86 @@ export default function RiskAssetEditor(props: any) {
                                 />
                             </div>
                         )}
+
+                        {/* CUI Scope Section */}
+                        <div className={activeTab === 'cuiScope' ? 'block' : 'hidden'}>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <ShieldCheck className="w-5 h-5 text-blue-600" />
+                                        CUI Boundary Definition
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Define whether this asset is within the Controlled Unclassified Information (CUI) enclave.
+                                        This is required for DFARS 252.204-7012 and CMMC scoping.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="flex items-center justify-between p-4 rounded-lg border bg-slate-50">
+                                        <div>
+                                            <Label className="text-base font-semibold">In CUI Scope</Label>
+                                            <p className="text-sm text-muted-foreground mt-0.5">
+                                                Does this asset store, process, or transmit CUI?
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={formData.cuiScope}
+                                            onCheckedChange={v => setFormData({ ...formData, cuiScope: v })}
+                                        />
+                                    </div>
+
+                                    {formData.cuiScope && (
+                                        <>
+                                            <div className="space-y-2">
+                                                <Label>CUI Data Category</Label>
+                                                <Select
+                                                    value={formData.cuiCategory}
+                                                    onValueChange={v => setFormData({ ...formData, cuiCategory: v })}
+                                                >
+                                                    <SelectTrigger><SelectValue placeholder="Select CUI category..." /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {CUI_CATEGORIES.map(c => (
+                                                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Common categories: CDI (most DFARS contracts), CTI (technical data), ITAR (export controlled).
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>Scope Justification</Label>
+                                                <Textarea
+                                                    value={formData.cuiJustification}
+                                                    onChange={e => setFormData({ ...formData, cuiJustification: e.target.value })}
+                                                    placeholder="Describe why this asset is in the CUI boundary. Reference the contract or data flow that brings CUI into contact with this system..."
+                                                    className="min-h-[100px]"
+                                                />
+                                            </div>
+
+                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                <div className="flex gap-3">
+                                                    <Info className="w-5 h-5 text-blue-600 shrink-0" />
+                                                    <div className="text-sm text-blue-900">
+                                                        <p className="font-bold mb-1">Why Does This Matter?</p>
+                                                        <p>Any asset marked as CUI-in-scope becomes part of your authorization boundary for NIST 800-171 and CMMC assessments. Only assets in this boundary need to meet the 110 security controls. Proper scoping reduces certification cost and complexity.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {!formData.cuiScope && (
+                                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-center">
+                                            <p className="text-sm text-muted-foreground">
+                                                This asset is <strong>not</strong> currently marked as handling CUI. Toggle the switch above if this asset stores, processes, or transmits Controlled Unclassified Information.
+                                            </p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         {/* Linked Risks Section */}
                         {!isNew && dbId && (

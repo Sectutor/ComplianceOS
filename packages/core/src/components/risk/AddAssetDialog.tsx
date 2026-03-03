@@ -5,9 +5,22 @@ import { Label } from '@complianceos/ui/ui/label';
 import { Input } from '@complianceos/ui/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@complianceos/ui/ui/select';
 import { Textarea } from '@complianceos/ui/ui/textarea';
+import { Switch } from '@complianceos/ui/ui/switch';
 import { trpc } from '@/lib/trpc';
-import { Database, Loader2 } from 'lucide-react';
+import { Database, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+
+const CUI_CATEGORIES = [
+    'CDI (Covered Defense Information)',
+    'CTI (Controlled Technical Information)',
+    'ITAR (Export Controlled)',
+    'FOUO (For Official Use Only)',
+    'LES (Law Enforcement Sensitive)',
+    'PII (Personally Identifiable Info)',
+    'PHI (Protected Health Info)',
+    'Proprietary Business',
+    'Other',
+];
 
 interface AddAssetDialogProps {
     open: boolean;
@@ -41,6 +54,9 @@ export function AddAssetDialog({ open, onOpenChange, clientId, onSuccess, initia
         valuationI: 3,
         valuationA: 3,
         description: '',
+        cuiScope: false,
+        cuiCategory: '',
+        cuiJustification: '',
     });
 
     useEffect(() => {
@@ -58,6 +74,9 @@ export function AddAssetDialog({ open, onOpenChange, clientId, onSuccess, initia
                     valuationI: initialData.valuationI || 3,
                     valuationA: initialData.valuationA || 3,
                     description: initialData.description || '',
+                    cuiScope: initialData.cuiScope || false,
+                    cuiCategory: initialData.cuiCategory || '',
+                    cuiJustification: initialData.cuiJustification || '',
                 });
             } else {
                 setFormData({
@@ -72,6 +91,9 @@ export function AddAssetDialog({ open, onOpenChange, clientId, onSuccess, initia
                     valuationI: 3,
                     valuationA: 3,
                     description: '',
+                    cuiScope: false,
+                    cuiCategory: '',
+                    cuiJustification: '',
                 });
             }
         }
@@ -99,7 +121,10 @@ export function AddAssetDialog({ open, onOpenChange, clientId, onSuccess, initia
                 valuationC: formData.valuationC,
                 valuationI: formData.valuationI,
                 valuationA: formData.valuationA,
-                description: formData.description
+                description: formData.description,
+                cuiScope: formData.cuiScope,
+                cuiCategory: formData.cuiCategory || undefined,
+                cuiJustification: formData.cuiJustification || undefined
             };
 
             if (initialData?.id) {
@@ -258,6 +283,50 @@ export function AddAssetDialog({ open, onOpenChange, clientId, onSuccess, initia
                         onChange={e => setFormData({ ...formData, description: e.target.value })}
                         placeholder="Brief description of the asset..."
                     />
+                </div>
+
+                {/* CUI Boundary Scope */}
+                <div className="space-y-3 pt-3 border-t border-dashed border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-blue-600" />
+                            <Label className="text-sm font-semibold">CUI Enclave Scope</Label>
+                        </div>
+                        <Switch
+                            checked={formData.cuiScope}
+                            onCheckedChange={v => setFormData({ ...formData, cuiScope: v })}
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground -mt-1">Does this asset store, process, or transmit Controlled Unclassified Information (CUI)?</p>
+                    {formData.cuiScope && (
+                        <div className="grid grid-cols-1 gap-3 pl-0">
+                            <div className="space-y-1">
+                                <Label className="text-xs">CUI Category</Label>
+                                <Select
+                                    value={formData.cuiCategory}
+                                    onValueChange={v => setFormData({ ...formData, cuiCategory: v })}
+                                >
+                                    <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue placeholder="Select category..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CUI_CATEGORIES.map(c => (
+                                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Justification / Enclave Notes</Label>
+                                <Textarea
+                                    className="text-xs h-16"
+                                    value={formData.cuiJustification}
+                                    onChange={e => setFormData({ ...formData, cuiJustification: e.target.value })}
+                                    placeholder="Why is this asset in the CUI boundary? e.g., stores CDI from DFARS 7012 contract..."
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
             </div>

@@ -107,6 +107,7 @@ const Nist800171AssessmentPage = lazy(() => import("./pages/federal/Nist800171As
 const FedRAMPPackageDetailPage = lazy(() => import("./pages/federal/FedRAMPPackageDetailPage"));
 const Nist80053AssessmentPage = lazy(() => import("./pages/federal/Nist80053AssessmentPage"));
 const NonComplianceReport = lazy(() => import("./pages/federal/NonComplianceReport"));
+const CuiApplicabilityQuiz = lazy(() => import("./pages/federal/CuiApplicabilityQuiz"));
 const FISMAPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.FISMAPlaceholder })));
 const RMFPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.RMFPlaceholder })));
 const DFARSPlaceholder = lazy(() => import("./pages/federal/FederalModulePlaceholder").then(m => ({ default: m.DFARSPlaceholder })));
@@ -244,6 +245,7 @@ const ProjectDetail = lazy(() => import("./pages/dev/ProjectDetail").then(module
 const ThreatModelWizard = lazy(() => import("@/components/threat-modeling/ThreatModelWizard").then(module => ({ default: module.ThreatModelWizard })));
 
 // Federal Compliance
+const FederalContractsPage = lazy(() => import("./pages/federal/FederalContractsPage"));
 const FederalHub = lazy(() => import("./pages/federal/FederalHub"));
 const FederalComplianceDashboard = lazy(() => import("./pages/federal/FederalComplianceDashboard"));
 const FipsCategorizationPage = lazy(() => import("./pages/federal/FipsCategorizationPage"));
@@ -1389,6 +1391,12 @@ function Router() {
         </Route>
         <Route path="/clients/:id/federal/hub">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalHub} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/federal/contracts">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalContractsPage} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/federal/cui-quiz">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={CuiApplicabilityQuiz} /></UnifiedClientGuard>}
         </Route>
 
         <Route path="/clients/:id/federal/fips-199">

@@ -129,6 +129,9 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
                 productName: z.string().optional(),
                 version: z.string().optional(),
                 technologies: z.array(z.string()).optional(),
+                cuiScope: z.boolean().optional(),
+                cuiCategory: z.string().optional(),
+                cuiJustification: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
@@ -165,6 +168,9 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
                 productName: z.string().optional(),
                 version: z.string().optional(),
                 technologies: z.array(z.string()).optional(),
+                cuiScope: z.boolean().optional(),
+                cuiCategory: z.string().optional(),
+                cuiJustification: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {

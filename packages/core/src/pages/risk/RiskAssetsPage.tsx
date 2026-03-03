@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, Filter } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { AddAssetDialog } from '@/components/risk/AddAssetDialog';
 import { Button } from '@complianceos/ui/ui/button';
@@ -51,6 +51,19 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
     });
 
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+    const [cuiFilterActive, setCuiFilterActive] = useState(false);
+
+    const cuiStats = useMemo(() => {
+        if (!assets) return { total: 0, inScope: 0, outScope: 0 };
+        const inScope = assets.filter((a: any) => a.cuiScope).length;
+        return { total: assets.length, inScope, outScope: assets.length - inScope };
+    }, [assets]);
+
+    const displayedAssets = useMemo(() => {
+        if (!assets) return [];
+        if (cuiFilterActive) return assets.filter((a: any) => a.cuiScope);
+        return assets;
+    }, [assets, cuiFilterActive]);
 
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -187,9 +200,32 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
                 </div>
             </div>
 
+            {/* CUI Enclave Summary Banner */}
+            {cuiStats.inScope > 0 && (
+                <div className="flex items-center gap-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                    <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-blue-800">
+                            CUI Boundary: <span className="text-blue-600">{cuiStats.inScope}</span> of {cuiStats.total} assets in scope
+                        </p>
+                        <p className="text-xs text-blue-600/70">Assets marked as storing, processing, or transmitting Controlled Unclassified Information</p>
+                    </div>
+                    <button
+                        onClick={() => setCuiFilterActive(!cuiFilterActive)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${cuiFilterActive
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+                            }`}
+                    >
+                        <Filter className="w-3 h-3" />
+                        {cuiFilterActive ? 'Show All' : 'Show CUI Only'}
+                    </button>
+                </div>
+            )}
+
             <div id="asset-inventory-table" className="bg-card rounded-xl border shadow-sm min-h-[400px]">
                 <AssetInventoryTable
-                    assets={assets || []}
+                    assets={displayedAssets || []}
                     loading={loadingAssets}
                     onEdit={handleEditAsset}
                     sortConfig={sortConfig}
@@ -337,6 +373,7 @@ function AssetInventoryTable({
                             <SortableHeader label="Owner" sortKey="owner" />
                             <SortableHeader label="Location" sortKey="location" />
                             <SortableHeader label="Status" sortKey="status" />
+                            <SortableHeader label="CUI Scope" sortKey="cuiScope" />
                             <SortableHeader label="Risks" sortKey="riskCount" />
                             <SortableHeader label="Vulnerabilities" sortKey="vulnerabilityCount" />
                         </tr>
@@ -430,6 +467,26 @@ function AssetInventoryTable({
                                         }`}>
                                         {asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : 'Active'}
                                     </span>
+                                </td>
+                                {/* CUI Scope Badge */}
+                                <td className="px-6 py-4 text-sm">
+                                    {asset.cuiScope ? (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 cursor-default">
+                                                    <ShieldCheck className="w-3 h-3 mr-1" />
+                                                    CUI
+                                                </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                                <p className="font-semibold text-xs">In CUI Enclave</p>
+                                                {asset.cuiCategory && <p className="text-xs mt-0.5">{asset.cuiCategory}</p>}
+                                                {asset.cuiJustification && <p className="text-xs text-muted-foreground mt-0.5">{asset.cuiJustification}</p>}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">—</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 text-sm">
                                     <span

@@ -1868,5 +1868,107 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                         .slice(0, 5)
                 };
             }),
+
+        // Federal Contracts (DFARS/CMMC)
+        listContracts: premiumProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                return await dbConn.select().from(schema.federalContracts)
+                    .where(eq(schema.federalContracts.clientId, input.clientId))
+                    .orderBy(desc(schema.federalContracts.updatedAt));
+            }),
+
+        createContract: premiumProcedure
+            .input(z.object({
+                clientId: z.number(),
+                title: z.string(),
+                description: z.string().optional(),
+                agencyName: z.string().optional(),
+                contractNumber: z.string().optional(),
+                type: z.string().optional(),
+                status: z.string().optional(),
+                cmmcLevel: z.string().optional(),
+                dfars7012: z.boolean().optional(),
+                dfars7019: z.boolean().optional(),
+                dfars7020: z.boolean().optional(),
+                dfars7021: z.boolean().optional(),
+                far5220421: z.boolean().optional(),
+                startDate: z.union([z.string(), z.date(), z.null()]).optional().nullable(),
+                endDate: z.union([z.string(), z.date(), z.null()]).optional().nullable(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+                
+                const parseDate = (d?: string | Date | null) => {
+                    if (d instanceof Date) return d;
+                    if (!d) return null;
+                    if (typeof d === 'string' && d.trim() === "") return null;
+                    return new Date(d);
+                };
+
+                const insertData = { ...input };
+                if (input.startDate) insertData.startDate = parseDate(input.startDate);
+                if (input.endDate) insertData.endDate = parseDate(input.endDate);
+
+                const [contract] = await dbConn.insert(schema.federalContracts)
+                    .values(insertData)
+                    .returning();
+                return contract;
+            }),
+
+        updateContract: premiumProcedure
+            .input(z.object({
+                clientId: z.number(),
+                id: z.number(),
+                title: z.string(),
+                description: z.string().optional(),
+                agencyName: z.string().optional(),
+                contractNumber: z.string().optional(),
+                type: z.string().optional(),
+                status: z.string().optional(),
+                cmmcLevel: z.string().optional(),
+                dfars7012: z.boolean().optional(),
+                dfars7019: z.boolean().optional(),
+                dfars7020: z.boolean().optional(),
+                dfars7021: z.boolean().optional(),
+                far5220421: z.boolean().optional(),
+                startDate: z.union([z.string(), z.date(), z.null()]).optional().nullable(),
+                endDate: z.union([z.string(), z.date(), z.null()]).optional().nullable(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const { id, ...rest } = input;
+                const updateData: any = { ...rest };
+
+                const parseDate = (d?: string | Date | null) => {
+                    if (d instanceof Date) return d;
+                    if (!d) return null;
+                    if (typeof d === 'string' && d.trim() === "") return null;
+                    return new Date(d);
+                };
+
+                if (input.startDate !== undefined) updateData.startDate = parseDate(input.startDate);
+                if (input.endDate !== undefined) updateData.endDate = parseDate(input.endDate);
+                updateData.updatedAt = new Date();
+
+                const [contract] = await dbConn.update(schema.federalContracts)
+                    .set(updateData)
+                    .where(eq(schema.federalContracts.id, id))
+                    .returning();
+                return contract;
+            }),
+
+        deleteContract: premiumProcedure
+            .input(z.object({
+                clientId: z.number(),
+                id: z.number()
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+                await dbConn.delete(schema.federalContracts)
+                    .where(eq(schema.federalContracts.id, input.id));
+                return { success: true };
+            }),
     });
 }

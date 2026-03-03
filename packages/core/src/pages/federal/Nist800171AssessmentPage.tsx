@@ -18,7 +18,10 @@ import {
     Download,
     Loader2,
     Calculator,
-    Target
+    Target,
+    TrendingUp,
+    AlertTriangle,
+    BarChart3
 } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -44,6 +47,14 @@ import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { toast } from "sonner";
 import ReactMarkdown from 'react-markdown';
 import { nist800171Controls } from "@/data/frameworks/nist800171"; // We might need to mock this or assume it exists in `controls` list query
+import {
+    SPRS_WEIGHT_MAP,
+    SPRS_MAX_SCORE,
+    SPRS_MIN_SCORE,
+    calculateSprsScore,
+    getFamilyScoreSummary,
+    SPRS_WEIGHTS
+} from "@/data/frameworks/nist-800-171-sprs-weights";
 
 // NIST 800-171 Families (Subset of 800-53)
 const CONTROL_FAMILIES = [
@@ -158,32 +169,21 @@ export default function Nist800171AssessmentPage() {
         return map;
     }, [assessments]);
 
-    // Calculate SPRS Score
-    // Base: 110. Deduct for "Not Implemented" or "Partial" (if partial isn't allowed full credit).
-    // NIST 171 scoring is complex: 1 point per requirement? No, weights vary (1, 3, 5).
-    // For MVP, let's assume 1 point per control deduction if not compliant.
-    // Ideally we need weights in the control data.
-    const currentScore = useMemo(() => {
-        if (!controls) return 110;
-        let score = 110;
-        let implementedCount = 0;
+    // Calculate SPRS Score using official DoD Assessment Methodology weights
+    const sprsResult = useMemo(() => {
+        return calculateSprsScore(assessmentMap);
+    }, [assessmentMap]);
 
-        // This is a rough approximation. Real SPRS uses specific weights (1, 3, 5) per requirement.
-        // Since we don't have weights in the DB yet, we'll assume -1 for each non-compliant control for now
-        // to show *some* movement.
-        controls.forEach((c: any) => {
-            const assessment = assessmentMap.get(c.controlId);
-            if (assessment?.complianceStatus === 'Compliant') {
-                implementedCount++;
-            } else {
-                score -= 1; // Placeholder deduction
-            }
-        });
+    const familyScores = useMemo(() => {
+        return getFamilyScoreSummary(assessmentMap);
+    }, [assessmentMap]);
 
-        // If the mutation is available and score changed, we could update it.
-        // But doing it in render is bad. We'll do it on Save.
-        return Math.max(score, -203); // SPRS can go negative
-    }, [controls, assessmentMap]);
+    const currentScore = sprsResult.score;
+
+    // Score gauge helpers
+    const scorePercent = Math.max(0, Math.min(100, ((currentScore - SPRS_MIN_SCORE) / (SPRS_MAX_SCORE - SPRS_MIN_SCORE)) * 100));
+    const scoreColor = currentScore >= 90 ? 'text-emerald-600' : currentScore >= 50 ? 'text-amber-600' : 'text-rose-600';
+    const scoreBg = currentScore >= 90 ? 'from-emerald-500 to-emerald-600' : currentScore >= 50 ? 'from-amber-500 to-amber-600' : 'from-rose-500 to-rose-600';
 
 
     const filteredControls = useMemo(() => {
@@ -230,10 +230,16 @@ export default function Nist800171AssessmentPage() {
     const handleSave = () => {
         if (!selectedControl) return;
 
-        // Optimistically calculate new score to update backend
-        // This is simplified.
-        let newScore = currentScore;
-        if (complianceStatus === 'Compliant') newScore += 1; // naive adjustment
+        // Optimistically use the real weighted score
+        let newScore = sprsResult.score;
+        // If we're marking this control as compliant, add back its weight
+        const weight = SPRS_WEIGHT_MAP.get(selectedControl.controlId) || 1;
+        const prevAssessment = assessmentMap.get(selectedControl.controlId);
+        if (prevAssessment?.complianceStatus !== 'Compliant' && complianceStatus === 'Compliant') {
+            newScore += weight;
+        } else if (prevAssessment?.complianceStatus === 'Compliant' && complianceStatus !== 'Compliant') {
+            newScore -= weight;
+        }
 
         saveMutation.mutate({
             clientId,
@@ -249,7 +255,7 @@ export default function Nist800171AssessmentPage() {
             updateScoreMutation.mutate({
                 clientId,
                 assessmentId: parseInt(sprsAssessmentId),
-                score: currentScore // This will use the calculated score from next render effectively
+                score: newScore
             });
         }
     };
@@ -313,11 +319,6 @@ export default function Nist800171AssessmentPage() {
                             </Button>
                         </Link>
 
-                        <div className="h-10 px-4 bg-slate-100 rounded-xl flex items-center gap-2 font-bold text-slate-700 mr-2">
-                            <Calculator className="w-4 h-4" />
-                            SPRS Score: <span className={currentScore < 50 ? "text-rose-600" : "text-emerald-600"}>{currentScore}</span>
-                        </div>
-
                         <Button
                             onClick={() => exportMutation.mutate({ clientId, sprsAssessmentId: sprsAssessmentId ? parseInt(sprsAssessmentId) : undefined })}
                             disabled={exportMutation.isPending}
@@ -326,6 +327,135 @@ export default function Nist800171AssessmentPage() {
                             {exportMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                             Export SSP
                         </Button>
+                    </div>
+                </div>
+
+                {/* SPRS Score Dashboard */}
+                <div className="px-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Score Gauge Card */}
+                        <div className="md:col-span-2 bg-white rounded-2xl border shadow-lg p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-50 to-transparent rounded-full -mr-16 -mt-16" />
+                            <div className="flex items-center gap-6 relative z-10">
+                                <div className="relative">
+                                    <svg viewBox="0 0 120 120" className="w-28 h-28">
+                                        <circle cx="60" cy="60" r="54" fill="none" stroke="#e2e8f0" strokeWidth="8" />
+                                        <circle
+                                            cx="60" cy="60" r="54"
+                                            fill="none"
+                                            stroke="url(#scoreGrad)"
+                                            strokeWidth="8"
+                                            strokeLinecap="round"
+                                            strokeDasharray={`${scorePercent * 3.39} 339.3`}
+                                            transform="rotate(-90 60 60)"
+                                        />
+                                        <defs>
+                                            <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
+                                                <stop offset="0%" stopColor={currentScore >= 90 ? '#10b981' : currentScore >= 50 ? '#f59e0b' : '#ef4444'} />
+                                                <stop offset="100%" stopColor={currentScore >= 90 ? '#059669' : currentScore >= 50 ? '#d97706' : '#dc2626'} />
+                                            </linearGradient>
+                                        </defs>
+                                        <text x="60" y="55" textAnchor="middle" className="fill-slate-900 font-black" fontSize="24">{currentScore}</text>
+                                        <text x="60" y="72" textAnchor="middle" className="fill-slate-400" fontSize="10">of 110</text>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                                        <Calculator className="w-4 h-4" />
+                                        SPRS Score
+                                    </h3>
+                                    <p className={`text-4xl font-black ${scoreColor}`}>{currentScore}</p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {currentScore >= 90 ? '🟢 Ready for submission' :
+                                            currentScore >= 50 ? '🟡 Needs improvement' :
+                                                '🔴 Critical gaps remain'}
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        DoD Assessment Methodology (Weighted)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Weight-5 Card */}
+                        <div className="bg-white rounded-2xl border shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-bold uppercase tracking-wider text-rose-500">Weight 5 (Critical)</span>
+                                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                            </div>
+                            <div className="text-3xl font-black text-slate-900">
+                                {sprsResult.weightBreakdown.weight5.met}
+                                <span className="text-lg text-slate-400 font-normal">/{sprsResult.weightBreakdown.weight5.total}</span>
+                            </div>
+                            <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${sprsResult.weightBreakdown.weight5.total > 0 ? (sprsResult.weightBreakdown.weight5.met / sprsResult.weightBreakdown.weight5.total) * 100 : 0}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1.5">Max deduction: {sprsResult.weightBreakdown.weight5.total * 5} pts</p>
+                        </div>
+
+                        {/* Weight-3 and Weight-1 Stack */}
+                        <div className="space-y-4">
+                            <div className="bg-white rounded-2xl border shadow-sm p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-amber-500">Weight 3</span>
+                                    <span className="text-lg font-black text-slate-900">
+                                        {sprsResult.weightBreakdown.weight3.met}/{sprsResult.weightBreakdown.weight3.total}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${sprsResult.weightBreakdown.weight3.total > 0 ? (sprsResult.weightBreakdown.weight3.met / sprsResult.weightBreakdown.weight3.total) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border shadow-sm p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-blue-500">Weight 1</span>
+                                    <span className="text-lg font-black text-slate-900">
+                                        {sprsResult.weightBreakdown.weight1.met}/{sprsResult.weightBreakdown.weight1.total}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${sprsResult.weightBreakdown.weight1.total > 0 ? (sprsResult.weightBreakdown.weight1.met / sprsResult.weightBreakdown.weight1.total) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Family Score Heatmap */}
+                    <div className="mt-4 bg-white rounded-2xl border shadow-sm p-5">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            Score by Control Family
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                            {CONTROL_FAMILIES.map(fam => {
+                                const fs = familyScores[fam.id];
+                                if (!fs) return null;
+                                const pct = fs.count > 0 ? Math.round((fs.compliant / fs.count) * 100) : 0;
+                                const heatColor = pct >= 80 ? 'bg-emerald-100 border-emerald-200 text-emerald-800' :
+                                    pct >= 50 ? 'bg-amber-100 border-amber-200 text-amber-800' :
+                                        'bg-rose-100 border-rose-200 text-rose-800';
+                                return (
+                                    <button
+                                        key={fam.id}
+                                        onClick={() => setSelectedFamily(fam.id)}
+                                        className={`px-3 py-2.5 rounded-xl border text-center transition-all hover:scale-105 cursor-pointer ${heatColor} ${selectedFamily === fam.id ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+                                    >
+                                        <div className="text-xs font-bold">{fam.id}</div>
+                                        <div className="text-lg font-black">{pct}%</div>
+                                        <div className="text-[10px] opacity-70">{fs.compliant}/{fs.count}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
@@ -459,6 +589,15 @@ export default function Nist800171AssessmentPage() {
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-lg font-black tracking-tight text-blue-600">{control.controlId}</span>
                                                     {getStatusBadge(control.controlId)}
+                                                    {/* Weight Badge */}
+                                                    {(() => {
+                                                        const w = SPRS_WEIGHT_MAP.get(control.controlId);
+                                                        if (!w) return null;
+                                                        const wColor = w === 5 ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                                                            w === 3 ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                                                'bg-slate-100 text-slate-600 border-slate-200';
+                                                        return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-bold ${wColor}`}>W{w}</Badge>;
+                                                    })()}
                                                 </div>
                                                 <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight line-clamp-1">
                                                     {control.name}
@@ -489,6 +628,15 @@ export default function Nist800171AssessmentPage() {
                                     <Shield className="w-6 h-6" />
                                 </div>
                                 <span className="text-sm font-bold uppercase tracking-widest text-blue-100">Control Assessment</span>
+                                {selectedControl && (() => {
+                                    const w = SPRS_WEIGHT_MAP.get(selectedControl.controlId);
+                                    if (!w) return null;
+                                    return (
+                                        <span className="ml-auto px-3 py-1 rounded-lg bg-white/20 backdrop-blur text-white text-xs font-bold">
+                                            Weight {w} · {w === 5 ? 'Critical' : w === 3 ? 'Important' : 'Supporting'} · −{w} pts if not met
+                                        </span>
+                                    );
+                                })()}
                             </div>
                             <DialogTitle className="text-3xl font-black tracking-tight">
                                 {selectedControl?.controlId}: {selectedControl?.name}
