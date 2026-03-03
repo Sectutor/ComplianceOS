@@ -257,7 +257,8 @@ function DashboardLayoutContent({
     logoSize,
     sidebarBg,
     headingFont,
-    bodyFont
+    bodyFont,
+    baseFontSize
   } = useBranding();
   const [brandingOpen, setBrandingOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -895,7 +896,7 @@ function DashboardLayoutContent({
           style={{ '--sidebar-background': finalSidebarBg } as CSSProperties}
           disableTransition={isResizing}
         >
-          <SidebarHeader className="p-4 border-b border-white/5 bg-[var(--sidebar-background)] h-20 flex flex-col justify-center backdrop-blur-xl">
+          <SidebarHeader className="p-4 border-b border-white/5 bg-sidebar h-20 flex flex-col justify-center backdrop-blur-xl">
             <Dialog open={brandingOpen} onOpenChange={setBrandingOpen}>
               <DialogTrigger asChild>
                 <div className="cursor-pointer hover:opacity-80 transition-opacity w-full h-full flex items-center">
@@ -1050,6 +1051,23 @@ function DashboardLayoutContent({
                       </select>
                     </div>
                   </div>
+
+                  <div className="space-y-4">
+                    <Label>Global Font Size</Label>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-muted-foreground w-8">12px</span>
+                      <Slider
+                        defaultValue={[baseFontSize || 16]}
+                        max={24}
+                        min={12}
+                        step={1}
+                        onValueChange={(vals) => updateBranding({ baseFontSize: vals[0] })}
+                        className="flex-1"
+                      />
+                      <span className="text-xs font-medium w-8 text-right">{baseFontSize || 16}px</span>
+                    </div>
+                  </div>
+
                   <div className="pt-4 flex justify-end gap-2">
                     <Button variant="outline" onClick={resetBranding}>Reset to Default</Button>
                     <Button onClick={() => setBrandingOpen(false)}>Done</Button>
@@ -1066,7 +1084,7 @@ function DashboardLayoutContent({
             {/* Client Context Indicator with Switcher */}
             {persistentClientId && (
               isCollapsed ? (
-                <div className="flex flex-col items-center gap-2 py-6 border-b border-white/5 bg-[var(--sidebar-background)]">
+                <div className="flex flex-col items-center gap-2 py-6 border-b border-white/5 bg-sidebar">
                   <div
                     className="h-8 w-8 rounded-md bg-white/10 text-white flex items-center justify-center font-bold text-xs"
                     title={clientInfo?.portalTitle || clientInfo?.name || `Client #${persistentClientId}`}
@@ -1083,7 +1101,7 @@ function DashboardLayoutContent({
                   </Button>
                 </div>
               ) : (
-                <div className="px-5 py-6 border-b border-white/10 bg-[var(--sidebar-background)]">
+                <div className="px-5 py-6 border-b border-white/10 bg-sidebar">
                   <p className="text-[10px] font-bold text-[var(--sidebar-primary)] uppercase tracking-[0.15em] mb-2 opacity-80">Client Context</p>
                   <div className="flex flex-col gap-4">
                     <p className="text-xl font-bold text-white truncate leading-none">{clientInfo?.portalTitle || clientInfo?.name || `Client #${persistentClientId}`}</p>

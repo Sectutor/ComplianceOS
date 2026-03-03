@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import ClientLogoUpload from "@/components/ClientLogoUpload";
 import { CURATED_FONTS, getContrastColor, BRAND_PRESETS } from "@/config/branding";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { Slider } from "@complianceos/ui/ui/slider";
 import { Type, Sparkles, Check } from "lucide-react";
 
 interface ClientBrandingSettingsProps {
@@ -33,6 +34,7 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
     const [sidebarBg, setSidebarBg] = useState(initialData.sidebarBg || "#002a40");
     const [headingFont, setHeadingFont] = useState(initialData.headingFont || "Outfit");
     const [bodyFont, setBodyFont] = useState(initialData.bodyFont || "Inter");
+    const [baseFontSize, setBaseFontSize] = useState((initialData as any).baseFontSize || 16);
     const [portalTitle, setPortalTitle] = useState(initialData.portalTitle || clientName);
     const [hasChanges, setHasChanges] = useState(false);
 
@@ -46,10 +48,11 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
             sidebarBg !== (initialData.sidebarBg || "#002a40") ||
             headingFont !== (initialData.headingFont || "Outfit") ||
             bodyFont !== (initialData.bodyFont || "Inter") ||
+            baseFontSize !== ((initialData as any).baseFontSize || 16) ||
             portalTitle !== (initialData.portalTitle || clientName);
 
         setHasChanges(hasChanged);
-    }, [brandPrimaryColor, brandSecondaryColor, sidebarBg, headingFont, bodyFont, portalTitle, initialData, clientName]);
+    }, [brandPrimaryColor, brandSecondaryColor, sidebarBg, headingFont, bodyFont, baseFontSize, portalTitle, initialData, clientName]);
 
     const updateClientMutation = trpc.clients.update.useMutation({
         onSuccess: () => {
@@ -75,6 +78,7 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
             sidebarFg: getContrastColor(sidebarBg),
             headingFont,
             bodyFont,
+            baseFontSize,
             portalTitle,
         });
     };
@@ -142,7 +146,7 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
                                             style={{ backgroundColor: preset.sidebarBg }}
                                         />
                                         <div className="flex items-center justify-center h-4 px-1.5 rounded bg-slate-100 text-[10px] font-medium text-slate-600">
-                                            Aa
+                                            {preset.baseFontSize || 16}px Aa
                                         </div>
                                     </div>
                                 </button>
@@ -249,6 +253,22 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                        <Label>Global Text Scale (Base Font Size)</Label>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs text-muted-foreground w-8">12px</span>
+                            <Slider
+                                defaultValue={[baseFontSize]}
+                                max={24}
+                                min={12}
+                                step={1}
+                                onValueChange={(vals) => setBaseFontSize(vals[0])}
+                                className="flex-1"
+                            />
+                            <span className="text-xs font-medium w-8 text-right">{baseFontSize}px</span>
                         </div>
                     </div>
                 </CardContent>

@@ -344,6 +344,7 @@ function GlobalBrandingSync() {
       if (client.sidebarBg) brandingUpdates.sidebarBg = client.sidebarBg;
       if (client.headingFont) brandingUpdates.headingFont = client.headingFont;
       if (client.bodyFont) brandingUpdates.bodyFont = client.bodyFont;
+      if (client.baseFontSize) brandingUpdates.baseFontSize = client.baseFontSize;
       if (client.logoUrl) brandingUpdates.logoUrl = client.logoUrl;
       if (client.portalTitle) brandingUpdates.portalTitle = client.portalTitle;
 

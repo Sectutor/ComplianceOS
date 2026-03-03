@@ -907,6 +907,7 @@ export const clients = pgTable("clients", {
   sidebarFg: varchar("sidebar_fg", { length: 20 }),
   headingFont: varchar("heading_font", { length: 100 }),
   bodyFont: varchar("body_font", { length: 100 }),
+  baseFontSize: integer("base_font_size").default(16),
 
   weeklyFocus: text("weekly_focus"), // Advisor-set goal for Model 2
 

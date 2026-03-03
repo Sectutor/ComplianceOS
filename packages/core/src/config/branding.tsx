@@ -9,6 +9,7 @@ export interface BrandingConfig {
     headingFont: string;
     bodyFont: string;
     portalTitle: string;
+    baseFontSize: number; // 12px to 24px
 }
 
 export const CURATED_FONTS = [
@@ -27,6 +28,7 @@ export const BRAND_PRESETS = {
         sidebarBg: '#020617',
         headingFont: 'Outfit',
         bodyFont: 'Inter',
+        baseFontSize: 16,
         description: 'Deep navy and electric blue for a high-security authority look.'
     },
     modernAuditor: {
@@ -35,6 +37,7 @@ export const BRAND_PRESETS = {
         sidebarBg: '#F8FAFC',
         headingFont: 'Plus Jakarta Sans',
         bodyFont: 'Inter',
+        baseFontSize: 16,
         description: 'Clean, minimalist, and trustworthy induction of clarity.'
     },
     cyberGothic: {
@@ -43,6 +46,7 @@ export const BRAND_PRESETS = {
         sidebarBg: '#000000',
         headingFont: 'Lexend',
         bodyFont: 'Inter',
+        baseFontSize: 16,
         description: 'Pure black with cyan accents for a futuristic command center.'
     }
 };
@@ -80,6 +84,7 @@ const defaultBranding: BrandingConfig = {
     headingFont: BRAND_PRESETS.eliteGuardian.headingFont,
     bodyFont: BRAND_PRESETS.eliteGuardian.bodyFont,
     portalTitle: 'GRCompliance Portal',
+    baseFontSize: 16,
 };
 
 const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
@@ -127,6 +132,13 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
         // Apply fonts
         if (config.headingFont) root.style.setProperty('--font-heading', `${config.headingFont}, sans-serif`);
         if (config.bodyFont) root.style.setProperty('--font-body', `${config.bodyFont}, sans-serif`);
+
+        // Apply font scale to root
+        if (config.baseFontSize) {
+            root.style.fontSize = `${config.baseFontSize}px`;
+        } else {
+            root.style.fontSize = `16px`; // fallback
+        }
 
         // Apply typography globally if needed
         document.body.style.fontFamily = `var(--font-body)`;

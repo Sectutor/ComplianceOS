@@ -47,6 +47,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                             sidebarFg: clients.sidebarFg,
                             headingFont: clients.headingFont,
                             bodyFont: clients.bodyFont,
+                            baseFontSize: clients.baseFontSize,
                             role: userClients.role, // Get their role if they are a member
                         })
                             .from(clients)
@@ -81,6 +82,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         sidebarFg: clients.sidebarFg,
                         headingFont: clients.headingFont,
                         bodyFont: clients.bodyFont,
+                        baseFontSize: clients.baseFontSize,
                         role: userClients.role,
                     })
                         .from(userClients)
@@ -594,6 +596,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 sidebarFg: z.string().optional().nullable(),
                 headingFont: z.string().optional().nullable(),
                 bodyFont: z.string().optional().nullable(),
+                baseFontSize: z.number().optional().nullable(),
                 portalTitle: z.string().optional().nullable(),
                 requireMfa: z.boolean().optional(),
             }))
