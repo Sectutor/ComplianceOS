@@ -95,8 +95,8 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
 
     return (
         <DashboardLayout>
-            <div className="flex flex-col min-h-screen bg-slate-50/50">
-                <div className="bg-white border-b border-slate-200 pl-4 pr-4 py-3 md:pl-20 md:pr-8 sticky top-0 z-30 shadow-sm space-y-3">
+            <div className="flex flex-col min-h-screen bg-transparent md:-mt-8">
+                <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
                     {/* Breadcrumb Section */}
                     <Breadcrumb className="mb-0">
                         <BreadcrumbList>
@@ -151,8 +151,7 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
                     </nav>
                 </div>
                 <div className={cn(
-                    "flex-1 w-full py-8",
-                    fullWidth ? "px-0 md:pl-20" : "pl-4 pr-4 md:pl-20 md:pr-8"
+                    "flex-1 w-full py-8 px-0"
                 )}>
                     {children}
                 </div>

@@ -16,9 +16,9 @@ export default function CyberLayout({ children }: PropsWithChildren) {
 
     return (
         <DashboardLayout>
-            <div className="flex flex-col min-h-screen">
-                <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b md:pl-20 px-4 py-4">
-                    <nav className="flex space-x-3 overflow-x-auto scrollbar-hide pb-2" aria-label="Tabs">
+            <div className="flex flex-col min-h-screen bg-transparent md:-mt-8">
+                <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
+                    <nav className="flex space-x-2 overflow-x-auto no-scrollbar py-1" aria-label="Tabs">
                         {tabs.map((tab) => {
                             const active = location === tab.path;
                             return (
@@ -26,10 +26,10 @@ export default function CyberLayout({ children }: PropsWithChildren) {
                                     key={tab.path}
                                     href={tab.path}
                                     className={cn(
-                                        "flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm",
+                                        "flex items-center gap-2 px-4 py-2.5 rounded-lg whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm border",
                                         active
-                                            ? "bg-[#3ABEF9] text-white scale-105 shadow-sky-100"
-                                            : "bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:scale-105"
+                                            ? "bg-[#3ABEF9] text-white border-[#3ABEF9]"
+                                            : "bg-[#1C4D8D] text-white border-[#1C4D8D] hover:bg-[#3ABEF9] hover:border-[#3ABEF9]"
                                     )}
                                 >
                                     <tab.icon className="h-4 w-4" />
@@ -39,7 +39,7 @@ export default function CyberLayout({ children }: PropsWithChildren) {
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full pl-4 pr-4 py-8 md:pl-20 md:pr-8 bg-slate-50/10">
+                <div className="flex-1 w-full px-0 py-8 bg-transparent">
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full max-w-full">
                         {children}
                     </div>

@@ -125,6 +125,7 @@ const RiskProgramGuide = lazy(() => import("./pages/risk/RiskProgramGuide"));
 const VendorProgramGuide = lazy(() => import("./pages/tprm/VendorProgramGuide"));
 const PrivacyProgramGuide = lazy(() => import("./pages/privacy/PrivacyProgramGuide"));
 const BCPProgramGuide = lazy(() => import("./pages/business-continuity/BCPProgramGuide"));
+const CyberProgramGuide = lazy(() => import("./pages/cyber/CyberProgramGuide"));
 const ComplianceOverview = lazy(() => import("./pages/compliance/ComplianceOverview"));
 const AssuranceOverview = lazy(() => import("./pages/assurance/AssuranceOverview"));
 const SAMMView = lazy(() => import("@/pages/assurance/SAMMView"));
@@ -294,6 +295,7 @@ const ISODocumentTracker = lazy(() => import("./pages/iso27001/ISODocumentTracke
 const ISOAuditManager = lazy(() => import("./pages/iso27001/ISOAuditManager"));
 const AuditManager = lazy(() => import("./pages/AuditManager"));
 const ISOManagementReview = lazy(() => import("./pages/iso27001/ISOManagementReview"));
+const ISOProgramGuide = lazy(() => import("./pages/iso27001/ISOProgramGuide"));
 import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
 
@@ -1551,6 +1553,9 @@ function Router() {
         </Route>
 
         {/* Cyber Resilience Routes */}
+        <Route path="/clients/:id/cyber/program-guide">
+          {(_params) => <ProtectedRoute component={CyberProgramGuide} />}
+        </Route>
         <Route path="/clients/:id/cyber/overview">
           {(_params) => (
             <CyberLayout>
@@ -1627,6 +1632,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/iso27001/documents">
           {(_params) => <ProtectedRoute component={ISODocumentTracker} />}
+        </Route>
+        <Route path="/clients/:id/iso27001/program-guide">
+          {(_params) => <ProtectedRoute component={ISOProgramGuide} />}
         </Route>
         <Route path="/clients/:id/audit-manager">
           {(params) => (

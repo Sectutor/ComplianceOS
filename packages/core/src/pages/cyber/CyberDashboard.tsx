@@ -130,8 +130,19 @@ export default function CyberDashboard() {
 
     return (
         <div className="space-y-12 animate-in fade-in duration-700">
-            <div className="flex items-center justify-between">
-                <div />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                        <ShieldCheck className="w-8 h-8 text-sky-600" />
+                        NIS2 & Cyber Resilience
+                        <Badge className="bg-gradient-to-r from-sky-500 to-indigo-500 text-white border-none px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg shadow-sky-200 uppercase">
+                            Dashboard
+                        </Badge>
+                    </h1>
+                    <p className="text-muted-foreground mt-2 max-w-2xl text-lg">
+                        Centralized command for NIS2 compliance and systemic cyber resilience.
+                    </p>
+                </div>
                 <PageGuide
                     title="Cyber Resilience (NIS2)"
                     description="Centralized command for NIS2 compliance and systemic cyber resilience."
@@ -178,56 +189,56 @@ export default function CyberDashboard() {
             </div>
 
             {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-[#1C4D8D] p-12 md:p-20 text-white shadow-2xl shadow-sky-900/20">
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-[#1C4D8D] p-8 md:p-12 text-white shadow-2xl shadow-sky-900/20">
                 <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-[#3ABEF9]/20 rounded-full blur-[100px] animate-pulse" />
                 <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]" />
 
-                <div className="relative z-10 grid lg:grid-cols-2 gap-16 items-center">
-                    <div className="space-y-8">
+                <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
+                    <div className="space-y-6">
                         <div className="inline-flex items-center space-x-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
                             <Shield className="w-4 h-4 text-[#3ABEF9]" />
                             <span className="text-xs font-black uppercase tracking-[0.2em] text-sky-100">Cyber Resilience OS</span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1]">
                             NIS2 <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3ABEF9] via-[#3ABEF9] to-emerald-400">
                                 Mastery.
                             </span>
                         </h1>
-                        <p className="text-xl text-sky-100/70 leading-relaxed font-medium max-w-lg">
+                        <p className="text-lg text-sky-100/70 leading-relaxed font-medium max-w-lg">
                             An integrated ecosystem for managing the complexities of NIS2 compliance, risk governance, and technical resilience.
                         </p>
-                        <div className="flex flex-wrap gap-6 pt-4">
+                        <div className="flex flex-wrap gap-4 pt-2">
                             {[
                                 { label: "NIS2 Compliant", icon: CheckCircle2 },
                                 { label: "ISO 27001 Aligned", icon: CheckCircle2 },
                                 { label: "DORA Ready", icon: CheckCircle2 },
                             ].map((item, i) => (
-                                <div key={i} className="flex items-center space-x-2 text-sm font-bold text-sky-100/60 uppercase tracking-wider">
-                                    <item.icon className="w-4 h-4 text-[#3ABEF9]" />
+                                <div key={i} className="flex items-center space-x-2 text-xs font-bold text-sky-100/60 uppercase tracking-wider">
+                                    <item.icon className="w-3.5 h-3.5 text-[#3ABEF9]" />
                                     <span>{item.label}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
                     <div className="hidden lg:flex justify-center relative">
-                        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-[3rem] shadow-3xl rotate-3 hover:rotate-0 transition-all duration-700 group cursor-default">
-                            <div className="grid grid-cols-2 gap-6 pb-8 border-b border-white/10">
+                        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2.5rem] shadow-3xl rotate-3 hover:rotate-0 transition-all duration-700 group cursor-default">
+                            <div className="grid grid-cols-2 gap-4 pb-6 border-b border-white/10">
                                 {[Server, Activity, Lock, Zap].map((Icon, i) => (
-                                    <div key={i} className="p-6 bg-white/10 rounded-3xl border border-white/10 flex items-center justify-center group-hover:bg-[#3ABEF9]/20 transition-colors">
-                                        <Icon className="w-10 h-10 text-[#3ABEF9]" />
+                                    <div key={i} className="p-4 bg-white/10 rounded-2xl border border-white/10 flex items-center justify-center group-hover:bg-[#3ABEF9]/20 transition-colors">
+                                        <Icon className="w-8 h-8 text-[#3ABEF9]" />
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
-                                <div className="flex justify-between items-end mb-4">
-                                    <div className="text-xs font-black text-white/50 uppercase tracking-widest">Resilience Index</div>
-                                    <div className="text-2xl font-black text-[#3ABEF9]">84%</div>
+                            <div className="mt-6 p-5 bg-white/5 rounded-2xl border border-white/10">
+                                <div className="flex justify-between items-end mb-3">
+                                    <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">Resilience Index</div>
+                                    <div className="text-xl font-black text-[#3ABEF9]">84%</div>
                                 </div>
-                                <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-2.5 w-full bg-white/10 rounded-full overflow-hidden">
                                     <div className="h-full w-[84%] bg-gradient-to-r from-[#3ABEF9] to-emerald-400 rounded-full shadow-[0_0_20px_rgba(58,190,249,0.5)]" />
                                 </div>
-                                <div className="mt-4 flex gap-2 overflow-hidden">
+                                <div className="mt-3 flex gap-1.5 overflow-hidden">
                                     {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                                         <div key={i} className={cn("h-1 flex-1 rounded-full", i < 6 ? "bg-[#3ABEF9]" : "bg-white/10")} />
                                     ))}
@@ -254,7 +265,7 @@ export default function CyberDashboard() {
                             </div>
                         </div>
                         <Button
-                            onClick={() => setLocation(`/clients/${selectedClientId}/cyber/overview`)}
+                            onClick={() => setLocation(`/clients/${selectedClientId}/cyber/program-guide`)}
                             className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-14 px-8 rounded-2xl shadow-lg shadow-sky-100 transition-all active:scale-95 whitespace-nowrap"
                         >
                             Explore Guide <ArrowRight className="w-5 h-5 ml-2" />

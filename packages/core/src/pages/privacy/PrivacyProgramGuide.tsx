@@ -4,7 +4,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
-import { CheckCircle2, Database, FileText, Activity, Users, AlertTriangle, ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Calendar } from 'lucide-react';
+import { CheckCircle2, Database, FileText, Activity, Users, AlertTriangle, ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Calendar, Globe } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { format } from 'date-fns';
@@ -31,7 +31,7 @@ export default function PrivacyProgramGuide() {
     const hasDsars = !!dsars && dsars.length > 0;
 
     const getStatus = (stepId: string) => {
-        switch(stepId) {
+        switch (stepId) {
             case 'inventory': return 'pending'; // Requires inventory integration
             case 'ropa': return 'pending'; // Requires ROPA integration
             case 'dpia': return hasAssessments ? 'completed' : 'pending';
@@ -57,7 +57,7 @@ export default function PrivacyProgramGuide() {
                 'Categorize data to identify sensitive categories (PII, PHI, financial data).',
                 'Implement automated data discovery tools where possible to maintain accuracy.'
             ],
-            link: `/clients/${clientId}/privacy/dashboard`, 
+            link: `/clients/${clientId}/privacy/dashboard`,
             cta: 'View Data Map',
             downloadText: 'Download Data Discovery Checklist'
         },
@@ -144,157 +144,203 @@ export default function PrivacyProgramGuide() {
 
     return (
         <DashboardLayout>
-            <div className="relative min-h-screen bg-slate-50 p-6 lg:p-10">
-                <div className="max-w-4xl mx-auto space-y-8">
-                    <div className="flex justify-between items-center">
+            <div className="min-h-screen bg-slate-50 flex flex-col">
+                <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0">
+                    <div className="flex items-center gap-2 text-sm">
                         <Link href={`/clients/${clientId}/privacy/dashboard`}>
-                            <Button variant="ghost" className="text-slate-500 hover:text-slate-900">
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back to Privacy Dashboard
+                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
+                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Privacy Dashboard
                             </Button>
                         </Link>
+                        <span className="text-slate-300">/</span>
+                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                            <BookOpen className="w-4 h-4 text-slate-400" />
+                            Program Guide
+                        </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap items-center">
                         {progressPercentage === 100 && (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
                                 <CheckCircle2 className="w-3 h-3 mr-1" />
                                 Program Fully Initialized
                             </Badge>
                         )}
+                        <button className="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100">
+                            GDPR / CCPA
+                        </button>
                     </div>
-                    
-                    <div className="text-center space-y-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 mb-4 shadow-sm border border-indigo-200">
-                            <BookOpen className="w-8 h-8" />
+                </div>
+
+                <div className="p-6 lg:p-10 space-y-8">
+                    <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl">
+                                    <Globe className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Privacy Program Guide</h1>
+                                    <p className="text-indigo-200 font-medium">Data Protection and Compliance Roadmap</p>
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-3 gap-6 mt-8">
+                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Timeline</p>
+                                    <p className="text-2xl font-black">1 – 3 months</p>
+                                </div>
+                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Standard</p>
+                                    <p className="text-2xl font-black">GDPR & CCPA</p>
+                                </div>
+                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Phases</p>
+                                    <p className="text-2xl font-black">5 Key Phases</p>
+                                </div>
+                            </div>
                         </div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
-                            Privacy Program Guide
-                        </h1>
-                        <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                            A dynamic, step-by-step roadmap to navigate Data Privacy regulations like GDPR, CCPA, and CPRA.
-                        </p>
                     </div>
 
-                    <div className="my-10 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 lg:p-8">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-lg text-slate-900">Program Implementation Progress</h3>
-                            <span className="text-sm font-medium text-slate-600">{progressPercentage}% Complete</span>
-                        </div>
-                        <Progress value={progressPercentage} className="h-3 rounded-full" />
-                        <p className="text-xs text-slate-500 mt-4 text-center">
-                            Completion based on real-time privacy records. Complete all stages to fully initialize the program.
-                        </p>
-                    </div>
+                    <div className="w-full mx-auto">
+                        <div className="space-y-6">
+                            <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 shadow-sm">
+                                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                    <Globe className="w-5 h-5 text-indigo-600" />
+                                    Framework Overview
+                                </h2>
+                                <p className="text-slate-700 leading-relaxed">
+                                    A dynamic, step-by-step roadmap to navigate Data Privacy regulations like GDPR, CCPA, and CPRA.
+                                </p>
+                            </div>
 
-                    <div className="space-y-12 relative pb-12">
-                        <div className="absolute top-12 bottom-12 left-[31px] w-0.5 bg-slate-200 z-0 hidden sm:block"></div>
+                            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 lg:p-8">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
+                                        {progressPercentage === 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                                        Program Implementation Progress
+                                    </h3>
+                                    <span className="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">{progressPercentage}% Complete</span>
+                                </div>
+                                <Progress value={progressPercentage} className="h-3 rounded-full" />
+                                <p className="text-xs text-slate-500 mt-4">
+                                    Completion based on real-time privacy records. Complete all stages to fully initialize the program.
+                                </p>
+                            </div>
 
-                        {steps.map((step) => {
-                            const status = getStatus(step.id);
-                            return (
-                                <div key={step.id} className="relative z-10 flex flex-col sm:flex-row gap-6 lg:gap-8 group">
-                                    <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border-2 border-white ring-1 ring-slate-100 group-hover:ring-indigo-200 transition-all duration-300">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} text-white shadow-inner`}>
-                                            {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-black text-xl">{step.step}</span>}
-                                        </div>
-                                    </div>
+                            <div className="space-y-12 relative pb-12">
+                                <div className="absolute top-12 bottom-12 left-[31px] w-0.5 bg-slate-200 z-0 hidden sm:block"></div>
 
-                                    <Card className={`flex-grow transition-shadow ${status === 'completed' ? 'border-emerald-200 shadow-emerald-100/50' : 'border-slate-200 hover:shadow-md'}`}>
-                                        <CardHeader className={`${status === 'completed' ? 'bg-emerald-50/50' : step.bgColor} border-b border-white rounded-t-xl bg-opacity-50`}>
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <Badge variant="outline" className={`mb-2 bg-white ${status === 'completed' ? 'text-emerald-700 border-emerald-200' : step.color + ' border-current'}`}>
-                                                        Phase {step.step}: {step.subtitle}
-                                                    </Badge>
-                                                    <CardTitle className="text-2xl font-bold flex items-center gap-3">
-                                                        <step.icon className={`w-6 h-6 ${status === 'completed' ? 'text-emerald-600' : step.color}`} />
-                                                        {step.title}
-                                                    </CardTitle>
+                                {steps.map((step) => {
+                                    const status = getStatus(step.id);
+                                    return (
+                                        <div key={step.id} className="relative z-10 flex flex-col sm:flex-row gap-6 lg:gap-8 group">
+                                            <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border-2 border-white ring-1 ring-slate-100 group-hover:ring-indigo-200 transition-all duration-300">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} text-white shadow-inner`}>
+                                                    {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-black text-xl">{step.step}</span>}
                                                 </div>
-                                                {status === 'completed' ? (
-                                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                                                        Completed
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 flex items-center gap-1">
-                                                        <CircleDashed className="w-3 h-3" /> Needs Attention
-                                                    </Badge>
-                                                )}
                                             </div>
-                                        </CardHeader>
-                                        <CardContent className="pt-6 space-y-6">
-                                            <p className="text-slate-700 leading-relaxed text-lg">
-                                                {step.description}
-                                            </p>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                                        Best Practices
-                                                    </h4>
-                                                    <ul className="space-y-3">
-                                                        {step.bestPractices.map((practice, i) => (
-                                                            <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
-                                                                <span className="leading-relaxed text-sm">{practice}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
+                                            <Card className={`flex-grow transition-shadow ${status === 'completed' ? 'border-emerald-200 shadow-emerald-100/50' : 'border-slate-200 hover:shadow-md'}`}>
+                                                <CardHeader className={`${status === 'completed' ? 'bg-emerald-50/50' : step.bgColor} border-b border-white rounded-t-xl bg-opacity-50 pb-5`}>
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <Badge variant="outline" className={`mb-2 bg-white/80 ${status === 'completed' ? 'text-emerald-700 border-emerald-200' : step.color + ' border-current'}`}>
+                                                                Phase {step.step}: {step.subtitle}
+                                                            </Badge>
+                                                            <CardTitle className="text-xl font-bold flex items-center gap-3">
+                                                                <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-emerald-600' : step.color}`} />
+                                                                {step.title}
+                                                            </CardTitle>
+                                                        </div>
+                                                        {status === 'completed' ? (
+                                                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 shrink-0">
+                                                                Completed
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 flex items-center gap-1 shrink-0">
+                                                                <CircleDashed className="w-3 h-3" /> Needs Attention
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="pt-6 space-y-6">
+                                                    <p className="text-slate-700 leading-relaxed text-sm md:text-base">
+                                                        {step.description}
+                                                    </p>
 
-                                                <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
-                                                    <div>
-                                                        <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                                            <Users className="w-5 h-5 text-indigo-500" />
-                                                            Task Assignment
-                                                        </h4>
-                                                        <p className="text-sm text-slate-500 mb-4">Assign this phase to a team member and set a target deadline.</p>
-                                                        
-                                                        <div className="space-y-3 border-t border-slate-100 pt-3">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-medium text-slate-500 uppercase">Owner</span>
-                                                                <span className="text-sm text-slate-800 font-medium">{assignments?.[step.id]?.owner || 'Unassigned'}</span>
+                                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                                        <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+                                                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
+                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                                Best Practices
+                                                            </h4>
+                                                            <ul className="space-y-2 text-sm">
+                                                                {step.bestPractices.map((practice, i) => (
+                                                                    <li key={i} className="flex items-start gap-3 text-slate-600">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
+                                                                        <span className="leading-relaxed">{practice}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+
+                                                        <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
+                                                            <div>
+                                                                <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
+                                                                    <Users className="w-4 h-4 text-indigo-500" />
+                                                                    Task Assignment
+                                                                </h4>
+                                                                <p className="text-sm text-slate-500 mb-4">Assign this phase to a team member and set a target deadline.</p>
+
+                                                                <div className="space-y-3 border-t border-slate-100 pt-3">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-xs font-medium text-slate-500 uppercase">Owner</span>
+                                                                        <span className="text-sm text-slate-800 font-medium">{assignments?.[step.id]?.owner || 'Unassigned'}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-xs font-medium text-slate-500 uppercase flex items-center gap-1"><Calendar className="w-3 h-3" /> Target Date</span>
+                                                                        <span className="text-sm text-slate-800 font-medium">{assignments?.[step.id]?.targetDate ? format(new Date(assignments[step.id].targetDate), 'MMM d, yyyy') : 'Not set'}</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-medium text-slate-500 uppercase flex items-center gap-1"><Calendar className="w-3 h-3"/> Target Date</span>
-                                                                <span className="text-sm text-slate-800 font-medium">{assignments?.[step.id]?.targetDate ? format(new Date(assignments[step.id].targetDate), 'MMM d, yyyy') : 'Not set'}</span>
+                                                            <div className="mt-4">
+                                                                <Button variant="outline" size="sm" className="w-full text-sm font-semibold" onClick={() => { setSelectedStep(step); setIsAssignModalOpen(true); }}>
+                                                                    Manage Assignment
+                                                                </Button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="mt-4">
-                                                        <Button variant="outline" size="sm" className="w-full" onClick={() => { setSelectedStep(step); setIsAssignModalOpen(true); }}>
-                                                            Manage Assignment
-                                                        </Button>
+
+                                                    <div className="pt-2 flex flex-wrap gap-3 items-center">
+                                                        <Link href={step.link}>
+                                                            <Button className={`bg-gradient-to-r ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} hover:opacity-90 text-white font-medium shadow-md transition-all group-hover:translate-x-1`}>
+                                                                {step.cta} <ArrowRight className="w-4 h-4 ml-2" />
+                                                            </Button>
+                                                        </Link>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="pt-2 flex flex-wrap gap-3 items-center">
-                                                <Link href={step.link}>
-                                                    <Button className={`bg-gradient-to-r ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} hover:opacity-90 text-white font-medium shadow-md transition-all group-hover:translate-x-1`}>
-                                                        {step.cta} <ArrowRight className="w-4 h-4 ml-2" />
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                    );
+                                })}
+                            </div>
 
-                    <div className="mt-12 text-center pb-20">
-                        <Link href={`/clients/${clientId}/privacy/dashboard`}>
-                            <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-14 rounded-full shadow-lg hover:shadow-xl transition-all">
-                                Return to Dashboard
-                            </Button>
-                        </Link>
-                    </div>
+                            <div className="mt-12 text-center pb-8">
+                                <Link href={`/clients/${clientId}/privacy/dashboard`}>
+                                    <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-14 rounded-full shadow-lg hover:shadow-xl transition-all">
+                                        Return to Dashboard
+                                    </Button>
+                                </Link>
+                            </div>
 
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {selectedStep && (
-                <AssignProgramTaskModal 
+                <AssignProgramTaskModal
                     isOpen={isAssignModalOpen}
                     onClose={() => setIsAssignModalOpen(false)}
                     clientId={clientId}
