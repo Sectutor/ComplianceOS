@@ -50,7 +50,8 @@
     "redis:setup": "tsx scripts/redis/setup.ts",
     "redis:monitor": "tsx scripts/redis/monitor.ts",
     "scaling:enable": "tsx scripts/scaling/enable.ts",
-    "scaling:disable": "tsx scripts/scaling/disable.ts"
+    "scaling:disable": "tsx scripts/scaling/disable.ts",
+    "push:all": "git push origin main && git push premium main"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
