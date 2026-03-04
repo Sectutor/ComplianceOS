@@ -5,7 +5,7 @@
 
 [build.environment]
   NPM_FLAGS = "--include=dev"
-  NODE_OPTIONS = "--max-old-space-size=4096"
+  NODE_OPTIONS = "--max-old-space-size=8192"
   PYTHON_VERSION = "3.12"
   SECRETS_SCAN_ENABLED = "false"
   SECRETS_SCAN_OMIT_PATHS = ".netlify,node_modules,packages/core/dist,packages/core/tmp_build"
