@@ -118,7 +118,7 @@ app.use(helmet({
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://*.supabase.co", "https://*.netlify.app", "https://grcompliance.com"],
+            connectSrc: ["'self'", "https://*.supabase.co", "https://*.netlify.app", "https://grcompliance.com", "https://*.grcompliance.com"],
         },
     },
 }));
@@ -139,7 +139,9 @@ app.use(cors({
             origin.endsWith('.netlify.app') ||
             origin === 'https://grcompliance.netlify.app' ||
             origin === 'https://grcompliance.com' ||
-            origin === 'https://www.grcompliance.com';
+            origin === 'https://www.grcompliance.com' ||
+            origin === 'https://app.grcompliance.com' ||
+            origin.endsWith('.grcompliance.com');
 
         // Always allow localhost/127.0.0.1 for local development ease, regardless of NODE_ENV
         // This unblocks local testing where ports might vary (e.g., landing on 5174, app on 5173)
