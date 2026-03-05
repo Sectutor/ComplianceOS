@@ -92,7 +92,7 @@ export default function VendorDetails() {
         notes: ''
     });
 
-    const createRemediationMutation = trpc.vendors.createRemediationTask.useMutation({
+    const createRemediationMutation = trpc.compliance.remediationTasks.create.useMutation({
         onSuccess: () => {
             toast.success("Remediation task created", {
                 description: `Task for ${selectedCveForMitigation?.cveId} added to the Task Management page.`
