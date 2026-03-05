@@ -60,12 +60,7 @@ export function TPRMLayout({ clientId, children }: TPRMLayoutProps) {
             icon: Target,
             badge: null
         },
-        {
-            label: "DPA Templates",
-            href: `/clients/${clientId}/vendors/dpa-templates`,
-            icon: ScrollText,
-            badge: null
-        },
+
         {
             label: "Vendor Catalog",
             href: `/clients/${clientId}/vendors/catalog`,
