@@ -41,6 +41,11 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
             icon: LayoutDashboard,
         },
         {
+            label: "Organization Context",
+            href: `/clients/${clientId}/iso27001/governance`,
+            icon: Users,
+        },
+        {
             label: "SoA",
             href: `/clients/${clientId}/iso27001/soa`,
             icon: ClipboardList,
@@ -59,11 +64,6 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
             label: "Documents",
             href: `/clients/${clientId}/iso27001/documents`,
             icon: FileText,
-        },
-        {
-            label: "Governance",
-            href: `/clients/${clientId}/iso27001/governance`,
-            icon: Users,
         },
         {
             label: "Mgmt Review",

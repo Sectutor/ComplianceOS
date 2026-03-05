@@ -444,14 +444,11 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
                                 <SortableHeader field="assessmentId" className="text-left text-white">Risk ID</SortableHeader>
                                 <SortableHeader field="threatDescription" className="text-left max-w-[250px] text-white">Description</SortableHeader>
-                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Source</th>
-                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Asset</th>
                                 <SortableHeader field="likelihood" className="text-center text-white">Likelihood</SortableHeader>
                                 <SortableHeader field="impact" className="text-center text-white">Impact</SortableHeader>
                                 <SortableHeader field="inherentRisk" className="text-center text-white">Inherent</SortableHeader>
                                 <SortableHeader field="residualRisk" className="text-center text-white">Residual</SortableHeader>
                                 <SortableHeader field="treatmentOption" className="text-left text-white">Treatment</SortableHeader>
-                                <SortableHeader field="riskOwner" className="text-left text-white">Owner</SortableHeader>
                                 {/* <SortableHeader field="priority" className="text-center text-white">Priority</SortableHeader> */}
                                 <SortableHeader field="status" className="text-center text-white">Status</SortableHeader>
                                 {/* <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">Policies</th> */}
@@ -495,49 +492,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                     {risk.contextSnapshot?.description || risk.description || risk.threatDescription || '-'}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
-                                                    {risk.contextSnapshot?.source || 'Manual'}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                {(() => {
-                                                    // Try to find the asset ID in contextSnapshot first
-                                                    const assetId = risk.contextSnapshot?.assetId || (risk as any).assetId;
 
-                                                    if (assetId && assets) {
-                                                        const asset = assets.find((a: any) => a.id === Number(assetId));
-                                                        if (asset) {
-                                                            return (
-                                                                <Badge variant="outline" className="text-xs font-medium bg-white">
-                                                                    {asset.name}
-                                                                </Badge>
-                                                            );
-                                                        }
-                                                    }
-
-                                                    // Fallback to old affectedAssets string array
-                                                    const manualAssets = parseAffectedAssets(risk.affectedAssets);
-                                                    if (manualAssets.length > 0) {
-                                                        return (
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {manualAssets.slice(0, 2).map((asset, i) => (
-                                                                    <Badge key={i} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
-                                                                        {asset}
-                                                                    </Badge>
-                                                                ))}
-                                                                {manualAssets.length > 2 && (
-                                                                    <Badge variant="outline" className="text-xs bg-white text-gray-500 border-gray-300">
-                                                                        +{manualAssets.length - 2}
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    return <span className="text-xs text-gray-400">-</span>;
-                                                })()}
-                                            </td>
                                             <td className="px-4 py-4 text-center">
                                                 <span className="text-sm text-gray-600">{risk.likelihood || '-'}</span>
                                             </td>
@@ -613,9 +568,6 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                         </Badge>
                                                     )}
                                                 </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <span className="text-sm text-gray-600">{risk.contextSnapshot?.riskOwner || risk.riskOwner || '-'}</span>
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 <Badge
@@ -760,6 +712,47 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                 <p className="text-gray-600">
                                                                     {risk.nextReviewDate ? new Date(risk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
                                                                 </p>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-gray-900 mb-2">Source</h4>
+                                                                <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                                                                    {risk.contextSnapshot?.source || 'Manual'}
+                                                                </Badge>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-gray-900 mb-2">Asset</h4>
+                                                                <div className="text-gray-600">
+                                                                    {(() => {
+                                                                        const assetId = risk.contextSnapshot?.assetId || (risk as any).assetId;
+                                                                        if (assetId && assets) {
+                                                                            const asset = assets.find((a: any) => a.id === Number(assetId));
+                                                                            if (asset) {
+                                                                                return (
+                                                                                    <Badge variant="outline" className="text-xs font-medium bg-white">
+                                                                                        {asset.name}
+                                                                                    </Badge>
+                                                                                );
+                                                                            }
+                                                                        }
+                                                                        const manualAssets = parseAffectedAssets(risk.affectedAssets);
+                                                                        if (manualAssets.length > 0) {
+                                                                            return (
+                                                                                <div className="flex flex-wrap gap-1">
+                                                                                    {manualAssets.map((asset, i) => (
+                                                                                        <Badge key={i} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
+                                                                                            {asset}
+                                                                                        </Badge>
+                                                                                    ))}
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                        return 'None specified';
+                                                                    })()}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-gray-900 mb-2">Owner</h4>
+                                                                <p className="text-gray-600">{risk.contextSnapshot?.riskOwner || risk.riskOwner || 'Unassigned'}</p>
                                                             </div>
                                                             {risk.notes && (
                                                                 <div className="md:col-span-3">

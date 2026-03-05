@@ -561,10 +561,10 @@ function DashboardLayoutContent({
         label: "ISO 27001 ISMS",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/iso27001" },
+          { icon: ShieldCheck, label: "Organization Context", path: "/iso27001/governance" },
           { icon: ClipboardList, label: "Statement of Applicability", path: "/iso27001/soa" },
           { icon: AlertTriangle, label: "Risk Management", path: "/iso27001/risks" },
           { icon: Database, label: "Asset Register", path: "/iso27001/assets" },
-          { icon: ShieldCheck, label: "Governance Review", path: "/iso27001/governance" },
         ]
       },
 

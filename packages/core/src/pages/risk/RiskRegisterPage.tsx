@@ -21,7 +21,7 @@ import {
 import { usePageHelp } from '@/hooks/usePageHelp';
 import { PageGuide } from "@/components/PageGuide";
 
-export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = false, framework, clientId: propClientId }: { hideLayout?: boolean, hideBreadcrumb?: boolean, framework?: string, clientId?: number }) {
+export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = false, framework, clientId: propClientId, fullWidth = false }: { hideLayout?: boolean, hideBreadcrumb?: boolean, framework?: string, clientId?: number, fullWidth?: boolean }) {
     const params = useParams<{ id: string }>();
     const [, setLocation] = useLocation();
     const clientId = propClientId || (params.id ? parseInt(params.id) : 0);
@@ -166,7 +166,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
             </div>
-            <div className="relative z-10 space-y-6 max-w-7xl mx-auto">
+            <div className={`relative z-10 space-y-6 mx-auto ${fullWidth ? 'w-full xl:px-8' : 'max-w-7xl'}`}>
                 {!hideBreadcrumb && (
                     <Breadcrumb>
                         <BreadcrumbList>

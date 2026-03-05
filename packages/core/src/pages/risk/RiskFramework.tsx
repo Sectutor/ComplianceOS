@@ -273,23 +273,23 @@ export default function RiskFramework() {
                     <p className="text-muted-foreground">Define the scope, context, and criteria for managing risks.</p>
                 </div>
 
-                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 text-sm text-black dark:bg-blue-900/10 dark:text-blue-200 dark:border-blue-900/30">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm dark:bg-blue-900/30 dark:border-blue-700">
                     <div className="flex items-start gap-3">
                         <Activity className="w-5 h-5 text-[#1C4D8D] shrink-0 mt-0.5" />
                         <div className="space-y-2">
                             <p className="font-semibold text-[#1C4D8D] dark:text-blue-300">About Risk Management Framework</p>
-                            <p className="text-black dark:text-blue-100">
+                            <p className="text-slate-700 dark:text-blue-100">
                                 Establishing a robust framework is the <strong>first step in the ISO 27005</strong> risk management process.
                                 This page allows you to define:
                             </p>
-                            <ul className="list-disc list-inside space-y-1 text-black dark:text-blue-100 ml-2">
+                            <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-blue-100 ml-2">
                                 <li><strong>Scope & Context</strong> - Boundaries and internal/external factors affecting your organization</li>
                                 <li><strong>Risk Appetite</strong> - Acceptable risk levels and specific tolerance thresholds</li>
                                 <li><strong>Risk Criteria</strong> - Custom Impact (1-5) and Likelihood (1-5) scales for scoring</li>
                                 <li><strong>Key Risk Indicators (KRIs)</strong> - Leading metrics to predict and monitor threats</li>
                                 <li><strong>Key Stakeholders</strong> - Risk owners and decision-makers</li>
                             </ul>
-                            <p className="text-black dark:text-blue-100 mt-2">
+                            <p className="text-slate-700 dark:text-blue-100 mt-2">
                                 These definitions ensure all subsequent risk assessments are <strong>consistent, defensible, and aligned</strong> with organizational objectives.
                             </p>
                         </div>

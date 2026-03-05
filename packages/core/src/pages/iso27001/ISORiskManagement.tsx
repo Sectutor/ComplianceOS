@@ -14,8 +14,8 @@ export default function ISORiskManagement() {
     // ensure the breadcrumbs and "Back" buttons make sense.
 
     return (
-        <ISOLayout clientId={clientId}>
-            <RiskRegisterPage hideLayout={true} hideBreadcrumb={true} />
+        <ISOLayout clientId={clientId} fullWidth={true}>
+            <RiskRegisterPage hideLayout={true} hideBreadcrumb={true} fullWidth={true} framework="ISO 27001" />
         </ISOLayout>
     );
 }

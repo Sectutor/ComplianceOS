@@ -13257,6 +13257,10 @@ export const questionnaireQuestions = pgTable("questionnaire_questions", {
 
   questionId: text("question_id"), // Unique ID from the questionnaire (e.g., "A&A-01.1", "1.1.1")
 
+  focusArea: text("focus_area"),
+
+  subFocusArea: text("sub_focus_area"),
+
   question: text("question").notNull(),
 
   answer: text("answer"),

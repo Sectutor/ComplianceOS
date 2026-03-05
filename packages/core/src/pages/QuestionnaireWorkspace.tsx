@@ -94,6 +94,8 @@ export default function QuestionnaireWorkspace() {
     if (projectData?.questions && projectData.questions.length > 0) {
       const mappedAnswers = projectData.questions.map((q: any) => ({
         questionId: q.questionId,
+        focusArea: q.focusArea || "",
+        subFocusArea: q.subFocusArea || "",
         question: q.question,
         answer: q.answer || "",
         confidence: q.confidence || 0,
@@ -129,6 +131,8 @@ export default function QuestionnaireWorkspace() {
         questionnaireId: data.id,
         questions: questions.map(q => ({
           questionId: q.questionId,
+          focusArea: (q as any).focusArea,
+          subFocusArea: (q as any).subFocusArea,
           question: q.question,
           status: 'pending'
         }))
@@ -137,6 +141,8 @@ export default function QuestionnaireWorkspace() {
       // Initialize answers array for the review table
       const initialAnswers = questions.map(q => ({
         questionId: q.questionId,
+        focusArea: (q as any).focusArea || "",
+        subFocusArea: (q as any).subFocusArea || "",
         question: q.question,
         answer: "",
         comment: "",
@@ -343,6 +349,8 @@ export default function QuestionnaireWorkspace() {
       questionnaireId: qId,
       questions: answers.map((a: any) => ({
         question: a.question,
+        focusArea: a.focusArea,
+        subFocusArea: a.subFocusArea,
         answer: a.answer,
         confidence: a.confidence,
         sources: a.sources,
@@ -665,12 +673,14 @@ export default function QuestionnaireWorkspace() {
                 <TableHeader>
                   <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
                     <TableHead className="w-[3%] text-white font-semibold py-4">#</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Question ID</TableHead>
-                    <TableHead className="w-[25%] text-white font-semibold py-4">Question</TableHead>
-                    <TableHead className="w-[30%] text-white font-semibold py-4">Answer</TableHead>
-                    <TableHead className="w-[8%] text-white font-semibold py-4">Confidence</TableHead>
-                    <TableHead className="w-[12%] text-white font-semibold py-4">Sources</TableHead>
-                    <TableHead className="w-[12%] text-white font-semibold py-4">Comment</TableHead>
+                    <TableHead className="w-[8%] text-white font-semibold py-4">Question ID</TableHead>
+                    <TableHead className="w-[10%] text-white font-semibold py-4">Focus Area</TableHead>
+                    <TableHead className="w-[10%] text-white font-semibold py-4">Sub Focus Area</TableHead>
+                    <TableHead className="w-[20%] text-white font-semibold py-4">Assessment Question</TableHead>
+                    <TableHead className="w-[22%] text-white font-semibold py-4">Answer</TableHead>
+                    <TableHead className="w-[7%] text-white font-semibold py-4">Confidence</TableHead>
+                    <TableHead className="w-[10%] text-white font-semibold py-4">Sources</TableHead>
+                    <TableHead className="w-[10%] text-white font-semibold py-4">Comment</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -681,6 +691,28 @@ export default function QuestionnaireWorkspace() {
                       </TableCell>
                       <TableCell className="align-top font-mono text-xs font-medium">
                         {item.questionId || "-"}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          className="text-sm"
+                          defaultValue={item.focusArea || ""}
+                          onChange={(e) => {
+                            const newAnswers = [...answers];
+                            newAnswers[i].focusArea = e.target.value;
+                            setAnswers(newAnswers);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          className="text-sm"
+                          defaultValue={item.subFocusArea || ""}
+                          onChange={(e) => {
+                            const newAnswers = [...answers];
+                            newAnswers[i].subFocusArea = e.target.value;
+                            setAnswers(newAnswers);
+                          }}
+                        />
                       </TableCell>
                       <TableCell className="align-top font-medium text-sm">
                         {item.question}

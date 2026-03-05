@@ -267,6 +267,22 @@ ${truncatedText}`;
 
             console.log('[Questionnaire Parser] Question column:', questionCol);
 
+            // Find Focus Area column
+            const focusAreaCol = headers.find(h => {
+              const n = h.toLowerCase().trim();
+              return n === 'focus area' || n === 'focusarea' || n === 'focus' || n === 'category';
+            });
+
+            // Find Sub Focus Area column
+            const subFocusAreaCol = headers.find(h => {
+              const n = h.toLowerCase().trim();
+              return n === 'sub focus area' || n === 'subfocusarea' || n === 'sub-focus area' ||
+                n === 'sub focus' || n === 'sub-focus' || n === 'subcategory' || n === 'sub category';
+            });
+
+            console.log('[Questionnaire Parser] Focus Area column:', focusAreaCol);
+            console.log('[Questionnaire Parser] Sub Focus Area column:', subFocusAreaCol);
+
             if (!questionCol) {
               // Fallback: Use LLM if no clear structure
               textContent = JSON.stringify(jsonData);
@@ -297,13 +313,18 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
                   const rawQId = questionIdCol ? row[questionIdCol] : null;
                   const qId = rawQId && String(rawQId).trim() ? String(rawQId).trim() : undefined;
                   const question = String(row[questionCol]).trim();
+                  const focusArea = focusAreaCol && row[focusAreaCol] ? String(row[focusAreaCol]).trim() : undefined;
+                  const subFocusArea = subFocusAreaCol && row[subFocusAreaCol] ? String(row[subFocusAreaCol]).trim() : undefined;
                   console.log('[Questionnaire Parser] Extracted:', {
                     questionId: qId,
                     question: question.substring(0, 50) + '...',
-                    rawQuestionId: rawQId
+                    focusArea,
+                    subFocusArea
                   });
                   return {
                     questionId: qId,
+                    focusArea,
+                    subFocusArea,
                     question: question
                   };
                 });
@@ -363,6 +384,8 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
         questionnaireId: z.number(),
         questions: z.array(z.object({
           questionId: z.string().nullable().optional(),
+          focusArea: z.string().optional(),
+          subFocusArea: z.string().optional(),
           question: z.string(),
           answer: z.string().optional(),
           confidence: z.number().optional(),
@@ -401,6 +424,8 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
               questions.map((q: any) => ({
                 questionnaireId,
                 questionId: q.questionId || null,
+                focusArea: q.focusArea || null,
+                subFocusArea: q.subFocusArea || null,
                 question: q.question,
                 answer: q.answer || null,
                 comment: q.comment || null,
@@ -679,16 +704,14 @@ Generate a professional answer. Response format:
           .where(eq(schema.questionnaireQuestions.questionnaireId, input.id));
 
         // Build Excel data
-        const rows = questions.map((q: any, idx: number) => ({
-          '#': idx + 1,
+        const rows = questions.map((q: any) => ({
           'Question ID': q.questionId || '',
-          'Question': q.question,
-          'Answer': q.answer || '',
-          'Status': q.status || 'pending',
+          'Focus Area': q.focusArea || '',
+          'Sub Focus Area': q.subFocusArea || '',
+          'Assessment Question': q.question,
           'Confidence': q.confidence ? `${Math.round(q.confidence * 100)}%` : '',
+          'Sources': (q.sources || []).map((s: any) => s.title || '').filter(Boolean).join('; '),
           'Comment': q.comment || '',
-          'Tags': (q.tags || []).join(', '),
-          'Last Updated': q.updatedAt ? new Date(q.updatedAt).toISOString() : ''
         }));
 
         return {

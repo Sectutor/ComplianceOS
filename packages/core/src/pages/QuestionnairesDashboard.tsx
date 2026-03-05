@@ -246,11 +246,11 @@ export default function QuestionnairesDashboard() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setLocation(`/clients/${clientId}/questionnaires/${q.id}`)}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setLocation(`/clients/${clientId}/questionnaires/${q.id}`); }}>
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Open
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(q)}>
+                        <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete(q); }}>
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>

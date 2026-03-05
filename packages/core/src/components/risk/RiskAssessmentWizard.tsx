@@ -61,6 +61,26 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
     const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
     const [suggestLoading, setSuggestLoading] = useState(false);
 
+    // Custom threat / vulnerability free-text state
+    const [customThreats, setCustomThreats] = useState<string[]>([]);
+    const [customVulnerabilities, setCustomVulnerabilities] = useState<string[]>([]);
+    const [customThreatInput, setCustomThreatInput] = useState('');
+    const [customVulnerabilityInput, setCustomVulnerabilityInput] = useState('');
+
+    const addCustomThreat = () => {
+        const val = customThreatInput.trim();
+        if (!val) return;
+        setCustomThreats(prev => [...prev, val]);
+        setCustomThreatInput('');
+    };
+
+    const addCustomVulnerability = () => {
+        const val = customVulnerabilityInput.trim();
+        if (!val) return;
+        setCustomVulnerabilities(prev => [...prev, val]);
+        setCustomVulnerabilityInput('');
+    };
+
     // Queries
     const { data: assets } = trpc.risks.getAssets.useQuery({ clientId }, { enabled: open && step === 'scope' }); // Legacy? Might need new router
     const { data: threats } = trpc.risks.getThreats.useQuery({ clientId }, { enabled: open && step === 'scope' }); // Legacy?
@@ -121,8 +141,11 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     riskOwner: initialData.riskOwner || '',
                     priority: initialData.priority || 'Medium',
                 });
-                // If this is a new risk being created via a deep link/pre-fill, 
-                // skip the method selection and jump to scope definition
+                // Restore custom entries from snapshot
+                setCustomThreats(initialData.contextSnapshot?.customThreats || []);
+                setCustomVulnerabilities(initialData.contextSnapshot?.customVulnerabilities || []);
+                setCustomThreatInput('');
+                setCustomVulnerabilityInput('');
                 const isQuickStart = !initialData.id && (initialData.title || initialData.description || initialData.assetId);
                 setStep(isQuickStart ? 'scope' : 'method');
             } else {
@@ -144,6 +167,10 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     riskOwner: '',
                     priority: 'Medium'
                 });
+                setCustomThreats([]);
+                setCustomVulnerabilities([]);
+                setCustomThreatInput('');
+                setCustomVulnerabilityInput('');
                 setStep('method');
             }
         }
@@ -189,8 +216,9 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     vulnerability: formData.vulnerability,
                     threatIds: formData.threatIds,
                     vulnerabilityIds: formData.vulnerabilityIds,
-                    controlIds: formData.selectedControlIds, // Persist selected controls
-                    // Include new fields in snapshot too for redundancy/ease
+                    controlIds: formData.selectedControlIds,
+                    customThreats,
+                    customVulnerabilities,
                     riskOwner: formData.riskOwner,
                     treatmentStrategy: formData.treatmentStrategy,
                     priority: formData.priority,
@@ -321,8 +349,9 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                         <div className="space-y-4">
                             <Label className="text-base">2. Risk Context</Label>
                             <div className="grid grid-cols-2 gap-4">
+                                {/* Threats Column */}
                                 <div className="space-y-2">
-                                    <Label>Threats ({formData.threatIds.length} selected)</Label>
+                                    <Label>Threats ({formData.threatIds.length + customThreats.length} selected)</Label>
                                     <ScrollArea className="h-[150px] border rounded-md p-2">
                                         <div className="space-y-1">
                                             {threats && threats.length > 0 ? threats.map((t: any) => (
@@ -336,12 +365,38 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                                     />
                                                     <span className="truncate">{t.name}</span>
                                                 </div>
-                                            )) : <div className="text-sm text-gray-400 p-2">No threats found. Add threats first.</div>}
+                                            )) : <div className="text-sm text-gray-400 p-2">No threats found.</div>}
+                                            {/* Custom (manually added) threats */}
+                                            {customThreats.map((name, i) => (
+                                                <div key={`custom-t-${i}`} className="flex items-center gap-2 p-1.5 bg-blue-50 rounded text-sm">
+                                                    <Checkbox
+                                                        checked
+                                                        onCheckedChange={() => setCustomThreats(prev => prev.filter((_, idx) => idx !== i))}
+                                                    />
+                                                    <span className="truncate italic text-blue-700">{name}</span>
+                                                    <span className="ml-auto text-[10px] text-blue-400 font-medium bg-blue-100 px-1 rounded">custom</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </ScrollArea>
+                                    {/* Add custom threat input */}
+                                    <div className="flex gap-1.5">
+                                        <Input
+                                            placeholder="Add custom threat…"
+                                            value={customThreatInput}
+                                            onChange={e => setCustomThreatInput(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && addCustomThreat()}
+                                            className="h-8 text-sm"
+                                        />
+                                        <Button size="sm" variant="outline" onClick={addCustomThreat} className="h-8 px-2.5 shrink-0">
+                                            + Add
+                                        </Button>
+                                    </div>
                                 </div>
+
+                                {/* Vulnerabilities Column */}
                                 <div className="space-y-2">
-                                    <Label>Vulnerabilities ({formData.vulnerabilityIds.length} selected)</Label>
+                                    <Label>Vulnerabilities ({formData.vulnerabilityIds.length + customVulnerabilities.length} selected)</Label>
                                     <ScrollArea className="h-[150px] border rounded-md p-2">
                                         <div className="space-y-1">
                                             {vulnerabilities && vulnerabilities.length > 0 ? vulnerabilities.map((v: any) => (
@@ -355,9 +410,33 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                                     />
                                                     <span className="truncate">{v.name}</span>
                                                 </div>
-                                            )) : <div className="text-sm text-gray-400 p-2">No vulnerabilities found. Add vulnerabilities first.</div>}
+                                            )) : <div className="text-sm text-gray-400 p-2">No vulnerabilities found.</div>}
+                                            {/* Custom (manually added) vulnerabilities */}
+                                            {customVulnerabilities.map((name, i) => (
+                                                <div key={`custom-v-${i}`} className="flex items-center gap-2 p-1.5 bg-blue-50 rounded text-sm">
+                                                    <Checkbox
+                                                        checked
+                                                        onCheckedChange={() => setCustomVulnerabilities(prev => prev.filter((_, idx) => idx !== i))}
+                                                    />
+                                                    <span className="truncate italic text-blue-700">{name}</span>
+                                                    <span className="ml-auto text-[10px] text-blue-400 font-medium bg-blue-100 px-1 rounded">custom</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </ScrollArea>
+                                    {/* Add custom vulnerability input */}
+                                    <div className="flex gap-1.5">
+                                        <Input
+                                            placeholder="Add custom vulnerability…"
+                                            value={customVulnerabilityInput}
+                                            onChange={e => setCustomVulnerabilityInput(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && addCustomVulnerability()}
+                                            className="h-8 text-sm"
+                                        />
+                                        <Button size="sm" variant="outline" onClick={addCustomVulnerability} className="h-8 px-2.5 shrink-0">
+                                            + Add
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                             <Textarea placeholder="Description..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
@@ -505,9 +584,9 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
 
                                 {/* AI Suggestions Panel */}
                                 {aiSuggestions.length > 0 && (
-                                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 rounded-lg p-3 space-y-2">
+                                    <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                            <span className="text-sm font-medium text-violet-700 flex items-center gap-1">
                                                 <Sparkles className="w-4 h-4" /> AI Recommendations
                                             </span>
                                             <Button
@@ -525,9 +604,10 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                         </div>
                                         <div className="space-y-1">
                                             {aiSuggestions.map((s: any) => (
-                                                <div key={s.clientControlId} className={`text-xs p-2 rounded flex justify-between items-start cursor-pointer transition-colors ${formData.selectedControlIds.includes(s.clientControlId)
-                                                    ? 'bg-purple-200 dark:bg-purple-800'
-                                                    : 'bg-white dark:bg-gray-800 hover:bg-purple-100'
+                                                <div key={s.clientControlId} className={`text-xs p-2 rounded flex justify-between items-start cursor-pointer transition-colors ${
+                                                    formData.selectedControlIds.includes(s.clientControlId)
+                                                        ? 'bg-violet-200 border border-violet-300'
+                                                        : 'bg-white border border-violet-100 hover:bg-violet-100'
                                                     }`}
                                                     onClick={() => {
                                                         if (!formData.selectedControlIds.includes(s.clientControlId)) {
@@ -536,17 +616,17 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                                     }}
                                                 >
                                                     <div>
-                                                        <div className="font-medium">{s.details?.control?.name || s.details?.clientControl?.customDescription || `Control #${s.clientControlId}`}</div>
-                                                        <div className="text-gray-500">{s.reasoning}</div>
+                                                        <div className="font-medium text-slate-800">{s.details?.control?.name || s.details?.clientControl?.customDescription || `Control #${s.clientControlId}`}</div>
+                                                        <div className="text-slate-500">{s.reasoning}</div>
                                                     </div>
-                                                    <span className="text-purple-600 font-bold ml-2">{s.relevance}/10</span>
+                                                    <span className="text-violet-600 font-bold ml-2 shrink-0">{s.relevance}/10</span>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
 
-                                <ScrollArea className="h-[300px] border rounded-md p-2 bg-white">
+                                <ScrollArea className="h-[300px] border border-slate-200 rounded-md p-2 bg-slate-50">
                                     <div className="space-y-2">
                                         {(controls as any)?.map?.((c: any) => {
                                             const controlId = c.clientControl?.id || c.id;
