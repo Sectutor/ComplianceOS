@@ -96,7 +96,10 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
     return (
         <DashboardLayout>
             <div className="flex flex-col min-h-screen bg-slate-50/50">
-                <div className="bg-white border-b border-slate-200 pl-4 pr-4 py-3 md:pl-20 md:pr-8 sticky top-0 z-30 shadow-sm space-y-3">
+                <div className={cn(
+                    "bg-white border-b border-slate-200 py-3 sticky top-0 z-30 shadow-sm space-y-3",
+                    fullWidth ? "px-6" : "pl-4 pr-4 md:pl-20 md:pr-8"
+                )}>
                     <Breadcrumb className="mb-0">
                         <BreadcrumbList>
                             {breadcrumbItems.map((item, idx) => {
