@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Contract & Vendor Review | ComplianceOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B1120;
+            color: #F8FAFC;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
+        .brutal-border { border: 2px solid #E2E8F0; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        
+        .stagger-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stagger-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Redline Animation */
+        .redline-strike {
+            position: relative;
+            display: inline-block;
+        }
+        .redline-strike::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 0%;
+            height: 2px;
+            background: #ef4444;
+            transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .visible .redline-strike::after { width: 100%; }
+
+        .suggest-addition {
+            color: #3B82F6;
+            opacity: 0;
+            transition: opacity 0.5s ease 1.5s;
+        }
+        .visible .suggest-addition { opacity: 1; }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="fixed inset-0 noise-bg z-50"></div>
+
+    <main class="relative z-10">
+        
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20 relative overflow-hidden">
+            <div class="absolute top-20 right-20 text-[25vw] font-black opacity-[0.03] select-none pointer-events-none uppercase">DPA/SLA</div>
+            
+            <div class="mb-16 stagger-reveal">
+                <img src="../assets/logo.png" alt="GRCompliance" class="h-20 w-auto brightness-200" />
+            </div>
+            
+            <div class="max-w-7xl">
+                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal leading-none">
+                    Stop Waiting <br>
+                    <span class="accent-blue italic">For Legal.</span>
+                </h1>
+                
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
+                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
+                        Vendor onboarding shouldn’t take three months. <strong>Our AI parses agreements, flags hidden liabilities, and suggests redlines in seconds.</strong> Close your supply-chain gaps at the speed of SaaS.
+                    </p>
+                    
+                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
+                        <a href="#features" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-12 py-7 text-center hover:scale-105 transition-transform duration-300">
+                            Audit My Vendor Contracts
+                        </a>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Automated Redlining & Clause Intelligence</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Redline Demo Section -->
+        <section class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#131B2B] overflow-hidden">
+            <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-20">
+                <div class="lg:w-1/2 stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">The Liquidation</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black mb-12 uppercase leading-none">Instant <br><span class="italic text-slate-500">Agreement Validation</span></h2>
+                    <p class="text-xl text-slate-400 mb-10 font-light">
+                        Procurement and legal teams waste 40+ hours a month on document ping-pong. We liquidate that bottleneck by mapping contract clauses directly to your security and compliance policies.
+                    </p>
+                    <div class="grid grid-cols-2 gap-8">
+                        <div>
+                            <div class="text-4xl font-black accent-blue mb-2">90%</div>
+                            <div class="text-xs uppercase font-bold text-slate-500 tracking-widest">Reduction in review time</div>
+                        </div>
+                        <div>
+                            <div class="text-4xl font-black accent-blue mb-2">0</div>
+                            <div class="text-xs uppercase font-bold text-slate-500 tracking-widest">Missed liability clauses</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lg:w-1/2 stagger-reveal">
+                    <div class="brutal-border p-8 bg-[#0B1120] relative">
+                        <div class="flex justify-between items-center mb-10 text-[10px] font-mono text-slate-500">
+                            <span>Contract_Review_v23_redacted.pdf</span>
+                            <span class="text-red-500 font-bold uppercase animate-pulse">Critical Flag Detected</span>
+                        </div>
+                        
+                        <div class="space-y-6 font-mono text-xs lg:text-sm leading-relaxed">
+                            <div class="p-4 border-l-4 border-red-500 bg-red-500/5">
+                                <span class="text-slate-500 uppercase block mb-2 text-[10px]">Clause 4.2: Data Breach Notification</span>
+                                "In the event of a Security Breach, the Provider shall notify the Customer within <span class="redline-strike">thirty (30) business days</span> <span class="suggest-addition font-bold">forty-eight (48) hours</span> of becoming aware..."
+                            </div>
+                            <div class="p-4 border-l-4 border-accent-blue bg-accent-blue/5">
+                                <span class="text-slate-500 uppercase block mb-2 text-[10px]">Clause 7.1: Limitation of Liability</span>
+                                "Provider's aggregate liability shall be limited to <span class="redline-strike">fees paid in the last 6 months</span> <span class="suggest-addition font-bold">unlimited for data breach claims</span>..."
+                            </div>
+                        </div>
+
+                        <div class="mt-10 pt-6 border-t border-slate-800 flex justify-between items-center">
+                            <div class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Mapping to ISO 27001:2022 A.5.19</div>
+                            <div class="bg-accent-blue text-white px-3 py-1 text-[10px] font-black uppercase">Suggested Redline Generated</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Transparency Section -->
+        <section class="py-32 px-6 lg:px-20 bg-[#0B1120] overflow-hidden">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-24 stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">Platform Integrity</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black uppercase leading-none">The Vendor <br>Review Engine</h2>
+                </div>
+
+                <div class="space-y-40">
+                    <!-- Layer 1: Vendor Dashboard -->
+                    <div class="grid lg:grid-cols-2 gap-20 items-center stagger-reveal">
+                        <div class="brutal-border p-4 bg-[#1e293b] hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                            <img src="../assets/vendor-dashboard.png" alt="ComplianceOS Vendor Dashboard" class="w-full h-auto" />
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-display font-black uppercase mb-6 italic text-blue-400">01. Supply Chain Pulse</h3>
+                            <p class="text-slate-400 text-lg leading-relaxed mb-8">
+                                A command-level dashboard for tracking 4th-party ecosystem exposure. Monitor Dark Web leaks and potential breaches across your entire vendor hierarchy in one view.
+                            </p>
+                            <div class="font-mono text-xs text-slate-500 uppercase tracking-widest">Real-time OSINT Intelligence Feed</div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: All Vendors List -->
+                    <div class="grid lg:grid-cols-2 gap-20 items-center stagger-reveal">
+                        <div class="lg:order-2 brutal-border p-4 bg-[#1e293b] hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                            <img src="../assets/vendor-list.png" alt="ComplianceOS Active Vendor Registry" class="w-full h-auto" />
+                        </div>
+                        <div class="lg:order-1 text-right lg:text-left">
+                            <h3 class="text-3xl font-display font-black uppercase mb-6 italic text-blue-400">02. Unified Registry</h3>
+                            <p class="text-slate-400 text-lg leading-relaxed mb-8">
+                                One definitive list of active vendors. Categorize by risk level, track trust scores, and manage subprocessor onboarding through a high-frequency, actionable registry interface.
+                            </p>
+                            <div class="font-mono text-xs text-slate-500 uppercase tracking-widest">Trust Scoring & Risk Tiering Automated</div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 3: Questionnaires -->
+                    <div class="grid lg:grid-cols-2 gap-20 items-center stagger-reveal">
+                        <div class="brutal-border p-4 bg-[#1e293b] hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                            <img src="../assets/questionnaires-list.png" alt="ComplianceOS Questionnaire Management" class="w-full h-auto" />
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-display font-black uppercase mb-6 italic text-blue-400">03. Response Velocity</h3>
+                            <p class="text-slate-400 text-lg leading-relaxed mb-8">
+                                Track inbound and outbound security questionnaires (SIG, CAIQ, SOC2). Move vendors from 'Draft' to 'Completed' in record time with automated evidence mapping.
+                            </p>
+                            <div class="font-mono text-xs text-slate-500 uppercase tracking-widest">Full Lifecycle Questionnaire Tracking</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Use Cases -->
+        <section id="features" class="py-32 px-6 lg:px-20 bg-white text-black">
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-3 gap-12">
+                <div class="stagger-reveal">
+                    <div class="h-1 w-12 bg-black mb-6"></div>
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic">Risk Clause <br>Scanner</h3>
+                    <p class="text-slate-600">Instantly flag unfavorable liability, indemnity, or SLA terms that violate your corporate risk tolerance. Zero manual scanning required.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.1s;">
+                    <div class="h-1 w-12 bg-black mb-6"></div>
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic">Policy <br>Alignment</h3>
+                    <p class="text-slate-600">Ensure every Vendor Agreement and DPA matches your ISO/SOC2/GDPR policies. Our agent compares the contract to your live control library.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.2s;">
+                    <div class="h-1 w-12 bg-black mb-6"></div>
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic">Automated <br>Redlining</h3>
+                    <p class="text-slate-600">Don't just find problems. Fix them. Our agent generates redlined versions of contracts that normalize vendor terms to your standards.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-40 px-6 lg:px-20 bg-[#0B1120] text-[#F8FAFC] text-center border-t border-slate-900">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-12 stagger-reveal leading-none italic">Unblock <br>Onboarding.</h2>
+                <p class="text-2xl lg:text-3xl mb-16 text-slate-500 font-light stagger-reveal">
+                    High-velocity SaaS can't afford low-velocity legal. Get to "Executed" 10x faster with AI-driven contract scrutiny.
+                </p>
+                <div class="stagger-reveal">
+                    <a href="https://app.grcompliance.com/waitlist" class="inline-block bg-accent-blue text-white font-display font-black uppercase text-2xl px-16 py-8 hover:scale-110 transition-transform duration-300 shadow-2xl">
+                        Join the Contract Review Waitlist
+                    </a>
+                    <p class="mt-12 text-slate-600 uppercase font-bold tracking-[0.2em] italic text-sm">Onboarding Automation Module arriving Q2 2026</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
