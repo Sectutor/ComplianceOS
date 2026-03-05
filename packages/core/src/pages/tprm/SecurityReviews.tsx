@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -87,6 +87,7 @@ const getRiskColor = (criticality: string | null) => {
 
 export default function SecurityReviews() {
     const { id } = useParams<{ id: string }>();
+    const [, setLocation] = useLocation();
     const clientId = parseInt(id || "0");
     const [searchTerm, setSearchTerm] = useState("");
     const [draggedItem, setDraggedItem] = useState<{ id: number; status: string } | null>(null);
@@ -180,6 +181,7 @@ export default function SecurityReviews() {
                 draggable
                 onDragStart={(e) => handleDragStart(e, assessment)}
                 onDragEnd={handleDragEnd}
+                onDoubleClick={() => setLocation(`/clients/${clientId}/vendors/${assessment.vendorId}?tab=assessments`)}
                 className={cn(
                     "mb-3 cursor-grab active:cursor-grabbing transition-all",
                     isDragging && "opacity-50"
