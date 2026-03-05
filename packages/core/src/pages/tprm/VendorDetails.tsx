@@ -116,7 +116,7 @@ export default function VendorDetails() {
             toast.success("Assessment scheduled");
             setIsAssessmentOpen(false);
             setAssessmentForm({ type: "", dueDate: "", status: "Planned" });
-            refetchAssessments();
+            utils.vendors.getVendorDetails.invalidate({ vendorId: vId, clientId });
         },
         onError: (err) => toast.error("Failed to schedule: " + err.message)
     });
@@ -147,7 +147,7 @@ export default function VendorDetails() {
         onSuccess: () => {
             toast.success("Requests sent to vendor");
             setIsSendOpen(false);
-            refetchAssessments();
+            utils.vendors.getVendorDetails.invalidate({ vendorId: vId, clientId });
         },
         onError: (err) => toast.error("Failed to send: " + err.message)
     });
@@ -223,7 +223,7 @@ export default function VendorDetails() {
             toast.success("Assessment updated");
             setIsConductOpen(false);
             setConductForm({ id: 0, status: "", score: 0, findings: "", documentUrl: "", inherentImpact: "", inherentLikelihood: "", inherentRiskLevel: "", residualImpact: "", residualLikelihood: "", residualRiskLevel: "" });
-            refetchAssessments();
+            utils.vendors.getVendorDetails.invalidate({ vendorId: vId, clientId });
         },
         onError: (err) => toast.error("Failed to update assessment: " + err.message)
     });
@@ -349,6 +349,7 @@ export default function VendorDetails() {
                 title: "", description: "", startDate: "", endDate: "", autoRenew: false, value: "", status: "Active", documentUrl: "",
                 noticePeriod: "", paymentTerms: "", slaDetails: "", dpaStatus: "Not Signed", owner: ""
             });
+            utils.vendors.getVendorDetails.invalidate({ vendorId: vId, clientId });
             refetchContracts();
         },
         onError: (err) => toast.error("Failed to add contract: " + err.message)
@@ -443,11 +444,30 @@ export default function VendorDetails() {
                 autoRenew: contract.autoRenew || false,
                 value: contract.value || "",
                 status: contract.status || "Active",
-                documentUrl: contract.documentUrl || ""
+                documentUrl: contract.documentUrl || "",
+                noticePeriod: contract.noticePeriod || "",
+                paymentTerms: contract.paymentTerms || "",
+                slaDetails: contract.slaDetails || "",
+                dpaStatus: contract.dpaStatus || "Not Signed",
+                owner: contract.owner || ""
             });
         } else {
             setEditingContract(null);
-            setContractForm({ title: "", description: "", startDate: "", endDate: "", autoRenew: false, value: "", status: "Active", documentUrl: "" });
+            setContractForm({ 
+                title: "", 
+                description: "", 
+                startDate: "", 
+                endDate: "", 
+                autoRenew: false, 
+                value: "", 
+                status: "Active", 
+                documentUrl: "",
+                noticePeriod: "",
+                paymentTerms: "",
+                slaDetails: "",
+                dpaStatus: "Not Signed",
+                owner: ""
+            });
         }
         setIsContractOpen(true);
     };
@@ -2364,14 +2384,10 @@ export default function VendorDetails() {
                                 className="flex-1"
                                 onClick={() => createRemediationMutation.mutate({
                                     clientId,
-                                    vendorId: vId,
-                                    cveId: selectedCveForMitigation.cveId,
-                                    cveDescription: selectedCveForMitigation.description,
-                                    cvssScore: selectedCveForMitigation.cvssScore,
+                                    title: `CVE Remediation: ${selectedCveForMitigation.cveId} - ${vendor?.name || 'Vendor'}`,
+                                    description: `Description: ${selectedCveForMitigation.description}\n\nNotes from TPRM: ${mitigationForm.notes}\n\nAssigned to: ${mitigationForm.assignee}`,
                                     priority: mitigationForm.priority,
-                                    assignee: mitigationForm.assignee,
-                                    dueDate: mitigationForm.dueDate,
-                                    notes: mitigationForm.notes,
+                                    dueDate: mitigationForm.dueDate
                                 })}
                                 disabled={createRemediationMutation.isPending}
                             >

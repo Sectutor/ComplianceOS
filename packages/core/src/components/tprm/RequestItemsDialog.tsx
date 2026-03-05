@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { 
-    X, Plus, Mail, Copy, Eye, Shield, FileText, 
+import {
+    X, Plus, Mail, Copy, Eye, Shield, FileText,
     Check, ChevronDown, Search, Info
 } from "lucide-react";
-import { 
-    Dialog, DialogContent, DialogHeader, 
-    DialogTitle, DialogDescription 
+import {
+    Dialog, DialogContent, DialogHeader,
+    DialogTitle, DialogDescription
 } from "@complianceos/ui/ui/dialog";
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
@@ -13,9 +13,9 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { 
-    DropdownMenu, DropdownMenuContent, 
-    DropdownMenuItem, DropdownMenuTrigger 
+import {
+    DropdownMenu, DropdownMenuContent,
+    DropdownMenuItem, DropdownMenuTrigger
 } from "@complianceos/ui/ui/dropdown-menu";
 
 interface RequestItemsDialogProps {
@@ -23,16 +23,17 @@ interface RequestItemsDialogProps {
     onClose: () => void;
     vendorName: string;
     onSend: (data: any) => void;
-    templates: any[];
+    templates: any[]; // Vendor assessment templates
+    questionnaires?: any[]; // Outbound questionnaires to send to vendor
 }
 
-export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templates = [] }: RequestItemsDialogProps) {
+export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templates = [], questionnaires = [] }: RequestItemsDialogProps) {
     const [selectedItems, setSelectedItems] = useState<any[]>([
         { type: 'document', name: 'SOC 2 Report' },
         { type: 'document', name: 'Penetration Test Report' }
     ]);
     const [recipientEmail, setRecipientEmail] = useState("");
-    
+
     // Standard suggestions
     const suggestions = [
         { type: 'document', name: 'ISO 27001 Certificate' },
@@ -53,7 +54,7 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
     const handleSend = () => {
         if (!recipientEmail) return toast.error("Recipient email is required");
         if (selectedItems.length === 0) return toast.error("Please select at least one item to request");
-        
+
         onSend({
             recipientEmail,
             items: selectedItems
@@ -86,7 +87,7 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
                         <Label className="text-sm font-semibold text-slate-700">Specify the required documents</Label>
                         <div className="min-h-[100px] p-2 border-2 border-slate-100 rounded-xl focus-within:border-indigo-500 transition-all bg-slate-50/50 flex flex-wrap gap-2 items-start content-start">
                             {selectedItems.map((item, index) => (
-                                <Badge 
+                                <Badge
                                     key={index}
                                     variant="secondary"
                                     className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm text-slate-700 font-medium flex items-center gap-2"
@@ -98,7 +99,7 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
                                     </button>
                                 </Badge>
                             ))}
-                            
+
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-9 px-3 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-slate-400">
@@ -107,13 +108,24 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-64 p-2 rounded-xl shadow-xl">
-                                    <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Questionnaires</div>
+                                    <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vendor Assessment Templates</div>
                                     {templates.map(t => (
                                         <DropdownMenuItem key={t.id} onClick={() => addItem({ type: 'questionnaire', id: t.id, name: t.name })} className="rounded-lg cursor-pointer">
                                             <FileText className="w-4 h-4 mr-3 text-indigo-500" />
                                             {t.name}
                                         </DropdownMenuItem>
                                     ))}
+                                    {questionnaires && questionnaires.length > 0 && (
+                                        <>
+                                            <div className="px-2 py-1 mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Security Questionnaires</div>
+                                            {questionnaires.map(q => (
+                                                <DropdownMenuItem key={q.id} onClick={() => addItem({ type: 'questionnaire', id: q.id, name: q.name })} className="rounded-lg cursor-pointer">
+                                                    <FileText className="w-4 h-4 mr-3 text-amber-500" />
+                                                    {q.name}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </>
+                                    )}
                                     <div className="px-2 py-1 mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Common Documents</div>
                                     {suggestions.map(s => (
                                         <DropdownMenuItem key={s.name} onClick={() => addItem(s)} className="rounded-lg cursor-pointer">
@@ -136,7 +148,7 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
                                 <Mail className="w-4 h-4 text-slate-400" />
                                 Send email invite
                             </Label>
-                            <Input 
+                            <Input
                                 placeholder="vendor-contact@example.com"
                                 value={recipientEmail}
                                 onChange={(e) => setRecipientEmail(e.target.value)}
@@ -173,7 +185,7 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
                     </Button>
                     <div className="flex gap-3 w-full sm:w-auto">
                         <Button variant="ghost" onClick={onClose} className="rounded-xl px-6 flex-1 sm:flex-none">Cancel</Button>
-                        <Button 
+                        <Button
                             onClick={handleSend}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-8 py-5 h-auto font-semibold shadow-lg shadow-indigo-200 transition-all hover:translate-y-[-1px] flex-1 sm:flex-none"
                         >
