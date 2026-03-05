@@ -273,25 +273,44 @@ export default function RiskFramework() {
                     <p className="text-muted-foreground">Define the scope, context, and criteria for managing risks.</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm dark:bg-blue-900/30 dark:border-blue-700">
-                    <div className="flex items-start gap-3">
-                        <Activity className="w-5 h-5 text-[#1C4D8D] shrink-0 mt-0.5" />
-                        <div className="space-y-2">
-                            <p className="font-semibold text-[#1C4D8D] dark:text-blue-300">About Risk Management Framework</p>
-                            <p className="text-slate-700 dark:text-blue-100">
-                                Establishing a robust framework is the <strong>first step in the ISO 27005</strong> risk management process.
+                <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-6 text-sm">
+                    <div className="flex items-start gap-4">
+                        <div className="bg-blue-100/50 p-2 rounded-lg shrink-0 border border-blue-200/50">
+                            <Activity className="w-5 h-5 text-blue-700" />
+                        </div>
+                        <div className="space-y-3 w-full">
+                            <p className="font-bold text-blue-900 text-base">About Risk Management Framework</p>
+                            <p className="text-slate-700 leading-relaxed text-[14.5px]">
+                                Establishing a robust framework is the <strong className="text-slate-900 font-semibold">first step in the ISO 27005</strong> risk management process.
                                 This page allows you to define:
                             </p>
-                            <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-blue-100 ml-2">
-                                <li><strong>Scope & Context</strong> - Boundaries and internal/external factors affecting your organization</li>
-                                <li><strong>Risk Appetite</strong> - Acceptable risk levels and specific tolerance thresholds</li>
-                                <li><strong>Risk Criteria</strong> - Custom Impact (1-5) and Likelihood (1-5) scales for scoring</li>
-                                <li><strong>Key Risk Indicators (KRIs)</strong> - Leading metrics to predict and monitor threats</li>
-                                <li><strong>Key Stakeholders</strong> - Risk owners and decision-makers</li>
+                            <ul className="space-y-2 text-slate-700 ml-1 mt-2">
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500 mt-1.5 text-xs">•</span>
+                                    <span><strong className="text-slate-900 font-semibold">Scope & Context</strong> - Boundaries and internal/external factors affecting your organization</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500 mt-1.5 text-xs">•</span>
+                                    <span><strong className="text-slate-900 font-semibold">Risk Appetite</strong> - Acceptable risk levels and specific tolerance thresholds</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500 mt-1.5 text-xs">•</span>
+                                    <span><strong className="text-slate-900 font-semibold">Risk Criteria</strong> - Custom Impact (1-5) and Likelihood (1-5) scales for scoring</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500 mt-1.5 text-xs">•</span>
+                                    <span><strong className="text-slate-900 font-semibold">Key Risk Indicators (KRIs)</strong> - Leading metrics to predict and monitor threats</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500 mt-1.5 text-xs">•</span>
+                                    <span><strong className="text-slate-900 font-semibold">Key Stakeholders</strong> - Risk owners and decision-makers</span>
+                                </li>
                             </ul>
-                            <p className="text-slate-700 dark:text-blue-100 mt-2">
-                                These definitions ensure all subsequent risk assessments are <strong>consistent, defensible, and aligned</strong> with organizational objectives.
-                            </p>
+                            <div className="mt-4 pt-4 border-t border-blue-200/50">
+                                <p className="text-slate-700">
+                                    These definitions ensure all subsequent risk assessments are <strong className="text-slate-900 font-semibold">consistent, defensible, and aligned</strong> with organizational objectives.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
