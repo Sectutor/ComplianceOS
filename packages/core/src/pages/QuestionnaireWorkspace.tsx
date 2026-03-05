@@ -333,9 +333,12 @@ export default function QuestionnaireWorkspace() {
   };
 
   const handleCreateProject = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlDirection = (searchParams.get("direction") || "inbound") as "inbound" | "outbound";
     createProjectMutation.mutate({
       clientId,
       name: projectName,
+      direction: urlDirection,
       senderName: senderName,
       productName: "Default"
     });

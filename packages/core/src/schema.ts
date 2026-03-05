@@ -13199,6 +13199,8 @@ export const questionnaires = pgTable("questionnaires", {
 
   status: varchar("status", { length: 50 }).default("open"), // open, in_progress, completed, archived, vendor_pending, pending_review
 
+  direction: varchar("direction", { length: 20 }).default("inbound"), // inbound (businesses send to you) | outbound (you send to vendors)
+
   progress: integer("progress").default(0),
 
   dueDate: timestamp("due_date"),

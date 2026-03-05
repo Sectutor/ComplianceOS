@@ -366,15 +366,17 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
       .input(z.object({
         clientId: z.number(),
         name: z.string(),
+        direction: z.enum(['inbound', 'outbound']).default('inbound'),
         senderName: z.string().optional(),
         productName: z.string().optional(),
-        dueDate: z.string().optional(), // ISO Date string
+        dueDate: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
         const db = await getDb();
         const [project] = await db.insert(schema.questionnaires).values({
           clientId: input.clientId,
           name: input.name,
+          direction: input.direction,
           senderName: input.senderName,
           productName: input.productName,
           dueDate: input.dueDate ? new Date(input.dueDate) : null,
@@ -471,13 +473,18 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
      */
     list: protectedProcedure
       .input(z.object({
-        clientId: z.number()
+        clientId: z.number(),
+        direction: z.enum(['inbound', 'outbound']).optional(),
       }))
       .query(async ({ input }: any) => {
         const db = await getDb();
+        const conditions = [eq(schema.questionnaires.clientId, input.clientId)];
+        if (input.direction) {
+          conditions.push(eq(schema.questionnaires.direction, input.direction));
+        }
         return await db.select()
           .from(schema.questionnaires)
-          .where(eq(schema.questionnaires.clientId, input.clientId))
+          .where(and(...conditions))
           .orderBy(desc(schema.questionnaires.createdAt));
       }),
 
