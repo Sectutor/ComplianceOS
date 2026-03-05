@@ -136,6 +136,13 @@ export default function VendorDetails() {
 
     const { data: templates } = trpc.vendors.listTemplates.useQuery({ clientId }, { enabled: !!clientId });
 
+    // Fetch questionnaires (outbound = vendor questionnaires we send to vendors)
+    const { data: questionnaires } = trpc.questionnaire.list.useQuery(
+        { clientId, direction: 'outbound' },
+        { enabled: !!clientId }
+    );
+
+    // Mutation for sending via vendorAssessment system (documents + templates)
     const sendConsolidatedMutation = trpc.vendors.sendConsolidatedRequest.useMutation({
         onSuccess: () => {
             toast.success("Requests sent to vendor");
@@ -143,6 +150,15 @@ export default function VendorDetails() {
             refetchAssessments();
         },
         onError: (err) => toast.error("Failed to send: " + err.message)
+    });
+
+    // Mutation for sending questionnaires via questionnaire system
+    const sendVendorInviteMutation = trpc.questionnaire.sendVendorInvite.useMutation({
+        onSuccess: () => {
+            toast.success("Security questionnaire sent to vendor");
+            setIsSendOpen(false);
+        },
+        onError: (err) => toast.error("Failed to send questionnaire: " + err.message)
     });
 
     // Vendor Threat Intelligence: suggestions and scan
@@ -159,11 +175,47 @@ export default function VendorDetails() {
     });
 
     const handleSendConsolidated = (data: any) => {
-        sendConsolidatedMutation.mutate({
-            clientId,
-            vendorId: vId,
-            ...data
+        // Check if we have questionnaire items - need to send via questionnaire system
+        const questionnaireItems = data.items?.filter((item: any) => {
+            // Check if the item ID matches a questionnaire ID
+            const matchingQ = questionnaires?.find(q => q.id === item.id);
+            return matchingQ !== undefined;
         });
+
+        const nonQuestionnaireItems = data.items?.filter((item: any) => {
+            const matchingQ = questionnaires?.find(q => q.id === item.id);
+            return matchingQ === undefined;
+        });
+
+        // If we have questionnaire items, send via questionnaire system
+        if (questionnaireItems && questionnaireItems.length > 0) {
+            // For now, send the first questionnaire via the dedicated system
+            // ( questionnaire.sendVendorInvite handles single questionnaire)
+            const firstQ = questionnaireItems[0];
+            const matchingQ = questionnaires?.find(q => q.id === firstQ.id);
+
+            sendVendorInviteMutation.mutate({
+                id: firstQ.id,
+                clientId,
+                vendorEmail: data.recipientEmail,
+                vendorName: vendor?.name || "Vendor",
+                message: data.message,
+                expiresInDays: 30
+            });
+            return;
+        }
+
+        // Otherwise use the vendorAssessment system for documents/templates
+        if (nonQuestionnaireItems && nonQuestionnaireItems.length > 0) {
+            sendConsolidatedMutation.mutate({
+                clientId,
+                vendorId: vId,
+                recipientEmail: data.recipientEmail,
+                message: data.message,
+                items: nonQuestionnaireItems,
+                dueDate: data.dueDate
+            });
+        }
     };
 
     const updateAssessmentMutation = trpc.vendors.update.useMutation({
@@ -643,46 +695,32 @@ export default function VendorDetails() {
                 {/* Key Risk Indicators Card */}
                 {/* ... existing card ... */}
 
-                {/* Key Risk Indicators Card */}
-                <Card className="min-w-[250px] bg-slate-50 border-slate-200">
-                    <CardHeader className="py-3">
-                        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Inherent Risk</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm">Criticality</span>
-                            <Badge variant="outline" className={vendor.criticality === 'High' ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}>
-                                {vendor.criticality}
-                            </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm">Data Access</span>
-                            <Badge variant="outline" className={vendor.dataAccess === 'Restricted' ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-slate-600 border-slate-200 bg-slate-50'}>
-                                {vendor.dataAccess}
-                            </Badge>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-
-// Force Reload: debug-marker-v1
-            <Card className="bg-[#1C4D8D] text-white p-2 rounded text-xs font-bold text-center mb-4 border-none shadow-md">
-                DPA SYSTEM ACTIVE
-            </Card>
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="flex flex-wrap h-auto bg-[#1C4D8D] p-1 mb-2 gap-1 rounded-xl">
-                    <TabsTrigger value="legal" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">
-                        Legal & DPAs
-                        <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30 scale-75 origin-left font-bold">NEW</Badge>
+                <TabsList className="flex flex-wrap h-auto bg-muted p-1 mb-4 gap-1 rounded-lg">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <Info className="w-4 h-4" /> Overview
                     </TabsTrigger>
-                    <TabsTrigger value="overview" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Overview</TabsTrigger>
-                    <TabsTrigger value="documents" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Documents</TabsTrigger>
-                    <TabsTrigger value="assessments" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Assessments</TabsTrigger>
-                    <TabsTrigger value="trust-center" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Trust Center</TabsTrigger>
-                    <TabsTrigger value="risk-scan" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Risk Scan</TabsTrigger>
-                    <TabsTrigger value="contacts" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Contacts</TabsTrigger>
-                    <TabsTrigger value="contracts" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-4 py-2 font-bold">Contracts</TabsTrigger>
+                    <TabsTrigger value="assessments" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <Shield className="w-4 h-4" /> Assessments
+                    </TabsTrigger>
+                    <TabsTrigger value="trust-center" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" /> Trust Center
+                    </TabsTrigger>
+                    <TabsTrigger value="risk-scan" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" /> Risk Scan
+                    </TabsTrigger>
+                    <TabsTrigger value="documents" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <FileText className="w-4 h-4" /> Documents
+                    </TabsTrigger>
+                    <TabsTrigger value="legal" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <ScrollText className="w-4 h-4" /> DPAs
+                    </TabsTrigger>
+                    <TabsTrigger value="contracts" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <ScrollText className="w-4 h-4" /> Contracts
+                    </TabsTrigger>
+                    <TabsTrigger value="contacts" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
+                        <User className="w-4 h-4" /> Contacts
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="legal" className="pt-4 space-y-4">
@@ -774,6 +812,25 @@ export default function VendorDetails() {
                                 ) : (
                                     <div className="text-sm text-muted-foreground italic">No additional notes.</div>
                                 )}
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-slate-50 border-slate-200">
+                            <CardHeader className="py-3">
+                                <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Inherent Risk</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Criticality</span>
+                                    <Badge variant="outline" className={vendor.criticality === 'High' ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}>
+                                        {vendor.criticality}
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Data Access</span>
+                                    <Badge variant="outline" className={vendor.dataAccess === 'Restricted' ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-slate-600 border-slate-200 bg-slate-50'}>
+                                        {vendor.dataAccess}
+                                    </Badge>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -1462,6 +1519,7 @@ export default function VendorDetails() {
                 onClose={() => setIsSendOpen(false)}
                 vendorName={vendor?.name || "Vendor"}
                 templates={templates || []}
+                questionnaires={questionnaires || []}
                 onSend={handleSendConsolidated}
             />
 
@@ -2319,3 +2377,4 @@ export default function VendorDetails() {
         </div>
     );
 }
+
