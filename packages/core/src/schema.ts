@@ -13287,6 +13287,8 @@ export const questionnaireQuestions = pgTable("questionnaire_questions", {
 
   sources: json("sources").$type<any[]>().default([]),
 
+  extraFields: jsonb("extra_fields").$type<Record<string, string>>().default({}),
+
   status: varchar("status", { length: 50 }).default("pending"), // pending, approved, flagged, needs_review
 
   version: integer("version").default(1), // For versioning

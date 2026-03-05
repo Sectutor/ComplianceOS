@@ -305,6 +305,11 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
                 throw new Error('Could not detect question column in spreadsheet');
               }
             } else {
+              // Set of columns already consumed by known fields — everything else is an extra field
+              const knownCols = new Set(
+                [questionIdCol, focusAreaCol, subFocusAreaCol, questionCol].filter(Boolean)
+              );
+
               // Extract structured data
               console.log('[Questionnaire Parser] Extracting', jsonData.length, 'rows');
               parsedQuestions = jsonData
@@ -315,22 +320,27 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
                   const question = String(row[questionCol]).trim();
                   const focusArea = focusAreaCol && row[focusAreaCol] ? String(row[focusAreaCol]).trim() : undefined;
                   const subFocusArea = subFocusAreaCol && row[subFocusAreaCol] ? String(row[subFocusAreaCol]).trim() : undefined;
-                  console.log('[Questionnaire Parser] Extracted:', {
-                    questionId: qId,
-                    question: question.substring(0, 50) + '...',
-                    focusArea,
-                    subFocusArea
+
+                  // Capture all unrecognized columns into extraFields
+                  const extraFields: Record<string, string> = {};
+                  headers.forEach(h => {
+                    if (!knownCols.has(h) && row[h] !== undefined && row[h] !== null && String(row[h]).trim()) {
+                      extraFields[h] = String(row[h]).trim();
+                    }
                   });
+
                   return {
                     questionId: qId,
                     focusArea,
                     subFocusArea,
-                    question: question
+                    question,
+                    extraFields: Object.keys(extraFields).length > 0 ? extraFields : undefined,
                   };
                 });
 
               console.log('[Questionnaire Parser] Total extracted:', parsedQuestions.length, 'questions');
               console.log('[Questionnaire Parser] Questions with IDs:', parsedQuestions.filter(q => q.questionId).length);
+              console.log('[Questionnaire Parser] Extra field keys:', parsedQuestions[0]?.extraFields ? Object.keys(parsedQuestions[0].extraFields) : []);
             }
           } else {
             throw new Error('Unsupported file type');
@@ -386,6 +396,7 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
           questionId: z.string().nullable().optional(),
           focusArea: z.string().optional(),
           subFocusArea: z.string().optional(),
+          extraFields: z.record(z.string()).optional(),
           question: z.string(),
           answer: z.string().optional(),
           confidence: z.number().optional(),
@@ -426,6 +437,7 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
                 questionId: q.questionId || null,
                 focusArea: q.focusArea || null,
                 subFocusArea: q.subFocusArea || null,
+                extraFields: q.extraFields || {},
                 question: q.question,
                 answer: q.answer || null,
                 comment: q.comment || null,
@@ -703,16 +715,20 @@ Generate a professional answer. Response format:
           .from(schema.questionnaireQuestions)
           .where(eq(schema.questionnaireQuestions.questionnaireId, input.id));
 
-        // Build Excel data
-        const rows = questions.map((q: any) => ({
-          'Question ID': q.questionId || '',
-          'Focus Area': q.focusArea || '',
-          'Sub Focus Area': q.subFocusArea || '',
-          'Assessment Question': q.question,
-          'Confidence': q.confidence ? `${Math.round(q.confidence * 100)}%` : '',
-          'Sources': (q.sources || []).map((s: any) => s.title || '').filter(Boolean).join('; '),
-          'Comment': q.comment || '',
-        }));
+        // Build Excel data — core columns first, then any extra fields from the row
+        const rows = questions.map((q: any) => {
+          const extra = q.extraFields || {};
+          return {
+            'Question ID': q.questionId || '',
+            'Focus Area': q.focusArea || '',
+            'Sub Focus Area': q.subFocusArea || '',
+            'Assessment Question': q.question,
+            'Confidence': q.confidence ? `${Math.round(q.confidence * 100)}%` : '',
+            'Sources': (q.sources || []).map((s: any) => s.title || '').filter(Boolean).join('; '),
+            'Comment': q.comment || '',
+            ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v ?? ''])),
+          };
+        });
 
         return {
           name: project.name,

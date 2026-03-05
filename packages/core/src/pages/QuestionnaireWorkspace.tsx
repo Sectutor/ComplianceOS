@@ -96,6 +96,7 @@ export default function QuestionnaireWorkspace() {
         questionId: q.questionId,
         focusArea: q.focusArea || "",
         subFocusArea: q.subFocusArea || "",
+        extraFields: q.extraFields || {},
         question: q.question,
         answer: q.answer || "",
         confidence: q.confidence || 0,
@@ -133,6 +134,7 @@ export default function QuestionnaireWorkspace() {
           questionId: q.questionId,
           focusArea: (q as any).focusArea,
           subFocusArea: (q as any).subFocusArea,
+          extraFields: (q as any).extraFields,
           question: q.question,
           status: 'pending'
         }))
@@ -143,6 +145,7 @@ export default function QuestionnaireWorkspace() {
         questionId: q.questionId,
         focusArea: (q as any).focusArea || "",
         subFocusArea: (q as any).subFocusArea || "",
+        extraFields: (q as any).extraFields || {},
         question: q.question,
         answer: "",
         comment: "",
@@ -351,6 +354,7 @@ export default function QuestionnaireWorkspace() {
         question: a.question,
         focusArea: a.focusArea,
         subFocusArea: a.subFocusArea,
+        extraFields: a.extraFields,
         answer: a.answer,
         confidence: a.confidence,
         sources: a.sources,
@@ -680,6 +684,10 @@ export default function QuestionnaireWorkspace() {
                     <TableHead className="w-[22%] text-white font-semibold py-4">Answer</TableHead>
                     <TableHead className="w-[7%] text-white font-semibold py-4">Confidence</TableHead>
                     <TableHead className="w-[10%] text-white font-semibold py-4">Sources</TableHead>
+                    {/* Dynamic extra columns derived from the first answer's extraFields */}
+                    {Object.keys(answers[0]?.extraFields || {}).map(col => (
+                      <TableHead key={col} className="text-white font-semibold py-4">{col}</TableHead>
+                    ))}
                     <TableHead className="w-[10%] text-white font-semibold py-4">Comment</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -751,6 +759,20 @@ export default function QuestionnaireWorkspace() {
                           </div>
                         ))}
                       </TableCell>
+                      {/* Dynamic extra field cells */}
+                      {Object.keys(answers[0]?.extraFields || {}).map(col => (
+                        <TableCell key={col} className="align-top">
+                          <Input
+                            className="text-sm"
+                            defaultValue={(item.extraFields || {})[col] || ""}
+                            onChange={(e) => {
+                              const newAnswers = [...answers];
+                              newAnswers[i].extraFields = { ...(newAnswers[i].extraFields || {}), [col]: e.target.value };
+                              setAnswers(newAnswers);
+                            }}
+                          />
+                        </TableCell>
+                      ))}
                       <TableCell className="align-top">
                         <Input
                           className="text-sm"
