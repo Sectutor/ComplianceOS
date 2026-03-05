@@ -15,6 +15,7 @@ export default function WaitlistPage() {
     const [certification, setCertification] = useState("");
     const [orgSize, setOrgSize] = useState("");
     const [industry, setIndustry] = useState("");
+    const [interestedPlay, setInterestedPlay] = useState("");
     const [submitted, setSubmitted] = useState(false);
 
     const joinMutation = trpc.waitlist.join.useMutation({
@@ -37,7 +38,8 @@ export default function WaitlistPage() {
             company,
             certification,
             orgSize,
-            industry
+            industry,
+            interestedPlay
         });
     };
 
@@ -119,6 +121,8 @@ export default function WaitlistPage() {
                     setOrgSize={setOrgSize}
                     industry={industry}
                     setIndustry={setIndustry}
+                    interestedPlay={interestedPlay}
+                    setInterestedPlay={setInterestedPlay}
                     loading={joinMutation.isPending}
                     onSubmit={handleSubmit}
                 />
@@ -152,6 +156,7 @@ function CardForm({
     certification: string, setCertification: (s: string) => void,
     orgSize: string, setOrgSize: (s: string) => void,
     industry: string, setIndustry: (s: string) => void,
+    interestedPlay: string, setInterestedPlay: (s: string) => void,
     loading: boolean, onSubmit: (e: React.FormEvent) => void
 }) {
     return (
@@ -244,6 +249,26 @@ function CardForm({
                             onChange={(e) => setIndustry(e.target.value)}
                             required
                         />
+                    </div>
+
+                    <div className="space-y-2 text-left">
+                        <label className="text-sm font-medium text-slate-400">Primary Interest</label>
+                        <select
+                            className="w-full bg-white/5 border border-white/10 rounded-md text-white px-3 h-12 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none"
+                            value={interestedPlay}
+                            onChange={(e) => setInterestedPlay(e.target.value)}
+                            required
+                        >
+                            <option value="" disabled className="bg-[#001e2b]">What are you looking for?</option>
+                            <option value="Risk Management" className="bg-[#001e2b]">Quantified Risk Intelligence</option>
+                            <option value="Contract Review" className="bg-[#001e2b]">AI Contract & Vendor Review</option>
+                            <option value="Waitlist RFP" className="bg-[#001e2b]">AI RFP & Questionnaire Agent</option>
+                            <option value="AI Governance" className="bg-[#001e2b]">AI Governance & Model Risk</option>
+                            <option value="Kickstart" className="bg-[#001e2b]">Compliance Kickstart Bundle</option>
+                            <option value="Gap Analysis" className="bg-[#001e2b]">Gap Analysis & Readiness Sprint</option>
+                            <option value="Policy Review" className="bg-[#001e2b]">Policy Review & Optimization</option>
+                            <option value="MSP vCISO" className="bg-[#001e2b]">MSP / vCISO Command Center</option>
+                        </select>
                     </div>
 
                     <Button

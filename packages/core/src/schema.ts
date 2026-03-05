@@ -12062,7 +12062,7 @@ export const waitingList = pgTable("waiting_list", {
   status: varchar("status", { length: 50 }).default("pending"),
 
   source: varchar("source", { length: 50 }).default("landing_page"),
-
+  interestedPlay: varchar("interested_play", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
 
 });

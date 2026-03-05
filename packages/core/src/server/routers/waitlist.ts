@@ -19,6 +19,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                 certification: z.string().optional(),
                 orgSize: z.string().optional(),
                 industry: z.string().optional(),
+                interestedPlay: z.string().optional(),
                 source: z.string().optional().default("web"),
             }))
             .mutation(async ({ input }: any) => {
@@ -40,6 +41,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                     certification: input.certification,
                     orgSize: input.orgSize,
                     industry: input.industry,
+                    interestedPlay: input.interestedPlay,
                     source: input.source,
                     status: "pending",
                 });
@@ -55,6 +57,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                             `- Certification: ${input.certification || 'N/A'}\n` +
                             `- Org Size: ${input.orgSize || 'N/A'}\n` +
                             `- Industry: ${input.industry || 'N/A'}\n` +
+                            `- Interested In: ${input.interestedPlay || 'N/A'}\n` +
                             `- Source: ${input.source}\n\n` +
                             `Please follow up with them as soon as possible.`
                     });
@@ -79,6 +82,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                                     <tr><td><strong>Target Cert:</strong></td><td>${input.certification || 'N/A'}</td></tr>
                                     <tr><td><strong>Org Size:</strong></td><td>${input.orgSize || 'N/A'}</td></tr>
                                     <tr><td><strong>Industry:</strong></td><td>${input.industry || 'N/A'}</td></tr>
+                                    <tr><td><strong>Interested In:</strong></td><td>${input.interestedPlay || 'N/A'}</td></tr>
                                 </table>
                                 <p>This lead has been logged in the waiting_list table. Please reach out to them to schedule a demo.</p>
                                 <p><a href="/sales/waitlist">View Waitlist Dashboard</a></p>
