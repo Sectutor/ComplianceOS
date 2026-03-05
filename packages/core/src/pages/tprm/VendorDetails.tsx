@@ -1041,6 +1041,8 @@ export default function VendorDetails() {
                                                                 <span>CVSS: {vuln.cvssScore}</span>
                                                                 <span className="text-slate-400">|</span>
                                                                 <span className="truncate max-w-[300px]">{vuln.matchReason}</span>
+                                                                <span className="text-slate-400">|</span>
+                                                                <span>{vuln.discoveredAt ? format(new Date(vuln.discoveredAt), 'MMM d, yyyy') : 'Recent'}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1101,8 +1103,12 @@ export default function VendorDetails() {
                                                         <Badge variant="outline">{s.cveId}</Badge>
                                                         <div>
                                                             <div className="text-sm font-medium line-clamp-1">{s.description}</div>
-                                                            <div className="text-xs text-muted-foreground">
-                                                                CVSS: {s.cvssScore || 'N/A'} • {s.matchReason || 'Keyword match'}
+                                                            <div className="text-xs text-muted-foreground flex gap-1 items-center">
+                                                                <span>CVSS: {s.cvssScore || 'N/A'}</span>
+                                                                <span>•</span>
+                                                                <span>{s.matchReason || 'Keyword match'}</span>
+                                                                <span>•</span>
+                                                                <span>{s.discoveredAt ? format(new Date(s.discoveredAt), 'MMM d, yyyy') : 'Recent'}</span>
                                                             </div>
                                                         </div>
                                                     </div>
