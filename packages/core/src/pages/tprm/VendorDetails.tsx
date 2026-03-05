@@ -695,6 +695,8 @@ export default function VendorDetails() {
                 {/* Key Risk Indicators Card */}
                 {/* ... existing card ... */}
 
+            </div>
+
             <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="flex flex-wrap h-auto bg-muted p-1 mb-4 gap-1 rounded-lg">
                     <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 font-medium text-muted-foreground flex items-center gap-2">
