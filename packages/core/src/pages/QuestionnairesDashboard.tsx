@@ -103,7 +103,7 @@ export default function QuestionnairesDashboard() {
       <DropdownMenuTrigger asChild>
         <Button className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white font-bold shadow-md transition-all hover:scale-[1.02]">
           <Plus className="w-4 h-4 mr-2" />
-          {direction === "inbound" ? "New Security Questionnaire" : "New Customer Questionnaire"}
+          {direction === "inbound" ? "New Customer Security Questionnaire" : "New Vendor Security Questionnaire"}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -232,8 +232,8 @@ export default function QuestionnairesDashboard() {
               description="Manage incoming and outgoing security assessments."
               rationale="Streamlines the vendor risk assessment process using AI automation."
               howToUse={[
-                { step: "Security Questionnaire (Inbound)", description: "Track questionnaires businesses send to you to answer.", targetId: "dir-tab-inbound" },
-                { step: "Customer Security Questionnaire (Outbound)", description: "Manage questionnaires you send to your vendors.", targetId: "dir-tab-outbound" },
+                { step: "Customer Security Questionnaire (Inbound)", description: "Track questionnaires businesses send to you to answer.", targetId: "dir-tab-inbound" },
+                { step: "Vendor Security Questionnaire (Outbound)", description: "Manage questionnaires you send to your vendors.", targetId: "dir-tab-outbound" },
                 { step: "Manage List", description: "Open or delete existing assessments from the list.", targetId: "quest-table-list" }
               ]}
               integrations={[
@@ -258,7 +258,7 @@ export default function QuestionnairesDashboard() {
               className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
             >
               <Inbox className="h-4 w-4" />
-              Security Questionnaire
+              Customer Security Questionnaire
               <span className="text-xs opacity-70 font-normal">(Inbound)</span>
             </TabsTrigger>
             <TabsTrigger
@@ -267,7 +267,7 @@ export default function QuestionnairesDashboard() {
               className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
             >
               <Send className="h-4 w-4" />
-              Customer Security Questionnaire
+              Vendor Security Questionnaire
               <span className="text-xs opacity-70 font-normal">(Outbound)</span>
             </TabsTrigger>
           </TabsList>
