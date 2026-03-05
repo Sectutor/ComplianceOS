@@ -1131,7 +1131,7 @@ function Router() {
         <Route path="/clients/:id/vendors/reviews">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth>
                 <SecurityReviews />
               </TPRMLayout>
             </PremiumGuard>

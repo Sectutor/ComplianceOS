@@ -17,9 +17,10 @@ import {
 interface TPRMLayoutProps {
     clientId: number;
     children: React.ReactNode;
+    fullWidth?: boolean;
 }
 
-export function TPRMLayout({ clientId, children }: TPRMLayoutProps) {
+export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
     const [location] = useLocation();
     const params = useParams<{ vendorId: string }>();
     const vendorId = params.vendorId ? parseInt(params.vendorId) : null;
@@ -158,7 +159,7 @@ export function TPRMLayout({ clientId, children }: TPRMLayoutProps) {
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full pl-4 pr-4 py-8 md:pl-20 md:pr-8">
+                <div className={cn("flex-1 w-full", fullWidth ? "p-0" : "pl-4 pr-4 py-8 md:pl-20 md:pr-8")}>
                     {children}
                 </div>
             </div>
