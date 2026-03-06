@@ -304,6 +304,7 @@ const AIGovernance = lazy(() => import("./pages/ai-governance/AIGovernance"));
 
 
 const StartHere = lazy(() => import("./pages/StartHere"));
+const FeaturesPage = lazy(() => import("./pages/FeaturesPage"));
 const EmployeeOnboarding = lazy(() => import("./pages/EmployeeOnboarding"));
 const TrainingManagement = lazy(() => import("./pages/TrainingManagement"));
 
@@ -1083,7 +1084,7 @@ function Router() {
         <Route path="/clients/:id/vendors/assessments/overdue">
           {(_params) => (
             <ProtectedRoute>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <OverdueAssessmentsPage />
               </TPRMLayout>
             </ProtectedRoute>
@@ -1095,7 +1096,7 @@ function Router() {
         <Route path="/clients/:id/vendors/overview-guide">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <VendorOverview />
               </TPRMLayout>
             </PremiumGuard>
@@ -1104,7 +1105,7 @@ function Router() {
         <Route path="/clients/:id/vendors/alignment-guide">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <VendorAlignmentPage />
               </TPRMLayout>
             </PremiumGuard>
@@ -1113,7 +1114,7 @@ function Router() {
         <Route path="/clients/:id/vendors/overview">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <VendorDashboard />
               </TPRMLayout>
             </PremiumGuard>
@@ -1122,7 +1123,7 @@ function Router() {
         <Route path="/clients/:id/vendors/discovery">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <VendorList mode="discovery" />
               </TPRMLayout>
             </PremiumGuard>
@@ -1140,7 +1141,7 @@ function Router() {
         <Route path="/clients/:id/vendors/all">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <VendorList mode="all" />
               </TPRMLayout>
             </PremiumGuard>
@@ -1149,7 +1150,7 @@ function Router() {
         <Route path="/clients/:id/vendors/catalog">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <GlobalVendorCatalog />
               </TPRMLayout>
             </PremiumGuard>
@@ -1158,7 +1159,7 @@ function Router() {
         <Route path="/clients/:id/vendors/templates">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <AssessmentTemplates />
               </TPRMLayout>
             </PremiumGuard>
@@ -1167,7 +1168,7 @@ function Router() {
         <Route path="/clients/:id/vendors/templates/new">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <TemplateEditor />
               </TPRMLayout>
             </PremiumGuard>
@@ -1176,7 +1177,7 @@ function Router() {
         <Route path="/clients/:id/vendors/contracts">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <ProtectedRoute component={VendorContractTemplates} />
               </TPRMLayout>
             </PremiumGuard>
@@ -1185,7 +1186,7 @@ function Router() {
         <Route path="/clients/:id/vendors/templates/:templateId">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <TemplateEditor />
               </TPRMLayout>
             </PremiumGuard>
@@ -1194,7 +1195,7 @@ function Router() {
         <Route path="/clients/:id/vendors/onboard">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <OnboardVendor />
               </TPRMLayout>
             </PremiumGuard>
@@ -1203,7 +1204,7 @@ function Router() {
         <Route path="/clients/:id/vendors/dpa-templates">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <ProtectedRoute component={DPAManager} />
               </TPRMLayout>
             </PremiumGuard>
@@ -1217,7 +1218,7 @@ function Router() {
         <Route path="/clients/:id/vendors/:vendorId">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <VendorDetails />
               </TPRMLayout>
             </PremiumGuard>
@@ -1226,7 +1227,7 @@ function Router() {
         <Route path="/clients/:id/vendors/dpa-editor/:dpaId">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <ProtectedRoute component={DPAEditor} />
               </TPRMLayout>
             </PremiumGuard>
@@ -1242,7 +1243,7 @@ function Router() {
         <Route path="/clients/:id/evaluations/subprocessors">
           {(_params) => (
             <PremiumGuard>
-              <TPRMLayout clientId={parseInt(_params.id)}>
+              <TPRMLayout clientId={parseInt(_params.id)} fullWidth={true}>
                 <SubprocessorRegister />
               </TPRMLayout>
             </PremiumGuard>
@@ -1910,6 +1911,11 @@ function Router() {
         {/* Onboarding */}
         <Route path="/start-here">
           <ProtectedRoute component={StartHere} />
+        </Route>
+
+        {/* Features Page */}
+        <Route path="/features">
+          <ProtectedRoute component={FeaturesPage} />
         </Route>
 
         {/* UI Pattern Showcase */}

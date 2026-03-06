@@ -95,6 +95,22 @@ export default function ClientControlsPage() {
         return true;
     });
 
+    // Metric Calculations
+    const stats = {
+        total: clientControls.length,
+        implemented: clientControls.filter((c: any) => c.clientControl.status === 'implemented').length,
+        inProgress: clientControls.filter((c: any) => c.clientControl.status === 'in_progress').length,
+        notImplemented: clientControls.filter((c: any) => c.clientControl.status === 'not_implemented').length,
+        missingEvidence: clientControls.filter((c: any) => 
+            c.clientControl.status !== 'not_implemented' && 
+            c.clientControl.status !== 'not_applicable' && 
+            (!c.evidenceCount || c.evidenceCount === 0)
+        ).length,
+        applicabilityRate: clientControls.length > 0 
+            ? Math.round((clientControls.filter((c: any) => c.clientControl.applicability !== 'not_applicable').length / clientControls.length) * 100)
+            : 0
+    };
+
     const addControlMutation = trpc.clientControls.create.useMutation({
         onSuccess: () => {
             toast.success("Control assigned to client");
@@ -169,30 +185,116 @@ export default function ClientControlsPage() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6">
-                {/* ... Breadcrumb & Header ... */}
+            <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
+                <div className="border-b pb-4">
+                    <Breadcrumb items={[
+                        { label: client?.name || "Client", href: `/clients/${clientId}` },
+                        { label: "Controls", active: true }
+                    ]} />
+                    <div className="mt-2 flex items-center gap-4">
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Control Implementation</h1>
+                        <Badge variant="outline" className="h-6 px-3 py-1 font-mono text-xs border-slate-200 text-slate-500 bg-slate-50">
+                            {client?.organizationId || "ORG-000"}
+                        </Badge>
+                    </div>
+                </div>
+
+                {/* Professional Metrics Dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200 overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+                            <Shield className="h-16 w-16 text-slate-900" />
+                        </div>
+                        <CardContent className="p-6">
+                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Total Coverage</p>
+                            <h3 className="text-4xl font-bold">{stats.total}</h3>
+                            <div className="mt-4 flex items-center gap-2">
+                                <span className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                    <span 
+                                        className="h-full bg-blue-500 transition-all duration-1000" 
+                                        style={{ width: `${stats.total > 0 ? 100 : 0}%` }}
+                                    />
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200">
+                        <CardContent className="p-6">
+                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Implementation Progress</p>
+                            <div className="flex items-baseline justify-between">
+                                <h3 className="text-4xl font-bold text-green-600">{stats.implemented}</h3>
+                                <span className="text-slate-400 font-medium font-mono text-sm">/ {stats.total}</span>
+                            </div>
+                            <div className="mt-4">
+                                <p className="text-xs text-slate-500 flex justify-between mb-1 text-center">
+                                    <span>{Math.round((stats.implemented / (stats.total || 1)) * 100)}% Complete</span>
+                                </p>
+                                <span className="h-1.5 block w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <span 
+                                        className="h-full bg-green-500 transition-all duration-1000" 
+                                        style={{ width: `${(stats.implemented / (stats.total || 1)) * 100}%` }}
+                                    />
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200">
+                        <CardContent className="p-6">
+                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Action Needed</p>
+                            <div className="flex items-baseline justify-between">
+                                <h3 className="text-4xl font-bold text-amber-600">{stats.inProgress + stats.notImplemented}</h3>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">PENDING REVIEW</span>
+                                </div>
+                            </div>
+                            <p className="mt-4 text-xs text-slate-500">
+                                {stats.inProgress} in progress, {stats.notImplemented} not started
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200">
+                        <CardContent className="p-6">
+                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Evidence Gaps</p>
+                            <div className="flex items-baseline justify-between">
+                                <h3 className={`text-4xl font-bold ${stats.missingEvidence > 0 ? 'text-red-500' : 'text-slate-300'}`}>
+                                    {stats.missingEvidence}
+                                </h3>
+                                {stats.missingEvidence > 0 && (
+                                    <AlertCircle className="h-5 w-5 text-red-500 animate-pulse" />
+                                )}
+                            </div>
+                            <p className="mt-4 text-xs text-slate-500 uppercase tracking-tighter">
+                                Critical for readiness score
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-semibold">Selected Controls</h2>
-                        <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
-                            {clientControls.length} Controls
+                        <h2 className="text-xl font-bold text-slate-800">Assigned Controls</h2>
+                        <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-bold bg-slate-100 text-slate-600 border-slate-200">
+                            {filteredClientControls.length} displayed
                         </Badge>
                         <PageGuide
                             title="Client Control Implementation"
                             description="Manage and validate the implementation of security controls for this client."
-                            rationale="Controls are the operational reality of compliance. This page allows you to track which controls are applicable, their implementation status, and link evidence to prove they are working."
+                            rationale="Controls are the operational reality of compliance. This dashboard allows you to move beyond 'check-box compliance' by documenting implementation, assigning accountability, and syncing evidence across frameworks."
                             howToUse={[
-                                { step: "Assign Controls", description: "Import controls from the Global Library or use the 'Select Baseline' wizard to bulk-add NIST controls." },
-                                { step: "Review Controls", description: "Use filters to find specific controls (e.g., 'Access Control')." },
-                                { step: "Determine Applicability", description: "Mark controls as 'Applicable' or 'Not Applicable' with justification." },
-                                { step: "Update Status", description: "Track progress from 'Not Implemented' to 'Implemented'." },
-                                { step: "Upload Evidence", description: "Click the 'Edit' icon to upload proof of compliance." }
+                                { step: "1. Build Your Baseline", description: "Import controls from the Global Library or use the 'Select Baseline' wizard to bulk-add industry standards like NIST or SOC 2." },
+                                { step: "2. Determine Applicability", description: "Mark controls as 'Applicable' or 'Not Applicable'. If excluded, you MUST provide a professional justification for auditors." },
+                                { step: "3. Document Implementation", description: "Click the 'Edit' icon to describe the operational reality of the control and set its Monitoring Frequency (e.g., Monthly/Continuous)." },
+                                { step: "4. Assign Accountability (RACI)", description: "Use the RACI Grid to assign specific team members as Responsible or Accountable, ensuring clear ownership." },
+                                { step: "5. Gather Evidence", description: "Upload proof (PDFs, Screenshots) or use 'Evidence Requests' to task teammates for information without them needing deep platform access." },
+                                { step: "6. Cross-Framework Sync", description: "Implement once, comply twice. Use the sync feature to propagate status and evidence to related controls in other frameworks." }
                             ]}
                             integrations={[
-                                { name: "Frameworks", description: "Controls are automatically mapped to standards like SOC 2 and ISO 27001." },
-                                { name: "Evidence Library", description: "Uploaded files are securely stored in the client's evidence repository." },
-                                { name: "Readiness Score", description: "Completed controls directly increase your compliance readiness score." }
+                                { name: "Audit Trail", description: "Every implementation note and status change is logged for professional audit review." },
+                                { name: "Evidence Repository", description: "Uploaded files are automatically linked to the client's central evidence library for future reuse." },
+                                { name: "Situation Awareness", description: "The top metrics bar reflects your real-time compliance health and readiness score." }
                             ]}
                         />
                     </div>
@@ -690,16 +792,60 @@ export default function ClientControlsPage() {
                         </div>
                     )
                 ) : (
-                    <Card className="py-8">
-                        <CardContent className="text-center">
-                            <Shield className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                            <p className="text-muted-foreground mb-4">No controls assigned yet</p>
-                            <Button onClick={() => setIsAddControlOpen(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Assign First Control
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    <div className="py-12 px-6 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                        <div className="max-w-2xl mx-auto text-center">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#0B1120] text-white shadow-xl mb-8 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+                                <Shield className="h-10 w-10 text-blue-400" />
+                            </div>
+                            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-4 text-center">Your Compliance Command Center is Empty</h2>
+                            <p className="text-lg text-slate-600 mb-12">
+                                You haven't assigned any security controls to this client yet. Security controls are the building blocks of your compliance posture—track implementation, collect evidence, and prove readiness.
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-12">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-4">
+                                        <Plus className="h-5 w-5" />
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 mb-2">Assign Controls</h4>
+                                    <p className="text-sm text-slate-500 leading-relaxed">Choose specific controls from our master library to match your requirements.</p>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                                        <Shield className="h-5 w-5" />
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 mb-2">Use Baseline Wizard</h4>
+                                    <p className="text-sm text-slate-500 leading-relaxed">Quickly setup standard frameworks like NIST or SOC 2 using our guided wizard.</p>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+                                        <Download className="h-5 w-5" />
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 mb-2">Import from SoA</h4>
+                                    <p className="text-sm text-slate-500 leading-relaxed">Bring in your existing Statement of Applicability for instant tracking.</p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <Button 
+                                    size="lg" 
+                                    className="h-12 px-8 text-lg font-semibold bg-[#0B1120] hover:bg-slate-800"
+                                    onClick={() => setIsBaselineWizardOpen(true)}
+                                >
+                                    <Shield className="mr-2 h-5 w-5" />
+                                    Start Setup Wizard
+                                </Button>
+                                <Button 
+                                    size="lg" 
+                                    variant="outline" 
+                                    className="h-12 px-8 text-lg font-semibold border-2"
+                                    onClick={() => setIsAddControlOpen(true)}
+                                >
+                                    Browse Library
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </DashboardLayout>

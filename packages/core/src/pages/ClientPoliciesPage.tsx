@@ -123,7 +123,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
 
     if (clientLoading && !hideLayout) {
         return (
-            <DashboardLayout>
+            <DashboardLayout fullWidth={true}>
                 <div className="space-y-6">
                     <Skeleton className="h-8 w-64" />
                     <Skeleton className="h-32 w-full" />
@@ -134,7 +134,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
 
     if (!client && !hideLayout) {
         return (
-            <DashboardLayout>
+            <DashboardLayout fullWidth={true}>
                 <div className="text-center py-12">
                     <h2 className="text-xl font-semibold mb-2">Client not found</h2>
                     <Button variant="outline" onClick={() => setLocation('/clients')}>
@@ -147,7 +147,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     }
 
     const content = (
-        <div className={hideLayout ? "space-y-6" : "pl-4 pr-4 py-8 md:pl-20 md:pr-8 space-y-6 w-full max-w-full animate-in fade-in duration-700"}>
+        <div className={hideLayout ? "space-y-6" : "pl-4 pr-4 py-8 md:pl-8 md:pr-8 space-y-6 w-full max-w-full animate-in fade-in duration-700"}>
             {!hideLayout && (
                 <Breadcrumb
                     items={[
@@ -403,15 +403,15 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : clientPolicies && clientPolicies.length > 0 ? (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden bg-white dark:bg-slate-900">
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden bg-white dark:bg-slate-950 transition-all">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
-                                <TableHead className="w-[300px] text-white font-bold py-4">Policy Name</TableHead>
-                                <TableHead className="w-[150px] text-white font-bold py-4">Framework</TableHead>
-                                <TableHead className="w-[100px] text-white font-bold py-4">Status</TableHead>
-                                <TableHead className="w-[80px] text-white font-bold py-4 text-center">Version</TableHead>
-                                <TableHead className="w-[120px] text-white font-bold py-4 text-right">Actions</TableHead>
+                            <TableRow className="bg-gradient-to-r from-[#1C4D8D] to-[#2B6CB0] hover:from-[#1C4D8D] hover:to-[#2B6CB0] border-none shadow-sm">
+                                <TableHead className="w-[300px] text-white font-extrabold py-5 tracking-tight">Policy Name</TableHead>
+                                <TableHead className="w-[150px] text-white font-extrabold py-5 tracking-tight">Framework</TableHead>
+                                <TableHead className="w-[100px] text-white font-extrabold py-5 tracking-tight">Status</TableHead>
+                                <TableHead className="w-[80px] text-white font-extrabold py-5 text-center tracking-tight">Version</TableHead>
+                                <TableHead className="w-[120px] text-white font-extrabold py-5 text-right tracking-tight px-6">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -420,44 +420,41 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                 return (
                                     <TableRow
                                         key={item.clientPolicy.id}
-                                        className="cursor-pointer bg-white dark:bg-white border-b border-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-50 hover:shadow-sm group"
+                                        className="cursor-pointer bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 transition-all duration-300 ease-in-out hover:bg-sky-50/40 dark:hover:bg-sky-900/10 hover:shadow-inner group"
                                         onClick={() => setLocation(`/clients/${clientId}/policies/${item.clientPolicy.id}`)}
                                         style={{ animationDelay: `${index * 50}ms` }}
                                     >
-                                        <TableCell className="font-medium text-black py-4">
-                                            <div className="flex items-center gap-3 group-hover:translate-x-1 transition-transform duration-200">
-                                                <div className="p-2 rounded-lg bg-[#1C4D8D]/10 group-hover:bg-[#1C4D8D]/20 transition-colors duration-200">
-                                                    <FileText className="h-4 w-4 text-[#1C4D8D]" />
+                                        <TableCell className="font-semibold text-slate-900 dark:text-slate-100 py-5">
+                                            <div className="flex items-center gap-3.5 group-hover:translate-x-1.5 transition-transform duration-300">
+                                                <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-900/20 group-hover:bg-sky-100 dark:group-hover:bg-sky-900/40 transition-colors duration-300 shadow-sm border border-sky-100/50 dark:border-sky-800/50">
+                                                    <FileText className="h-5 w-5 text-sky-700 dark:text-sky-400" />
                                                 </div>
-                                                <span>{item.clientPolicy.name}</span>
+                                                <span className="text-[15px]">{item.clientPolicy.name}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-gray-600 py-4">
+                                        <TableCell className="text-slate-500 dark:text-slate-400 font-medium py-5">
                                             {item.template?.framework || 'Custom'}
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-5">
                                             <Badge
-                                                variant={
-                                                    item.clientPolicy.status === 'review' ? 'secondary' : 'outline'
-                                                }
                                                 className={
                                                     item.clientPolicy.status === 'approved'
-                                                        ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 font-bold px-3 py-1 shadow-sm'
                                                         : item.clientPolicy.status === 'draft'
-                                                            ? 'bg-slate-100 text-slate-700 border-slate-300'
-                                                            : ''
+                                                            ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-bold px-3 py-1 shadow-sm'
+                                                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 font-bold px-3 py-1 shadow-sm'
                                                 }
                                             >
-                                                {item.clientPolicy.status || 'draft'}
+                                                {item.clientPolicy.status?.toUpperCase() || 'DRAFT'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-gray-600 text-center py-4">
-                                            <span className="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-md bg-white border border-gray-300 text-gray-700 text-xs font-medium">
+                                        <TableCell className="text-slate-500 dark:text-slate-400 text-center py-5">
+                                            <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold shadow-sm">
                                                 v{item.clientPolicy.version || 1}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="text-right py-4">
-                                            <div className="flex items-center justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                                        <TableCell className="text-right py-5 px-6">
+                                            <div className="flex items-center justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-300">
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -518,7 +515,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     if (hideLayout) return content;
 
     return (
-        <DashboardLayout>
+        <DashboardLayout fullWidth={true}>
             {content}
         </DashboardLayout>
     );

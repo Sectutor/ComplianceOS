@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Governance & Model Risk | ComplianceOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
+        .brutal-border { border: 2px solid #E2E8F0; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        
+        .stagger-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stagger-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Model Node Animation */
+        .node-line {
+            height: 100%;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, #3B82F6, transparent);
+            position: absolute;
+            left: 50%;
+            animation: scan-down 3s infinite ease-in-out;
+        }
+        @keyframes scan-down {
+            0% { top: -100%; }
+            100% { top: 100%; }
+        }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        .code-glow {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="fixed inset-0 noise-bg z-50"></div>
+
+    <main class="relative z-10">
+        
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20 relative overflow-hidden">
+            <div class="absolute top-20 right-20 text-[20vw] font-black opacity-[0.02] select-none pointer-events-none uppercase">ISO 42001</div>
+            
+            <div class="mb-12 stagger-reveal">
+                <img src="../assets/logo.png" alt="GRCompliance" class="h-12 w-auto brightness-200" />
+            </div>
+            
+            <div class="max-w-7xl">
+                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal leading-none">
+                    Audit The <br>
+                    <span class="accent-blue italic">Black Box.</span>
+                </h1>
+                
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
+                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
+                        The EU AI Act is enforcement-ready. Every model you deploy is a new regulatory liability. <strong>Govern your AI lifecycle—from training data to deployment risk—before the regulators do.</strong>
+                    </p>
+                    
+                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
+                        <a href="#governance" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-12 py-7 text-center hover:scale-105 transition-transform duration-300">
+                            Govern My Models
+                        </a>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Model Inventory & Risk Tiering Agent</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Regulatory Moat -->
+        <section id="governance" class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#0F0F0F]">
+            <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-20">
+                <div class="lg:w-1/2 stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">The Compliance Engine</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black mb-12 uppercase leading-none">Regulatory <br><span class="italic text-slate-500">Sovereignty</span></h2>
+                    
+                    <div class="space-y-8">
+                        <div class="flex items-start gap-4">
+                            <div class="font-mono text-accent-blue font-black mt-1">[EU_AI_ACT]</div>
+                            <div>
+                                <h4 class="font-bold text-lg uppercase italic text-white">Automated Risk Classification</h4>
+                                <p class="text-slate-400 text-sm">Instant mapping of your models to High, Limited, and Minimal risk tiers as defined by the latest EU enforcement guidelines.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="font-mono text-accent-blue font-black mt-1">[ISO_42001]</div>
+                            <div>
+                                <h4 class="font-bold text-lg uppercase italic text-white">AIMS Lifecycle Tracking</h4>
+                                <p class="text-slate-400 text-sm">Full evidence collection for your AI Management System. Tracking objectives, impact assessments, and governance policies.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="font-mono text-accent-blue font-black mt-1">[NIST_RMF]</div>
+                            <div>
+                                <h4 class="font-bold text-lg uppercase italic text-white">Trustworthy AI Framework</h4>
+                                <p class="text-slate-400 text-sm">Mapped controls for safety, security, and bias. Continuous monitoring of model explainability and hallucination evidence.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lg:w-1/2 stagger-reveal relative">
+                    <div class="brutal-border p-8 bg-black relative overflow-hidden">
+                        <div class="node-line"></div>
+                        <div class="flex justify-between items-center mb-10 text-[10px] font-mono text-slate-500">
+                            <span>GovernanceAgent.Inventory(v4)</span>
+                            <span class="text-accent-blue">MODEL_SCAN: IN_PROGRESS</span>
+                        </div>
+                        
+                        <div class="space-y-4 font-mono text-xs">
+                            <div class="p-4 border border-slate-800 bg-white/5">
+                                <div class="text-accent-blue mb-1">ID: LLM_PROD_01</div>
+                                <div class="text-white">TYPE: Large Language Model</div>
+                                <div class="text-slate-400">DATASET: Premium_Customer_Interaction_v2</div>
+                                <div class="text-red-500 mt-2 font-bold">RISK: HIGH (EU AI Act Title III)</div>
+                            </div>
+                            <div class="p-4 border border-slate-800 bg-white/5">
+                                <div class="text-accent-blue mb-1">ID: VISON_DEV_04</div>
+                                <div class="text-white">TYPE: Computer Vision / OCR</div>
+                                <div class="text-slate-400">DATASET: Internal_Document_Audit_v1</div>
+                                <div class="text-green-500 mt-2 font-bold">RISK: MINIMAL</div>
+                            </div>
+                            <div class="p-4 border border-slate-800 bg-white/5 opacity-50">
+                                <div class="text-accent-blue mb-1">ID: RECS_ENGINE_12</div>
+                                <div class="text-white">TYPE: Recommendation System</div>
+                                <div class="text-slate-400">DATASET: User_Behavior_Logs</div>
+                                <div class="text-yellow-500 mt-2 font-bold">RISK: LIMITED</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Use Cases -->
+        <section class="py-32 px-6 lg:px-20">
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-3 gap-12">
+                <div class="stagger-reveal">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Automated <br>Inventory</h3>
+                    <p class="text-slate-400">You can't govern what you don't know exists. Our agent crawls your infrastructure to list every model, its purpose, and its training lineage.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.1s;">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Bias & Hallucination <br>Audit</h3>
+                    <p class="text-slate-400">Continuous monitoring for model drift and ethical bias. We collect the evidence required for explainability audits in regulated industries.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.2s;">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Impact <br>Assessments</h3>
+                    <p class="text-slate-400">Generate high-quality Data Protection & AI Impact Assessments (DPIA/AIIA) automatically based on model technical parameters.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-40 px-6 lg:px-20 bg-accent-blue text-white relative">
+            <div class="absolute inset-0 bg-black opacity-10 pointer-events-none"></div>
+            <div class="max-w-5xl mx-auto text-center relative z-10">
+                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-12 stagger-reveal leading-none">The Future <br>Is Accountable.</h2>
+                <p class="text-2xl lg:text-3xl mb-16 font-light stagger-reveal">
+                    Don't let your AI be a liability. Build trust through absolute transparency and automated governance.
+                </p>
+                <div class="stagger-reveal">
+                    <a href="https://app.grcompliance.com/waitlist" class="inline-block bg-white text-blue-600 font-display font-black uppercase text-2xl px-16 py-8 hover:bg-slate-100 transition-colors shadow-2xl">
+                        Join the AI Governance Waitlist
+                    </a>
+                    <p class="mt-12 text-blue-300 uppercase font-black tracking-[0.2em] italic text-sm">Governance Module Launching Q3 2026</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

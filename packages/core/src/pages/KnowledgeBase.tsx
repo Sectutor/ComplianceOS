@@ -13,7 +13,7 @@ import {
 } from "@complianceos/ui/ui/table";
 import { Input } from "@complianceos/ui/ui/input";
 import { Button } from "@complianceos/ui/ui/button";
-import { Search, Plus, Filter, MoreHorizontal, Edit, Trash, Loader2 } from "lucide-react";
+import { Search, Plus, Filter, MoreHorizontal, Edit, Trash, Loader2, Copy, Check, FileText } from "lucide-react";
 import { Badge } from "@complianceos/ui/ui/badge";
 import {
   Dialog,
@@ -48,6 +48,9 @@ export default function KnowledgeBase() {
   const [answer, setAnswer] = useState("");
   const [comments, setComments] = useState("");
   const [access, setAccess] = useState("internal");
+  const [tagsString, setTagsString] = useState("");
+  const [health, setHealth] = useState("good");
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const utils = trpc.useContext();
 
@@ -85,6 +88,8 @@ export default function KnowledgeBase() {
     setQuestion("");
     setAnswer("");
     setComments("");
+    setTagsString("");
+    setHealth("good");
     setAccess("internal");
     setSelectedEntry(null);
   };
@@ -94,12 +99,23 @@ export default function KnowledgeBase() {
     setQuestion(entry.question);
     setAnswer(entry.answer);
     setComments(entry.comments || "");
+    setTagsString(entry.tags ? entry.tags.join(", ") : "");
+    setHealth(entry.health || "good");
     setAccess(entry.access || "internal");
     setIsEditOpen(true);
   };
 
+  const copyToClipboard = (id: number, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success("Answer copied to clipboard!");
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleSave = () => {
     if (!question || !answer) return;
+
+    const tagsArray = tagsString.split(",").map(t => t.trim()).filter(Boolean);
 
     if (isEditOpen && selectedEntry) {
       updateMutation.mutate({
@@ -107,6 +123,8 @@ export default function KnowledgeBase() {
         question,
         answer,
         comments,
+        tags: tagsArray,
+        health,
         access: access as any,
       });
     } else {
@@ -115,13 +133,15 @@ export default function KnowledgeBase() {
         question,
         answer,
         comments,
+        tags: tagsArray,
+        health,
         access: access as any,
       });
     }
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout fullWidth={true}>
       <div className="p-8 w-full max-w-full">
         <div className="flex flex-col gap-6">
           <div className="flex justify-between items-center">
@@ -192,10 +212,10 @@ export default function KnowledgeBase() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40%]">Question</TableHead>
+                  <TableHead className="w-[30%]">Question</TableHead>
                   <TableHead className="w-[30%]">Answer</TableHead>
-                  <TableHead>Comment</TableHead>
-                  <TableHead>Access</TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead>Health / Access</TableHead>
                   <TableHead>Date Added</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -216,17 +236,43 @@ export default function KnowledgeBase() {
                 ) : (
                   entries?.map((entry: any) => (
                     <TableRow key={entry.id}>
-                      <TableCell className="font-medium">{entry.question}</TableCell>
-                      <TableCell className="truncate max-w-[300px]" title={entry.answer}>
-                        {entry.answer}
-                      </TableCell>
-                      <TableCell>{entry.comments}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {entry.access}
-                        </Badge>
+                        <div className="font-medium">{entry.question}</div>
+                        {entry.comments && <div className="text-xs text-muted-foreground mt-1 truncate max-w-[200px]" title={entry.comments}>{entry.comments}</div>}
                       </TableCell>
                       <TableCell>
+                        <div className="flex items-start justify-between gap-2 p-2 bg-muted/50 rounded-md">
+                          <div className="text-sm truncate max-w-[220px]" title={entry.answer}>
+                            {entry.answer}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 shrink-0" 
+                            onClick={() => copyToClipboard(entry.id, entry.answer)}
+                          >
+                            {copiedId === entry.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {entry.tags && entry.tags.length > 0 ? entry.tags.map((t: string) => (
+                              <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                          )) : <span className="text-xs text-muted-foreground">--</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={entry.health === 'needs_review' ? 'destructive' : 'default'} className="w-fit text-xs capitalize">
+                            {entry.health ? entry.health.replace('_', ' ') : 'Good'}
+                          </Badge>
+                          <Badge variant="outline" className="w-fit text-[10px] capitalize text-muted-foreground">
+                            {entry.access}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
                         {new Date(entry.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
@@ -280,24 +326,55 @@ export default function KnowledgeBase() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="answer">Answer</Label>
-                <Textarea
-                  id="answer"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Yes, we use BitLocker..."
-                  className="min-h-[100px]"
-                />
+                <div className="relative">
+                  <Textarea
+                    id="answer"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    placeholder="Yes, we use BitLocker..."
+                    className="min-h-[120px]"
+                  />
+                  <div className="absolute top-2 right-2 flex text-muted-foreground opacity-50 pointer-events-none">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-2">
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="health">Health Status</Label>
+                    <select
+                        id="health"
+                        value={health}
+                        onChange={(e) => setHealth(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="good">Good (Up to date)</option>
+                        <option value="needs_review">Needs Review</option>
+                        <option value="deprecated">Deprecated</option>
+                    </select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="tags">Tags (comma separated)</Label>
+                    <Input
+                        id="tags"
+                        value={tagsString}
+                        onChange={(e) => setTagsString(e.target.value)}
+                        placeholder="e.g. Encryption, Endpoints, SOC2"
+                    />
+                  </div>
+              </div>
+
+              <div className="grid gap-2 mt-2">
                 <Label htmlFor="comments">Internal Comments</Label>
                 <Input
                   id="comments"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
-                  placeholder="Optional notes"
+                  placeholder="Optional notes for internal tracking"
                 />
               </div>
-              {/* Tag input could be added here */}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => {

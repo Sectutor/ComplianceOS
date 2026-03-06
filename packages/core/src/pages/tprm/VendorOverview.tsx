@@ -217,7 +217,7 @@ export default function VendorOverview() {
             <div className="bg-gradient-to-br from-slate-50 to-purple-50 rounded-3xl p-12 border border-slate-200">
                 <div className="text-center space-y-4 mb-12">
                     <h2 className="text-3xl font-extrabold tracking-tight">The Vendor Lifecycle</h2>
-                    <p className="text-muted-foreground max-w-2xl mx-auto">
+                    <p className="text-muted-foreground mx-auto">
                         Manage vendors through every stage from initial discovery to contract termination with structured risk oversight.
                     </p>
                 </div>

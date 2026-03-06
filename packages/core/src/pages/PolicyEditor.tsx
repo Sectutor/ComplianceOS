@@ -804,7 +804,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
     if (loadingPolicy) {
         return (
-            <DashboardLayout>
+            <DashboardLayout fullWidth={true}>
                 <div className="flex items-center justify-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <span className="ml-2">Loading policy...</span>
@@ -815,7 +815,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
     if (!policyData) {
         return (
-            <DashboardLayout>
+            <DashboardLayout fullWidth={true}>
                 <div className="text-center py-12">
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
                     <h2 className="mt-4 text-xl font-semibold">Policy not found</h2>
@@ -839,8 +839,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
         );
     }
     return (
-        <DashboardLayout>
-            <div className="w-full max-w-full space-y-6 pl-4 pr-4 py-8 md:pl-20 md:pr-8">
+        <DashboardLayout fullWidth={true}>
+            <div className="w-full max-w-full space-y-6 pl-4 pr-4 py-8 md:pl-8 md:pr-8">
                 <Breadcrumb
                     items={[
                         { label: "Clients", href: "/clients" },
@@ -2632,6 +2632,6 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 onRewrite={executeAiRewrite}
                 isPending={refineMutation.isPending}
             />
-        </DashboardLayout >
+        </DashboardLayout>
     );
 }

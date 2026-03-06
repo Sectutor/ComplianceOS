@@ -4,7 +4,7 @@ import { useBranding, BrandLogo } from "@/config/branding";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@complianceos/ui/ui/card";
 import { getLoginUrl } from "@/const";
-import { Shield, FileText, Link2, FolderOpen, BarChart3, ArrowRight, CheckCircle2, Check, X, Building2, Globe, Lock, PlayCircle, Star } from "lucide-react";
+import { Shield, FileText, Link2, FolderOpen, BarChart3, ArrowRight, CheckCircle2, Check, X, Building2, Globe, Lock, PlayCircle, Star, Target, Radar, ShieldAlert, Activity, Zap, Brain, Eye, Bug } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@complianceos/ui/ui/badge";
 
@@ -124,6 +124,7 @@ export default function Home() {
             </div>
             <div className="hidden md:flex items-center space-x-10">
               <a href="#features" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">Platform</a>
+              <a href="#intelligence" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">Intelligence</a>
               <a href="#process" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">How it works</a>
               <Button asChild className="bg-[#00A36C] hover:bg-[#008F5D] text-white px-8 py-3 rounded-lg shadow-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 border-none">
                 <a href="/waitlist">Join the Waitlist</a>
@@ -263,6 +264,142 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Risk Management Intelligence Section */}
+        <div id="intelligence" className="py-24 sm:py-32 bg-white border-t border-slate-100">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-16 max-w-3xl">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 mb-6 border border-emerald-100 uppercase tracking-widest">
+                Threat & Risk Intelligence
+              </div>
+              <h2 className="text-4xl font-bold text-slate-900 mb-6 tracking-tight leading-tight">See threats before they see you.</h2>
+              <p className="text-lg text-slate-600 leading-relaxed">
+                Real-time threat intelligence, automated vulnerability scanning, and AI-powered risk assessments that keep your security posture ahead of evolving threats.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Risk Assessment */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-200 hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-[#003366] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">Risk Assessment</h3>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                  Quantify and prioritize risks with AI-assisted assessments aligned to NIST, ISO 27005, and FAIR frameworks.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Automated scoring
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Heat map visualization
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Treatment plans
+                  </li>
+                </ul>
+              </div>
+
+              {/* Threat Intelligence */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-200 hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-[#00A36C] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Radar className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">Threat Intelligence</h3>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                  Continuous monitoring of threat landscapes with adversary emulation and IOC detection powered by global feeds.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Real-time alerts
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> MITRE ATT&CK mapping
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Threat actor profiles
+                  </li>
+                </ul>
+              </div>
+
+              {/* Vulnerability Management */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-200 hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Bug className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">Vulnerability Management</h3>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                  Automated scanning, prioritization, and remediation tracking across your entire attack surface.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Continuous scanning
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> CVE prioritization
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Patch tracking
+                  </li>
+                </ul>
+              </div>
+
+              {/* SIEM & SOAR */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-200 hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <ShieldAlert className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">SIEM & SOAR</h3>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                  Unified security operations with automated response playbooks and intelligent alert correlation.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Log aggregation
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Automated response
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Incident workflows
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Additional Intelligence Features */}
+            <div className="mt-12 grid md:grid-cols-3 gap-6">
+              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
+                <div className="w-10 h-10 bg-[#003366]/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Brain className="w-5 h-5 text-[#003366]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">AI-Powered Analysis</h4>
+                  <p className="text-slate-600 text-xs mt-1">Machine learning models detect anomalies and predict attack vectors</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
+                <div className="w-10 h-10 bg-[#00A36C]/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Eye className="w-5 h-5 text-[#00A36C]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Dark Web Monitoring</h4>
+                  <p className="text-slate-600 text-xs mt-1">24/7 surveillance for exposed credentials and compromised data</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Real-Time Orchestration</h4>
+                  <p className="text-slate-600 text-xs mt-1">Automated threat response with customizable playbooks</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Final CTA */}
         <div className="bg-[#003366] py-24 sm:py-32">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -283,6 +420,7 @@ export default function Home() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-sm font-bold">
               <a href="/login" className="text-slate-400 hover:text-slate-900 transition-colors">Client Login</a>
+              <a href="#intelligence" className="text-slate-400 hover:text-slate-900 transition-colors">Intelligence</a>
               <a href="/privacy" className="text-slate-400 hover:text-slate-900 transition-colors">Privacy</a>
               <a href="/terms" className="text-slate-400 hover:text-slate-900 transition-colors">Terms</a>
               <a href="/cookies" className="text-slate-400 hover:text-slate-900 transition-colors">Cookie Policy</a>

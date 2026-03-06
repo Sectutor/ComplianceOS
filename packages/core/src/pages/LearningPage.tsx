@@ -63,7 +63,9 @@ function EditableSection({ section, onUpdate }: EditableSectionProps) {
         setIsEditing(false);
     };
 
-    const Icon = section.icon ? iconMap[section.icon as string] : null;
+    const Icon = section.icon 
+        ? (typeof section.icon === 'string' ? iconMap[section.icon] : section.icon) 
+        : null;
 
     // Quill editor modules configuration
     const quillModules = {
@@ -166,6 +168,11 @@ export default function LearningPage() {
 
     // Local state to hold editable content
     const [content, setContent] = useState(learningContent);
+
+    // Sync content when hardcoded data changes (HMR support)
+    useEffect(() => {
+        setContent(learningContent);
+    }, [learningContent]);
 
     // If no ID or invalid, default to first or 404
     if (!frameworkId || !content[frameworkId as keyof typeof content]) {

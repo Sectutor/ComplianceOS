@@ -95,8 +95,8 @@ export default function ISOManagementReview() {
     );
 
     return (
-        <ISOLayout clientId={clientId}>
-            <div className="p-8 space-y-8 animate-in fade-in duration-500">
+        <ISOLayout clientId={clientId} fullWidth={true}>
+            <div className="pl-0 pr-4 py-8 md:pl-0 md:pr-8 space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">

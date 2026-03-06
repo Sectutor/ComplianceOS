@@ -16,7 +16,7 @@ import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
 
 
-export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = false }: { hideLayout?: boolean, hideBreadcrumb?: boolean }) {
+export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = false, fullWidth = false }: { hideLayout?: boolean, hideBreadcrumb?: boolean, fullWidth?: boolean }) {
     const params = useParams();
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
@@ -113,7 +113,7 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
     );
 
     const content = (
-        <div className="space-y-6 w-full max-w-full p-6">
+        <div className={`space-y-6 w-full max-w-full ${fullWidth ? "pl-0 pr-4 md:pl-0 md:pr-8" : "p-6"}`}>
             {!hideBreadcrumb && (
                 <div className="mb-2">
                     <Breadcrumb

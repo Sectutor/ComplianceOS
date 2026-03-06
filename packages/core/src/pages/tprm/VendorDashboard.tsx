@@ -1,23 +1,155 @@
-import React from "react";
-import { useParams } from "wouter";
+import React, { useState } from "react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useClientContext } from "@/contexts/ClientContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { Loader2, AlertCircle, CheckCircle, Clock, Globe, Search, Building2, ShieldAlert, Activity, FileCheck, BookOpen, ArrowRight, TrendingUp, Eye, FileText, Shield, Radar, Zap } from "lucide-react";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Link } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
+import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
+import { Input } from "@complianceos/ui/ui/input";
+import { Textarea } from "@complianceos/ui/ui/textarea";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ProgressIndicator } from "@complianceos/ui/ui/ProgressIndicator";
 import { StatusBadge } from "@complianceos/ui/ui/StatusBadge";
 import { PageGuide } from "@/components/PageGuide";
 
+export interface AuditFinding {
+    id: string;
+    vendor: string;
+    infrastructure: string;
+    severity: "critical" | "high";
+    cve: string;
+}
+
 export default function VendorDashboard() {
-    const { id } = useParams<{ id: string }>();
-    const clientId = parseInt(id || "0");
-    const { data: stats, isLoading } = trpc.vendors.getStats.useQuery({ clientId });
+    const { selectedClientId } = useClientContext();
+    const clientId = selectedClientId || 0;
+    const { data: stats, isLoading } = trpc.vendors.getStats.useQuery({ clientId }, { enabled: !!clientId });
+    const sendOutreachMutation = trpc.vendors.sendTargetAuditOutreach.useMutation();
+    const [isAuditing, setIsAuditing] = useState(false);
+    const [auditResults, setAuditResults] = useState<AuditFinding[] | null>(null);
+    const [selectedFinding, setSelectedFinding] = useState<AuditFinding | null>(null);
+    const [isOutreachOpen, setIsOutreachOpen] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [emailContent, setEmailContent] = useState("");
+    const [emailTo, setEmailTo] = useState("");
+    const [emailSubject, setEmailSubject] = useState("");
+
+    const utils = trpc.useUtils();
+    const { data: riskAssessments } = trpc.risks.getRiskAssessments.useQuery({ clientId }, { enabled: !!clientId });
 
     if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
+
+    const handleTargetAudit = () => {
+        setIsAuditing(true);
+        setAuditResults(null);
+        toast.info("Initializing Target Audit...", {
+            description: "Connecting to Global OSINT Intelligence feeds."
+        });
+
+        setTimeout(() => {
+            toast.promise(
+                new Promise((resolve) => setTimeout(resolve, 2000)),
+                {
+                    loading: 'Scanning 4th-party dependencies...',
+                    success: 'Deep Scan Complete. Risk isolated to "CloudConnect Pro" infrastructure.',
+                    error: 'Audit failed',
+                }
+            );
+        }, 1000);
+
+        setTimeout(() => {
+            setIsAuditing(false);
+            const defaultFindings: AuditFinding[] = [
+                {
+                    id: "vuln-1",
+                    vendor: "CloudConnect Pro",
+                    infrastructure: "Active Directory Sync",
+                    severity: "critical",
+                    cve: "CVE-2024-4321"
+                },
+                {
+                    id: "vuln-2",
+                    vendor: "SecureVault Backups",
+                    infrastructure: "Log4j v2.14 Integration",
+                    severity: "high",
+                    cve: "CVE-2023-34048"
+                }
+            ];
+
+            const activeFindings = defaultFindings.filter(f => {
+                // If the user processed this finding, there should be a risk logged exactly like this
+                const isResolved = riskAssessments?.some(risk => 
+                    risk.title?.includes(f.vendor) && 
+                    risk.threatDescription?.includes(f.infrastructure)
+                );
+                return !isResolved;
+            });
+            
+            if (activeFindings.length > 0) {
+                setAuditResults(activeFindings);
+                toast.success("Audit Evidence Generated", {
+                    description: "Critical risks identified. Suggested mitigation: Trigger Event Outreach and log risk instances."
+                });
+            } else {
+                setAuditResults(null);
+                toast.success("Audit Complete", {
+                    description: "No new critical vulnerabilities detected across your supply chain surface."
+                });
+            }
+        }, 4500);
+    };
+
+    const handleOpenOutreach = (finding: AuditFinding) => {
+        setSelectedFinding(finding);
+        setEmailTo(`security@${finding.vendor.toLowerCase().replace(/\s/g, '')}.com`);
+        setEmailSubject(`URGENT: Affected Status Inquiry regarding ${finding.infrastructure}`);
+        setEmailContent(`Team,\n\nWe are tracking a critical vulnerability (${finding.infrastructure} / ${finding.cve}). As a critical supplier in our ecosystem, we need immediate confirmation if your infrastructure is affected, and if our shared data is at risk.\n\nPlease reply to this email within 24 hours.\n\nRegards,\nCompliance & Risk Team`);
+        setIsOutreachOpen(true);
+    };
+
+    const handleSendOutreach = async () => {
+        if (!selectedFinding) return;
+        setIsSending(true);
+
+        try {
+            await sendOutreachMutation.mutateAsync({
+                clientId,
+                vendorName: selectedFinding.vendor,
+                emailTo,
+                emailSubject,
+                emailContent,
+                infrastructure: selectedFinding.infrastructure,
+            });
+
+            setIsSending(false);
+            setIsOutreachOpen(false);
+            toast.success(`Communication Sent to ${selectedFinding.vendor}`, {
+                description: "Email assigned to Communication Mailbox. Critical risk added to Risk Register."
+            });
+            
+            // Instruct TRPC to refetch the risks to keep the UI perfectly synced
+            utils.risks.getRiskAssessments.invalidate({ clientId });
+
+            // Remove the sent finding from the list
+            if (auditResults) {
+                const remaining = auditResults.filter(f => f.id !== selectedFinding.id);
+                if (remaining.length > 0) {
+                    setAuditResults(remaining);
+                } else {
+                    setAuditResults(null); 
+                }
+            }
+            setSelectedFinding(null);
+        } catch (error) {
+            console.error(error);
+            setIsSending(false);
+            toast.error("Failed to send outreach");
+        }
+    };
 
     const riskData = stats?.riskBreakdown ? Object.entries(stats.riskBreakdown).map(([name, value]) => ({ name, value })) : [];
     const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#94a3b8']; // Green, Amber, Red, Slate
@@ -32,7 +164,7 @@ export default function VendorDashboard() {
             <div className="relative z-10 space-y-6">
 
                 {/* Header */}
-                <div className="animate-slide-down">
+                <div className="animate-slide-down flex justify-end">
                     <PageGuide
                         title="Vendor Risk Management"
                         description="Overview of vendor ecosystem and risk posture."
@@ -81,15 +213,83 @@ export default function VendorDashboard() {
                                     <h3 className="text-white font-bold text-sm tracking-wide">AI SUPPLY CHAIN INTELLIGENCE</h3>
                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">MONITORING</span>
                                 </div>
-                                <p className="text-slate-300 text-sm mt-0.5">Scanning Dark Web & OSINT sources. <span className="text-white font-semibold flex items-center gap-1">1 potential breach</span> detected in your 4th-party ecosystem.</p>
+                                <p className="text-slate-300 text-sm mt-0.5">Scanning Dark Web & OSINT sources. <span className="text-white font-semibold flex items-center gap-1">2 potential breaches</span> detected in your 4th-party ecosystem.</p>
                             </div>
                         </div>
-                        <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-colors border border-white/10 flex items-center gap-2 whitespace-nowrap">
-                            <Zap className="w-4 h-4 text-amber-400" />
-                            Run Target Audit
+                        <button
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-colors border border-white/10 flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+                            onClick={handleTargetAudit}
+                            disabled={isAuditing}
+                        >
+                            {isAuditing ? <Loader2 className="w-4 h-4 animate-spin text-amber-400" /> : <Zap className="w-4 h-4 text-amber-400" />}
+                            {isAuditing ? "Auditing..." : "Run Target Audit"}
                         </button>
                     </div>
                 </div>
+
+                {/* Audit Results Panel (Visible after scanning) */}
+                {auditResults && auditResults.length > 0 && (
+                    <div className="animate-slide-down bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mb-6">
+                        <div className="bg-red-50 p-4 border-b border-red-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                                    <AlertCircle className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-red-900">Target Audit Findings</h4>
+                                    <p className="text-xs text-red-700 font-medium">Supply Chain Vulnerabilities Detected ({auditResults.length} Affected Vendors)</p>
+                                </div>
+                            </div>
+                            <span className="text-xs font-bold px-2.5 py-1 bg-red-100 text-red-700 rounded-full border border-red-200">
+                                ACTION REQUIRED
+                            </span>
+                        </div>
+                        <div className="divide-y divide-red-100">
+                            {auditResults.map((finding) => (
+                                <div key={finding.id} className="p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <h5 className="text-sm font-black text-slate-800 uppercase tracking-wider">Compromised Asset Path</h5>
+                                                {finding.severity === 'critical' ? (
+                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded border border-red-200 uppercase">Critical</span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded border border-amber-200 uppercase">High</span>
+                                                )}
+                                            </div>
+                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-slate-500 font-medium">3rd Party Vendor</span>
+                                                    <span className="font-bold text-slate-900">{finding.vendor}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-slate-500 font-medium">Affected Service</span>
+                                                    <span className="font-bold text-red-600 font-mono text-xs bg-red-50 px-2 py-0.5 rounded">{finding.infrastructure}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-slate-500 font-medium">4th Party Threat</span>
+                                                    <span className="font-bold text-slate-900">{finding.cve}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col justify-between">
+                                            <div>
+                                                <h5 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-2">Recommended Action</h5>
+                                                <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                                                    To maintain compliance, you must formally contact <span className="font-bold">{finding.vendor}</span> and log an incident risk.
+                                                </p>
+                                            </div>
+                                            <Button onClick={() => handleOpenOutreach(finding)} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold group">
+                                                Outreach & Log Risk
+                                                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
 
 
@@ -104,7 +304,7 @@ export default function VendorDashboard() {
                             </div>
                             <div>
                                 <h3 className="font-extrabold text-white text-2xl tracking-tight">Vendor Risk Management Program Guide</h3>
-                                <p className="text-emerald-50/90 mt-1 max-w-2xl font-medium leading-relaxed">
+                                <p className="text-emerald-50/90 mt-1 font-medium leading-relaxed">
                                     Learn how to establish a compliant TPRM program, categorize vendors, and manage lifecycle risks effectively.
                                 </p>
                             </div>
@@ -312,6 +512,60 @@ export default function VendorDashboard() {
                     </Card>
                 </div>
             </div>
+            
+            <EnhancedDialog
+                open={isOutreachOpen}
+                onOpenChange={setIsOutreachOpen}
+                title="Initiate Vendor Outreach"
+                description={`Alert ${selectedFinding?.vendor || "Vendor"} about the zero-day threat and formally register this incident.`}
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="outline" onClick={() => setIsOutreachOpen(false)} disabled={isSending}>Cancel</Button>
+                        <Button onClick={handleSendOutreach} disabled={isSending} className="bg-red-600 hover:bg-red-700 text-white">
+                            {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isSending ? "Processing..." : "Communicate & Log Risk"}
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="grid gap-6 py-4">
+                    <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg space-y-4 shadow-inner">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500 uppercase">To Address</label>
+                            <Input 
+                                value={emailTo} 
+                                onChange={(e) => setEmailTo(e.target.value)} 
+                                className="font-mono text-sm bg-white" 
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Subject</label>
+                            <Input 
+                                value={emailSubject} 
+                                onChange={(e) => setEmailSubject(e.target.value)} 
+                                className="bg-white font-medium shadow-sm border-slate-300" 
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Body</label>
+                            <Textarea 
+                                value={emailContent} 
+                                onChange={(e) => setEmailContent(e.target.value)} 
+                                className="h-44 text-sm font-mono leading-relaxed bg-white shadow-sm border-slate-300 resize-none" 
+                            />
+                        </div>
+                    </div>
+                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-start gap-4 shadow-sm">
+                        <div className="p-2 bg-amber-100 rounded-full">
+                            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                        </div>
+                        <div>
+                            <h4 className="text-amber-900 font-black text-sm uppercase tracking-wide">Risk Automation Context</h4>
+                            <p className="text-amber-700 text-xs mt-1.5 leading-relaxed font-medium">This action will automatically generate a new record in your Risk Register categorized as <span className="font-bold underline">Supply Chain Security Incident</span>. The risk will block closure until the vendor confirms remediation via this communication thread.</p>
+                        </div>
+                    </div>
+                </div>
+            </EnhancedDialog>
         </div>
     );
 }

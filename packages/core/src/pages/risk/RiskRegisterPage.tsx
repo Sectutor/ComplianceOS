@@ -160,13 +160,13 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
     };
 
     const content = (
-        <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-20 md:-mt-8 md:pl-20 md:pr-28 bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
+        <div className={`relative min-h-[calc(100vh-3.5rem)] ${fullWidth ? "pl-0 pr-4 py-8 md:pl-0 md:pr-8" : "-mx-4 -my-8 px-4 py-8 md:-mx-20 md:-mt-8 md:pl-20 md:pr-28"} bg-slate-50/50 text-slate-900 overflow-hidden page-transition`}>
             {/* Ambient Light Mode Background Glows */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
             </div>
-            <div className={`relative z-10 space-y-6 mx-auto ${fullWidth ? 'w-full xl:px-8' : 'max-w-7xl'}`}>
+            <div className={`relative z-10 space-y-6 mx-auto ${fullWidth ? 'w-full' : 'max-w-7xl'}`}>
                 {!hideBreadcrumb && (
                     <Breadcrumb>
                         <BreadcrumbList>

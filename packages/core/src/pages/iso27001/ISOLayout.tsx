@@ -94,7 +94,7 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
     }
 
     return (
-        <DashboardLayout>
+        <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-transparent md:-mt-8">
                 <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
                     {/* Breadcrumb Section */}

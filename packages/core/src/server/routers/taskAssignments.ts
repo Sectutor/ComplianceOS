@@ -3,7 +3,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, and, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { taskAssignments, users } from "../../schema";
+import { taskAssignments, employees, users } from "../../schema";
 
 export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -16,25 +16,72 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
             }))
             .query(async ({ input, ctx }: any) => {
                 const db = await getDb();
-                const clientId = input.clientId || ctx.clientId; // Should usually be present via clientProcedure
+                const clientId = input.clientId || ctx.clientId;
 
-                const assignments = await db.select({
+                // Build the where clause
+                const whereClause = and(
+                    eq(taskAssignments.taskType, input.taskType),
+                    eq(taskAssignments.taskId, input.taskId),
+                    clientId ? eq(taskAssignments.clientId, clientId) : undefined
+                );
+
+                // Query assignments - try employees first, then users
+                // We'll do two separate queries and combine results for backward compatibility
+                const employeeAssignments = await db.select({
                     id: taskAssignments.id,
                     userId: taskAssignments.userId,
                     role: taskAssignments.raciRole,
-                    firstName: users.name, // We'll parse name or just return name
-                    lastName: sql<string>`''`, // users table only has 'name', so we'll mock lastName or split it
-                    email: users.email
+                    firstName: employees.firstName,
+                    lastName: employees.lastName,
+                    email: employees.email,
+                    source: sql<string>`'employees'`
                 })
                     .from(taskAssignments)
-                    .innerJoin(users, eq(taskAssignments.userId, users.id))
-                    .where(and(
-                        eq(taskAssignments.taskType, input.taskType),
-                        eq(taskAssignments.taskId, input.taskId),
-                        // Optional: filter by clientId if tasks are global but assignments are client specific?
-                        // taskAssignments has clientId, so yes.
-                        clientId ? eq(taskAssignments.clientId, clientId) : undefined
-                    ));
+                    .innerJoin(employees, eq(taskAssignments.userId, employees.id))
+                    .where(whereClause);
+
+                // Get user IDs that weren't found in employees
+                const employeeUserIds = new Set(employeeAssignments.map((a: any) => a.userId));
+
+                // Get all assignments for this task to find ones not in employees
+                const allAssignments = await db.select({
+                    id: taskAssignments.id,
+                    userId: taskAssignments.userId,
+                    role: taskAssignments.raciRole
+                })
+                    .from(taskAssignments)
+                    .where(whereClause);
+
+                // Find assignments where userId is not in employees table
+                const missingUserIds = allAssignments
+                    .filter((a: any) => !employeeUserIds.has(a.userId))
+                    .map((a: any) => a.userId);
+
+                // Query users for missing assignments
+                let userAssignments: any[] = [];
+                if (missingUserIds.length > 0) {
+                    userAssignments = await db.select({
+                        id: taskAssignments.id,
+                        userId: taskAssignments.userId,
+                        role: taskAssignments.raciRole,
+                        firstName: users.name,
+                        lastName: sql<string>`''`,
+                        email: users.email,
+                        source: sql<string>`'users'`
+                    })
+                        .from(taskAssignments)
+                        .innerJoin(users, eq(taskAssignments.userId, users.id))
+                        .where(and(
+                            eq(taskAssignments.taskType, input.taskType),
+                            eq(taskAssignments.taskId, input.taskId),
+                            clientId ? eq(taskAssignments.clientId, clientId) : undefined,
+                            // @ts-ignore - drizzle doesn't handle IN well here
+                            sql`${taskAssignments.userId} IN (${sql.join(missingUserIds, sql`, `)})`
+                        ));
+                }
+
+                // Combine results
+                const assignments = [...employeeAssignments, ...userAssignments];
 
                 // Group by role
                 const result = {
@@ -45,15 +92,10 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
                 };
 
                 for (const assign of assignments) {
-                    // Split name for frontend compatibility if needed, or just use name
-                    const names = (assign.firstName || "").split(' ');
-                    const firstName = names[0] || "";
-                    const lastName = names.length > 1 ? names.slice(1).join(' ') : "";
-
                     const userObj = {
                         id: assign.userId,
-                        firstName: firstName,
-                        lastName: lastName,
+                        firstName: assign.firstName,
+                        lastName: assign.lastName,
                         email: assign.email,
                         assignmentId: assign.id
                     };
@@ -127,3 +169,4 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
             }),
     });
 };
+

@@ -22,6 +22,7 @@ import crypto from "crypto";
 import * as dbHelpers from "../../db";
 import * as threatIntel from "../../lib/threatIntelligence";
 import { EmailService } from "../../lib/email/service";
+import { riskAssessments } from "../../schema";
 
 export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any) => {
     return t.router({
@@ -300,6 +301,51 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                     clientId: input.clientId
                 });
                 return request;
+            }),
+
+        sendTargetAuditOutreach: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                vendorId: z.number().optional(),
+                vendorName: z.string(),
+                emailTo: z.string(),
+                emailSubject: z.string(),
+                emailContent: z.string(),
+                infrastructure: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+
+                // 1. Send the email via SendGrid/SMTP
+                await EmailService.send({
+                    to: input.emailTo,
+                    subject: input.emailSubject,
+                    html: `
+                        <div style="font-family: sans-serif; white-space: pre-wrap; font-size: 14px;">
+                            ${input.emailContent}
+                        </div>
+                    `,
+                    clientId: input.clientId
+                });
+
+                // 2. Create a Risk inside the Risk Register
+                const assessmentId = `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`;
+                const [createdRisk] = await db.insert(riskAssessments).values({
+                    clientId: input.clientId,
+                    title: `Supply Chain Audit Finding: ${input.vendorName}`,
+                    likelihood: "5", // High likelihood
+                    impact: "5", // High impact
+                    inherentScore: 25,
+                    inherentRisk: "Critical",
+                    status: "draft",
+                    priority: "High",
+                    category: "Supply Chain Security",
+                    threatDescription: `Potential vulnerability identified in ${input.infrastructure || '3rd party infrastructure'}. Ongoing outreach with ${input.vendorName} to verify status.`,
+                    assessmentId: assessmentId,
+                    updatedAt: new Date()
+                }).returning();
+
+                return { success: true, riskId: createdRisk.id };
             }),
 
         getConsolidatedRequest: publicProcedure

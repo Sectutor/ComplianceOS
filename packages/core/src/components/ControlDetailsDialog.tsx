@@ -77,8 +77,8 @@ export default function ControlDetailsDialog({
 
   const utils = trpc.useUtils();
 
-  // Get workspace members
-  const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId });
+  // Get personnel (employees)
+  const { data: personnel } = trpc.employees.list.useQuery({ clientId });
 
   // Get evidence for this control
   const { data: allEvidence, refetch: refetchEvidence } = trpc.evidence.list.useQuery({
@@ -89,6 +89,7 @@ export default function ControlDetailsDialog({
 
   // Get RACI assignments for this control
   const { data: raciSummary, refetch: refetchRaci } = trpc.taskAssignments.summary.useQuery({
+    clientId,
     taskType: 'control',
     taskId: clientControl.id,
   });
@@ -344,9 +345,9 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.responsible.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
+                      {personnel?.filter(emp => !raciSummary?.responsible.some(r => r.id === emp.id)).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>
+                          {emp.firstName} {emp.lastName} ({emp.email})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -387,9 +388,9 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.accountable.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
+                      {personnel?.filter(emp => !raciSummary?.accountable.some(r => r.id === emp.id)).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>
+                          {emp.firstName} {emp.lastName} ({emp.email})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -428,9 +429,9 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.consulted.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
+                      {personnel?.filter(emp => !raciSummary?.consulted.some(r => r.id === emp.id)).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>
+                          {emp.firstName} {emp.lastName} ({emp.email})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -469,9 +470,9 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.informed.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
+                      {personnel?.filter(emp => !raciSummary?.informed.some(r => r.id === emp.id)).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>
+                          {emp.firstName} {emp.lastName} ({emp.email})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -540,9 +541,9 @@ export default function ControlDetailsDialog({
                           <SelectValue placeholder="Select employee..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {workspaceMembers?.map(user => (
-                            <SelectItem key={user.id} value={user.id.toString()}>
-                              {user.name}
+                          {personnel?.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                              {emp.firstName} {emp.lastName} ({emp.email})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -642,9 +643,9 @@ export default function ControlDetailsDialog({
                           <SelectValue placeholder="Select owner" />
                         </SelectTrigger>
                         <SelectContent>
-                          {workspaceMembers?.map((user) => (
-                            <SelectItem key={user.id} value={user.name}>
-                              {user.name}
+                          {personnel?.map((emp) => (
+                            <SelectItem key={emp.id} value={`${emp.firstName} ${emp.lastName}`.trim()}>
+                              {emp.firstName} {emp.lastName}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -14,7 +14,7 @@ export default function ImplementationKanbanPage() {
     const planId = params.planId ? parseInt(params.planId, 10) : 0;
 
     return (
-        <DashboardLayout>
+        <DashboardLayout fullWidth={true}>
             <div className="p-8 h-full">
                 <h2 className="text-3xl font-bold tracking-tight mb-6">Implementation Task Board</h2>
                 <ImplementationKanban clientId={clientId!} planId={planId} />

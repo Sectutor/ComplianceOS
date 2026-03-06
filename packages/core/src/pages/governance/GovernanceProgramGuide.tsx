@@ -164,9 +164,9 @@ export default function GovernanceProgramGuide() {
     const progressPercentage = Math.round((completedSteps / steps.length) * 100);
 
     return (
-        <DashboardLayout>
-            <div className="relative min-h-screen bg-slate-50 p-6 lg:p-10">
-                <div className="max-w-4xl mx-auto space-y-8">
+        <DashboardLayout fullWidth={true}>
+            <div className="relative min-h-screen bg-slate-50 pl-0 pr-4 py-8 md:pl-0 md:pr-8 space-y-8 animate-in fade-in duration-500">
+                <div className="w-full space-y-8">
                     {/* Header */}
                     <div className="flex justify-between items-center">
                         <Link href={`/clients/${clientId}/governance`}>
@@ -190,7 +190,7 @@ export default function GovernanceProgramGuide() {
                         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
                             Governance Program Guide
                         </h1>
-                        <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-xl text-slate-600 leading-relaxed">
                             A dynamic, comprehensive step-by-step methodology to establish a robust, modern GRC program from the ground up.
                         </p>
                     </div>

@@ -8,8 +8,8 @@ export default function ISOAssetRegister() {
     const clientId = parseInt(id || '0');
 
     return (
-        <ISOLayout clientId={clientId}>
-            <RiskAssetsPage hideLayout={true} hideBreadcrumb={true} />
+        <ISOLayout clientId={clientId} fullWidth={true}>
+            <RiskAssetsPage hideLayout={true} hideBreadcrumb={true} fullWidth={true} />
         </ISOLayout>
     );
 }

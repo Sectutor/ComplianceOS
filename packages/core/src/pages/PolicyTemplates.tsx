@@ -369,8 +369,8 @@ export default function PolicyTemplates() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 w-full max-w-full pl-4 pr-4 py-8 md:pl-20 md:pr-8">
+    <DashboardLayout fullWidth={true}>
+      <div className="space-y-6 w-full max-w-full pl-4 pr-4 py-8 md:pl-8 md:pr-8">
         <Breadcrumb
           items={[
             { label: "Policy Templates" },
@@ -699,40 +699,45 @@ export default function PolicyTemplates() {
               {filteredTemplates.map((template) => {
                 const sections = Array.isArray(template.sections) ? template.sections : [];
                 return (
-                  <Card key={template.id} className="card-interactive card-accent-left group cursor-pointer" onClick={() => setViewingTemplate(template.id)}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-tight">{template.templateId}</span>
+                  <Card key={template.id} className="group cursor-pointer border border-slate-200 dark:border-slate-800 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 bg-white dark:bg-slate-950 overflow-hidden relative shadow-md" onClick={() => setViewingTemplate(template.id)}>
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#1C4D8D] to-[#3ABEF9]"></div>
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-mono text-[9px] font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 tracking-wider">
+                            {template.templateId}
+                          </Badge>
+                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">{template.frameworks?.join(' / ')}</span>
                         </div>
-                        <CardTitle className="text-xl font-bold">{template.name}</CardTitle>
-                        <CardDescription className="text-xs font-medium text-muted-foreground">{template.frameworks?.join(' / ')}</CardDescription>
+                        <CardTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-50 leading-tight group-hover:text-[#1C4D8D] dark:group-hover:text-[#3ABEF9] transition-colors">{template.name}</CardTitle>
                       </div>
-                      <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 group-hover:bg-[#1C4D8D]/10 transition-colors">
+                        <FileText className="h-5 w-5 text-slate-400 group-hover:text-[#1C4D8D] transition-colors" />
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-4">
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-70">Sections Included</p>
+                      <div className="space-y-5">
+                        <div className="space-y-2.5">
+                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Structural Elements</p>
                           <div className="flex flex-wrap gap-1.5">
                             {sections.slice(0, 4).map((section, i) => (
-                              <div key={i} className="bg-secondary px-2 py-1 rounded text-[10px] font-medium border border-transparent group-hover:border-secondary-foreground/20 transition-colors">
+                              <Badge key={i} variant="secondary" className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] font-medium border-none text-slate-600 dark:text-slate-400 px-2 py-0.5">
                                 {typeof section === 'object' && section !== null ? (section as { title?: string }).title || 'Section' : String(section)}
-                              </div>
+                              </Badge>
                             ))}
                             {sections.length > 4 && (
-                              <div className="bg-secondary px-2 py-1 rounded text-[10px] font-medium border border-transparent group-hover:border-secondary-foreground/20 transition-colors">
-                                +{sections.length - 4} more
-                              </div>
+                              <Badge variant="secondary" className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] font-medium border-none text-slate-400 px-2 py-0.5">
+                                +{sections.length - 4}
+                              </Badge>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-                          <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-tighter">
-                            <CheckCircle2 className="h-3 w-3 text-primary" />
-                            Template Ready
-                          </span>
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ready to Deploy</span>
+                          </div>
                           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"

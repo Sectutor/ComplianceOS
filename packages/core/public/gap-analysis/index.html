@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gap Analysis & Readiness Sprint | GRCompliance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
+        .brutal-border { border: 2px solid #E2E8F0; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        
+        .stagger-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stagger-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Heatmap Grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+        }
+        .heatmap-cell {
+            aspect-ratio: 1;
+            background: #1A1A1A;
+            transition: background 0.5s ease;
+        }
+        .visible .heatmap-cell:nth-child(3n) { background: #3B82F6; opacity: 0.4; }
+        .visible .heatmap-cell:nth-child(7n) { background: #3B82F6; opacity: 0.8; }
+        .visible .heatmap-cell:nth-child(5n) { background: #1A1A1A; }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="fixed inset-0 noise-bg z-50"></div>
+
+    <main class="relative z-10">
+        
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20 relative overflow-hidden">
+            <div class="absolute top-20 left-20 text-[20vw] font-black opacity-[0.03] select-none pointer-events-none uppercase">READINESS</div>
+            
+            <div class="mb-12 stagger-reveal">
+                <img src="../assets/logo.png" alt="GRCompliance" class="h-12 w-auto brightness-200" />
+            </div>
+            
+            <div class="max-w-7xl">
+                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal">
+                    Guesswork <br>
+                    <span class="accent-blue italic">Is Exposure.</span>
+                </h1>
+                
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
+                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
+                        You think you’re ready for audit. We’ll tell you exactly where you aren’t. <strong>A data-driven 1-week sprint to find, prioritize, and fix every gap in your compliance armor.</strong>
+                    </p>
+                    
+                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
+                        <a href="#compare" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-10 py-6 text-center hover:scale-105 transition-transform duration-300">
+                            Book My Readiness X-Ray
+                        </a>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Priority Sprint Slots for Waitlist Members</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The "X-Ray" Visual -->
+        <section class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#0F0F0F]">
+            <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-20">
+                <div class="lg:w-1/2 stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">The Discovery</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black mb-12 uppercase leading-none">The Compliance <br><span class="italic text-slate-500">X-Ray</span></h2>
+                    <p class="text-xl text-slate-400 mb-10 font-light">
+                        Don't wait for your auditor to hand you a list of failures. We use our smart mapping engine to visualize your posture instantly.
+                    </p>
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 brutal-border flex items-center justify-center text-accent-blue font-black">68%</div>
+                            <div class="text-slate-300 uppercase font-bold tracking-widest text-sm">Initial Readiness Score: SOC 2</div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 brutal-border flex items-center justify-center text-accent-blue font-black">12</div>
+                            <div class="text-slate-300 uppercase font-bold tracking-widest text-sm">Critical Gaps Identified</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lg:w-1/2 stagger-reveal">
+                    <div class="brutal-border p-8 bg-black">
+                        <div class="flex justify-between items-center mb-10">
+                            <div class="text-xs font-mono text-slate-500">Discovery.PostureHeatmap_v1</div>
+                            <div class="text-xs font-mono text-accent-blue uppercase">Scanning Frameworks...</div>
+                        </div>
+                        <div class="heatmap-grid mb-10">
+                            <!-- Generate blocks -->
+                            <div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div>
+                            <div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div>
+                            <div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div>
+                            <div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div>
+                            <div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div><div class="heatmap-cell"></div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
+                                <div class="h-full bg-accent-blue w-[68%]"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] font-mono uppercase text-slate-500">
+                                <span>SOC 2 Type 1</span>
+                                <span>68% Posture</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing/Packages -->
+        <section id="compare" class="py-32 px-6 lg:px-20 bg-white text-black">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-5xl lg:text-8xl font-display font-black uppercase tracking-tighter mb-20 stagger-reveal">Precision Pricing.</h2>
+                
+                <div class="grid lg:grid-cols-2 gap-12">
+                    <!-- Mini Sprint -->
+                    <div class="p-12 border-4 border-black stagger-reveal hover:bg-slate-50 transition-colors">
+                        <div class="text-sm font-black uppercase tracking-widest mb-6 accent-blue">Mini-Sprint</div>
+                        <h3 class="text-4xl font-display font-black mb-4 uppercase italic">The Rapid Insight</h3>
+                        <div class="text-5xl font-black mb-10">$1,000 - $2,000</div>
+                        <p class="text-slate-600 mb-10 text-lg">Ideal for startups needing a fast "score check" before making strategic compliance decisions.</p>
+                        <ul class="space-y-3 mb-12 font-bold uppercase text-xs tracking-widest text-slate-500">
+                            <li>• 1 Framework Posture Check</li>
+                            <li>• Automated Heatmap Generation</li>
+                            <li>• 2-Day Turnaround</li>
+                        </ul>
+                        <a href="https://calendly.com" class="block w-full text-center bg-black text-white p-6 font-display font-black uppercase tracking-widest hover:scale-105 transition-transform">Book Rapid Insight</a>
+                    </div>
+
+                    <!-- Full Sprint -->
+                    <div class="p-12 bg-black text-white stagger-reveal relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-accent-blue opacity-0 group-hover:opacity-5 transition-opacity"></div>
+                        <div class="text-sm font-black uppercase tracking-widest mb-6 accent-blue">Guided Sprint</div>
+                        <h3 class="text-4xl font-display font-black mb-4 uppercase italic">Full Readiness Sprint</h3>
+                        <div class="text-5xl font-black mb-10">$2,500 - $7,500</div>
+                        <p class="text-slate-400 mb-10 text-lg">The comprehensive "Zero to Validated" posture sprint. We interprate the data, prioritize the fixes, and build your roadmap.</p>
+                        <ul class="space-y-3 mb-12 font-bold uppercase text-xs tracking-widest text-slate-500">
+                            <li>• Multi-Framework Smart Mapping</li>
+                            <li>• Expert Prioritization & Fix-Suggestions</li>
+                            <li>• Full Readiness Report & Board-Slides</li>
+                            <li>• 1-Week Expert Guidance</li>
+                        </ul>
+                        <a href="https://calendly.com" class="block w-full text-center bg-accent-blue text-white p-6 font-display font-black uppercase tracking-widest hover:scale-105 transition-transform">Book Full Sprint</a>
+                    </div>
+                </div>
+
+                <div class="mt-20 p-10 bg-slate-100 text-center stagger-reveal">
+                    <p class="text-slate-500 font-bold uppercase tracking-widest text-xs mb-4">Upsell Opportunity</p>
+                    <h4 class="text-2xl font-bold italic">"Make it Perpetual: Quarterly Readiness Check-ins available for $1,500/quarter."</h4>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-40 px-6 lg:px-20">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-12 stagger-reveal">Stop Guessing. <br> Start Fixing.</h2>
+                <div class="stagger-reveal">
+                    <a href="https://app.grcompliance.com/waitlist" class="inline-block bg-accent-blue text-white font-display font-black uppercase text-2xl px-16 py-8 hover:bg-blue-600 transition-colors shadow-2xl scale-110">
+                        Join the Readiness Waitlist
+                    </a>
+                    <p class="mt-12 text-slate-500 uppercase font-black tracking-[0.2em] italic text-sm">Next available sprint start: March 23</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

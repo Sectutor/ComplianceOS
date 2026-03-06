@@ -140,7 +140,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
     const progress = currentTasks.length > 0 ? (completedTasks / currentTasks.length) * 100 : 0;
 
     return (
-        <DashboardLayout>
+        <DashboardLayout fullWidth={true}>
             <div className="flex flex-col h-full bg-white">
                 {/* Navigation Header */}
                 <div className="border-b bg-white/50 backdrop-blur-md px-8 py-4 flex items-center justify-between sticky top-0 z-30">
@@ -199,7 +199,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 p-8 max-w-[1500px] mx-auto w-full font-sans">
+                <div className="flex-1 p-8 w-full font-sans">
                     <div className="grid grid-cols-12 gap-10 items-start">
                         {/* Left Panel: Methodology & Tasks */}
                         <div className="col-span-12 lg:col-span-9 space-y-8">

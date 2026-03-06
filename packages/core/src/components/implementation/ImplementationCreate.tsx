@@ -80,8 +80,8 @@ export default function ImplementationCreate() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="max-w-5xl mx-auto p-8 animate-in fade-in duration-500">
+    <DashboardLayout fullWidth={true}>
+      <div className="w-full p-8 animate-in fade-in duration-500">
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2">Create Implementation Plan</h1>

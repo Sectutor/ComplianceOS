@@ -94,11 +94,11 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
     }
 
     return (
-        <DashboardLayout>
+        <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-slate-50/50">
                 <div className={cn(
                     "bg-white border-b border-slate-200 py-3 sticky top-0 z-30 shadow-sm space-y-3",
-                    fullWidth ? "px-6" : "pl-4 pr-4 md:pl-20 md:pr-8"
+                    fullWidth ? "pl-0 pr-4 md:pl-0 md:pr-8" : "pl-4 pr-4 md:pl-20 md:pr-8"
                 )}>
                     <Breadcrumb className="mb-0">
                         <BreadcrumbList>
@@ -162,7 +162,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                         })}
                     </nav>
                 </div>
-                <div className={cn("flex-1 w-full", fullWidth ? "p-0" : "pl-4 pr-4 py-8 md:pl-20 md:pr-8")}>
+                <div className={cn("flex-1 w-full", fullWidth ? "pl-0 pr-4 py-8 md:pl-0 md:pr-8" : "pl-4 pr-4 py-8 md:pl-20 md:pr-8")}>
                     {children}
                 </div>
             </div>

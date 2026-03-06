@@ -145,20 +145,20 @@ export default function GovernanceWorkbench() {
                         </div>
                     </div>
 
-                    <div className="p-4 rounded-xl border border-indigo-200 bg-white shadow-sm flex flex-col justify-between cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group" onClick={() => window.location.href = `/clients/${clientId}/governance/program-guide`}>
+                    <div className="p-4 rounded-xl border-none shadow-lg shadow-indigo-200 dark:shadow-none bg-indigo-600 text-white flex flex-col justify-between cursor-pointer hover:bg-indigo-700 hover:shadow-xl transition-all group" onClick={() => window.location.href = `/clients/${clientId}/governance/program-guide`}>
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-bold text-slate-900">Program Guide</span>
-                                    <Badge variant="secondary" className="text-[10px] px-1.5 h-5 bg-indigo-100 text-indigo-700 pointer-events-none">NEW</Badge>
+                                    <span className="text-sm font-bold text-white">Program Guide</span>
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 h-5 bg-white/20 text-white border-none pointer-events-none">NEW</Badge>
                                 </div>
-                                <div className="flex items-center gap-1 text-xs text-slate-500 mt-2 font-medium group-hover:text-indigo-600 transition-colors">
+                                <div className="flex items-center gap-1 text-xs text-white/80 mt-2 font-medium group-hover:text-white transition-colors">
                                     <span>View Framework</span>
                                     <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </div>
-                            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                                <BookOpen className="w-5 h-5" />
+                            <div className="p-3 rounded-lg bg-white/20 backdrop-blur-md">
+                                <BookOpen className="w-5 h-5 text-white" />
                             </div>
                         </div>
                     </div>

@@ -80,6 +80,8 @@ const learningZoneMenuItem = {
     { label: "GDPR", path: "/learning/gdpr" },
     { label: "HIPAA", path: "/learning/hipaa" },
     { label: "CMMC", path: "/learning/cmmc" },
+    { label: "PCI DSS", path: "/learning/pci-dss" },
+    { label: "NIST CSF", path: "/learning/nist-csf" },
   ]
 };
 
@@ -158,8 +160,10 @@ function isPathActive(navPath: string, currentPath: string, currentSearch: strin
 
 export default function DashboardLayout({
   children,
+  fullWidth = false,
 }: {
   children: React.ReactNode;
+  fullWidth?: boolean;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -223,7 +227,7 @@ export default function DashboardLayout({
       }
     >
       <TourProvider>
-        <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+        <DashboardLayoutContent setSidebarWidth={setSidebarWidth} fullWidth={fullWidth}>
           {children}
         </DashboardLayoutContent>
       </TourProvider>
@@ -234,11 +238,13 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  fullWidth?: boolean;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  fullWidth = false,
 }: DashboardLayoutContentProps) {
   const { user, signOut } = useAuth();
   const [location, setLocation] = useLocation();
@@ -1208,7 +1214,7 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div className="flex border-b h-14 items-center justify-between bg-white/80 pl-4 pr-4 md:pl-8 md:pr-8 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0,03)]">
+        <div className={`flex border-b h-14 items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0,03)] ${fullWidth ? "pl-0 pr-4 md:pr-8" : "pl-4 pr-4 md:pl-8 md:pr-8"}`}>
           <div className="flex items-center gap-3">
             {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background shadow-sm border" />}
             <div className="flex items-center gap-2">
@@ -1225,7 +1231,7 @@ function DashboardLayoutContent({
             <NotificationCenter />
           </div>
         </div>
-        <div className="flex-1 pl-4 pr-4 py-8 md:pl-8 md:pr-8">{children}</div>
+        <div className={`flex-1 ${fullWidth ? "pl-0 pr-4 md:pr-8" : "pl-4 pr-4 md:pl-8 md:pr-8"} py-8`}>{children}</div>
 
         {/* AI Copilot Button - Global Access */}
         <CopilotButton clientId={persistentClientId || undefined} />

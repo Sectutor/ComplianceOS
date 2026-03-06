@@ -83,8 +83,8 @@ export default function ImplementationDashboard() {
     };
 
     return (
-        <DashboardLayout>
-            <div className="space-y-8 p-8 animate-in fade-in duration-500 max-w-[1200px] mx-auto">
+        <DashboardLayout fullWidth={true}>
+            <div className="p-8 animate-in fade-in duration-500 w-full">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight">Tactical Implementation</h2>
