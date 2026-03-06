@@ -147,7 +147,8 @@ export default function WaitlistPage() {
 
 function CardForm({
     email, setEmail, firstName, setFirstName, lastName, setLastName, company, setCompany,
-    certification, setCertification, orgSize, setOrgSize, industry, setIndustry, loading, onSubmit
+    certification, setCertification, orgSize, setOrgSize, industry, setIndustry, 
+    interestedPlay, setInterestedPlay, loading, onSubmit
 }: {
     email: string, setEmail: (s: string) => void,
     firstName: string, setFirstName: (s: string) => void,
