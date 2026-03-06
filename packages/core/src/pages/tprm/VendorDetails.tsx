@@ -928,7 +928,11 @@ export default function VendorDetails() {
 
                     <div className="grid gap-4">
                         {assessments?.map(assessment => (
-                            <Card key={assessment.id}>
+                            <Card 
+                                key={assessment.id} 
+                                onDoubleClick={() => openConductDialog(assessment)}
+                                className="cursor-pointer hover:bg-slate-50 transition-colors"
+                            >
                                 <div className="flex items-center p-4 gap-4">
                                     <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
                                         <FileText className="h-5 w-5" />
