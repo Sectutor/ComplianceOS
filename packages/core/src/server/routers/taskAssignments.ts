@@ -1,7 +1,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import { taskAssignments, employees, users } from "../../schema";
 
@@ -75,8 +75,7 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
                             eq(taskAssignments.taskType, input.taskType),
                             eq(taskAssignments.taskId, input.taskId),
                             clientId ? eq(taskAssignments.clientId, clientId) : undefined,
-                            // @ts-ignore - drizzle doesn't handle IN well here
-                            sql`${taskAssignments.userId} IN (${sql.join(missingUserIds, sql`, `)})`
+                            inArray(taskAssignments.userId, missingUserIds)
                         ));
                 }
 
@@ -132,7 +131,7 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
                         raciRole: input.raciRole,
                         assignedBy: ctx.user?.id
                     })
-                    .onConflictDoNothing(); // Prevent duplicate errors
+                    .onConflictDoNothing({ target: [taskAssignments.taskType, taskAssignments.taskId, taskAssignments.userId, taskAssignments.raciRole] }); // Prevent duplicate errors
 
                 return { success: true };
             }),

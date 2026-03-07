@@ -1231,7 +1231,7 @@ function DashboardLayoutContent({
             <NotificationCenter />
           </div>
         </div>
-        <div className={`flex-1 ${fullWidth ? "pl-0 pr-4 md:pr-8" : "pl-4 pr-4 md:pl-8 md:pr-8"} py-8`}>{children}</div>
+        <div className={`flex-1 bg-background ${fullWidth ? "pl-0 pr-4 md:pr-8" : "pl-4 pr-4 md:pl-8 md:pr-8"} py-8`}>{children}</div>
 
         {/* AI Copilot Button - Global Access */}
         <CopilotButton clientId={persistentClientId || undefined} />

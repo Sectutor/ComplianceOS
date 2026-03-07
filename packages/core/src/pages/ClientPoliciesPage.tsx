@@ -147,7 +147,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     }
 
     const content = (
-        <div className={hideLayout ? "space-y-6" : "pl-4 pr-4 py-8 md:pl-8 md:pr-8 space-y-6 w-full max-w-full animate-in fade-in duration-700"}>
+        <div className={hideLayout ? "space-y-6" : "pl-4 pr-4 py-8 md:pl-8 md:pr-8 space-y-6 w-full max-w-full animate-in fade-in duration-700 bg-background min-h-screen"}>
             {!hideLayout && (
                 <Breadcrumb
                     items={[
@@ -403,7 +403,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : clientPolicies && clientPolicies.length > 0 ? (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden bg-white dark:bg-slate-950 transition-all">
+                <div className="rounded-2xl border border-slate-200 shadow-xl overflow-hidden bg-white transition-all">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gradient-to-r from-[#1C4D8D] to-[#2B6CB0] hover:from-[#1C4D8D] hover:to-[#2B6CB0] border-none shadow-sm">
@@ -420,36 +420,46 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                 return (
                                     <TableRow
                                         key={item.clientPolicy.id}
-                                        className="cursor-pointer bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 transition-all duration-300 ease-in-out hover:bg-sky-50/40 dark:hover:bg-sky-900/10 hover:shadow-inner group"
+                                        className="cursor-pointer bg-white border-b border-slate-100 transition-all duration-300 ease-in-out hover:bg-sky-50/40 hover:shadow-inner group"
                                         onClick={() => setLocation(`/clients/${clientId}/policies/${item.clientPolicy.id}`)}
                                         style={{ animationDelay: `${index * 50}ms` }}
                                     >
-                                        <TableCell className="font-semibold text-slate-900 dark:text-slate-100 py-5">
+                                        <TableCell className="font-semibold text-slate-900 py-5">
                                             <div className="flex items-center gap-3.5 group-hover:translate-x-1.5 transition-transform duration-300">
-                                                <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-900/20 group-hover:bg-sky-100 dark:group-hover:bg-sky-900/40 transition-colors duration-300 shadow-sm border border-sky-100/50 dark:border-sky-800/50">
-                                                    <FileText className="h-5 w-5 text-sky-700 dark:text-sky-400" />
+                                                <div className="p-2.5 rounded-xl bg-sky-50 group-hover:bg-sky-100 transition-colors duration-300 shadow-sm border border-sky-100/50">
+                                                    <FileText className="h-5 w-5 text-sky-700" />
                                                 </div>
                                                 <span className="text-[15px]">{item.clientPolicy.name}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-slate-500 dark:text-slate-400 font-medium py-5">
+                                        <TableCell className="text-slate-500 font-medium py-5">
                                             {item.template?.framework || 'Custom'}
                                         </TableCell>
                                         <TableCell className="py-5">
-                                            <Badge
-                                                className={
-                                                    item.clientPolicy.status === 'approved'
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 font-bold px-3 py-1 shadow-sm'
-                                                        : item.clientPolicy.status === 'draft'
-                                                            ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-bold px-3 py-1 shadow-sm'
-                                                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 font-bold px-3 py-1 shadow-sm'
-                                                }
-                                            >
-                                                {item.clientPolicy.status?.toUpperCase() || 'DRAFT'}
-                                            </Badge>
+                                            {(() => {
+                                                const status = item.clientPolicy.status?.toLowerCase() || 'draft';
+                                                const configs: Record<string, { bg: string, text: string, border: string, dot: string }> = {
+                                                    approved: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+                                                    active: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+                                                    draft: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-400' },
+                                                    review: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+                                                    pending: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', dot: 'bg-sky-500' },
+                                                    expired: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
+                                                };
+                                                const config = configs[status] || configs.review;
+                                                return (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`${config.bg} ${config.text} ${config.border} flex items-center gap-1.5 w-fit font-bold px-2.5 py-0.5 rounded-full shadow-sm text-[10px] tracking-wide uppercase group-hover:scale-105 transition-transform duration-300`}
+                                                    >
+                                                        <span className={`h-1.5 w-1.5 rounded-full ${config.dot} shadow-[0_0_5px_currentColor]`} />
+                                                        {status}
+                                                    </Badge>
+                                                );
+                                            })()}
                                         </TableCell>
-                                        <TableCell className="text-slate-500 dark:text-slate-400 text-center py-5">
-                                            <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold shadow-sm">
+                                        <TableCell className="text-slate-500 text-center py-5">
+                                            <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold shadow-sm">
                                                 v{item.clientPolicy.version || 1}
                                             </span>
                                         </TableCell>

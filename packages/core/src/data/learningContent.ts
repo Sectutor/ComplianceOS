@@ -1,5 +1,4 @@
-
-import { Shield, Lock, FileText, Database, Activity, Eye, FileCheck, Globe, Server, UserCheck, List } from "lucide-react";
+import { Shield, Lock, FileText, Database, Activity, Eye, FileCheck, Globe, Server, UserCheck, ListChecks as List } from "lucide-react";
 
 export interface LearningSection {
   id: string;
@@ -593,7 +592,7 @@ export const learningContent: Record<string, FrameworkLearning> = {
       {
         id: "requirements",
         title: "The 12 Requirements",
-        icon: List,
+        icon: FileText,
         content: `
           <div class="grid md:grid-cols-2 gap-4">
             <div class="p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -649,7 +648,7 @@ export const learningContent: Record<string, FrameworkLearning> = {
               <div class="mt-6 pt-6 border-t border-slate-100">
                 <div class="flex items-center gap-3">
                   <div class="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-600">
-                    <FileCheck className="h-5 w-5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
                   </div>
                   <div>
                     <h6 class="font-bold text-sm text-slate-900">AOC (Attestation of Compliance)</h6>

@@ -480,8 +480,8 @@ export default function PolicyTemplates() {
         </div>
 
         {/* Quick Guide Card */}
-        <Card className="border-blue-100 bg-blue-50/30 overflow-hidden transition-all duration-300">
-          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-blue-50/50" onClick={() => setShowGuide(!showGuide)}>
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm overflow-hidden transition-all duration-300">
+          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900" onClick={() => setShowGuide(!showGuide)}>
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600">
                 <HelpCircle className="h-4 w-4" />
@@ -1500,7 +1500,7 @@ function BulkDeployDialog({
   // Handle client selection separately when contextClientId or clients change
   useEffect(() => {
     if (!hasInitialized) return;
-    
+
     if (contextClientId) {
       setSelectedClientId(contextClientId);
     } else if (clients.length === 1) {

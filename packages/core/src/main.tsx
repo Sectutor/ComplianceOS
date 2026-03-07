@@ -105,7 +105,7 @@ queryClient.getQueryCache().subscribe((event: any) => {
 
     if (error instanceof TRPCClientError &&
       error?.data?.code === 'PRECONDITION_FAILED' &&
-      (error.message === 'Multi-factor authentication required' || error.message.includes('Administrative access requires active Multi-factor Authentication')) &&
+      (error?.message === 'Multi-factor authentication required' || (typeof error?.message === 'string' && error.message.includes('Administrative access requires active Multi-factor Authentication'))) &&
       typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('require-mfa'));
     }

@@ -128,6 +128,7 @@ import { feedbackRouter } from "./server/routers/feedback";
 import { createBackupRestoreRouter } from "./server/routers/backupRestore";
 import { createRiskSettingsRouter } from "./server/routers/riskSettings";
 import { createKrisRouter } from "./server/routers/kris";
+import { createLlmRouter } from "./server/routers/llm";
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -268,6 +269,7 @@ export const appRouter = router({
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
+  llm: createLlmRouter(t, publicProcedure, isAuthed, adminProcedure),
 
   ai: router({
     systems: createAiSystemsRouter(t, clientProcedure),
@@ -2193,115 +2195,6 @@ ONLY return the JSON. No Markdown formatting.
 
 
 
-  // LLM Settings Router
-  llm: router({
-    list: adminProcedure.query(async () => {
-      const providers = await db.getLLMProviders();
-      // Mask API keys for security
-      return providers.map(p => ({
-        ...p,
-        apiKey: '********' // Never return full key
-      }));
-    }),
-
-    create: adminProcedure
-      .input(z.object({
-        name: z.string(),
-        provider: z.string(),
-        model: z.string(),
-        apiKey: z.string(),
-        baseUrl: z.string().optional(),
-        priority: z.number().default(0),
-        isEnabled: z.boolean().default(false),
-        supportsEmbeddings: z.boolean().default(false)
-      }))
-      .mutation(async ({ input }) => {
-        return await db.createLLMProvider(input);
-      }),
-
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        name: z.string().optional(),
-        provider: z.string().optional(),
-        model: z.string().optional(),
-        apiKey: z.string().optional(), // Optional, only if changing
-        baseUrl: z.string().optional(),
-        priority: z.number().optional(),
-        isEnabled: z.boolean().optional(),
-        supportsEmbeddings: z.boolean().optional()
-      }))
-      .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        return await db.updateLLMProvider(id, data);
-      }),
-
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        return await db.deleteLLMProvider(input.id);
-      }),
-
-    test: adminProcedure
-      .input(z.object({
-        apiKey: z.string(),
-        baseUrl: z.string().optional(),
-        model: z.string() // Need model to test
-      }))
-      .mutation(async ({ input }) => {
-        // Dynamic import to avoid circular dep issues
-        const { llmService } = await import('./lib/llm/service');
-        return await llmService.testConnection(input);
-      }),
-
-    getRoutes: adminProcedure.query(async () => {
-      const dbConn = await db.getDb();
-      /* 
-         We need to join llmRouterRules with llmProviders to show which provider is selected.
-         We also want to return ALL features defined in code + DB.
-         For now, we just return the DB rules. The frontend can merge with known features.
-      */
-      const rules = await dbConn.select({
-        id: llmRouterRules.id,
-        feature: llmRouterRules.feature,
-        providerId: llmRouterRules.providerId,
-        providerName: llmProviders.name,
-        model: llmProviders.model
-      })
-        .from(llmRouterRules)
-        .leftJoin(llmProviders, eq(llmRouterRules.providerId, llmProviders.id));
-
-      return rules;
-    }),
-
-    setRoute: adminProcedure
-      .input(z.object({
-        feature: z.string(),
-        providerId: z.number().nullable()
-      }))
-      .mutation(async ({ input }) => {
-        const dbConn = await db.getDb();
-        if (input.providerId === null) {
-          // Remove rule to fallback to default
-          await dbConn.delete(llmRouterRules).where(eq(llmRouterRules.feature, input.feature));
-        } else {
-          // Upsert rule
-          // Check if exists
-          const existing = await dbConn.select().from(llmRouterRules).where(eq(llmRouterRules.feature, input.feature)).limit(1);
-          if (existing.length > 0) {
-            await dbConn.update(llmRouterRules)
-              .set({ providerId: input.providerId, updatedAt: new Date() })
-              .where(eq(llmRouterRules.id, existing[0].id));
-          } else {
-            await dbConn.insert(llmRouterRules).values({
-              feature: input.feature,
-              providerId: input.providerId
-            });
-          }
-        }
-        return { success: true };
-      }),
-  }),
 
 
 

@@ -6480,10 +6480,10 @@ export async function updateLLMProvider(id: number, data: Partial<InsertLLMProvi
 
   const updateData = { ...data };
 
-  if (updateData.apiKey) {
-
+  if (updateData.apiKey && updateData.apiKey !== '********' && updateData.apiKey.trim() !== '') {
     updateData.apiKey = encrypt(updateData.apiKey);
-
+  } else {
+    delete updateData.apiKey;
   }
 
 

@@ -22,11 +22,14 @@ aiRouter.post('/generate-stream', async (req: any, res: any) => {
         // If templateId is provided but no userPrompt, generate from policy generator
         if (templateId && !userPrompt) {
             try {
+                // NOTE: This fix was applied to correct parameter order
+                // getGenerationPrompt signature: (clientId, templateId, sections, options)
+                const parsedClientId = clientId ? parseInt(clientId) : 0;
                 const prompt = await policyGenerator.getGenerationPrompt(
+                    parsedClientId,
                     templateId,
-                    instruction,
-                    tailor,
-                    clientId ? parseInt(clientId) : undefined
+                    undefined,
+                    { customInstruction: instruction, tailorToIndustry: tailor }
                 );
                 userPrompt = prompt.userPrompt;
                 // If systemPrompt is not provided in body, use the one from generator

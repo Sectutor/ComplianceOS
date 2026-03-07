@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@complianceos/ui/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
-import { Switch } from "@complianceos/ui/ui/switch";
-import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
-import { Input } from "@complianceos/ui/ui/input";
-import { Label } from "@complianceos/ui/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
-import { Badge } from "@complianceos/ui/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
-import { Loader2, Plus, Trash2, Edit, Play, CheckCircle2, XCircle, Monitor, Network, ServerCog, Cpu, ShieldAlert, FileText, Briefcase } from "lucide-react";
-import { toast } from "sonner";
-import {
+import { 
+    Button, 
+    Card, CardContent, CardDescription, CardHeader, CardTitle,
+    Switch,
+    EnhancedDialog,
+    Input,
+    Label,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    Badge,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+    Tabs, TabsContent, TabsList, TabsTrigger,
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -20,8 +18,14 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
-    AlertDialogTitle,
-} from "@complianceos/ui/ui/alert-dialog";
+    AlertDialogTitle
+} from "@complianceos/ui";
+import { 
+    Loader2, Plus, Trash2, Edit, Play, 
+    CheckCircle, XCircle, Monitor, Network, 
+    ServerCog, Cpu, ShieldAlert, FileText, Briefcase 
+} from "lucide-react";
+import { toast } from "sonner";
 
 const FEATURES = [
     { id: 'general_advisor', name: 'General AI Advisor', description: 'Chat and general Q&A', icon: Monitor },
@@ -97,18 +101,6 @@ export default function LLMSettings() {
         onError: (err) => toast.error(err.message)
     });
 
-    const testMutation = trpc.llm.test.useMutation({
-        onSuccess: (result) => {
-            setTestResult({
-                success: !!result,
-                message: result ? "Connection successful!" : "Connection failed (empty response)"
-            });
-        },
-        onError: (err) => {
-            setTestResult({ success: false, message: err.message });
-        }
-    });
-
     const [lastIndexStats, setLastIndexStats] = useState<any>(null);
     const reindexMutation = trpc.advisor.reindexContent.useMutation({
         onSuccess: (res) => {
@@ -117,6 +109,61 @@ export default function LLMSettings() {
         },
         onError: (err) => toast.error("Indexing failed: " + err.message)
     });
+
+    const testMutation = trpc.llm.test.useMutation({
+        onSuccess: (result: any) => {
+            const isSuccess = !!result?.success;
+            const message = result?.message || (isSuccess ? "Connection successful!" : "Connection failed");
+            
+            if (isSuccess && result.id) {
+                // Refresh list
+                utils.llm.list.invalidate();
+                // If it was a new provider, it is now an existing one - set editingId so Create becomes Save
+                if (!editingId) {
+                    setEditingId(result.id);
+                }
+            }
+
+            setTestResult({
+                success: isSuccess,
+                message: message
+            });
+            
+            if (isSuccess) {
+                toast.success(message);
+            } else {
+                toast.error(message);
+            }
+            setIsTesting(false);
+        },
+        onError: (err: any) => {
+            setIsTesting(false);
+            setTestResult({
+                success: false,
+                message: err.message || "Connection test failed. Please check your credentials."
+            });
+            toast.error(err.message || "Connection test failed");
+        },
+        onSettled: () => {
+            setIsTesting(false);
+        }
+    });
+
+    const handleEdit = (provider: any) => {
+        setFormData({
+            name: provider.name,
+            provider: provider.provider,
+            model: provider.model,
+            apiKey: provider.apiKey || (provider.id ? "********" : ""), // Use "********" if key exists/editable record
+            baseUrl: provider.baseUrl || "",
+            priority: provider.priority.toString(),
+            isEnabled: provider.isEnabled,
+            supportsEmbeddings: provider.supportsEmbeddings || false
+        });
+        setEditingId(provider.id);
+        setTestResult(null); // Clear previous test result
+        setIsAddOpen(true);
+    };
 
     const resetForm = () => {
         setFormData({
@@ -129,22 +176,8 @@ export default function LLMSettings() {
             isEnabled: true,
             supportsEmbeddings: false
         });
+        setEditingId(null);
         setTestResult(null);
-    };
-
-    const handleEdit = (provider: any) => {
-        setFormData({
-            name: provider.name,
-            provider: provider.provider,
-            model: provider.model,
-            apiKey: "", // Don't fill API key for security, user must re-enter if changing
-            baseUrl: provider.baseUrl || "",
-            priority: provider.priority.toString(),
-            isEnabled: provider.isEnabled,
-            supportsEmbeddings: provider.supportsEmbeddings || false
-        });
-        setEditingId(provider.id);
-        setIsAddOpen(true);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -161,8 +194,10 @@ export default function LLMSettings() {
         };
 
         if (editingId) {
-            // If editing, apiKey is optional
-            if (!payload.apiKey) delete (payload as any).apiKey;
+            // If editing, only send apiKey if it's NOT the masked one and NOT empty
+            if (payload.apiKey === "********" || !payload.apiKey) {
+                delete (payload as any).apiKey;
+            }
             updateMutation.mutate({ id: editingId, ...payload });
         } else {
             if (!payload.apiKey) {
@@ -178,16 +213,13 @@ export default function LLMSettings() {
             toast.error("Enter an API Key to test");
             return;
         }
-        // Note: Test endpoint expects apiKey. If editing and field is empty, we can't test unless we handle it backend side.
-        // For now, only test if key provided.
-        if (!formData.apiKey) {
-            toast.error("Please re-enter API Key to test connection");
-            return;
-        }
 
         setIsTesting(true);
         setTestResult(null);
         testMutation.mutate({
+            id: editingId || undefined,
+            name: formData.name,
+            provider: formData.provider,
             apiKey: formData.apiKey,
             baseUrl: formData.baseUrl || undefined,
             model: formData.model
@@ -278,7 +310,14 @@ export default function LLMSettings() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="font-semibold text-foreground/80">API Key {editingId && "(Leave blank to keep unchanged)"}</Label>
+                        <div className="flex items-center justify-between">
+                            <Label className="font-semibold text-foreground/80">API Key {editingId && "(Leave blank to keep unchanged)"}</Label>
+                            {editingId && !formData.apiKey && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 border-none">
+                                    Key Stored
+                                </Badge>
+                            )}
+                        </div>
                         <Input
                             type="password"
                             placeholder="sk-..."
@@ -335,7 +374,7 @@ export default function LLMSettings() {
                         </Button>
                         {testResult && (
                             <span className={`text-xs flex items-center ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
-                                {testResult.success ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                {testResult.success ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
                                 {testResult.message}
                             </span>
                         )}
@@ -392,6 +431,14 @@ export default function LLMSettings() {
                                                     <span className="capitalize">{provider.provider}</span>
                                                     <span>•</span>
                                                     <span className="font-mono text-xs">{provider.model}</span>
+                                                    {provider.apiKey && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <Badge variant="outline" className="h-5 bg-green-50 text-green-600 border-green-200 text-[10px]">
+                                                                Key Set
+                                                            </Badge>
+                                                        </>
+                                                    )}
                                                     {provider.baseUrl && (
                                                         <>
                                                             <span>•</span>
@@ -401,7 +448,9 @@ export default function LLMSettings() {
                                                     {provider.supportsEmbeddings && (
                                                         <>
                                                             <span>•</span>
-                                                            <Badge variant="outline" className="text-[10px] h-4 px-1 bg-blue-50 text-blue-700 border-blue-200">Embeddings</Badge>
+                                                            <Badge variant="outline" className="h-5 bg-blue-50 text-blue-600 border-blue-200 text-[10px]">
+                                                                Embeddings
+                                                            </Badge>
                                                         </>
                                                     )}
                                                 </div>
@@ -443,7 +492,6 @@ export default function LLMSettings() {
                         <CardContent>
                             <div className="space-y-6">
                                 {FEATURES.map(feature => {
-                                    // Find current route rule
                                     const currentRule = routes?.find(r => r.feature === feature.id);
                                     const FeatureIcon = feature.icon;
 
