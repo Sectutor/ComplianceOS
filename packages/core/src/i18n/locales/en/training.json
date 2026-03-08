@@ -1,5 +1,7 @@
 {
     "title": "Training",
+    "description": "Create and manage training modules for your employees.",
+    "pageGuideDescription": "Create, assign, and track employee security training.",
     "overview": "Training Overview",
     "modules": "Training Modules",
     "courses": "Courses",

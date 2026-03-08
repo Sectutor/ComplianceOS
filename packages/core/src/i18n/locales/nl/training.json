@@ -1,5 +1,7 @@
 {
     "title": "Training",
+    "description": "Trainingsmodules aanmaken en beheren voor uw medewerkers.",
+    "pageGuideDescription": "Beveiligingstraining voor medewerkers aanmaken, toewijzen en volgen.",
     "modules": "Trainingsmodules",
     "assignments": "Toewijzingen",
     "progress": "Voortgang",

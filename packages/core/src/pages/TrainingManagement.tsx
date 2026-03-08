@@ -5,6 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useClientContext } from "@/contexts/ClientContext";
 import { TrainingAssignmentDialog } from "@/components/training/TrainingAssignmentDialog";
 import { PageGuide } from "@/components/PageGuide";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
@@ -31,6 +32,7 @@ import {
 export default function TrainingManagement({ hideLayout = false, clientId: propClientId }: { hideLayout?: boolean, clientId?: number }) {
     const { clientId: clientIdParam } = useParams();
     const context = useClientContext();
+    const { t } = useTranslation('training');
     const clientId = propClientId || parseInt(clientIdParam || "0") || context.selectedClientId || 0;
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
@@ -111,9 +113,9 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
             {!hideLayout && (
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Training Management</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
                         <p className="text-muted-foreground mt-1">
-                            Create and manage training modules for your employees.
+                            {t('description')}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
