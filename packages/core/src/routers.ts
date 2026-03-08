@@ -114,7 +114,25 @@ import { createIso27001Router } from "./server/routers/iso27001";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
-import { createTrainingRouter } from "./server/routers/training";
+import { trainingRouter } from "./modules/training";
+import { complianceRouter } from "./modules/compliance";
+
+// DEBUG: Log module router registration
+console.log('[ROUTERS] Registering modular routers:', {
+  trainingRouter: Object.keys(trainingRouter._def.procedures),
+  complianceRouter: Object.keys(complianceRouter._def.procedures)
+});
+import { riskRouter } from "./modules/risk";
+import { policyRouter } from "./modules/policy";
+import { evidenceRouter } from "./modules/evidence";
+import { auditRouter } from "./modules/audit";
+import { employeesRouter } from "./modules/employees";
+import { frameworksRouter } from "./modules/frameworks";
+import { notificationsRouter } from "./modules/notifications";
+import { dashboardRouter as modularDashboardRouter } from "./modules/dashboard";
+import { vendorsRouter } from "./modules/vendors";
+import { onboardingRouter as modularOnboardingRouter } from "./modules/onboarding";
+import { integrationsRouter as modularIntegrationsRouter } from "./modules/integrations";
 import { magicLinksRouter } from "./server/routers/magicLinks";
 import { createSammV2Router } from "./server/routers/samm-v2";
 import { emailTemplatesRouter } from "./server/routers/emailTemplates";
@@ -190,13 +208,13 @@ export const appRouter = router({
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   users: usersSubRouter,
-  employees: createEmployeesRouter(t, clientProcedure),
+  employees: employeesRouter,
   crm: createCrmRouter(t, clientProcedure),
   sales: createSalesRouter(t, clientProcedure),
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
-  frameworks: createFrameworksRouter(t, protectedProcedure),
+  frameworks: frameworksRouter,
   frameworkImport: createFrameworkImportRouter(t, clientProcedure),
   frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
   requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
@@ -215,13 +233,13 @@ export const appRouter = router({
   iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
 
 
-  dashboard: createDashboardRouter(t, adminProcedure, publicProcedure.use(isAuthed)),
-  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
-  evidence: createEvidenceRouter(t, adminProcedure, publicProcedure, protectedProcedure),
-  notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
+  dashboard: modularDashboardRouter,
+  compliance: complianceRouter,
+  evidence: evidenceRouter,
+  notifications: notificationsRouter,
 
   // Risk Management Module
-  risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
+  risks: riskRouter,
   riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
   kris: createKrisRouter(t, clientProcedure),
   metrics: createMetricsRouter(t, clientProcedure),
@@ -230,7 +248,7 @@ export const appRouter = router({
   threatModels: createThreatModelsRouter(t, clientProcedure),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
   adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
-  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
+  vendors: vendorsRouter,
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
@@ -240,7 +258,7 @@ export const appRouter = router({
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
   harmonization: createHarmonizationRouter(t, protectedProcedure),
-  audit: createAuditRouter(t, protectedProcedure),
+  audit: auditRouter,
   findings: createFindingsRouter(t, protectedProcedure),
 
   waitlist: createWaitlistRouter(t, publicProcedure, adminProcedure),
@@ -253,14 +271,16 @@ export const appRouter = router({
   privacyEnhancements: createPrivacyEnhancementsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   cyber: createCyberRouter(t, clientProcedure),
   assets: createAssetsRouter(t, clientProcedure, clientEditorProcedure),
-  integrations: integrationsRouter ? integrationsRouter(t, clientProcedure, publicProcedure, isAuthed) : router({}),
+  // integrations handled by modular router below
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
 
   learning: createLearningRouter(t, publicProcedure, adminProcedure),
-  onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
-  training: createTrainingRouter(t, clientProcedure, clientEditorProcedure),
+  onboarding: modularOnboardingRouter,
+  training: trainingRouter,
+  policy: policyRouter,
+  integrations: modularIntegrationsRouter,
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
   questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),

@@ -13,6 +13,9 @@ import { registerDefaults } from "@/registry/defaults";
 import { registerPremium } from "@/registry/premium";
 import "./index.css";
 
+// Import i18n configuration - must be before App renders
+import "@/i18n/config";
+
 // Initialize the Slot Registry
 // 1. Register Core Defaults (Clean Slate)
 registerDefaults();

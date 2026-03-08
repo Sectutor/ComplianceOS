@@ -1,6 +1,7 @@
 import { useParams, Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
@@ -13,6 +14,7 @@ import Markdown from "react-markdown";
 
 export default function ClientCompliancePage() {
     const { id } = useParams<{ id: string }>();
+    const { t } = useTranslation('compliance');
     const clientId = parseInt(id || "0");
 
     // Fetch Data
@@ -48,9 +50,9 @@ export default function ClientCompliancePage() {
             <div className="space-y-8">
                 {/* Header */}
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-bold tracking-tight">Compliance Dashboard</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
                     <div className="text-muted-foreground flex items-center gap-2">
-                        Monitor compliance across frameworks and controls for
+                        {t('overview')}
                         {clientLoading ? (
                             <Skeleton className="h-5 w-32 inline-block" />
                         ) : (

@@ -38,6 +38,7 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { GlobalSearch } from "./GlobalSearch";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
 import { CopilotButton } from "@complianceos/premium/components/advisor/CopilotButton";
@@ -1226,6 +1227,7 @@ function DashboardLayoutContent({
           </div>
           <div className="flex items-center gap-3">
             <GlobalSearch />
+            <LanguageSwitcher compact />
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <CopilotHelpTrigger />
             <NotificationCenter />
