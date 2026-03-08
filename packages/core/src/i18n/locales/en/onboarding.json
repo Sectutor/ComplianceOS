@@ -1,0 +1,84 @@
+{
+    "title": "Start Here",
+    "subtitle": "Welcome to ComplianceOS - Your GRC Platform",
+    "description": "Choose a workflow to get started with your compliance journey.",
+    "workflows": {
+        "riskAssessment": {
+            "title": "Risk Assessment",
+            "description": "Identify, analyze, and evaluate security risks to your organization.",
+            "goal": "Complete a comprehensive risk register and treatment plan.",
+            "steps": {
+                "identifyAssets": "Identify Assets",
+                "identifyAssetsDesc": "Catalog your critical information assets (hardware, software, data).",
+                "identifyRisks": "Identify Risks",
+                "identifyRisksDesc": "Determine threats and vulnerabilities affecting your assets.",
+                "assessImpact": "Assess Impact",
+                "assessImpactDesc": "Score risks based on likelihood and impact.",
+                "treatRisks": "Treat Risks",
+                "treatRisksDesc": "Decide to mitigate, accept, avoid, or transfer risks."
+            }
+        },
+        "gapAnalysis": {
+            "title": "Gap Analysis",
+            "description": "Assess your current security posture against industry standards.",
+            "goal": "Identify compliance gaps and create a remediation roadmap.",
+            "steps": {
+                "selectFramework": "Select Framework",
+                "selectFrameworkDesc": "Define your target standard (ISO 27001, SOC 2, NIST).",
+                "currentState": "Current State Assessment",
+                "currentStateDesc": "Evaluate existing controls against framework requirements."
+            }
+        },
+        "complianceAudit": {
+            "title": "Compliance Audit",
+            "description": "Prepare for and manage compliance audits effectively.",
+            "goal": "Achieve audit-ready status and maintain continuous compliance.",
+            "steps": {
+                "evidenceCollection": "Evidence Collection",
+                "evidenceCollectionDesc": "Gather documentation and evidence for controls.",
+                "auditReadiness": "Audit Readiness",
+                "auditReadinessDesc": "Verify all required evidence is in place."
+            }
+        },
+        "policyManagement": {
+            "title": "Policy Management",
+            "description": "Create, manage, and distribute security policies across your organization.",
+            "goal": "Establish a comprehensive policy framework.",
+            "steps": {
+                "createPolicies": "Create Policies",
+                "createPoliciesDesc": "Develop security policies aligned with your framework.",
+                "distributePolicies": "Distribute Policies",
+                "distributePoliciesDesc": "Share policies with employees and track acknowledgments."
+            }
+        },
+        "vendorAssessment": {
+            "title": "Vendor Assessment",
+            "description": "Evaluate and monitor third-party vendor security risks.",
+            "goal": "Maintain a vendor risk register and assessment program.",
+            "steps": {
+                "identifyVendors": "Identify Vendors",
+                "identifyVendorsDesc": "Catalog all third-party vendors with data access.",
+                "assessVendors": "Assess Vendors",
+                "assessVendorsDesc": "Evaluate vendor security controls and risk levels."
+            }
+        },
+        "trainingAwareness": {
+            "title": "Training & Awareness",
+            "description": "Develop and track security awareness training for employees.",
+            "goal": "Ensure all employees complete required security training.",
+            "steps": {
+                "createTraining": "Create Training",
+                "createTrainingDesc": "Develop training modules for security topics.",
+                "assignTraining": "Assign Training",
+                "assignTrainingDesc": "Assign training to employees and track completion."
+            }
+        }
+    },
+    "actions": {
+        "getStarted": "Get Started",
+        "learnMore": "Learn More",
+        "viewDashboard": "View Dashboard",
+        "continueWorkflow": "Continue",
+        "skip": "Skip for Now"
+    }
+}

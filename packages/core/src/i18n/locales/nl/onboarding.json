@@ -1,0 +1,84 @@
+{
+    "title": "Aan de slag",
+    "subtitle": "Welkom bij ComplianceOS -Uw GRC-platform",
+    "description": "Kies een werkstroom om te beginnen met uw compliance-reis.",
+    "workflows": {
+        "riskAssessment": {
+            "title": "Risicobeoordeling",
+            "description": "Identificeer, analyseer en evalueer beveiligingsrisico's voor uw organisatie.",
+            "goal": "Voltooi een uitgebreid risicoregister en behandelplan.",
+            "steps": {
+                "identifyAssets": "Identificeer activa",
+                "identifyAssetsDesc": "Catalogiseer uw kritieke informatie-activa (hardware, software, data).",
+                "identifyRisks": "Identificeer risico's",
+                "identifyRisksDesc": "Bepaal bedreigingen en kwetsbaarheden die uw activa beïnvloeden.",
+                "assessImpact": "Beoordeel impact",
+                "assessImpactDesc": "Score risico's op basis van waarschijnlijkheid en impact.",
+                "treatRisks": "Behandel risico's",
+                "treatRisksDesc": "Beslis of u risico's wilt mitigeren, accepteren, vermijden of overdragen."
+            }
+        },
+        "gapAnalysis": {
+            "title": "Gap-analyse",
+            "description": "Beoordeel uw huidige beveiligingspositie tegen industriestandaarden.",
+            "goal": "Identificeer compliance-gaps en maak een herstelroadmap.",
+            "steps": {
+                "selectFramework": "Kies framework",
+                "selectFrameworkDesc": "Definieer uw doelstandaard (ISO 27001, SOC 2, NIST).",
+                "currentState": "Huidige statustoetsing",
+                "currentStateDesc": "Evalueer bestaande controles tegen framework-vereisten."
+            }
+        },
+        "complianceAudit": {
+            "title": "Compliance-audit",
+            "description": "Bereid voor op en beheer compliance-audits effectief.",
+            "goal": "Bereik audit-gereedheid en handhaaf continue compliance.",
+            "steps": {
+                "evidenceCollection": "Verzamelen van bewijs",
+                "evidenceCollectionDesc": "Verzamel documentatie en bewijs voor controles.",
+                "auditReadiness": "Audit-gereedheid",
+                "auditReadinessDesc": "Verifieer dat alle vereiste bewijzen aanwezig zijn."
+            }
+        },
+        "policyManagement": {
+            "title": "Beleidsbeheer",
+            "description": "Maak, beheer en distribueer beveiligingsbeleid in uw organisatie.",
+            "goal": "Stel een uitgebreid beleidskader op.",
+            "steps": {
+                "createPolicies": "Beleid maken",
+                "createPoliciesDesc": "Ontwikkel beveiligingsbeleid afgestemd op uw framework.",
+                "distributePolicies": "Beleid distribueren",
+                "distributePoliciesDesc": "Deel beleid met medewerkers en volg bevestigingen."
+            }
+        },
+        "vendorAssessment": {
+            "title": "Leveranciersbeoordeling",
+            "description": "Evalueer en bewaak beveiligingsrisico's van derden.",
+            "goal": "Onderhoud een leveranciersrisicoregister en beoordelingsprogramma.",
+            "steps": {
+                "identifyVendors": "Identificeer leveranciers",
+                "identifyVendorsDesc": "Catalogiseer alle leveranciers datac metces.",
+                "assessVendors": "Beoordeel leveranciers",
+                "assessVendorsDesc": "Evalueer beveiligingscontroles en risiconiveaus van leveranciers."
+            }
+        },
+        "trainingAwareness": {
+            "title": "Training & Bewustzijn",
+            "description": "Ontwikkel en volg beveiligingsbewustzijnstraining voor medewerkers.",
+            "goal": "Zorg dat alle medewerkers vereiste beveiligingstraining voltooien.",
+            "steps": {
+                "createTraining": "Training maken",
+                "createTrainingDesc": "Ontwikkel trainingsmodules voor beveiligingstopic.",
+                "assignTraining": "Training toewijzen",
+                "assignTrainingDesc": "Wijs training toe aan medewerkers en volg voltooiing."
+            }
+        }
+    },
+    "actions": {
+        "getStarted": "Aan de slag",
+        "learnMore": "Meer informatie",
+        "viewDashboard": "Bekijk dashboard",
+        "continueWorkflow": "Doorgaan",
+        "skip": "Nu overslaan"
+    }
+}

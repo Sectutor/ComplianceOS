@@ -20,9 +20,11 @@ import enVendors from './locales/en/vendors.json';
 import enEmployees from './locales/en/employees.json';
 import enSettings from './locales/en/settings.json';
 import enEvidence from './locales/en/evidence.json';
+import enOnboarding from './locales/en/onboarding.json';
 
 // Dutch translations
 import nlCommon from './locales/nl/common.json';
+import nlOnboarding from './locales/nl/onboarding.json';
 
 // Language resources
 const resources = {
@@ -38,9 +40,11 @@ const resources = {
         employees: enEmployees,
         settings: enSettings,
         evidence: enEvidence,
+        onboarding: enOnboarding,
     },
     nl: {
         common: nlCommon,
+        onboarding: nlOnboarding,
     },
     // Additional languages can be added as locale files are created
     // Example structure for adding new languages:
@@ -177,7 +181,8 @@ i18n
             'vendors',
             'employees',
             'settings',
-            'evidence'
+            'evidence',
+            'onboarding'
         ],
         defaultNS: 'common',
 
