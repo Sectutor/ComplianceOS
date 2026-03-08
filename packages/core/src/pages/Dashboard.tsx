@@ -26,6 +26,7 @@ import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
 import { useClientContext } from "@/contexts/ClientContext";
+import { useTranslation } from "@/hooks/useTranslation";
 import { resolveNavigationPath } from "@/lib/navigation";
 
 // Helper to determine compliance status based on rate - Plain Language Version
@@ -123,6 +124,7 @@ const FRAMEWORK_COLORS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation('dashboard');
   const [, setLocation] = useLocation();
   const [framework, setFramework] = useState<string | undefined>();
   const [clientId, setClientId] = useState<string | undefined>();
@@ -420,7 +422,7 @@ export default function Dashboard() {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tight">
-                  Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Commander'}.
+                  {new Date().getHours() < 12 ? t('goodMorning') : new Date().getHours() < 18 ? t('goodAfternoon') : t('goodEvening')}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || t('commander')}.
                 </h1>
                 <p className="text-slate-600 font-medium mt-2 text-lg">
                   Your compliance posture is active and scanning. Here is your daily briefing.

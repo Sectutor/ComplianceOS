@@ -1,5 +1,10 @@
 {
     "title": "Dashboard",
+    "welcome": "Welkom",
+    "goodMorning": "Goedemorgen",
+    "goodAfternoon": "Goedemiddag",
+    "goodEvening": "Goedenavond",
+    "commander": "Commander",
     "overview": "Overzicht",
     "welcome": "Welkom terug",
     "quickActions": "Snelle acties",

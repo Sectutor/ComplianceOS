@@ -1,5 +1,10 @@
 {
     "title": "Dashboard",
+    "welcome": "Welcome",
+    "goodMorning": "Good Morning",
+    "goodAfternoon": "Good Afternoon",
+    "goodEvening": "Good Evening",
+    "commander": "Commander",
     "overview": "Overview",
     "statistics": "Statistics",
     "compliance": "Compliance",
