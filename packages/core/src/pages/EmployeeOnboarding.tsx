@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
@@ -98,6 +99,7 @@ function getYouTubeThumbnail(url: string | null) {
 
 export default function EmployeeOnboarding() {
     const { user } = useAuth();
+    const { t } = useTranslation('training');
     // Track viewed policies in this session
     const [viewedPolicies, setViewedPolicies] = useState<Set<string>>(new Set());
     const [viewingPolicy, setViewingPolicy] = useState<string | null>(null);
@@ -271,7 +273,7 @@ export default function EmployeeOnboarding() {
                         <Breadcrumb
                             items={[
                                 { label: "Dashboard", href: "/dashboard" },
-                                { label: "Employee Onboarding" },
+                                { label: t('employeeOnboarding') },
                             ]}
                         />
                     </div>
