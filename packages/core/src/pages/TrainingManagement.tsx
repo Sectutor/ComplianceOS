@@ -51,29 +51,29 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
 
     const createMutation = trpc.training.create.useMutation({
         onSuccess: () => {
-            toast.success("Training module created");
+            toast.success(t('toastSuccessCreated'));
             setIsDialogOpen(false);
             refetch();
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast.error(t('toastError', { message: err.message }))
     });
 
     const updateMutation = trpc.training.update.useMutation({
         onSuccess: () => {
-            toast.success("Training module updated");
+            toast.success(t('toastSuccessUpdated'));
             setIsDialogOpen(false);
             refetch();
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast.error(t('toastError', { message: err.message }))
     });
 
     const deleteMutation = trpc.training.delete.useMutation({
         onSuccess: () => {
-            toast.success("Training module deleted");
+            toast.success(t('toastSuccessDeleted'));
             setIsDialogOpen(false);
             refetch();
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast.error(t('toastError', { message: err.message }))
     });
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -155,7 +155,7 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
                         />
                         <Button id="train-add-btn" onClick={openCreateDialog}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Module
+                            {t('addModule')}
                         </Button>
                     </div>
                 </div>
@@ -172,7 +172,7 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
                     {hideLayout && (
                         <Button onClick={openCreateDialog} size="sm" className="gap-2">
                             <Plus className="h-4 w-4" />
-                            Add Module
+                            {t('addModule')}
                         </Button>
                     )}
                 </CardHeader>
@@ -283,7 +283,7 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
             <EnhancedDialog
                 open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
-                title={selectedModule ? "Edit Module" : "Create Module"}
+                title={selectedModule ? t('editModule') : t('createModule')}
                 description="Configure your training content."
             >
                 <form onSubmit={handleSubmit} className="space-y-6 pt-4">
@@ -293,40 +293,40 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
                             <Input id="title" name="title" defaultValue={selectedModule?.title} required placeholder="e.g. Data Privacy Basics" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="description">Short Description</Label>
-                            <Textarea id="description" name="description" defaultValue={selectedModule?.description} placeholder="What will employees learn?" />
+                            <Label htmlFor="description">{t('formDescription')}</Label>
+                            <Textarea id="description" name="description" defaultValue={selectedModule?.description} placeholder={t('formDescriptionPlaceholder')} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="type">Content Type</Label>
+                                <Label htmlFor="type">{t('formType')}</Label>
                                 <Select name="type" defaultValue={selectedModule?.type || "video"}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="video">Video</SelectItem>
-                                        <SelectItem value="text">Rich Text</SelectItem>
+                                        <SelectItem value="video">{t('formTypeVideo')}</SelectItem>
+                                        <SelectItem value="text">{t('formTypeText')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="durationMinutes">Duration (minutes)</Label>
+                                <Label htmlFor="durationMinutes">{t('formDuration')}</Label>
                                 <Input id="durationMinutes" name="durationMinutes" type="number" defaultValue={selectedModule?.durationMinutes} />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="videoUrl">Video URL (YouTube/Vimeo link or direct file)</Label>
-                            <Input id="videoUrl" name="videoUrl" defaultValue={selectedModule?.videoUrl} placeholder="https://youtube.com/..." />
+                            <Label htmlFor="videoUrl">{t('formVideoUrl')}</Label>
+                            <Input id="videoUrl" name="videoUrl" defaultValue={selectedModule?.videoUrl} placeholder={t('formVideoUrlPlaceholder')} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="thumbnailUrl">Custom Thumbnail URL (Optional)</Label>
-                            <Input id="thumbnailUrl" name="thumbnailUrl" defaultValue={selectedModule?.thumbnailUrl} placeholder="If empty, YouTube/Vimeo thumbnail will be used if possible" />
+                            <Label htmlFor="thumbnailUrl">{t('formThumbnailUrl')}</Label>
+                            <Input id="thumbnailUrl" name="thumbnailUrl" defaultValue={selectedModule?.thumbnailUrl} placeholder={t('formThumbnailUrlPlaceholder')} />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="content">Text Content (if Type is Rich Text)</Label>
-                            <Textarea id="content" name="content" className="min-h-[200px]" defaultValue={selectedModule?.content} placeholder="Markdown or HTML supported..." />
+                            <Label htmlFor="content">{t('formContent')}</Label>
+                            <Textarea id="content" name="content" className="min-h-[200px]" defaultValue={selectedModule?.content} placeholder={t('formContentPlaceholder')} />
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -338,7 +338,7 @@ export default function TrainingManagement({ hideLayout = false, clientId: propC
                     <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                         <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                            {selectedModule ? "Update Module" : "Create Module"}
+                            {selectedModule ? t('updateModule') : t('createModule')}
                         </Button>
                     </div>
                 </form>
