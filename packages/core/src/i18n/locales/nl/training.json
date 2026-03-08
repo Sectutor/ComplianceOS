@@ -1,0 +1,39 @@
+{
+    "title": "Training",
+    "modules": "Trainingsmodules",
+    "assignments": "Toewijzingen",
+    "progress": "Voortgang",
+    "completed": "Voltooid",
+    "inProgress": "In uitvoering",
+    "notStarted": "Niet gestart",
+    "dueDate": "Einddatum",
+    "assignedTo": "Toegewezen aan",
+    "assignedBy": "Toegewezen door",
+    "status": {
+        "pending": "In behandeling",
+        "inProgress": "In uitvoering",
+        "completed": "Voltooid",
+        "overdue": "Over tijd",
+        "notStarted": "Niet gestart"
+    },
+    "actions": {
+        "assign": "Toewijzen",
+        "unassign": "Toewijzing verwijderen",
+        "markComplete": "Als voltooid markeren",
+        "viewCertificate": "Certificaat bekijken",
+        "startModule": "Module starten",
+        "continueModule": "Module voortzetten"
+    },
+    "modules": {
+        "video": "Video",
+        "text": "Tekst",
+        "quiz": "Quiz",
+        "interactive": "Interactief"
+    },
+    "statistics": {
+        "totalAssigned": "Totaal toegewezen",
+        "totalCompleted": "Totaal voltooid",
+        "completionRate": "Voltooiingspercentage",
+        "averageScore": "Gemiddelde score"
+    }
+}

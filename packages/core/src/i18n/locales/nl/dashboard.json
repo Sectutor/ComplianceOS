@@ -1,0 +1,55 @@
+{
+    "title": "Dashboard",
+    "overview": "Overzicht",
+    "welcome": "Welkom terug",
+    "quickActions": "Snelle acties",
+    "recentActivity": "Recente activiteit",
+    "statistics": "Statistieken",
+    "compliance": {
+        "score": "Compliance score",
+        "totalControls": "Totaal aantal controles",
+        "implementedControls": "Geïmplementeerde controles",
+        "pendingControls": "Openstaande controles"
+    },
+    "risks": {
+        "title": "Risico's",
+        "totalRisks": "Totaal risico's",
+        "highRisks": "Hoge risico's",
+        "mediumRisks": "Gemiddelde risico's",
+        "lowRisks": "Lage risico's"
+    },
+    "employees": {
+        "title": "Medewerkers",
+        "totalEmployees": "Totaal medewerkers",
+        "activeEmployees": "Actieve medewerkers",
+        "pendingTraining": "Training in afwachting"
+    },
+    "vendors": {
+        "title": "Leveranciers",
+        "totalVendors": "Totaal leveranciers",
+        "approvedVendors": "Goedgekeurde leveranciers",
+        "pendingVendors": "Leveranciers in afwachting"
+    },
+    "policies": {
+        "title": "Beleid",
+        "totalPolicies": "Totaal beleid",
+        "activePolicies": "Actief beleid",
+        "pendingReviews": "Reviews in afwachting"
+    },
+    "training": {
+        "title": "Training",
+        "completedTraining": "Voltooid training",
+        "inProgressTraining": "Training in uitvoering",
+        "upcomingTraining": "Aankomende training"
+    },
+    "notifications": {
+        "title": "Meldingen",
+        "noNotifications": "Geen meldingen",
+        "markAllRead": "Alles als gelezen markeren"
+    },
+    "charts": {
+        "complianceTrend": "Compliance trend",
+        "riskDistribution": "Risicoverdeling",
+        "trainingProgress": "Training voortgang"
+    }
+}

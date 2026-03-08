@@ -25,6 +25,10 @@ import enOnboarding from './locales/en/onboarding.json';
 // Dutch translations
 import nlCommon from './locales/nl/common.json';
 import nlOnboarding from './locales/nl/onboarding.json';
+import nlDashboard from './locales/nl/dashboard.json';
+import nlNavigation from './locales/nl/navigation.json';
+import nlTraining from './locales/nl/training.json';
+import nlSettings from './locales/nl/settings.json';
 
 // Language resources
 const resources = {
@@ -45,6 +49,10 @@ const resources = {
     nl: {
         common: nlCommon,
         onboarding: nlOnboarding,
+        dashboard: nlDashboard,
+        navigation: nlNavigation,
+        training: nlTraining,
+        settings: nlSettings,
     },
     // Additional languages can be added as locale files are created
     // Example structure for adding new languages:

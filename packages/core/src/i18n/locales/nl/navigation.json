@@ -1,0 +1,49 @@
+{
+    "menu": {
+        "dashboard": "Dashboard",
+        "startHere": "Aan de slag",
+        "clients": "Klanten",
+        "compliance": "Compliance",
+        "risks": "Risico's",
+        "policies": "Beleid",
+        "evidence": "Bewijs",
+        "training": "Training",
+        "vendors": "Leveranciers",
+        "employees": "Medewerkers",
+        "audits": "Audits",
+        "reports": "Rapporten",
+        "settings": "Instellingen",
+        "help": "Help",
+        "logout": "Uitloggen"
+    },
+    "sidebar": {
+        "collapse": "Zijbalk samenvouwen",
+        "expand": "Zijbalk uitvouwen",
+        "toggleMenu": "Menu omschakelen"
+    },
+    "breadcrumbs": {
+        "home": "Home",
+        "back": "Terug"
+    },
+    "actions": {
+        "save": "Opslaan",
+        "cancel": "Annuleren",
+        "delete": "Verwijderen",
+        "edit": "Bewerken",
+        "create": "Aanmaken",
+        "update": "Bijwerken",
+        "search": "Zoeken",
+        "filter": "Filteren",
+        "export": "Exporteren",
+        "import": "Importeren",
+        "refresh": "Vernieuwen",
+        "close": "Sluiten",
+        "confirm": "Bevestigen"
+    },
+    "userMenu": {
+        "profile": "Profiel",
+        "preferences": "Voorkeuren",
+        "account": "Account",
+        "signOut": "Uitloggen"
+    }
+}

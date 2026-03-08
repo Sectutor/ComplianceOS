@@ -1,0 +1,76 @@
+{
+    "title": "Instellingen",
+    "general": "Algemeen",
+    "account": "Account",
+    "security": "Beveiliging",
+    "notifications": "Meldingen",
+    "language": "Taal",
+    "appearance": "Uiterlijk",
+    "billing": "Facturatie",
+    "integrations": "Integraties",
+    "profile": {
+        "title": "Profiel",
+        "firstName": "Voornaam",
+        "lastName": "Achternaam",
+        "email": "E-mailadres",
+        "phone": "Telefoonnummer",
+        "role": "Rol",
+        "department": "Afdeling",
+        "saveProfile": "Profiel opslaan"
+    },
+    "security": {
+        "title": "Beveiliging",
+        "changePassword": "Wachtwoord wijzigen",
+        "currentPassword": "Huidig wachtwoord",
+        "newPassword": "Nieuw wachtwoord",
+        "confirmPassword": "Wachtwoord bevestigen",
+        "twoFactor": "Twee-factor authenticatie",
+        "enable2FA": "2FA inschakelen",
+        "sessionTimeout": "Sessie timeout",
+        "lastLogin": "Laatste login",
+        "loginHistory": "Login geschiedenis"
+    },
+    "notifications": {
+        "title": "Meldingen",
+        "emailNotifications": "E-mailmeldingen",
+        "pushNotifications": "Pushmeldingen",
+        "riskAlerts": "Risicomeldingen",
+        "complianceAlerts": "Compliance-meldingen",
+        "trainingReminders": "Training herinneringen",
+        "vendorAlerts": "Leveranciersmeldingen",
+        "weeklyDigest": "Wekelijks overzicht",
+        "dailyDigest": "Dagelijks overzicht"
+    },
+    "language": {
+        "title": "Taalinstellingen",
+        "selectLanguage": "Taal selecteren",
+        "currentLanguage": "Huidige taal",
+        "availableLanguages": "Beschikbare talen",
+        "changeLanguage": "Taal wijzigen"
+    },
+    "appearance": {
+        "title": "Uiterlijk",
+        "theme": "Thema",
+        "light": "Licht",
+        "dark": "Donker",
+        "system": "Systeem",
+        "colorScheme": "Kleurenschema",
+        "fontSize": "Lettergrootte"
+    },
+    "billing": {
+        "title": "Facturatie",
+        "currentPlan": "Huidig abonnement",
+        "upgrade": "Upgraden",
+        "billingHistory": "Factuurhistorie",
+        "paymentMethod": "Betalingsmethode",
+        "invoices": "Facturen"
+    },
+    "integrations": {
+        "title": "Integraties",
+        "available": "Beschikbare integraties",
+        "connected": "Verbonden",
+        "disconnected": "Niet verbonden",
+        "configure": "Configureren",
+        "disconnect": "Verbinding verbreken"
+    }
+}
