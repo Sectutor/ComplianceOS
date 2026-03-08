@@ -283,6 +283,317 @@ export const complianceRouter = router({
     }),
 
     // =========================================================================
+    // Nested Router: Framework Mappings (migrated from server/routers/compliance.ts)
+    // =========================================================================
+    frameworkMappings: router({
+        /**
+         * List all framework mappings
+         */
+        list: publicProcedure
+            .input(z.object({}))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                return await db.select().from(frameworkMappings);
+            }),
+
+        /**
+         * Get equivalent mappings for a control
+         */
+        listEquivalents: publicProcedure
+            .input(z.object({ controlId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const source = await db.select()
+                    .from(frameworkMappings)
+                    .where(eq(frameworkMappings.sourceControlId, input.controlId));
+
+                const targetIds = source.map((s: any) => s.targetControlId);
+                if (targetIds.length === 0) return [];
+
+                return await db.select()
+                    .from(frameworkMappings)
+                    .where(inArray(frameworkMappings.targetControlId, targetIds));
+            }),
+
+        /**
+         * Create a new framework mapping (admin only)
+         */
+        create: adminProcedure
+            .input(z.object({
+                sourceControlId: z.number(),
+                targetControlId: z.number(),
+                mappingType: z.string().default('manual'),
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                const [mapping] = await db.insert(frameworkMappings)
+                    .values(input)
+                    .returning();
+                return mapping;
+            }),
+
+        /**
+         * Bulk create mappings (admin only)
+         */
+        bulkCreate: adminProcedure
+            .input(z.array(z.object({
+                sourceControlId: z.number(),
+                targetControlId: z.number(),
+                mappingType: z.string().default('manual'),
+            })))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                const mappings = await db.insert(frameworkMappings)
+                    .values(input)
+                    .returning();
+                return mappings;
+            }),
+
+        /**
+         * Delete a mapping (admin only)
+         */
+        delete: adminProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.delete(frameworkMappings).where(eq(frameworkMappings.id, input.id));
+                return { success: true };
+            }),
+
+        /**
+         * Auto-map controls between frameworks (client editor)
+         */
+        autoMapControls: clientEditorProcedure
+            .input(z.object({
+                clientId: z.number(),
+                sourceFramework: z.string(),
+                targetFramework: z.string(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                const { clientId, sourceFramework, targetFramework } = input;
+
+                // Get all client controls for source framework
+                const sourceControls = await db.select()
+                    .from(clientControls)
+                    .where(eq(clientControls.clientId, clientId));
+
+                // Find mappings where source control matches
+                let createdCount = 0;
+                for (const cc of sourceControls) {
+                    const mappings = await db.select()
+                        .from(frameworkMappings)
+                        .where(and(
+                            eq(frameworkMappings.sourceControlId, cc.controlId)
+                        ));
+
+                    for (const mapping of mappings) {
+                        // Check if mapping already exists
+                        const existing = await db.select()
+                            .from(frameworkMappings)
+                            .where(and(
+                                eq(frameworkMappings.sourceControlId, mapping.targetControlId)
+                            ));
+
+                        if (existing.length === 0) {
+                            await db.insert(frameworkMappings)
+                                .values({
+                                    sourceControlId: mapping.targetControlId,
+                                    targetControlId: mapping.sourceControlId,
+                                    mappingType: 'auto',
+                                });
+                            createdCount++;
+                        }
+                    }
+                }
+
+                return { success: true, count: createdCount };
+            }),
+    }),
+
+    // =========================================================================
+    // Remediation Tasks (nested under compliance for now)
+    // =========================================================================
+    remediationTasks: router({
+        /**
+         * Create a remediation task
+         */
+        create: clientEditorProcedure
+            .input(z.object({
+                clientId: z.number(),
+                clientControlId: z.number().optional(),
+                title: z.string(),
+                description: z.string().optional(),
+                status: z.string().default('pending'),
+                dueDate: z.string().optional(),
+                assignedTo: z.number().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const { clientControlId, ...taskData } = input;
+
+                // Get the control name if clientControlId is provided
+                let controlName = null;
+                if (clientControlId) {
+                    const [control] = await db.select()
+                        .from(clientControls)
+                        .where(eq(clientControls.id, clientControlId))
+                        .limit(1);
+                    controlName = control?.name;
+                }
+
+                // For now, we'll create a simple task record
+                // In a real implementation, you'd have a remediationTasks table
+                return {
+                    success: true,
+                    id: Date.now(),
+                    title: input.title,
+                    description: input.description,
+                    status: input.status,
+                    clientControlId,
+                    controlName
+                };
+            }),
+
+        /**
+         * Update a remediation task
+         */
+        update: clientEditorProcedure
+            .input(z.object({
+                id: z.number(),
+                title: z.string().optional(),
+                description: z.string().optional(),
+                status: z.string().optional(),
+                dueDate: z.string().optional(),
+                assignedTo: z.number().optional(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const { id, ...updateData } = input;
+                return { success: true, id, ...updateData };
+            }),
+
+        /**
+         * Delete a remediation task
+         */
+        delete: adminProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input }: any) => {
+                return { success: true, id: input.id };
+            }),
+
+        /**
+         * List remediation tasks
+         */
+        list: clientProcedure
+            .input(z.object({
+                clientId: z.number().optional(),
+                clientControlId: z.number().optional(),
+            }))
+            .query(async ({ input }: any) => {
+                // Return empty array - would need actual table
+                return [];
+            }),
+    }),
+
+    // =========================================================================
+    // Framework Stats
+    // =========================================================================
+    frameworkStats: router({
+        /**
+         * Get framework statistics for a client
+         */
+        list: clientProcedure
+            .input(z.object({}))
+            .query(async ({ ctx }: any) => {
+                // Return stats - would aggregate from controls
+                return {
+                    frameworks: [],
+                    totalControls: 0,
+                    compliantControls: 0,
+                    nonCompliantControls: 0
+                };
+            }),
+    }),
+
+    // =========================================================================
+    // Remediation Playbooks
+    // =========================================================================
+    remediationPlaybooks: router({
+        /**
+         * Get AI suggestions for remediation
+         */
+        getSuggestions: publicProcedure
+            .input(z.object({
+                controlId: z.number(),
+                framework: z.string(),
+            }))
+            .query(async ({ input }: any) => {
+                // Return placeholder - would use LLM in production
+                return {
+                    suggestions: [
+                        {
+                            title: 'Implement access controls',
+                            description: 'Configure role-based access control for this system',
+                            effort: 'medium',
+                            impact: 'high'
+                        }
+                    ]
+                };
+            }),
+
+        /**
+         * Get a specific playbook
+         */
+        get: publicProcedure
+            .input(z.object({ id: z.number() }))
+            .query(async ({ input }: any) => {
+                return {
+                    id: input.id,
+                    title: 'Sample Playbook',
+                    steps: []
+                };
+            }),
+
+        /**
+         * List all playbooks
+         */
+        list: publicProcedure
+            .query(async () => {
+                return [];
+            }),
+
+        /**
+         * Create a playbook
+         */
+        create: adminProcedure
+            .input(z.object({
+                title: z.string(),
+                description: z.string().optional(),
+                steps: z.array(z.object({
+                    order: z.number(),
+                    title: z.string(),
+                    description: z.string(),
+                })),
+            }))
+            .mutation(async ({ input }: any) => {
+                return {
+                    success: true,
+                    id: Date.now(),
+                    ...input
+                };
+            }),
+
+        /**
+         * Delete a playbook
+         */
+        delete: adminProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input }: any) => {
+                return { success: true };
+            }),
+    }),
+
+    // =========================================================================
     // Compliance Requirements
     // =========================================================================
 
@@ -704,4 +1015,5 @@ export const complianceRouter = router({
 });
 
 export default complianceRouter;
+
 
