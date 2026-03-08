@@ -10,6 +10,7 @@ import { RiskTreatmentDialog } from '../components/risk/RiskTreatmentDialog';
 import { AddAssetDialog } from '../components/risk/AddAssetDialog';
 import { Radar, Zap, ShieldAlert, ArrowUpRight, TrendingUp } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ... imports
 
@@ -17,6 +18,7 @@ export default function RiskRegister() {
     const params = useParams();
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
+    const { t } = useTranslation('risk');
 
     // Determine effective client ID
     const effectiveClientId = routeClientId || authClient?.id;
