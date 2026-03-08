@@ -1,5 +1,9 @@
 {
     "title": "Compliance",
+    "viewWorkflow": "View Workflow",
+    "viewControls": "View Controls",
+    "mapPolicies": "Map Policies",
+    "goToEvidence": "Go to Evidence",
     "requirements": "Requirements",
     "controls": "Controls",
     "frameworks": "Frameworks",

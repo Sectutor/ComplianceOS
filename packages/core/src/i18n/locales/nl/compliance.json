@@ -1,5 +1,9 @@
 {
     "title": "Compliance",
+    "viewWorkflow": "Workflow bekijken",
+    "viewControls": "Controls bekijken",
+    "mapPolicies": "Beleid koppelen",
+    "goToEvidence": "Naar Bewijs",
     "requirements": "Vereisten",
     "controls": "Controles",
     "frameworks": "Kaderwerken",

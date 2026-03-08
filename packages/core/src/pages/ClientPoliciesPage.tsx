@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,6 +36,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     const idParam = params.clientId || params.id;
     const clientId = propClientId || parseInt(idParam || "0");
     const { user } = useAuth();
+    const { t } = useTranslation('policy');
     const [location, setLocation] = useLocation();
 
     const { data: client, isLoading: clientLoading } = trpc.clients.get.useQuery(

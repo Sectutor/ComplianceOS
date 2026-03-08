@@ -247,7 +247,7 @@ export default function ClientCompliancePage() {
                                         <span>{fw.implemented} / {fw.total}</span>
                                     </div>
                                     <Link href={`/clients/${clientId}/controls?framework=${encodeURIComponent(fw.name)}`}>
-                                        <Button variant="outline" className="w-full h-8 text-xs mt-2">View Controls</Button>
+                                        <Button variant="outline" className="w-full h-8 text-xs mt-2">{t('viewControls')}</Button>
                                     </Link>
                                 </div>
                             </CardContent>
@@ -269,7 +269,7 @@ export default function ClientCompliancePage() {
                                         <p className="font-medium text-foreground">{coverage.unmappedControls} controls unmapped</p>
                                         <p className="text-sm mb-4">These controls lack policy coverage.</p>
                                         <Link href={`/clients/${clientId}/policies`}>
-                                            <Button variant="outline" size="sm">Map Policies</Button>
+                                            <Button variant="outline" size="sm">{t('mapPolicies')}</Button>
                                         </Link>
                                     </>
                                 ) : (
@@ -293,7 +293,7 @@ export default function ClientCompliancePage() {
                                 <div className="text-2xl font-bold text-foreground">{complianceScore?.evidenceStatus.verified || 0}</div>
                                 <p className="text-sm">Verified Evidence Items</p>
                                 <Link href={`/clients/${clientId}/evidence`}>
-                                    <Button variant="link" size="sm" className="mt-2">Go to Evidence</Button>
+                                    <Button variant="link" size="sm" className="mt-2">{t('goToEvidence')}</Button>
                                 </Link>
                             </div>
                         </CardContent>
