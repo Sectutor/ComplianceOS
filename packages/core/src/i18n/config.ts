@@ -29,6 +29,12 @@ import nlDashboard from './locales/nl/dashboard.json';
 import nlNavigation from './locales/nl/navigation.json';
 import nlTraining from './locales/nl/training.json';
 import nlSettings from './locales/nl/settings.json';
+import nlCompliance from './locales/nl/compliance.json';
+import nlEmployees from './locales/nl/employees.json';
+import nlEvidence from './locales/nl/evidence.json';
+import nlPolicy from './locales/nl/policy.json';
+import nlRisk from './locales/nl/risk.json';
+import nlVendors from './locales/nl/vendors.json';
 
 // Language resources
 const resources = {
@@ -53,6 +59,12 @@ const resources = {
         navigation: nlNavigation,
         training: nlTraining,
         settings: nlSettings,
+        compliance: nlCompliance,
+        employees: nlEmployees,
+        evidence: nlEvidence,
+        policy: nlPolicy,
+        risk: nlRisk,
+        vendors: nlVendors,
     },
     // Additional languages can be added as locale files are created
     // Example structure for adding new languages:

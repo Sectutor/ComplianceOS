@@ -1,0 +1,76 @@
+{
+    "title": "Medewerkersbeheer",
+    "overview": "Medewerkers Overzicht",
+    "list": "Medewerkerslijst",
+    "add": "Medewerker Toevoegen",
+    "edit": "Medewerker Bewerken",
+    "delete": "Medewerker Verwijderen",
+    "employeeDetails": "Medewerker Details",
+    "employeeProfile": "Medewerker Profiel",
+    "personalInfo": "Persoonlijke Informatie",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "fullName": "Volledige Naam",
+    "email": "E-mail",
+    "phone": "Telefoon",
+    "status": {
+        "title": "Status",
+        "active": "Actief",
+        "inactive": "Inactief",
+        "onLeave": "Met Zwangerschapsverlof",
+        "terminated": "Ontslagen",
+        "pending": "In Afwachting"
+    },
+    "department": "Afdeling",
+    "departments": "Afdelingen",
+    "jobTitle": "Functietitel",
+    "role": "Rol",
+    "manager": "Manager",
+    "startDate": "Startdatum",
+    "endDate": "Einddatum",
+    "location": "Locatie",
+    "timeZone": "Tijdzone",
+    "profile": {
+        "title": "Profiel",
+        "photo": "Foto",
+        "bio": "Bio",
+        "skills": "Vaardigheden",
+        "certifications": "Certificeringen"
+    },
+    "access": {
+        "title": "Toegang & Rechten",
+        "userAccount": "Gebruikersaccount",
+        "permissions": "Rechten",
+        "roles": "Rollen",
+        "accessLevel": "Toegangsniveau"
+    },
+    "training": {
+        "title": "Training Status",
+        "completed": "Afgerond",
+        "inProgress": "In Uitvoering",
+        "overdue": "Achterstallig",
+        "mandatory": "Verplichte Training"
+    },
+    "acknowledgments": {
+        "title": "Beleidsbevestigingen",
+        "pending": "Openstaande Bevestigingen",
+        "acknowledged": "Bevestigd"
+    },
+    "assets": {
+        "title": "Toegewezen Assets",
+        "devices": "Apparaten",
+        "equipment": "Uitrusting"
+    },
+    "onboarding": {
+        "title": "Onboarding",
+        "checklist": "Onboarding Checklist",
+        "progress": "Onboarding Voortgang",
+        "tasks": "Onboarding Taken",
+        "welcome": "Welkomstpakket"
+    },
+    "offboarding": {
+        "title": "Offboarding",
+        "checklist": "Offboarding Checklist",
+        "exitInterview": "Exitgesprek"
+    }
+}

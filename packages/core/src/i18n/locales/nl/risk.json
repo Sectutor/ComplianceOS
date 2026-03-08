@@ -1,0 +1,80 @@
+{
+    "title": "Risicobeheer",
+    "overview": "Risico Overzicht",
+    "dashboard": "Risico Dashboard",
+    "scenarios": "Risicoscenario's",
+    "treatments": "Risicobehandelingen",
+    "assessments": "Risicobeoordelingen",
+    "register": "Risicoregister",
+    "status": {
+        "title": "Status",
+        "identified": "Geïdentificeerd",
+        "analyzing": "Analyseren",
+        "mitigating": "Mitigeren",
+        "monitoring": "Monitoren",
+        "closed": "Gesloten",
+        "accepted": "Geaccepteerd",
+        "transferred": "Overgedragen"
+    },
+    "levels": {
+        "title": "Risiconiveaus",
+        "critical": "Kritiek",
+        "high": "Hoog",
+        "medium": "Medium",
+        "low": "Laag",
+        "minimal": "Minimaal"
+    },
+    "likelihood": {
+        "title": "Waarschijnlijkheid",
+        "almostCertain": "Bijna Zeker",
+        "likely": "Waarschijnlijk",
+        "possible": "Mogelijk",
+        "unlikely": "Onwaarschijnlijk",
+        "rare": "Zeldzaam"
+    },
+    "impact": {
+        "title": "Impact",
+        "severe": "Ernstig",
+        "major": "Groot",
+        "moderate": "Matig",
+        "minor": "Klein",
+        "negligible": "Verwaarloosbaar"
+    },
+    "categories": {
+        "title": "Categorieën",
+        "operational": "Operationeel",
+        "financial": "Financieel",
+        "strategic": "Strategisch",
+        "compliance": "Compliance",
+        "reputational": "Reputatie",
+        "technical": "Technisch",
+        "cybersecurity": "Cybersecurity"
+    },
+    "addScenario": "Risicoscenario Toevoegen",
+    "editScenario": "Risicoscenario Bewerken",
+    "deleteScenario": "Risicoscenario Verwijderen",
+    "scenarioDetails": "Scenario Details",
+    "riskRating": "Risicobeoordeling",
+    "residualRisk": "Restrisico",
+    "inherentRisk": "Inherent Risico",
+    "treatmentPlan": "Behandelplan",
+    "treatmentStatus": "Behandelstatus",
+    "owner": "Risico Eigenaar",
+    "dueDate": "Vervaldatum",
+    "reviewDate": "Review Datum",
+    "riskAppetite": "Risicobereidheid",
+    "riskTolerance": "Risicotolerantie",
+    "heatmap": "Risico Heatmap",
+    "trends": "Risico Trends",
+    "analysis": "Risico Analyse",
+    "register": "Risicoregister",
+    "export": "Risicorapport Exporteren",
+    "import": "Risico's Importeren",
+    "treatment": {
+        "title": "Behandelopties",
+        "mitigate": "Mitigeren",
+        "accept": "Accepteren",
+        "avoid": "Voorkomen",
+        "transfer": "Overdragen"
+    }
+}

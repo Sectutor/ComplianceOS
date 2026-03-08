@@ -1,0 +1,71 @@
+{
+    "title": "Compliance",
+    "requirements": "Vereisten",
+    "controls": "Controles",
+    "frameworks": "Kaderwerken",
+    "frameworksOverview": "Kaderwerken Overzicht",
+    "frameworksList": "Alle Kaderwerken",
+    "frameworksCustom": "Aangepaste Kaderwerken",
+    "frameworksAdd": "Kaderwerk Toevoegen",
+    "status": {
+        "title": "Status",
+        "compliant": "Conform",
+        "nonCompliant": "Niet Conform",
+        "inProgress": "In Uitvoering",
+        "notApplicable": "Niet Van Toepassing",
+        "pending": "In Afwachting",
+        "approved": "Goedgekeurd",
+        "rejected": "Afgewezen",
+        "underReview": "In Beoordeling"
+    },
+    "categories": {
+        "title": "Categorieën",
+        "technical": "Technisch",
+        "operationeel": "Operationeel",
+        "management": "Management",
+        "physical": "Fysiek"
+    },
+    "requirementsManagement": "Vereistenbeheer",
+    "requirementsList": "Vereistenlijst",
+    "requirementsAdd": "Vereiste Toevoegen",
+    "requirementsImport": "Vereisten Importeren",
+    "requirementsExport": "Vereisten Exporteren",
+    "controlsManagement": "Controlebeheer",
+    "controlsList": "Controleslijst",
+    "controlsAdd": "Controle Toevoegen",
+    "controlsMapping": "Controle-toewijzingen",
+    "complianceScore": "Compliance Score",
+    "complianceRate": "Compliance Percentage",
+    "overallCompliance": "Algehele Compliance",
+    "complianceByFramework": "Compliance per Kaderwerk",
+    "complianceTrend": "Compliance Trend",
+    "lastAssessment": "Laatste Beoordeling",
+    "nextReview": "Volgende Revisie",
+    "evidenceRequired": "Bewijs Vereist",
+    "evidenceProvided": "Bewijs Geleverd",
+    "missingEvidence": "Ontbrekend Bewijs",
+    "auditReady": "Audit Gereed",
+    "auditHistory": "Audit Geschiedenis",
+    "auditTrail": "Audit Trail",
+    "assessment": {
+        "title": "Beoordeling",
+        "conductAssessment": "Beoordeling Uitvoeren",
+        "assessmentHistory": "Beoordelingsgeschiedenis",
+        "assessmentResults": "Beoordelingsresultaten",
+        "lastAssessment": "Laatste Beoordeling"
+    },
+    "gaps": {
+        "title": "Hiaten",
+        "identifiedGaps": "Geïdentificeerde Hiaten",
+        "gapAnalysis": "Hiatenanalyse",
+        "remediation": "Herstel",
+        "remediationPlan": "Herstelplan",
+        "remediationStatus": "Herstelstatus"
+    },
+    "maturity": {
+        "title": "Volwassenheid",
+        "level": "Volwassenheidsniveau",
+        "assessMaturity": "Volwassenheid Beoordelen",
+        "targetLevel": "Doelniveau"
+    }
+}
