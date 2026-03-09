@@ -26,6 +26,7 @@ import { useLocation } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import {
     Select,
@@ -88,6 +89,7 @@ interface RequirementsData {
 
 export default function ComplianceRequirementsPage() {
     const [location, setLocation] = useLocation();
+    const { t } = useTranslation('compliance');
     const { selectedClient } = useClientContext();
     const { user } = useAuth();
     const [selectedFramework, setSelectedFramework] = useState<string>("");

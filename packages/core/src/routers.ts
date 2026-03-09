@@ -91,8 +91,9 @@ import { createFrameworksRouter } from "./server/routers/frameworks";
 import { createCompliancePlanningRouter } from "./server/routers/compliancePlanning";
 import { createHarmonizationRouter } from "./server/routers/harmonization";
 import { createAuditRouter } from "./server/routers/audit";
-import { createDashboardRouter } from "./server/routers/dashboard";
+// notifications handled by modular router
 import { createNotificationsRouter } from "./server/routers/notifications";
+import { createDashboardRouter } from "./server/routers/dashboard";
 import { createWaitlistRouter } from "./server/routers/waitlist";
 import { createGlobalCrmRouter } from "./server/routers/globalCrm";
 import { createPrivacyRouter } from "./server/routers/privacy";
@@ -117,11 +118,7 @@ import { createOnboardingRouter } from "./server/routers/onboarding";
 import { trainingRouter } from "./modules/training";
 import { complianceRouter } from "./modules/compliance";
 
-// DEBUG: Log module router registration
-console.log('[ROUTERS] Registering modular routers:', {
-  trainingRouter: Object.keys(trainingRouter._def.procedures),
-  complianceRouter: Object.keys(complianceRouter._def.procedures)
-});
+// Modular routers
 import { riskRouter } from "./modules/risk";
 import { policyRouter } from "./modules/policy";
 import { evidenceRouter } from "./modules/evidence";
@@ -147,6 +144,7 @@ import { createBackupRestoreRouter } from "./server/routers/backupRestore";
 import { createRiskSettingsRouter } from "./server/routers/riskSettings";
 import { createKrisRouter } from "./server/routers/kris";
 import { createLlmRouter } from "./server/routers/llm";
+import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -233,13 +231,13 @@ export const appRouter = router({
   iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
 
 
-  dashboard: modularDashboardRouter,
-  compliance: complianceRouter,
-  evidence: evidenceRouter,
-  notifications: notificationsRouter,
+  dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
+  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
+  evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
 
   // Risk Management Module
-  risks: riskRouter,
+  risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
   riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
   kris: createKrisRouter(t, clientProcedure),
   metrics: createMetricsRouter(t, clientProcedure),
@@ -258,7 +256,7 @@ export const appRouter = router({
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
   harmonization: createHarmonizationRouter(t, protectedProcedure),
-  audit: auditRouter,
+  audit: createAuditRouter(t, clientProcedure, adminProcedure),
   findings: createFindingsRouter(t, protectedProcedure),
 
   waitlist: createWaitlistRouter(t, publicProcedure, adminProcedure),
@@ -271,21 +269,22 @@ export const appRouter = router({
   privacyEnhancements: createPrivacyEnhancementsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   cyber: createCyberRouter(t, clientProcedure),
   assets: createAssetsRouter(t, clientProcedure, clientEditorProcedure),
+  securityTesting: createSecurityTestingRouter(t, clientProcedure, clientEditorProcedure),
   // integrations handled by modular router below
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
 
   learning: createLearningRouter(t, publicProcedure, adminProcedure),
-  onboarding: modularOnboardingRouter,
+  onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
   training: trainingRouter,
   policy: policyRouter,
-  integrations: modularIntegrationsRouter,
+  integrations: integrationsRouter(t, clientProcedure, publicProcedure, protectedProcedure),
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
   questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
   subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
-  policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
+  policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed, adminProcedure),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),

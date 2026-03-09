@@ -1,5 +1,6 @@
 import { useParams } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
@@ -17,6 +18,7 @@ const RACI_COLORS: Record<string, { bg: string; text: string; label: string }> =
 
 export default function EmployeeDetails() {
     const { id: clientId, employeeId } = useParams<{ id: string; employeeId: string }>();
+    const { t } = useTranslation('employees');
     const cId = parseInt(clientId || '0', 10);
     const eId = parseInt(employeeId || '0', 10);
 

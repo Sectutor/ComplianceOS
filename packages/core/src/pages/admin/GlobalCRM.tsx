@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from '@complianceos/ui/ui/button';
 import { Input } from '@complianceos/ui/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@complianceos/ui/ui/table';
@@ -53,6 +54,7 @@ const PIPELINE_STAGES = [
 
 export default function GlobalCRM() {
     const [, setLocation] = useLocation();
+    const { t } = useTranslation('settings');
     const { data: contacts, isLoading, refetch } = trpc.globalCrm.list.useQuery();
     const createContact = trpc.globalCrm.create.useMutation();
     const updateContact = trpc.globalCrm.update.useMutation();

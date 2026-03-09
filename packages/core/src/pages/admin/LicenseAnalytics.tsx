@@ -7,23 +7,24 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Separator } from "@complianceos/ui/ui/separator";
-import { 
-  BarChart3, 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  CreditCard, 
-  Download, 
-  Filter, 
-  LineChart, 
-  PieChart, 
-  RefreshCw, 
-  Shield, 
-  TrendingUp, 
+import {
+  BarChart3,
+  Calendar,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Download,
+  Filter,
+  LineChart,
+  PieChart,
+  RefreshCw,
+  Shield,
+  TrendingUp,
   Users,
   AlertTriangle,
   Zap,
@@ -32,14 +33,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -50,33 +51,34 @@ import {
 
 export default function LicenseAnalyticsPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { t } = useTranslation('settings');
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: startOfMonth(new Date()),
     end: endOfMonth(new Date()),
   });
-  
+
   // Fetch analytics data
-  const { data: analyticsData, refetch: refetchAnalytics, isLoading: analyticsLoading } = 
+  const { data: analyticsData, refetch: refetchAnalytics, isLoading: analyticsLoading } =
     trpc.gumroad.getLicenseAnalytics.useQuery({
       startDate: dateRange.start.toISOString(),
       endDate: dateRange.end.toISOString(),
     });
-  
+
   // Fetch expiring licenses
-  const { data: expiringData, refetch: refetchExpiring, isLoading: expiringLoading } = 
+  const { data: expiringData, refetch: refetchExpiring, isLoading: expiringLoading } =
     trpc.gumroad.getExpiringLicenses.useQuery({ days: 30 });
-  
+
   // Fetch expired licenses
-  const { data: expiredData, refetch: refetchExpired, isLoading: expiredLoading } = 
+  const { data: expiredData, refetch: refetchExpired, isLoading: expiredLoading } =
     trpc.gumroad.getExpiredLicenses.useQuery();
-  
+
   // Handle date range change
   const handleDateRangeChange = (days: number) => {
     const end = new Date();
     const start = subDays(end, days);
     setDateRange({ start, end });
   };
-  
+
   // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -86,26 +88,26 @@ export default function LicenseAnalyticsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
-  
+
   // Prepare chart data
   const activationTrendData = analyticsData?.analytics?.activationTrend?.map(item => ({
     date: format(new Date(item.date), 'MMM dd'),
     count: item.count,
   })) || [];
-  
+
   const licenseTypeData = analyticsData?.analytics?.licenseTypes?.map(item => ({
     name: item.type.charAt(0).toUpperCase() + item.type.slice(1),
     value: item.count,
   })) || [];
-  
+
   const revenueData = analyticsData?.analytics?.revenueByType?.map(item => ({
     name: item.type.charAt(0).toUpperCase() + item.type.slice(1),
     revenue: item.revenue,
   })) || [];
-  
+
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-  
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -128,7 +130,7 @@ export default function LicenseAnalyticsPage() {
             </Button>
           </div>
         </div>
-        
+
         {/* Date Range Filter */}
         <Card>
           <CardContent className="pt-6">
@@ -138,29 +140,29 @@ export default function LicenseAnalyticsPage() {
                 <span className="text-sm font-medium">Date Range</span>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleDateRangeChange(7)}
                 >
                   7 Days
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleDateRangeChange(30)}
                 >
                   30 Days
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleDateRangeChange(90)}
                 >
                   90 Days
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setDateRange({
@@ -178,7 +180,7 @@ export default function LicenseAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
@@ -187,7 +189,7 @@ export default function LicenseAnalyticsPage() {
             <TabsTrigger value="renewals">Renewal Management</TabsTrigger>
             <TabsTrigger value="revenue">Revenue Analytics</TabsTrigger>
           </TabsList>
-          
+
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Key Metrics */}
@@ -208,7 +210,7 @@ export default function LicenseAnalyticsPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -225,7 +227,7 @@ export default function LicenseAnalyticsPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -242,7 +244,7 @@ export default function LicenseAnalyticsPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -262,7 +264,7 @@ export default function LicenseAnalyticsPage() {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Charts */}
             <div className="grid gap-6 md:grid-cols-2">
               {/* Activation Trend */}
@@ -285,10 +287,10 @@ export default function LicenseAnalyticsPage() {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey="count" 
-                          stroke="#8884d8" 
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#8884d8"
                           name="Activations"
                           strokeWidth={2}
                         />
@@ -297,7 +299,7 @@ export default function LicenseAnalyticsPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               {/* License Types */}
               <Card>
                 <CardHeader>
@@ -334,7 +336,7 @@ export default function LicenseAnalyticsPage() {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Renewal Alerts */}
             <Card>
               <CardHeader>
@@ -388,9 +390,9 @@ export default function LicenseAnalyticsPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Expired Licenses */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -435,7 +437,7 @@ export default function LicenseAnalyticsPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Usage Analytics Tab */}
           <TabsContent value="usage" className="space-y-6">
             <Card>
@@ -468,7 +470,7 @@ export default function LicenseAnalyticsPage() {
                       <div className="text-sm text-muted-foreground">Features per day</div>
                     </div>
                   </div>
-                  
+
                   {/* Top Features Chart */}
                   <div>
                     <h3 className="font-medium mb-4">Top Used Features</h3>
@@ -495,7 +497,7 @@ export default function LicenseAnalyticsPage() {
                       </ResponsiveContainer>
                     </div>
                   </div>
-                  
+
                   {/* Usage by License Type */}
                   <div>
                     <h3 className="font-medium mb-4">Usage by License Type</h3>
@@ -533,7 +535,7 @@ export default function LicenseAnalyticsPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Renewal Management Tab */}
           <TabsContent value="renewals" className="space-y-6">
             <Card>
@@ -555,8 +557,8 @@ export default function LicenseAnalyticsPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">First Reminder</label>
                         <div className="flex items-center gap-2">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={30}
                           />
@@ -566,8 +568,8 @@ export default function LicenseAnalyticsPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Second Reminder</label>
                         <div className="flex items-center gap-2">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={7}
                           />
@@ -577,8 +579,8 @@ export default function LicenseAnalyticsPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Final Reminder</label>
                         <div className="flex items-center gap-2">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={1}
                           />
@@ -588,8 +590,8 @@ export default function LicenseAnalyticsPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Expiry Follow-up</label>
                         <div className="flex items-center gap-2">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={7}
                           />
@@ -598,9 +600,9 @@ export default function LicenseAnalyticsPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Automated Renewal Actions */}
                   <div>
                     <h3 className="font-medium mb-4">Automated Actions</h3>
@@ -619,7 +621,7 @@ export default function LicenseAnalyticsPage() {
                         </div>
                         <Button size="sm">Configure</Button>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-green-100 rounded">
@@ -634,7 +636,7 @@ export default function LicenseAnalyticsPage() {
                         </div>
                         <Button size="sm" variant="outline">Enable</Button>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-amber-100 rounded">
@@ -651,9 +653,9 @@ export default function LicenseAnalyticsPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Manual Renewal Actions */}
                   <div>
                     <h3 className="font-medium mb-4">Manual Actions</h3>
@@ -676,7 +678,7 @@ export default function LicenseAnalyticsPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Revenue Analytics Tab */}
           <TabsContent value="revenue" className="space-y-6">
             <Card>
@@ -713,7 +715,7 @@ export default function LicenseAnalyticsPage() {
                       <div className="text-sm text-green-600">+8% increase</div>
                     </div>
                   </div>
-                  
+
                   {/* Revenue by License Type */}
                   <div>
                     <h3 className="font-medium mb-4">Revenue by License Type</h3>
@@ -730,7 +732,7 @@ export default function LicenseAnalyticsPage() {
                       </ResponsiveContainer>
                     </div>
                   </div>
-                  
+
                   {/* Revenue Forecast */}
                   <div>
                     <h3 className="font-medium mb-4">Revenue Forecast</h3>

@@ -11,6 +11,7 @@ import DashboardLayout from "@/components/DashboardLayout"; // We might want to 
 // Let me wait for Step 351 response to confirm.
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
@@ -45,6 +46,7 @@ const MODULES = [
 
 export default function OrganizationManagement() {
     // If AdminLayout is wrapping in App.tsx, we return a fragment.
+    const { t } = useTranslation('settings');
     // However, UserManagement in step 306 returns <DashboardLayout>.
     // If App.tsx wraps <AdminLayout><UserManagement/></AdminLayout>, and UserManagement returns <DashboardLayout>..., then we have nested layouts?
     // I need to check App.tsx changes in Step 284.

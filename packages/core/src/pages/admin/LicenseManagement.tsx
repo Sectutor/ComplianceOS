@@ -10,6 +10,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
@@ -35,6 +36,7 @@ import { getBuildInfo } from "@/lib/features";
 
 export default function LicenseManagementPage() {
   const [licenseKey, setLicenseKey] = useState("");
+  const { t } = useTranslation('settings');
   const [validationResult, setValidationResult] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
 

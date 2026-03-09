@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -38,6 +39,7 @@ interface CalendarEvent {
 
 export default function Calendar() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation('dashboard');
   const [location] = useLocation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedClient, setSelectedClient] = useState<string>("all");

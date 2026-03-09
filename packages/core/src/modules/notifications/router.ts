@@ -1,9 +1,5 @@
-/**
- * Notifications Module - Router
- */
-
 import { z } from "zod";
-import { router, clientProcedure, clientEditorProcedure } from "../../server/trpc";
+import { router, clientProcedure, clientEditorProcedure, protectedProcedure } from "../../server/trpc";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { getDb } from "../../db";
 
@@ -13,6 +9,20 @@ export const notificationsRouter = router({
         .query(async ({ input, ctx }: any) => {
             const db = await getDb();
             const { notificationLog } = await import("../../schema");
+            return await db.select()
+                .from(notificationLog)
+                .where(eq(notificationLog.userId, ctx.user.id))
+                .orderBy(desc(notificationLog.sentAt))
+                .limit(input.limit);
+        }),
+
+    // Alias for list to support components using getNotifications
+    getNotifications: clientProcedure
+        .input(z.object({ limit: z.number().default(50) }))
+        .query(async ({ input, ctx }: any) => {
+            const db = await getDb();
+            const { notificationLog } = await import("../../schema");
+
             return await db.select()
                 .from(notificationLog)
                 .where(eq(notificationLog.userId, ctx.user.id))
@@ -89,7 +99,7 @@ export const notificationsRouter = router({
             const db = await getDb();
             const { notificationLog } = await import("../../schema");
             const { sql } = await import("drizzle-orm");
-            
+
             const result = await db.select({
                 count: sql<number>`count(*)`
             })
@@ -99,6 +109,49 @@ export const notificationsRouter = router({
                     isNull(notificationLog.readAt)
                 ));
             return Number(result[0]?.count || 0);
+        }),
+
+    getLogs: clientProcedure
+        .input(z.object({
+            clientId: z.number(),
+            limit: z.number().optional().default(20)
+        }))
+        .query(async ({ input, ctx }: any) => {
+            const db = await getDb();
+            const { notificationLog } = await import("../../schema");
+            return await db.select()
+                .from(notificationLog)
+                .where(eq(notificationLog.userId, ctx.user.id))
+                .orderBy(desc(notificationLog.sentAt))
+                .limit(input.limit);
+        }),
+
+    sendEvent: protectedProcedure
+        .input(z.object({
+            event: z.string(),
+            to: z.string(),
+            data: z.record(z.any()).optional(),
+            clientId: z.number().optional(),
+            from: z.string().optional()
+        }))
+        .mutation(async ({ input }: any) => {
+            const { EmailService } = await import("../../lib/email/service");
+            const res = await EmailService.triggerEvent({
+                event: input.event,
+                to: input.to,
+                data: input.data || {},
+                clientId: input.clientId,
+                from: input.from
+            });
+            return res;
+        }),
+
+    sendOverdueAlert: clientProcedure
+        .input(z.object({ clientId: z.number().optional() }))
+        .mutation(async ({ input, ctx }: any) => {
+            const { sendOverdueNotification } = await import("../../emailNotification");
+            const result = await sendOverdueNotification();
+            return { ...result, sent: true };
         }),
 
     markAsRead: clientProcedure
@@ -129,4 +182,7 @@ export const notificationsRouter = router({
         }),
 });
 
+
 export default notificationsRouter;
+
+

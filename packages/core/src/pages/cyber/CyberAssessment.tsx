@@ -8,7 +8,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Progress } from "@complianceos/ui/ui/progress";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Save, Loader2, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, CheckCircle2, RefreshCw, Zap } from "lucide-react";
 import { toast } from "sonner";
 import {
     Select,
@@ -19,89 +19,94 @@ import {
 } from "@complianceos/ui/ui/select";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { PageGuide } from "@/components/PageGuide";
+import { AUTOMATED_AUDITORS } from "@/lib/cyber/auditors";
 
 const NIS2_CHECKLIST = [
     {
-        id: "risk_mgmt",
-        category: "1. Risk Analysis & Information System Security Policies",
+        id: "policies",
+        category: "1. Information Systems Security Policies",
         questions: [
-            { id: "rm_1", text: "Do you have a formal Risk Management Policy approved by top management?" },
-            { id: "rm_2", text: "Is there an up-to-date asset inventory of all critical information systems?" },
-            { id: "rm_3", text: "Are risk assessments conducted regularly (at least annually)?" }
+            { id: "rm_1", text: "Do you have a formal Information Security Policy approved by top management? (ENISA 1.1)", measureId: "1.1" }
+        ]
+    },
+    {
+        id: "risk_mgmt",
+        category: "2. Risk Management Framework",
+        questions: [
+            { id: "rm_3", text: "Are risk assessments conducted regularly based on a documented framework? (ENISA 2.1)", measureId: "2.1" }
         ]
     },
     {
         id: "incident_handling",
-        category: "2. Incident Handling",
+        category: "3. Incident Handling",
         questions: [
-            { id: "ih_1", text: "Is there a documented Incident Response Plan (IRP)?" },
-            { id: "ih_2", text: "Are you capable of reporting significant incidents to the CSIRT within 24 hours (early warning)?" },
-            { id: "ih_3", text: "Are incidents tracked, logged, and analyzed for root causes?" }
+            { id: "ih_1", text: "Is there a documented Incident Response Plan and reporting process? (ENISA 3.1)", measureId: "3.1" }
         ]
     },
     {
-        id: "bcp_dr",
-        category: "3. Business Continuity & Crisis Management",
+        id: "bcp",
+        category: "4. Business Continuity",
         questions: [
-            { id: "bc_1", text: "Are backups performed regularly and tested for recoverability?" },
-            { id: "bc_2", text: "Is there a Business Continuity Plan (BCP) in place for critical operations?" },
-            { id: "bc_3", text: "Do you have a Crisis Management process to coordinate specific responses?" }
+            { id: "bc_2", text: "Is there a Business Continuity Plan (BCP) for critical operations? (ENISA 4.1)", measureId: "4.1" }
         ]
     },
     {
         id: "supply_chain",
-        category: "4. Supply Chain Security",
+        category: "5. Supply Chain Security",
         questions: [
-            { id: "sc_1", text: "Are security requirements included in contracts with ICT suppliers?" },
-            { id: "sc_2", text: "Do you assess the risks posed by immediate suppliers and service providers?" }
+            { id: "sc_1", text: "Are security requirements included in ICT supplier contracts? (ENISA 5.1)", measureId: "5.1" }
         ]
     },
     {
-        id: "vuln_handling",
-        category: "5. Vulnerability Handling & Disclosure",
+        id: "secure_dev",
+        category: "6. Secure Development & Asset Mgmt",
         questions: [
-            { id: "vh_1", text: "Is there a process for regular vulnerability scanning?" },
-            { id: "vh_2", text: "Are patches applied within a defined timeframe based on severity?" }
+            { id: "enisa_6.2", text: "Are secure coding practices and development lifecycles enforced? (ENISA 6.2)", measureId: "6.2" },
+            { id: "enisa_6.4", text: "Is there an up-to-date asset inventory for all systems? (ENISA 6.4)", measureId: "6.4" },
+            { id: "enisa_6.7", text: "Is network segmentation and security implemented? (ENISA 6.7)", measureId: "6.7" }
         ]
     },
     {
-        id: "effectiveness",
-        category: "6. Assessment of Effectiveness",
+        id: "vulnerabilities",
+        category: "7. Vulnerability Management",
         questions: [
-            { id: "test_1", text: "Do you conduct regular penetration tests?" },
-            { id: "test_2", text: "Are security audits (internal or external) performed annually?" }
+            { id: "vh_1", text: "Is there a process for regular vulnerability scanning and patching? (ENISA 7.1)", measureId: "7.1" }
         ]
     },
     {
         id: "hygiene",
-        category: "7. Basic Cyber Hygiene & Training",
+        category: "8. Basic Cyber Hygiene & Training",
         questions: [
-            { id: "tr_1", text: "Is cybersecurity training mandatory for all staff?" },
-            { id: "tr_2", text: "Are best practices for password management and software updates enforced?" }
+            { id: "tr_1", text: "Is cybersecurity awareness training mandatory for all staff? (ENISA 8.1)", measureId: "8.1" }
         ]
     },
     {
-        id: "crypto",
-        category: "8. Cryptography & Encryption",
+        id: "effectiveness",
+        category: "9. Assessment of Effectiveness",
         questions: [
-            { id: "enc_1", text: "Is encryption used for data at rest containing sensitive info?" },
-            { id: "enc_2", text: "Is encryption used for data in transit (TLS/SSL)?" }
+            { id: "test_1", text: "Are technical assessments (Pen-testing/Audits) performed regularly? (ENISA 9.1)", measureId: "9.1" }
         ]
     },
     {
-        id: "hr_sec",
-        category: "9. Human Resources Security",
+        id: "recovery",
+        category: "10. Data Recovery / Backup",
         questions: [
-            { id: "hr_1", text: "Are access rights revoked immediately upon employee termination?" },
-            { id: "hr_2", text: "Are background checks performed for sensitive roles?" }
+            { id: "bc_1", text: "Are backups performed regularly and tested for recoverability? (ENISA 10.1)", measureId: "10.1" }
         ]
     },
     {
-        id: "mfa",
-        category: "10. Multi-Factor Authentication (MFA)",
+        id: "access_control",
+        category: "11. Access Control & HR Security",
         questions: [
-            { id: "mfa_1", text: "Is MFA enabled for all remote access and administrative accounts?" },
-            { id: "mfa_2", text: "Are secured voice/video/text communications used for critical operations?" }
+            { id: "mfa_1", text: "Is MFA and stringent access control implemented for all users? (ENISA 11.1)", measureId: "11.1" },
+            { id: "hr_1", text: "Are HR security measures (revocation, screening) in place? (ENISA 12.1)", measureId: "12.1" }
+        ]
+    },
+    {
+        id: "cryptography",
+        category: "12. Cryptography",
+        questions: [
+            { id: "enc_1", text: "Is encryption used for data at rest and in transit? (ENISA 13.1)", measureId: "13.1" }
         ]
     }
 ];
@@ -150,6 +155,22 @@ export default function CyberAssessment() {
         }
     });
 
+    const syncMutation = trpc.cyber.autoSyncNis2FromIso.useMutation({
+        onSuccess: (data) => {
+            if (data.syncedMeasures > 0) {
+                toast.success(`Synced ${data.syncedMeasures} measures from ISO 27001`, {
+                    description: data.measures.join(', ')
+                });
+                refetch();
+            } else {
+                toast.info("No new changes detected from ISO 27001");
+            }
+        },
+        onError: (e) => {
+            toast.error("Failed to sync: " + e.message);
+        }
+    });
+
     // Debug logging
     useEffect(() => {
         console.log('[NIS2 Debug] selectedClientId:', selectedClientId);
@@ -186,6 +207,27 @@ export default function CyberAssessment() {
             ...prev,
             [qId]: { ...prev[qId], notes: val }
         }));
+    };
+
+    const handleAutomatedAudit = async (qId: string, measureId: string) => {
+        const auditor = AUTOMATED_AUDITORS.find(a => a.targetMeasureId === measureId);
+        if (!auditor) return;
+
+        toast.promise(auditor.checkLogic(selectedClientId!, {}), {
+            loading: `Running automated audit: ${auditor.description}`,
+            success: (result) => {
+                const answer = result.status === 'passed' ? 'yes' : result.status === 'failed' ? 'partial' : 'partial';
+                const evidenceStr = JSON.stringify(result.evidence);
+                const notes = `[Automated Audit ${new Date().toLocaleDateString()}] Outcome: ${result.status.toUpperCase()}. Evidence: ${evidenceStr}`;
+
+                setResponses(prev => ({
+                    ...prev,
+                    [qId]: { ...prev[qId], answer, notes }
+                }));
+                return `Audit complete: ${result.status.toUpperCase()}`;
+            },
+            error: "Automated audit failed"
+        });
     };
 
     const handleSave = () => {
@@ -227,14 +269,32 @@ export default function CyberAssessment() {
                         <div className="text-3xl font-extrabold text-slate-900">{score}%</div>
                         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Compliance</div>
                     </div>
-                    <Button
-                        onClick={handleSave}
-                        disabled={saveMutation.isLoading}
-                        className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
-                    >
-                        {saveMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Save className="mr-2 h-4 w-4" /> Save Progress
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={() => selectedClientId && syncMutation.mutate({ clientId: selectedClientId })}
+                            disabled={syncMutation.isLoading || !selectedClientId}
+                            variant="outline"
+                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 font-bold h-12 px-6 rounded-xl transition-all active:scale-95"
+                        >
+                            {syncMutation.isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4 fill-emerald-500" />}
+                            Sync ISO 27001
+                        </Button>
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="h-12 px-6 rounded-xl font-bold border-slate-200 hover:bg-slate-50 transition-all"
+                        >
+                            <a href={`/clients/${selectedClientId}/cyber/mapping`}>View Mappings</a>
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={saveMutation.isLoading}
+                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                        >
+                            {saveMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Save className="mr-2 h-4 w-4" /> Save Progress
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -329,13 +389,26 @@ export default function CyberAssessment() {
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <div className="md:col-span-4">
-                                            <Textarea
-                                                placeholder="Add implementation notes or evidence links..."
-                                                className="min-h-[2.5rem] h-10 text-sm py-2 px-4 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 transition-all"
-                                                value={responses[q.id]?.notes || ""}
-                                                onChange={(e) => handleNotesChange(q.id, e.target.value)}
-                                            />
+                                        <div className="md:col-span-4 flex items-start gap-2">
+                                            <div className="flex-1">
+                                                <Textarea
+                                                    placeholder="Add implementation notes or evidence links..."
+                                                    className="min-h-[2.5rem] h-10 text-sm py-2 px-4 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 transition-all font-medium"
+                                                    value={responses[q.id]?.notes || ""}
+                                                    onChange={(e) => handleNotesChange(q.id, e.target.value)}
+                                                />
+                                            </div>
+                                            {AUTOMATED_AUDITORS.some(a => a.targetMeasureId === q.measureId) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-10 w-10 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-100 transition-all active:scale-90 flex-shrink-0"
+                                                    title="Run Automated Auditor"
+                                                    onClick={() => handleAutomatedAudit(q.id, q.measureId!)}
+                                                >
+                                                    <RefreshCw className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

@@ -168,7 +168,12 @@ export default function CyberIncidentsPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="font-bold text-slate-900">{incident.title}</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="font-bold text-slate-900">{incident.title}</div>
+                                                {incident.isSignificant && (
+                                                    <Badge className="bg-red-50 text-red-600 border-red-100 font-bold px-2 py-0 text-[10px] uppercase">Significant</Badge>
+                                                )}
+                                            </div>
                                             <div className="text-xs font-bold text-[#1C4D8D]/60 mt-0.5 uppercase tracking-widest">ID-INC-{incident.id}</div>
                                         </TableCell>
                                         <TableCell>

@@ -20,7 +20,9 @@ export const vendorsRouter = router({
         .input(z.object({ clientId: z.number() }))
         .query(async ({ input }: any) => {
             const db = await getDb();
-            return db.select().from(vendors).where(eq(vendors.clientId, input.clientId)).orderBy(asc(vendors.name));
+            const vendorRows = await db.select().from(vendors).where(eq(vendors.clientId, input.clientId)).orderBy(asc(vendors.name));
+            // Transform to expected format: { vendor: { ... } }
+            return vendorRows.map((vendor: typeof vendors.$inferSelect) => ({ vendor }));
         }),
 
     /**

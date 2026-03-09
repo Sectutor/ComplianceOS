@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
     Table,
     TableBody,
@@ -52,6 +53,7 @@ import { format } from "date-fns";
 
 export default function UserInvitations() {
     const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const { t } = useTranslation('settings');
     const [email, setEmail] = useState("");
     const [role, setRole] = useState("viewer");
 

@@ -7,7 +7,8 @@ import {
     riskAssessments, riskTreatments, treatmentControls,
     riskAssessmentStatusEnum,
     threats, vulnerabilities,
-    riskPolicyMappings
+    riskPolicyMappings,
+    riskAppetite
 } from "../../schema";
 import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
 import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
@@ -20,6 +21,40 @@ import { recalculateRiskScore } from "../services/riskService";
 export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
     console.log('[RISKS ROUTER] Creating risks router with procedures... AND RELOADED!');
     return t.router({
+        
+        // --- RISK APPETITE ---
+        getAppetite: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const [appetite] = await db.select().from(riskAppetite).where(eq(riskAppetite.clientId, input.clientId)).limit(1);
+                return appetite || null;
+            }),
+
+        saveAppetite: procedure
+            .input(z.object({
+                clientId: z.number(),
+                financialThreshold: z.number().optional(),
+                reputationalThreshold: z.string().optional(),
+                operationalThreshold: z.number().optional(),
+                overallRiskLevel: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                
+                const existing = await db.select().from(riskAppetite).where(eq(riskAppetite.clientId, input.clientId)).limit(1);
+                
+                if (existing.length > 0) {
+                    const [updated] = await db.update(riskAppetite)
+                        .set({ ...input, updatedAt: new Date() })
+                        .where(eq(riskAppetite.clientId, input.clientId))
+                        .returning();
+                    return updated;
+                } else {
+                    const [created] = await db.insert(riskAppetite).values(input).returning();
+                    return created;
+                }
+            }),
 
         // --- ASSETS ---
         getAssets: procedure

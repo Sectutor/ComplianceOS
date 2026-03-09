@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { PageGuide } from '@/components/PageGuide';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -37,6 +38,7 @@ import {
 
 export default function GovernanceDashboard() {
     const params = useParams();
+    const { t } = useTranslation('dashboard');
     const clientId = parseInt(params.id || "0");
 
     // Fetch Data

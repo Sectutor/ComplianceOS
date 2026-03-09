@@ -200,6 +200,7 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 
   if (!_db) {
     const databaseUrl = getSecret('DATABASE_URL');
+    console.log('[DB] Using DATABASE_URL (prefix):', databaseUrl?.substring(0, 50));
     if (!databaseUrl) {
       throw new DatabaseConnectionError("DATABASE_URL environment variable is not set");
     }
@@ -1197,7 +1198,7 @@ export async function ensureDefaultDataSeeded() {
 
   const [controlCount] = await db.select({ count: sql<number>`count(*)` }).from(controls);
 
-  if (!controlCount?.count) {
+  if (parseInt(String(controlCount?.count || '0')) === 0) {
 
     const defaultControls: InsertControl[] = [
 
@@ -1296,13 +1297,144 @@ export async function ensureDefaultDataSeeded() {
         grouping: "Operations",
 
       },
-
     ];
 
     await db.insert(controls).values(defaultControls);
 
     logger.info(`[Seed] Inserted ${defaultControls.length} default controls`);
+  }
 
+  // Seed NIS2 Controls if missing
+  const [nis2Count] = await db.select({ count: sql<number>`count(*)` }).from(controls).where(eq(controls.framework, "NIS2"));
+  if (parseInt(String(nis2Count?.count || '0')) === 0) {
+    const nis2Controls: InsertControl[] = [
+      {
+        controlId: "21(2)(a)",
+        name: "Risk Management & Security Policies",
+        description: "Establishing a framework for identifying, assessing and treating cybersecurity risks, along with formal information security policies.",
+        framework: "NIS2",
+        category: "Governance",
+        grouping: "Risk Management",
+        requirementText: "Policies on risk analysis and information system security.",
+        officialGuidance: "Policies must be approved by management and reviewed regularly (min. every 2 years).",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(b)",
+        name: "Incident Handling",
+        description: "Procedures for detecting, responding to, and recovering from cybersecurity incidents.",
+        framework: "NIS2",
+        category: "Security Operations",
+        grouping: "Incidents",
+        requirementText: "Measures for incident handling, including prevention, detection, and response to incidents.",
+        officialGuidance: "Formal Incident Response Plan (IRP) with 24h/72h reporting triggers required.",
+        status: "active",
+        frequency: "Quarterly",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(c)",
+        name: "Business Continuity & Crisis Management",
+        description: "Ensuring the continuity of services and crisis management in the event of major disruptions.",
+        framework: "NIS2",
+        category: "Resilience",
+        grouping: "Continuity",
+        requirementText: "Business continuity, such as backup management and disaster recovery, and crisis management.",
+        officialGuidance: "Focus on BIA, DRP and Crisis Communication protocols.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(d)",
+        name: "Supply Chain Security",
+        description: "Managing security risks associated with third-party suppliers and service providers.",
+        framework: "NIS2",
+        category: "Governance",
+        grouping: "Vendors",
+        requirementText: "Security aspects concerning relationships between each entity and its direct suppliers or service providers.",
+        officialGuidance: "Include security clauses in contracts and perform side-vendor assessments.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(e)",
+        name: "Secure Development & Vulnerability Handling",
+        description: "Security in network and info systems acquisition, development, and maintenance.",
+        framework: "NIS2",
+        category: "Technical Security",
+        grouping: "SDLC",
+        requirementText: "Security in network and information systems acquisition, development and maintenance, including vulnerability handling and disclosure.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(f)",
+        name: "Effectiveness Monitoring",
+        description: "Assessing the effectiveness of cybersecurity risk-management measures.",
+        framework: "NIS2",
+        category: "Audit",
+        grouping: "Compliance",
+        requirementText: "Policies and procedures to assess the effectiveness of cybersecurity risk-management measures.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(g)",
+        name: "Cyber Hygiene & Awareness",
+        description: "Basic security practices and mandatory awareness training for all staff.",
+        framework: "NIS2",
+        category: "Security Operations",
+        grouping: "Awareness",
+        requirementText: "Basic cyber hygiene practices and cybersecurity training.",
+        status: "active",
+        frequency: "Continuous",
+        evidenceType: "Log"
+      },
+      {
+        controlId: "21(2)(h)",
+        name: "Cryptography & Encryption",
+        description: "Policies regarding the use of cryptography and, where appropriate, encryption.",
+        framework: "NIS2",
+        category: "Technical Security",
+        grouping: "Protection",
+        requirementText: "Policies and procedures regarding the use of cryptography and, where appropriate, encryption.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(i)",
+        name: "HR Security, Access Control & Asset Mgmt",
+        description: "Securing human resources, implementing access control, and managing assets.",
+        framework: "NIS2",
+        category: "Governance",
+        grouping: "HR/Access",
+        requirementText: "Human resources security, access control policies and asset management.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      },
+      {
+        controlId: "21(2)(j)",
+        name: "MFA & Secure Communications",
+        description: "Use of multi-factor authentication and secured communications (voice, video, emergency).",
+        framework: "NIS2",
+        category: "Technical Security",
+        grouping: "Access",
+        requirementText: "The use of multi-factor authentication or continuous authentication solutions, secured voice, video and text communications.",
+        status: "active",
+        frequency: "Annual",
+        evidenceType: "Document"
+      }
+    ];
+    await db.insert(controls).values(nis2Controls);
+    logger.info(`[Seed] Inserted ${nis2Controls.length} NIS2 controls`);
   }
 
 
@@ -1311,7 +1443,7 @@ export async function ensureDefaultDataSeeded() {
 
   const [nistCount] = await db.select({ count: sql<number>`count(*)` }).from(controls).where(eq(controls.framework, "NIST CSF"));
 
-  if (!nistCount?.count) {
+  if (parseInt(String(nistCount?.count || '0')) === 0) {
 
     const nistControls: InsertControl[] = [
 
@@ -1696,6 +1828,9 @@ export async function getClientControls(clientId: number, framework?: string) {
       framework: controls.framework,
 
       category: controls.category,
+      requirementText: controls.requirementText,
+      officialGuidance: controls.officialGuidance,
+      evidenceBlueprint: controls.evidenceBlueprint,
     },
     evidenceCount: sql<number>`(
         SELECT count(*)::int 

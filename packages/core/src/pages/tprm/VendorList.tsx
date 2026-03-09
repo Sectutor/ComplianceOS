@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
@@ -35,6 +36,7 @@ interface VendorListProps {
 
 export default function VendorList({ mode = 'all' }: VendorListProps) {
     const { id } = useParams<{ id: string }>();
+    const { t } = useTranslation('vendors');
     const clientId = parseInt(id || "0");
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState("active");
@@ -168,8 +170,8 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
     };
 
     const filteredVendors = vendors?.filter((row: any) =>
-        row.vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.vendor.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        row.vendor && (row.vendor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.vendor.description?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const getPageTitle = () => {

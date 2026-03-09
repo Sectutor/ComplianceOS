@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useClientContext } from "@/contexts/ClientContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
@@ -26,6 +27,7 @@ export interface AuditFinding {
 
 export default function VendorDashboard() {
     const { selectedClientId } = useClientContext();
+    const { t } = useTranslation('vendors');
     const clientId = selectedClientId || 0;
     const { data: stats, isLoading } = trpc.vendors.getStats.useQuery({ clientId }, { enabled: !!clientId });
     const sendOutreachMutation = trpc.vendors.sendTargetAuditOutreach.useMutation();
@@ -82,13 +84,13 @@ export default function VendorDashboard() {
 
             const activeFindings = defaultFindings.filter(f => {
                 // If the user processed this finding, there should be a risk logged exactly like this
-                const isResolved = riskAssessments?.some(risk => 
-                    risk.title?.includes(f.vendor) && 
+                const isResolved = riskAssessments?.some(risk =>
+                    risk.title?.includes(f.vendor) &&
                     risk.threatDescription?.includes(f.infrastructure)
                 );
                 return !isResolved;
             });
-            
+
             if (activeFindings.length > 0) {
                 setAuditResults(activeFindings);
                 toast.success("Audit Evidence Generated", {
@@ -130,7 +132,7 @@ export default function VendorDashboard() {
             toast.success(`Communication Sent to ${selectedFinding.vendor}`, {
                 description: "Email assigned to Communication Mailbox. Critical risk added to Risk Register."
             });
-            
+
             // Instruct TRPC to refetch the risks to keep the UI perfectly synced
             utils.risks.getRiskAssessments.invalidate({ clientId });
 
@@ -140,7 +142,7 @@ export default function VendorDashboard() {
                 if (remaining.length > 0) {
                     setAuditResults(remaining);
                 } else {
-                    setAuditResults(null); 
+                    setAuditResults(null);
                 }
             }
             setSelectedFinding(null);
@@ -512,7 +514,7 @@ export default function VendorDashboard() {
                     </Card>
                 </div>
             </div>
-            
+
             <EnhancedDialog
                 open={isOutreachOpen}
                 onOpenChange={setIsOutreachOpen}
@@ -532,26 +534,26 @@ export default function VendorDashboard() {
                     <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg space-y-4 shadow-inner">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-slate-500 uppercase">To Address</label>
-                            <Input 
-                                value={emailTo} 
-                                onChange={(e) => setEmailTo(e.target.value)} 
-                                className="font-mono text-sm bg-white" 
+                            <Input
+                                value={emailTo}
+                                onChange={(e) => setEmailTo(e.target.value)}
+                                className="font-mono text-sm bg-white"
                             />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-slate-500 uppercase">Subject</label>
-                            <Input 
-                                value={emailSubject} 
-                                onChange={(e) => setEmailSubject(e.target.value)} 
-                                className="bg-white font-medium shadow-sm border-slate-300" 
+                            <Input
+                                value={emailSubject}
+                                onChange={(e) => setEmailSubject(e.target.value)}
+                                className="bg-white font-medium shadow-sm border-slate-300"
                             />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-slate-500 uppercase">Body</label>
-                            <Textarea 
-                                value={emailContent} 
-                                onChange={(e) => setEmailContent(e.target.value)} 
-                                className="h-44 text-sm font-mono leading-relaxed bg-white shadow-sm border-slate-300 resize-none" 
+                            <Textarea
+                                value={emailContent}
+                                onChange={(e) => setEmailContent(e.target.value)}
+                                className="h-44 text-sm font-mono leading-relaxed bg-white shadow-sm border-slate-300 resize-none"
                             />
                         </div>
                     </div>

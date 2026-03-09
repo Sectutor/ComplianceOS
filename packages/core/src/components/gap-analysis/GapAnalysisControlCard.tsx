@@ -23,6 +23,9 @@ interface Control {
     description?: string;
     framework?: string;
     implementationGuidance?: string;
+    requirementText?: string | null;
+    officialGuidance?: string | null;
+    evidenceBlueprint?: Array<{ name: string; description: string; source?: string }> | null;
 }
 
 interface AssessmentResponse {
@@ -140,6 +143,44 @@ export function GapAnalysisControlCard({
                                     {control.framework?.includes('800-171') ? 'Assessment Objectives (800-171A)' : 'Implementation Guidance'}
                                 </p>
                                 <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{control.implementationGuidance}</p>
+                            </div>
+                        )}
+
+                        {control.requirementText && (
+                            <div className="mt-3 p-3 bg-slate-900 text-slate-100 rounded-lg shadow-sm">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1.5 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                    Official Requirement
+                                </p>
+                                <p className="text-xs italic leading-relaxed font-serif opacity-90">"{control.requirementText}"</p>
+                            </div>
+                        )}
+
+                        {control.officialGuidance && (
+                            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg shadow-sm">
+                                <p className="text-[9px] font-black text-amber-700 uppercase tracking-[0.15em] mb-1.5">Official Guidance</p>
+                                <p className="text-xs text-slate-700 leading-relaxed">{control.officialGuidance}</p>
+                            </div>
+                        )}
+
+                        {control.evidenceBlueprint && control.evidenceBlueprint.length > 0 && (
+                            <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg shadow-sm">
+                                <p className="text-[9px] font-black text-emerald-700 uppercase tracking-[0.15em] mb-2">Audit-Ready Evidence Blueprint</p>
+                                <div className="space-y-2">
+                                    {control.evidenceBlueprint.slice(0, 3).map((bp, i) => (
+                                        <div key={i} className="flex items-start gap-2 text-[11px]">
+                                            <div className="mt-1 w-3 h-3 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-600" />
+                                            </div>
+                                            <div className="text-slate-700">
+                                                <span className="font-bold">{bp.name}:</span> {bp.description}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {control.evidenceBlueprint.length > 3 && (
+                                        <p className="text-[10px] text-emerald-600 font-medium pl-5">+ {control.evidenceBlueprint.length - 3} more items</p>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

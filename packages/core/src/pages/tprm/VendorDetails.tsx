@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -32,6 +33,7 @@ import GenericFileUploader from "@/components/GenericFileUploader";
 
 export default function VendorDetails() {
     const { id, vendorId } = useParams<{ id: string, vendorId: string }>();
+    const { t } = useTranslation('vendors');
     const [, setLocation] = useLocation();
     const clientId = parseInt(id || "0");
     const vId = parseInt(vendorId || "0");

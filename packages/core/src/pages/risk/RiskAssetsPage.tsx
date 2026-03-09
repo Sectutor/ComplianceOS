@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, Filter } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 
 export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = false, fullWidth = false }: { hideLayout?: boolean, hideBreadcrumb?: boolean, fullWidth?: boolean }) {
     const params = useParams();
+    const { t } = useTranslation('risk');
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
 
@@ -213,8 +215,8 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
                     <button
                         onClick={() => setCuiFilterActive(!cuiFilterActive)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${cuiFilterActive
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
                             }`}
                     >
                         <Filter className="w-3 h-3" />

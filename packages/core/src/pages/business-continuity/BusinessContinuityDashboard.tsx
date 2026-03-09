@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -15,6 +16,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function BusinessContinuityDashboard() {
     const params = useParams();
+    const { t } = useTranslation('dashboard');
     const clientId = parseInt(params.id || "0");
 
     const { data: metrics, isLoading } = trpc.businessContinuity.getDashboardMetrics.useQuery({ clientId });

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, XCircle, Clock, Sparkles, Loader2, Wand2, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -132,6 +133,7 @@ const improveContentFallback = (content: string, template?: any, enhanceBaseline
 
 export default function PolicyTemplates() {
   const { user, session } = useAuth();
+  const { t } = useTranslation('policy');
   const [searchQuery, setSearchQuery] = useState("");
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);

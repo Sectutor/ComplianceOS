@@ -3,6 +3,7 @@ import { Label } from "@complianceos/ui/ui/label";
 
 import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { EvidenceLibraryDialog } from "@/components/EvidenceLibraryDialog";
@@ -89,6 +90,7 @@ const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'))
 
 export default function AuditHub() {
     const [match, params] = useRoute("/clients/:clientId/audit-hub");
+    const { t } = useTranslation('dashboard');
     const clientId = params?.clientId ? parseInt(params.clientId) : 0;
     const [activeSection, setActiveSection] = useState('pbc'); // 'overview', 'pbc', 'findings'
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);

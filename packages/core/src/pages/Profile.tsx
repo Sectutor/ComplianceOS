@@ -14,11 +14,13 @@ import { supabase } from "@/lib/supabaseClient";
 import { User, Mail, Shield, Moon, Sun, Laptop, Loader2, Save, Lock, Trash2, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@complianceos/ui/ui/alert-dialog";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 
 
 export default function Profile() {
     const { user, session } = useAuth();
     const { theme, setTheme } = useTheme();
+    const { t } = useTranslation('settings');
     const [fullName, setFullName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useBranding, BrandLogo } from "@/config/branding";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@complianceos/ui/ui/card";
@@ -10,6 +11,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const { t } = useTranslation('dashboard');
   const { appName } = useBranding();
   const [location, setLocation] = useLocation();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');

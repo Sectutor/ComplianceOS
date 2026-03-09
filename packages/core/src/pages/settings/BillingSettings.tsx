@@ -3,6 +3,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useBilling } from '@/hooks/useBilling';
 import { toast } from 'sonner';
 import { Check, Star, Building2, Shield, Lock } from 'lucide-react';
@@ -13,6 +14,7 @@ interface BillingSettingsProps {
 
 export function BillingSettings({ clientId }: BillingSettingsProps) {
     const { billingEnabled } = useBilling();
+    const { t } = useTranslation('settings');
     const [billingPeriod, setBillingPeriod] = useState<'month' | 'year'>('month');
 
     if (!billingEnabled) return null;

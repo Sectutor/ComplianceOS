@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { frameworks } from "@/data/frameworks";
 
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { CircularProgress } from "@complianceos/ui/ui/circular-progress";
 import { FrameworkImportDialog } from "@/components/settings/FrameworkImportDialog";
 import { toast } from "sonner";
@@ -90,6 +91,7 @@ const FrameworkCard = ({ fw, stats, onClick }: { fw: any, stats: any, onClick: (
 
 export default function FrameworksDashboard() {
     const [searchQuery, setSearchQuery] = useState("");
+    const { t } = useTranslation('dashboard');
     const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
     const [isCustomImportOpen, setIsCustomImportOpen] = useState(false);
     const [, setLocation] = useLocation();

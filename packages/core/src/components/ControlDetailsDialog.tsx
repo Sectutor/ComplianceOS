@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/ta
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { FileText, Upload, Trash2, Download, Calendar, User, ClipboardList, MessageSquare } from "lucide-react";
+import { FileText, Upload, Trash2, Download, Calendar, User, ClipboardList, MessageSquare, Info, ShieldCheck, ListChecks, Gavel } from "lucide-react";
 import { CommentsSection } from "@/components/CommentsSection";
 
 interface ControlDetailsDialogProps {
@@ -43,6 +43,9 @@ interface ControlDetailsDialogProps {
     description: string | null;
     framework: string;
     controlId: string;
+    requirementText?: string | null;
+    officialGuidance?: string | null;
+    evidenceBlueprint?: Array<{ name: string; description: string; source?: string }> | null;
   } | null;
   clientId: number;
   onUpdate: () => void;
@@ -246,10 +249,14 @@ export default function ControlDetailsDialog({
         description={control?.description || "No description available"}
       >
         <Tabs defaultValue="implementation" className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="implementation">
               <ClipboardList className="mr-2 h-4 w-4" />
               Implementation
+            </TabsTrigger>
+            <TabsTrigger value="guidance">
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Guidance
             </TabsTrigger>
             <TabsTrigger value="evidence">
               <FileText className="mr-2 h-4 w-4" />
@@ -257,17 +264,12 @@ export default function ControlDetailsDialog({
             </TabsTrigger>
             <TabsTrigger value="related">
               <div className="flex items-center">
-                Related Controls
-                {mappings && mappings.length > 0 && (
-                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
-                    {mappings.length}
-                  </Badge>
-                )}
+                Related
               </div>
             </TabsTrigger>
             <TabsTrigger value="discussion">
               <MessageSquare className="mr-2 h-4 w-4" />
-              Discussion
+              Disc.
             </TabsTrigger>
           </TabsList>
 
@@ -764,6 +766,64 @@ export default function ControlDetailsDialog({
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="guidance" className="space-y-6 mt-4">
+            {control?.requirementText && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-primary">
+                  <Gavel className="h-4 w-4" />
+                  <h4 className="font-bold text-sm uppercase tracking-wider">Official Requirement</h4>
+                </div>
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm italic leading-relaxed text-slate-700">
+                  "{control.requirementText}"
+                </div>
+              </div>
+            )}
+
+            {control?.officialGuidance && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-blue-600">
+                  <Info className="h-4 w-4" />
+                  <h4 className="font-bold text-sm uppercase tracking-wider">Regulatory Guidance</h4>
+                </div>
+                <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-slate-600">
+                  {control.officialGuidance}
+                </div>
+              </div>
+            )}
+
+            {control?.evidenceBlueprint && control.evidenceBlueprint.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-indigo-600">
+                  <ListChecks className="h-4 w-4" />
+                  <h4 className="font-bold text-sm uppercase tracking-wider">Evidence Blueprint</h4>
+                </div>
+                <div className="grid gap-3">
+                  {control.evidenceBlueprint.map((blueprint, idx) => (
+                    <div key={idx} className="flex items-start gap-3 p-3 bg-indigo-50/30 border border-indigo-100 rounded-lg text-sm shadow-sm hover:shadow-md transition-shadow">
+                      <div className="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                        {idx + 1}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-semibold text-slate-900">{blueprint.name}</div>
+                        <div className="text-slate-600">{blueprint.description}</div>
+                        {blueprint.source && (
+                          <div className="text-xs font-mono text-slate-400 mt-1">Suggested Source: {blueprint.source}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!control?.requirementText && !control?.officialGuidance && (!control?.evidenceBlueprint || control.evidenceBlueprint.length === 0) && (
+              <div className="text-center py-12 text-muted-foreground bg-slate-50 border border-dashed rounded-lg">
+                <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>No official guidance available for this control.</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="discussion" className="mt-4">

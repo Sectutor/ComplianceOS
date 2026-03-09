@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { 
-    Button, 
+import { useTranslation } from "@/hooks/useTranslation";
+import {
+    Button,
     Card, CardContent, CardDescription, CardHeader, CardTitle,
     Switch,
     EnhancedDialog,
@@ -20,10 +21,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@complianceos/ui";
-import { 
-    Loader2, Plus, Trash2, Edit, Play, 
-    CheckCircle, XCircle, Monitor, Network, 
-    ServerCog, Cpu, ShieldAlert, FileText, Briefcase 
+import {
+    Loader2, Plus, Trash2, Edit, Play,
+    CheckCircle, XCircle, Monitor, Network,
+    ServerCog, Cpu, ShieldAlert, FileText, Briefcase
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ const FEATURES = [
 
 export default function LLMSettings() {
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const { t } = useTranslation('settings');
     const [editingId, setEditingId] = useState<number | null>(null);
 
     // Form State
@@ -114,7 +116,7 @@ export default function LLMSettings() {
         onSuccess: (result: any) => {
             const isSuccess = !!result?.success;
             const message = result?.message || (isSuccess ? "Connection successful!" : "Connection failed");
-            
+
             if (isSuccess && result.id) {
                 // Refresh list
                 utils.llm.list.invalidate();
@@ -128,7 +130,7 @@ export default function LLMSettings() {
                 success: isSuccess,
                 message: message
             });
-            
+
             if (isSuccess) {
                 toast.success(message);
             } else {
@@ -636,3 +638,4 @@ export default function LLMSettings() {
         </div>
     );
 }
+

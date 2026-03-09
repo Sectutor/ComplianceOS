@@ -5,12 +5,14 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { Button } from "@complianceos/ui/ui/button";
 import { Plus, Shield, CheckCircle, FileText, Users, AlertTriangle, Database } from "lucide-react";
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Loader2 } from "lucide-react";
 
 export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean }) {
     const { selectedClientId } = useClientContext();
+    const { t } = useTranslation('dashboard');
     const clientId = selectedClientId || 0;
     const [, setLocation] = useLocation();
 

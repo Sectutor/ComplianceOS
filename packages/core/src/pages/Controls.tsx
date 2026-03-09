@@ -8,6 +8,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Plus, ArrowLeft } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ import {
 
 export default function Controls() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation('compliance');
   // Custom hook to track search params since wouter's useLocation might ignore query-only changes
   const useSearchParams = () => {
     const [search, setSearch] = useState(window.location.search);

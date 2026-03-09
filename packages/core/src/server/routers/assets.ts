@@ -61,6 +61,9 @@ export const createAssetsRouter = (t: any, clientProcedure: any, clientEditorPro
                 location: z.string().optional(),
                 customFields: z.record(z.any()).optional(),
                 tags: z.array(z.string()).optional(),
+                valuationC: z.number().optional(),
+                valuationI: z.number().optional(),
+                valuationA: z.number().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
@@ -95,6 +98,9 @@ export const createAssetsRouter = (t: any, clientProcedure: any, clientEditorPro
                 ipAddress: z.string().optional(),
                 location: z.string().optional(),
                 tags: z.array(z.string()).optional(),
+                valuationC: z.number().optional(),
+                valuationI: z.number().optional(),
+                valuationA: z.number().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();

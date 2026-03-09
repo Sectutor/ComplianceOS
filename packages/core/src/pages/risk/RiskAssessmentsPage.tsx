@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Plus, Search, CheckCircle2, AlertCircle, AlertTriangle, Download, ArrowLeft, Clock, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import { PageGuide } from '@/components/PageGuide';
 
 export default function RiskAssessmentsPage() {
     const params = useParams();
+    const { t } = useTranslation('risk');
     const [_, setLocation] = useLocation();
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();

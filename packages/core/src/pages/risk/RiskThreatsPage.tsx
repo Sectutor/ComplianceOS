@@ -3,6 +3,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { AlertTriangle, Plus, Search, ArrowLeft, Globe, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useClientContext } from '@/contexts/ClientContext';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@complianceos/ui/ui/button';
 import { Input } from '@complianceos/ui/ui/input';
 import { AddThreatDialog } from '@/components/risk/AddThreatDialog';
@@ -19,6 +20,7 @@ import { PageGuide } from "@/components/PageGuide";
 
 export default function RiskThreatsPage() {
     const params = useParams();
+    const { t } = useTranslation('risk');
     const routeClientId = params.id ? Number(params.id) : null;
     const { user } = useAuth();
     const [location, setLocation] = useLocation();

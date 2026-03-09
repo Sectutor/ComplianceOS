@@ -20,9 +20,11 @@ import {
 
 import { ISOLayout } from "./ISOLayout";
 import { PageGuide } from "@/components/PageGuide";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function ISODashboard() {
     const { id } = useParams<{ id: string }>();
+    const { t } = useTranslation('dashboard');
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
 

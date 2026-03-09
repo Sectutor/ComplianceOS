@@ -995,6 +995,20 @@ export const clients = pgTable("clients", {
   requireMfa: boolean("require_mfa").default(false),
 });
 
+export const riskAppetite = pgTable("risk_appetite", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  financialThreshold: integer("financial_threshold"), // e.g., $100,000 in cents
+  reputationalThreshold: varchar("reputational_threshold", { length: 50 }), // 'None', 'Minor', 'Strategic'
+  operationalThreshold: integer("operational_threshold"), // Max hours downtime
+  overallRiskLevel: varchar("overall_risk_level", { length: 50 }).default("Medium"), // Low, Medium, High
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_appetite_client").on(table.clientId),
+  };
+});
+
 
 
 
@@ -1133,6 +1147,9 @@ export const controls = pgTable("controls", {
 
   implementationGuidance: text("implementation_guidance"), // For detailed examples or instructions
   aiGuidance: text("ai_guidance"), // AI-generated guidance cached globally
+  requirementText: text("requirement_text"), // Verbatim legislative text (e.g. NIS2 Art 21)
+  officialGuidance: text("official_guidance"), // Official regulatory guidance
+  evidenceBlueprint: json("evidence_blueprint").$type<Array<{ name: string; description: string; source?: string }>>(), // Detailed evidence examples
 
 
 
@@ -2206,6 +2223,10 @@ export const evidence = pgTable("evidence", {
   location: varchar("location", { length: 1024 }),
 
   lastVerified: timestamp("last_verified"),
+
+  expirationDate: timestamp("expiration_date"),
+
+  intervalDays: integer("interval_days").default(365), // Default to annual
 
   updatedAt: timestamp("updated_at").defaultNow(),
 
@@ -6832,17 +6853,37 @@ export const threats = pgTable("threats", {
 
 
     clientThreatIdx: index("idx_threat_client").on(table.clientId),
-
-
-
     clientStatusIdx: index("idx_threat_client_status").on(table.clientId, table.status),
-
-
-
   };
+});
 
+export const securityTests = pgTable("security_tests", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  type: varchar("type", { length: 100 }).notNull(),
+  frequency: varchar("frequency", { length: 50 }),
+  status: varchar("status", { length: 50 }).default("scheduled"),
+  scheduledDate: timestamp("scheduled_date"),
+  completionDate: timestamp("completion_date"),
+  findingsCount: integer("findings_count").default(0),
+  reportUrl: varchar("report_url", { length: 1024 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
-
+export const securityTestFindings = pgTable("security_test_findings", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  testId: integer("test_id").references(() => securityTests.id),
+  title: varchar("title", { length: 500 }).notNull(),
+  severity: varchar("severity", { length: 50 }).notNull(),
+  description: text("description"),
+  remediationStatus: varchar("status", { length: 50 }).default("open"),
+  targetAssetId: integer("asset_id").references(() => assets.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 
@@ -7870,6 +7911,12 @@ export const vendors = pgTable("vendors", {
   }>(),
 
   lastTrustCenterChange: timestamp("last_trust_center_change"),
+  
+  // NIS2 Supply Chain Compliance
+  nis2Category: varchar("nis2_category", { length: 100 }), // e.g., "Cloud Service Provider", "ICT Security Service"
+  isEssentialService: boolean("is_essential_service").default(false),
+  supplyChainImpact: integer("supply_chain_impact").default(1), // 1-5 scale of dependence
+  lastSupplyChainReview: timestamp("last_supply_chain_review"),
 
 
 
@@ -13720,6 +13767,19 @@ export const incidents = pgTable("incidents", {
   detectedAt: timestamp("detected_at"),
 
   severity: incidentSeverityEnum("severity").default("low"),
+  
+  // NIS2 Art. 23 Classification & Reporting
+  isSignificant: boolean("is_significant").default(false),
+  significanceCriteria: json("significance_criteria").$type<string[]>(), // ["operational_disruption", "financial_loss", "public_safety", "third_party_impact"]
+  affectedUsersCount: integer("affected_users_count").default(0),
+  serviceDisruptionDuration: integer("service_disruption_duration").default(0), // in minutes
+  estimatedFinancialLoss: integer("estimated_financial_loss").default(0), // in cents
+  isContinuityTriggered: boolean("is_continuity_triggered").default(false),
+  
+  // Reporting Milestones
+  earlyWarningSentAt: timestamp("early_warning_sent_at"), // 24h deadline
+  intermediateReportSentAt: timestamp("intermediate_report_sent_at"), // 72h deadline
+  finalReportSentAt: timestamp("final_report_sent_at"), // 1 month deadline
 
   cause: varchar("cause", { length: 100 }), // malware, phishing, etc.
 
@@ -14887,3 +14947,26 @@ export const federalContracts = pgTable("federal_contracts", {
 
 export type FederalContract = typeof federalContracts.$inferSelect;
 export type InsertFederalContract = typeof federalContracts.$inferInsert;
+
+// ==========================================
+// NIS2 & ENISA Mapping Layer
+// ==========================================
+
+export const nis2Mappings = pgTable("nis2_mappings", {
+  id: serial("id").primaryKey(),
+  nis2Article: varchar("nis2_article", { length: 50 }).notNull(), // e.g., '21(2)(a)'
+  enisaMeasureId: varchar("enisa_measure_id", { length: 20 }).notNull(), // e.g., '1.1'
+  enisaMeasureTitle: varchar("enisa_measure_title", { length: 255 }).notNull(),
+  iso27001ControlIds: json("iso27001_control_ids").$type<string[]>().notNull(), // e.g., ['5.2', 'A.5.1']
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    articleIdx: index("idx_nis2_article").on(table.nis2Article),
+    measureIdx: index("idx_nis2_enisa_id").on(table.enisaMeasureId),
+  };
+});
+
+export type Nis2Mapping = typeof nis2Mappings.$inferSelect;
+export type InsertNis2Mapping = typeof nis2Mappings.$inferInsert;

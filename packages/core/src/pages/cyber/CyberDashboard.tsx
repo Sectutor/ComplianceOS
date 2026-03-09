@@ -1,9 +1,11 @@
 import React from 'react';
+import { trpc } from '@/lib/trpc';
 import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import {
     ShieldCheck,
+    ShieldAlert,
     AlertTriangle,
     Activity,
     Lock,
@@ -13,9 +15,11 @@ import {
     FileText,
     Server,
     Zap,
-    BookOpen
+    BookOpen,
+    Target
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useClientContext } from "@/contexts/ClientContext";
 import { cn } from "@/lib/utils";
 import { PageGuide } from "@/components/PageGuide";
@@ -23,6 +27,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function CyberDashboard() {
     const { selectedClientId } = useClientContext();
+    const { t } = useTranslation('dashboard');
     const [, setLocation] = useLocation();
 
     const sections = [
@@ -115,8 +120,105 @@ export default function CyberDashboard() {
                 "Evidence collection",
                 "Audit trail"
             ]
+        },
+        {
+            title: "Mapping Hub",
+            headerTitle: "Framework Alignment",
+            description: "Cross-reference NIS2 measures against ISO 27001, ENISA guidelines, and internal controls.",
+            icon: Shield,
+            color: "from-emerald-500 to-teal-400",
+            textColor: "text-emerald-600",
+            bgLight: "bg-emerald-50",
+            path: `/clients/${selectedClientId}/cyber/mapping`,
+            benefits: [
+                "ISO 27001 Cross-walk",
+                "ENISA Technical Mapping",
+                "Programmatic Traceability"
+            ]
+        },
+        {
+            title: "Compliance Workbook",
+            headerTitle: "Guidance & Evidence",
+            description: "Dedicated regulatory catalog with official guidance and evidence blueprints for all NIS2 measures.",
+            icon: BookOpen,
+            color: "from-sky-500 to-indigo-500",
+            textColor: "text-sky-600",
+            bgLight: "bg-sky-50",
+            path: `/clients/${selectedClientId}/cyber/workbook`,
+            benefits: [
+                "Official requirement text",
+                "Regulatory guidance",
+                "Evidence blueprints"
+            ]
+        },
+        {
+            title: "Threat Intelligence",
+            headerTitle: "Scenario-based Analysis",
+            description: "Sector-specific threat landscape analysis and automated risk scenarios based on ENISA guidance.",
+            icon: Shield,
+            color: "from-indigo-600 to-violet-500",
+            textColor: "text-indigo-600",
+            bgLight: "bg-indigo-50",
+            path: `/clients/${selectedClientId}/cyber/threat-intel`,
+            benefits: [
+                "ENISA taxonomy mapping",
+                "Automated scenarios",
+                "TARA risk assessing"
+            ]
+        },
+        {
+            title: "Vulnerability Management",
+            headerTitle: "Article 21 (e) (g)",
+            description: "Automated CVE tracking, patch management, and vulnerability disclosure procedures.",
+            icon: ShieldAlert,
+            color: "from-blue-600 to-indigo-600",
+            textColor: "text-blue-600",
+            bgLight: "bg-blue-50",
+            path: `/clients/${selectedClientId}/cyber/vulnerabilities`,
+            benefits: [
+                "Automated NVD/CVE scans",
+                "Patch management workflow",
+                "Vulnerability aging metrics"
+            ]
+        },
+        {
+            title: "Asset Criticality Matrix",
+            headerTitle: "Systemic Asset Tracking",
+            description: "Define and monitor the criticality of ICT assets based on confidentiality, integrity, and availability.",
+            icon: Server,
+            color: "from-slate-700 to-slate-900",
+            textColor: "text-slate-800",
+            bgLight: "bg-slate-100",
+            path: `/clients/${selectedClientId}/cyber/assets`,
+            benefits: [
+                "BIA alignment",
+                "Criticality scoring (CIA)",
+                "Dependency mapping"
+            ]
+        },
+        {
+            title: "Security Testing & Exercises",
+            headerTitle: "Art. 21 Testing",
+            description: "Manage pentests, vulnerability scans, and red team exercises for continuous assurance.",
+            icon: Target,
+            color: "from-rose-500 to-rose-700",
+            textColor: "text-rose-600",
+            bgLight: "bg-rose-50",
+            path: `/clients/${selectedClientId}/cyber/testing`,
+            benefits: [
+                "Pentest tracking",
+                "Automated scan logs",
+                "Red Team scenarios"
+            ]
         }
     ];
+
+    const { data: incidents } = trpc.cyber.getIncidents.useQuery(
+        { clientId: selectedClientId! },
+        { enabled: !!selectedClientId }
+    );
+
+    const significantActiveIncidents = incidents?.filter(i => i.isSignificant && !i.reportedToAuthorities && i.status !== 'resolved') || [];
 
     const getTargetId = (title: string) => {
         switch (title) {
@@ -124,6 +226,7 @@ export default function CyberDashboard() {
             case "Incident Reporting": return "cyber-incident-reporting";
             case "Supply Chain Security": return "cyber-vendor-risk";
             case "Business Continuity": return "cyber-continuity";
+            case "Compliance Workbook": return "cyber-workbook";
             default: return undefined;
         }
     }
@@ -187,6 +290,31 @@ export default function CyberDashboard() {
                     ]}
                 />
             </div>
+
+            {/* Significant Incident Alert Overlay */}
+            {significantActiveIncidents.length > 0 && (
+                <Card className="border-none shadow-2xl shadow-red-200 bg-red-600 text-white rounded-[2.5rem] overflow-hidden animate-bounce-subtle">
+                    <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex gap-6 items-center">
+                            <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                                <AlertTriangle className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-2xl">ACTION REQUIRED: Significant Incident</h3>
+                                <p className="text-red-100 font-medium text-lg">
+                                    You have {significantActiveIncidents.length} significant incident(s) that require mandatory NIS2 notification within 24h.
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents`)}
+                            className="bg-white hover:bg-red-50 text-red-600 font-black h-14 px-10 rounded-2xl shadow-xl transition-all active:scale-95 whitespace-nowrap text-lg"
+                        >
+                            Report to CSIRT <ArrowRight className="w-6 h-6 ml-2" />
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Hero Section */}
             <div className="relative overflow-hidden rounded-[2.5rem] bg-[#1C4D8D] p-8 md:p-12 text-white shadow-2xl shadow-sky-900/20">
@@ -258,17 +386,17 @@ export default function CyberDashboard() {
                                 <BookOpen className="w-8 h-8" />
                             </div>
                             <div>
-                                <h3 className="font-black text-slate-900 text-xl">Governance Framework</h3>
+                                <h3 className="font-black text-slate-900 text-xl">NIS2 Compliance Workbook</h3>
                                 <p className="text-slate-500 font-medium">
-                                    Access established best practices for NIS2 Article 21 technical and organizational measures.
+                                    Access established best practices and evidence blueprints for every NIS2 measure.
                                 </p>
                             </div>
                         </div>
                         <Button
-                            onClick={() => setLocation(`/clients/${selectedClientId}/cyber/program-guide`)}
+                            onClick={() => setLocation(`/clients/${selectedClientId}/cyber/workbook`)}
                             className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-14 px-8 rounded-2xl shadow-lg shadow-sky-100 transition-all active:scale-95 whitespace-nowrap"
                         >
-                            Explore Guide <ArrowRight className="w-5 h-5 ml-2" />
+                            Open Workbook <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                     </CardContent>
                 </Card>

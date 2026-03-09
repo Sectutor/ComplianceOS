@@ -285,6 +285,14 @@ const CyberIncidentReporting = lazy(() => import("./pages/cyber/CyberIncidentRep
 const CyberDocumentation = lazy(() => import("./pages/cyber/CyberDocumentation"));
 const CyberIncidentDetail = lazy(() => import("./pages/cyber/CyberIncidentDetail"));
 const CyberLayout = lazy(() => import("./pages/cyber/CyberLayout"));
+const NIS2MappingHub = lazy(() => import("./pages/cyber/NIS2MappingHub"));
+const NIS2Workbook = lazy(() => import("./pages/cyber/NIS2Workbook"));
+const ThreatIntelligence = lazy(() => import("./pages/cyber/ThreatIntelligence"));
+const SupplyChainRisk = lazy(() => import("./pages/cyber/SupplyChainRisk"));
+const CyberMonitoring = lazy(() => import("./pages/cyber/CyberMonitoring"));
+const VulnerabilityManagement = lazy(() => import("./pages/cyber/VulnerabilityManagement"));
+const AssetCriticalityMatrix = lazy(() => import("./pages/cyber/AssetCriticalityMatrix"));
+const SecurityTesting = lazy(() => import("./pages/cyber/SecurityTesting"));
 const ISODashboard = lazy(() => import("./pages/iso27001/ISODashboard"));
 const StatementOfApplicability = lazy(() => import("./pages/iso27001/StatementOfApplicability"));
 const ISOPlaceholder = lazy(() => import("./pages/iso27001/ISOPlaceholder"));
@@ -1603,6 +1611,50 @@ function Router() {
           {(_params) => (
             <CyberLayout>
               <CyberDocumentation />
+            </CyberLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/cyber/mapping">
+          {(_params) => (
+            <CyberLayout fullWidth={true}>
+              <NIS2MappingHub />
+            </CyberLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/cyber/workbook">
+          {(_params) => (
+            <CyberLayout fullWidth={true}>
+              <NIS2Workbook />
+            </CyberLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/cyber/threat-intel">
+          {(_params) => (
+            <CyberLayout>
+              <ThreatIntelligence />
+            </CyberLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/cyber/supply-chain">
+          {(_params) => (
+            <CyberLayout>
+              <SupplyChainRisk />
+            </CyberLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/cyber/vulnerabilities">
+            {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><VulnerabilityManagement /></UnifiedClientGuard></CyberLayout>}
+        </Route>
+        <Route path="/clients/:id/cyber/assets">
+            {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><AssetCriticalityMatrix /></UnifiedClientGuard></CyberLayout>}
+        </Route>
+        <Route path="/clients/:id/cyber/testing">
+            {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><SecurityTesting /></UnifiedClientGuard></CyberLayout>}
+        </Route>
+        <Route path="/clients/:id/cyber/monitoring">
+          {(_params) => (
+            <CyberLayout>
+              <CyberMonitoring />
             </CyberLayout>
           )}
         </Route>

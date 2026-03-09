@@ -9,6 +9,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Switch } from "@complianceos/ui/ui/switch";
 import { Label } from "@complianceos/ui/ui/label";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useClientContext } from "@/contexts/ClientContext";
 import { Plus, Trash2, Edit2, Loader2 } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -25,6 +26,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 
 export default function OnboardingSettings({ hideLayout = false, clientId: propClientId }: { hideLayout?: boolean, clientId?: number }) {
     const { selectedClientId: contextClientId } = useClientContext();
+    const { t } = useTranslation('settings');
     const { id: idParam, clientId: clientIdParam } = useParams();
     const clientId = propClientId || contextClientId || parseInt(idParam || clientIdParam || "0") || 0;
     const [isCreateOpen, setIsCreateOpen] = useState(false);

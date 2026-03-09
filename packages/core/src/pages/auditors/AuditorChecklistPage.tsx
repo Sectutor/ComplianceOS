@@ -9,7 +9,11 @@ import {
     Search,
     AlertCircle,
     CheckCircle2,
-    Loader2
+    Loader2,
+    Gavel,
+    Book,
+    Info,
+    ListChecks
 } from "lucide-react"; // Using accessible icons
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@complianceos/ui/ui/card";
@@ -22,7 +26,7 @@ import { Alert, AlertTitle, AlertDescription } from "@complianceos/ui/ui/alert";
 
 // Mock data for UI development if backend is not fully ready
 // In real app, these would come from trpc queries
-const FRAMEWORKS = ["ISO 27001", "SOC 2", "GDPR", "HIPAA"];
+const FRAMEWORKS = ["ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIS2"];
 
 export default function AuditorChecklistPage() {
     const params = useParams();
@@ -294,6 +298,49 @@ export default function AuditorChecklistPage() {
                                                     {items.some(i => i.status === 'verified') ? 'Verified' : 'Pending Review'}
                                                 </Badge>
                                             </div>
+
+                                            {/* V15.0: Regulatory Context for Auditors */}
+                                            {items[0]?.control && (items[0].control.requirementText || items[0].control.officialGuidance) && (
+                                                <div className="bg-blue-50/30 border-b border-blue-100 p-6 space-y-4">
+                                                    <div className="flex items-center gap-2 text-blue-800 font-bold text-xs uppercase tracking-widest">
+                                                        <Gavel className="w-4 h-4" />
+                                                        Audit Regulatory Context
+                                                    </div>
+                                                    <div className="grid md:grid-cols-2 gap-6">
+                                                        {items[0].control.requirementText && (
+                                                            <div className="space-y-2">
+                                                                <h4 className="text-[10px] font-black text-slate-400 uppercase">Official Requirement</h4>
+                                                                <p className="text-sm text-slate-700 italic border-l-2 border-blue-200 pl-3 leading-relaxed">
+                                                                    "{items[0].control.requirementText}"
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        {items[0].control.officialGuidance && (
+                                                            <div className="space-y-2">
+                                                                <h4 className="text-[10px] font-black text-slate-400 uppercase">Auditor Guidance</h4>
+                                                                <p className="text-sm text-slate-600 bg-white/50 p-3 rounded-lg border border-blue-50">
+                                                                    {items[0].control.officialGuidance}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {items[0].control.evidenceBlueprint && (items[0].control.evidenceBlueprint as any[]).length > 0 && (
+                                                        <div className="pt-2">
+                                                            <h4 className="text-[10px] font-black text-slate-400 uppercase mb-2">Evidence Blueprint (Expected Proofs)</h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {(items[0].control.evidenceBlueprint as any[]).map((bp, i) => (
+                                                                    <Badge key={i} variant="outline" className="bg-white text-slate-600 border-slate-200 font-medium py-1 px-2">
+                                                                        <ListChecks className="w-3 h-3 mr-1 text-blue-500" />
+                                                                        {bp.name}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <CardContent className="p-0">
                                                 <ul className="divide-y">
                                                     {items.map(evidence => (

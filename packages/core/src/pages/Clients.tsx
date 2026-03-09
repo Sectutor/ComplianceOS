@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Plus, FolderOpen, ArrowRight, Search, Building2, Trash2, Edit, Settings, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -30,6 +31,7 @@ import { PageGuide } from "@/components/PageGuide";
 
 export default function Clients() {
   const { user } = useAuth();
+  const { t } = useTranslation('dashboard');
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);

@@ -40,11 +40,13 @@ import {
 } from "@complianceos/ui/ui/table";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { authedFetch } from "@/lib/authedFetch";
 import { useParams } from "wouter";
 
 export default function EvidenceIntakeBox() {
     const [isDragging, setIsDragging] = useState(false);
+    const { t } = useTranslation('evidence');
     const params = useParams();
     const clientId = useMemo(() => {
         if (!params.id) {

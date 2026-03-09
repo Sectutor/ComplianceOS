@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, AlertTriangle, CheckCircle, Database, ChevronDown, ChevronUp, Sparkles, Server, Flame, Activity, Stethoscope, BarChart3, ArrowRight, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
@@ -12,11 +13,13 @@ import { RiskHeatmap } from '@/components/risk/RiskHeatmap';
 import { RiskReductionROI } from '@/components/risk/RiskCharts';
 // import { GapAnalysis } from '@/components/risk/GapAnalysis';
 import { KRITrendCards } from '@/components/risk/KRITrendCards';
+import { RiskAppetiteCalculator } from '@/components/risk/RiskAppetiteCalculator';
 import { Button } from '@complianceos/ui/ui/button';
 import { PageGuide } from "@/components/PageGuide";
 
 export default function RiskDashboard() {
     const params = useParams();
+    const { t } = useTranslation('risk');
     const [_, setLocation] = useLocation();
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
@@ -140,9 +143,8 @@ export default function RiskDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* Workflow Introduction Section (collapsed for brevity) */}
+                {/* Workflow Introduction Section */}
                 <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg overflow-hidden relative mb-6">
-                    {/* ... content ... */}
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Shield className="w-6 h-6 text-red-400" />
@@ -153,9 +155,7 @@ export default function RiskDashboard() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {/* ... */}
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
-                            {/* ... */}
                             <div className="hidden md:block absolute top-6 left-10 right-10 h-0.5 bg-slate-700 -z-10"></div>
                             {[
                                 {
@@ -167,7 +167,6 @@ export default function RiskDashboard() {
                                     color: "text-blue-400",
                                     bg: "bg-blue-900/50"
                                 },
-                                // ... mapped items ...
                                 {
                                     step: "2. Library",
                                     title: "Threats & Vulns",
@@ -219,6 +218,11 @@ export default function RiskDashboard() {
                         </div>
                     </CardContent>
                 </Card>
+                
+                {/* Risk Appetite & Planning */}
+                <div className="grid grid-cols-1 gap-6 mb-8">
+                    <RiskAppetiteCalculator clientId={clientId} />
+                </div>
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4" id="risk-stats-summary">

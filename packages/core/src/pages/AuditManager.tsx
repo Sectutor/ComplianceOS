@@ -5,6 +5,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Loader2, Calendar, CalendarDays, CheckCircle2, Clock, AlertCircle, FileText, Plus, MoreHorizontal, Search, BarChart3, ClipboardCheck, ShieldCheck, X, UserPlus, Mail, Trash2 } from "lucide-react";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
@@ -56,6 +57,7 @@ interface Audit {
 
 export default function AuditManager() {
     const params = useParams<{ id: string }>();
+    const { t } = useTranslation('dashboard');
     const clientId = parseInt(params.id || "0");
 
     // Validate clientId - must be a positive number

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@complianceos/ui/ui/separator";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import {
   Bell,
@@ -28,6 +29,7 @@ import { format } from "date-fns";
 
 export default function Notifications() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation('dashboard');
   const [location] = useLocation();
   const [clientName, setClientName] = useState<string>("");
   const utils = trpc.useUtils();

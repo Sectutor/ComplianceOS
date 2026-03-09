@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
     Table,
     TableBody,
@@ -30,6 +31,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 
 export default function AuditLogs() {
     const [page, setPage] = useState(1);
+    const { t } = useTranslation('settings');
     const [limit] = useState(50);
     const [actionFilter, setActionFilter] = useState<string>("all");
     const [entityFilter, setEntityFilter] = useState<string>("all");

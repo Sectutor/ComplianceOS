@@ -114,12 +114,16 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
 
         create: adminProcedure
             .input(z.object({
-                controlId: z.string(),
-                name: z.string(),
-                description: z.string().optional(),
                 framework: z.string(),
                 owner: z.string().optional(),
                 status: z.enum(["active", "inactive", "draft"]).optional(),
+                requirementText: z.string().optional(),
+                officialGuidance: z.string().optional(),
+                evidenceBlueprint: z.array(z.object({
+                    name: z.string(),
+                    description: z.string(),
+                    source: z.string().optional()
+                })).optional(),
             }))
             .mutation(async ({ input }: any) => {
                 return await db.createControl(input);
@@ -135,6 +139,13 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 owner: z.string().optional(),
                 status: z.enum(["active", "inactive", "draft"]).optional(),
                 implementationGuidance: z.string().optional(),
+                requirementText: z.string().optional(),
+                officialGuidance: z.string().optional(),
+                evidenceBlueprint: z.array(z.object({
+                    name: z.string(),
+                    description: z.string(),
+                    source: z.string().optional()
+                })).optional(),
                 changeNote: z.string().optional(),
             }))
             .mutation(async ({ input }: any) => {

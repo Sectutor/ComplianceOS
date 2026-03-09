@@ -5,11 +5,13 @@ import { IntegrationMarketplace } from "@/components/integrations/IntegrationMar
 import { IntegrationConnections } from "@/components/integrations/IntegrationConnections";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function IntegrationsPage() {
     const [searchParams] = useSearchParams();
+    const { t } = useTranslation('settings');
     const [activeTab, setActiveTab] = useState<"marketplace" | "connections">("marketplace");
-    
+
     // Check if redirected from OAuth with success
     useEffect(() => {
         if (searchParams.get("connected") === "true") {

@@ -1,11 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { useLocation } from "wouter";
 import { Building2, CreditCard } from "lucide-react";
 
 export default function AdminBillingPage() {
     const [, setLocation] = useLocation();
+    const { t } = useTranslation('settings');
     const { data: clients, isLoading } = trpc.clients.list.useQuery();
 
     return (

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
@@ -28,6 +29,7 @@ import {
 
 export default function UserManagement() {
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const { t } = useTranslation('settings');
     const [selectedRole, setSelectedRole] = useState("user");
     const [userToImpersonate, setUserToImpersonate] = useState<any>(null);
     const [userToDelete, setUserToDelete] = useState<any>(null);

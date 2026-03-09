@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -85,6 +86,7 @@ function ensureTitleHeading(html: string, title: string) {
 
 export default function PolicyEditor(props: { id?: string; policyId?: string }) {
     console.log("[PolicyEditor] Rendering...");
+    const { t } = useTranslation('policy');
     const params = useParams();
     // Prioritize props passed from Route
     const rawClientId = props.id || params.id;

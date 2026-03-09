@@ -26,6 +26,13 @@ interface IncidentFormData {
     crossBorderImpact: boolean;
     affectedAssets?: string;
     title?: string;
+    // NIS2 Fields
+    isSignificant: boolean;
+    significanceCriteria: string[];
+    affectedUsersCount: number;
+    serviceDisruptionDuration: number;
+    estimatedFinancialLoss: number;
+    isContinuityTriggered: boolean;
 }
 
 export default function CyberIncidentReporting() {
@@ -39,7 +46,13 @@ export default function CyberIncidentReporting() {
         cause: "",
         description: "",
         crossBorderImpact: false,
-        affectedAssets: ""
+        affectedAssets: "",
+        isSignificant: false,
+        significanceCriteria: [],
+        affectedUsersCount: 0,
+        serviceDisruptionDuration: 0,
+        estimatedFinancialLoss: 0,
+        isContinuityTriggered: false
     });
 
     const reportMutation = trpc.cyber.reportIncident.useMutation({
@@ -74,7 +87,15 @@ export default function CyberIncidentReporting() {
             description: formData.description,
             crossBorderImpact: formData.crossBorderImpact,
             affectedAssets: formData.affectedAssets,
-            title: `Incident: ${formData.cause || 'Manual Report'} (${new Date().toLocaleDateString()})`
+            title: `Incident: ${formData.cause || 'Manual Report'} (${new Date().toLocaleDateString()})`,
+            // NIS2 Fields
+            isSignificant: formData.isSignificant,
+            significanceCriteria: formData.significanceCriteria,
+            affectedUsersCount: formData.affectedUsersCount,
+            serviceDisruptionDuration: formData.serviceDisruptionDuration,
+            estimatedFinancialLoss: formData.estimatedFinancialLoss,
+            isContinuityTriggered: formData.isContinuityTriggered,
+            earlyWarningSentAt: formData.isSignificant ? new Date().toISOString() : undefined
         });
     };
 
@@ -105,7 +126,7 @@ export default function CyberIncidentReporting() {
             {/* Progress Bar */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
                 <div className="flex justify-between mb-4">
-                    {['Incident Details', 'Impact Assessment', 'Review & Submit'].map((label, i) => (
+                    {['Incident Details', 'Impact Analysis', 'NIS2 Significance', 'Review & Submit'].map((label, i) => (
                         <div key={label} className="flex flex-col items-center gap-2">
                             <div className={cn(
                                 "h-10 w-10 rounded-full flex items-center justify-center font-bold transition-all duration-300",
@@ -120,7 +141,7 @@ export default function CyberIncidentReporting() {
                         </div>
                     ))}
                 </div>
-                <Progress value={(step / 2) * 100} className="h-2 rounded-full bg-slate-100" />
+                <Progress value={(step / 3) * 100} className="h-2 rounded-full bg-slate-100" />
             </div>
 
             <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
@@ -128,12 +149,14 @@ export default function CyberIncidentReporting() {
                     <CardTitle className="text-2xl font-bold text-slate-900">
                         {step === 0 ? "Step 1: Incident Context" :
                             step === 1 ? "Step 2: Impact Analysis" :
-                                "Step 3: Verification"}
+                                step === 2 ? "Step 3: NIS2 Significance" :
+                                    "Step 4: Verification"}
                     </CardTitle>
                     <CardDescription className="text-slate-500 text-lg">
                         {step === 0 ? "When was it detected and what is the nature of the event?" :
                             step === 1 ? "Assess the scale and cross-border implications." :
-                                "Final review before alerting the authorities."}
+                                step === 2 ? "Determine if this is a 'Significant Incident' under Art. 23." :
+                                    "Final review before alerting the authorities."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-8">
@@ -216,6 +239,60 @@ export default function CyberIncidentReporting() {
 
                     {step === 2 && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div className="p-6 bg-[#3ABEF9]/5 rounded-2xl border border-[#3ABEF9]/10 items-center justify-between flex">
+                                <div className="space-y-1">
+                                    <Label className="text-base font-bold text-slate-900">Mark as Significant Incident</Label>
+                                    <p className="text-sm text-slate-500">Requires mandatory 24h Early Warning to authorities.</p>
+                                </div>
+                                <Switch
+                                    checked={formData.isSignificant}
+                                    onCheckedChange={(val) => setFormData({ ...formData, isSignificant: val })}
+                                />
+                            </div>
+
+                            {formData.isSignificant && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-bold text-slate-700">Affected Users (estimate)</Label>
+                                        <Input
+                                            type="number"
+                                            className="h-12 rounded-xl border-slate-200"
+                                            value={formData.affectedUsersCount}
+                                            onChange={(e) => setFormData({ ...formData, affectedUsersCount: parseInt(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-bold text-slate-700">Service Disruption (minutes)</Label>
+                                        <Input
+                                            type="number"
+                                            className="h-12 rounded-xl border-slate-200"
+                                            value={formData.serviceDisruptionDuration}
+                                            onChange={(e) => setFormData({ ...formData, serviceDisruptionDuration: parseInt(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-bold text-slate-700">Financial Loss (€ estimate)</Label>
+                                        <Input
+                                            type="number"
+                                            className="h-12 rounded-xl border-slate-200"
+                                            value={formData.estimatedFinancialLoss}
+                                            onChange={(e) => setFormData({ ...formData, estimatedFinancialLoss: parseInt(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 items-center justify-between flex">
+                                        <Label className="text-sm font-bold text-slate-700">BCP/DR Triggered</Label>
+                                        <Switch
+                                            checked={formData.isContinuityTriggered}
+                                            onCheckedChange={(val) => setFormData({ ...formData, isContinuityTriggered: val })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {step === 3 && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="bg-[#1C4D8D]/5 p-8 rounded-2xl border border-[#1C4D8D]/10">
                                 <h3 className="text-lg font-bold text-[#1C4D8D] mb-6 flex items-center gap-2">
                                     <AlertTriangle className="h-5 w-5" />
@@ -236,6 +313,16 @@ export default function CyberIncidentReporting() {
                                             )}>{formData.severity.toUpperCase()}</Badge>
                                         </div>
                                     </div>
+                                    <div className="space-y-1">
+                                        <div className="text-xs font-bold text-slate-400 uppercase">NIS2 SIGNIFICANCE</div>
+                                        <div>
+                                            {formData.isSignificant ? (
+                                                <Badge className="bg-red-100 text-red-700 border-red-200 font-bold">SIGNIFICANT (ART. 23)</Badge>
+                                            ) : (
+                                                <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-bold">NORMAL</Badge>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="md:col-span-2 space-y-1 pt-4 border-t border-slate-100">
                                         <div className="text-xs font-bold text-slate-400 uppercase">Description</div>
                                         <div className="text-slate-700 leading-relaxed">{formData.description}</div>
@@ -244,10 +331,14 @@ export default function CyberIncidentReporting() {
                             </div>
                             <div className="flex items-center gap-4 p-6 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800">
                                 <ShieldAlert className="h-6 w-6 flex-shrink-0" />
-                                <p className="text-sm font-medium">
-                                    By clicking 'Submit Formal Report', you are formally notifying the incident response team.
-                                    This action will be logged for NIS2 compliance auditing.
-                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold">
+                                        By clicking 'Submit Formal Report', you are formally notifying the incident response team.
+                                    </p>
+                                    <p className="text-xs opacity-80">
+                                        {formData.isSignificant ? "This will trigger the 24h Early Warning clock for NIS2 compliance." : "This will be logged for NIS2 compliance auditing."}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -262,12 +353,12 @@ export default function CyberIncidentReporting() {
                         Previous
                     </Button>
                     <Button
-                        onClick={() => step < 2 ? setStep(step + 1) : handleSubmit()}
+                        onClick={() => step < 3 ? setStep(step + 1) : handleSubmit()}
                         disabled={reportMutation.isLoading}
                         className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                     >
                         {reportMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {step === 2 ? 'Submit Formal Report' : 'Continue'}
+                        {step === 3 ? 'Submit Formal Report' : 'Continue'}
                     </Button>
                 </CardFooter>
             </Card>

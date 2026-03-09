@@ -17,8 +17,10 @@ import {
     FileText
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
+import { useTranslation } from "@/hooks/useTranslation";
 export default function VendorOverview() {
     const { id } = useParams<{ id: string }>();
+    const { t } = useTranslation('vendors');
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
 

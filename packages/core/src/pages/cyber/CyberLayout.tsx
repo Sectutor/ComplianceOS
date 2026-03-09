@@ -6,16 +6,18 @@ import { cn } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
 import { useClientContext } from "@/contexts/ClientContext";
 
-export default function CyberLayout({ children }: PropsWithChildren) {
+export default function CyberLayout({ children, fullWidth = false }: PropsWithChildren<{ fullWidth?: boolean }>) {
     const [location] = useLocation();
     const { selectedClientId } = useClientContext();
 
     const tabs = [
         { name: "Cyber Resilience", path: `/clients/${selectedClientId}/cyber`, icon: ShieldCheck },
+        { name: "NIS2 Workbook", path: `/clients/${selectedClientId}/cyber/workbook`, icon: ShieldCheck },
+        { name: "Control Mapping", path: `/clients/${selectedClientId}/cyber/mapping`, icon: ShieldCheck },
     ];
 
     return (
-        <DashboardLayout>
+        <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-transparent md:-mt-8">
                 <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
                     <nav className="flex space-x-2 overflow-x-auto no-scrollbar py-1" aria-label="Tabs">

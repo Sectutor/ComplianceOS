@@ -66,6 +66,36 @@ export default function CyberOverview() {
                 "Version control",
                 "Approval workflows"
             ]
+        },
+        {
+            title: "Supply Chain Risk",
+            headerTitle: "Article 21(2)(d)",
+            description: "Map and monitor security in your ICT supply chain, identifying critical dependencies and vendor transition risks.",
+            icon: Globe,
+            color: "from-emerald-600 to-teal-500",
+            textColor: "text-emerald-600",
+            bgLight: "bg-emerald-50",
+            path: `/clients/${clientId}/cyber/supply-chain`,
+            benefits: [
+                "Critical dependency mapping",
+                "Vendor risk cascading",
+                "Contractual compliance tracking"
+            ]
+        },
+        {
+            title: "Continuous Monitoring",
+            headerTitle: "Art. 21 Effectiveness",
+            description: "Real-time tracking of security metrics and Key Risk Indicators (KRIs) to maintain compliance stability.",
+            icon: Activity,
+            color: "from-[#F9316C] to-[#E11D48]",
+            textColor: "text-rose-600",
+            bgLight: "bg-rose-50",
+            path: `/clients/${clientId}/cyber/monitoring`,
+            benefits: [
+                "Automated control testing",
+                "Key Risk Indicators (KRIs)",
+                "Real-time alerting thresholds"
+            ]
         }
     ];
 

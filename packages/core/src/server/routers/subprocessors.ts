@@ -28,6 +28,10 @@ export const createSubprocessorsRouter = (t: any, premiumClientProcedure: any, p
                     recursiveSubprocessors: schema.vendors.recursiveSubprocessors,
                     dpaAnalysis: schema.vendors.dpaAnalysis,
                     lastTrustCenterChange: schema.vendors.lastTrustCenterChange,
+                    nis2Category: schema.vendors.nis2Category,
+                    isEssentialService: schema.vendors.isEssentialService,
+                    supplyChainImpact: schema.vendors.supplyChainImpact,
+                    lastSupplyChainReview: schema.vendors.lastSupplyChainReview,
                     createdAt: schema.vendors.createdAt,
                     updatedAt: schema.vendors.updatedAt
                 })
@@ -107,6 +111,9 @@ export const createSubprocessorsRouter = (t: any, premiumClientProcedure: any, p
                     purpose: z.string(),
                     location: z.string()
                 })).optional(),
+                nis2Category: z.string().optional(),
+                isEssentialService: z.boolean().optional(),
+                supplyChainImpact: z.number().min(1).max(5).optional(),
                 status: z.enum(['Active', 'Onboarding', 'Offboarding', 'Offboarded']).default('Active')
             }))
             .mutation(async ({ input }: any) => {
@@ -123,6 +130,9 @@ export const createSubprocessorsRouter = (t: any, premiumClientProcedure: any, p
                     transferMechanism: input.transferMechanism || null,
                     recursiveSubprocessors: input.recursiveSubprocessors || null,
                     isSubprocessor: true,
+                    nis2Category: input.nis2Category || null,
+                    isEssentialService: input.isEssentialService || false,
+                    supplyChainImpact: input.supplyChainImpact || 1,
                     status: input.status,
                     updatedAt: new Date()
                 };

@@ -13,6 +13,7 @@ import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { cn } from "@/lib/utils";
 import { ChevronRight, ChevronDown, ExternalLink, Activity, CheckCircle2, Link, Shield, Info, PieChart, BarChart3, AlertTriangle, FileText, Sparkles, Wand2, Paperclip, Plus, Target, Microscope, LayoutList, ClipboardCheck, FileCheck, Database, Search, Rocket, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@complianceos/ui/ui/tooltip";
 
@@ -32,6 +33,7 @@ const staticFrameworks: Record<string, any[]> = {
 
 export default function RegulationDetail() {
     const [location, setLocation] = useLocation();
+    const { t } = useTranslation('dashboard');
     const params = useParams<{ id: string; regId: string }>();
     const regId = params.regId;
     const clientId = params.id ? parseInt(params.id) : 1;

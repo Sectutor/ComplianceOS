@@ -4,6 +4,7 @@ import { Bug, Plus, Search, Filter, Flame, ArrowUpDown, ArrowUp, ArrowDown, Info
 import { Alert, AlertDescription, AlertTitle } from '@complianceos/ui/ui/alert';
 import { useClientContext } from '@/contexts/ClientContext';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@complianceos/ui/ui/button';
 import { Input } from '@complianceos/ui/ui/input';
 import { AddVulnerabilityDialog } from '@/components/risk/AddVulnerabilityDialog';
@@ -16,6 +17,7 @@ import { PageGuide } from '@/components/PageGuide';
 
 export default function RiskVulnerabilitiesPage() {
     const params = useParams();
+    const { t } = useTranslation('risk');
     const routeClientId = params.id ? Number(params.id) : null;
     const { user, client: authClient } = useAuth();
     const [location, setLocation] = useLocation();

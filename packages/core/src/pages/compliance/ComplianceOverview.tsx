@@ -14,7 +14,8 @@ import {
     ArrowRight,
     CheckCircle2,
     Target,
-    FileSearch
+    FileSearch,
+    Clock
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -113,6 +114,21 @@ export default function ComplianceOverview() {
                 "Milestone tracking",
                 "Resource allocation",
                 "Progress visualization"
+            ]
+        },
+        {
+            title: "Continuous Monitoring",
+            headerTitle: "NIS2 & Continuous Compliance",
+            description: "Automate the re-verification of controls with automated evidence recurrence. Detect stale documentation and maintain evergreen compliance status.",
+            icon: Clock,
+            color: "from-red-500 to-rose-400",
+            textColor: "text-red-600",
+            bgLight: "bg-red-50",
+            path: `/clients/${clientId}/evidence`,
+            benefits: [
+                "Automated staleness detection",
+                "Re-verification interval tracking",
+                "Evidence recurrence management"
             ]
         }
     ];

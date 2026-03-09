@@ -24,9 +24,11 @@ import {
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageGuide } from "@/components/PageGuide";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function RiskOverview() {
     const { id } = useParams<{ id: string }>();
+    const { t } = useTranslation('risk');
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
 

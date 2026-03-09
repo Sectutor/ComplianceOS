@@ -37,7 +37,7 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
 import { createContext } from './packages/core/src/server/context';
 import { authMiddleware } from './packages/core/src/authMiddleware';
-import { getDb, resetDb } from './packages/core/src/db';
+import { getDb, resetDb, ensureDefaultDataSeeded } from './packages/core/src/db';
 import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
@@ -46,6 +46,7 @@ import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroa
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
 import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
+import * as evidenceExpirationScheduler from './packages/core/src/server/services/evidenceExpirationScheduler';
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
@@ -70,6 +71,13 @@ app.get(['/health', '/api/health'], async (req, res) => {
 const port = process.env.PORT || 3002;
 // Force restart
 console.log(`[Server] Initializing... Last update: ${new Date().toISOString()}`);
+
+// Auto-seed default data
+ensureDefaultDataSeeded().then(() => {
+    console.log('[Server] Default data seeding check completed.');
+}).catch(err => {
+    console.error('[Server] Default data seeding failed:', err);
+});
 
 process.on('uncaughtException', (err: any) => {
     console.error('[FATAL] Uncaught Exception:', {
@@ -253,6 +261,26 @@ app.use('/api/webhooks', gumroadWebhookRouter);
 // Redundant local uploads removed for security
 // app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// TRPC Endpoint with request logging
+app.use(
+    '/api/trpc',
+    (req, res, next) => {
+        if (req.url === '/health' || req.url === '/api/health') return next();
+        console.log(`[TRPC Request] ${req.method} ${req.path}${req.url.includes('?') ? '?' + req.url.split('?')[1] : ''}`);
+        next();
+    },
+    createExpressMiddleware({
+        router: appRouter,
+        createContext,
+        onError: ({ error, type, path, req }) => {
+            console.error(`[TRPC DEBUG] ${type} error on path "${path}":`, {
+                code: error.code,
+                message: error.message,
+            });
+        },
+    })
+);
+
 // Serve static files in production (Docker)
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     console.log('[Server] Serving static files from packages/core/dist');
@@ -268,29 +296,15 @@ if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     });
 }
 
-// TRPC Endpoint
-// Note: TRPC middleware already handles request logging via onError callback
-// Removed monkey-patching of res.send as it's fragile and can break Express handling
-
-// TRPC Endpoint with request logging
-app.use(
-    '/api/trpc',
-    (req, res, next) => {
-        console.log(`[TRPC Request] ${req.method} ${req.url} - Content-Type: ${req.headers['content-type']}`);
-        next();
-    },
-    createExpressMiddleware({
-        router: appRouter,
-        createContext,
-        onError: ({ error, type, path, req }) => {
-            console.error(`[TRPC] ${type} error on ${path}:`, {
-                code: error.code,
-                message: error.message,
-                stack: error.stack,
-            });
-        },
-    })
-);
+// 404 Handler for /api routes
+app.use('/api', (req, res) => {
+    console.warn(`[404 DEBUG] Unhandled API request: ${req.method} ${req.url}`);
+    res.status(404).json({
+        error: "Procedure or API endpoint not found",
+        path: req.url,
+        method: req.method
+    });
+});
 
 // Optional background syncs
 if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
@@ -307,6 +321,12 @@ if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
 if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
     policyReviewScheduler.start();
     console.log('[Server] Policy review scheduler started');
+}
+
+// Evidence expiration scheduler
+if (process.env.ENABLE_EVIDENCE_EXPIRATION_SCHEDULER !== 'false') {
+    evidenceExpirationScheduler.start();
+    console.log('[Server] Evidence expiration scheduler started');
 }
 
 // Global error handler to ensure all errors return JSON - MUST BE LAST

@@ -88,6 +88,18 @@ export const FRAMEWORK_SEEDS: Record<string, any[]> = {
         { id: "REQ-PCI-07", title: "ASV Scanning Reports", description: "Quarterly external vulnerability scans by an ASV.", location: "SecOps" },
         { id: "REQ-PCI-08", title: "Physical Access to CDE", description: "Log of visitors and visitor badges for the server room/DC.", location: "Facilities" },
         { id: "REQ-PCI-09", title: "Information Security Policy", description: "Latest version of the annual security policy.", location: "Governance" }
+    ],
+    'NIS2': [
+        { id: "REQ-NIS2-01", title: "NIS2 Information Security Policy", description: "Full Information Security Policy covering all Art. 21 requirements.", location: "Policy Repository" },
+        { id: "REQ-NIS2-02", title: "SIRT Response Procedures", description: "Security Incident Response Team (SIRT) workflows and contact lists.", location: "SecOps" },
+        { id: "REQ-NIS2-03", title: "Risk Management Record", description: "Documented risk assessment and mitigation plan for essential services.", location: "Risk Management" },
+        { id: "REQ-NIS2-04", title: "Supply Chain Risk Assessment", description: "Security assessment report for Tier 1 critical suppliers.", location: "Procurement" },
+        { id: "REQ-NIS2-05", title: "Cryptography & Encryption Standards", description: "Technical standards for data-at-rest and data-in-transit encryption.", location: "IT Infrastructure" },
+        { id: "REQ-NIS2-06", title: "HR Security Procedures", description: "Evidence of employee background checks and security training logs.", location: "Human Resources" },
+        { id: "REQ-NIS2-07", title: "Business Continuity Plan (BCP)", description: "Tested BCP including recovery time objectives (RTO).", location: "BCM Team" },
+        { id: "REQ-NIS2-08", title: "Vulnerability Management Policy", description: "Procedures for coordinated vulnerability disclosure and patching.", location: "Security Engineering" },
+        { id: "REQ-NIS2-09", title: "Asset Inventory (NIS2 Scope)", description: "Complete inventory of assets supporting essential services.", location: "IT Asset Management" },
+        { id: "REQ-NIS2-10", title: "Incident Notification Log", description: "Log of significant incidents reported to CSIRT/Competent Authority.", location: "Compliance Office" }
     ]
 };
 
@@ -190,6 +202,8 @@ export const createEvidenceRouter = (
                 status: z.string().optional(),
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
+                intervalDays: z.number().optional().default(365),
+                expirationDate: z.date().optional(),
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
@@ -219,6 +233,8 @@ export const createEvidenceRouter = (
                 status: z.string().optional(),
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
+                intervalDays: z.number().optional(),
+                expirationDate: z.date().optional(),
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
@@ -245,11 +261,21 @@ export const createEvidenceRouter = (
                 const dbConn = await getDb();
 
                 // 1. Update Evidence Status
+                const now = new Date();
+                const [existingEvidence] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
+                
+                let expirationDate = null;
+                if (input.status === 'verified' && existingEvidence) {
+                    const days = existingEvidence.intervalDays || 365;
+                    expirationDate = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000));
+                }
+
                 await dbConn.update(schema.evidence)
                     .set({
                         status: input.status,
-                        lastVerified: input.status === 'verified' ? new Date() : null,
-                        updatedAt: new Date()
+                        lastVerified: input.status === 'verified' ? now : null,
+                        expirationDate: expirationDate,
+                        updatedAt: now
                     } as any)
                     .where(eq(schema.evidence.id, input.evidenceId));
 
@@ -908,6 +934,35 @@ Provide a structured JSON response:
 
                     archive.finalize();
                 });
+            }),
+        checkExpirations: protectedProcedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input }) => {
+                const dbConn = await getDb();
+                const now = new Date();
+
+                // Find all 'verified' evidence that has passed its expiration date
+                const expiredItems = await dbConn.select().from(schema.evidence)
+                    .where(and(
+                        eq(schema.evidence.clientId, input.clientId),
+                        eq(schema.evidence.status, 'verified'),
+                        lt(schema.evidence.expirationDate, now)
+                    ));
+
+                if (expiredItems.length > 0) {
+                    const ids = expiredItems.map(item => item.id);
+                    await dbConn.update(schema.evidence)
+                        .set({
+                            status: 'expired',
+                            updatedAt: now
+                        } as any)
+                        .where(inArray(schema.evidence.id, ids));
+                }
+
+                return {
+                    checked: true,
+                    expiredCount: expiredItems.length
+                };
             }),
     });
 };

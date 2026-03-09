@@ -22,12 +22,14 @@ import {
 import { useLocation } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/utils";
 import NISTLayout from "./NISTLayout";
 import { PageGuide } from "@/components/PageGuide";
 
 export default function NISTDashboard() {
     const { selectedClientId } = useClientContext();
+    const { t } = useTranslation('dashboard');
     const [, setLocation] = useLocation();
 
     // Fetch NIST Tiers

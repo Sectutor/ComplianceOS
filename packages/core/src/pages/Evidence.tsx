@@ -9,7 +9,8 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid, Pencil } from "lucide-react";
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
 import { GoogleDriveFileBrowser } from "@/components/integrations/GoogleDriveFileBrowser";
@@ -35,6 +36,7 @@ import { authedFetch } from "@/lib/authedFetch";
 
 export default function Evidence() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation('evidence');
   const clientId = parseInt(id || "0");
   const [, setLocation] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -78,6 +80,9 @@ export default function Evidence() {
 
   const createMutation = trpc.evidence.create.useMutation();
   const createFileMutation = trpc.evidenceFiles.create.useMutation();
+
+  const packMutation = trpc.evidence.pack.useMutation();
+  const checkExpirationsMutation = trpc.evidence.checkExpirations.useMutation();
 
   const updateMutation = trpc.evidence.update.useMutation({
     onSuccess: () => {
@@ -276,6 +281,8 @@ export default function Evidence() {
         location: formData.get("location") as string,
         owner: ownerName || (formData.get("owner") as string),
         status: formData.get("status") as "pending" | "verified" | "expired" | "not_applicable",
+        intervalDays: formData.get("intervalDays") ? parseInt(formData.get("intervalDays") as string) : 365,
+        expirationDate: formData.get("expirationDate") ? new Date(formData.get("expirationDate") as string) : undefined,
       });
 
       if (selectedFiles.length > 0 && evidence?.id) {
@@ -344,7 +351,8 @@ export default function Evidence() {
       location: formData.get("location") as string,
       owner: formData.get("owner") as string,
       status: formData.get("status") as "pending" | "verified" | "expired" | "not_applicable",
-      lastVerified: formData.get("lastVerified") ? new Date(formData.get("lastVerified") as string) : undefined,
+      intervalDays: formData.get("intervalDays") ? parseInt(formData.get("intervalDays") as string) : 365,
+      expirationDate: formData.get("expirationDate") ? new Date(formData.get("expirationDate") as string) : undefined,
     });
   };
 
@@ -419,8 +427,39 @@ export default function Evidence() {
           />
 
           <div className="flex items-center gap-3">
-            <Button id="evidence-export-all" variant="outline" size="sm" className="hidden sm:flex">
-              <Download className="mr-2 h-4 w-4" /> Export all
+            <Button 
+                id="evidence-export-all" 
+                variant="outline" 
+                size="sm" 
+                className="hidden sm:flex border-[#5844ED]/20 text-[#5844ED] hover:bg-[#5844ED]/5"
+                onClick={async () => {
+                  const promise = packMutation.mutateAsync({ clientId, framework: frameworkFilter === 'all' ? undefined : frameworkFilter });
+                  toast.promise(promise, {
+                    loading: 'Generating Sealed Evidence Pack...',
+                    success: (data: any) => {
+                      window.open(data.url, '_blank');
+                      return 'Evidence Pack generated and SHA-256 verified.';
+                    },
+                    error: 'Failed to generate pack'
+                  });
+                }}
+              >
+              <Shield className="mr-2 h-4 w-4" /> Sealed Pack
+            </Button>
+            <Button 
+                variant="outline" 
+                size="sm" 
+                className="hidden sm:flex border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100/50"
+                onClick={() => {
+                  const promise = checkExpirationsMutation.mutateAsync({ clientId });
+                  toast.promise(promise, {
+                    loading: 'Re-verifying evidence staleness...',
+                    success: 'Continuous monitoring synchronized. Expired items updated.',
+                    error: 'Failed to synchronize staleness'
+                  });
+                }}
+            >
+              <Clock className="mr-2 h-4 w-4" /> Sync Staleness
             </Button>
             <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => setLocation(`/clients/${clientId}/evidence/overview`)}>
               <BookOpen className="mr-2 h-4 w-4" /> Usage Guide
@@ -515,6 +554,16 @@ export default function Evidence() {
                           <SelectItem value="not_applicable">Not Applicable</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                       <Label>Verification Interval (Days)</Label>
+                       <Input name="intervalDays" type="number" defaultValue="365" />
+                    </div>
+                    <div className="grid gap-2">
+                       <Label>Expiration Date (Optional)</Label>
+                       <Input name="expirationDate" type="date" />
                     </div>
                   </div>
                   <div className="grid gap-2">
@@ -696,6 +745,20 @@ export default function Evidence() {
             </CardContent>
           </Card>
 
+          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300 border-l-4 border-l-red-500">
+            <CardContent className="p-6 flex items-center gap-5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:scale-110 group-hover:-rotate-12 transition-transform">
+                <Clock className="h-7 w-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Expired / Stale</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">
+                  {evidenceList?.filter(e => e.status === 'expired').length || 0}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300 border-l-4 border-l-amber-500">
             <CardContent className="p-6 flex items-center gap-5">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-110 group-hover:rotate-12 transition-transform">
@@ -799,6 +862,9 @@ export default function Evidence() {
                                                   )}
 
                                                   <div className="flex items-center gap-1 ml-1 opacity-0 group-hover/ev:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-indigo-500" onClick={() => setEditingEvidence(ev.evidence.id)}>
+                                                      <Plus className="h-3 w-3" /> {/* Using Plus as a quick pencil substitute if Pencil is missing, but Pencil is better */}
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setViewingFiles(ev.evidence.id)}>
                                                       <Paperclip className="h-3 w-3" />
                                                     </Button>
@@ -930,6 +996,96 @@ export default function Evidence() {
                   />
                 </div>
               </div>
+            </EnhancedDialog>
+          )
+        }
+
+        {/* Edit Evidence Dialog */}
+        {
+          editingEvidence !== null && (
+            <EnhancedDialog
+              open={editingEvidence !== null}
+              onOpenChange={(open) => !open && setEditingEvidence(null)}
+              title="Edit Evidence"
+              description="Update evidence details for continuous monitoring."
+              size="lg"
+              footer={
+                <div className="flex justify-end gap-2 w-full">
+                  <Button variant="outline" onClick={() => setEditingEvidence(null)}>Cancel</Button>
+                  <Button className="bg-[#5844ED] hover:bg-[#4736C9]" onClick={() => (document.getElementById('edit-evidence-form') as HTMLFormElement)?.requestSubmit()}>
+                    Update Evidence
+                  </Button>
+                </div>
+              }
+            >
+              <form id="edit-evidence-form" onSubmit={(e) => handleUpdate(e, editingEvidence!)}>
+                {(() => {
+                  const ev = evidenceList?.find(e => e.id === editingEvidence);
+                  if (!ev) return null;
+                  return (
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Evidence ID</Label>
+                          <Input name="evidenceId" defaultValue={ev.evidenceId} />
+                        </div>
+                        <div className="grid gap-2 text-sm text-slate-500 flex items-center">
+                          Linked to: {ev.control?.controlId} - {ev.control?.name}
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Description</Label>
+                        <Textarea name="description" defaultValue={ev.description || ""} className="min-h-[100px]" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Type</Label>
+                          <Select name="type" defaultValue={ev.type || "Document"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Document">Document</SelectItem>
+                              <SelectItem value="Screenshot">Screenshot</SelectItem>
+                              <SelectItem value="Log">Log</SelectItem>
+                              <SelectItem value="Report">Report</SelectItem>
+                              <SelectItem value="Configuration">Configuration</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Status</Label>
+                          <Select name="status" defaultValue={ev.status || "pending"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="verified">Verified</SelectItem>
+                               <SelectItem value="expired">Expired</SelectItem>
+                              <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                           <Label>Verification Interval (Days)</Label>
+                           <Input name="intervalDays" type="number" defaultValue={(ev as any).intervalDays || 365} />
+                        </div>
+                        <div className="grid gap-2">
+                           <Label>Expiration Date</Label>
+                           <Input 
+                            name="expirationDate" 
+                            type="date" 
+                            defaultValue={(ev as any).expirationDate ? new Date((ev as any).expirationDate).toISOString().split('T')[0] : ""} 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </form>
             </EnhancedDialog>
           )
         }

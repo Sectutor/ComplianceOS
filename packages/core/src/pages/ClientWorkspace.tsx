@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Shield, Settings, CheckSquare, BookOpen, Users, PieChart, Plus, CheckCircle2, Clock, FileText, ArrowRight, Database } from "lucide-react";
 import { PostureTrendingWidget } from "@/components/dashboard/PostureTrendingWidget";
 import { useMemo, useState, useEffect } from "react";
@@ -18,6 +19,7 @@ import { DemoImportDialog } from "@/components/admin/DemoImportDialog";
 
 export default function ClientWorkspace() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation('dashboard');
   const clientId = parseInt(id || "0");
   const [currentPhase, setCurrentPhase] = useState<1 | 2 | 3>(1);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -63,23 +65,23 @@ export default function ClientWorkspace() {
 
   // Compute Phase 2 Progress (Optimize)
   const phase2Progress = useMemo(() => {
-      if (!controls) return 0;
-      const implemented = controls.filter(c => c.status === 'implemented').length;
-      return Math.min(100, Math.round((implemented / (controls.length || 1)) * 100));
+    if (!controls) return 0;
+    const implemented = controls.filter(c => c.status === 'implemented').length;
+    return Math.min(100, Math.round((implemented / (controls.length || 1)) * 100));
   }, [controls]);
 
   // Compute Phase 3 Progress (Scale) - Placeholder
   const phase3Progress = useMemo(() => {
-      if (!policies) return 0;
-      const approved = policies.filter(p => p.status === 'approved').length;
-      return Math.min(100, Math.round((approved / (policies.length || 1)) * 100));
+    if (!policies) return 0;
+    const approved = policies.filter(p => p.status === 'approved').length;
+    return Math.min(100, Math.round((approved / (policies.length || 1)) * 100));
   }, [policies]);
 
   // Auto-set initial phase
   useEffect(() => {
-      if (phase1Progress === 100 && currentPhase === 1) {
-          setCurrentPhase(2);
-      }
+    if (phase1Progress === 100 && currentPhase === 1) {
+      setCurrentPhase(2);
+    }
   }, [phase1Progress]);
 
   // Compute Stats
@@ -145,9 +147,9 @@ export default function ClientWorkspace() {
               <Database className="h-5 w-5" />
               {importDemo.isPending ? 'Importing Data...' : 'Import Demo Data'}
             </Button>
-            
-            <DemoImportDialog 
-              open={showImportDialog} 
+
+            <DemoImportDialog
+              open={showImportDialog}
               onOpenChange={setShowImportDialog}
               onImport={async () => {
                 await importDemo.mutateAsync({ clientId });
@@ -168,99 +170,99 @@ export default function ClientWorkspace() {
 
         {client?.serviceModel === 'subscription' && (
           <div className="grid gap-4 md:grid-cols-1">
-            <MaturityNavigator 
-                currentPhase={currentPhase} 
-                phase1Progress={phase1Progress}
-                phase2Progress={phase2Progress}
-                phase3Progress={phase3Progress}
-                onPhaseClick={setCurrentPhase}
+            <MaturityNavigator
+              currentPhase={currentPhase}
+              phase1Progress={phase1Progress}
+              phase2Progress={phase2Progress}
+              phase3Progress={phase3Progress}
+              onPhaseClick={setCurrentPhase}
             />
 
             {currentPhase === 1 && (
-                <SubscriptionOnboardingChecklist
+              <SubscriptionOnboardingChecklist
                 clientId={clientId}
                 stats={onboardingStatus || {
-                    hasFrameworks: false,
-                    hasUsers: false,
-                    hasControls: false,
-                    hasPolicies: false,
-                    hasEvidence: false
+                  hasFrameworks: false,
+                  hasUsers: false,
+                  hasControls: false,
+                  hasPolicies: false,
+                  hasEvidence: false
                 }}
-                />
+              />
             )}
 
             {currentPhase === 2 && (
-                 <Card className="bg-gradient-to-br from-teal-600 to-teal-700 text-white border-none shadow-lg shadow-teal-900/20 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    <CardHeader className="relative z-10">
-                        <CardTitle className="flex items-center gap-2 text-white">
-                            <Shield className="w-6 h-6 text-teal-200" />
-                            Phase 2: Optimize
-                        </CardTitle>
-                        <CardDescription className="text-teal-100">
-                            Focus on identifying risks and closing compliance gaps.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 relative z-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Link href={`/clients/${clientId}/risk/assessments`}>
-                                <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
-                                    <div className="flex flex-col">
-                                        <div className="font-bold text-white group-hover:text-teal-100">Run Risk Assessment</div>
-                                        <div className="text-xs text-teal-200/80">Identify threats to your assets</div>
-                                    </div>
-                                    <ArrowRight className="w-5 h-5 text-teal-200 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </Link>
-                            <Link href={`/clients/${clientId}/gap-analysis`}>
-                                <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
-                                    <div className="flex flex-col">
-                                        <div className="font-bold text-white group-hover:text-teal-100">Gap Analysis</div>
-                                        <div className="text-xs text-teal-200/80">Compare against frameworks</div>
-                                    </div>
-                                    <ArrowRight className="w-5 h-5 text-teal-200 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </Link>
+              <Card className="bg-gradient-to-br from-teal-600 to-teal-700 text-white border-none shadow-lg shadow-teal-900/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <CardHeader className="relative z-10">
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Shield className="w-6 h-6 text-teal-200" />
+                    Phase 2: Optimize
+                  </CardTitle>
+                  <CardDescription className="text-teal-100">
+                    Focus on identifying risks and closing compliance gaps.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Link href={`/clients/${clientId}/risk/assessments`}>
+                      <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
+                        <div className="flex flex-col">
+                          <div className="font-bold text-white group-hover:text-teal-100">Run Risk Assessment</div>
+                          <div className="text-xs text-teal-200/80">Identify threats to your assets</div>
                         </div>
-                    </CardContent>
-                 </Card>
+                        <ArrowRight className="w-5 h-5 text-teal-200 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+                    <Link href={`/clients/${clientId}/gap-analysis`}>
+                      <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
+                        <div className="flex flex-col">
+                          <div className="font-bold text-white group-hover:text-teal-100">Gap Analysis</div>
+                          <div className="text-xs text-teal-200/80">Compare against frameworks</div>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-teal-200 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {currentPhase === 3 && (
-                 <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-none shadow-lg shadow-emerald-900/20 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    <CardHeader className="relative z-10">
-                        <CardTitle className="flex items-center gap-2 text-white">
-                            <Shield className="w-6 h-6 text-emerald-200" />
-                            Phase 3: Scale
-                        </CardTitle>
-                        <CardDescription className="text-emerald-100">
-                            Automate assurance and maintain continuous audit readiness.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 relative z-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Link href={`/clients/${clientId}/evidence`}>
-                                <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
-                                    <div className="flex flex-col">
-                                        <div className="font-bold text-white group-hover:text-emerald-100">Automated Evidence</div>
-                                        <div className="text-xs text-emerald-200/80">Connect integrations & collectors</div>
-                                    </div>
-                                    <ArrowRight className="w-5 h-5 text-emerald-200 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </Link>
-                            <Link href={`/clients/${clientId}/reports`}>
-                                <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
-                                    <div className="flex flex-col">
-                                        <div className="font-bold text-white group-hover:text-emerald-100">Audit Reports</div>
-                                        <div className="text-xs text-emerald-200/80">Generate reports for stakeholders</div>
-                                    </div>
-                                    <ArrowRight className="w-5 h-5 text-emerald-200 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </Link>
+              <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-none shadow-lg shadow-emerald-900/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <CardHeader className="relative z-10">
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Shield className="w-6 h-6 text-emerald-200" />
+                    Phase 3: Scale
+                  </CardTitle>
+                  <CardDescription className="text-emerald-100">
+                    Automate assurance and maintain continuous audit readiness.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Link href={`/clients/${clientId}/evidence`}>
+                      <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
+                        <div className="flex flex-col">
+                          <div className="font-bold text-white group-hover:text-emerald-100">Automated Evidence</div>
+                          <div className="text-xs text-emerald-200/80">Connect integrations & collectors</div>
                         </div>
-                    </CardContent>
-                 </Card>
+                        <ArrowRight className="w-5 h-5 text-emerald-200 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+                    <Link href={`/clients/${clientId}/reports`}>
+                      <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
+                        <div className="flex flex-col">
+                          <div className="font-bold text-white group-hover:text-emerald-100">Audit Reports</div>
+                          <div className="text-xs text-emerald-200/80">Generate reports for stakeholders</div>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-emerald-200 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         )}

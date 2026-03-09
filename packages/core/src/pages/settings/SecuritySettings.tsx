@@ -10,6 +10,7 @@ import { Loader2, RotateCw, ShieldCheck, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useClientContext } from "@/contexts/ClientContext";
 import MFAChallengeModal from "@/components/auth/MFAChallengeModal";
 
@@ -22,6 +23,7 @@ type Factor = {
 
 export default function SecuritySettings() {
   const { selectedClientId } = useClientContext();
+  const { t } = useTranslation('settings');
   const [loading, setLoading] = useState(false);
   const [factors, setFactors] = useState<Factor[]>([]);
   const autoEnrollStarted = useRef(false);

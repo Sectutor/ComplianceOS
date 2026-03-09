@@ -20,6 +20,7 @@ import { useLocation, useParams } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from 'sonner';
 import { CircularProgress } from "@complianceos/ui/ui/circular-progress";
 import { PageGuide } from "@/components/PageGuide";
@@ -49,6 +50,7 @@ function RegulationLogo({ logo, name }: { logo?: string; name: string }) {
 
 export default function RegulationsDashboard() {
     const [location, setLocation] = useLocation();
+    const { t } = useTranslation('dashboard');
     const params = useParams<{ id: string }>();
     const generateReport = trpc.regulations.generateReport.useMutation();
     const { selectedClientId } = useClientContext();
