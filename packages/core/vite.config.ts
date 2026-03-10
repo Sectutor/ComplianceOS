@@ -45,8 +45,8 @@ export default defineConfig({
                 target: 'http://127.0.0.1:3002',
                 changeOrigin: true,
                 secure: false,
-                timeout: parseInt(process.env.VITE_PROXY_TIMEOUT || '60000'),
-                proxyTimeout: parseInt(process.env.VITE_PROXY_TIMEOUT || '60000'),
+                timeout: parseInt(process.env.VITE_PROXY_TIMEOUT || '300000'),
+                proxyTimeout: parseInt(process.env.VITE_PROXY_TIMEOUT || '300000'),
                 // Add error handling for proxy errors
                 configure: (proxy, _options) => {
                     const DEBUG_PROXY = process.env.DEBUG_PROXY === 'true';

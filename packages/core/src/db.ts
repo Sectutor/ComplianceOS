@@ -2775,16 +2775,14 @@ export async function bulkGeneratePolicies(clientId: number, companyName: string
 
 
 
-  // Bulk insert
-
-  await db.insert(clientPolicies).values(policiesToInsert);
-
-
+  // Bulk insert and return IDs
+  const insertedRows = await db.insert(clientPolicies).values(policiesToInsert).returning({ id: clientPolicies.id });
 
   return {
     created: newTemplates.length,
     skipped: templates.length - newTemplates.length,
     total: templates.length,
+    ids: insertedRows.map(r => r.id),
     message: `Successfully generated ${newTemplates.length} policies from templates`
   };
 }

@@ -410,6 +410,8 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                 <TableHead className="w-[300px] text-white font-extrabold py-5 tracking-tight">Policy Name</TableHead>
                                 <TableHead className="w-[150px] text-white font-extrabold py-5 tracking-tight">Framework</TableHead>
                                 <TableHead className="w-[100px] text-white font-extrabold py-5 tracking-tight">Status</TableHead>
+                                <TableHead className="w-[120px] text-white font-extrabold py-5 tracking-tight text-center">Date</TableHead>
+                                <TableHead className="w-[100px] text-white font-extrabold py-5 tracking-tight text-center">Time</TableHead>
                                 <TableHead className="w-[80px] text-white font-extrabold py-5 text-center tracking-tight">Version</TableHead>
                                 <TableHead className="w-[120px] text-white font-extrabold py-5 text-right tracking-tight px-6">Actions</TableHead>
                             </TableRow>
@@ -417,6 +419,8 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                         <TableBody>
                             {clientPolicies?.map((item, index) => {
                                 if (!item?.clientPolicy) return null;
+                                // Create a Date object; fallback to now if not provided
+                                const createdAt = new Date(item.clientPolicy.createdAt || Date.now());
                                 return (
                                     <TableRow
                                         key={item.clientPolicy.id}
@@ -457,6 +461,12 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                                     </Badge>
                                                 );
                                             })()}
+                                        </TableCell>
+                                        <TableCell className="text-slate-500 text-center py-5 text-sm">
+                                            {createdAt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </TableCell>
+                                        <TableCell className="text-slate-500 text-center py-5 text-sm">
+                                            {createdAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                         </TableCell>
                                         <TableCell className="text-slate-500 text-center py-5">
                                             <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold shadow-sm">

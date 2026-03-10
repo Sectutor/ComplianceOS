@@ -251,7 +251,8 @@ export class LLMService {
         console.log(`[LLMService] Found ${providers.length} providers. Priority order:`, providers.map(p => p.name).join(', '));
 
         if (providers.length === 0) {
-            throw new Error("No enabled LLM provider found. Please configure one in Settings.");
+            console.error('[LLMService] No LLM providers configured in the database');
+            throw new Error("No LLM provider configured. Please go to Settings > AI Providers and configure at least one LLM provider (OpenAI, Anthropic, or Gemini).");
         }
 
         const startTime = Date.now();
@@ -349,8 +350,15 @@ export class LLMService {
 
         const completion = await client.chat.completions.create(params);
 
+        // Validate response is not empty
+        const text = completion.choices[0]?.message?.content;
+        if (!text || text.trim().length === 0) {
+            console.error(`[LLMService] Empty response from ${provider.name}`);
+            throw new Error(`Empty response from LLM provider ${provider.name}. Please try again or use a different provider.`);
+        }
+
         return {
-            text: completion.choices[0]?.message?.content || '',
+            text,
             provider: provider.provider,
             model: provider.model,
             usage: {
@@ -452,7 +460,8 @@ export class LLMService {
         const providers = await this.getProviders(request.feature);
 
         if (providers.length === 0) {
-            throw new Error("No enabled LLM provider found. Please configure one in Settings.");
+            console.error('[LLMService] No LLM providers configured for streaming');
+            throw new Error("No LLM provider configured. Please go to Settings > AI Providers and configure at least one LLM provider (OpenAI, Anthropic, or Gemini).");
         }
 
         const startTime = Date.now();
@@ -503,7 +512,7 @@ export class LLMService {
             }
         }
 
-        logger.error("All LLM streaming providers failed:", lastError);
+        console.error("All LLM streaming providers failed:", lastError?.message);
         throw new Error(`All LLM streaming providers failed. Last error: ${lastError?.message}`);
     }
 
@@ -728,3 +737,4 @@ export class LLMService {
 }
 
 export const llmService = new LLMService();
+

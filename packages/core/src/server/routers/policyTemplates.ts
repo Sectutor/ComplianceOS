@@ -157,88 +157,96 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 answers: z.record(z.any()).optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
-                const dbConn = await getDb();
-                const { policyGenerator } = await import("../../lib/policy/policy-generation");
+                try {
+                    const dbConn = await getDb();
+                    const { policyGenerator } = await import("../../lib/policy/policy-generation");
 
-                // Get Template
-                const [template] = await dbConn.select().from(policyTemplates)
-                    .where(eq(policyTemplates.templateId, input.templateId));
+                    // Get Template
+                    const [template] = await dbConn.select().from(policyTemplates)
+                        .where(eq(policyTemplates.templateId, input.templateId));
 
-                if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
+                    if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
 
-                // Check Access
-                if (!template.isPublic && template.ownerId !== ctx.user.id && ctx.user.role !== 'admin') {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "No access to template" });
-                }
+                    // Check Access
+                    if (!template.isPublic && template.ownerId !== ctx.user.id && ctx.user.role !== 'admin') {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "No access to template" });
+                    }
 
-                // Parallelize policy generation with concurrency limit
-                const results: { clientId: number; policyId: number }[] = [];
+                    // Parallelize policy generation with concurrency limit
+                    const results: { clientId: number; policyId: number }[] = [];
 
-                // Pre-fetch all memberships in a single batch query instead of sequential queries
-                const membershipCheckStart = Date.now();
-                const clientIdsToProcess: number[] = [];
+                    // Pre-fetch all memberships in a single batch query instead of sequential queries
+                    const membershipCheckStart = Date.now();
+                    const clientIdsToProcess: number[] = [];
 
-                // Batch check: get all user memberships for all clientIds at once
-                const isAdmin = ctx.user.role === 'admin';
-                if (isAdmin) {
-                    // Admins have access to all clients
-                    clientIdsToProcess.push(...input.clientIds);
-                } else {
-                    // Get all memberships for this user in one query
-                    const allMemberships = await dbConn.select({ clientId: schema.userClients.clientId })
-                        .from(schema.userClients)
-                        .where(eq(schema.userClients.userId, ctx.user.id));
+                    // Batch check: get all user memberships for all clientIds at once
+                    const isAdmin = ctx.user.role === 'admin';
+                    if (isAdmin) {
+                        // Admins have access to all clients
+                        clientIdsToProcess.push(...input.clientIds);
+                    } else {
+                        // Get all memberships for this user in one query
+                        const allMemberships = await dbConn.select({ clientId: schema.userClients.clientId })
+                            .from(schema.userClients)
+                            .where(eq(schema.userClients.userId, ctx.user.id));
 
-                    const allowedClientIds = new Set(allMemberships.map(m => m.clientId));
+                        const allowedClientIds = new Set(allMemberships.map((m: any) => m.clientId));
 
-                    // Filter to only clients the user has access to
-                    for (const clientId of input.clientIds) {
-                        if (allowedClientIds.has(clientId)) {
-                            clientIdsToProcess.push(clientId);
+                        // Filter to only clients the user has access to
+                        for (const clientId of input.clientIds) {
+                            if (allowedClientIds.has(clientId)) {
+                                clientIdsToProcess.push(clientId);
+                            }
                         }
                     }
+                    console.log(`[BulkDeploy] Membership check: ${Date.now() - membershipCheckStart}ms, processing ${clientIdsToProcess.length}/${input.clientIds.length} clients`);
+
+                    // Process clients in batches with limited concurrency
+                    const processStart = Date.now();
+                    for (let i = 0; i < clientIdsToProcess.length; i += CONCURRENCY_LIMIT) {
+                        const batch = clientIdsToProcess.slice(i, i + CONCURRENCY_LIMIT);
+                        const batchResults = await Promise.all(
+                            batch.map(async (clientId) => {
+                                try {
+                                    // Generate tailored content
+                                    const genStart = Date.now();
+                                    const tailoredContent = await policyGenerator.generate(clientId, template.id, {
+                                        answers: input.answers
+                                    });
+                                    console.log(`[BulkDeploy] Generated policy for client ${clientId} in ${Date.now() - genStart}ms`);
+
+                                    // Create policy from template
+                                    const [policy] = await dbConn.insert(schema.clientPolicies).values({
+                                        clientId,
+                                        templateId: template.id,
+                                        name: template.name,
+                                        content: tailoredContent,
+                                        status: 'draft',
+                                        version: 1,
+                                        owner: ctx.user.name,
+                                        tailoringAnswers: input.answers
+                                    }).returning();
+
+                                    return { clientId, policyId: policy.id, success: true };
+                                } catch (error) {
+                                    console.error(`[BulkDeploy] Failed for client ${clientId}:`, error);
+                                    return { clientId, policyId: 0, success: false };
+                                }
+                            })
+                        );
+
+                        results.push(...batchResults.filter(r => r.success).map(r => ({ clientId: r.clientId, policyId: r.policyId })));
+                    }
+
+                    console.log(`[BulkDeploy] Total processing time: ${Date.now() - processStart}ms`);
+                    return { success: true, deployedTo: results.length, details: results };
+                } catch (error: any) {
+                    console.error('[PolicyTemplates deploy] Error:', error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: error.message || 'Failed to deploy policy'
+                    });
                 }
-                console.log(`[BulkDeploy] Membership check: ${Date.now() - membershipCheckStart}ms, processing ${clientIdsToProcess.length}/${input.clientIds.length} clients`);
-
-                // Process clients in batches with limited concurrency
-                const processStart = Date.now();
-                for (let i = 0; i < clientIdsToProcess.length; i += CONCURRENCY_LIMIT) {
-                    const batch = clientIdsToProcess.slice(i, i + CONCURRENCY_LIMIT);
-                    const batchResults = await Promise.all(
-                        batch.map(async (clientId) => {
-                            try {
-                                // Generate tailored content
-                                const genStart = Date.now();
-                                const tailoredContent = await policyGenerator.generate(clientId, template.id, {
-                                    answers: input.answers
-                                });
-                                console.log(`[BulkDeploy] Generated policy for client ${clientId} in ${Date.now() - genStart}ms`);
-
-                                // Create policy from template
-                                const [policy] = await dbConn.insert(schema.clientPolicies).values({
-                                    clientId,
-                                    templateId: template.id,
-                                    name: template.name,
-                                    content: tailoredContent,
-                                    status: 'draft',
-                                    version: 1,
-                                    owner: ctx.user.name,
-                                    tailoringAnswers: input.answers
-                                }).returning();
-
-                                return { clientId, policyId: policy.id, success: true };
-                            } catch (error) {
-                                console.error(`[BulkDeploy] Failed for client ${clientId}:`, error);
-                                return { clientId, policyId: 0, success: false };
-                            }
-                        })
-                    );
-
-                    results.push(...batchResults.filter(r => r.success).map(r => ({ clientId: r.clientId, policyId: r.policyId })));
-                }
-
-                console.log(`[BulkDeploy] Total processing time: ${Date.now() - processStart}ms`);
-                return { success: true, deployedTo: results.length, details: results };
             }),
 
         bulkDeploy: publicProcedure
@@ -251,68 +259,76 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 instruction: z.string().optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
-                const dbConn = await getDb();
-                const { policyGenerator } = await import("../../lib/policy/policy-generation");
+                try {
+                    const dbConn = await getDb();
+                    const { policyGenerator } = await import("../../lib/policy/policy-generation");
 
-                // Check client access
-                const membership = await dbConn.select().from(schema.userClients)
-                    .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)));
+                    // Check client access
+                    const membership = await dbConn.select().from(schema.userClients)
+                        .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)));
 
-                if (membership.length === 0 && ctx.user.role !== 'admin') {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "No access to client" });
-                }
+                    if (membership.length === 0 && ctx.user.role !== 'admin') {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "No access to client" });
+                    }
 
-                // Get templates
-                const templates = await dbConn.select().from(policyTemplates)
-                    .where(inArray(policyTemplates.id, input.templateIds));
+                    // Get templates
+                    const templates = await dbConn.select().from(policyTemplates)
+                        .where(inArray(policyTemplates.id, input.templateIds));
 
-                // Filter accessible templates first
-                const accessibleTemplates = templates.filter(template =>
-                    template.isPublic || template.ownerId === ctx.user.id || ctx.user.role === 'admin'
-                );
-
-                // Process templates in parallel with concurrency limit
-                const results: { templateId: number; policyId: number }[] = [];
-                const processStart = Date.now();
-
-                for (let i = 0; i < accessibleTemplates.length; i += CONCURRENCY_LIMIT) {
-                    const batch = accessibleTemplates.slice(i, i + CONCURRENCY_LIMIT);
-                    const batchResults = await Promise.all(
-                        batch.map(async (template) => {
-                            try {
-                                const genStart = Date.now();
-                                const tailoredContent = await policyGenerator.generate(input.clientId, template.id, {
-                                    answers: input.answers,
-                                    tailorToIndustry: input.tailor,
-                                    customInstruction: input.instruction
-                                });
-                                console.log(`[BulkDeploy] Generated policy for template ${template.id} in ${Date.now() - genStart}ms`);
-
-                                const [policy] = await dbConn.insert(schema.clientPolicies).values({
-                                    clientId: input.clientId,
-                                    templateId: template.id,
-                                    name: template.name,
-                                    content: tailoredContent,
-                                    status: 'draft',
-                                    version: 1,
-                                    owner: ctx.user.name,
-                                    tailoringAnswers: input.answers,
-                                    isAiGenerated: !!input.tailor
-                                }).returning();
-
-                                return { templateId: template.id, policyId: policy.id, success: true };
-                            } catch (error) {
-                                console.error(`[BulkDeploy] Failed for template ${template.id}:`, error);
-                                return { templateId: template.id, policyId: 0, success: false };
-                            }
-                        })
+                    // Filter accessible templates first
+                    const accessibleTemplates = templates.filter((template: any) =>
+                        template.isPublic || template.ownerId === ctx.user.id || ctx.user.role === 'admin'
                     );
 
-                    results.push(...batchResults.filter(r => r.success).map(r => ({ templateId: r.templateId, policyId: r.policyId })));
-                }
+                    // Process templates in parallel with concurrency limit
+                    const results: { templateId: number; policyId: number }[] = [];
+                    const processStart = Date.now();
 
-                console.log(`[BulkDeploy] Total processing time for ${accessibleTemplates.length} templates: ${Date.now() - processStart}ms`);
-                return { success: true, deployed: results };
+                    for (let i = 0; i < accessibleTemplates.length; i += CONCURRENCY_LIMIT) {
+                        const batch = accessibleTemplates.slice(i, i + CONCURRENCY_LIMIT);
+                        const batchResults = await Promise.all(
+                            batch.map(async (template: any) => {
+                                try {
+                                    const genStart = Date.now();
+                                    const tailoredContent = await policyGenerator.generate(input.clientId, template.id, {
+                                        answers: input.answers,
+                                        tailorToIndustry: input.tailor,
+                                        customInstruction: input.instruction
+                                    });
+                                    console.log(`[BulkDeploy] Generated policy for template ${template.id} in ${Date.now() - genStart}ms`);
+
+                                    const [policy] = await dbConn.insert(schema.clientPolicies).values({
+                                        clientId: input.clientId,
+                                        templateId: template.id,
+                                        name: template.name,
+                                        content: tailoredContent,
+                                        status: 'draft',
+                                        version: 1,
+                                        owner: ctx.user.name,
+                                        tailoringAnswers: input.answers,
+                                        isAiGenerated: !!input.tailor
+                                    }).returning();
+
+                                    return { templateId: template.id, policyId: policy.id, success: true };
+                                } catch (error) {
+                                    console.error(`[BulkDeploy] Failed for template ${template.id}:`, error);
+                                    return { templateId: template.id, policyId: 0, success: false };
+                                }
+                            })
+                        );
+
+                        results.push(...batchResults.filter(r => r.success).map(r => ({ templateId: r.templateId, policyId: r.policyId })));
+                    }
+
+                    console.log(`[BulkDeploy] Total processing time for ${accessibleTemplates.length} templates: ${Date.now() - processStart}ms`);
+                    return { success: true, deployed: results };
+                } catch (error: any) {
+                    console.error('[PolicyTemplates bulkDeploy] Error:', error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: error.message || 'Failed to bulk deploy policies'
+                    });
+                }
             }),
 
         preview: publicProcedure
@@ -326,24 +342,132 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 answers: z.record(z.any()).optional()
             }))
             .mutation(async ({ input }: any) => {
-                const { policyGenerator } = await import("../../lib/policy/policy-generation");
+                try {
+                    const { policyGenerator } = await import("../../lib/policy/policy-generation");
 
-                let content = "";
+                    let content = "";
+                    if (input.templateId) {
+                        content = await policyGenerator.generate(input.clientId, input.templateId, {
+                            tailorToIndustry: input.tailor,
+                            customInstruction: input.instruction,
+                            answers: input.answers
+                        });
+                    } else if (input.sections && input.sections.length > 0) {
+                        content = await policyGenerator.generateFromSections(input.clientId, "New Policy", input.sections, {
+                            tailorToIndustry: input.tailor,
+                            customInstruction: input.instruction,
+                            answers: input.answers
+                        });
+                    }
+
+                    if (!content || content.trim().length === 0) {
+                        throw new Error("Failed to generate policy content. Please check that the template has content or sections.");
+                    }
+
+                    return { content };
+                } catch (error: any) {
+                    console.error('[PolicyTemplates preview] Error generating policy:', error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: error.message || 'Failed to generate policy preview'
+                    });
+                }
+            }),
+
+        // Streaming policy generation for real-time preview
+        previewStream: publicProcedure
+            .use(isAuthed)
+            .input(z.object({
+                clientId: z.number(),
+                templateId: z.number().optional(),
+                sections: z.array(z.string()).optional(),
+                tailor: z.boolean().optional(),
+                instruction: z.string().optional(),
+                answers: z.record(z.any()).optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const { policyGenerator } = await import("../../lib/policy/policy-generation");
+                const { llmService } = await import("../../lib/llm/service");
+
+                let baseContent = "";
                 if (input.templateId) {
-                    content = await policyGenerator.generate(input.clientId, input.templateId, {
-                        tailorToIndustry: input.tailor,
-                        customInstruction: input.instruction,
+                    baseContent = await policyGenerator.generate(input.clientId, input.templateId, {
+                        tailorToIndustry: false,
+                        customInstruction: "",
                         answers: input.answers
                     });
                 } else if (input.sections && input.sections.length > 0) {
-                    content = await policyGenerator.generateFromSections(input.clientId, "New Policy", input.sections, {
-                        tailorToIndustry: input.tailor,
-                        customInstruction: input.instruction,
+                    baseContent = await policyGenerator.generateFromSections(input.clientId, "New Policy", input.sections, {
+                        tailorToIndustry: false,
+                        customInstruction: "",
                         answers: input.answers
                     });
                 }
 
-                return { content };
+                if (!baseContent || baseContent.trim().length === 0) {
+                    throw new Error("Failed to generate policy content. Please check that the template has content or sections.");
+                }
+
+                // If AI tailoring is enabled, stream the AI response
+                if (input.tailor || input.instruction) {
+                    const db = await getDb();
+                    const [client] = await db.select().from(schema.clients).where(eq(schema.clients.id, input.clientId));
+                    if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+
+                    const language = client.policyLanguage || 'en';
+                    const userPrompt = `You are an expert CISO and Compliance Officer. Please refine the following policy content for ${client.name} in the ${client.industry || 'general'} industry.\n\n${input.instruction ? `USER INSTRUCTION: ${input.instruction}` : ''}\n\nIMPORTANT: Write the ENTIRE refined policy in detail. Maintain professional tone. Use Markdown formatting with double newlines between sections.\n\nOriginal Policy:\n${baseContent}`;
+                    const systemPrompt = "You are a specialized compliance policy writer. Always use strict Markdown with double newlines between sections.";
+
+                    // Return base content and streaming params
+                    return { 
+                        baseContent, 
+                        needsAiTailoring: true,
+                        streamingParams: { 
+                            userPrompt, 
+                            systemPrompt, 
+                            feature: 'policy_generation',
+                            language
+                        }
+                    };
+                }
+
+                return { content: baseContent, needsAiTailoring: false };
+            }),
+
+        // Stream AI tailoring for a policy
+        streamAiTailoring: publicProcedure
+            .use(isAuthed)
+            .input(z.object({
+                clientId: z.number(),
+                baseContent: z.string(),
+                instruction: z.string().optional(),
+                language: z.string().optional()
+            }))
+            .mutation(async function* ({ input }: any) {
+                const { llmService } = await import("../../lib/llm/service");
+                const db = await getDb();
+                
+                const [client] = await db.select().from(schema.clients).where(eq(schema.clients.id, input.clientId));
+                if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+
+                const userPrompt = `You are an expert CISO and Compliance Officer. Please refine the following policy content for ${client.name} in the ${client.industry || 'general'} industry.\n\n${input.instruction ? `USER INSTRUCTION: ${input.instruction}` : ''}\n\nIMPORTANT: Write the ENTIRE refined policy in detail. Maintain professional tone. Use Markdown formatting with double newlines between sections.\n\nOriginal Policy:\n${input.baseContent}`;
+                const systemPrompt = "You are a specialized compliance policy writer. Always use strict Markdown with double newlines between sections.";
+
+                try {
+                    for await (const chunk of llmService.generateStream(
+                        { userPrompt, systemPrompt, feature: 'policy_generation', maxTokens: 8000 },
+                        { endpoint: 'stream_ai_tailoring', clientId: input.clientId }
+                    )) {
+                        yield { chunk };
+                    }
+                    yield { done: true };
+                } catch (error: any) {
+                    console.error('[streamAiTailoring] Error:', error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: error.message || 'Failed to stream AI response'
+                    });
+                }
             }),
 
         suggestQuestions: publicProcedure

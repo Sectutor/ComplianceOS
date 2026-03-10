@@ -6,6 +6,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import {
     Sparkles,
     FileText,
@@ -16,14 +17,6 @@ import {
     Layers,
     ArrowLeft,
 } from "lucide-react";
-
-interface BulkGenerateDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    clientId: number;
-    clientName: string;
-    onComplete: () => void;
-}
 
 type Step = "select" | "confirm" | "generating" | "complete";
 
@@ -45,6 +38,7 @@ export function BulkGenerateDialog({
     const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<number>>(new Set());
     const [result, setResult] = useState<GenerationResult | null>(null);
     const [progress, setProgress] = useState(0);
+    const [, setLocation] = useLocation();
 
     // Fetch templates
     const { data: policyTemplates } = trpc.policyTemplates.list.useQuery();
@@ -80,8 +74,17 @@ export function BulkGenerateDialog({
             setStep("complete");
             setProgress(100);
             onComplete();
+            // Navigate to the new policy if exactly one was created, otherwise go to list
+            setTimeout(() => {
+                if (data?.ids && data.ids.length === 1) {
+                    setLocation(`/clients/${clientId}/policies/${data.ids[0]}`);
+                } else {
+                    setLocation(`/clients/${clientId}/policies`);
+                }
+                onOpenChange(false);
+            }, 1000);
         },
-        onError: (error) => {
+        onError: (error: Error) => {
             toast.error(error.message || "Bulk generation failed");
             setStep("select");
             setProgress(0);

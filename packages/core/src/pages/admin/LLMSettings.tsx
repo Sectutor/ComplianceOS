@@ -5,7 +5,6 @@ import {
     Button,
     Card, CardContent, CardDescription, CardHeader, CardTitle,
     Switch,
-    EnhancedDialog,
     Input,
     Label,
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -21,6 +20,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@complianceos/ui";
+import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import {
     Loader2, Plus, Trash2, Edit, Play,
     CheckCircle, XCircle, Monitor, Network,

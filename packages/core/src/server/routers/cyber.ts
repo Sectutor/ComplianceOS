@@ -143,12 +143,33 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
 
                 let responses: any = assessment?.responses || {};
 
+                // MIGRATION: Map old question IDs to new NIS2 format to preserve existing data
+                // This ensures backward compatibility with assessments that used old IDs
+                const oldToNewIdMap: Record<string, string> = {
+                    'rm_1': 'nis2_1.1',
+                    'rm_3': 'nis2_2.1',
+                    'ih_1': 'nis2_3.1',
+                    'bc_2': 'nis2_4.1',
+                    'sc_1': 'nis2_5.1',
+                    'tr_1': 'nis2_8.1',
+                    'mfa_1': 'nis2_11.7',
+                    'bc_1': 'nis2_4.2',
+                    'enc_1': 'nis2_9.1'
+                };
+                
+                for (const [oldId, newId] of Object.entries(oldToNewIdMap)) {
+                    if (responses[oldId] && !responses[newId]) {
+                        console.log(`[NIS2 Migration] Migrating response from ${oldId} to ${newId}`);
+                        responses[newId] = responses[oldId];
+                    }
+                }
+
                 // 4. Update responses based on ISO mapping
                 // Map ENISA Measure IDs to existing Questionnaire IDs or new Measure IDs
                 const syncSummary: string[] = [];
                 
                 for (const mapping of mappings) {
-                    const mappedIsoIds = mapping.iso27001_control_ids as string[];
+                    const mappedIsoIds = mapping.iso27001ControlIds as string[];
                     if (!mappedIsoIds || mappedIsoIds.length === 0) continue;
 
                     const statuses = mappedIsoIds.map(id => controlStatusMap.get(id) || 'not_implemented');
@@ -160,20 +181,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                         resolvedStatus = 'partial';
                     }
 
-                    // Mapping ENISA ID to specific Questions in CyberAssessment.tsx
-                    const questionIdMap: Record<string, string> = {
-                        '1.1': 'rm_1',
-                        '2.1': 'rm_3',
-                        '3.1': 'ih_1',
-                        '4.1': 'bc_2',
-                        '5.1': 'sc_1',
-                        '8.1': 'tr_1',
-                        '11.1': 'mfa_1',
-                        '10.1': 'bc_1',
-                        '13.1': 'enc_1'
-                    };
-
-                    const qId = questionIdMap[mapping.enisaMeasureId] || `enisa_${mapping.enisaMeasureId}`;
+                    const qId = `nis2_${mapping.enisaMeasureId}`;
                     
                     if (!responses[qId] || responses[qId].answer !== resolvedStatus) {
                         responses[qId] = {

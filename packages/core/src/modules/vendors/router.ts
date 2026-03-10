@@ -141,6 +141,66 @@ export const vendorsRouter = router({
             const db = await getDb();
             return db.select().from(vendorContracts).where(eq(vendorContracts.vendorId, input.vendorId));
         }),
+
+    /**
+     * Get vendor statistics
+     */
+    getStats: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            const db = await getDb();
+            const clientId = input.clientId;
+
+            // Get vendor counts by status
+            const allVendors = await db.select().from(vendors).where(eq(vendors.clientId, clientId));
+
+            const stats = {
+                total: allVendors.length,
+                byStatus: {
+                    active: allVendors.filter(v => v.status === 'active').length,
+                    inactive: allVendors.filter(v => v.status === 'inactive').length,
+                    pending: allVendors.filter(v => v.status === 'pending').length,
+                },
+                categories: {} as Record<string, number>,
+            };
+
+            // Count by category
+            for (const vendor of allVendors) {
+                const cat = vendor.category || 'uncategorized';
+                stats.categories[cat] = (stats.categories[cat] || 0) + 1;
+            }
+
+            return stats;
+        }),
+
+    /**
+     * List vendor DPAs (Data Processing Agreements)
+     */
+    listDpas: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            const db = await getDb();
+            // Get all vendors with their contracts that have DPA flag
+            const vendorRows = await db.select().from(vendors).where(eq(vendors.clientId, input.clientId));
+
+            // Get all contracts
+            const contracts = await db.select().from(vendorContracts).where(
+                inArray(vendorContracts.vendorId, vendorRows.map(v => v.id))
+            );
+
+            // Map vendors with their DPAs
+            return vendorRows.map(vendor => {
+                const vendorContracts = contracts.filter(c => c.vendorId === vendor.id);
+                return {
+                    id: vendor.id,
+                    name: vendor.name,
+                    dpaStatus: vendorContracts.length > 0 ? 'has_contracts' : 'no_contracts',
+                    dpaExpiryDate: vendorContracts[0]?.endDate || null,
+                    contracts: vendorContracts.length
+                };
+            });
+        }),
 });
 
 export default vendorsRouter;
+

@@ -39,7 +39,7 @@ export default function NIS2Workbook() {
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.controlId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.category?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ).sort((a, b) => a.controlId.localeCompare(b.controlId, undefined, { numeric: true, sensitivity: 'base' }));
 
     return (
         <div className="space-y-8 pb-20 animate-in fade-in duration-500 w-full">

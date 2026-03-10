@@ -165,6 +165,13 @@ export class PolicyGenerator {
                 })
                 .join("\n\n");
         }
+
+        // CRITICAL: Validate that we have content before proceeding
+        if (!content || content.trim().length === 0) {
+            console.error(`[PolicyGen] ERROR: Template ${templateId} has no content or valid sections`);
+            throw new Error(`Policy template "${template.name}" has no content to generate. Please add content or sections to the template.`);
+        }
+
         perfMetrics.sectionProcessing = Date.now() - sectionStart;
 
         // 3. Smart Variable Substitution

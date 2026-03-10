@@ -373,6 +373,8 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
     });
     server.timeout = 300000; // 5 minutes 
+    server.keepAliveTimeout = 300000; // 5 minutes
+    server.headersTimeout = 302000; // Keep slightly higher than keepAliveTimeout
 }
 
 

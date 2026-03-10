@@ -26,87 +26,123 @@ const NIS2_CHECKLIST = [
         id: "policies",
         category: "1. Information Systems Security Policies",
         questions: [
-            { id: "rm_1", text: "Do you have a formal Information Security Policy approved by top management? (ENISA 1.1)", measureId: "1.1" }
+            { id: "nis2_1.1", text: "Do you have a formal Policy on the security of network and information systems? (1.1)", measureId: "1.1" },
+            { id: "nis2_1.2", text: "Are roles, responsibilities and authorities for security clearly defined? (1.2)", measureId: "1.2" }
         ]
     },
     {
         id: "risk_mgmt",
         category: "2. Risk Management Framework",
         questions: [
-            { id: "rm_3", text: "Are risk assessments conducted regularly based on a documented framework? (ENISA 2.1)", measureId: "2.1" }
+            { id: "nis2_2.1", text: "Is there a documented Risk management framework? (2.1)", measureId: "2.1" },
+            { id: "nis2_2.2", text: "Is there regular compliance monitoring of security measures? (2.2)", measureId: "2.2" },
+            { id: "nis2_2.3", text: "Is an independent review of security conducted regularly? (2.3)", measureId: "2.3" }
         ]
     },
     {
         id: "incident_handling",
         category: "3. Incident Handling",
         questions: [
-            { id: "ih_1", text: "Is there a documented Incident Response Plan and reporting process? (ENISA 3.1)", measureId: "3.1" }
+            { id: "nis2_3.1", text: "Is there a documented Incident handling policy? (3.1)", measureId: "3.1" },
+            { id: "nis2_3.2", text: "Are monitoring and logging implemented for all systems? (3.2)", measureId: "3.2" },
+            { id: "nis2_3.3", text: "Is there a process for event reporting? (3.3)", measureId: "3.3" },
+            { id: "nis2_3.4", text: "Are events assessed and classified for potential impact? (3.4)", measureId: "3.4" },
+            { id: "nis2_3.5", text: "Do you have formal incident response procedures? (3.5)", measureId: "3.5" },
+            { id: "nis2_3.6", text: "Are post-incident reviews conducted to improve security? (3.6)", measureId: "3.6" }
         ]
     },
     {
         id: "bcp",
         category: "4. Business Continuity",
         questions: [
-            { id: "bc_2", text: "Is there a Business Continuity Plan (BCP) for critical operations? (ENISA 4.1)", measureId: "4.1" }
+            { id: "nis2_4.1", text: "Is there a Business continuity and disaster recovery plan? (4.1)", measureId: "4.1" },
+            { id: "nis2_4.2", text: "Is backup management enforced and tested? (4.2)", measureId: "4.2" },
+            { id: "nis2_4.3", text: "Are crisis management procedures established? (4.3)", measureId: "4.3" }
         ]
     },
     {
         id: "supply_chain",
         category: "5. Supply Chain Security",
         questions: [
-            { id: "sc_1", text: "Are security requirements included in ICT supplier contracts? (ENISA 5.1)", measureId: "5.1" }
+            { id: "nis2_5.1", text: "Is there a Supply chain security policy for third-party risks? (5.1)", measureId: "5.1" },
+            { id: "nis2_5.2", text: "Maintain a directory of suppliers and service providers? (5.2)", measureId: "5.2" }
         ]
     },
     {
         id: "secure_dev",
-        category: "6. Secure Development & Asset Mgmt",
+        category: "6. Secure Development & Systems",
         questions: [
-            { id: "enisa_6.2", text: "Are secure coding practices and development lifecycles enforced? (ENISA 6.2)", measureId: "6.2" },
-            { id: "enisa_6.4", text: "Is there an up-to-date asset inventory for all systems? (ENISA 6.4)", measureId: "6.4" },
-            { id: "enisa_6.7", text: "Is network segmentation and security implemented? (ENISA 6.7)", measureId: "6.7" }
+            { id: "nis2_6.1", text: "Security addressed in acquisition of ICT services and products? (6.1)", measureId: "6.1" },
+            { id: "nis2_6.2", text: "Is a Secure development life cycle (SDLC) followed? (6.2)", measureId: "6.2" },
+            { id: "nis2_6.3", text: "Is there formal configuration management? (6.3)", measureId: "6.3" },
+            { id: "nis2_6.4", text: "Are change management, repairs and maintenance controlled? (6.4)", measureId: "6.4" },
+            { id: "nis2_6.5", text: "Is regular security testing conducted? (6.5)", measureId: "6.5" },
+            { id: "nis2_6.6", text: "Is a security patch management process in place? (6.6)", measureId: "6.6" },
+            { id: "nis2_6.7", text: "Are network security measures implemented? (6.7)", measureId: "6.7" },
+            { id: "nis2_6.8", text: "Is network segmentation enforced? (6.8)", measureId: "6.8" },
+            { id: "nis2_6.9", text: "Protection against malicious/unauthorised software active? (6.9)", measureId: "6.9" },
+            { id: "nis2_6.10", text: "Is there a process for vulnerability handling and disclosure? (6.10)", measureId: "6.10" }
         ]
     },
     {
-        id: "vulnerabilities",
-        category: "7. Vulnerability Management",
+        id: "effectiveness",
+        category: "7. Assessment of Effectiveness",
         questions: [
-            { id: "vh_1", text: "Is there a process for regular vulnerability scanning and patching? (ENISA 7.1)", measureId: "7.1" }
+            { id: "nis2_7.1", text: "Are there procedures to assess effectiveness of security? (7.1)", measureId: "7.1" }
         ]
     },
     {
         id: "hygiene",
         category: "8. Basic Cyber Hygiene & Training",
         questions: [
-            { id: "tr_1", text: "Is cybersecurity awareness training mandatory for all staff? (ENISA 8.1)", measureId: "8.1" }
-        ]
-    },
-    {
-        id: "effectiveness",
-        category: "9. Assessment of Effectiveness",
-        questions: [
-            { id: "test_1", text: "Are technical assessments (Pen-testing/Audits) performed regularly? (ENISA 9.1)", measureId: "9.1" }
-        ]
-    },
-    {
-        id: "recovery",
-        category: "10. Data Recovery / Backup",
-        questions: [
-            { id: "bc_1", text: "Are backups performed regularly and tested for recoverability? (ENISA 10.1)", measureId: "10.1" }
-        ]
-    },
-    {
-        id: "access_control",
-        category: "11. Access Control & HR Security",
-        questions: [
-            { id: "mfa_1", text: "Is MFA and stringent access control implemented for all users? (ENISA 11.1)", measureId: "11.1" },
-            { id: "hr_1", text: "Are HR security measures (revocation, screening) in place? (ENISA 12.1)", measureId: "12.1" }
+            { id: "nis2_8.1", text: "Are awareness raising and basic cyber hygiene practiced? (8.1)", measureId: "8.1" },
+            { id: "nis2_8.2", text: "Is specialized security training provided to key staff? (8.2)", measureId: "8.2" }
         ]
     },
     {
         id: "cryptography",
-        category: "12. Cryptography",
+        category: "9. Cryptography",
         questions: [
-            { id: "enc_1", text: "Is encryption used for data at rest and in transit? (ENISA 13.1)", measureId: "13.1" }
+            { id: "nis2_9.1", text: "Are cryptography policies and encryption used? (9.1)", measureId: "9.1" }
+        ]
+    },
+    {
+        id: "hr_security",
+        category: "10. Human Resources Security",
+        questions: [
+            { id: "nis2_10.1", text: "Are human resources security measures in place? (10.1)", measureId: "10.1" },
+            { id: "nis2_10.2", text: "Is verification of background conducted for staff? (10.2)", measureId: "10.2" },
+            { id: "nis2_10.3", text: "Termination or change of employment procedures exist? (10.3)", measureId: "10.3" },
+            { id: "nis2_10.4", text: "Is there a formal disciplinary process for security? (10.4)", measureId: "10.4" }
+        ]
+    },
+    {
+        id: "access_control",
+        category: "11. Access Control",
+        questions: [
+            { id: "nis2_11.1", text: "Is an access control policy documented and enforced? (11.1)", measureId: "11.1" },
+            { id: "nis2_11.2", text: "Is management of access rights performed regularly? (11.2)", measureId: "11.2" },
+            { id: "nis2_11.3", text: "Are privileged accounts and system admin accounts managed? (11.3)", measureId: "11.3" },
+            { id: "nis2_11.4", text: "Are user responsibilities for security documented? (11.4)", measureId: "11.4" },
+            { id: "nis2_11.5", text: "Is system and device authentication properly configured? (11.5)", measureId: "11.5" },
+            { id: "nis2_11.6", text: "Are strong authentication mechanisms in place? (11.6)", measureId: "11.6" },
+            { id: "nis2_11.7", text: "Is multi-factor authentication (MFA) used where needed? (11.7)", measureId: "11.7" }
+        ]
+    },
+    {
+        id: "asset_mgmt",
+        category: "12. Asset Management",
+        questions: [
+            { id: "nis2_12.1", text: "Is asset classification implemented? (12.1)", measureId: "12.1" },
+            { id: "nis2_12.4", text: "Is there an up-to-date asset inventory? (12.4)", measureId: "12.4" }
+        ]
+    },
+    {
+        id: "utilities",
+        category: "13. Supporting Utilities & Physical Security",
+        questions: [
+            { id: "nis2_13.1", text: "Are supporting utilities (power, water) resilient? (13.1)", measureId: "13.1" },
+            { id: "nis2_13.2", text: "Protection against physical and environmental threats? (13.2)", measureId: "13.2" }
         ]
     }
 ];

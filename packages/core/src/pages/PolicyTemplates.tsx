@@ -1484,6 +1484,22 @@ function BulkDeployDialog({
   const [completedResults, setCompletedResults] = useState<{ id: number; policyId?: number; name: string; status: 'success' | 'error' }[]>([]);
   const [hasInitialized, setHasInitialized] = useState(false);
 
+  // Auto-navigate to policy when generation completes with exactly 1 success
+  useEffect(() => {
+    if (step === 3 && !isGenerating && completedResults.length > 0) {
+      const successes = completedResults.filter(r => r.status === 'success');
+      if (successes.length === 1 && successes[0].policyId && selectedClientId) {
+        // Small delay to let the UI render first
+        const timer = setTimeout(() => {
+          if (onSuccess) onSuccess();
+          onOpenChange(false);
+          setLocation(`/clients/${selectedClientId}/policies/${successes[0].policyId}`);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [step, isGenerating, completedResults, selectedClientId, onSuccess, onOpenChange]);
+
   // Initialize state when dialog opens - only once per open
   useEffect(() => {
     if (open && !hasInitialized) {
@@ -1527,7 +1543,7 @@ function BulkDeployDialog({
 
     setIsGenerating(true);
     setProgress({ current: 0, total: wizardSelectedIds.length });
-    const results: { id: number; name: string; status: 'success' | 'error' }[] = [];
+    const results: { id: number; policyId?: number; name: string; status: 'success' | 'error' }[] = [];
 
     // Loop through selected templates and generate strictly sequentially to show progress
     for (let i = 0; i < wizardSelectedIds.length; i++) {
@@ -1554,7 +1570,7 @@ function BulkDeployDialog({
 
     setCompletedResults(results);
     setIsGenerating(false);
-    setStep(3); // Summary step (was 4)
+    setStep(3); // Summary step
   };
 
   const getTitle = () => {
