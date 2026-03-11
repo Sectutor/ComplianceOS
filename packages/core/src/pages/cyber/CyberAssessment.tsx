@@ -151,42 +151,64 @@ export default function CyberAssessment() {
     const [match, params] = useRoute("/clients/:clientId/cyber/assessment");
     const urlClientId = params?.clientId ? parseInt(params.clientId) : null;
     const { selectedClientId: contextClientId, setSelectedClientId } = useClientContext();
-    
+
     // Use URL clientId if available, otherwise fall back to context
     const selectedClientId = urlClientId || contextClientId;
-    
+
+    // Debug logging
+    useEffect(() => {
+        console.log('[NIS2 Debug] urlClientId:', urlClientId);
+        console.log('[NIS2 Debug] contextClientId:', contextClientId);
+        console.log('[NIS2 Debug] selectedClientId:', selectedClientId);
+    }, [urlClientId, contextClientId, selectedClientId]);
+
     // Sync URL clientId to context when it changes
     useEffect(() => {
         if (urlClientId && urlClientId !== contextClientId) {
+            console.log('[NIS2 Debug] Syncing urlClientId to context:', urlClientId);
             setSelectedClientId(urlClientId);
         }
     }, [urlClientId, contextClientId, setSelectedClientId]);
-    
+
+    // Start with empty responses - onSuccess will load saved data
     const [responses, setResponses] = useState<Record<string, { answer: string; notes?: string; owner?: string; dueDate?: string }>>({});
     const [score, setScore] = useState(0);
 
-    // Fetch existing data
+    // Fetch existing data - onSuccess will populate responses from saved data
     const { data: assessment, isLoading, refetch } = trpc.cyber.getAssessment.useQuery(
         { clientId: selectedClientId || 0 },
         {
             enabled: !!selectedClientId,
             onSuccess: (data: any) => {
-                if (data?.responses) {
+                console.log('[NIS2 Query] onSuccess, full data:', JSON.stringify(data).substring(0, 500));
+                console.log('[NIS2 Query] data.responses:', data?.responses);
+                console.log('[NIS2 Query] data.score:', data?.score);
+                if (data?.responses && typeof data.responses === 'object') {
+                    console.log('[NIS2 Query] Setting responses from query, keys:', Object.keys(data.responses));
                     setResponses(data.responses as any);
+                    console.log('[NIS2 Query] Set responses from query');
+                } else {
+                    console.log('[NIS2 Query] No responses in data or invalid format');
                 }
             }
         }
     );
 
-    // Mutation
+    // Mutation with verification
     const saveMutation = trpc.cyber.saveAssessment.useMutation({
         onSuccess: (data) => {
             console.log('[NIS2 Save] Success:', data);
             toast.success("Assessment saved successfully");
-            refetch();
+            // Verify the data was saved by refetching
+            refetch().then(() => {
+                console.log('[NIS2 Save] Data refetched successfully after save');
+            }).catch((err) => {
+                console.error('[NIS2 Save] Error refetching data:', err);
+            });
         },
         onError: (e) => {
             console.error('[NIS2 Save] Error:', e);
+            console.error('[NIS2 Save] Error details:', e.message, e.stack);
             toast.error(e.message || 'Failed to save assessment');
         }
     });
@@ -211,37 +233,54 @@ export default function CyberAssessment() {
     useEffect(() => {
         console.log('[NIS2 Debug] selectedClientId:', selectedClientId);
         console.log('[NIS2 Debug] assessment data:', assessment);
-        console.log('[NIS2 Debug] responses:', responses);
-    }, [selectedClientId, assessment, responses]);
+        console.log('[NIS2 Debug] assessment responses:', assessment?.responses);
+        console.log('[NIS2 Debug] current responses state:', responses);
+        console.log('[NIS2 Debug] current score:', score);
+    }, [selectedClientId, assessment, responses, score]);
 
-    // Calculate score
-    useEffect(() => {
+    // Calculate score - derive from assessment data when available, otherwise from local state
+    const calculateScore = (resps: typeof responses) => {
         let yesCount = 0;
         let totalQuestions = 0;
 
         NIS2_CHECKLIST.forEach(cat => {
             cat.questions.forEach(q => {
                 totalQuestions++;
-                if (responses[q.id]?.answer === "yes") yesCount++;
-                if (responses[q.id]?.answer === "partial") yesCount += 0.5;
+                if (resps[q.id]?.answer === "yes") yesCount++;
+                if (resps[q.id]?.answer === "partial") yesCount += 0.5;
             });
         });
 
-        const newScore = totalQuestions > 0 ? Math.round((yesCount / totalQuestions) * 100) : 0;
+        return totalQuestions > 0 ? Math.round((yesCount / totalQuestions) * 100) : 0;
+    };
+
+    // Update score when responses change
+    useEffect(() => {
+        const newScore = calculateScore(responses);
+        console.log('[NIS2 Score] Calculated from responses:', newScore);
         setScore(newScore);
     }, [responses]);
+
+    // Also update score when assessment data loads
+    useEffect(() => {
+        if (assessment?.responses && Object.keys(assessment.responses).length > 0) {
+            const newScore = calculateScore(assessment.responses);
+            console.log('[NIS2 Score] Calculated from assessment:', newScore);
+            setScore(newScore);
+        }
+    }, [assessment]);
 
     const handleAnswerChange = (qId: string, val: string) => {
         setResponses(prev => ({
             ...prev,
-            [qId]: { ...prev[qId], answer: val }
+            [qId]: { ...prev[qId], answer: val, notes: prev[qId]?.notes || "" }
         }));
     };
 
     const handleNotesChange = (qId: string, val: string) => {
         setResponses(prev => ({
             ...prev,
-            [qId]: { ...prev[qId], notes: val }
+            [qId]: { ...prev[qId], answer: prev[qId]?.answer || "not_started", notes: val }
         }));
     };
 
@@ -267,15 +306,28 @@ export default function CyberAssessment() {
     };
 
     const handleSave = () => {
-        console.log('[NIS2 Save] handleSave called, selectedClientId:', selectedClientId);
+        console.log('[NIS2 Save] handleSave called, selectedClientId:', selectedClientId, 'type:', typeof selectedClientId);
+        console.log('[NIS2 Save] responses count:', Object.keys(responses).length);
+        console.log('[NIS2 Save] score:', score);
+
         if (!selectedClientId) {
             console.error('[NIS2 Save] No clientId, aborting');
             toast.error('No client selected');
             return;
         }
+
+        // Ensure clientId is a number
+        const clientId = typeof selectedClientId === 'string' ? parseInt(selectedClientId, 10) : selectedClientId;
+
+        if (!clientId || isNaN(clientId)) {
+            console.error('[NIS2 Save] Invalid clientId after conversion:', clientId);
+            toast.error('Invalid client ID');
+            return;
+        }
+
         const status = score === 100 ? "completed" : score > 0 ? "in_progress" : "not_started";
         const payload = {
-            clientId: selectedClientId,
+            clientId: clientId,
             responses,
             score,
             status
@@ -456,3 +508,6 @@ export default function CyberAssessment() {
         </div>
     );
 }
+
+
+

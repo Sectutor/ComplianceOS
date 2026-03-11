@@ -209,8 +209,9 @@ export const checkClientAccess = middleware(async (opts) => {
         }
     }
 
-    console.log('[DEBUG checkClientAccess] Access granted with role:', membership[0].role);
-    return next({ ctx: { ...ctx, clientId, clientRole: membership[0].role } });
+    const effectiveRole = membership[0]?.role || (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '') ? 'owner' : 'none');
+    console.log('[DEBUG checkClientAccess] Access granted with role:', effectiveRole);
+    return next({ ctx: { ...ctx, clientId, clientRole: effectiveRole } });
 });
 
 export const checkClientEditor = middleware(({ ctx, next }) => {
