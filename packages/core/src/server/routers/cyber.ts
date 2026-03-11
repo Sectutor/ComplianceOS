@@ -114,7 +114,6 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                 const allMappedIds = Array.from(new Set(enrichedMappings.flatMap((m: any) => m.mappedControlIds))) as string[];
                 
                 // Fetch the names and descriptions for these specific controls ONLY
-                // We don't filter by framework here to be more flexible (helps if controls are wrongly tagged)
                 const globalControlsData = allMappedIds.length > 0
                     ? await db.select({
                         controlId: controls.controlId,
@@ -122,20 +121,57 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                         description: controls.description
                     })
                     .from(controls)
-                    .where(inArray(controls.controlId, allMappedIds))
+                    // We fetch all controls in the DB because our fuzzy matching needs a bit more coverage 
+                    // or we can generate variations of allMappedIds to use in the inArray filter
+                    : [];
+
+                // To be more efficient and find controls even with ID variations (e.g. ID.AM-1 vs ID.AM-01)
+                // we'll fetch a slightly larger set if needed, or better, we normalize our lookup.
+                // For now, let's generate 0-padded variations for NIST and prefix-less variations for PCI
+                const expandedIds = new Set<string>(allMappedIds);
+                allMappedIds.forEach(id => {
+                    // NIST variations: ID.AM-1 -> ID.AM-01
+                    if (id.startsWith('ID.') || id.includes('.')) {
+                        const parts = id.split('-');
+                        if (parts.length === 2 && parts[1].length === 1) {
+                            expandedIds.add(`${parts[0]}-0${parts[1]}`);
+                        }
+                    }
+                    // PCI variations: Req-12.1 -> 12.1
+                    if (id.startsWith('Req-')) {
+                        expandedIds.add(id.replace('Req-', ''));
+                    }
+                });
+
+                const allPotentialIds = Array.from(expandedIds);
+                const actualGlobalControls = allPotentialIds.length > 0
+                    ? await db.select({
+                        controlId: controls.controlId,
+                        name: controls.name,
+                        description: controls.description
+                    })
+                    .from(controls)
+                    .where(inArray(controls.controlId, allPotentialIds))
                     : [];
 
                 const globalControlMap = new Map();
-                globalControlsData.forEach((c: any) => {
+                const normalizedMap = new Map();
+
+                const normalize = (id: string) => id.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/0+([1-9])/g, '$1');
+
+                actualGlobalControls.forEach((c: any) => {
                     globalControlMap.set(c.controlId, c);
+                    globalControlMap.set(normalize(c.controlId), c);
                 });
 
                 // final loop to add the metadata
                 return enrichedMappings.map((m: any) => ({
                     ...m,
                     mappedControlsData: m.mappedControlIds.map((ctrlId: string) => {
-                        const globalCtrl = globalControlMap.get(ctrlId);
+                        // Try exact match first, then normalized
+                        const globalCtrl = globalControlMap.get(ctrlId) || globalControlMap.get(normalize(ctrlId));
                         const clientCtrl = clientControlMap.get(ctrlId);
+                        
                         return {
                             id: ctrlId,
                             name: globalCtrl?.name || '',

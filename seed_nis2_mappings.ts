@@ -10,9 +10,9 @@ const MAPPINGS = [
     enisaMeasureId: '1.1',
     enisaMeasureTitle: 'Information Systems Security Policy',
     iso27001ControlIds: ['5.2', 'A.5.1', 'A.5.36', 'A.5.4'],
-    nistCsfControlIds: ['ID.AM-1', 'ID.AM-2', 'ID.GV-1', 'ID.GV-2'],
-    soc2ControlIds: ['CC1.1', 'CC1.2', 'CC1.3', 'CC2.1'],
-    pciDssControlIds: ['Req-12.1', 'Req-12.10'],
+    nistCsfControlIds: ['ID.AM-01', 'ID.AM-02', 'GV.OC-01', 'GV.RR-01'],
+    soc2ControlIds: ['CC-001', 'CC-002', 'CC-003'],
+    pciDssControlIds: ['12.1', '12.10'],
     description: 'Establishment and approval of information security policies.'
   },
   {
@@ -20,9 +20,9 @@ const MAPPINGS = [
     enisaMeasureId: '2.1',
     enisaMeasureTitle: 'Risk Management Framework',
     iso27001ControlIds: ['6.1.2', '6.1.3', 'A.5.7', 'A.5.19'],
-    nistCsfControlIds: ['ID.RA-1', 'ID.RA-2', 'ID.RA-3', 'ID.RA-4', 'ID.RA-5'],
-    soc2ControlIds: ['CC2.2', 'CC3.1', 'CC3.2', 'CC3.3', 'CC6.1'],
-    pciDssControlIds: ['Req-12.2', 'Req-12.3'],
+    nistCsfControlIds: ['ID.RA-01', 'ID.RA-02', 'ID.RA-03', 'ID.RA-05'],
+    soc2ControlIds: ['CC-006', 'RM-001', 'RM-002'],
+    pciDssControlIds: ['12.2', '12.3'],
     description: 'A comprehensive framework for cybersecurity risk management.'
   },
   {

@@ -365,12 +365,51 @@ export default function CyberAssessment() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <PageGuide
                     title="NIS2 Compliance Checklist"
-                    description="Assess your readiness against Article 21 requirements."
-                    rationale="Regular self-assessment is mandatory to ensure ongoing compliance with NIS2 security measures."
+                    description="Assess your readiness against Article 21 requirements of the NIS2 Directive."
+                    rationale="Regular self-assessment is mandatory under NIS2 Article 21(2) to ensure ongoing compliance with security measures. Organizations must demonstrate appropriate and proportionate technical, operational, and organizational measures to manage cyber risks."
                     howToUse={[
-                        { step: "Assess", description: "Answer questions across all 10 categories." },
-                        { step: "Evidence", description: "Add notes or links to evidence for verification." },
-                        { step: "Track", description: "Monitor your compliance score and progress." }
+                        { step: "Select Framework", description: "Choose the target framework (ISO 27001, NIST CSF, etc.) from the dropdown to see mapped controls.", targetId: "framework-select" },
+                        { step: "Review Categories", description: "The checklist is organized into 12 categories covering all NIS2 Article 21 domains from policies to physical security.", targetId: "checklist-container" },
+                        { step: "Assess Each Control", description: "For each measure, select your compliance status: Gap/Not Started, In Progress, Implemented, or N/A.", targetId: "" },
+                        { step: "Add Evidence", description: "Use the notes field to add implementation notes, evidence links, or supporting documentation for each control.", targetId: "" },
+                        { step: "Run Automated Audits", description: "Click the refresh icon to run automated auditors that can verify specific controls against your system configuration.", targetId: "" },
+                        { step: "Sync ISO 27001", description: "Click 'Sync ISO 27001' to automatically import control statuses from your mapped ISO 27001 controls.", targetId: "" },
+                        { step: "Save Progress", description: "Click 'Save Progress' to persist your assessment. The system tracks your score and completion status.", targetId: "" },
+                        { step: "View Mappings", description: "Click 'View Mappings' to see how your controls map to NIS2 requirements and vice versa.", targetId: "" }
+                    ]}
+                    scenarios={[
+                        {
+                            title: "Initial Compliance Assessment",
+                            example: "A new client onboarding for NIS2 compliance needs to establish their baseline security posture against Article 21 requirements.",
+                            auditTip: "Start with the 'Gap / Not Started' option for all controls, then work through each category systematically. Document your current state before making changes - auditors want to see your baseline."
+                        },
+                        {
+                            title: "Periodic Compliance Review",
+                            example: "Quarterly review of an existing NIS2 compliance program to track progress and identify new gaps.",
+                            auditTip: "Use the progress visualization to identify categories below 80% compliance. Focus remediation efforts on categories with the most questions marked as 'Gap / Not Started'."
+                        },
+                        {
+                            title: "Pre-Audit Preparation",
+                            example: "Preparing for an external audit or certification assessment against NIS2 requirements.",
+                            auditTip: "Ensure all 'Implemented' controls have detailed notes with evidence links. Use the 'In Progress' status only for controls with active remediation projects. Gap analysis should be documented with remediation timelines."
+                        },
+                        {
+                            title: "Supply Chain Security Assessment",
+                            example: "Evaluating third-party vendor compliance with NIS2 supply chain security requirements (Category 5).",
+                            auditTip: "Document your supplier inventory and third-party risk assessments. Include evidence of contractual security requirements and supplier security questionnaires in your notes."
+                        }
+                    ]}
+                    integrations={[
+                        { name: "ISO 27001 Controls", description: "Two-way sync imports control implementation status from your ISO 27001 control mappings." },
+                        { name: "NIS2 Mapping Hub", description: "View cross-references between NIS2 articles and framework controls in the Mapping Hub." },
+                        { name: "Cyber Workbook", description: "Access evidence blueprints and Article 21 guidance documents from the Workbook." },
+                        { name: "Incident Reporting", description: "Incident handling responses connect to the Cyber Incident Reporting module." }
+                    ]}
+                    resources={[
+                        { name: "NIS2 Directive - Official Text", description: "Full text of EU NIS2 Directive (2022/2555)", href: "https://eur-lex.europa.eu/eli/dir/2022/2555/oj" },
+                        { name: "ENISA NIS2 Guidelines", description: "European Union Agency for Cybersecurity implementation guidance", href: "https://www.enisa.europa.eu/publications/national-cybersecurity-strategies" },
+                        { name: "ISO/IEC 27001:2022", description: "Information security controls reference standard", href: "https://www.iso.org/standard/27001" },
+                        { name: "NIST Cybersecurity Framework", description: "CSF 2.0 framework for managing cybersecurity risk", href: "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final" }
                     ]}
                 />
                 <div className="flex items-center gap-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">

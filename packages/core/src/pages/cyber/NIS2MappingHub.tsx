@@ -233,7 +233,7 @@ export default function NIS2MappingHub() {
                             >
                                 {/* Main Row - Always Visible */}
                                 <div
-                                    className="p-6 cursor-pointer hover:bg-slate-50/50 transition-colors"
+                                    className={`p-6 cursor-pointer transition-colors ${m.clientStatus === 'implemented' ? 'bg-emerald-50/50' : 'hover:bg-slate-50/50'}`}
                                     onClick={() => toggleRow(m.id)}
                                 >
                                     <div className="flex items-center justify-between">
