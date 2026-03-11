@@ -183,6 +183,18 @@ export default function CyberAssessment() {
                 console.log('[NIS2 Query] onSuccess, full data:', JSON.stringify(data).substring(0, 500));
                 console.log('[NIS2 Query] data.responses:', data?.responses);
                 console.log('[NIS2 Query] data.score:', data?.score);
+                console.log('[NIS2 Query] data.responses keys:', data?.responses ? Object.keys(data.responses) : 'none');
+                // Log the actual structure of first response
+                if (data?.responses) {
+                    const firstKey = Object.keys(data.responses)[0];
+                    if (firstKey) {
+                        console.log('[NIS2 Query] First response structure:', JSON.stringify(data.responses[firstKey]));
+                    }
+                    // Also check nis2_1.1 specifically
+                    if (data.responses['nis2_1.1']) {
+                        console.log('[NIS2 Query] nis2_1.1 data:', JSON.stringify(data.responses['nis2_1.1']));
+                    }
+                }
                 if (data?.responses && typeof data.responses === 'object') {
                     console.log('[NIS2 Query] Setting responses from query, keys:', Object.keys(data.responses));
                     setResponses(data.responses as any);
@@ -260,6 +272,15 @@ export default function CyberAssessment() {
         console.log('[NIS2 Score] Calculated from responses:', newScore);
         setScore(newScore);
     }, [responses]);
+
+    // Sync assessment data to responses state
+    useEffect(() => {
+        if (assessment?.responses && typeof assessment.responses === 'object' && Object.keys(assessment.responses).length > 0) {
+            console.log('[NIS2 Effect] Syncing assessment.responses to state, keys:', Object.keys(assessment.responses));
+            setResponses(assessment.responses as any);
+            console.log('[NIS2 Effect] Synced assessment.responses');
+        }
+    }, [assessment]);
 
     // Also update score when assessment data loads
     useEffect(() => {
@@ -439,7 +460,7 @@ export default function CyberAssessment() {
                                     </div>
                                     {category.category}
                                 </div>
-                                {category.questions.every(q => responses[q.id]?.answer === 'yes') ? (
+                                {category.questions.every(q => (assessment?.responses?.[q.id] as any)?.answer === 'yes' || responses[q.id]?.answer === 'yes') ? (
                                     <Badge className="bg-green-500 text-white border-none font-bold">COMPLETED</Badge>
                                 ) : (
                                     <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Section {catIdx + 1}</div>
@@ -458,13 +479,14 @@ export default function CyberAssessment() {
                                         </div>
                                         <div className="md:col-span-2">
                                             <Select
-                                                value={responses[q.id]?.answer || "not_started"}
+                                                key={q.id + '-' + ((assessment?.responses?.[q.id] as any)?.answer || 'empty')}
+                                                value={(assessment?.responses?.[q.id] as any)?.answer || responses[q.id]?.answer || "not_started"}
                                                 onValueChange={(val) => handleAnswerChange(q.id, val)}
                                             >
                                                 <SelectTrigger className={cn(
                                                     "h-10 text-xs font-bold rounded-xl border-none ring-1 ring-inset transition-all",
-                                                    responses[q.id]?.answer === 'yes' ? "bg-green-50 text-green-700 ring-green-200" :
-                                                        responses[q.id]?.answer === 'partial' ? "bg-amber-50 text-amber-700 ring-amber-200" :
+                                                    responses[q.id]?.answer === 'yes' || (assessment?.responses?.[q.id] as any)?.answer === 'yes' ? "bg-green-50 text-green-700 ring-green-200" :
+                                                        responses[q.id]?.answer === 'partial' || (assessment?.responses?.[q.id] as any)?.answer === 'partial' ? "bg-amber-50 text-amber-700 ring-amber-200" :
                                                             "bg-slate-50 text-slate-500 ring-slate-200"
                                                 )}>
                                                     <SelectValue />
@@ -482,7 +504,7 @@ export default function CyberAssessment() {
                                                 <Textarea
                                                     placeholder="Add implementation notes or evidence links..."
                                                     className="min-h-[2.5rem] h-10 text-sm py-2 px-4 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 transition-all font-medium"
-                                                    value={responses[q.id]?.notes || ""}
+                                                    value={(assessment?.responses?.[q.id] as any)?.notes || responses[q.id]?.notes || ""}
                                                     onChange={(e) => handleNotesChange(q.id, e.target.value)}
                                                 />
                                             </div>

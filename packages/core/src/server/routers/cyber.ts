@@ -50,6 +50,12 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                 console.log('[CyberRouter getAssessment] Score:', assessment?.score);
                 console.log('[CyberRouter getAssessment] Status:', assessment?.status);
                 console.log('[CyberRouter getAssessment] Responses keys:', assessment?.responses ? Object.keys(assessment.responses).join(', ') : 'none');
+                if (assessment?.responses) {
+                    const firstKey = Object.keys(assessment.responses)[0];
+                    if (firstKey) {
+                        console.log('[CyberRouter getAssessment] First response value:', JSON.stringify(assessment.responses[firstKey]));
+                    }
+                }
 
                 if (!assessment) return null;
 
@@ -78,49 +84,62 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                 console.log('[CyberRouter saveAssessment] ========== START ==========');
                 console.log('[CyberRouter saveAssessment] Input clientId:', input.clientId);
                 console.log('[CyberRouter saveAssessment] Input responses:', JSON.stringify(input.responses).substring(0, 300));
+                // Log first response
+                if (input.responses) {
+                    const firstKey = Object.keys(input.responses)[0];
+                    if (firstKey) {
+                        console.log('[CyberRouter saveAssessment] First response being saved:', JSON.stringify(input.responses[firstKey]));
+                    }
+                }
                 console.log('[CyberRouter saveAssessment] Input status:', input.status);
 
-                // Normalize clientId to number
-                let clientIdNum = typeof input.clientId === 'string' ? parseInt(input.clientId, 10) : input.clientId;
-                if (!clientIdNum || isNaN(clientIdNum)) {
-                    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid client ID" });
-                }
+                try {
+                    // Normalize clientId to number
+                    let clientIdNum = typeof input.clientId === 'string' ? parseInt(input.clientId, 10) : input.clientId;
+                    if (!clientIdNum || isNaN(clientIdNum)) {
+                        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid client ID" });
+                    }
 
-                const db = await getDb();
+                    const db = await getDb();
 
-                // Find existing
-                const existing = await db.query.privacyAssessments.findFirst({
-                    where: and(
-                        eq(privacyAssessments.clientId, clientIdNum),
-                        eq(privacyAssessments.type, 'nis2')
-                    )
-                });
+                    // Find existing
+                    const existing = await db.query.privacyAssessments.findFirst({
+                        where: and(
+                            eq(privacyAssessments.clientId, clientIdNum),
+                            eq(privacyAssessments.type, 'nis2')
+                        )
+                    });
 
-                if (existing) {
-                    console.log('[CyberRouter saveAssessment] Updating ID:', existing.id);
-                    await db.update(privacyAssessments)
-                        .set({
+                    if (existing) {
+                        console.log('[CyberRouter saveAssessment] Updating ID:', existing.id);
+                        await db.update(privacyAssessments)
+                            .set({
+                                responses: input.responses,
+                                status: input.status,
+                                score: input.score ?? 0,
+                                updatedAt: new Date()
+                            })
+                            .where(eq(privacyAssessments.id, existing.id));
+                        console.log('[CyberRouter saveAssessment] Updated');
+                    } else {
+                        console.log('[CyberRouter saveAssessment] Creating new');
+                        await db.insert(privacyAssessments).values({
+                            clientId: clientIdNum,
+                            type: 'nis2',
                             responses: input.responses,
                             status: input.status,
-                            score: input.score ?? 0,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(privacyAssessments.id, existing.id));
-                    console.log('[CyberRouter saveAssessment] Updated');
-                } else {
-                    console.log('[CyberRouter saveAssessment] Creating new');
-                    await db.insert(privacyAssessments).values({
-                        clientId: clientIdNum,
-                        type: 'nis2',
-                        responses: input.responses,
-                        status: input.status,
-                        score: input.score ?? 0
-                    });
-                    console.log('[CyberRouter saveAssessment] Created');
+                            score: input.score ?? 0
+                        });
+                        console.log('[CyberRouter saveAssessment] Created');
+                    }
+                } catch (e: any) {
+                    console.error('[CyberRouter saveAssessment] Error:', e);
+                    // Return error as serializable object
+                    return { success: false, error: e.message || 'Unknown error' };
                 }
 
-                // Return success
-                return { success: true };
+                // Return success - ensure it's serializable
+                return { success: true, savedAt: new Date().toISOString() };
             }),
 
         autoSyncNis2FromIso: clientProcedure
