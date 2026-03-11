@@ -15,6 +15,7 @@ import { ArrowLeft, FileText, Plus, Trash2, Edit, Sparkles, FileSearch, Send, Lo
 import { BulkGenerateDialog } from "@/components/policy/BulkGenerateDialog";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import PolicyReviewDialog from "@/components/PolicyReviewDialog";
+import { PageGuide } from "@/components/PageGuide";
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -159,10 +160,56 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
             )}
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-lg font-semibold">{hideLayout ? "Policies" : "Client Policies"}</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">{hideLayout ? "Policies" : "Client Policies"}</h2>
+                    {!hideLayout && (
+                        <PageGuide
+                            title="Compliance Policy Management"
+                            description="Learn how to create, manage, and distribute professional compliance policies tailored to your organization using AI."
+                            howToUse={[
+                                {
+                                    title: "Create a New Policy",
+                                    description: "Click 'Create Policy' to start the guided wizard where you can choose templates and use AI to generate content.",
+                                    targetId: "create-policy-btn"
+                                },
+                                ...(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin' ? [{
+                                    title: "Bulk Generation",
+                                    description: "Generate multiple policies at once for specific frameworks to jumpstart your compliance journey.",
+                                    targetId: "bulk-generate-btn"
+                                }] : []),
+                                {
+                                    title: "AI Customization",
+                                    description: "In the creation wizard, use 'Tailor to Industry' and 'Custom Instructions' to ensure the AI generates exactly what you need."
+                                },
+                                {
+                                    title: "Policy Distribution",
+                                    description: "Once a policy is ready, use the distribution tool (paper plane icon) to send it to employees for acknowledgement."
+                                },
+                                {
+                                    title: "Review Existing Policies",
+                                    description: "If you already have a policy document, use 'Load for Review' to have our AI analyze it against framework requirements.",
+                                    targetId: "load-review-btn"
+                                }
+                            ]}
+                            scenarios={[
+                                {
+                                    title: "Audit Preparation",
+                                    description: "Auditors love consistency. Use our templates to ensure you cover all mandatory controls for standards like ISO 27001 or SOC 2.",
+                                    type: "audit"
+                                },
+                                {
+                                    title: "Updating for New Regulations",
+                                    description: "When regulations change (like NIS2), use the 'Blank Policy' with custom instructions referencing the new requirements to update your local docs.",
+                                    type: "use-case"
+                                }
+                            ]}
+                        />
+                    )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                     {!hideLayout && (
                         <Button
+                            id="load-review-btn"
                             variant="outline"
                             onClick={() => setIsPolicyReviewOpen(true)}
                         >
@@ -172,6 +219,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     )}
                     {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && !hideLayout && (
                         <Button
+                            id="bulk-generate-btn"
                             variant="outline"
                             onClick={() => setIsBulkGenerateOpen(true)}
                             className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
@@ -180,7 +228,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             Bulk Generate
                         </Button>
                     )}
-                    <Button onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} className="bg-sky-600 hover:bg-sky-700 text-white">
+                    <Button id="create-policy-btn" onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} className="bg-sky-600 hover:bg-sky-700 text-white">
                         <Plus className="mr-2 h-4 w-4" />
                         Create Policy
                     </Button>
