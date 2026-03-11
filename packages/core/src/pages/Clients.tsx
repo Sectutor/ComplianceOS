@@ -145,8 +145,14 @@ export default function Clients() {
                     rationale="In a tiered compliance environment, isolation is key. Each client represents a dedicated workspace with its own policies, controls, and evidence, ensuring multi-tenant security and focused compliance management."
                     howToUse={[
                       {
-                        step: "Create a Client",
-                        description: "Click 'New Client' to set up a new organization. This initializes a fresh compliance workspace with default settings."
+                        step: "Standard Addition",
+                        description: "Click 'New Client' for a fast, basic workspace setup. Best for simple additions or when you want to configure frameworks later.",
+                        targetId: "add-new-client-btn"
+                      },
+                      {
+                        step: "MSP Onboarding",
+                        description: "Click the 'MSP Onboarding' button for a deep 6-step setup. This includes selecting frameworks, white-labeling (logo/colors), and auto-generating policies.",
+                        targetId: "msp-onboarding-btn"
                       },
                       {
                         step: "Access Workspace",
@@ -155,10 +161,18 @@ export default function Clients() {
                       {
                         step: "Manage Team",
                         description: "Use the 'Settings' icon to invite team members and assign roles (Owner, Admin, Editor, Viewer) specific to that client's workspace."
+                      }
+                    ]}
+                    scenarios={[
+                      {
+                        title: "Professional Client Delivery",
+                        example: "An MSP needs to onboard a new legal client and wants to provide them with a branded portal that already has ISO 27001 policies drafted.",
+                        auditTip: "Use 'MSP Onboarding'. It ensures the workspace is provisioned with the correct frameworks, branding, and AI-drafted policies from minute one."
                       },
                       {
-                        step: "Policy Generation",
-                        description: "Once inside a workspace, use the Policy module to generate baseline documentation tailored to that client's specific industry and regulatory needs."
+                        title: "Internal Rapid Setup",
+                        example: "A compliance officer needs to create a separate workspace for a new internal department just to start gathering basic evidence.",
+                        auditTip: "Use 'New Client' for high-speed setup. You can add frameworks and advanced tracking once the initial workspace shell is created."
                       }
                     ]}
                     integrations={[
@@ -181,7 +195,7 @@ export default function Clients() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="gap-2 shadow-sm" onClick={() => setLocation('/clients/new/msp')}>
+            <Button id="msp-onboarding-btn" variant="outline" className="gap-2 shadow-sm" onClick={() => setLocation('/clients/new/msp')}>
               <Plus className="h-4 w-4" />
               MSP Onboarding
             </Button>
@@ -189,7 +203,7 @@ export default function Clients() {
               open={isCreateOpen}
               onOpenChange={setIsCreateOpen}
               trigger={
-                <Button className="gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700" disabled={isAtLimit} variant={isAtLimit ? "outline" : "default"}>
+                <Button id="add-new-client-btn" className="gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700" disabled={isAtLimit} variant={isAtLimit ? "outline" : "default"}>
                   <Plus className="h-4 w-4" />
                   {isAtLimit ? "Limit Reached" : "New Client"}
                 </Button>
