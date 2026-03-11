@@ -257,7 +257,7 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
   }));
 
   return (
-    <div className={`rich-text-editor-wrapper bg-slate-50 rounded-lg border border-slate-200 ${className}`}>
+    <div className={`rich-text-editor-wrapper bg-white rounded-lg border border-slate-200 ${className}`}>
       {(onAiRewrite || onAiFix) && (
         <div className="flex items-center flex-nowrap overflow-x-auto no-scrollbar justify-start md:justify-end gap-2 mb-2 p-2 bg-white rounded border border-slate-200 shadow-sm w-full">
           {onAiRewrite && (

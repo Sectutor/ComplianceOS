@@ -458,7 +458,7 @@ export default function PolicyTemplates() {
                       placeholder="Purpose&#10;Scope&#10;Policy Statement..."
                     />
                   </div>
-                  <div className="grid gap-2 border-2 border-slate-100 p-4 rounded-xl bg-slate-50/30">
+                  <div className="grid gap-2 border-2 border-slate-100 p-4 rounded-xl bg-white">
                     <TailoringQuestionsEditor />
                   </div>
                   <div className="grid gap-2">
@@ -482,8 +482,8 @@ export default function PolicyTemplates() {
         </div>
 
         {/* Quick Guide Card */}
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm overflow-hidden transition-all duration-300">
-          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900" onClick={() => setShowGuide(!showGuide)}>
+        <Card className="border-slate-200 bg-white shadow-sm overflow-hidden transition-all duration-300">
+          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-slate-50" onClick={() => setShowGuide(!showGuide)}>
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600">
                 <HelpCircle className="h-4 w-4" />
@@ -502,7 +502,7 @@ export default function PolicyTemplates() {
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white">1</span>
                     Strategic Taxonomy
                   </div>
-                  <p className="text-xs text-blue-700/80 leading-relaxed">
+                  <p className="text-xs text-blue-700 leading-relaxed">
                     Link templates to frameworks like ISO 27001 or SOC 2. This creates a <strong>cross-mappable library</strong>, allowing one policy to satisfy multiple control requirements simultaneously.
                   </p>
                 </div>
@@ -684,7 +684,7 @@ export default function PolicyTemplates() {
         {isLoadingTemplates ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Card key={i}>
+              <Card key={i} className="bg-white dark:bg-slate-950">
                 <CardHeader>
                   <Skeleton className="h-6 w-32" />
                   <Skeleton className="h-4 w-24" />
@@ -701,19 +701,19 @@ export default function PolicyTemplates() {
               {filteredTemplates.map((template) => {
                 const sections = Array.isArray(template.sections) ? template.sections : [];
                 return (
-                  <Card key={template.id} className="group cursor-pointer border border-slate-200 dark:border-slate-800 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 bg-white dark:bg-slate-950 overflow-hidden relative shadow-md" onClick={() => setViewingTemplate(template.id)}>
+                  <Card key={template.id} className="group cursor-pointer border border-slate-200 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 bg-white overflow-hidden relative shadow-md" onClick={() => setViewingTemplate(template.id)}>
                     <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#1C4D8D] to-[#3ABEF9]"></div>
                     <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="font-mono text-[9px] font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 tracking-wider">
+                          <Badge variant="outline" className="font-mono text-[9px] font-bold px-1.5 py-0 bg-white border-slate-200 text-slate-500 tracking-wider">
                             {template.templateId}
                           </Badge>
-                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">{template.frameworks?.join(' / ')}</span>
+                          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{template.frameworks?.join(' / ')}</span>
                         </div>
-                        <CardTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-50 leading-tight group-hover:text-[#1C4D8D] dark:group-hover:text-[#3ABEF9] transition-colors">{template.name}</CardTitle>
+                        <CardTitle className="text-lg font-extrabold text-slate-900 leading-tight group-hover:text-[#1C4D8D] transition-colors">{template.name}</CardTitle>
                       </div>
-                      <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 group-hover:bg-[#1C4D8D]/10 transition-colors">
+                      <div className="p-2 rounded-xl bg-white group-hover:bg-[#1C4D8D]/10 transition-colors">
                         <FileText className="h-5 w-5 text-slate-400 group-hover:text-[#1C4D8D] transition-colors" />
                       </div>
                     </CardHeader>
@@ -723,19 +723,19 @@ export default function PolicyTemplates() {
                           <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Structural Elements</p>
                           <div className="flex flex-wrap gap-1.5">
                             {sections.slice(0, 4).map((section, i) => (
-                              <Badge key={i} variant="secondary" className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] font-medium border-none text-slate-600 dark:text-slate-400 px-2 py-0.5">
+                              <Badge key={i} variant="secondary" className="bg-slate-50 text-[10px] font-medium border-slate-200 border text-slate-600 px-2 py-0.5 shadow-sm">
                                 {typeof section === 'object' && section !== null ? (section as { title?: string }).title || 'Section' : String(section)}
                               </Badge>
                             ))}
                             {sections.length > 4 && (
-                              <Badge variant="secondary" className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] font-medium border-none text-slate-400 px-2 py-0.5">
+                              <Badge variant="secondary" className="bg-slate-50 text-[10px] font-medium border-slate-200 border text-slate-400 px-2 py-0.5 shadow-sm">
                                 +{sections.length - 4}
                               </Badge>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                           <div className="flex items-center gap-1.5">
                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ready to Deploy</span>
@@ -906,7 +906,7 @@ export default function PolicyTemplates() {
             </div>
           )
         ) : (
-          <Card className="py-12">
+          <Card className="py-12 bg-white">
             <CardContent className="text-center">
               <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-medium mb-2">No templates found</h3>
@@ -1254,7 +1254,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
         </div>
 
         {template?.tailoringQuestions && template.tailoringQuestions.length > 0 && (
-          <div className="bg-slate-50 p-6 rounded-xl border-2 border-slate-100 space-y-4">
+          <div className="bg-white p-6 rounded-xl border-2 border-slate-100 space-y-4">
             <h4 className="font-bold flex items-center gap-2 text-primary">
               <Sparkles className="h-4 w-4" />
               Tailoring Questionnaire
@@ -1312,7 +1312,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
           />
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-50 p-4 rounded-lg border">
+        <div className="flex items-center space-x-2 bg-white p-4 rounded-lg border">
           <input
             type="checkbox"
             id="tailor"
@@ -1398,12 +1398,12 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="templateId">Template ID</Label>
-              <Input name="templateId" defaultValue={template.templateId} className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" />
+              <Input name="templateId" defaultValue={template.templateId} className="border-2 border-slate-300 bg-white focus:ring-2 focus:ring-primary/20" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="framework">Framework</Label>
               <Select name="framework" defaultValue={template.frameworks?.[0] || ""}>
-                <SelectTrigger className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20">
+                <SelectTrigger className="border-2 border-slate-300 bg-white focus:ring-2 focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1416,18 +1416,18 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
           </div>
           <div className="grid gap-2">
             <Label htmlFor="name">Template Name</Label>
-            <Input name="name" defaultValue={template.name} className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" />
+            <Input name="name" defaultValue={template.name} className="border-2 border-slate-300 bg-white focus:ring-2 focus:ring-primary/20" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="sections">Sections (one per line)</Label>
             <Textarea
               name="sections"
               rows={4}
-              className="font-mono text-sm border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20"
+              className="font-mono text-sm border-2 border-slate-300 bg-white focus:ring-2 focus:ring-primary/20"
               defaultValue={sections.join('\n')}
             />
           </div>
-          <div className="grid gap-2 border-2 border-slate-200 p-4 rounded-xl bg-slate-50/50">
+          <div className="grid gap-2 border-2 border-slate-200 p-4 rounded-xl bg-white">
             <TailoringQuestionsEditor
               initialQuestions={template.tailoringQuestions || []}
               policyName={template.name}
@@ -1733,7 +1733,7 @@ function BulkDeployDialog({
             </div>
           </div>
 
-          <div className="border rounded-md h-[400px] overflow-y-auto p-2 bg-slate-50">
+          <div className="border rounded-md h-[400px] overflow-y-auto p-2 bg-white">
             {isLoadingTemplates ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin mb-2" />
@@ -1775,7 +1775,7 @@ function BulkDeployDialog({
     if (step === 2) {
       return (
         <div className="space-y-6 py-4">
-          <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
+          <div className="rounded-lg border bg-white p-4 space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Selected Client:</span>
               <span className="font-medium">{clients.find(c => c.id === selectedClientId)?.name || 'Unknown'}</span>

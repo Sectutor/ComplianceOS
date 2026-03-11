@@ -124,7 +124,7 @@ export function TailoringQuestionsEditor({
 
             <div className="grid gap-3">
                 {questions.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed rounded-xl bg-slate-50 text-muted-foreground text-sm">
+                    <div className="text-center py-8 border-2 border-dashed rounded-xl bg-white text-muted-foreground text-sm">
                         No dynamic questions defined yet.
                         <button type="button" onClick={addQuestion} className="text-primary font-medium ml-1 hover:underline">
                             Add your first question
@@ -132,7 +132,7 @@ export function TailoringQuestionsEditor({
                     </div>
                 ) : (
                     questions.map((q, index) => (
-                        <Card key={index} className="border-2 shadow-none hover:border-primary/30 transition-all duration-300 relative group bg-white/50 backdrop-blur-sm">
+                        <Card key={index} className="border-2 shadow-none hover:border-primary/30 transition-all duration-300 relative group bg-white">
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -180,7 +180,7 @@ export function TailoringQuestionsEditor({
                                             placeholder="e.g. uses_mfa"
                                             value={q.id}
                                             onChange={(e) => updateQuestion(index, { id: e.target.value.toLowerCase().replace(/[^\w]/g, '_') })}
-                                            className="h-8 text-xs font-mono bg-slate-50/50 border-slate-200"
+                                            className="h-8 text-xs font-mono bg-white border-slate-200"
                                         />
                                     </div>
 
