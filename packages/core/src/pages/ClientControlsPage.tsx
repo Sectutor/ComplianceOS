@@ -16,7 +16,7 @@ import { ArrowLeft, Shield, Plus, Trash2, Edit, Download, ClipboardList, LayoutG
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@complianceos/ui/ui/tooltip";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
 import { EvidenceSuggestionsPopover } from "@/components/controls/EvidenceSuggestionsPopover";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -61,21 +61,67 @@ export default function ClientControlsPage() {
         return data;
     };
 
-    const clientControls = safeUnwrap(rawClientControls) || [];
-    const masterControls = safeUnwrap(rawMasterControls) || [];
+    // Memoized data processing
+    const clientControls = useMemo(() => safeUnwrap(rawClientControls) || [], [rawClientControls]);
+    const masterControls = useMemo(() => safeUnwrap(rawMasterControls) || [], [rawMasterControls]);
 
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-    
     const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
+
+    // Memoized unique frameworks
+    const uniqueFrameworks = useMemo(() =>
+        Array.from(new Set(clientControls?.map((c: any) => c.control?.framework || 'Uncategorized') || [])).sort(),
+        [clientControls]
+    );
+
+    const availableFrameworks = ["NIS2", "ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF"];
+
+    // Memoized filtered controls
+    const filteredClientControls = useMemo(() =>
+        (clientControls || []).filter((c: any) => {
+            if (frameworkFilter !== 'all' && (c.control?.framework || 'Uncategorized') !== frameworkFilter) return false;
+            return true;
+        }),
+        [clientControls, frameworkFilter]
+    );
+
+    // Memoized grouped controls for card view
+    const groupedControls = useMemo(() => {
+        const grouped = (filteredClientControls || []).reduce((acc, item) => {
+            const fw = item.control?.framework || 'Uncategorized';
+            const cat = item.control?.category || 'General';
+            if (!acc[fw]) acc[fw] = {};
+            if (!acc[fw][cat]) acc[fw][cat] = [];
+            acc[fw][cat].push(item);
+            return acc;
+        }, {} as Record<string, Record<string, typeof clientControls>>);
+        return Object.entries(grouped);
+    }, [filteredClientControls]);
+
+    // Memoized stats calculation
+    const stats = useMemo(() => ({
+        total: clientControls.length,
+        implemented: clientControls.filter((c: any) => c.clientControl.status === 'implemented').length,
+        inProgress: clientControls.filter((c: any) => c.clientControl.status === 'in_progress').length,
+        notImplemented: clientControls.filter((c: any) => c.clientControl.status === 'not_implemented').length,
+        missingEvidence: clientControls.filter((c: any) =>
+            c.clientControl.status !== 'not_implemented' &&
+            c.clientControl.status !== 'not_applicable' &&
+            (!c.evidenceCount || c.evidenceCount === 0)
+        ).length,
+        applicabilityRate: clientControls.length > 0
+            ? Math.round((clientControls.filter((c: any) => c.clientControl.applicability !== 'not_applicable').length / clientControls.length) * 100)
+            : 0
+    }), [clientControls]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const fw = params.get('framework');
         if (fw) setFrameworkFilter(fw);
-        
+
         const openId = params.get('openId');
         const openCode = params.get('openCode');
-        
+
         if (openId && clientControls.length > 0) {
             const ctrl = clientControls.find((c: any) => c.control?.id === parseInt(openId));
             if (ctrl) {
@@ -99,29 +145,6 @@ export default function ClientControlsPage() {
     const [excludeControl, setExcludeControl] = useState<{ id: number, justification: string } | null>(null);
     const [justificationError, setJustificationError] = useState<number | null>(null);
 
-    const uniqueFrameworks = Array.from(new Set(clientControls?.map((c: any) => c.control?.framework || 'Uncategorized') || [])).sort();
-    const availableFrameworks = ["NIS2", "ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF"];
-
-    const filteredClientControls = (clientControls || []).filter(c => {
-        if (frameworkFilter !== 'all' && (c.control?.framework || 'Uncategorized') !== frameworkFilter) return false;
-        return true;
-    });
-
-    // Metric Calculations
-    const stats = {
-        total: clientControls.length,
-        implemented: clientControls.filter((c: any) => c.clientControl.status === 'implemented').length,
-        inProgress: clientControls.filter((c: any) => c.clientControl.status === 'in_progress').length,
-        notImplemented: clientControls.filter((c: any) => c.clientControl.status === 'not_implemented').length,
-        missingEvidence: clientControls.filter((c: any) => 
-            c.clientControl.status !== 'not_implemented' && 
-            c.clientControl.status !== 'not_applicable' && 
-            (!c.evidenceCount || c.evidenceCount === 0)
-        ).length,
-        applicabilityRate: clientControls.length > 0 
-            ? Math.round((clientControls.filter((c: any) => c.clientControl.applicability !== 'not_applicable').length / clientControls.length) * 100)
-            : 0
-    };
 
     const addControlMutation = trpc.clientControls.create.useMutation({
         onSuccess: () => {
@@ -163,6 +186,13 @@ export default function ClientControlsPage() {
         },
         onError: (error) => toast.error(error.message),
     });
+
+    // Memoized handlers (must be after mutations)
+    const handleSelectControl = useCallback((item: any) => setSelectedControl(item), []);
+    const handleUpdateControl = useCallback((id: number, data: any) => {
+        updateControlMutation.mutate({ id, ...data });
+    }, [updateControlMutation]);
+    const handleDeleteControl = useCallback((id: number) => setDeleteControlId(id), []);
 
     const handleBulkAssignInDialog = async () => {
         if (bulkFrameworks.length === 0) {
@@ -231,8 +261,8 @@ export default function ClientControlsPage() {
                             <h3 className="text-4xl font-bold">{stats.total}</h3>
                             <div className="mt-4 flex items-center gap-2">
                                 <span className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
-                                    <span 
-                                        className="h-full bg-blue-500 transition-all duration-1000" 
+                                    <span
+                                        className="h-full bg-blue-500 transition-all duration-1000"
                                         style={{ width: `${stats.total > 0 ? 100 : 0}%` }}
                                     />
                                 </span>
@@ -252,8 +282,8 @@ export default function ClientControlsPage() {
                                     <span>{Math.round((stats.implemented / (stats.total || 1)) * 100)}% Complete</span>
                                 </p>
                                 <span className="h-1.5 block w-full bg-slate-100 rounded-full overflow-hidden">
-                                    <span 
-                                        className="h-full bg-green-500 transition-all duration-1000" 
+                                    <span
+                                        className="h-full bg-green-500 transition-all duration-1000"
                                         style={{ width: `${(stats.implemented / (stats.total || 1)) * 100}%` }}
                                     />
                                 </span>
@@ -343,8 +373,8 @@ export default function ClientControlsPage() {
                         </div>
 
                         <div className="w-[200px]">
-                            <Select 
-                                value={frameworkFilter} 
+                            <Select
+                                value={frameworkFilter}
                                 onValueChange={(val) => {
                                     setFrameworkFilter(val);
                                     const params = new URLSearchParams(window.location.search);
@@ -369,16 +399,18 @@ export default function ClientControlsPage() {
                             </Select>
                         </div>
 
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                window.location.assign(`/api/export/soa/${client?.id}`);
-                            }}
-                            title="Export SoA to Word"
-                        >
-                            <Download className="mr-2 h-4 w-4" />
-                            Export SoA
-                        </Button>
+                        {false && (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    window.location.assign(`/api/export/soa/${client?.id}`);
+                                }}
+                                title="Export SoA to Word"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Export SoA
+                            </Button>
+                        )}
 
                         <Button
                             className="bg-green-600 hover:bg-green-700 text-white border-green-700"
@@ -622,204 +654,196 @@ export default function ClientControlsPage() {
                 ) : clientControls && clientControls.length > 0 ? (
                     viewMode === 'card' ? (
                         <div className="space-y-6">
-                            {Object.entries((filteredClientControls || [])
-                                .reduce((acc, item) => {
-                                    const fw = item.control?.framework || 'Uncategorized';
-                                    const cat = item.control?.category || 'General';
-                                    if (!acc[fw]) acc[fw] = {};
-                                    if (!acc[fw][cat]) acc[fw][cat] = [];
-                                    acc[fw][cat].push(item);
-                                    return acc;
-                                }, {} as Record<string, Record<string, typeof clientControls>>))
-                                .map(([framework, categories]) => (
-                                    <div key={framework} className="space-y-3">
-                                        <h3 className="text-lg font-bold flex items-center gap-2">
-                                            <Shield className="h-5 w-5 text-primary" />
-                                            {framework}
-                                        </h3>
-                                        {Object.entries(categories).map(([category, items]) => (
-                                            <div key={`${framework}-${category}`} className="pl-2 border-l-2 border-muted">
-                                                <h4 className="text-sm font-semibold text-muted-foreground mb-3 pl-2">{category}</h4>
-                                                <div className="space-y-3">
-                                                    {items.map((item) => (
-                                                        <Card key={`${clientId}-${item.clientControl.id}`} className="cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
-                                                            <CardContent className="p-4">
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className="flex-1">
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <span className="font-mono text-sm text-muted-foreground">
-                                                                                {item.clientControl.clientControlId}
-                                                                            </span>
-                                                                            <span className="font-medium">{item.control?.name}</span>
-                                                                            {item.clientControl.applicability === 'not_applicable' && (
-                                                                                <Badge variant="outline" className="text-muted-foreground border-dashed">N/A</Badge>
-                                                                            )}
-                                                                        </div>
-                                                                        <p className="text-sm text-muted-foreground mb-2">
-                                                                            {item.clientControl.customDescription || item.control?.description}
-                                                                        </p>
-                                                                        <div className="flex flex-wrap gap-2">
-                                                                            {item.clientControl.owner && (
-                                                                                <span className="text-xs px-2 py-1 bg-muted rounded">
-                                                                                    Owner: {item.clientControl.owner}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
+                            {groupedControls.map(([framework, categories]) => (
+                                <div key={framework} className="space-y-3">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <Shield className="h-5 w-5 text-primary" />
+                                        {framework}
+                                    </h3>
+                                    {Object.entries(categories).map(([category, items]) => (
+                                        <div key={`${framework}-${category}`} className="pl-2 border-l-2 border-muted">
+                                            <h4 className="text-sm font-semibold text-muted-foreground mb-3 pl-2">{category}</h4>
+                                            <div className="space-y-3">
+                                                {items.map((item) => (
+                                                    <Card key={`${clientId}-${item.clientControl.id}`} className="cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
+                                                        <CardContent className="p-4">
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <span className="font-mono text-sm text-muted-foreground">
+                                                                            {item.clientControl.clientControlId}
+                                                                        </span>
+                                                                        <span className="font-medium">{item.control?.name}</span>
+                                                                        {item.clientControl.applicability === 'not_applicable' && (
+                                                                            <Badge variant="outline" className="text-muted-foreground border-dashed">N/A</Badge>
+                                                                        )}
                                                                     </div>
-                                                                    <div className="flex gap-1">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            onClick={() => setSelectedControl(item)}
-                                                                            title="View details & add evidence"
-                                                                        >
-                                                                            <ClipboardList className="h-4 w-4" />
-                                                                        </Button>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="text-destructive hover:text-destructive"
-                                                                            onClick={() => setDeleteControlId(item.clientControl.id)}
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
+                                                                    <p className="text-sm text-muted-foreground mb-2">
+                                                                        {item.clientControl.customDescription || item.control?.description}
+                                                                    </p>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {item.clientControl.owner && (
+                                                                            <span className="text-xs px-2 py-1 bg-muted rounded">
+                                                                                Owner: {item.clientControl.owner}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                 </div>
-                                                            </CardContent>
-                                                        </Card>
-                                                    ))}
-                                                </div>
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => setSelectedControl(item)}
+                                                                        title="View details & add evidence"
+                                                                    >
+                                                                        <ClipboardList className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="text-destructive hover:text-destructive"
+                                                                        onClick={() => setDeleteControlId(item.clientControl.id)}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <div className="rounded-xl border border-slate-200 shadow-xl overflow-hidden bg-white">
-                            <Table className="table-fancy">
-                                <TableHeader>
-                                    <TableRow className="border-none hover:bg-transparent">
-                                        <TableHead className="w-[100px] py-4">ID</TableHead>
-                                        <TableHead className="w-[200px] py-4">Control Name</TableHead>
-                                        <TableHead className="w-[150px] py-4">Framework</TableHead>
-                                        <TableHead className="w-[180px] py-4">Applicability</TableHead>
-                                        <TableHead className="w-[120px] py-4">Monitoring</TableHead>
-                                        <TableHead className="py-4">Justification</TableHead>
-                                        <TableHead className="w-[120px] py-4 text-center">Status</TableHead>
-                                        <TableHead className="w-[50px] py-4"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {clientControls.map((item) => (
-                                        <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
-                                            <TableCell className="font-mono text-xs font-medium text-black py-4">
-                                                {item.clientControl.clientControlId}
-                                            </TableCell>
-                                            <TableCell className="font-medium text-sm text-black py-4">
-                                                <EvidenceSuggestionsPopover
-                                                    controlId={item.clientControl.clientControlId}
-                                                    controlName={item.control?.name || ''}
-                                                    framework={item.control?.framework}
-                                                    category={item.control?.category}
-                                                >
-                                                    {item.control?.name}
-                                                </EvidenceSuggestionsPopover>
-                                                <div className="text-[10px] text-gray-500 line-clamp-1" title={item.control?.description || ""}>
-                                                    {item.control?.description}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-xs text-gray-600 py-4">
-                                                {item.control?.framework}
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <Select
-                                                    value={item.clientControl.applicability || 'applicable'}
-                                                    onValueChange={(val) => {
-                                                        if (val === 'not_applicable' && !item.clientControl.justification) {
-                                                            setExcludeControl({ id: item.clientControl.id, justification: '' });
-                                                            return;
-                                                        }
-                                                        updateControlMutation.mutate({
-                                                            id: item.clientControl.id,
-                                                            applicability: val
-                                                        });
-                                                    }}
-                                                >
-                                                    <SelectTrigger className={`h-8 w-[140px] text-xs bg-white ${item.clientControl.applicability === 'not_applicable' ? 'text-gray-500' : 'text-[#1C4D8D] font-medium'}`}>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="applicable">Applicable</SelectItem>
-                                                        <SelectItem value="not_applicable">Not Applicable</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                {(() => {
-                                                    const monitoring = item.clientControl.implementationNotes?.match(/Monitoring Frequency: (.*)$/m)?.[1] || "Manual";
-                                                    return (
-                                                        <Badge variant="outline" className={cn(
-                                                            "text-[10px] font-medium whitespace-nowrap",
-                                                            monitoring === 'Continuous' ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-                                                                monitoring === 'Daily' ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                                    "text-slate-500 bg-slate-50"
-                                                        )}>
-                                                            {monitoring}
+                            <div className="overflow-x-auto">
+                                <Table className="table-fancy w-full">
+                                    <TableHeader>
+                                        <TableRow className="border-none hover:bg-transparent bg-slate-50">
+                                            <TableHead className="w-[100px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Control ID</TableHead>
+                                            <TableHead className="w-[200px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Name</TableHead>
+                                            <TableHead className="w-[120px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Framework</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Status</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Applicability</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Implementation Date</TableHead>
+                                            <TableHead className="w-[140px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Owner (RACI)</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Last Updated</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredClientControls.map((item) => (
+                                            <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
+                                                <TableCell className="font-mono text-xs font-medium text-slate-700 py-3">
+                                                    {item.clientControl.clientControlId}
+                                                </TableCell>
+                                                <TableCell className="font-medium text-sm text-slate-900 py-3">
+                                                    <EvidenceSuggestionsPopover
+                                                        controlId={item.clientControl.clientControlId}
+                                                        controlName={item.control?.name || ''}
+                                                        framework={item.control?.framework}
+                                                        category={item.control?.category}
+                                                    >
+                                                        <span className="hover:text-blue-600 hover:underline">{item.control?.name}</span>
+                                                    </EvidenceSuggestionsPopover>
+                                                    <div className="text-[10px] text-gray-400 line-clamp-1 mt-0.5" title={item.control?.description || ""}>
+                                                        {item.control?.description}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-slate-600 py-3">
+                                                    <Badge variant="outline" className="text-xs font-medium bg-slate-50 border-slate-200">
+                                                        {item.control?.framework}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="py-3">
+                                                    <div className="flex items-center">
+                                                        <Badge
+                                                            variant={
+                                                                item.clientControl.status === 'implemented' ? 'success' :
+                                                                    item.clientControl.status === 'in_progress' ? 'info' :
+                                                                        item.clientControl.status === 'not_applicable' ? 'secondary' :
+                                                                            'warning'
+                                                            }
+                                                            className="uppercase text-[10px] px-2 py-0.5 font-medium"
+                                                        >
+                                                            {item.clientControl.status?.replace('_', ' ')}
                                                         </Badge>
-                                                    );
-                                                })()}
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <Input
-                                                    className="h-8 text-xs bg-white text-black"
-                                                    placeholder={item.clientControl.applicability === 'not_applicable' ? "Why is this excluded?" : "Why is this included?"}
-                                                    defaultValue={item.clientControl.justification || ""}
-                                                    onBlur={(e) => {
-                                                        if (e.target.value !== item.clientControl.justification) {
+                                                        {item.clientControl.status !== 'not_implemented' && item.clientControl.status !== 'not_applicable' && (!item.evidenceCount || item.evidenceCount === 0) && (
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <AlertCircle className="h-4 w-4 text-red-500 animate-pulse cursor-help ml-1" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Missing Evidence!</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-3">
+                                                    <Select
+                                                        value={item.clientControl.applicability || 'applicable'}
+                                                        onValueChange={(val) => {
+                                                            if (val === 'not_applicable' && !item.clientControl.justification) {
+                                                                setExcludeControl({ id: item.clientControl.id, justification: '' });
+                                                                return;
+                                                            }
                                                             updateControlMutation.mutate({
                                                                 id: item.clientControl.id,
-                                                                justification: e.target.value
+                                                                applicability: val
                                                             });
-                                                        }
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="py-4 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <Badge
-                                                        variant={
-                                                            item.clientControl.status === 'implemented' ? 'success' :
-                                                                item.clientControl.status === 'in_progress' ? 'info' :
-                                                                    item.clientControl.status === 'not_applicable' ? 'secondary' :
-                                                                        'warning'
-                                                        }
-                                                        className="uppercase text-[10px] px-3 transition-all"
+                                                        }}
                                                     >
-                                                        {item.clientControl.status?.replace('_', ' ')}
-                                                    </Badge>
-                                                    {item.clientControl.status !== 'not_implemented' && item.clientControl.status !== 'not_applicable' && (!item.evidenceCount || item.evidenceCount === 0) && (
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <AlertCircle className="h-4 w-4 text-red-500 animate-pulse cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Missing Evidence!</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+                                                        <SelectTrigger className={`h-8 w-[120px] text-xs bg-white ${item.clientControl.applicability === 'not_applicable' ? 'text-gray-500' : 'text-slate-700 font-medium'}`}>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="applicable">Applicable</SelectItem>
+                                                            <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-slate-600 py-3">
+                                                    {item.clientControl.implementationDate
+                                                        ? new Date(item.clientControl.implementationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                                                        : <span className="text-slate-400 italic">Not set</span>
+                                                    }
+                                                </TableCell>
+                                                <TableCell className="py-3">
+                                                    {item.clientControl.owner ? (
+                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                                            {item.clientControl.owner}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 text-xs text-slate-400 hover:text-slate-600"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedControl(item);
+                                                            }}
+                                                        >
+                                                            <Plus className="h-3 w-3 mr-1" />
+                                                            Assign
+                                                        </Button>
                                                     )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200" onClick={() => setSelectedControl(item)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-slate-500 py-3">
+                                                    {item.clientControl.updatedAt
+                                                        ? new Date(item.clientControl.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                                                        : <span className="text-slate-400 italic">Unknown</span>
+                                                    }
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     )
                 ) : (
@@ -832,7 +856,7 @@ export default function ClientControlsPage() {
                             <p className="text-lg text-slate-600 mb-12">
                                 You haven't assigned any security controls to this client yet. Security controls are the building blocks of your compliance posture—track implementation, collect evidence, and prove readiness.
                             </p>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-12">
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                                     <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-4">
@@ -858,17 +882,17 @@ export default function ClientControlsPage() {
                             </div>
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <Button 
-                                    size="lg" 
+                                <Button
+                                    size="lg"
                                     className="h-12 px-8 text-lg font-semibold bg-[#0B1120] hover:bg-slate-800"
                                     onClick={() => setIsBaselineWizardOpen(true)}
                                 >
                                     <Shield className="mr-2 h-5 w-5" />
                                     Start Setup Wizard
                                 </Button>
-                                <Button 
-                                    size="lg" 
-                                    variant="outline" 
+                                <Button
+                                    size="lg"
+                                    variant="outline"
                                     className="h-12 px-8 text-lg font-semibold border-2"
                                     onClick={() => setIsAddControlOpen(true)}
                                 >

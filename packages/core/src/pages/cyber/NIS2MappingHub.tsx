@@ -336,6 +336,10 @@ export default function NIS2MappingHub() {
                                                                     <button
                                                                         key={i}
                                                                         onClick={() => setLocation(`/clients/${selectedClientId}/controls?framework=${selectedFramework}&from=nis2-mapping&openCode=${ctrl.id}`)}
+                                                                        onDoubleClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setLocation(`/clients/${selectedClientId}/controls?openCode=${ctrl.id}`);
+                                                                        }}
                                                                         className={`w-full text-left px-3 py-2 text-sm font-bold rounded-lg transition-all flex justify-between items-center group ${ctrl.status === 'implemented' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:ring-1 hover:ring-emerald-200' : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50 hover:ring-1 hover:ring-sky-200'}`}
                                                                     >
                                                                         <div className="flex flex-col gap-1 pr-4">
