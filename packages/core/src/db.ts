@@ -201,6 +201,7 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
   if (!_db) {
     const databaseUrl = getSecret('DATABASE_URL');
     console.log('[DB] Using DATABASE_URL (prefix):', databaseUrl?.substring(0, 50));
+    console.log('[DB] Full URL (masked):', databaseUrl?.replace(/:[^:@]+@/, ':***@'));
     if (!databaseUrl) {
       throw new DatabaseConnectionError("DATABASE_URL environment variable is not set");
     }
@@ -224,6 +225,11 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
           },
         });
         console.log(`[DB] Connection pool created with URL length: ${process.env.DATABASE_URL?.length}`);
+
+        // Test the connection
+        console.log('[DB] Testing connection...');
+        const testResult = await _sql`SELECT 1 as test`;
+        console.log('[DB] Connection test result:', testResult);
 
       }
 

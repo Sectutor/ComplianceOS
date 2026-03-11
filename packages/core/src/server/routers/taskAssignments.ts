@@ -120,18 +120,25 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
 
-                // Upsert? Or just insert (unique index handles duplicates)
-                // If unique index exists, we can ignore conflict or do nothing
-                await db.insert(taskAssignments)
-                    .values({
-                        clientId: input.clientId,
-                        taskType: input.taskType,
-                        taskId: input.taskId,
-                        userId: input.userId,
-                        raciRole: input.raciRole,
-                        assignedBy: ctx.user?.id
-                    })
-                    .onConflictDoNothing({ target: [taskAssignments.taskType, taskAssignments.taskId, taskAssignments.userId, taskAssignments.raciRole] }); // Prevent duplicate errors
+                // Use try-catch to handle any insert errors gracefully
+                try {
+                    await db.insert(taskAssignments)
+                        .values({
+                            clientId: input.clientId,
+                            taskType: input.taskType,
+                            taskId: input.taskId,
+                            userId: input.userId,
+                            raciRole: input.raciRole,
+                            assignedBy: ctx.user?.id
+                        });
+                } catch (error: any) {
+                    // Ignore duplicate entry errors - that's expected behavior
+                    if (error?.code === '23505') {
+                        // Unique violation - already assigned, that's OK
+                        return { success: true, message: 'User already assigned to this role' };
+                    }
+                    throw error;
+                }
 
                 return { success: true };
             }),

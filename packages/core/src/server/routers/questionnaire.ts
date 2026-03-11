@@ -426,44 +426,49 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
 
         // Use transaction to prevent data loss on failure
         // Transaction ensures atomicity - if any operation fails, all changes are rolled back
-        await db.transaction(async (tx: typeof db) => {
-          // First, delete existing questions
-          await tx.delete(schema.questionnaireQuestions)
-            .where(eq(schema.questionnaireQuestions.questionnaireId, questionnaireId));
+        try {
+          await db.transaction(async (tx: typeof db) => {
+            // First, delete existing questions
+            await tx.delete(schema.questionnaireQuestions)
+              .where(eq(schema.questionnaireQuestions.questionnaireId, questionnaireId));
 
-          // Then insert new questions (only if there are any)
-          if (questions.length > 0) {
-            await tx.insert(schema.questionnaireQuestions).values(
-              questions.map((q: any) => ({
-                questionnaireId,
-                questionId: q.questionId || null,
-                focusArea: q.focusArea || null,
-                subFocusArea: q.subFocusArea || null,
-                extraFields: q.extraFields || {},
-                question: q.question,
-                answer: q.answer || null,
-                comment: q.comment || null,
-                tags: q.tags || [],
-                access: q.access || 'internal',
-                assigneeId: q.assigneeId || null,
-                confidence: q.confidence || null,
-                sources: q.sources || [],
-                status: q.status || 'pending',
+            // Then insert new questions (only if there are any)
+            if (questions.length > 0) {
+              await tx.insert(schema.questionnaireQuestions).values(
+                questions.map((q: any) => ({
+                  questionnaireId,
+                  questionId: q.questionId || null,
+                  focusArea: q.focusArea || null,
+                  subFocusArea: q.subFocusArea || null,
+                  extraFields: q.extraFields || {},
+                  question: q.question,
+                  answer: q.answer || null,
+                  comment: q.comment || null,
+                  tags: q.tags || [],
+                  access: q.access || 'internal',
+                  assigneeId: q.assigneeId || null,
+                  confidence: q.confidence || null,
+                  sources: q.sources || [],
+                  status: q.status || 'pending',
+                  updatedAt: new Date()
+                }))
+              );
+            }
+
+            // Update questionnaire progress and status within the same transaction
+            // This ensures questions and progress are always in sync
+            await tx.update(schema.questionnaires)
+              .set({
+                progress,
+                status: newStatus,
                 updatedAt: new Date()
-              }))
-            );
-          }
-
-          // Update questionnaire progress and status within the same transaction
-          // This ensures questions and progress are always in sync
-          await tx.update(schema.questionnaires)
-            .set({
-              progress,
-              status: newStatus,
-              updatedAt: new Date()
-            })
-            .where(eq(schema.questionnaires.id, questionnaireId));
-        });
+              })
+              .where(eq(schema.questionnaires.id, questionnaireId));
+          });
+        } catch (txError: any) {
+          console.error('[QuestionnaireRouter saveQuestions] Transaction error:', txError.message);
+          throw txError;
+        }
 
         return { success: true, progress };
       }),

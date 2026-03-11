@@ -26,6 +26,18 @@ export const vendorsRouter = router({
         }),
 
     /**
+     * List vendors for a client (alias for listVendors)
+     * This is used by QuestionnaireWorkspace and other components
+     */
+    listVendors: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            const db = await getDb();
+            const vendorRows = await db.select().from(vendors).where(eq(vendors.clientId, input.clientId)).orderBy(asc(vendors.name));
+            return vendorRows;
+        }),
+
+    /**
      * Get vendor
      */
     get: clientProcedure

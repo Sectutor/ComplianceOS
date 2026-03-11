@@ -14957,7 +14957,10 @@ export const nis2Mappings = pgTable("nis2_mappings", {
   nis2Article: varchar("nis2_article", { length: 50 }).notNull(), // e.g., '21(2)(a)'
   enisaMeasureId: varchar("enisa_measure_id", { length: 20 }).notNull(), // e.g., '1.1'
   enisaMeasureTitle: varchar("enisa_measure_title", { length: 255 }).notNull(),
-  iso27001ControlIds: json("iso27001_control_ids").$type<string[]>().notNull(), // e.g., ['5.2', 'A.5.1']
+  iso27001ControlIds: json("iso27001_control_ids").$type<string[]>(), // e.g., ['5.2', 'A.5.1']
+  nistCsfControlIds: json("nist_csf_control_ids").$type<string[]>(), // e.g., ['AC-1', 'AC-2']
+  soc2ControlIds: json("soc2_control_ids").$type<string[]>(), // e.g., ['CC1.1', 'CC2.1']
+  pciDssControlIds: json("pci_dss_control_ids").$type<string[]>(), // e.g., ['Req-1.1', 'Req-2.1']
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

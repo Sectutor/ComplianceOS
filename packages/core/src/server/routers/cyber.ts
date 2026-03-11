@@ -6,20 +6,144 @@ import {
     nis2Mappings,
     clientControls,
     controls,
-    clients
+    clients,
+    evidence
 } from "../../schema";
 import { getDb } from "../../db";
-import { eq, and, or, sql } from "drizzle-orm";
+import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { ENISA_THREAT_TAXONOMY } from "../../lib/threat-intel/enisa-taxonomy";
 import { generateScenariosForClient, ThreatScenario } from "../../lib/threat-intel/scenario-generator";
 
 export const createCyberRouter = (t: any, clientProcedure: any) => {
+    // Map frontend framework IDs to control framework names in the database
+    const frameworkMap: Record<string, string | string[]> = {
+        'NIS2': ['ISO 27001:2022', 'ISO/IEC 27001:2022', 'ISO 27001', 'ISO 27002:2022'],
+        'NIST_CSF': ['NIST CSF', 'NIST CSF 1.1', 'NIST CSF 2.0'],
+        'SOC2': ['SOC 2', 'SOC 2 Type II'],
+        'PCI_DSS': ['PCI DSS v4.0', 'PCI-DSS'],
+    };
+
     return t.router({
         getMappings: clientProcedure
-            .query(async () => {
+            .input(z.object({ clientId: z.number(), framework: z.string().optional() }))
+            .query(async ({ input, ctx }: { input: any, ctx: any }) => {
+                // Client authorization check
+                if (!ctx.clientId || ctx.clientId !== input.clientId) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Unauthorized access to this client\'s data' });
+                }
+
                 const db = await getDb();
-                return await db.select().from(nis2Mappings);
+                const clientId = input.clientId;
+                const frameworkInput = input.framework || 'NIS2';
+                const dbFramework = frameworkMap[frameworkInput] || frameworkInput;
+
+                // Get all nis2 mappings
+                const mappings = await db.select().from(nis2Mappings);
+
+                // Fetch the assessment to get the specific NIS2 requirement statuses
+                const assessment = await db.query.privacyAssessments.findFirst({
+                    where: and(
+                        eq(privacyAssessments.clientId, clientId),
+                        eq(privacyAssessments.type, 'nis2')
+                    )
+                });
+                const responses = (assessment?.responses as Record<string, any>) || {};
+
+                // Get ALL client's controls with their status and framework
+                // We don't filter by framework here so we can find any control ID mapped to NIS2
+                const clientControlsData = await db.select({
+                    id: clientControls.id,
+                    controlId: clientControls.controlId,
+                    status: clientControls.status,
+                    controlFramework: controls.framework,
+                    controlControlId: controls.controlId,
+                    evidenceCount: sql<number>`(SELECT COUNT(*) FROM ${evidence} WHERE ${evidence.clientControlId} = ${clientControls.id})`,
+                })
+                    .from(clientControls)
+                    .leftJoin(controls, eq(clientControls.controlId, controls.id))
+                    .where(eq(clientControls.clientId, clientId));
+
+                // Create a map of controlId -> client control data
+                const clientControlMap = new Map();
+                clientControlsData.forEach((cc: any) => {
+                    if (cc.controlControlId) {
+                        clientControlMap.set(cc.controlControlId, cc);
+                    }
+                });
+
+                // Enrich mappings with client-specific data
+                const enrichedMappings = mappings.map((mapping: any) => {
+                    // Find client controls for each target framework control in the mapping
+                    let mappedControlIds: string[] = [];
+                    if (frameworkInput === 'NIST_CSF') mappedControlIds = (mapping as any).nistCsfControlIds || [];
+                    else if (frameworkInput === 'SOC2') mappedControlIds = (mapping as any).soc2ControlIds || [];
+                    else if (frameworkInput === 'PCI_DSS') mappedControlIds = (mapping as any).pciDssControlIds || [];
+                    else mappedControlIds = mapping.iso27001ControlIds as string[] || [];
+
+                    const clientControlsForMapping = mappedControlIds
+                        .map(ctrlId => clientControlMap.get(ctrlId))
+                        .filter(Boolean);
+
+                    // Determine overall status based on the NIS2 assessment answers
+                    let status: 'implemented' | 'in_progress' | 'not_started' | 'not_applicable' = 'not_started';
+                    const answer = responses[`nis2_${mapping.enisaMeasureId}`]?.answer;
+                    
+                    if (answer === 'yes') {
+                        status = 'implemented';
+                    } else if (answer === 'partial') {
+                        status = 'in_progress';
+                    } else if (answer === 'na') {
+                        status = 'not_applicable';
+                    } else {
+                        status = 'not_started';
+                    }
+
+                    return {
+                        ...mapping,
+                        mappedControlIds,
+                        clientStatus: status,
+                        implementedCount: clientControlsForMapping.filter((cc: any) => cc.status === 'implemented').length,
+                        inProgressCount: clientControlsForMapping.filter((cc: any) => cc.status === 'in_progress').length,
+                        totalEvidence: clientControlsForMapping.reduce((sum: number, cc: any) => sum + (cc.evidenceCount || 0), 0),
+                        clientControls: clientControlsForMapping,
+                    };
+                });
+
+                // Get all unique control IDs mentioned in any mapping
+                const allMappedIds = Array.from(new Set(enrichedMappings.flatMap((m: any) => m.mappedControlIds))) as string[];
+                
+                // Fetch the names and descriptions for these specific controls ONLY
+                // We don't filter by framework here to be more flexible (helps if controls are wrongly tagged)
+                const globalControlsData = allMappedIds.length > 0
+                    ? await db.select({
+                        controlId: controls.controlId,
+                        name: controls.name,
+                        description: controls.description
+                    })
+                    .from(controls)
+                    .where(inArray(controls.controlId, allMappedIds))
+                    : [];
+
+                const globalControlMap = new Map();
+                globalControlsData.forEach((c: any) => {
+                    globalControlMap.set(c.controlId, c);
+                });
+
+                // final loop to add the metadata
+                return enrichedMappings.map((m: any) => ({
+                    ...m,
+                    mappedControlsData: m.mappedControlIds.map((ctrlId: string) => {
+                        const globalCtrl = globalControlMap.get(ctrlId);
+                        const clientCtrl = clientControlMap.get(ctrlId);
+                        return {
+                            id: ctrlId,
+                            name: globalCtrl?.name || '',
+                            description: globalCtrl?.description || '',
+                            status: clientCtrl?.status || 'not_started'
+                        };
+                    })
+                }));
             }),
         // ==================== NIS2 ASSESSMENT ====================
 

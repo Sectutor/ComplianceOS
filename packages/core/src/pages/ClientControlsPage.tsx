@@ -34,7 +34,7 @@ import {
 import { NISTBaselineWizard } from "@/components/frameworks/NISTBaselineWizard";
 
 export default function ClientControlsPage() {
-    const { clientId: idParam } = useParams<{ clientId: string }>();
+    const { id: idParam } = useParams<{ id: string }>();
     const clientId = parseInt(idParam || "0");
     const { user } = useAuth();
     const [location, setLocation] = useLocation();
@@ -64,19 +64,31 @@ export default function ClientControlsPage() {
     const clientControls = safeUnwrap(rawClientControls) || [];
     const masterControls = safeUnwrap(rawMasterControls) || [];
 
+    const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+    
+    const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        const openId = params.get('openControlId');
+        const fw = params.get('framework');
+        if (fw) setFrameworkFilter(fw);
+        
+        const openId = params.get('openId');
+        const openCode = params.get('openCode');
+        
         if (openId && clientControls.length > 0) {
-            const ctrl = clientControls.find((c: any) => c.clientControl.id === parseInt(openId));
+            const ctrl = clientControls.find((c: any) => c.control?.id === parseInt(openId));
+            if (ctrl) {
+                setSelectedControl(ctrl);
+            }
+        } else if (openCode && clientControls.length > 0) {
+            const ctrl = clientControls.find((c: any) => c.control?.controlId === openCode);
             if (ctrl) {
                 setSelectedControl(ctrl);
             }
         }
-    }, [clientControls]);
+    }, [window.location.search, clientControls]);
 
-    const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-    const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
     const [isAddControlOpen, setIsAddControlOpen] = useState(false);
     const [isBaselineWizardOpen, setIsBaselineWizardOpen] = useState(false);
     const [selectedControlIds, setSelectedControlIds] = useState<string[]>([]);
@@ -88,7 +100,7 @@ export default function ClientControlsPage() {
     const [justificationError, setJustificationError] = useState<number | null>(null);
 
     const uniqueFrameworks = Array.from(new Set(clientControls?.map((c: any) => c.control?.framework || 'Uncategorized') || [])).sort();
-    const availableFrameworks = ["ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF"];
+    const availableFrameworks = ["NIS2", "ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF"];
 
     const filteredClientControls = (clientControls || []).filter(c => {
         if (frameworkFilter !== 'all' && (c.control?.framework || 'Uncategorized') !== frameworkFilter) return false;
@@ -187,6 +199,15 @@ export default function ClientControlsPage() {
         <DashboardLayout>
             <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
                 <div className="border-b pb-4">
+                    {new URLSearchParams(window.location.search).get('from') === 'nis2-mapping' && (
+                        <button
+                            onClick={() => setLocation(`/clients/${clientId}/cyber/mapping`)}
+                            className="flex items-center text-sm font-bold text-slate-500 hover:text-sky-600 transition-colors mb-4 group"
+                        >
+                            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                            Back to NIS2 Mapping Hub
+                        </button>
+                    )}
                     <Breadcrumb items={[
                         { label: client?.name || "Client", href: `/clients/${clientId}` },
                         { label: "Controls", active: true }
@@ -322,7 +343,17 @@ export default function ClientControlsPage() {
                         </div>
 
                         <div className="w-[200px]">
-                            <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
+                            <Select 
+                                value={frameworkFilter} 
+                                onValueChange={(val) => {
+                                    setFrameworkFilter(val);
+                                    const params = new URLSearchParams(window.location.search);
+                                    if (val === 'all') params.delete('framework');
+                                    else params.set('framework', val);
+                                    const search = params.toString();
+                                    setLocation(`${location}${search ? '?' + search : ''}`);
+                                }}
+                            >
                                 <SelectTrigger className="h-8">
                                     <SelectValue placeholder="Filter Framework" />
                                 </SelectTrigger>

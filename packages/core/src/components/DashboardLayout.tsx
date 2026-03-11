@@ -729,7 +729,7 @@ function DashboardLayoutContent({
         ]
       },
       {
-        label: "Cyber Resilience",
+        label: "NIS2 & Cyber Resilience",
         items: [
           { icon: ShieldCheck, label: "Overview", path: "/cyber" },
           { icon: Activity, label: "Incidents", path: "/cyber/incidents" },

@@ -142,14 +142,7 @@ export default function Controls() {
     setPage(0);
   }, [frameworkFilter, debouncedSearchQuery, ownerFilter]);
 
-  // Handle framework parameter from URL
-  useEffect(() => {
-    if (frameworkParam) {
-      setFrameworkFilter([frameworkParam]);
-    } else {
-      setFrameworkFilter([]);
-    }
-  }, [frameworkParam]);
+
 
   const { data: paginatedData, isLoading, refetch } = trpc.controls.listPaginated.useQuery({
     framework: frameworkFilter.length > 0 ? (frameworkFilter.includes("all") ? "all" : frameworkFilter) : "all",
@@ -163,6 +156,8 @@ export default function Controls() {
   const controls = paginatedData?.items || [];
   const totalCount = paginatedData?.total || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+
+
 
   const { data: availableFrameworksData } = trpc.controls.getAvailableFrameworks.useQuery(
     undefined,

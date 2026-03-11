@@ -191,167 +191,167 @@ export default function PrivacyAlignmentPage() {
                     <Tabs value={activeFramework} onValueChange={setActiveFramework} className="w-full">
                         {/* Main Content Area */}
                         <div className="w-full min-w-0">
-                        {privacyFrameworks.map(fw => {
-                            const Icon = getFrameworkIcon(fw.id);
-                            return (
-                                <TabsContent key={fw.id} value={fw.id} className="m-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    {/* Framework Description Card */}
-                                    <Card className="border-2 border-slate-300 bg-white shadow-lg overflow-hidden relative">
-                                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                                            <Icon className="w-32 h-32" />
-                                        </div>
-                                        <CardHeader className="bg-gradient-to-r from-slate-100 to-gray-50 border-b">
-                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-3 bg-slate-800 rounded-xl text-white shadow-md z-10">
-                                                        <Icon className="h-6 w-6" />
-                                                    </div>
-                                                    <div className="z-10">
-                                                        <CardTitle className="text-2xl font-bold">{fw.name} Compliance</CardTitle>
-                                                        <CardDescription className="text-base mt-1">
-                                                            {fw.description}
-                                                        </CardDescription>
-                                                    </div>
-                                                </div>
-                                                <Link href={`/clients/${clientId}/privacy/assessments/${fw.id}`} className="z-10 shrink-0">
-                                                    <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all flex gap-3 group">
-                                                        <Activity className="w-5 h-5 group-hover:animate-pulse" />
-                                                        Start Assessment
-                                                    </Button>
-                                                </Link>
+                            {privacyFrameworks.map(fw => {
+                                const Icon = getFrameworkIcon(fw.id);
+                                return (
+                                    <TabsContent key={fw.id} value={fw.id} className="m-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        {/* Framework Description Card */}
+                                        <Card className="border-2 border-slate-300 bg-white shadow-lg overflow-hidden relative">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                                <Icon className="w-32 h-32" />
                                             </div>
-                                        </CardHeader>
-                                    </Card>
+                                            <CardHeader className="bg-gradient-to-r from-slate-100 to-gray-50 border-b">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-3 bg-slate-800 rounded-xl text-white shadow-md z-10">
+                                                            <Icon className="h-6 w-6" />
+                                                        </div>
+                                                        <div className="z-10">
+                                                            <CardTitle className="text-2xl font-bold">{fw.name} Compliance</CardTitle>
+                                                            <CardDescription className="text-base mt-1">
+                                                                {fw.description}
+                                                            </CardDescription>
+                                                        </div>
+                                                    </div>
+                                                    <Link href={`/clients/${clientId}/privacy/assessments/${fw.id}`} className="z-10 shrink-0">
+                                                        <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all flex gap-3 group">
+                                                            <Activity className="w-5 h-5 group-hover:animate-pulse" />
+                                                            Start Assessment
+                                                        </Button>
+                                                    </Link>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
 
-                                    {/* Areas Tabs */}
-                                    <Tabs defaultValue={fw.articles[0]?.id} className="space-y-8">
-                                        <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-4 h-auto bg-transparent p-0">
-                                            {fw.articles.slice(0, 8).map(article => {
+                                        {/* Areas Tabs */}
+                                        <Tabs defaultValue={fw.articles[0]?.id} className="space-y-8">
+                                            <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-4 h-auto bg-transparent p-0">
+                                                {fw.articles.slice(0, 8).map(article => {
+                                                    const ClauseIcon = getClauseIcon(fw.id, article.id);
+                                                    return (
+                                                        <TabsTrigger
+                                                            key={article.id}
+                                                            value={article.id}
+                                                            className="h-auto py-5 px-4 flex flex-col items-center gap-3 border border-slate-200 bg-white data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:border-[#1C4D8D] rounded-2xl transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group/article"
+                                                        >
+                                                            <div className={cn("p-2.5 rounded-xl group-data-[state=active]/article:bg-white/10 transition-colors", getClauseBgColor(fw.id, article.id))}>
+                                                                <ClauseIcon className={cn("h-6 w-6", getClauseColor(fw.id, article.id), "group-data-[state=active]/article:text-white")} />
+                                                            </div>
+                                                            <div className="text-center w-full">
+                                                                <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-60 mb-1 block">Article {article.numericId}</span>
+                                                                <span className="text-sm font-bold line-clamp-1">{article.title}</span>
+                                                            </div>
+                                                        </TabsTrigger>
+                                                    );
+                                                })}
+                                            </TabsList>
+
+                                            {fw.articles.map(article => {
                                                 const ClauseIcon = getClauseIcon(fw.id, article.id);
+                                                const colorClass = getClauseColor(fw.id, article.id);
+                                                const bgColorClass = getClauseBgColor(fw.id, article.id);
+
                                                 return (
-                                                    <TabsTrigger
-                                                        key={article.id}
-                                                        value={article.id}
-                                                        className="h-auto py-5 px-4 flex flex-col items-center gap-3 border border-slate-200 bg-white data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:border-[#1C4D8D] rounded-2xl transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group/article"
-                                                    >
-                                                        <div className={cn("p-2.5 rounded-xl group-data-[state=active]/article:bg-white/10 transition-colors", getClauseBgColor(fw.id, article.id))}>
-                                                            <ClauseIcon className={cn("h-6 w-6", getClauseColor(fw.id, article.id), "group-data-[state=active]/article:text-white")} />
+                                                    <TabsContent key={article.id} value={article.id} className="animate-in fade-in zoom-in-95 duration-300">
+                                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                                            <Card className="border-none bg-white shadow-xl rounded-2xl overflow-hidden ring-1 ring-slate-200">
+                                                                <div className={cn("h-2", colorClass.replace('text', 'bg'))} />
+                                                                <CardHeader>
+                                                                    <div className="flex items-center gap-4 mb-4">
+                                                                        <div className={cn("p-4 rounded-2xl shadow-inner", bgColorClass)}>
+                                                                            <ClauseIcon className={cn("h-8 w-8", colorClass)} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <Badge variant="outline" className="mb-1 uppercase tracking-widest text-[10px] font-black border-slate-300">
+                                                                                Regulatory Requirement
+                                                                            </Badge>
+                                                                            <CardTitle className="text-xl lg:text-2xl font-bold tracking-tight">{article.title}</CardTitle>
+                                                                        </div>
+                                                                    </div>
+                                                                    <CardDescription className="text-sm lg:text-base leading-relaxed p-4 bg-slate-50 rounded-xl italic border-l-4 border-slate-300">
+                                                                        {article.description}
+                                                                    </CardDescription>
+                                                                </CardHeader>
+                                                                <CardContent className="space-y-6">
+                                                                    <h4 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
+                                                                        <BookOpen className="h-5 w-5 text-slate-400" />
+                                                                        Key Obligations
+                                                                    </h4>
+                                                                    <ul className="space-y-4">
+                                                                        {(article.subArticles || []).map((req, idx) => (
+                                                                            <li key={idx} className="flex items-start gap-4 group">
+                                                                                <div className={cn("mt-1 p-1 rounded-full shrink-0", bgColorClass)}>
+                                                                                    <CheckCircle2 className={cn("h-4 w-4", colorClass)} />
+                                                                                </div>
+                                                                                <div className="space-y-1">
+                                                                                    <p className="font-bold text-slate-800 leading-tight text-sm lg:text-base">{req.title}</p>
+                                                                                    <p className="text-xs lg:text-sm text-slate-500 leading-relaxed">{req.description}</p>
+                                                                                </div>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </CardContent>
+                                                            </Card>
+
+                                                            <Card className="border-none bg-slate-900 text-white shadow-2xl rounded-2xl overflow-hidden">
+                                                                <CardHeader className="pb-4">
+                                                                    <CardTitle className="text-xl lg:text-2xl font-bold flex items-center gap-3">
+                                                                        <div className="p-2 bg-blue-500/20 rounded-lg">
+                                                                            <LayoutDashboard className="h-6 w-6 text-blue-400" />
+                                                                        </div>
+                                                                        Platform Implementation
+                                                                    </CardTitle>
+                                                                    <CardDescription className="text-slate-400 text-sm lg:text-base">
+                                                                        ComplianceOS technical and organizational controls to address this requirement.
+                                                                    </CardDescription>
+                                                                </CardHeader>
+                                                                <CardContent className="space-y-4 pt-4">
+                                                                    {/* Dynamic implementation details Based on standard */}
+                                                                    <div className="space-y-4">
+                                                                        <div className="p-4 lg:p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <h5 className="font-bold text-blue-400 flex items-center gap-2 text-sm lg:text-base group-hover:translate-x-1 transition-transform">
+                                                                                    <FileCheck2 className="h-4 w-4" />
+                                                                                    Integrated Audit Trails
+                                                                                </h5>
+                                                                                <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none shrink-0 ml-2">Active</Badge>
+                                                                            </div>
+                                                                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed">Tamper-proof logging across all data processing activities with cryptographic verification.</p>
+                                                                        </div>
+                                                                        <div className="p-4 lg:p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <h5 className="font-bold text-blue-400 flex items-center gap-2 text-sm lg:text-base group-hover:translate-x-1 transition-transform">
+                                                                                    <ShieldAlert className="h-4 w-4" />
+                                                                                    DPIA Engine
+                                                                                </h5>
+                                                                                <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-none shrink-0 ml-2">Ready</Badge>
+                                                                            </div>
+                                                                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed">Automated triggers for High-Risk processing assessments based on your Data Inventory.</p>
+                                                                        </div>
+                                                                        <div className="p-4 lg:p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <h5 className="font-bold text-blue-400 flex items-center gap-2 text-sm lg:text-base group-hover:translate-x-1 transition-transform">
+                                                                                    <Lock className="h-4 w-4" />
+                                                                                    Access Governance
+                                                                                </h5>
+                                                                                <Badge className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border-none shrink-0 ml-2">Review</Badge>
+                                                                            </div>
+                                                                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed">RBAC controls and quarterly access reviews implemented through the Identity module.</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </CardContent>
+                                                            </Card>
                                                         </div>
-                                                        <div className="text-center w-full">
-                                                            <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-60 mb-1 block">Article {article.numericId}</span>
-                                                            <span className="text-sm font-bold line-clamp-1">{article.title}</span>
-                                                        </div>
-                                                    </TabsTrigger>
+                                                    </TabsContent>
                                                 );
                                             })}
-                                        </TabsList>
-
-                                        {fw.articles.map(article => {
-                                            const ClauseIcon = getClauseIcon(fw.id, article.id);
-                                            const colorClass = getClauseColor(fw.id, article.id);
-                                            const bgColorClass = getClauseBgColor(fw.id, article.id);
-
-                                            return (
-                                                <TabsContent key={article.id} value={article.id} className="animate-in fade-in zoom-in-95 duration-300">
-                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                                        <Card className="border-none bg-white shadow-xl rounded-2xl overflow-hidden ring-1 ring-slate-200">
-                                                            <div className={cn("h-2", colorClass.replace('text', 'bg'))} />
-                                                            <CardHeader>
-                                                                <div className="flex items-center gap-4 mb-4">
-                                                                    <div className={cn("p-4 rounded-2xl shadow-inner", bgColorClass)}>
-                                                                        <ClauseIcon className={cn("h-8 w-8", colorClass)} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <Badge variant="outline" className="mb-1 uppercase tracking-widest text-[10px] font-black border-slate-300">
-                                                                            Regulatory Requirement
-                                                                        </Badge>
-                                                                        <CardTitle className="text-xl lg:text-2xl font-bold tracking-tight">{article.title}</CardTitle>
-                                                                    </div>
-                                                                </div>
-                                                                <CardDescription className="text-sm lg:text-base leading-relaxed p-4 bg-slate-50 rounded-xl italic border-l-4 border-slate-300">
-                                                                    {article.description}
-                                                                </CardDescription>
-                                                            </CardHeader>
-                                                            <CardContent className="space-y-6">
-                                                                <h4 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
-                                                                    <BookOpen className="h-5 w-5 text-slate-400" />
-                                                                    Key Obligations
-                                                                </h4>
-                                                                <ul className="space-y-4">
-                                                                    {(article.subArticles || []).map((req, idx) => (
-                                                                        <li key={idx} className="flex items-start gap-4 group">
-                                                                            <div className={cn("mt-1 p-1 rounded-full shrink-0", bgColorClass)}>
-                                                                                <CheckCircle2 className={cn("h-4 w-4", colorClass)} />
-                                                                            </div>
-                                                                            <div className="space-y-1">
-                                                                                <p className="font-bold text-slate-800 leading-tight text-sm lg:text-base">{req.title}</p>
-                                                                                <p className="text-xs lg:text-sm text-slate-500 leading-relaxed">{req.description}</p>
-                                                                            </div>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </CardContent>
-                                                        </Card>
-
-                                                        <Card className="border-none bg-slate-900 text-white shadow-2xl rounded-2xl overflow-hidden">
-                                                            <CardHeader className="pb-4">
-                                                                <CardTitle className="text-xl lg:text-2xl font-bold flex items-center gap-3">
-                                                                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                                                                        <LayoutDashboard className="h-6 w-6 text-blue-400" />
-                                                                    </div>
-                                                                    Platform Implementation
-                                                                </CardTitle>
-                                                                <CardDescription className="text-slate-400 text-sm lg:text-base">
-                                                                    ComplianceOS technical and organizational controls to address this requirement.
-                                                                </CardDescription>
-                                                            </CardHeader>
-                                                            <CardContent className="space-y-4 pt-4">
-                                                                {/* Dynamic implementation details Based on standard */}
-                                                                <div className="space-y-4">
-                                                                    <div className="p-4 lg:p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
-                                                                        <div className="flex items-center justify-between mb-2">
-                                                                            <h5 className="font-bold text-blue-400 flex items-center gap-2 text-sm lg:text-base group-hover:translate-x-1 transition-transform">
-                                                                                <FileCheck2 className="h-4 w-4" />
-                                                                                Integrated Audit Trails
-                                                                            </h5>
-                                                                            <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none shrink-0 ml-2">Active</Badge>
-                                                                        </div>
-                                                                        <p className="text-xs lg:text-sm text-slate-400 leading-relaxed">Tamper-proof logging across all data processing activities with cryptographic verification.</p>
-                                                                    </div>
-                                                                    <div className="p-4 lg:p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
-                                                                        <div className="flex items-center justify-between mb-2">
-                                                                            <h5 className="font-bold text-blue-400 flex items-center gap-2 text-sm lg:text-base group-hover:translate-x-1 transition-transform">
-                                                                                <ShieldAlert className="h-4 w-4" />
-                                                                                DPIA Engine
-                                                                            </h5>
-                                                                            <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-none shrink-0 ml-2">Ready</Badge>
-                                                                        </div>
-                                                                        <p className="text-xs lg:text-sm text-slate-400 leading-relaxed">Automated triggers for High-Risk processing assessments based on your Data Inventory.</p>
-                                                                    </div>
-                                                                    <div className="p-4 lg:p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-default group">
-                                                                        <div className="flex items-center justify-between mb-2">
-                                                                            <h5 className="font-bold text-blue-400 flex items-center gap-2 text-sm lg:text-base group-hover:translate-x-1 transition-transform">
-                                                                                <Lock className="h-4 w-4" />
-                                                                                Access Governance
-                                                                            </h5>
-                                                                            <Badge className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border-none shrink-0 ml-2">Review</Badge>
-                                                                        </div>
-                                                                        <p className="text-xs lg:text-sm text-slate-400 leading-relaxed">RBAC controls and quarterly access reviews implemented through the Identity module.</p>
-                                                                    </div>
-                                                                </div>
-                                                            </CardContent>
-                                                        </Card>
-                                                    </div>
-                                                </TabsContent>
-                                            );
-                                        })}
-                                    </Tabs>
-                                </TabsContent>
-                            );
-                        })}
-                    </div>
-                </Tabs>
-            </div>
+                                        </Tabs>
+                                    </TabsContent>
+                                );
+                            })}
+                        </div>
+                    </Tabs>
+                </div>
 
                 {/* Strategic Value Card */}
                 <Card className="border-2 border-slate-300 bg-gradient-to-br from-slate-100 to-gray-200 shadow-lg mt-12">

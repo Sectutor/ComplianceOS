@@ -1455,9 +1455,9 @@ function Router() {
             </PrivacyLayout>
           )}
         </Route>
-        <Route path="/clients/:id/privacy/alignment-guide">
+        <Route path="/clients/:clientId/privacy/alignment-guide">
           {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
+            <PrivacyLayout clientId={parseInt(_params.clientId)}>
               <PrivacyAlignmentPage />
             </PrivacyLayout>
           )}

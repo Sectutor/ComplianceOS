@@ -11,15 +11,15 @@ export default function CyberLayout({ children, fullWidth = false }: PropsWithCh
     const { selectedClientId } = useClientContext();
 
     const tabs = [
-        { name: "Cyber Resilience", path: `/clients/${selectedClientId}/cyber`, icon: ShieldCheck },
+        { name: "NIS2 & Cyber Resilience", path: `/clients/${selectedClientId}/cyber`, icon: ShieldCheck },
         { name: "NIS2 Workbook", path: `/clients/${selectedClientId}/cyber/workbook`, icon: ShieldCheck },
         { name: "Control Mapping", path: `/clients/${selectedClientId}/cyber/mapping`, icon: ShieldCheck },
     ];
 
     return (
         <DashboardLayout fullWidth={fullWidth}>
-            <div className="flex flex-col min-h-screen bg-transparent md:-mt-8">
-                <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
+            <div className="flex flex-col min-h-screen bg-transparent pt-4">
+                <div className="bg-transparent border-b border-slate-200 py-4 sticky top-16 z-30 shadow-none space-y-3">
                     <nav className="flex space-x-2 overflow-x-auto no-scrollbar py-1" aria-label="Tabs">
                         {tabs.map((tab) => {
                             const active = location === tab.path;
@@ -28,9 +28,9 @@ export default function CyberLayout({ children, fullWidth = false }: PropsWithCh
                                     key={tab.path}
                                     href={tab.path}
                                     className={cn(
-                                        "flex items-center gap-2 px-4 py-2.5 rounded-lg whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm border",
+                                        "flex items-center gap-2 px-5 py-2.5 rounded-lg whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm border",
                                         active
-                                            ? "bg-[#3ABEF9] text-white border-[#3ABEF9]"
+                                            ? "bg-[#3ABEF9] text-white border-[#3ABEF9] shadow-lg shadow-sky-200"
                                             : "bg-[#1C4D8D] text-white border-[#1C4D8D] hover:bg-[#3ABEF9] hover:border-[#3ABEF9]"
                                     )}
                                 >

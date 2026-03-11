@@ -69,9 +69,9 @@ export default function ControlDetailsDialog({
   const [monitoringInterval, setMonitoringInterval] = useState("");
 
   useEffect(() => {
-      const notes = clientControl.implementationNotes || "";
-      const match = notes.match(/Monitoring Frequency: (.*)$/m);
-      setMonitoringInterval(match ? match[1] : "Manual");
+    const notes = clientControl.implementationNotes || "";
+    const match = notes.match(/Monitoring Frequency: (.*)$/m);
+    setMonitoringInterval(match ? match[1] : "Manual");
   }, [clientControl]);
 
   const [evidenceLocation, setEvidenceLocation] = useState(clientControl.evidenceLocation || "");
@@ -190,10 +190,10 @@ export default function ControlDetailsDialog({
     const notes = clientControl.implementationNotes || "";
     const match = notes.match(/Monitoring Frequency: (.*)$/m);
     setMonitoringInterval(match ? match[1] : "Manual");
-    
+
     // Strip the metadata line for the textarea
     setImplementationNotes(notes.replace(/\n\nMonitoring Frequency: .*$/m, "").trim());
-    
+
     setImplementationDate(
       clientControl.implementationDate
         ? new Date(clientControl.implementationDate).toISOString().split('T')[0]
@@ -206,7 +206,7 @@ export default function ControlDetailsDialog({
   const handleSave = () => {
     let finalNotes = implementationNotes.trim();
     if (monitoringInterval && monitoringInterval !== "Manual") {
-        finalNotes = `${finalNotes}\n\nMonitoring Frequency: ${monitoringInterval}`;
+      finalNotes = `${finalNotes}\n\nMonitoring Frequency: ${monitoringInterval}`;
     }
 
     updateMutation.mutate({
@@ -347,15 +347,21 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {personnel?.filter(emp => !raciSummary?.responsible.some(r => r.id === emp.id)).map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                          {emp.firstName} {emp.lastName} ({emp.email})
-                        </SelectItem>
-                      ))}
+                      {personnel && personnel.length > 0 ? (
+                        personnel
+                          .filter(emp => !raciSummary?.responsible?.some(r => r.id === emp.id))
+                          .map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                              {emp.firstName} {emp.lastName} ({emp.email})
+                            </SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="none" disabled>No employees found</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
-                    {raciSummary?.responsible.map((emp) => (
+                    {raciSummary?.responsible?.map((emp) => (
                       <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
@@ -390,15 +396,21 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {personnel?.filter(emp => !raciSummary?.accountable.some(r => r.id === emp.id)).map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                          {emp.firstName} {emp.lastName} ({emp.email})
-                        </SelectItem>
-                      ))}
+                      {personnel && personnel.length > 0 ? (
+                        personnel
+                          .filter(emp => !raciSummary?.accountable?.some(r => r.id === emp.id))
+                          .map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                              {emp.firstName} {emp.lastName} ({emp.email})
+                            </SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="none" disabled>No employees found</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
-                    {raciSummary?.accountable.map((emp) => (
+                    {raciSummary?.accountable?.map((emp) => (
                       <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
@@ -431,15 +443,21 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {personnel?.filter(emp => !raciSummary?.consulted.some(r => r.id === emp.id)).map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                          {emp.firstName} {emp.lastName} ({emp.email})
-                        </SelectItem>
-                      ))}
+                      {personnel && personnel.length > 0 ? (
+                        personnel
+                          .filter(emp => !raciSummary?.consulted?.some(r => r.id === emp.id))
+                          .map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                              {emp.firstName} {emp.lastName} ({emp.email})
+                            </SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="none" disabled>No employees found</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
-                    {raciSummary?.consulted.map((emp) => (
+                    {raciSummary?.consulted?.map((emp) => (
                       <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
@@ -472,15 +490,21 @@ export default function ControlDetailsDialog({
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {personnel?.filter(emp => !raciSummary?.informed.some(r => r.id === emp.id)).map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                          {emp.firstName} {emp.lastName} ({emp.email})
-                        </SelectItem>
-                      ))}
+                      {personnel && personnel.length > 0 ? (
+                        personnel
+                          .filter(emp => !raciSummary?.informed?.some(r => r.id === emp.id))
+                          .map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                              {emp.firstName} {emp.lastName} ({emp.email})
+                            </SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="none" disabled>No employees found</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
-                    {raciSummary?.informed.map((emp) => (
+                    {raciSummary?.informed?.map((emp) => (
                       <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
@@ -543,11 +567,15 @@ export default function ControlDetailsDialog({
                           <SelectValue placeholder="Select employee..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {personnel?.map(emp => (
-                            <SelectItem key={emp.id} value={emp.id.toString()}>
-                              {emp.firstName} {emp.lastName} ({emp.email})
-                            </SelectItem>
-                          ))}
+                          {personnel && personnel.length > 0 ? (
+                            personnel.map(emp => (
+                              <SelectItem key={emp.id} value={emp.id.toString()}>
+                                {emp.firstName} {emp.lastName} ({emp.email})
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>No employees found</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -645,11 +673,15 @@ export default function ControlDetailsDialog({
                           <SelectValue placeholder="Select owner" />
                         </SelectTrigger>
                         <SelectContent>
-                          {personnel?.map((emp) => (
-                            <SelectItem key={emp.id} value={`${emp.firstName} ${emp.lastName}`.trim()}>
-                              {emp.firstName} {emp.lastName}
-                            </SelectItem>
-                          ))}
+                          {personnel && personnel.length > 0 ? (
+                            personnel.map((emp) => (
+                              <SelectItem key={emp.id} value={`${emp.id}-${emp.firstName} ${emp.lastName}`.trim()}>
+                                {emp.firstName} {emp.lastName}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>No employees found</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -867,3 +899,4 @@ export default function ControlDetailsDialog({
     </>
   );
 }
+
