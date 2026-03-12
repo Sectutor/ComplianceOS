@@ -353,7 +353,7 @@ export default function RiskVulnerabilitiesPage() {
                         </table>
 
                         {/* Pagination */}
-                        {totalItems > 0 && (
+                        {totalVulns > 0 && (
                             <div className="mt-4">
                                 <Pagination
                                     currentPage={currentPage}

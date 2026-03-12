@@ -6,25 +6,20 @@ export interface PaginationProps {
     currentPage: number;
     totalPages: number;
     totalItems: number;
-    startIndex: number;
-    endIndex: number;
     pageSize: number;
     onPageChange: (page: number) => void;
-    onPageSizeChange?: (pageSize: number) => void;
-    pageSizeOptions?: number[];
 }
 
 export function Pagination({
     currentPage,
     totalPages,
     totalItems,
-    startIndex,
-    endIndex,
     pageSize,
     onPageChange,
-    onPageSizeChange,
-    pageSizeOptions = [25, 50, 100, 200],
 }: PaginationProps) {
+    // Calculate start and end indices
+    const startIndex = (currentPage - 1) * pageSize + 1;
+    const endIndex = Math.min(currentPage * pageSize, totalItems);
     if (totalItems === 0) {
         return null;
     }
@@ -42,30 +37,13 @@ export function Pagination({
 
     return (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-gray-200 bg-white">
-            {/* Page info and page size selector */}
+            {/* Page info */}
             <div className="flex items-center gap-4">
                 <div className="text-sm text-muted-foreground">
-                    Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                    Showing <span className="font-medium">{startIndex}</span> to{' '}
                     <span className="font-medium">{endIndex}</span> of{' '}
                     <span className="font-medium">{totalItems}</span> results
                 </div>
-
-                {onPageSizeChange && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Per page:</span>
-                        <select
-                            value={pageSize}
-                            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                            className="h-8 rounded-md border border-input bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                            {pageSizeOptions.map((size) => (
-                                <option key={size} value={size}>
-                                    {size}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
             </div>
 
             {/* Page navigation */}
