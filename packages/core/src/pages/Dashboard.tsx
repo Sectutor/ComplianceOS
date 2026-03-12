@@ -148,7 +148,7 @@ export default function Dashboard() {
     }
   }, [utils]);
 
-  const { data: enhancedStats, isLoading: statsLoading } = trpc.dashboard.enhanced.useQuery({ framework, clientId }, {
+  const { data: enhancedStats, isLoading: statsLoading } = trpc.dashboard.enhanced.useQuery({ framework, clientId: effectiveClientId }, {
     enabled: !!user
   });
   const { data: clients, isLoading: clientsLoading } = trpc.clients.list.useQuery(undefined, {
@@ -160,7 +160,7 @@ export default function Dashboard() {
   const { data: overdueAssessments, isLoading: overdueLoading } = trpc.vendorAnalytics.getOverdueAssessments.useQuery(undefined, {
     enabled: !!user
   });
-  const { data: insightsData } = trpc.dashboard.getInsights.useQuery({ clientId }, {
+  const { data: insightsData } = trpc.dashboard.getInsights.useQuery({ clientId: effectiveClientId ? parseInt(effectiveClientId) : undefined }, {
     enabled: !!user
   });
   const insights = Array.isArray(insightsData) ? insightsData : [];
