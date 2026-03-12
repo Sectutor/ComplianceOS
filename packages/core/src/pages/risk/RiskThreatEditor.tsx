@@ -328,6 +328,7 @@ export default function RiskThreatEditor() {
             if (dbId) {
                 await updateMutation.mutateAsync({
                     id: dbId,
+                    clientId,
                     ...commonData,
                 });
             } else {
