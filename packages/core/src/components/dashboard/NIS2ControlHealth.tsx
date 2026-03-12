@@ -147,7 +147,7 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
         }
     };
 
-    // Calculate overall score from real data or fallback to sample
+    // Calculate overall score from real data or show placeholder when no data
     const getScoreFromData = () => {
         if (nis2Data && nis2Data.length > 0) {
             const total = nis2Data.reduce((sum: number, item: any) => {
@@ -157,9 +157,8 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
             }, 0);
             return Math.round(total / nis2Data.length);
         }
-        return Math.round(
-            Object.values(SAMPLE_CONTROL_DATA).reduce((sum, c) => sum + c.score, 0) / Object.keys(SAMPLE_CONTROL_DATA).length
-        );
+        // Return null when no data to indicate sample/fallback
+        return null;
     };
 
     const totalScore = getScoreFromData();
@@ -178,7 +177,8 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
                 };
             }
         }
-        return SAMPLE_CONTROL_DATA[categoryId] || { status: "not_assessed", score: 0, metrics: [] };
+        // Return null to indicate no real data
+        return null;
     };
 
     // Loading state
@@ -235,8 +235,8 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="text-right">
-                        <div className="text-2xl font-black text-slate-900">{totalScore}%</div>
-                        <div className="text-xs text-slate-500">Overall Score</div>
+                        <div className="text-2xl font-black text-slate-900">{totalScore !== null ? `${totalScore}%` : '—'}</div>
+                        <div className="text-xs text-slate-500">{totalScore !== null ? 'Overall Score' : 'No data'}</div>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => setLocation(`/clients/${clientId}/cyber/workbook`)}>
                         View Details <ArrowRight className="ml-2 h-4 w-4" />
@@ -247,13 +247,15 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {NIS2_CATEGORIES.map((category) => {
                     const data = getDisplayData(category.id);
+                    // When no real data, show "not_assessed" status
+                    const displayData = data || { status: "not_assessed", score: 0, metrics: [{ label: 'Status', value: 'No data' }] };
                     return (
                         <NIS2ControlCard
                             key={category.id}
                             category={category}
-                            status={data.status}
-                            score={data.score}
-                            metrics={data.metrics}
+                            status={displayData.status}
+                            score={displayData.score}
+                            metrics={displayData.metrics}
                             onClick={() => handleCategoryClick(category.id)}
                         />
                     );
