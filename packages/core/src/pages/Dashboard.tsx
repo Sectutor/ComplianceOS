@@ -29,6 +29,8 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { resolveNavigationPath } from "@/lib/navigation";
 import { NIS2ControlHealth } from "@/components/dashboard/NIS2ControlHealth";
 import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
+import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
+import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 
 // Helper to determine compliance status based on rate - Plain Language Version
 function getComplianceStatus(rate: number) {
@@ -1145,8 +1147,12 @@ export default function Dashboard() {
                   <>
                     <SecurityDomainGrid clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                     <NIS2ControlHealth clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
+                    {/* NIS2 Incident Clock - 24h/72h/1-month reporting deadlines */}
+                    <NIS2IncidentClock clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                   </>
                 )}
+                {/* NIS2 AI Assistant - Available to all users */}
+                <NIS2Assistant compact />
               </motion.div>
             )}
           </AnimatePresence>

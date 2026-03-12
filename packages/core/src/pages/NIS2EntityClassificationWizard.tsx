@@ -43,7 +43,7 @@ const CRITICAL_SECTORS = [
   },
   {
     id: 'transport',
-    name: 'Transport', 
+    name: 'Transport',
     description: 'Air, rail, water, and road transport systems',
     examples: 'Airlines, railways, shipping companies, traffic management'
   },
@@ -111,16 +111,17 @@ const EU_AUTHORITIES = [
 
 const STEPS = [
   'Sector Analysis',
-  'Size Assessment', 
+  'Size Assessment',
   'Service Evaluation',
   'Classification Result',
   'Registration Guidance'
 ];
 
 export default function NIS2EntityClassificationWizard() {
-  const { clientId } = useParams();
+  const params = useParams();
+  const clientId = params.clientId;
   const [location, setLocation] = useLocation();
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [classification, setClassification] = useState<Partial<EntityClassification>>({});
   const [showResults, setShowResults] = useState(false);
@@ -137,16 +138,16 @@ export default function NIS2EntityClassificationWizard() {
   const determineClassification = () => {
     const employeeNum = parseInt(employeeCount) || 0;
     const revenueNum = parseFloat(annualRevenue.replace(/[^0-9.]/g, '')) || 0;
-    
+
     // NIS2 thresholds
     const meetsSizeThreshold = employeeNum >= 50 || revenueNum >= 10000000; // €10M
     const isCriticalSector = selectedSectors.some(sector => {
       const criticalSectorIds = ['energy', 'transport', 'banking', 'financial', 'health', 'drinking', 'digital'];
       return criticalSectorIds.includes(sector);
     });
-    
+
     let classification: 'essential' | 'important' | 'not-applicable';
-    
+
     if (meetsSizeThreshold && isCriticalSector && providesEssentialServices) {
       classification = 'essential';
     } else if (meetsSizeThreshold && isCriticalSector) {
@@ -156,7 +157,7 @@ export default function NIS2EntityClassificationWizard() {
     } else {
       classification = 'not-applicable';
     }
-    
+
     setClassification({
       id: `nis2_${Date.now()}`,
       sector: selectedSectors.join(', '),
@@ -168,7 +169,7 @@ export default function NIS2EntityClassificationWizard() {
       lastUpdated: new Date().toISOString(),
       evidence: []
     });
-    
+
     return classification;
   };
 
@@ -199,16 +200,15 @@ export default function NIS2EntityClassificationWizard() {
                 Select all sectors where your organization operates. NIS2 applies to critical sectors defined by the EU.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {CRITICAL_SECTORS.map((sector) => (
-                <Card 
+                <Card
                   key={sector.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedSectors.includes(sector.id) 
-                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'hover:shadow-md'
-                  }`}
+                  className={`cursor-pointer transition-all ${selectedSectors.includes(sector.id)
+                    ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'hover:shadow-md'
+                    }`}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-3">
@@ -260,7 +260,7 @@ export default function NIS2EntityClassificationWizard() {
                 NIS2 applies to organizations with 50+ employees OR €10M+ annual revenue.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
@@ -342,7 +342,7 @@ export default function NIS2EntityClassificationWizard() {
                 Determine if your organization provides essential services that society depends on.
               </p>
             </div>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -357,7 +357,7 @@ export default function NIS2EntityClassificationWizard() {
                     Essential services are those whose disruption would have significant impact on society,
                     public safety, or economic activity.
                   </p>
-                  
+
                   <RadioGroup
                     value={providesEssentialServices?.toString() || ''}
                     onValueChange={(value) => setProvidesEssentialServices(value === 'true')}
@@ -388,7 +388,7 @@ export default function NIS2EntityClassificationWizard() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    Examples of essential services: Power grid operations, banking systems, 
+                    Examples of essential services: Power grid operations, banking systems,
                     hospital emergency services, water treatment, air traffic control.
                   </AlertDescription>
                 </Alert>
@@ -407,23 +407,23 @@ export default function NIS2EntityClassificationWizard() {
                 Based on your assessment, here is your NIS2 classification.
               </p>
             </div>
-            
+
             <div className="text-center space-y-6">
               <div className="relative inline-flex items-center justify-center">
                 <div className="text-4xl font-bold capitalize">
                   {classification.replace('-', ' ')}
                 </div>
                 <div className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-medium ${getClassificationColor(classification)}`}>
-                  {classification === 'essential' ? 'HIGH OBLIGATIONS' : 
-                   classification === 'important' ? 'MODERATE OBLIGATIONS' : 'LIMITED OBLIGATIONS'}
+                  {classification === 'essential' ? 'HIGH OBLIGATIONS' :
+                    classification === 'important' ? 'MODERATE OBLIGATIONS' : 'LIMITED OBLIGATIONS'}
                 </div>
               </div>
-              
+
               <div className={`inline-flex items-center space-x-3 px-6 py-4 rounded-full ${getClassificationColor(classification)}`}>
                 {getClassificationIcon(classification)}
                 <span className="text-lg font-medium">
                   {classification === 'essential' ? 'Essential Entity' :
-                   classification === 'important' ? 'Important Entity' : 'Not Applicable to NIS2'}
+                    classification === 'important' ? 'Important Entity' : 'Not Applicable to NIS2'}
                 </span>
               </div>
             </div>
@@ -455,11 +455,11 @@ export default function NIS2EntityClassificationWizard() {
             <Alert>
               <FileText className="h-4 w-4" />
               <AlertDescription>
-                {classification === 'essential' ? 
+                {classification === 'essential' ?
                   'As an Essential Entity, you must implement comprehensive cybersecurity measures, report incidents within 24 hours, and undergo regular audits.' :
                   classification === 'important' ?
-                  'As an Important Entity, you must implement appropriate cybersecurity measures and establish risk management procedures.' :
-                  'Your organization may not be subject to NIS2 obligations, but good cybersecurity practices are still recommended.'}
+                    'As an Important Entity, you must implement appropriate cybersecurity measures and establish risk management procedures.' :
+                    'Your organization may not be subject to NIS2 obligations, but good cybersecurity practices are still recommended.'}
               </AlertDescription>
             </Alert>
           </div>
@@ -474,7 +474,7 @@ export default function NIS2EntityClassificationWizard() {
                 NIS2 requires registration with national authorities. Here's guidance for your country.
               </p>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="country">Country of Operation</Label>
@@ -503,7 +503,7 @@ export default function NIS2EntityClassificationWizard() {
                           <p className="text-sm text-gray-600">NIS2 Authority</p>
                         </div>
                       </div>
-                      
+
                       <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
                         <p className="font-medium mb-2">
                           {EU_AUTHORITIES.find(a => a.country === countryOfOperation)?.authority}
@@ -511,8 +511,8 @@ export default function NIS2EntityClassificationWizard() {
                         <p className="text-sm text-gray-600 mb-2">
                           <strong>Registration:</strong> {EU_AUTHORITIES.find(a => a.country === countryOfOperation)?.registration}
                         </p>
-                        
-                        <Button 
+
+                        <Button
                           onClick={() => setShowRegistrationDialog(true)}
                           className="w-full"
                         >
@@ -559,7 +559,7 @@ export default function NIS2EntityClassificationWizard() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout fullWidth={true}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -567,7 +567,7 @@ export default function NIS2EntityClassificationWizard() {
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
-                onClick={() => setLocation(`/clients/${clientId}/cyber`)}
+                onClick={() => setLocation(clientId ? `/clients/${clientId}/cyber` : '/cyber')}
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -591,23 +591,20 @@ export default function NIS2EntityClassificationWizard() {
                 {STEPS.map((step, index) => (
                   <div key={index} className="flex items-center">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        index <= currentStep 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-200 text-gray-600'
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${index <= currentStep
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-600'
+                        }`}
                     >
                       {index < currentStep ? '✓' : index + 1}
                     </div>
-                    <span className={`ml-2 text-sm ${
-                      index <= currentStep ? 'text-blue-600' : 'text-gray-500'
-                    }`}>
+                    <span className={`ml-2 text-sm ${index <= currentStep ? 'text-blue-600' : 'text-gray-500'
+                      }`}>
                       {step}
                     </span>
                     {index < STEPS.length - 1 && (
-                      <div className={`w-8 h-0.5 mx-2 ${
-                        index < currentStep ? 'bg-blue-600' : 'bg-gray-200'
-                      }`} />
+                      <div className={`w-8 h-0.5 mx-2 ${index < currentStep ? 'bg-blue-600' : 'bg-gray-200'
+                        }`} />
                     )}
                   </div>
                 ))}
@@ -659,7 +656,7 @@ export default function NIS2EntityClassificationWizard() {
                     These are general registration requirements. Contact your national authority for specific guidance.
                   </AlertDescription>
                 </Alert>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
                     <CardHeader>
@@ -675,7 +672,7 @@ export default function NIS2EntityClassificationWizard() {
                       </ul>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">Registration Timeline</CardTitle>

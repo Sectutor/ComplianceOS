@@ -28,36 +28,26 @@ import { Progress } from "@complianceos/ui/ui/progress";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 
-// NIS2 Article 21 Categories as defined by EU Directive
+// NIS2 Article 21 Categories as defined by EU Directive and ENISA Measures
 export const NIS2_CATEGORIES = [
-    { id: "policies", article: "21(2)(a)", title: "Policies", icon: FileText, color: "bg-blue-500" },
-    { id: "risk_management", article: "21(2)(b)", title: "Risk Management", icon: AlertTriangle, color: "bg-amber-500" },
-    { id: "incident_handling", article: "21(2)(c)", title: "Incident Handling", icon: Shield, color: "bg-red-500" },
-    { id: "business_continuity", article: "21(2)(d)", title: "Business Continuity", icon: Building2, color: "bg-green-500" },
-    { id: "supply_chain", article: "21(2)(e)", title: "Supply Chain", icon: Network, color: "bg-purple-500" },
-    { id: "acquisition", article: "21(2)(f)", title: "Acquisition & Development", icon: Bug, color: "bg-indigo-500" },
-    { id: "effectiveness", article: "21(2)(g)", title: "Security Effectiveness", icon: CheckCircle2, color: "bg-teal-500" },
-    { id: "training", article: "21(2)(h)", title: "Cyber Hygiene", icon: GraduationCap, color: "bg-cyan-500" },
-    { id: "cryptography", article: "21(2)(i)", title: "Cryptography", icon: KeyRound, color: "bg-yellow-500" },
-    { id: "hr_security", article: "21(2)(j)", title: "Human Resources", icon: Users, color: "bg-pink-500" },
-    { id: "access_control", article: "21(2)(k)", title: "Access Control", icon: Lock, color: "bg-orange-500" },
-    { id: "asset_management", article: "21(2)(l)", title: "Asset Management", icon: Database, color: "bg-slate-500" },
+    { id: "policies", article: "21(2)(a)", enisaId: "1.1", title: "Policies & Analysis", icon: FileText, color: "bg-blue-500" },
+    { id: "risk_management", article: "21(2)(b)", enisaId: "2.1", title: "Risk Management", icon: AlertTriangle, color: "bg-amber-500" },
+    { id: "incident_handling", article: "21(2)(c)", enisaId: "3.1", title: "Incident Handling", icon: Shield, color: "bg-red-500" },
+    { id: "business_continuity", article: "21(2)(d)", enisaId: "4.1", title: "Business Continuity", icon: Building2, color: "bg-green-500" },
+    { id: "supply_chain", article: "21(2)(e)", enisaId: "5.1", title: "Supply Chain", icon: Network, color: "bg-purple-500" },
+    { id: "acquisition", article: "21(2)(f)", enisaId: "6.1", title: "Acquisition & Development", icon: Bug, color: "bg-indigo-500" },
+    { id: "effectiveness", article: "21(2)(g)", enisaId: "7.1", title: "Security Effectiveness", icon: CheckCircle2, color: "bg-teal-500" },
+    { id: "training", article: "21(2)(h)", enisaId: "8.1", title: "Cyber Hygiene & Training", icon: GraduationCap, color: "bg-cyan-500" },
+    { id: "cryptography", article: "21(2)(i)", enisaId: "9.1", title: "Cryptography", icon: KeyRound, color: "bg-yellow-500" },
+    { id: "hr_security", article: "21(2)(j)", enisaId: "10.1", title: "Human Resources", icon: Users, color: "bg-pink-500" },
+    { id: "access_control", article: "21(2)(k)", enisaId: "11.1", title: "Access Control", icon: Lock, color: "bg-orange-500" },
+    { id: "asset_management", article: "21(2)(l)", enisaId: "12.1", title: "Asset Management", icon: Database, color: "bg-slate-500" },
 ];
 
-// Sample data - in production this would come from TRPC queries
+// Sample data is kept for structure reference but not used in display when real data exists
 const SAMPLE_CONTROL_DATA: Record<string, { status: string; score: number; metrics: { label: string; value: string | number }[] }> = {
     policies: { status: "in_progress", score: 65, metrics: [{ label: "Controls", value: "12/20" }] },
     risk_management: { status: "compliant", score: 85, metrics: [{ label: "High Risks", value: "3" }] },
-    incident_handling: { status: "compliant", score: 100, metrics: [{ label: "Open", value: "0" }] },
-    business_continuity: { status: "not_assessed", score: 0, metrics: [{ label: "Status", value: "Pending" }] },
-    supply_chain: { status: "in_progress", score: 45, metrics: [{ label: "Vendors", value: "Review" }] },
-    acquisition: { status: "not_assessed", score: 0, metrics: [{ label: "Status", value: "Pending" }] },
-    effectiveness: { status: "not_assessed", score: 0, metrics: [{ label: "Status", value: "Pending" }] },
-    training: { status: "compliant", score: 75, metrics: [{ label: "Completion", value: "85%" }] },
-    cryptography: { status: "not_assessed", score: 0, metrics: [{ label: "Status", value: "Pending" }] },
-    hr_security: { status: "not_assessed", score: 0, metrics: [{ label: "Status", value: "Pending" }] },
-    access_control: { status: "in_progress", score: 60, metrics: [{ label: "MFA", value: "92%" }] },
-    asset_management: { status: "compliant", score: 95, metrics: [{ label: "Coverage", value: "98%" }] },
 };
 
 interface NIS2ControlCardProps {
@@ -150,26 +140,22 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
     // Calculate overall score from real data or show placeholder when no data
     const getScoreFromData = () => {
         if (nis2Data && nis2Data.length > 0) {
-            let totalScore = 0;
-            let assessedCount = 0;
+            let totalWeightedScore = 0;
+            let totalPossibleControls = 0;
+            let totalImplementedControls = 0;
 
             nis2Data.forEach((mapping: any) => {
-                const implementedCount = mapping.implementedCount || 0;
-                const totalCount = mapping.mappedControlIds?.length || 0;
+                const implemented = mapping.implementedCount || 0;
+                const total = mapping.mappedControlIds?.length || 0;
 
-                if (totalCount > 0) {
-                    if (implementedCount === totalCount) {
-                        totalScore += 100;
-                    } else if (implementedCount > 0) {
-                        totalScore += Math.round((implementedCount / totalCount) * 100);
-                    }
-                    assessedCount++;
-                }
+                totalImplementedControls += implemented;
+                totalPossibleControls += total;
             });
 
-            return assessedCount > 0 ? Math.round(totalScore / assessedCount) : null;
+            return totalPossibleControls > 0
+                ? Math.round((totalImplementedControls / totalPossibleControls) * 100)
+                : 0;
         }
-        // Return null when no data to indicate sample/fallback
         return null;
     };
 
@@ -178,26 +164,36 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
     // Transform data for display
     const getDisplayData = (categoryId: string) => {
         if (nis2Data && nis2Data.length > 0) {
-            // Find the category's article to match with data
             const category = NIS2_CATEGORIES.find(c => c.id === categoryId);
             if (category) {
-                const mapping = nis2Data.find((m: any) => m.nis2Article === category.article || m.article === category.article);
-                if (mapping) {
-                    const implementedCount = mapping.implementedCount || 0;
-                    const totalCount = mapping.mappedControlIds?.length || 0;
+                // Find mappings matching either article or enisaId
+                const mappings = nis2Data.filter((m: any) =>
+                    m.enisaMeasureId === category.enisaId ||
+                    m.nis2Article === category.article ||
+                    m.article === category.article
+                );
 
-                    // Calculate score from actual controls, not from questionnaire
+                if (mappings.length > 0) {
+                    let totalImplemented = 0;
+                    let totalControls = 0;
+
+                    mappings.forEach((m: any) => {
+                        totalImplemented += m.implementedCount || 0;
+                        totalControls += m.mappedControlIds?.length || 0;
+                    });
+
                     let status: string;
                     let score: number;
-                    if (totalCount === 0) {
+
+                    if (totalControls === 0) {
                         status = 'not_assessed';
                         score = 0;
-                    } else if (implementedCount === totalCount) {
+                    } else if (totalImplemented === totalControls) {
                         status = 'compliant';
                         score = 100;
-                    } else if (implementedCount > 0) {
+                    } else if (totalImplemented > 0) {
                         status = 'in_progress';
-                        score = Math.round((implementedCount / totalCount) * 100);
+                        score = Math.round((totalImplemented / totalControls) * 100);
                     } else {
                         status = 'not_assessed';
                         score = 0;
@@ -206,12 +202,11 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
                     return {
                         status,
                         score,
-                        metrics: [{ label: 'Controls', value: `${implementedCount}/${totalCount}` }]
+                        metrics: [{ label: 'Controls', value: `${totalImplemented}/${totalControls}` }]
                     };
                 }
             }
         }
-        // Return null to indicate no real data
         return null;
     };
 

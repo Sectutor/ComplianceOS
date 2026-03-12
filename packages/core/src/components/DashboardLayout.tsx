@@ -732,6 +732,15 @@ function DashboardLayoutContent({
         label: "NIS2 & Cyber Resilience",
         items: [
           { icon: ShieldCheck, label: "Overview", path: "/cyber" },
+          { icon: Building2, label: "Cyber Resilience Hub", path: `/clients/${persistentClientId}/nis2` },
+          { icon: ClipboardCheck, label: "Assessment", path: `/clients/${persistentClientId}/nis2/assessment` },
+          { icon: Shield, label: "Security Measures", path: `/clients/${persistentClientId}/nis2/security-measures` },
+          { icon: AlertTriangle, label: "Incident Reporting", path: `/clients/${persistentClientId}/nis2/incident-reporting` },
+          { icon: Building2, label: "Entity Registry", path: `/clients/${persistentClientId}/nis2/entity-registry` },
+          { icon: Zap, label: "Supply Chain", path: `/clients/${persistentClientId}/nis2/supply-chain` },
+          { icon: Globe, label: "Cross-Border", path: `/clients/${persistentClientId}/nis2/cross-border` },
+          { icon: Users, label: "Management Oversight", path: `/clients/${persistentClientId}/nis2/management-liability` },
+          { icon: FileText, label: "Audit Bundle", path: `/clients/${persistentClientId}/nis2/audit-bundle` },
           { icon: Activity, label: "Incidents", path: "/cyber/incidents" },
           { icon: FileText, label: "Documents", path: "/cyber/documents" },
         ]

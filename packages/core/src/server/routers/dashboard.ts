@@ -36,6 +36,13 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           ? Number(input.clientId)
           : undefined;
 
+        const frameworkMap: Record<string, string | string[]> = {
+          'NIS2': ['ISO 27001', 'ISO 27001:2022', 'NIST CSF', 'SOC 2', 'PCI DSS', 'NIS2'],
+          'ISO 27001': ['ISO 27001', 'ISO 27001:2022'],
+          'GDPR': ['GDPR'],
+          'SOC2': ['SOC 2']
+        };
+
         if (!ctx?.user) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
         }
@@ -102,23 +109,28 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         // CHANGED: Count Master Controls (Global Library) instead of Client Controls
         const controlsQuery = dbConn.select({ value: count() }).from(schema.controls);
         if (frameworkFilter) {
-          controlsQuery.where(eq(schema.controls.framework, frameworkFilter));
+          const mapped = frameworkMap[frameworkFilter] || frameworkFilter;
+          const queryFws = Array.isArray(mapped) ? mapped : [mapped];
+          controlsQuery.where(inArray(schema.controls.framework, queryFws));
         }
         // Removed client filtering to show full Master Control library
         const [controlsCount] = await controlsQuery;
 
         // CHANGED: Count Master Policies (Templates) instead of Client Policies
+        // Note: policyTemplates uses jsonb for frameworks, so framework filtering is handled separately
+        // when mapping policies to controls. The full template count is returned here.
         const policiesQuery = dbConn.select({ value: count() }).from(schema.policyTemplates);
-        // Removed framework and client filtering to show full Policy Template library
         const [policiesCount] = await policiesQuery;
 
         const evidenceQuery = dbConn.select({ value: count() }).from(schema.evidence);
 
         const evidenceConditions = [];
         if (frameworkFilter) {
+          const mapped = frameworkMap[frameworkFilter] || frameworkFilter;
+          const queryFws = Array.isArray(mapped) ? mapped : [mapped];
           evidenceQuery.innerJoin(schema.clientControls, eq(schema.evidence.clientControlId, schema.clientControls.id))
             .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id));
-          evidenceConditions.push(eq(schema.controls.framework, frameworkFilter));
+          evidenceConditions.push(inArray(schema.controls.framework, queryFws));
         }
         if (effectiveClientIds !== null) {
           evidenceConditions.push(inArray(schema.evidence.clientId, effectiveClientIds));
@@ -138,9 +150,17 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           .from(schema.clientControls);
 
         const controlStatusConditions = [];
+
         if (frameworkFilter) {
+          const mappedFrameworks = frameworkMap[frameworkFilter] || frameworkFilter;
+
           controlsByStatusQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id));
-          controlStatusConditions.push(eq(schema.controls.framework, frameworkFilter));
+
+          if (Array.isArray(mappedFrameworks)) {
+            controlStatusConditions.push(inArray(schema.controls.framework, mappedFrameworks));
+          } else {
+            controlStatusConditions.push(eq(schema.controls.framework, mappedFrameworks));
+          }
         }
         if (effectiveClientIds !== null) {
           controlStatusConditions.push(inArray(schema.clientControls.clientId, effectiveClientIds));
@@ -171,10 +191,17 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
 
         const policyStatusConditions = [];
         if (frameworkFilter) {
+          const mappedFrameworks = frameworkMap[frameworkFilter] || frameworkFilter;
+
           policiesByStatusQuery.innerJoin(schema.controlPolicyMappings, eq(schema.clientPolicies.id, schema.controlPolicyMappings.clientPolicyId))
             .innerJoin(schema.clientControls, eq(schema.controlPolicyMappings.clientControlId, schema.clientControls.id))
             .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id));
-          policyStatusConditions.push(eq(schema.controls.framework, frameworkFilter));
+
+          if (Array.isArray(mappedFrameworks)) {
+            policyStatusConditions.push(inArray(schema.controls.framework, mappedFrameworks));
+          } else {
+            policyStatusConditions.push(eq(schema.controls.framework, mappedFrameworks));
+          }
         }
         if (effectiveClientIds !== null) {
           policyStatusConditions.push(inArray(schema.clientPolicies.clientId, effectiveClientIds));
@@ -260,12 +287,20 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         })
           .from(schema.clientControls);
 
-        if (frameworkFilter) {
-          controlsOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
-            .where(eq(schema.controls.framework, frameworkFilter));
-        }
+        const controlsOverviewConditions = [];
         if (effectiveClientIds !== null) {
-          controlsOverviewQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
+          controlsOverviewConditions.push(inArray(schema.clientControls.clientId, effectiveClientIds));
+        }
+
+        if (frameworkFilter) {
+          const mapped = frameworkMap[frameworkFilter] || frameworkFilter;
+          const queryFws = Array.isArray(mapped) ? mapped : [mapped];
+          controlsOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id));
+          controlsOverviewConditions.push(inArray(schema.controls.framework, queryFws));
+        }
+
+        if (controlsOverviewConditions.length > 0) {
+          controlsOverviewQuery.where(and(...controlsOverviewConditions));
         }
         const controlsCounts = await controlsOverviewQuery.groupBy(schema.clientControls.clientId);
         const controlsMap = new Map<number, number>(controlsCounts.map((r: any) => [r.clientId, Number(r.count)]));
@@ -278,13 +313,19 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           .from(schema.clientControls)
           .where(eq(schema.clientControls.status, 'implemented'));
 
-        if (frameworkFilter) {
-          implementedOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
-            .where(and(eq(schema.clientControls.status, 'implemented'), eq(schema.controls.framework, frameworkFilter)));
-        }
+        const implementedOverviewConditions = [eq(schema.clientControls.status, 'implemented')];
         if (effectiveClientIds !== null) {
-          implementedOverviewQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
+          implementedOverviewConditions.push(inArray(schema.clientControls.clientId, effectiveClientIds));
         }
+
+        if (frameworkFilter) {
+          const mapped = frameworkMap[frameworkFilter] || frameworkFilter;
+          const queryFws = Array.isArray(mapped) ? mapped : [mapped];
+          implementedOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id));
+          implementedOverviewConditions.push(inArray(schema.controls.framework, queryFws));
+        }
+
+        implementedOverviewQuery.where(and(...implementedOverviewConditions));
         const implementedCounts = await implementedOverviewQuery.groupBy(schema.clientControls.clientId);
         const implementedMap = new Map<number, number>(implementedCounts.map((r: any) => [r.clientId, Number(r.count)]));
 

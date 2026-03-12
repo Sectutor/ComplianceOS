@@ -1,4 +1,9 @@
-// Refresh - Force Rebuild for FedRAMP integration
+/**
+ * ComplianceOS Main Application Entry Point
+ * 
+ * This is the root component that handles routing, authentication,
+ * and global application state management.
+ */
 import { Toaster } from "@complianceos/ui/ui/sonner";
 
 import { BrandingProvider, useBranding } from "./config/branding";
@@ -66,6 +71,15 @@ const ClientActivity = lazy(() => import("./pages/ClientActivity"));
 const ClientPoliciesPage = lazy(() => import("./pages/ClientPoliciesPage"));
 const ManagementSignOffPage = lazy(() => import("./pages/ManagementSignOffPage"));
 const NIS2EntityClassificationWizard = lazy(() => import("./pages/NIS2EntityClassificationWizard"));
+const NIS2CyberResilienceHub = lazy(() => import("./pages/nis2/NIS2CyberResilienceHub"));
+const NIS2ManagementLiability = lazy(() => import("./pages/nis2/NIS2ManagementLiability"));
+const NIS2CrossBorderCompliance = lazy(() => import("./pages/nis2/NIS2CrossBorderCompliance"));
+const NIS2AuditBundle = lazy(() => import("./pages/nis2/NIS2AuditBundle"));
+const NIS2SecurityMeasures = lazy(() => import("./pages/nis2/NIS2SecurityMeasures"));
+const NIS2Assessment = lazy(() => import("./pages/nis2/NIS2Assessment"));
+const NIS2IncidentReporting = lazy(() => import("./pages/nis2/NIS2IncidentReporting"));
+const NIS2EntityRegistry = lazy(() => import("./pages/nis2/NIS2EntityRegistry"));
+const NIS2SupplyChainSecurity = lazy(() => import("./pages/nis2/NIS2SupplyChainSecurity"));
 const ClientControlsPage = lazy(() => import("./pages/ClientControlsPage"));
 const AuditorChecklistPage = lazy(() => import("./pages/auditors/AuditorChecklistPage"));
 const ClientEmail = lazy(() => import("./pages/ClientEmail").then(module => ({ default: module.ClientEmail })));
@@ -971,7 +985,43 @@ function Router() {
 
         {/* NIS2 Compliance Tools */}
         <Route path="/clients/:id/nis2/entity-classification">
-          {(_params) => <ProtectedRoute component={NIS2EntityClassificationWizard} />}
+          {(_params) => (
+            <ProtectedRoute>
+              <NIS2EntityClassificationWizard key={_params.id} />
+            </ProtectedRoute>
+          )}
+        </Route>
+        <Route path="/clients/:id/nis2/management-liability">
+          {(_params) => <ProtectedRoute component={NIS2ManagementLiability} />}
+        </Route>
+        <Route path="/clients/:id/nis2/security-measures">
+          {(_params) => <ProtectedRoute component={NIS2SecurityMeasures} />}
+        </Route>
+        <Route path="/clients/:id/nis2/assessment">
+          {(_params) => <ProtectedRoute component={NIS2Assessment} />}
+        </Route>
+        <Route path="/clients/:id/nis2/incident-reporting">
+          {(_params) => <ProtectedRoute component={NIS2IncidentReporting} />}
+        </Route>
+        <Route path="/clients/:id/nis2/entity-registry">
+          {(_params) => <ProtectedRoute component={NIS2EntityRegistry} />}
+        </Route>
+        <Route path="/clients/:id/nis2/supply-chain">
+          {(_params) => <ProtectedRoute component={NIS2SupplyChainSecurity} />}
+        </Route>
+        <Route path="/clients/:id/nis2/cross-border">
+          {(_params) => <ProtectedRoute component={NIS2CrossBorderCompliance} />}
+        </Route>
+        <Route path="/clients/:id/nis2/audit-bundle">
+          {(_params) => <ProtectedRoute component={NIS2AuditBundle} />}
+        </Route>
+        <Route path="/clients/:id/nis2">
+          {(_params) => <ProtectedRoute component={NIS2CyberResilienceHub} />}
+        </Route>
+
+        {/* Legacy NIS2 route redirect }}
+        <Route path="/clients/:id/nis2-assessment">
+          {(_params) => <Redirect to={`/clients/${_params.id}/nis2`} />}
         </Route>
 
         {/* Workflow Hub & Player */}
