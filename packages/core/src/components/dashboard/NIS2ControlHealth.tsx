@@ -25,7 +25,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
 import { Progress } from "@complianceos/ui/ui/progress";
-import { useClientContext } from "@/contexts/ClientContext";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 
@@ -120,12 +119,12 @@ function NIS2ControlCard({ category, status, score, metrics, onClick }: NIS2Cont
     );
 }
 
-export function NIS2ControlHealth() {
-    const { selectedClientId } = useClientContext();
-    const [, setLocation] = useLocation();
+interface NIS2ControlHealthProps {
+    clientId: number | undefined;
+}
 
-    // Use selectedClientId directly - component only renders when effectiveClientId exists in Dashboard
-    const clientId = selectedClientId;
+export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
+    const [, setLocation] = useLocation();
 
     // TRPC query for NIS2 control data
     const { data: nis2Data, isLoading, error } = trpc.cyber.getMappings.useQuery(

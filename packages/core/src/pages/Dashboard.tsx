@@ -1143,8 +1143,8 @@ export default function Dashboard() {
                 {/* NIS2 & Security Domains Section */}
                 {effectiveClientId && (
                   <>
-                    <SecurityDomainGrid />
-                    <NIS2ControlHealth />
+                    <SecurityDomainGrid clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
+                    <NIS2ControlHealth clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                   </>
                 )}
               </motion.div>

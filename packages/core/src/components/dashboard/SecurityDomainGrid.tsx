@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { useClientContext } from "@/contexts/ClientContext";
 import { useLocation } from "wouter";
 
 const SECURITY_DOMAINS = [
@@ -93,12 +92,12 @@ function SecurityDomainCard({ domain, status, metrics, onClick }: SecurityDomain
   );
 }
 
-export function SecurityDomainGrid() {
-  const { selectedClientId } = useClientContext();
-  const [, setLocation] = useLocation();
+interface SecurityDomainGridProps {
+  clientId: number | undefined;
+}
 
-  // Use selectedClientId directly - component only renders when effectiveClientId exists in Dashboard
-  const clientId = selectedClientId;
+export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
+  const [, setLocation] = useLocation();
 
   const handleDomainClick = (domainId: string, route: string) => {
     // Only navigate if we have a valid clientId
