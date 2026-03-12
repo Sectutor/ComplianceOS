@@ -98,14 +98,38 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
   const [, setLocation] = useLocation();
 
   // Query real data for each security domain using verified TRPC methods
-  // Training - verified: trpc.training.list
+  // Training
   const { data: trainingData, isLoading: trainingLoading } = trpc.training.list.useQuery(
     { clientId: clientId || 0, includeInactive: true },
     { enabled: !!clientId }
   );
 
-  // Vendors - verified: trpc.vendors.list  
+  // Vendors  
   const { data: vendorsData, isLoading: vendorsLoading } = trpc.vendors.list.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
+  // Risks
+  const { data: risksData, isLoading: risksLoading } = trpc.risks.getAll.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
+  // Incidents (from cyber router)
+  const { data: incidentsData, isLoading: incidentsLoading } = trpc.cyber.getIncidents.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
+  // Assets
+  const { data: assetsData, isLoading: assetsLoading } = trpc.risks.getAssets.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
+  // Client Controls (for access control)
+  const { data: clientControlsData, isLoading: controlsLoading } = trpc.clientControls.list.useQuery(
     { clientId: clientId || 0 },
     { enabled: !!clientId }
   );
@@ -124,25 +148,54 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
     const totalVendors = vendorsData?.length || 0;
     const supplyChainStatus = totalVendors > 0 ? "good" : "neutral";
 
+    // Risk Management
+    const totalRisks = risksData?.length || 0;
+    const criticalRisks = risksData?.filter((r: any) => r.status === 'open' && (r.residualScore || r.inherentScore) >= 20).length || 0;
+    const riskStatus = criticalRisks > 0 ? "critical" : totalRisks > 0 ? "warning" : "neutral";
+
+    // Incident Response
+    const openIncidents = incidentsData?.filter((i: any) => i.status === 'open' || i.status === 'in_progress').length || 0;
+    const incidentStatus = openIncidents > 0 ? "critical" : "good";
+
+    // Asset Management
+    const totalAssets = assetsData?.length || 0;
+    const assetStatus = totalAssets > 0 ? "good" : "neutral";
+
+    // Access Control (from client controls)
+    const totalControls = clientControlsData?.length || 0;
+    const accessStatus = totalControls > 0 ? "good" : "neutral";
+
     return {
-      risk: DEFAULT_DOMAIN_DATA.risk,
-      incident: DEFAULT_DOMAIN_DATA.incident,
+      risk: {
+        status: riskStatus,
+        metrics: [{ label: "Critical", value: criticalRisks }, { label: "Total", value: totalRisks }]
+      },
+      incident: {
+        status: incidentStatus,
+        metrics: [{ label: "Open", value: openIncidents }, { label: "Total", value: incidentsData?.length || 0 }]
+      },
       bcp: DEFAULT_DOMAIN_DATA.bcp,
-      supply_chain: { 
-        status: supplyChainStatus, 
-        metrics: [{ label: "Vendors", value: totalVendors }, { label: "Status", value: totalVendors > 0 ? "Active" : "None" }] 
+      supply_chain: {
+        status: supplyChainStatus,
+        metrics: [{ label: "Vendors", value: totalVendors }, { label: "Status", value: totalVendors > 0 ? "Active" : "None" }]
       },
-      asset: DEFAULT_DOMAIN_DATA.asset,
-      training: { 
-        status: trainingStatus, 
-        metrics: [{ label: "Modules", value: trainingModules }, { label: "Status", value: trainingModules > 0 ? "Active" : "None" }] 
+      asset: {
+        status: assetStatus,
+        metrics: [{ label: "Assets", value: totalAssets }, { label: "Status", value: totalAssets > 0 ? "Active" : "None" }]
       },
-      access: DEFAULT_DOMAIN_DATA.access,
+      training: {
+        status: trainingStatus,
+        metrics: [{ label: "Modules", value: trainingModules }, { label: "Status", value: trainingModules > 0 ? "Active" : "None" }]
+      },
+      access: {
+        status: accessStatus,
+        metrics: [{ label: "Controls", value: totalControls }, { label: "Status", value: totalControls > 0 ? "Active" : "None" }]
+      },
       policy: DEFAULT_DOMAIN_DATA.policy,
     };
-  }, [clientId, trainingData, vendorsData, trainingLoading, vendorsLoading]);
+  }, [clientId, trainingData, vendorsData, risksData, incidentsData, assetsData, clientControlsData]);
 
-  const isLoading = trainingLoading || vendorsLoading;
+  const isLoading = trainingLoading || vendorsLoading || risksLoading || incidentsLoading || assetsLoading || controlsLoading;
 
   const handleDomainClick = (domainId: string, route: string) => {
     // Only navigate if we have a valid clientId
@@ -212,3 +265,5 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
 }
 
 export default SecurityDomainGrid;
+
+
