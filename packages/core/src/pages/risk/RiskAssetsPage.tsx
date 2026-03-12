@@ -15,6 +15,8 @@ import { ExternalLink, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'wouter/use-browser-location';
 import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 
 
 export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = false, fullWidth = false }: { hideLayout?: boolean, hideBreadcrumb?: boolean, fullWidth?: boolean }) {
@@ -61,11 +63,23 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
         return { total: assets.length, inScope, outScope: assets.length - inScope };
     }, [assets]);
 
-    const displayedAssets = useMemo(() => {
+    // Apply CUI filter first, then pagination
+    const filteredAssets = useMemo(() => {
         if (!assets) return [];
         if (cuiFilterActive) return assets.filter((a: any) => a.cuiScope);
         return assets;
     }, [assets, cuiFilterActive]);
+
+    // Pagination
+    const pagination = usePagination({
+        totalItems: filteredAssets.length,
+        pageSize: DEFAULT_PAGE_SIZE,
+    });
+
+    // Get paginated items
+    const displayedAssets = useMemo(() => {
+        return pagination.getPageItems(filteredAssets);
+    }, [filteredAssets, pagination]);
 
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -261,6 +275,16 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
                     sortConfig={sortConfig}
                     onSort={handleSort}
                     SortableHeader={SortableHeader}
+                />
+                <Pagination
+                    currentPage={pagination.pagination.page}
+                    totalPages={pagination.totalPages}
+                    totalItems={filteredAssets.length}
+                    startIndex={pagination.startIndex}
+                    endIndex={pagination.endIndex}
+                    pageSize={pagination.pagination.pageSize}
+                    onPageChange={pagination.setPage}
+                    onPageSizeChange={pagination.setPageSize}
                 />
             </div>
 

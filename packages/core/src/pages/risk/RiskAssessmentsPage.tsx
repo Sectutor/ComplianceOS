@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -21,6 +23,10 @@ export default function RiskAssessmentsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [heatmapFilter, setHeatmapFilter] = useState<{ impact?: string, likelihood?: string } | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 50;
 
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -134,6 +140,10 @@ export default function RiskAssessmentsPage() {
     const sortedAssessments = React.useMemo(() => {
         if (!filteredAssessments) return [];
         let sortableItems = [...filteredAssessments];
+
+        // Pagination - apply to sorted results
+        const start = (currentPage - 1) * pageSize;
+        sortableItems = sortableItems.slice(start, start + pageSize);
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
                 let aVal: any = a[sortConfig.key as keyof typeof a] ?? '';
@@ -492,6 +502,19 @@ export default function RiskAssessmentsPage() {
                                 )}
                             </tbody>
                         </table>
+
+                        {/* Pagination */}
+                        {filteredAssessments && filteredAssessments.length > 0 && (
+                            <div className="mt-4">
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={Math.ceil((filteredAssessments.length || 0) / pageSize)}
+                                    totalItems={filteredAssessments.length || 0}
+                                    pageSize={pageSize}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

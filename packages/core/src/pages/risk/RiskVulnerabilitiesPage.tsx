@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { useParams, useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageGuide } from '@/components/PageGuide';
+import Pagination from '@/components/Pagination';
 
 export default function RiskVulnerabilitiesPage() {
     const params = useParams();
@@ -32,6 +33,10 @@ export default function RiskVulnerabilitiesPage() {
     const [location, setLocation] = useLocation();
     const [searchQuery, setSearchQuery] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 50;
 
     // Determine effective client ID
     const effectiveClientId = routeClientId || authClient?.id;
@@ -137,6 +142,15 @@ export default function RiskVulnerabilitiesPage() {
         }
         return items;
     }, [vulnerabilities, searchQuery, sortConfig]);
+
+    // Paginated vulnerabilities
+    const paginatedVulns = React.useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredVulns.slice(start, start + pageSize);
+    }, [filteredVulns, currentPage]);
+
+    const totalVulns = filteredVulns.length;
+    const totalPages = Math.ceil(totalVulns / pageSize);
 
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -246,10 +260,10 @@ export default function RiskVulnerabilitiesPage() {
                             <tbody className="divide-y divide-gray-200">
                                 {isLoading ? (
                                     <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">Loading vulnerabilities...</td></tr>
-                                ) : filteredVulns.length === 0 ? (
+                                ) : paginatedVulns.length === 0 ? (
                                     <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">No vulnerabilities found.</td></tr>
                                 ) : (
-                                    filteredVulns.map((vuln) => (
+                                    paginatedVulns.map((vuln) => (
                                         <tr
                                             key={vuln.id}
                                             className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
@@ -337,6 +351,19 @@ export default function RiskVulnerabilitiesPage() {
                                 )}
                             </tbody>
                         </table>
+
+                        {/* Pagination */}
+                        {totalItems > 0 && (
+                            <div className="mt-4">
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    totalItems={totalVulns}
+                                    pageSize={pageSize}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -366,8 +393,8 @@ export default function RiskVulnerabilitiesPage() {
                         <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button 
-                            variant="destructive" 
+                        <Button
+                            variant="destructive"
                             onClick={confirmDelete}
                             disabled={deleteMutation.isPending}
                             className="bg-red-600 hover:bg-red-700"

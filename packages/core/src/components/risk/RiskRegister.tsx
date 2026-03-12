@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 import { trpc } from '@/lib/trpc';
 import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
@@ -112,6 +114,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
     const [sortField, setSortField] = useState<SortField | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 50;
+
     // Fetch risk assessments with treatment counts
     // Fetch risk assessments with treatment counts
     const { data: risks, isLoading } = trpc.risks.getRiskAssessments.useQuery(
@@ -195,6 +201,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
     // Filter and sort risks
     const filteredRisks = useMemo(() => {
         let result = risks?.filter(risk => {
+            // Reset to page 1 when filters change
             const matchesSearch =
                 (risk.assessmentId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (risk.threatDescription?.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -258,6 +265,15 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
         return result;
     }, [risks, searchQuery, statusFilter, priorityFilter, riskLevelFilter, sortField, sortDirection, heatmapFilter]);
+
+    // Paginated risks
+    const paginatedRisks = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredRisks.slice(start, start + pageSize);
+    }, [filteredRisks, currentPage]);
+
+    const totalRisks = filteredRisks.length;
+    const totalPages = Math.ceil(totalRisks / pageSize);
 
     const handleExport = (format: 'csv' | 'json') => {
         if (!filteredRisks.length) return;
@@ -456,7 +472,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {filteredRisks.length === 0 ? (
+                            {paginatedRisks.length === 0 ? (
                                 <tr>
                                     <td colSpan={13} className="px-4 py-12 text-center bg-white">
                                         <Shield className="w-12 h-12 mx-auto text-gray-400 opacity-30 mb-4" />
@@ -464,7 +480,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                     </td>
                                 </tr>
                             ) : (
-                                filteredRisks.map((risk) => (
+                                paginatedRisks.map((risk) => (
                                     <React.Fragment key={risk.id}>
                                         {/* Main Row */}
                                         <tr
@@ -770,6 +786,19 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination */}
+                    {totalRisks > 0 && (
+                        <div className="mt-4">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalRisks}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 

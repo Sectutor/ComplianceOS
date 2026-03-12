@@ -24,6 +24,8 @@ import {
     DialogTitle,
 } from '@complianceos/ui/ui/dialog';
 import { toast } from 'sonner';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 
 export default function RiskTreatmentPlanPage() {
     const params = useParams<{ id: string }>();
@@ -33,6 +35,10 @@ export default function RiskTreatmentPlanPage() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 50;
 
     const { data: treatments, isLoading } = trpc.risks.getAllTreatments.useQuery(
         { clientId },
@@ -73,6 +79,16 @@ export default function RiskTreatmentPlanPage() {
         const matchType = typeFilter === 'all' || t.treatmentType === typeFilter;
         return matchSearch && matchStatus && matchType;
     });
+
+    // Paginated treatments
+    const paginatedTreatments = React.useMemo(() => {
+        if (!filteredTreatments) return [];
+        const start = (currentPage - 1) * pageSize;
+        return filteredTreatments.slice(start, start + pageSize);
+    }, [filteredTreatments, currentPage]);
+
+    const totalTreatments = filteredTreatments?.length || 0;
+    const totalPages = Math.ceil(totalTreatments / pageSize);
 
     const getTypeIcon = (type: string) => {
         switch (type) {
@@ -206,14 +222,14 @@ export default function RiskTreatmentPlanPage() {
                                 <TableRow>
                                     <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
                                 </TableRow>
-                            ) : filteredTreatments?.length === 0 ? (
+                            ) : paginatedTreatments.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                                         No treatments found matching your criteria.
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredTreatments?.map((treatment) => (
+                                paginatedTreatments.map((treatment) => (
                                     <TableRow key={treatment.id} className="group">
                                         <TableCell className="align-top py-4">
                                             <div className="space-y-1">
@@ -288,6 +304,19 @@ export default function RiskTreatmentPlanPage() {
                             )}
                         </TableBody>
                     </Table>
+
+                    {/* Pagination */}
+                    {totalTreatments > 0 && (
+                        <div className="mt-4">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalTreatments}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

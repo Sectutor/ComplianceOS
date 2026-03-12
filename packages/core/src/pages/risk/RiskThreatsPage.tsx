@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { PageGuide } from "@/components/PageGuide";
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@complianceos/ui/ui/dialog';
 import { toast } from 'sonner';
 
@@ -114,6 +116,17 @@ export default function RiskThreatsPage() {
         }
         return items;
     }, [threats, searchQuery, sortConfig]);
+
+    // Pagination
+    const pagination = usePagination({
+        totalItems: sortedThreats.length,
+        pageSize: DEFAULT_PAGE_SIZE,
+    });
+
+    // Get paginated items
+    const paginatedThreats = React.useMemo(() => {
+        return pagination.getPageItems(sortedThreats);
+    }, [sortedThreats, pagination]);
 
     const handleOpenAddDialog = () => {
         setLocation(`/clients/${clientId}/risks/threats/new`);
@@ -280,11 +293,11 @@ export default function RiskThreatsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {isLoading ? (
-                                    <tr><td colSpan={9} className="p-8 text-center text-gray-500 bg-white">Loading threats...</td></tr>
-                                ) : sortedThreats.length === 0 ? (
-                                    <tr><td colSpan={9} className="p-8 text-center text-gray-500 bg-white">No threats found.</td></tr>
+                                    <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">Loading threats...</td></tr>
+                                ) : paginatedThreats.length === 0 ? (
+                                    <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">No threats found.</td></tr>
                                 ) : (
-                                    sortedThreats.map((threat) => (
+                                    paginatedThreats.map((threat) => (
                                         <tr
                                             key={threat.id}
                                             className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
@@ -355,6 +368,17 @@ export default function RiskThreatsPage() {
                         </table>
                     </div>
                 </div>
+
+                <Pagination
+                    currentPage={pagination.pagination.page}
+                    totalPages={pagination.totalPages}
+                    totalItems={sortedThreats.length}
+                    startIndex={pagination.startIndex}
+                    endIndex={pagination.endIndex}
+                    pageSize={pagination.pagination.pageSize}
+                    onPageChange={pagination.setPage}
+                    onPageSizeChange={pagination.setPageSize}
+                />
             </div>
 
             {/* Threat Editor Dialog removed since it's now a standalone page */}
@@ -382,7 +406,7 @@ export default function RiskThreatsPage() {
                         <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button 
+                        <Button
                             variant="destructive"
                             onClick={confirmDelete}
                             disabled={deleteMutation.isPending}
@@ -396,3 +420,4 @@ export default function RiskThreatsPage() {
         </DashboardLayout>
     );
 }
+
