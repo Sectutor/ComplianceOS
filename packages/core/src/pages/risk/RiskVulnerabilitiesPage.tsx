@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Bug, Plus, Search, Filter, Flame, ArrowUpDown, ArrowUp, ArrowDown, Info } from 'lucide-react';
+import { Bug, Plus, Search, Filter, Flame, ArrowUpDown, ArrowUp, ArrowDown, Info, Trash2, Edit, MoreHorizontal } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@complianceos/ui/ui/alert';
 import { useClientContext } from '@/contexts/ClientContext';
 import { trpc } from '@/lib/trpc';
@@ -10,6 +10,15 @@ import { Input } from '@complianceos/ui/ui/input';
 import { AddVulnerabilityDialog } from '@/components/risk/AddVulnerabilityDialog';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@complianceos/ui/ui/tooltip';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@complianceos/ui/ui/dialog';
+import { toast } from 'sonner';
 
 import { useParams, useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +48,33 @@ export default function RiskVulnerabilitiesPage() {
         { clientId: clientId },
         { enabled: !!clientId }
     );
+
+    // Delete mutation and state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [vulnerabilityToDelete, setVulnerabilityToDelete] = useState<{ id: number; name: string } | null>(null);
+
+    const deleteMutation = trpc.risks.deleteVulnerability.useMutation({
+        onSuccess: () => {
+            toast.success('Vulnerability deleted successfully');
+            setDeleteDialogOpen(false);
+            setVulnerabilityToDelete(null);
+            refetch();
+        },
+        onError: (err) => {
+            toast.error(`Failed to delete: ${err.message}`);
+        }
+    });
+
+    const handleDeleteClick = (vuln: { id: number; name: string }) => {
+        setVulnerabilityToDelete(vuln);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (vulnerabilityToDelete) {
+            deleteMutation.mutate({ id: vulnerabilityToDelete.id, clientId });
+        }
+    };
 
     // Fetch live security feeds for matching
     const { data: securityFeeds } = trpc.adversaryIntel.getSecurityFeeds.useQuery(
@@ -202,13 +238,16 @@ export default function RiskVulnerabilitiesPage() {
                                     <SortableHeader label="Discovery" sortKey="discoveryDate" />
                                     <SortableHeader label="Owner" sortKey="owner" />
                                     <SortableHeader label="Due Date" sortKey="dueDate" />
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {isLoading ? (
-                                    <tr><td colSpan={9} className="p-8 text-center text-gray-500 bg-white">Loading vulnerabilities...</td></tr>
+                                    <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">Loading vulnerabilities...</td></tr>
                                 ) : filteredVulns.length === 0 ? (
-                                    <tr><td colSpan={9} className="p-8 text-center text-gray-500 bg-white">No vulnerabilities found.</td></tr>
+                                    <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">No vulnerabilities found.</td></tr>
                                 ) : (
                                     filteredVulns.map((vuln) => (
                                         <tr
@@ -273,6 +312,26 @@ export default function RiskVulnerabilitiesPage() {
                                             <td className="px-6 py-4 text-sm text-gray-600">
                                                 {vuln.dueDate ? new Date(vuln.dueDate).toLocaleDateString() : '-'}
                                             </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => { e.stopPropagation(); handleEditVuln(vuln); }}
+                                                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick({ id: vuln.id, name: vuln.name }); }}
+                                                        className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -283,6 +342,41 @@ export default function RiskVulnerabilitiesPage() {
             </div>
 
             {/* Vulnerability Editor Dialog removed since it's now a standalone page */}
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Vulnerability</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this vulnerability? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-sm font-medium text-red-800">
+                                You are about to delete:
+                            </p>
+                            <p className="text-sm text-red-600 mt-1">
+                                {vulnerabilityToDelete?.name}
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            onClick={confirmDelete}
+                            disabled={deleteMutation.isPending}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete Vulnerability'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

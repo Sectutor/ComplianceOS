@@ -21,7 +21,7 @@ import { recalculateRiskScore } from "../services/riskService";
 export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
     console.log('[RISKS ROUTER] Creating risks router with procedures... AND RELOADED!');
     return t.router({
-        
+
         // --- RISK APPETITE ---
         getAppetite: procedure
             .input(z.object({ clientId: z.number() }))
@@ -41,9 +41,9 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
-                
+
                 const existing = await db.select().from(riskAppetite).where(eq(riskAppetite.clientId, input.clientId)).limit(1);
-                
+
                 if (existing.length > 0) {
                     const [updated] = await db.update(riskAppetite)
                         .set({ ...input, updatedAt: new Date() })
@@ -1137,6 +1137,35 @@ ${reportData.conclusion}
                 return vulnerability;
             }),
 
+        deleteVulnerability: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete vulnerabilities' });
+                }
+                const db = await getDb();
+                const { id, clientId } = input;
+
+                // First get the vulnerability to log the deletion
+                const [vulnerability] = await db.select()
+                    .from(vulnerabilities)
+                    .where(and(eq(vulnerabilities.id, id), eq(vulnerabilities.clientId, clientId)))
+                    .limit(1);
+
+                if (!vulnerability) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Vulnerability not found' });
+                }
+
+                await db.delete(vulnerabilities)
+                    .where(and(eq(vulnerabilities.id, id), eq(vulnerabilities.clientId, clientId)));
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "delete", entityType: "vulnerability", entityId: id, details: { name: vulnerability.name } });
+                return { success: true, id };
+            }),
+
         // Risk Assessments (alias for list)
         getRiskAssessments: procedure
             .input(z.object({
@@ -1772,3 +1801,4 @@ Example format:
             }),
     });
 };
+
