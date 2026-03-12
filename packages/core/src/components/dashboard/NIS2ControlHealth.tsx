@@ -150,12 +150,24 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
     // Calculate overall score from real data or show placeholder when no data
     const getScoreFromData = () => {
         if (nis2Data && nis2Data.length > 0) {
-            const total = nis2Data.reduce((sum: number, item: any) => {
-                if (item.clientStatus === 'implemented') return sum + 100;
-                if (item.clientStatus === 'in_progress') return sum + 50;
-                return sum;
-            }, 0);
-            return Math.round(total / nis2Data.length);
+            let totalScore = 0;
+            let assessedCount = 0;
+
+            nis2Data.forEach((mapping: any) => {
+                const implementedCount = mapping.implementedCount || 0;
+                const totalCount = mapping.mappedControlIds?.length || 0;
+
+                if (totalCount > 0) {
+                    if (implementedCount === totalCount) {
+                        totalScore += 100;
+                    } else if (implementedCount > 0) {
+                        totalScore += Math.round((implementedCount / totalCount) * 100);
+                    }
+                    assessedCount++;
+                }
+            });
+
+            return assessedCount > 0 ? Math.round(totalScore / assessedCount) : null;
         }
         // Return null when no data to indicate sample/fallback
         return null;
@@ -171,12 +183,30 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
             if (category) {
                 const mapping = nis2Data.find((m: any) => m.nis2Article === category.article || m.article === category.article);
                 if (mapping) {
-                    const status = mapping.clientStatus || 'not_started';
-                    const score = status === 'implemented' ? 100 : status === 'in_progress' ? 50 : 0;
+                    const implementedCount = mapping.implementedCount || 0;
+                    const totalCount = mapping.mappedControlIds?.length || 0;
+
+                    // Calculate score from actual controls, not from questionnaire
+                    let status: string;
+                    let score: number;
+                    if (totalCount === 0) {
+                        status = 'not_assessed';
+                        score = 0;
+                    } else if (implementedCount === totalCount) {
+                        status = 'compliant';
+                        score = 100;
+                    } else if (implementedCount > 0) {
+                        status = 'in_progress';
+                        score = Math.round((implementedCount / totalCount) * 100);
+                    } else {
+                        status = 'not_assessed';
+                        score = 0;
+                    }
+
                     return {
-                        status: status === 'not_started' ? 'not_assessed' : status,
+                        status,
                         score,
-                        metrics: [{ label: 'Controls', value: `${mapping.implementedCount || 0}/${mapping.mappedControlIds?.length || 0}` }]
+                        metrics: [{ label: 'Controls', value: `${implementedCount}/${totalCount}` }]
                     };
                 }
             }
