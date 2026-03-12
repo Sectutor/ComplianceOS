@@ -2,10 +2,10 @@
  * Security Domain Grid Widget
  * 
  * Displays 8 key security domains with status indicators
- * Simplified version without external queries
+ * Queries real client-specific data from TRPC
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Shield,
   AlertTriangle,
@@ -16,13 +16,11 @@ import {
   GraduationCap,
   Lock,
   FileText,
-  TrendingUp,
-  TrendingDown,
-  Minus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 const SECURITY_DOMAINS = [
   { id: "risk", title: "Risk Management", icon: AlertTriangle, color: "text-amber-600", bgColor: "bg-amber-50", borderColor: "border-amber-200", route: "/risks" },
@@ -35,16 +33,16 @@ const SECURITY_DOMAINS = [
   { id: "policy", title: "Security Policies", icon: FileText, color: "text-blue-600", bgColor: "bg-blue-50", borderColor: "border-blue-200", route: "/policies" },
 ];
 
-// Sample data - in production this would come from TRPC queries
-const SAMPLE_DOMAIN_DATA: Record<string, { status: string; metrics: { label: string; value: string | number }[] }> = {
-  risk: { status: "warning", metrics: [{ label: "Critical", value: 3 }, { label: "Total", value: 12 }] },
-  incident: { status: "good", metrics: [{ label: "Open", value: 0 }, { label: "This Month", value: 2 }] },
-  bcp: { status: "neutral", metrics: [{ label: "Plans", value: 2 }, { label: "Tests Due", value: 1 }] },
-  supply_chain: { status: "warning", metrics: [{ label: "Vendors", value: 24 }, { label: "Overdue", value: 5 }] },
-  asset: { status: "good", metrics: [{ label: "Assets", value: 156 }, { label: "Coverage", value: "98%" }] },
-  training: { status: "good", metrics: [{ label: "Completion", value: "85%" }, { label: "Overdue", value: 3 }] },
-  access: { status: "neutral", metrics: [{ label: "MFA", value: "92%" }, { label: "Review Due", value: 1 }] },
-  policy: { status: "good", metrics: [{ label: "Approved", value: 12 }, { label: "Draft", value: 3 }] },
+// Default sample data (used as fallback)
+const DEFAULT_DOMAIN_DATA: Record<string, { status: string; metrics: { label: string; value: string | number }[] }> = {
+  risk: { status: "neutral", metrics: [{ label: "Critical", value: "—" }, { label: "Total", value: "—" }] },
+  incident: { status: "neutral", metrics: [{ label: "Open", value: "—" }, { label: "This Month", value: "—" }] },
+  bcp: { status: "neutral", metrics: [{ label: "Plans", value: "—" }, { label: "Tests Due", value: "—" }] },
+  supply_chain: { status: "neutral", metrics: [{ label: "Vendors", value: "—" }, { label: "Overdue", value: "—" }] },
+  asset: { status: "neutral", metrics: [{ label: "Assets", value: "—" }, { label: "Coverage", value: "—" }] },
+  training: { status: "neutral", metrics: [{ label: "Modules", value: "—" }, { label: "Status", value: "—" }] },
+  access: { status: "neutral", metrics: [{ label: "Controls", value: "—" }, { label: "Status", value: "—" }] },
+  policy: { status: "neutral", metrics: [{ label: "Approved", value: "—" }, { label: "Draft", value: "—" }] },
 };
 
 interface SecurityDomainCardProps {
@@ -99,11 +97,80 @@ interface SecurityDomainGridProps {
 export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
   const [, setLocation] = useLocation();
 
+  // Query real data for each security domain using verified TRPC methods
+  // Training - verified: trpc.training.list
+  const { data: trainingData, isLoading: trainingLoading } = trpc.training.list.useQuery(
+    { clientId: clientId || 0, includeInactive: true },
+    { enabled: !!clientId }
+  );
+
+  // Vendors - verified: trpc.vendors.list  
+  const { data: vendorsData, isLoading: vendorsLoading } = trpc.vendors.list.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
+  // Compute domain data from real queries
+  const domainData = useMemo(() => {
+    if (!clientId) {
+      return DEFAULT_DOMAIN_DATA;
+    }
+
+    // Training
+    const trainingModules = trainingData?.length || 0;
+    const trainingStatus = trainingModules > 0 ? "good" : "neutral";
+
+    // Supply Chain - Vendors
+    const totalVendors = vendorsData?.length || 0;
+    const supplyChainStatus = totalVendors > 0 ? "good" : "neutral";
+
+    return {
+      risk: DEFAULT_DOMAIN_DATA.risk,
+      incident: DEFAULT_DOMAIN_DATA.incident,
+      bcp: DEFAULT_DOMAIN_DATA.bcp,
+      supply_chain: { 
+        status: supplyChainStatus, 
+        metrics: [{ label: "Vendors", value: totalVendors }, { label: "Status", value: totalVendors > 0 ? "Active" : "None" }] 
+      },
+      asset: DEFAULT_DOMAIN_DATA.asset,
+      training: { 
+        status: trainingStatus, 
+        metrics: [{ label: "Modules", value: trainingModules }, { label: "Status", value: trainingModules > 0 ? "Active" : "None" }] 
+      },
+      access: DEFAULT_DOMAIN_DATA.access,
+      policy: DEFAULT_DOMAIN_DATA.policy,
+    };
+  }, [clientId, trainingData, vendorsData, trainingLoading, vendorsLoading]);
+
+  const isLoading = trainingLoading || vendorsLoading;
+
   const handleDomainClick = (domainId: string, route: string) => {
     // Only navigate if we have a valid clientId
     if (!clientId) return;
     setLocation(`/clients/${clientId}${route}`);
   };
+
+  // Loading state
+  if (isLoading || !clientId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-slate-100">
+            <Activity className="h-5 w-5 text-slate-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Security Domains</h3>
+            <p className="text-sm text-slate-500">Loading security data...</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-32 bg-slate-100 animate-pulse rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -121,7 +188,7 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {SECURITY_DOMAINS.map((domain) => {
-          const data = SAMPLE_DOMAIN_DATA[domain.id] || { status: "neutral", metrics: [{ label: "Status", value: "N/A" }] };
+          const data = domainData[domain.id] || DEFAULT_DOMAIN_DATA[domain.id];
           return (
             <SecurityDomainCard
               key={domain.id}
