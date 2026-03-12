@@ -166,15 +166,19 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
     // Transform data for display
     const getDisplayData = (categoryId: string) => {
         if (nis2Data && nis2Data.length > 0) {
-            const mapping = nis2Data.find((m: any) => m.nis2Category === categoryId);
-            if (mapping) {
-                const status = mapping.clientStatus || 'not_started';
-                const score = status === 'implemented' ? 100 : status === 'in_progress' ? 50 : 0;
-                return {
-                    status: status === 'not_started' ? 'not_assessed' : status,
-                    score,
-                    metrics: [{ label: 'Controls', value: `${mapping.implementedCount || 0}/${mapping.mappedControlIds?.length || 0}` }]
-                };
+            // Find the category's article to match with data
+            const category = NIS2_CATEGORIES.find(c => c.id === categoryId);
+            if (category) {
+                const mapping = nis2Data.find((m: any) => m.nis2Article === category.article || m.article === category.article);
+                if (mapping) {
+                    const status = mapping.clientStatus || 'not_started';
+                    const score = status === 'implemented' ? 100 : status === 'in_progress' ? 50 : 0;
+                    return {
+                        status: status === 'not_started' ? 'not_assessed' : status,
+                        score,
+                        metrics: [{ label: 'Controls', value: `${mapping.implementedCount || 0}/${mapping.mappedControlIds?.length || 0}` }]
+                    };
+                }
             }
         }
         // Return null to indicate no real data
