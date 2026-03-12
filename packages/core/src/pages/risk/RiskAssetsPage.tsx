@@ -3,7 +3,7 @@ import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, Filter } from 'lucide-react';
+import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, Filter, Trash2, Edit } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { AddAssetDialog } from '@/components/risk/AddAssetDialog';
 import { Button } from '@complianceos/ui/ui/button';
@@ -100,6 +100,33 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
 
     const handleEditAsset = (asset: any) => {
         setLocation(`/clients/${clientId}/risks/assets/${asset.id}`);
+    };
+
+    // Delete asset state and mutation
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [assetToDelete, setAssetToDelete] = useState<{ id: number; name: string } | null>(null);
+
+    const deleteMutation = trpc.risks.deleteAsset.useMutation({
+        onSuccess: () => {
+            toast.success('Asset deleted successfully');
+            setDeleteDialogOpen(false);
+            setAssetToDelete(null);
+            refetchAssets();
+        },
+        onError: (err) => {
+            toast.error(`Failed to delete: ${err.message}`);
+        }
+    });
+
+    const handleDeleteClick = (asset: { id: number; name: string }) => {
+        setAssetToDelete(asset);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (assetToDelete) {
+            deleteMutation.mutate({ id: assetToDelete.id, clientId });
+        }
     };
 
     if (loadingClientDetails) return (
@@ -230,6 +257,7 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
                     assets={displayedAssets || []}
                     loading={loadingAssets}
                     onEdit={handleEditAsset}
+                    onDelete={handleDeleteClick}
                     sortConfig={sortConfig}
                     onSort={handleSort}
                     SortableHeader={SortableHeader}
@@ -237,6 +265,41 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
             </div>
 
             {/* Asset Editor Dialog removed since it's now a standalone page */}
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Asset</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this asset? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-sm font-medium text-red-800">
+                                You are about to delete:
+                            </p>
+                            <p className="text-sm text-red-600 mt-1">
+                                {assetToDelete?.name}
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleteMutation.isPending}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete Asset'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 
@@ -253,6 +316,7 @@ function AssetInventoryTable({
     assets,
     loading,
     onEdit,
+    onDelete,
     sortConfig,
     onSort,
     SortableHeader
@@ -260,6 +324,7 @@ function AssetInventoryTable({
     assets: any[],
     loading: boolean,
     onEdit: (asset: any) => void,
+    onDelete: (asset: { id: number; name: string }) => void,
     sortConfig: { key: string; direction: 'asc' | 'desc' } | null,
     onSort: (key: string) => void,
     SortableHeader: React.FC<{ label: string, sortKey: string }>
@@ -378,6 +443,9 @@ function AssetInventoryTable({
                             <SortableHeader label="CUI Scope" sortKey="cuiScope" />
                             <SortableHeader label="Risks" sortKey="riskCount" />
                             <SortableHeader label="Vulnerabilities" sortKey="vulnerabilityCount" />
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -505,6 +573,26 @@ function AssetInventoryTable({
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${asset.vulnerabilityCount > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
                                         {asset.vulnerabilityCount || 0} Vulns
                                     </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => { e.stopPropagation(); onEdit(asset); }}
+                                            className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => { e.stopPropagation(); onDelete({ id: asset.id, name: asset.name }); }}
+                                            className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

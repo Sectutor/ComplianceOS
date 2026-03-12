@@ -226,6 +226,31 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
                 return { success: true };
             }),
 
+        deleteAsset: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete assets' });
+                }
+                const db = await getDb();
+                const { id, clientId } = input;
+
+                // Verify asset belongs to client
+                const [asset] = await db.select().from(schema.assets).where(and(eq(schema.assets.id, id), eq(schema.assets.clientId, clientId)));
+                if (!asset) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Asset not found' });
+                }
+
+                await db.delete(schema.assets)
+                    .where(and(eq(schema.assets.id, id), eq(schema.assets.clientId, clientId)));
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "delete", entityType: "asset", entityId: id, details: { name: asset.name } });
+                return { success: true };
+            }),
+
         // Generate AI-driven Risk Management Analysis
         generateAIAnalysis: procedure
             .input(z.object({ clientId: z.number() }))

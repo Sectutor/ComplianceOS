@@ -9,12 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@complianceos/ui/ui/table';
 import { trpc } from '@/lib/trpc';
 import {
-    ArrowLeft, Search, Filter, Calendar, User, Shield, AlertTriangle, CheckCircle, Ban, ArrowRight, DollarSign
+    ArrowLeft, Search, Filter, Calendar, User, Shield, AlertTriangle, CheckCircle, Ban, ArrowRight, DollarSign, Trash2, Edit
 } from 'lucide-react';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { PageGuide } from '@/components/PageGuide';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@complianceos/ui/ui/dialog';
+import { toast } from 'sonner';
 
 export default function RiskTreatmentPlanPage() {
     const params = useParams<{ id: string }>();
@@ -29,6 +38,32 @@ export default function RiskTreatmentPlanPage() {
         { clientId },
         { enabled: !!clientId }
     );
+
+    // Delete mutation and state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [treatmentToDelete, setTreatmentToDelete] = useState<{ id: number; strategy: string } | null>(null);
+
+    const deleteMutation = trpc.risks.deleteRiskTreatment.useMutation({
+        onSuccess: () => {
+            toast.success('Treatment deleted successfully');
+            setDeleteDialogOpen(false);
+            setTreatmentToDelete(null);
+        },
+        onError: (err) => {
+            toast.error(`Failed to delete: ${err.message}`);
+        }
+    });
+
+    const handleDeleteClick = (treatment: { id: number; strategy: string }) => {
+        setTreatmentToDelete(treatment);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (treatmentToDelete) {
+            deleteMutation.mutate({ id: treatmentToDelete.id, clientId });
+        }
+    };
 
     const filteredTreatments = treatments?.filter(t => {
         const matchSearch = t.strategy?.toLowerCase().includes(search.toLowerCase()) ||
@@ -230,13 +265,23 @@ export default function RiskTreatmentPlanPage() {
                                             {getStatusBadge(treatment.status || 'planned')}
                                         </TableCell>
                                         <TableCell className="align-top py-4 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setLocation(`/clients/${clientId}/risks/register?openRiskId=${treatment.riskAssessmentId}`)}
-                                            >
-                                                View Risk <ArrowRight className="w-4 h-4 ml-1" />
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setLocation(`/clients/${clientId}/risks/register?openRiskId=${treatment.riskAssessmentId}`)}
+                                                >
+                                                    View Risk <ArrowRight className="w-4 h-4 ml-1" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteClick({ id: treatment.id, strategy: treatment.strategy })}
+                                                    className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -245,6 +290,42 @@ export default function RiskTreatmentPlanPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Treatment</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this treatment? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-sm font-medium text-red-800">
+                                You are about to delete:
+                            </p>
+                            <p className="text-sm text-red-600 mt-1">
+                                {treatmentToDelete?.strategy}
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleteMutation.isPending}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete Treatment'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
+
