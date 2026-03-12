@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { AlertTriangle, Plus, Search, ArrowLeft, Globe, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { AlertTriangle, Plus, Search, ArrowLeft, Globe, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit } from 'lucide-react';
 import { useClientContext } from '@/contexts/ClientContext';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { PageGuide } from "@/components/PageGuide";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@complianceos/ui/ui/dialog';
+import { toast } from 'sonner';
 
 
 export default function RiskThreatsPage() {
@@ -119,6 +121,33 @@ export default function RiskThreatsPage() {
 
     const handleEditThreat = (threat: any) => {
         setLocation(`/clients/${clientId}/risks/threats/${threat.id}`);
+    };
+
+    // Delete threat state and mutation
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [threatToDelete, setThreatToDelete] = useState<{ id: number; name: string } | null>(null);
+
+    const deleteMutation = trpc.risks.deleteThreat.useMutation({
+        onSuccess: () => {
+            toast.success('Threat deleted successfully');
+            setDeleteDialogOpen(false);
+            setThreatToDelete(null);
+            refetch();
+        },
+        onError: (err) => {
+            toast.error(`Failed to delete: ${err.message}`);
+        }
+    });
+
+    const handleDeleteClick = (threat: { id: number; name: string }) => {
+        setThreatToDelete(threat);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (threatToDelete) {
+            deleteMutation.mutate({ id: threatToDelete.id, clientId });
+        }
     };
 
     return (
@@ -244,6 +273,9 @@ export default function RiskThreatsPage() {
                                     <SortableHeader label="Status" sortKey="status" />
                                     <SortableHeader label="Owner" sortKey="owner" />
                                     <SortableHeader label="Last Review" sortKey="lastReviewDate" />
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -296,6 +328,26 @@ export default function RiskThreatsPage() {
                                             <td className="px-6 py-4 text-sm text-gray-600">
                                                 {threat.lastReviewDate ? new Date(threat.lastReviewDate).toLocaleDateString() : '-'}
                                             </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => { e.stopPropagation(); handleEditThreat(threat); }}
+                                                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick({ id: threat.id, name: threat.name }); }}
+                                                        className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -306,6 +358,41 @@ export default function RiskThreatsPage() {
             </div>
 
             {/* Threat Editor Dialog removed since it's now a standalone page */}
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Threat</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this threat? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-sm font-medium text-red-800">
+                                You are about to delete:
+                            </p>
+                            <p className="text-sm text-red-600 mt-1">
+                                {threatToDelete?.name}
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleteMutation.isPending}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete Threat'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

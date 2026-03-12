@@ -1106,6 +1106,31 @@ ${reportData.conclusion}
                 return threat;
             }),
 
+        deleteThreat: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete threats' });
+                }
+                const db = await getDb();
+                const { id, clientId } = input;
+                
+                // Verify threat belongs to client
+                const [threat] = await db.select().from(threats).where(and(eq(threats.id, id), eq(threats.clientId, clientId)));
+                if (!threat) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Threat not found' });
+                }
+                
+                await db.delete(threats)
+                    .where(and(eq(threats.id, id), eq(threats.clientId, clientId)));
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "delete", entityType: "threat", entityId: id, details: { name: threat.name } });
+                return { success: true };
+            }),
+
         // Vulnerabilities Management
         getVulnerabilities: procedure
             .input(z.object({ clientId: z.number() }))
