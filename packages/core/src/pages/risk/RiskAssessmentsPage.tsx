@@ -5,7 +5,15 @@ import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, Plus, Search, CheckCircle2, AlertCircle, AlertTriangle, Download, ArrowLeft, Clock, TrendingDown } from 'lucide-react';
+import { Shield, Plus, Search, CheckCircle2, AlertCircle, AlertTriangle, Download, ArrowLeft, Clock, TrendingDown, Trash2, Edit } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@complianceos/ui/ui/dialog';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Input } from '@complianceos/ui/ui/input';
@@ -27,6 +35,33 @@ export default function RiskAssessmentsPage() {
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 50;
+
+    // Delete dialog state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [assessmentToDelete, setAssessmentToDelete] = useState<{ id: number; title: string } | null>(null);
+
+    const deleteMutation = trpc.risks.delete.useMutation({
+        onSuccess: () => {
+            toast.success('Assessment deleted successfully');
+            setDeleteDialogOpen(false);
+            setAssessmentToDelete(null);
+            refetch();
+        },
+        onError: (err) => {
+            toast.error(`Failed to delete assessment: ${err.message}`);
+        }
+    });
+
+    const handleDeleteClick = (assessment: any) => {
+        setAssessmentToDelete({ id: assessment.id, title: assessment.title || assessment.assessmentId });
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (assessmentToDelete) {
+            deleteMutation.mutate({ id: assessmentToDelete.id });
+        }
+    };
 
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -422,14 +457,15 @@ export default function RiskAssessmentsPage() {
                                     <SortableHeader label="Treatments" sortKey="treatments" />
                                     <SortableHeader label="Status" sortKey="status" />
                                     <SortableHeader label="Risk Owner" sortKey="riskOwner" />
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {loadingAssessments ? (
-                                    <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">Loading assessments...</td></tr>
+                                    <tr><td colSpan={11} className="p-8 text-center text-gray-500 bg-white">Loading assessments...</td></tr>
                                 ) : sortedAssessments?.length === 0 ? (
                                     <tr>
-                                        <td colSpan={10} className="p-12 text-center bg-white">
+                                        <td colSpan={11} className="p-12 text-center bg-white">
                                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <Shield className="w-8 h-8 text-gray-400" />
                                             </div>
@@ -497,6 +533,24 @@ export default function RiskAssessmentsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-600 text-center">{assessment.riskOwner || '-'}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleEditAssessment(assessment); }}
+                                                        className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(assessment); }}
+                                                        className="p-1.5 rounded-md hover:bg-red-50 text-red-600 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -518,6 +572,41 @@ export default function RiskAssessmentsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Assessment</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this assessment? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-sm font-medium text-red-800">
+                                You are about to delete:
+                            </p>
+                            <p className="text-sm text-red-600 mt-1">
+                                {assessmentToDelete?.title}
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleteMutation.isPending}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout >
     );
 }
