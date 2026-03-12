@@ -27,6 +27,8 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
 import { useClientContext } from "@/contexts/ClientContext";
 import { resolveNavigationPath } from "@/lib/navigation";
+import { NIS2ControlHealth } from "@/components/dashboard/NIS2ControlHealth";
+import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
 
 // Helper to determine compliance status based on rate - Plain Language Version
 function getComplianceStatus(rate: number) {
@@ -1137,6 +1139,14 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* NIS2 & Security Domains Section */}
+                {effectiveClientId && (
+                  <>
+                    <SecurityDomainGrid />
+                    <NIS2ControlHealth />
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

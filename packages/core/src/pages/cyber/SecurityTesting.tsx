@@ -33,7 +33,7 @@ export function SecurityTesting() {
     const params = useParams();
     const clientId = parseInt(params.id || '0');
     const [filterType, setFilterType] = useState<string>('all');
-    
+
     const { data: tests, refetch } = trpc.securityTesting.getTests.useQuery({ clientId });
     const { data: health } = trpc.securityTesting.getComplianceHealth.useQuery({ clientId });
 
@@ -76,7 +76,7 @@ export function SecurityTesting() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
                     <Link href={`/clients/${clientId}/cyber`} className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-sky-600 transition-colors flex items-center gap-2 mb-2">
-                         <Shield className="w-3 h-3" /> Cyber Resilience Dashboard
+                        <Shield className="w-3 h-3" /> Cyber Resilience Dashboard
                     </Link>
                     <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-3">
                         Security Testing & Exercises
@@ -89,7 +89,7 @@ export function SecurityTesting() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button 
+                    <Button
                         onClick={handleScheduleTest}
                         disabled={scheduleMutation.isLoading}
                         className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-12 px-6 font-bold shadow-xl shadow-slate-200 flex items-center gap-2"
@@ -102,33 +102,33 @@ export function SecurityTesting() {
             {/* Metrics Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { 
-                        label: 'Active Exercises', 
-                        value: tests?.filter(t => t.status === 'in_progress').length.toString() || '0', 
-                        icon: Activity, 
-                        color: 'text-sky-600', 
-                        bg: 'bg-sky-50' 
+                    {
+                        label: 'Active Exercises',
+                        value: tests?.filter(t => t.status === 'in_progress').length.toString() || '0',
+                        icon: Activity,
+                        color: 'text-sky-600',
+                        bg: 'bg-sky-50'
                     },
-                    { 
-                        label: 'Unresolved High/Crit', 
-                        value: health?.unresolvedCount.toString() || '0', 
-                        icon: Flame, 
-                        color: 'text-rose-600', 
-                        bg: 'bg-rose-50' 
+                    {
+                        label: 'Unresolved High/Crit',
+                        value: health?.unresolvedCount.toString() || '0',
+                        icon: Flame,
+                        color: 'text-rose-600',
+                        bg: 'bg-rose-50'
                     },
-                    { 
-                        label: 'Compliance Health', 
-                        value: (health?.score || 0).toString() + '%', 
-                        icon: ShieldCheck, 
-                        color: health?.score && health.score > 80 ? 'text-emerald-600' : 'text-amber-600', 
-                        bg: health?.score && health.score > 80 ? 'bg-emerald-50' : 'bg-amber-50' 
+                    {
+                        label: 'Compliance Health',
+                        value: (health?.score || 0).toString() + '%',
+                        icon: ShieldCheck,
+                        color: health?.score && health.score > 80 ? 'text-emerald-600' : 'text-amber-600',
+                        bg: health?.score && health.score > 80 ? 'bg-emerald-50' : 'bg-amber-50'
                     },
-                    { 
-                        label: 'Total Findings', 
-                        value: health?.findingsCount.toString() || '0', 
-                        icon: Target, 
-                        color: 'text-indigo-600', 
-                        bg: 'bg-indigo-50' 
+                    {
+                        label: 'Total Findings',
+                        value: health?.findingsCount.toString() || '0',
+                        icon: Target,
+                        color: 'text-indigo-600',
+                        bg: 'bg-indigo-50'
                     },
                 ].map((stat, i) => (
                     <Card key={i} className="border-none shadow-lg shadow-slate-100 rounded-3xl overflow-hidden ring-1 ring-slate-100">
@@ -230,7 +230,7 @@ export function SecurityTesting() {
                             <div>
                                 <h3 className="text-2xl font-black tracking-tighter mb-2">NIS2 Testing Mandate</h3>
                                 <p className="text-indigo-100 font-medium leading-relaxed text-sm">
-                                    Article 21(2) requiring coordinated security exercises. Organizations must not only 
+                                    Article 21(2) requiring coordinated security exercises. Organizations must not only
                                     detect but proactively test their defense mechanisms.
                                 </p>
                             </div>
@@ -277,7 +277,5 @@ export function SecurityTesting() {
         </div>
     );
 }
-
-export default SecurityTesting;
 
 export default SecurityTesting;

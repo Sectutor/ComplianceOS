@@ -67,6 +67,8 @@ export default function ClientControlsPage() {
 
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
     const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const PAGE_SIZE = 50;
 
     // Memoized unique frameworks
     const uniqueFrameworks = useMemo(() =>
@@ -85,9 +87,21 @@ export default function ClientControlsPage() {
         [clientControls, frameworkFilter]
     );
 
-    // Memoized grouped controls for card view
+    // Pagination logic
+    const totalPages = Math.ceil(filteredClientControls.length / PAGE_SIZE);
+    const paginatedControls = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredClientControls.slice(start, start + PAGE_SIZE);
+    }, [filteredClientControls, currentPage]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [frameworkFilter]);
+
+    // Memoized grouped controls for card view (from paginated controls for consistency with table)
     const groupedControls = useMemo(() => {
-        const grouped = (filteredClientControls || []).reduce((acc, item) => {
+        const grouped = (paginatedControls || []).reduce((acc, item) => {
             const fw = item.control?.framework || 'Uncategorized';
             const cat = item.control?.category || 'General';
             if (!acc[fw]) acc[fw] = {};
@@ -96,7 +110,7 @@ export default function ClientControlsPage() {
             return acc;
         }, {} as Record<string, Record<string, typeof clientControls>>);
         return Object.entries(grouped);
-    }, [filteredClientControls]);
+    }, [paginatedControls]);
 
     // Memoized stats calculation
     const stats = useMemo(() => ({
@@ -734,7 +748,7 @@ export default function ClientControlsPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredClientControls.map((item) => (
+                                        {paginatedControls.map((item: any) => (
                                             <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
                                                 <TableCell className="font-mono text-xs font-medium text-slate-700 py-3">
                                                     {item.clientControl.clientControlId}
@@ -844,6 +858,58 @@ export default function ClientControlsPage() {
                                     </TableBody>
                                 </Table>
                             </div>
+
+                            {/* Pagination Controls */}
+                            {viewMode === 'table' && totalPages > 1 && (
+                                <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
+                                    <div className="text-sm text-slate-600">
+                                        Showing {(currentPage - 1) * PAGE_SIZE + 1} to {Math.min(currentPage * PAGE_SIZE, filteredClientControls.length)} of {filteredClientControls.length} controls
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                        >
+                                            Previous
+                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                let pageNum: number;
+                                                if (totalPages <= 5) {
+                                                    pageNum = i + 1;
+                                                } else if (currentPage <= 3) {
+                                                    pageNum = i + 1;
+                                                } else if (currentPage >= totalPages - 2) {
+                                                    pageNum = totalPages - 4 + i;
+                                                } else {
+                                                    pageNum = currentPage - 2 + i;
+                                                }
+                                                return (
+                                                    <Button
+                                                        key={pageNum}
+                                                        variant={currentPage === pageNum ? "default" : "ghost"}
+                                                        size="sm"
+                                                        className="w-8 h-8 p-0"
+                                                        onClick={() => setCurrentPage(pageNum)}
+                                                    >
+                                                        {pageNum}
+                                                    </Button>
+                                                );
+                                            })}
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )
                 ) : (
