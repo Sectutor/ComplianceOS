@@ -255,8 +255,8 @@ export default function RiskVulnerabilitiesPage() {
                                             <td className="px-6 py-4 text-sm font-bold text-gray-800">
                                                 {vuln.cvssScore}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate" title={typeof vuln.affectedAssets === 'string' ? JSON.parse(vuln.affectedAssets).join(', ') : (vuln.affectedAssets as string[])?.join(', ')}>
-                                                {typeof vuln.affectedAssets === 'string' ? JSON.parse(vuln.affectedAssets).join(', ') : (vuln.affectedAssets as string[])?.join(', ') || '-'}
+                                            <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate" title={typeof vuln.affectedAssets === 'string' ? (vuln.affectedAssets.startsWith('[') ? JSON.parse(vuln.affectedAssets).join(', ') : vuln.affectedAssets) : (vuln.affectedAssets as string[])?.join(', ')}>
+                                                {typeof vuln.affectedAssets === 'string' ? (vuln.affectedAssets.startsWith('[') ? JSON.parse(vuln.affectedAssets).join(', ') : vuln.affectedAssets) : (vuln.affectedAssets as string[])?.join(', ') || '-'}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize border ${vuln.status === 'open' ? 'bg-blue-50 text-blue-700 border-blue-200' :
