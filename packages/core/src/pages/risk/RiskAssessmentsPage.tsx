@@ -59,7 +59,7 @@ export default function RiskAssessmentsPage() {
 
     const confirmDelete = () => {
         if (assessmentToDelete) {
-            deleteMutation.mutate({ id: assessmentToDelete.id });
+            deleteMutation.mutate({ id: assessmentToDelete.id, clientId });
         }
     };
 
