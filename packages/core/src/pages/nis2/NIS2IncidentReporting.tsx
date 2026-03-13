@@ -436,29 +436,19 @@ export default function NIS2IncidentReporting() {
         ? incidents.filter((i: IncidentReport) => i.isSignificant)
         : incidents;
 
-    // Get incidents by column
+    // Get incidents by column - simplified to just use status
     const getIncidentsByColumn = (columnId: string) => {
         return filteredIncidents.filter((incident: IncidentReport) => {
-            const now = new Date();
-            const occurred = new Date(incident.dateOccurred);
-            const hoursSinceOccurrence = (now.getTime() - occurred.getTime()) / (1000 * 60 * 60);
-
             switch (columnId) {
                 case '24h':
-                    if (incident.status === 'detected') {
-                        return hoursSinceOccurrence <= 24;
-                    }
-                    return false;
+                    // Detected incidents within 24h window
+                    return incident.status === 'detected';
                 case '72h':
-                    if (incident.status === 'early_warning_sent' || incident.status === 'detected') {
-                        return hoursSinceOccurrence > 24 && hoursSinceOccurrence <= 72;
-                    }
-                    return false;
+                    // Early warning sent, waiting for 72h notification
+                    return incident.status === 'early_warning_sent';
                 case '1month':
-                    if (incident.status === 'notification_sent' || incident.status === 'early_warning_sent') {
-                        return hoursSinceOccurrence > 72;
-                    }
-                    return false;
+                    // 72h notification sent, waiting for final report
+                    return incident.status === 'notification_sent';
                 default:
                     return false;
             }
@@ -496,38 +486,68 @@ export default function NIS2IncidentReporting() {
         if (!over) return;
 
         const activeIncidentId = active.id as string;
-        const overContainerId = over.id as string;
+        let overContainerId = over.id as string;
 
-        // Check if dropped on a column
+        // Check if over.id is a column ID, if not try to find parent column
+        if (!COLUMNS.some(col => col.id === overContainerId)) {
+            // The drop might be on an element inside the column, try to find the column
+            const columnElement = document.getElementById(overContainerId);
+            if (columnElement) {
+                // Check if it's a column or inside a column
+                const closestColumn = columnElement.closest('[id^="24h"], [id^="72h"], [id^="1month"]');
+                if (closestColumn) {
+                    overContainerId = closestColumn.id;
+                }
+            }
+            // If still not a column, check if it's one of our column IDs
+            if (!COLUMNS.some(col => col.id === overContainerId)) {
+                // Try to extract column ID from the over.id (might be like "incident-1-24h")
+                for (const col of COLUMNS) {
+                    if (overContainerId.includes(col.id)) {
+                        overContainerId = col.id;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Check if dropped on a valid column
         if (COLUMNS.some(col => col.id === overContainerId)) {
             const incident = incidents.find(i => `incident-${i.id}` === activeIncidentId);
             if (!incident) return;
 
             // Determine new status based on column
             let newStatus: IncidentReport['status'] = incident.status;
-            if (overContainerId === '24h' && incident.status === 'detected') {
-                // Already in detected state, can be moved to 24h column
+            if (overContainerId === '24h') {
+                newStatus = 'detected';
             } else if (overContainerId === '72h') {
                 newStatus = 'early_warning_sent';
             } else if (overContainerId === '1month') {
                 newStatus = 'notification_sent';
             }
 
-            // Update incident status
-            setIncidents(prev => prev.map(i => {
-                if (i.id === incident.id) {
-                    const updated = { ...i, status: newStatus };
-                    if (newStatus === 'early_warning_sent' && !updated.earlyWarningSent) {
-                        updated.earlyWarningSent = new Date();
-                    } else if (newStatus === 'notification_sent' && !updated.notificationSent) {
-                        updated.notificationSent = new Date();
+            // Only update if status changed
+            if (newStatus !== incident.status) {
+                // Update incident status
+                setIncidents(prev => prev.map(i => {
+                    if (i.id === incident.id) {
+                        const updated = { ...i, status: newStatus };
+                        if (newStatus === 'early_warning_sent' && !updated.earlyWarningSent) {
+                            updated.earlyWarningSent = new Date();
+                        } else if (newStatus === 'notification_sent' && !updated.notificationSent) {
+                            updated.notificationSent = new Date();
+                        } else if (newStatus === 'detected') {
+                            updated.earlyWarningSent = undefined;
+                            updated.notificationSent = undefined;
+                            updated.finalReportSent = undefined;
+                        }
+                        return updated;
                     }
-                    return updated;
-                }
-                return i;
-            }));
+                    return i;
+                }));
 
-            toast.success(`Incident moved to ${COLUMNS.find(c => c.id === overContainerId)?.title}`);
+                toast.success(`Incident moved to ${COLUMNS.find(c => c.id === overContainerId)?.title}`);
+            }
         }
     };
 
