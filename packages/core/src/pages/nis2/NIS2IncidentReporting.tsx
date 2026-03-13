@@ -65,6 +65,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useDroppable } from '@dnd-kit/core';
 
 // NIS2 Reporting Timeline Requirements
 const REPORTING_TIMELINE = [
@@ -249,7 +250,7 @@ function SortableKanbanCard({
                     </div>
                     {deadlineInfo && (
                         <div className={`text-xs font-medium ${deadlineInfo.overdue ? 'text-red-600' :
-                                deadlineInfo.hoursRemaining < 6 ? 'text-orange-600' : 'text-muted-foreground'
+                            deadlineInfo.hoursRemaining < 6 ? 'text-orange-600' : 'text-muted-foreground'
                             }`}>
                             {deadlineInfo.overdue ? (
                                 <span className="flex items-center">
@@ -810,22 +811,43 @@ export default function NIS2IncidentReporting() {
                             <div className="grid gap-4 md:grid-cols-3">
                                 {COLUMNS.map((column) => {
                                     const columnIncidents = getIncidentsByColumn(column.id);
+                                    const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
+                                    // Get static classes based on column
+                                    const getColumnClasses = (colId: string) => {
+                                        switch (colId) {
+                                            case '24h': return 'bg-red-50 border-red-200';
+                                            case '72h': return 'bg-amber-50 border-amber-200';
+                                            case '1month': return 'bg-blue-50 border-blue-200';
+                                            default: return 'bg-gray-50 border-gray-200';
+                                        }
+                                    };
+
+                                    const getColumnTextClasses = (colId: string) => {
+                                        switch (colId) {
+                                            case '24h': return 'text-red-800';
+                                            case '72h': return 'text-amber-800';
+                                            case '1month': return 'text-blue-800';
+                                            default: return 'text-gray-800';
+                                        }
+                                    };
+
                                     return (
                                         <div
                                             key={column.id}
-                                            id={column.id}
-                                            className={`bg-${column.bgColor} rounded-lg p-4 border border-${column.borderColor}`}
+                                            ref={setNodeRef}
+                                            className={`${getColumnClasses(column.id)} rounded-lg p-4 border-2 ${isOver ? 'border-blue-400 border-dashed' : ''}`}
                                         >
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center gap-2">
                                                     {column.icon}
-                                                    <h3 className={`font-semibold text-${column.color}`}>{column.title}</h3>
+                                                    <h3 className={`font-semibold ${getColumnTextClasses(column.id)}`}>{column.title}</h3>
                                                 </div>
-                                                <Badge className={`bg-${column.bgColor} text-${column.color}`}>
+                                                <Badge className={`${getColumnClasses(column.id)} ${getColumnTextClasses(column.id)}`}>
                                                     {columnIncidents.length}
                                                 </Badge>
                                             </div>
-                                            <p className={`text-xs text-${column.color} mb-4`}>
+                                            <p className={`text-xs ${getColumnTextClasses(column.id)} mb-4`}>
                                                 {column.description}
                                             </p>
                                             <SortableContext
@@ -984,3 +1006,4 @@ export default function NIS2IncidentReporting() {
         </DashboardLayout>
     );
 }
+
