@@ -13,7 +13,7 @@ import { RiskHeatmap } from '@/components/risk/RiskHeatmap';
 import { RiskReductionROI } from '@/components/risk/RiskCharts';
 // import { GapAnalysis } from '@/components/risk/GapAnalysis';
 import { KRITrendCards } from '@/components/risk/KRITrendCards';
-import { RiskAppetiteCalculator } from '@/components/risk/RiskAppetiteCalculator';
+
 import { Button } from '@complianceos/ui/ui/button';
 import { PageGuide } from "@/components/PageGuide";
 
@@ -218,12 +218,6 @@ export default function RiskDashboard() {
                         </div>
                     </CardContent>
                 </Card>
-                
-                {/* Risk Appetite & Planning */}
-                <div className="grid grid-cols-1 gap-6 mb-8">
-                    <RiskAppetiteCalculator clientId={clientId} />
-                </div>
-
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4" id="risk-stats-summary">
                     {stats.map((stat, i) => (

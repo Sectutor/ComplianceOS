@@ -471,8 +471,8 @@ const AIGovernance = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold">{stats?.nistCompliance.percentage || 0}%</div>
-                            <p className="text-xs text-muted-foreground mt-1">{stats?.nistCompliance.mappedCount || 0}/{stats?.nistCompliance.totalCount || 73} subcategories mapped</p>
+                            <div className="text-3xl font-bold">{stats?.nistCompliance?.percentage || 0}%</div>
+                            <p className="text-xs text-muted-foreground mt-1">{stats?.nistCompliance?.mappedCount || 0}/{stats?.nistCompliance?.totalCount || 73} subcategories mapped</p>
                         </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20 shadow-lg">

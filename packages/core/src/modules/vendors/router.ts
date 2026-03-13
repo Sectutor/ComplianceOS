@@ -160,29 +160,8 @@ export const vendorsRouter = router({
     getStats: clientProcedure
         .input(z.object({ clientId: z.number() }))
         .query(async ({ input }: any) => {
-            const db = await getDb();
-            const clientId = input.clientId;
-
-            // Get vendor counts by status
-            const allVendors = await db.select().from(vendors).where(eq(vendors.clientId, clientId));
-
-            const stats = {
-                total: allVendors.length,
-                byStatus: {
-                    active: allVendors.filter(v => v.status === 'active').length,
-                    inactive: allVendors.filter(v => v.status === 'inactive').length,
-                    pending: allVendors.filter(v => v.status === 'pending').length,
-                },
-                categories: {} as Record<string, number>,
-            };
-
-            // Count by category
-            for (const vendor of allVendors) {
-                const cat = vendor.category || 'uncategorized';
-                stats.categories[cat] = (stats.categories[cat] || 0) + 1;
-            }
-
-            return stats;
+            const { getVendorStats } = await import("../../db");
+            return getVendorStats(input.clientId);
         }),
 
     /**

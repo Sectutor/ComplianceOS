@@ -427,7 +427,7 @@ export default function VendorDashboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Critical Risk</p>
-                                    <h3 className="text-4xl font-black text-slate-900">{stats?.riskBreakdown['High'] || 0}</h3>
+                                    <h3 className="text-4xl font-black text-slate-900">{stats?.riskBreakdown?.['High'] || 0}</h3>
                                 </div>
                             </div>
                         </CardContent>
