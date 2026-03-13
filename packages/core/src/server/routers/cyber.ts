@@ -542,7 +542,17 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                 crossBorderImpact: z.boolean().optional(),
                 affectedAssets: z.string().optional(),
                 status: z.enum(["open", "investigating", "mitigated", "resolved", "reported"]).optional(),
-                reportedToAuthorities: z.boolean().optional()
+                reportedToAuthorities: z.boolean().optional(),
+                // NIS2 Fields
+                isSignificant: z.boolean().optional(),
+                significanceCriteria: z.array(z.string()).optional(),
+                affectedUsersCount: z.number().optional(),
+                serviceDisruptionDuration: z.number().optional(),
+                estimatedFinancialLoss: z.number().optional(),
+                isContinuityTriggered: z.boolean().optional(),
+                earlyWarningSentAt: z.string().optional().nullable(),
+                intermediateReportSentAt: z.string().optional().nullable(),
+                finalReportSentAt: z.string().optional().nullable()
             }))
             .mutation(async ({ input }: any) => {
                 const db = await getDb();
@@ -556,6 +566,24 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                 if (input.affectedAssets !== undefined) updateData.affectedAssets = input.affectedAssets;
                 if (input.status !== undefined) updateData.status = input.status;
                 if (input.reportedToAuthorities !== undefined) updateData.reportedToAuthorities = input.reportedToAuthorities;
+                
+                // NIS2 Fields
+                if (input.isSignificant !== undefined) updateData.isSignificant = input.isSignificant;
+                if (input.significanceCriteria !== undefined) updateData.significanceCriteria = input.significanceCriteria;
+                if (input.affectedUsersCount !== undefined) updateData.affectedUsersCount = input.affectedUsersCount;
+                if (input.serviceDisruptionDuration !== undefined) updateData.serviceDisruptionDuration = input.serviceDisruptionDuration;
+                if (input.estimatedFinancialLoss !== undefined) updateData.estimatedFinancialLoss = input.estimatedFinancialLoss;
+                if (input.isContinuityTriggered !== undefined) updateData.isContinuityTriggered = input.isContinuityTriggered;
+                
+                if (input.earlyWarningSentAt !== undefined) {
+                    updateData.earlyWarningSentAt = input.earlyWarningSentAt ? new Date(input.earlyWarningSentAt) : null;
+                }
+                if (input.intermediateReportSentAt !== undefined) {
+                    updateData.intermediateReportSentAt = input.intermediateReportSentAt ? new Date(input.intermediateReportSentAt) : null;
+                }
+                if (input.finalReportSentAt !== undefined) {
+                    updateData.finalReportSentAt = input.finalReportSentAt ? new Date(input.finalReportSentAt) : null;
+                }
 
                 await db.update(incidents)
                     .set(updateData)

@@ -311,8 +311,7 @@ function DashboardLayoutContent({
   // Use selectedClientId from context if available, otherwise fall back to URL
   const persistentClientId = selectedClientId || activeClientId;
 
-  console.log('[DEBUG DashboardLayout] selectedClientId:', selectedClientId, 'activeClientId:', activeClientId, 'persistentClientId:', persistentClientId);
-  console.log('[DEBUG DashboardLayout] location:', location);
+
 
   // Only fetch client data if we're on a client-specific page
   const isClientSpecificPage = location.includes('/clients/') || location.includes('/client-');
@@ -321,7 +320,7 @@ function DashboardLayoutContent({
     persistentClientId > 0 &&
     isClientSpecificPage;
 
-  console.log('[DEBUG DashboardLayout] isClientSpecificPage:', isClientSpecificPage, 'shouldFetchClient:', shouldFetchClient);
+
 
   const { data: clientInfo, error: clientError } = trpc.clients.get.useQuery(
     { id: persistentClientId as number },
@@ -330,10 +329,8 @@ function DashboardLayoutContent({
       retry: false
     }
   );
-  console.log('[DEBUG DashboardLayout] clients.get result - data:', !!clientInfo, 'error:', clientError);
 
   useEffect(() => {
-    console.log('[DEBUG DashboardLayout] clientError:', clientError, 'persistentClientId:', persistentClientId);
     if (clientError && clientError.data?.code === 'FORBIDDEN' && isClientSpecificPage) {
       // Clear invalid client ID
       console.warn("Access denied for client ID", persistentClientId, "Clearing context.");

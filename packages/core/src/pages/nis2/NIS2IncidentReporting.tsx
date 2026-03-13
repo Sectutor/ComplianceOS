@@ -20,12 +20,12 @@ import {
     XCircle,
     Plus,
     Activity,
-    Shield,
     AlertCircle as AlertCircleIcon,
     Send,
     Eye,
     Globe,
-    GripVertical
+    GripVertical,
+    Pencil
 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
@@ -46,57 +46,35 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { toast } from 'sonner';
+import { PageGuide } from "@/components/PageGuide";
+import { trpc } from '@/lib/trpc';
 import {
     DndContext,
-    DragOverlay,
     closestCorners,
     KeyboardSensor,
     PointerSensor,
     useSensor,
     useSensors,
+    DragOverlay,
     DragStartEvent,
-    DragEndEvent,
     DragOverEvent,
+    DragEndEvent,
+    useDroppable,
 } from '@dnd-kit/core';
 import {
+    arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useDroppable } from '@dnd-kit/core';
 
-// NIS2 Reporting Timeline Requirements
-const REPORTING_TIMELINE = [
-    {
-        stage: 'early_warning',
-        deadline: '24 hours',
-        title: 'Early Warning',
-        description: 'Notify competent authority of significant incident',
-        requirement: 'Article 23(1)',
-        color: 'red'
-    },
-    {
-        stage: 'incident_notification',
-        deadline: '72 hours',
-        title: 'Incident Notification',
-        description: 'Provide initial assessment including severity and impact',
-        requirement: 'Article 23(2)',
-        color: 'amber'
-    },
-    {
-        stage: 'final_report',
-        deadline: '1 month',
-        title: 'Final Report',
-        description: 'Submit detailed final report with lessons learned',
-        requirement: 'Article 23(3)',
-        color: 'green'
-    },
-];
+// Column types for the Kanban
+type ColumnType = '24h' | '72h' | '1month';
 
-// Sample incidents data structure
-interface IncidentReport {
+// Incident type - matches backend schema
+interface Incident {
     id: number;
     title: string;
     dateOccurred: Date;
@@ -111,58 +89,47 @@ interface IncidentReport {
     finalReportSent?: Date;
 }
 
-// Column definition
-interface KanbanColumn {
-    id: string;
-    title: string;
-    color: string;
-    bgColor: string;
-    borderColor: string;
-    icon: React.ReactNode;
-    description: string;
-}
+// Column definitions
+const columnTitles: Record<ColumnType, string> = {
+    '24h': '24h Early Warning',
+    '72h': '72h Notification',
+    '1month': '1 Month Final Report'
+};
 
-const COLUMNS: KanbanColumn[] = [
-    {
-        id: '24h',
-        title: '24h Early Warning',
-        color: 'red-800',
-        bgColor: 'red-50',
-        borderColor: 'red-200',
-        icon: <AlertCircleIcon className="h-5 w-5 text-red-600" />,
-        description: 'Incidents requiring immediate notification'
+const columnColors: Record<ColumnType, { bg: string; border: string; text: string; icon: JSX.Element }> = {
+    '24h': {
+        bg: 'bg-red-50',
+        border: 'border-red-200',
+        text: 'text-red-800',
+        icon: <AlertCircleIcon className="h-5 w-5 text-red-600" />
     },
-    {
-        id: '72h',
-        title: '72h Notification',
-        color: 'amber-800',
-        bgColor: 'amber-50',
-        borderColor: 'amber-200',
-        icon: <Clock className="h-5 w-5 text-amber-600" />,
-        description: 'Incidents requiring full notification'
+    '72h': {
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        text: 'text-amber-800',
+        icon: <Clock className="h-5 w-5 text-amber-600" />
     },
-    {
-        id: '1month',
-        title: '1 Month Final Report',
-        color: 'blue-800',
-        bgColor: 'blue-50',
-        borderColor: 'blue-200',
-        icon: <FileText className="h-5 w-5 text-blue-600" />,
-        description: 'Incidents requiring final report'
-    },
-];
+    '1month': {
+        bg: 'bg-blue-50',
+        border: 'border-blue-200',
+        text: 'text-blue-800',
+        icon: <FileText className="h-5 w-5 text-blue-600" />
+    }
+};
 
 // Sortable Card Component
-function SortableKanbanCard({
+function IncidentCard({
     incident,
     onSendWarning,
     onSendNotification,
-    onSendFinal
+    onSendFinal,
+    onEdit
 }: {
-    incident: IncidentReport;
+    incident: Incident;
     onSendWarning: () => void;
     onSendNotification: () => void;
     onSendFinal: () => void;
+    onEdit?: () => void;
 }) {
     const {
         attributes,
@@ -171,37 +138,13 @@ function SortableKanbanCard({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: `incident-${incident.id}` });
+    } = useSortable({ id: incident.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
     };
-
-    const now = new Date();
-    const occurred = new Date(incident.dateOccurred);
-    const hoursSinceOccurrence = (now.getTime() - occurred.getTime()) / (1000 * 60 * 60);
-
-    const getDeadlineInfo = () => {
-        if (!incident.isSignificant) return null;
-
-        if (!incident.earlyWarningSent) {
-            const hoursRemaining = 24 - hoursSinceOccurrence;
-            return { stage: '24h', hoursRemaining: Math.max(0, hoursRemaining), overdue: hoursRemaining < 0 };
-        }
-        if (!incident.notificationSent) {
-            const hoursRemaining = 72 - hoursSinceOccurrence;
-            return { stage: '72h', hoursRemaining: Math.max(0, hoursRemaining), overdue: hoursRemaining < 0 };
-        }
-        if (!incident.finalReportSent) {
-            const daysRemaining = 30 - (hoursSinceOccurrence / 24);
-            return { stage: '1month', hoursRemaining: daysRemaining * 24, overdue: daysRemaining < 0 };
-        }
-        return null;
-    };
-
-    const deadlineInfo = getDeadlineInfo();
 
     const getSeverityColor = (severity: string) => {
         switch (severity) {
@@ -212,11 +155,36 @@ function SortableKanbanCard({
         }
     };
 
+    // Calculate deadline info for NIS2 compliance
+    const now = new Date();
+    const occurred = new Date(incident.dateOccurred);
+    const hoursSinceOccurrence = (now.getTime() - occurred.getTime()) / (1000 * 60 * 60);
+
+    const getDeadlineInfo = () => {
+        if (!incident.isSignificant) return null;
+
+        if (!incident.earlyWarningSent && incident.status === 'detected') {
+            const hoursRemaining = 24 - hoursSinceOccurrence;
+            return { stage: '24h', hoursRemaining: Math.max(0, hoursRemaining), overdue: hoursRemaining < 0 };
+        }
+        if (!incident.notificationSent && incident.status === 'early_warning_sent') {
+            const hoursRemaining = 72 - hoursSinceOccurrence;
+            return { stage: '72h', hoursRemaining: Math.max(0, hoursRemaining), overdue: hoursRemaining < 0 };
+        }
+        if (!incident.finalReportSent && incident.status === 'notification_sent') {
+            const daysRemaining = 30 - (hoursSinceOccurrence / 24);
+            return { stage: '1month', hoursRemaining: daysRemaining * 24, overdue: daysRemaining < 0 };
+        }
+        return null;
+    };
+
+    const deadlineInfo = getDeadlineInfo();
+
     return (
         <Card
             ref={setNodeRef}
             style={style}
-            className="mb-3 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
+            className="mb-3 hover:shadow-md transition-shadow"
         >
             <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
@@ -224,7 +192,7 @@ function SortableKanbanCard({
                         <button
                             {...attributes}
                             {...listeners}
-                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
                         >
                             <GripVertical className="h-4 w-4" />
                         </button>
@@ -237,6 +205,19 @@ function SortableKanbanCard({
                             <Globe className="h-3 w-3 mr-1" />
                             Cross-border
                         </Badge>
+                    )}
+                    {onEdit && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit();
+                            }}
+                        >
+                            <Pencil className="h-3 w-3" />
+                        </Button>
                     )}
                 </div>
                 <h4 className="font-medium text-sm mb-1">{incident.title}</h4>
@@ -258,9 +239,9 @@ function SortableKanbanCard({
                                     Overdue
                                 </span>
                             ) : deadlineInfo.stage === '1month' ? (
-                                `${Math.round(deadlineInfo.hoursRemaining / 24)} days left`
+                                <span>{Math.round(deadlineInfo.hoursRemaining / 24)}d left</span>
                             ) : (
-                                `${Math.round(deadlineInfo.hoursRemaining)}h left`
+                                <span>{Math.round(deadlineInfo.hoursRemaining)}h left</span>
                             )}
                         </div>
                     )}
@@ -314,8 +295,8 @@ function SortableKanbanCard({
     );
 }
 
-// Drag Overlay Card (shown while dragging)
-function DragOverlayCard({ incident }: { incident: IncidentReport }) {
+// Drag Overlay Card
+function IncidentCardOverlay({ incident }: { incident: Incident }) {
     const getSeverityColor = (severity: string) => {
         switch (severity) {
             case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -348,6 +329,74 @@ function DragOverlayCard({ incident }: { incident: IncidentReport }) {
     );
 }
 
+// Column Component
+function KanbanColumn({
+    id,
+    title,
+    incidents,
+    color,
+    onSendWarning,
+    onSendNotification,
+    onSendFinal,
+    onEdit
+}: {
+    id: ColumnType;
+    title: string;
+    incidents: Incident[];
+    color: typeof columnColors['24h'];
+    onSendWarning: (id: number) => void;
+    onSendNotification: (id: number) => void;
+    onSendFinal: (id: number) => void;
+    onEdit?: (incident: Incident) => void;
+}) {
+    const { setNodeRef, isOver } = useDroppable({ id });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`${color.bg} rounded-lg p-4 border-2 ${isOver ? 'border-blue-500 border-dashed bg-blue-50' : color.border} min-h-[600px] transition-all duration-200`}
+        >
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    {color.icon}
+                    <h3 className={`font-semibold ${color.text}`}>{title}</h3>
+                </div>
+                <Badge className={`${color.bg} ${color.text}`}>
+                    {incidents.length}
+                </Badge>
+            </div>
+            <p className={`text-xs ${color.text} mb-4`}>
+                {id === '24h' && 'Incidents requiring immediate notification'}
+                {id === '72h' && 'Incidents requiring full notification'}
+                {id === '1month' && 'Incidents requiring final report'}
+            </p>
+            <SortableContext
+                items={incidents.map(i => i.id)}
+                strategy={verticalListSortingStrategy}
+            >
+                <div className="space-y-2 max-h-[800px] overflow-y-auto min-h-[400px]">
+                    {incidents.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-muted-foreground/20 rounded-lg">
+                            <p className="text-sm">Drop incidents here</p>
+                        </div>
+                    ) : (
+                        incidents.map((incident) => (
+                            <IncidentCard
+                                key={incident.id}
+                                incident={incident}
+                                onSendWarning={() => onSendWarning(incident.id)}
+                                onSendNotification={() => onSendNotification(incident.id)}
+                                onSendFinal={() => onSendFinal(incident.id)}
+                                onEdit={onEdit ? () => onEdit(incident) : undefined}
+                            />
+                        ))
+                    )}
+                </div>
+            </SortableContext>
+        </div>
+    );
+}
+
 export default function NIS2IncidentReporting() {
     const params = useParams();
     const { selectedClientId } = useClientContext();
@@ -356,252 +405,332 @@ export default function NIS2IncidentReporting() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [showSignificantOnly, setShowSignificantOnly] = useState(true);
-    const [activeId, setActiveId] = useState<string | null>(null);
+    const [activeId, setActiveId] = useState<number | null>(null);
     const [newIncident, setNewIncident] = useState({
         title: '',
         description: '',
         severity: 'medium' as 'low' | 'medium' | 'high' | 'critical',
         isSignificant: true,
         crossBorderImpact: false,
-        sectorsAffected: [] as string[],
+        cause: 'unknown',
     });
 
-    // Sample incidents with more realistic data
-    const [incidents, setIncidents] = useState<IncidentReport[]>([
-        {
-            id: 1,
-            title: 'Ransomware attack on production server',
-            dateOccurred: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            status: 'notification_sent',
-            severity: 'critical',
-            isSignificant: true,
-            crossBorderImpact: true,
-            sectorsAffected: ['Healthcare', 'Finance'],
-            description: 'Ransomware encrypted critical production systems',
-            earlyWarningSent: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            notificationSent: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        },
-        {
-            id: 2,
-            title: 'DDoS attack on web services',
-            dateOccurred: new Date(Date.now() - 12 * 60 * 60 * 1000),
-            status: 'early_warning_sent',
-            severity: 'high',
-            isSignificant: true,
-            crossBorderImpact: false,
-            sectorsAffected: ['Digital Infrastructure'],
-            description: 'Distributed denial of service attack lasting 4 hours',
-            earlyWarningSent: new Date(Date.now() - 12 * 60 * 60 * 1000),
-        },
-        {
-            id: 3,
-            title: 'Phishing campaign targeting employees',
-            dateOccurred: new Date(Date.now() - 6 * 60 * 60 * 1000),
-            status: 'detected',
-            severity: 'medium',
-            isSignificant: true,
-            crossBorderImpact: false,
-            sectorsAffected: [],
-            description: 'Targeted phishing emails detected, no credentials compromised',
-        },
-        {
-            id: 4,
-            title: 'SQL Injection discovered in legacy app',
-            dateOccurred: new Date(Date.now() - 20 * 60 * 60 * 1000),
-            status: 'detected',
-            severity: 'high',
-            isSignificant: true,
-            crossBorderImpact: true,
-            sectorsAffected: ['Digital Infrastructure'],
-            description: 'SQL injection vulnerability found in production API',
-        },
-        {
-            id: 5,
-            title: 'Unauthorized access attempt',
-            dateOccurred: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            status: 'final_report_sent',
-            severity: 'medium',
-            isSignificant: true,
-            crossBorderImpact: false,
-            sectorsAffected: [],
-            description: 'Unauthorized access attempt detected and blocked',
-            earlyWarningSent: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            notificationSent: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-            finalReportSent: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        },
-    ]);
+    // Edit incident state
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingIncident, setEditingIncident] = useState<{
+        id: number;
+        title: string;
+        description: string;
+        severity: 'low' | 'medium' | 'high' | 'critical';
+        isSignificant: boolean;
+        crossBorderImpact: boolean;
+    } | null>(null);
 
-    // Filter incidents
-    const filteredIncidents = showSignificantOnly
-        ? incidents.filter((i: IncidentReport) => i.isSignificant)
-        : incidents;
+    // Open edit dialog with incident data
+    const handleEditIncident = (incident: Incident) => {
+        setEditingIncident({
+            id: incident.id,
+            title: incident.title,
+            description: incident.description,
+            severity: incident.severity,
+            isSignificant: incident.isSignificant,
+            crossBorderImpact: incident.crossBorderImpact,
+        });
+        setIsEditDialogOpen(true);
+    };
 
-    // Get incidents by column - simplified to just use status
-    const getIncidentsByColumn = (columnId: string) => {
-        return filteredIncidents.filter((incident: IncidentReport) => {
-            switch (columnId) {
-                case '24h':
-                    // Detected incidents within 24h window
-                    return incident.status === 'detected';
-                case '72h':
-                    // Early warning sent, waiting for 72h notification
-                    return incident.status === 'early_warning_sent';
-                case '1month':
-                    // 72h notification sent, waiting for final report
-                    return incident.status === 'notification_sent';
-                default:
-                    return false;
-            }
+    // Fetch incidents from server
+    const { data: dbIncidents, isLoading, refetch } = trpc.cyber.getIncidents.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+
+    // Update incident mutation
+    const updateMutation = trpc.cyber.updateIncident.useMutation({
+        onSuccess: () => {
+            refetch();
+        },
+        onError: (err) => {
+            toast.error(`Failed to update: ${err.message}`);
+        }
+    });
+
+    // Report incident mutation
+    const reportMutation = trpc.cyber.reportIncident.useMutation({
+        onSuccess: () => {
+            toast.success('Incident reported successfully');
+            setIsDialogOpen(false);
+            setNewIncident({
+                title: '',
+                description: '',
+                severity: 'medium',
+                isSignificant: true,
+                crossBorderImpact: false,
+            });
+            refetch();
+        },
+        onError: (err) => {
+            toast.error(`Failed to report: ${err.message}`);
+        }
+    });
+
+    // Load sample data if no incidents exist
+    const loadSampleData = () => {
+        const sampleIncidents = [
+            {
+                title: 'Ransomware attack on production server',
+                description: 'Ransomware encrypted critical production systems',
+                severity: 'critical' as const,
+                isSignificant: true,
+                crossBorderImpact: true,
+                cause: 'malware',
+                detectedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+                title: 'DDoS attack on web services',
+                description: 'Distributed denial of service attack lasting 4 hours',
+                severity: 'high' as const,
+                isSignificant: true,
+                crossBorderImpact: false,
+                cause: 'external_attack',
+                detectedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+                title: 'Phishing campaign targeting employees',
+                description: 'Targeted phishing emails detected, no credentials compromised',
+                severity: 'medium' as const,
+                isSignificant: true,
+                crossBorderImpact: false,
+                cause: 'phishing',
+                detectedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+                title: 'SQL Injection discovered in legacy app',
+                description: 'SQL injection vulnerability found in production API',
+                severity: 'high' as const,
+                isSignificant: true,
+                crossBorderImpact: true,
+                cause: 'vulnerability',
+                detectedAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+                title: 'Unauthorized access attempt',
+                description: 'Unauthorized access attempt detected and blocked',
+                severity: 'medium' as const,
+                isSignificant: true,
+                crossBorderImpact: false,
+                cause: 'unauthorized_access',
+                detectedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+        ];
+
+        // Use Promise.all for batch loading
+        Promise.all(
+            sampleIncidents.map((incident) =>
+                reportMutation.mutateAsync({
+                    clientId,
+                    ...incident,
+                })
+            )
+        ).then(() => {
+            toast.success('Sample incidents loaded');
+            refetch();
+        }).catch((err) => {
+            toast.error(`Failed to load sample data: ${err.message}`);
         });
     };
 
-    const incidents24h = getIncidentsByColumn('24h');
-    const incidents72h = getIncidentsByColumn('72h');
-    const incidents1Month = getIncidentsByColumn('1month');
-    const completedReports = filteredIncidents.filter((i: IncidentReport) =>
-        i.status === 'final_report_sent' || i.status === 'closed'
-    );
+    // Convert DB incidents to local format and group by column
+    const incidents: Record<ColumnType, Incident[]> = React.useMemo(() => {
+        if (!dbIncidents) {
+            return { '24h': [], '72h': [], '1month': [] };
+        }
+
+        const mapped: Incident[] = dbIncidents.map((i: any) => ({
+            id: i.id,
+            title: i.title || 'Untitled Incident',
+            dateOccurred: i.detectedAt ? new Date(i.detectedAt) : new Date(),
+            status: (i.status === 'reported' ? 'notification_sent' :
+                i.status === 'investigating' ? 'early_warning_sent' :
+                    i.status === 'open' ? 'detected' : 'detected') as any,
+            severity: (i.severity || 'medium') as any,
+            isSignificant: i.isSignificant || false,
+            crossBorderImpact: i.crossBorderImpact || false,
+            sectorsAffected: [],
+            description: i.description || '',
+            earlyWarningSent: i.earlyWarningSentAt ? new Date(i.earlyWarningSentAt) : undefined,
+            notificationSent: i.intermediateReportSentAt ? new Date(i.intermediateReportSentAt) : undefined,
+            finalReportSent: i.finalReportSentAt ? new Date(i.finalReportSentAt) : undefined,
+        }));
+
+        // Filter significant incidents if toggle is on
+        const filtered = showSignificantOnly
+            ? mapped.filter(i => i.isSignificant)
+            : mapped;
+
+        // Group by column based on status
+        return {
+            '24h': filtered.filter(i => i.status === 'detected'),
+            '72h': filtered.filter(i => i.status === 'early_warning_sent'),
+            '1month': filtered.filter(i => i.status === 'notification_sent' || i.status === 'final_report_sent')
+        };
+    }, [dbIncidents, showSignificantOnly]);
 
     // DnD sensors
     const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    // Drag handlers
+    // Find which column an item belongs to
+    const findContainer = (id: string | number): ColumnType | undefined => {
+        if (id in incidents) return id as ColumnType;
+        return (Object.keys(incidents) as ColumnType[]).find((key) =>
+            incidents[key].find((item) => item.id === id)
+        );
+    };
+
     const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as string);
+        setActiveId(event.active.id as number);
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        const overId = over?.id;
+        if (!overId || active.id === overId) return;
+
+        const activeContainer = findContainer(active.id as number);
+        const overContainer = findContainer(overId as number);
+
+        if (!activeContainer || !overContainer || activeContainer === overContainer) return;
+
+        // We don't update state during drag over - we handle it in dragEnd
+        // to avoid too many re-renders
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
+        const overId = over?.id;
+
+        if (!overId) {
+            setActiveId(null);
+            return;
+        }
+
+        const activeContainer = findContainer(active.id as number);
+        const overContainer = findContainer(overId as number);
+
+        if (activeContainer && overContainer) {
+            const incidentId = active.id as number;
+
+            // Determine new status based on target column
+            let newStatus: string = 'open';
+            if (overContainer === '72h') newStatus = 'investigating';
+            else if (overContainer === '1month') newStatus = 'reported';
+
+            // Update on server
+            updateMutation.mutate({
+                clientId,
+                incidentId,
+                status: newStatus as any,
+            });
+
+            // Optimistic update for 72h notification
+            if (overContainer === '72h') {
+                updateMutation.mutate({
+                    clientId,
+                    incidentId,
+                    earlyWarningSentAt: new Date().toISOString()
+                });
+            }
+
+            // Optimistic update for 1 month notification
+            if (overContainer === '1month') {
+                updateMutation.mutate({
+                    clientId,
+                    incidentId,
+                    intermediateReportSentAt: new Date().toISOString()
+                });
+            }
+
+            toast.success(`Incident moved to ${columnTitles[overContainer]}`);
+        }
+
         setActiveId(null);
-
-        if (!over) return;
-
-        const activeIncidentId = active.id as string;
-        let overContainerId = over.id as string;
-
-        // Check if over.id is a column ID, if not try to find parent column
-        if (!COLUMNS.some(col => col.id === overContainerId)) {
-            // The drop might be on an element inside the column, try to find the column
-            const columnElement = document.getElementById(overContainerId);
-            if (columnElement) {
-                // Check if it's a column or inside a column
-                const closestColumn = columnElement.closest('[id^="24h"], [id^="72h"], [id^="1month"]');
-                if (closestColumn) {
-                    overContainerId = closestColumn.id;
-                }
-            }
-            // If still not a column, check if it's one of our column IDs
-            if (!COLUMNS.some(col => col.id === overContainerId)) {
-                // Try to extract column ID from the over.id (might be like "incident-1-24h")
-                for (const col of COLUMNS) {
-                    if (overContainerId.includes(col.id)) {
-                        overContainerId = col.id;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Check if dropped on a valid column
-        if (COLUMNS.some(col => col.id === overContainerId)) {
-            const incident = incidents.find(i => `incident-${i.id}` === activeIncidentId);
-            if (!incident) return;
-
-            // Determine new status based on column
-            let newStatus: IncidentReport['status'] = incident.status;
-            if (overContainerId === '24h') {
-                newStatus = 'detected';
-            } else if (overContainerId === '72h') {
-                newStatus = 'early_warning_sent';
-            } else if (overContainerId === '1month') {
-                newStatus = 'notification_sent';
-            }
-
-            // Only update if status changed
-            if (newStatus !== incident.status) {
-                // Update incident status
-                setIncidents(prev => prev.map(i => {
-                    if (i.id === incident.id) {
-                        const updated = { ...i, status: newStatus };
-                        if (newStatus === 'early_warning_sent' && !updated.earlyWarningSent) {
-                            updated.earlyWarningSent = new Date();
-                        } else if (newStatus === 'notification_sent' && !updated.notificationSent) {
-                            updated.notificationSent = new Date();
-                        } else if (newStatus === 'detected') {
-                            updated.earlyWarningSent = undefined;
-                            updated.notificationSent = undefined;
-                            updated.finalReportSent = undefined;
-                        }
-                        return updated;
-                    }
-                    return i;
-                }));
-
-                toast.success(`Incident moved to ${COLUMNS.find(c => c.id === overContainerId)?.title}`);
-            }
-        }
-    };
-
-    const handleDragOver = (event: DragOverEvent) => {
-        // Handle drag over for visual feedback
     };
 
     const handleSendEarlyWarning = (incidentId: number) => {
-        setIncidents(prev => prev.map(i => {
-            if (i.id === incidentId) {
-                return {
-                    ...i,
-                    status: 'early_warning_sent' as const,
-                    earlyWarningSent: new Date()
-                };
-            }
-            return i;
-        }));
+        updateMutation.mutate({
+            clientId,
+            incidentId,
+            status: 'investigating',
+            earlyWarningSentAt: new Date().toISOString()
+        });
         toast.success('Early warning sent to competent authority');
     };
 
     const handleSendNotification = (incidentId: number) => {
-        setIncidents(prev => prev.map(i => {
-            if (i.id === incidentId) {
-                return {
-                    ...i,
-                    status: 'notification_sent' as const,
-                    notificationSent: new Date()
-                };
-            }
-            return i;
-        }));
+        updateMutation.mutate({
+            clientId,
+            incidentId,
+            status: 'reported',
+            intermediateReportSentAt: new Date().toISOString()
+        });
         toast.success('72-hour notification sent');
     };
 
     const handleSendFinalReport = (incidentId: number) => {
-        setIncidents(prev => prev.map(i => {
-            if (i.id === incidentId) {
-                return {
-                    ...i,
-                    status: 'final_report_sent' as const,
-                    finalReportSent: new Date()
-                };
-            }
-            return i;
-        }));
+        updateMutation.mutate({
+            clientId,
+            incidentId,
+            status: 'reported',
+            finalReportSentAt: new Date().toISOString()
+        });
         toast.success('Final report submitted');
     };
 
-    const getActiveIncident = () => {
+    const getActiveIncident = (): Incident | null => {
         if (!activeId) return null;
-        const id = activeId.replace('incident-', '');
-        return incidents.find(i => i.id === parseInt(id));
+        for (const col of Object.values(incidents)) {
+            const found = col.find(i => i.id === activeId);
+            if (found) return found;
+        }
+        return null;
     };
+
+    // Calculate metrics
+    const totalIncidents = Object.values(incidents).reduce((sum, arr) => sum + arr.length, 0);
+
+    const handleReportSubmit = () => {
+        if (!newIncident.title || !newIncident.description) {
+            toast.error('Please fill in required fields');
+            return;
+        }
+
+        reportMutation.mutate({
+            clientId,
+            title: newIncident.title,
+            description: newIncident.description,
+            severity: newIncident.severity,
+            isSignificant: newIncident.isSignificant,
+            crossBorderImpact: newIncident.crossBorderImpact,
+            detectedAt: new Date().toISOString(),
+            cause: 'unknown'
+        });
+    };
+
+    if (isLoading) {
+        return (
+            <DashboardLayout fullWidth={true}>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center space-y-4">
+                        <Activity className="h-10 w-10 text-primary animate-pulse mx-auto" />
+                        <p className="text-muted-foreground">Loading incidents...</p>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout fullWidth={true}>
@@ -630,63 +759,124 @@ export default function NIS2IncidentReporting() {
                     </Badge>
                 </div>
 
-                {/* NIS2 Requirements Alert */}
-                <Card className="border-orange-200 bg-orange-50">
-                    <CardHeader className="py-4">
-                        <CardTitle className="text-orange-800 flex items-center gap-2 text-lg">
-                            <AlertTriangle className="h-5 w-5" />
-                            NIS2 Article 23 Reporting Deadlines
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="py-2">
-                        <div className="grid gap-4 md:grid-cols-3">
-                            {REPORTING_TIMELINE.map((timeline) => (
-                                <div key={timeline.stage} className="bg-white rounded-lg p-4 border border-orange-100">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Clock className={`h-4 w-4 text-${timeline.color}-600`} />
-                                        <span className="font-semibold text-orange-800">{timeline.title}</span>
+                {/* Page Guide */}
+                <PageGuide
+                    title="NIS2 Incident Reporting"
+                    description="Track and manage significant security incidents per NIS2 Article 23 requirements."
+                    rationale="Article 23 requires entities to notify the CSIRT or competent authority of significant incidents without undue delay. The incident reporting timeline is: 24h for early warning, 72h for notification, and 1 month for final report."
+                    moduleId="nis2-incident-reporting"
+                    isTrainingRequirement={true}
+                    howToUse={[
+                        { step: "Load Sample Data", description: "Click 'Load Sample Data' to add sample incidents for demonstration." },
+                        { step: "View Incidents", description: "Switch between Kanban Board and Table View to see incidents." },
+                        { step: "Send Reports", description: "Use the action buttons on each card to send 24h/72h/final notifications." },
+                        { step: "Drag & Drop", description: "Drag incidents between columns to update their status." }
+                    ]}
+                    scenarios={[
+                        {
+                            title: "Ransomware Attack",
+                            example: "A ransomware attack encrypts critical production servers. This is a significant incident requiring immediate reporting.",
+                            auditTip: "Document the initial detection time, systems affected, and any cross-border impact."
+                        },
+                        {
+                            title: "DDoS Attack",
+                            example: "Distributed denial of service attack disrupts web services for several hours.",
+                            auditTip: "Record the duration, services impacted, and mitigation measures taken."
+                        },
+                        {
+                            title: "Data Breach",
+                            example: "Unauthorized access results in potential exfiltration of customer data.",
+                            auditTip: "Include number of affected users, data types compromised, and notification to data subjects."
+                        }
+                    ]}
+                    resources={[
+                        { name: "NIS2 Directive (EU) 2022/2555", description: "Official EU NIS2 Directive text", href: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555" },
+                        { name: "Article 23 Guidance", description: "ENISA guidance on incident notification", href: "https://www.enisa.europa.eu/publications/enisa-nis2-guidance" },
+                        { name: "Incident Response Plan Template", description: "Template for establishing incident response procedures", href: "/policy-templates/nis2-incident-handling" }
+                    ]}
+                    integrations={[
+                        { name: "SIEM Integration", description: "Connect your SIEM to automatically create incidents from security alerts" },
+                        { name: "SOAR Platform", description: "Automate incident triage and notification workflows" },
+                        { name: "Email Notifications", description: "Configure automatic notifications to competent authorities" }
+                    ]}
+                />
+
+                {/* NIS2 Article 23 Process Explanation */}
+                <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
+                    <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-orange-100 rounded-lg">
+                                <FileText className="h-5 w-5 text-orange-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-orange-800 mb-2">NIS2 Article 23 - Incident Reporting Timeline</h3>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                    <div className="bg-white/60 p-3 rounded-lg border border-red-200">
+                                        <div className="font-medium text-red-700 flex items-center gap-1">
+                                            <AlertCircleIcon className="h-4 w-4" />
+                                            24 Hours
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Early warning to competent authority
+                                        </p>
                                     </div>
-                                    <p className="text-2xl font-bold text-orange-600 mb-1">{timeline.deadline}</p>
-                                    <p className="text-sm text-orange-700">{timeline.description}</p>
+                                    <div className="bg-white/60 p-3 rounded-lg border border-amber-200">
+                                        <div className="font-medium text-amber-700 flex items-center gap-1">
+                                            <Clock className="h-4 w-4" />
+                                            72 Hours
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Full incident notification
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/60 p-3 rounded-lg border border-blue-200">
+                                        <div className="font-medium text-blue-700 flex items-center gap-1">
+                                            <FileText className="h-4 w-4" />
+                                            1 Month
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Final report with root cause
+                                        </p>
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Metrics Summary */}
                 <div className="grid gap-4 md:grid-cols-4">
-                    <Card className={incidents24h.length > 0 ? "border-red-200 bg-red-50" : ""}>
+                    <Card className={incidents['24h'].length > 0 ? "border-red-200 bg-red-50" : ""}>
                         <CardHeader className="pb-2">
                             <CardDescription className="flex items-center gap-2">
                                 <AlertCircleIcon className="h-4 w-4 text-red-600" />
                                 24h Pending
                             </CardDescription>
-                            <CardTitle className="text-3xl text-red-600">{incidents24h.length}</CardTitle>
+                            <CardTitle className="text-3xl text-red-600">{incidents['24h'].length}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-xs text-muted-foreground">Early warning required</p>
                         </CardContent>
                     </Card>
-                    <Card className={incidents72h.length > 0 ? "border-amber-200 bg-amber-50" : ""}>
+                    <Card className={incidents['72h'].length > 0 ? "border-amber-200 bg-amber-50" : ""}>
                         <CardHeader className="pb-2">
                             <CardDescription className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-amber-600" />
                                 72h Pending
                             </CardDescription>
-                            <CardTitle className="text-3xl text-amber-600">{incidents72h.length}</CardTitle>
+                            <CardTitle className="text-3xl text-amber-600">{incidents['72h'].length}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-xs text-muted-foreground">Notification pending</p>
                         </CardContent>
                     </Card>
-                    <Card className={incidents1Month.length > 0 ? "border-blue-200 bg-blue-50" : ""}>
+                    <Card className={incidents['1month'].length > 0 ? "border-blue-200 bg-blue-50" : ""}>
                         <CardHeader className="pb-2">
                             <CardDescription className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-blue-600" />
                                 1 Month Pending
                             </CardDescription>
-                            <CardTitle className="text-3xl text-blue-600">{incidents1Month.length}</CardTitle>
+                            <CardTitle className="text-3xl text-blue-600">{incidents['1month'].length}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-xs text-muted-foreground">Final report due</p>
@@ -696,12 +886,12 @@ export default function NIS2IncidentReporting() {
                         <CardHeader className="pb-2">
                             <CardDescription className="flex items-center gap-2">
                                 <CheckCircle className="h-4 w-4 text-green-600" />
-                                Completed
+                                Total
                             </CardDescription>
-                            <CardTitle className="text-3xl text-green-600">{completedReports.length}</CardTitle>
+                            <CardTitle className="text-3xl text-green-600">{totalIncidents}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-xs text-muted-foreground">All reports sent</p>
+                            <p className="text-xs text-muted-foreground">Active incidents</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -714,9 +904,9 @@ export default function NIS2IncidentReporting() {
                                 <Activity className="h-4 w-4 mr-2" />
                                 Kanban Board
                             </TabsTrigger>
-                            <TabsTrigger value="list">
+                            <TabsTrigger value="table">
                                 <FileText className="h-4 w-4 mr-2" />
-                                Incident List
+                                Table View
                             </TabsTrigger>
                         </TabsList>
 
@@ -810,211 +1000,231 @@ export default function NIS2IncidentReporting() {
                                     <DialogFooter>
                                         <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                                         <Button onClick={() => {
+                                            reportMutation.mutate({
+                                                clientId,
+                                                ...newIncident,
+                                                detectedAt: new Date().toISOString(),
+                                            });
                                             toast.success('Incident reported successfully!');
                                             setIsDialogOpen(false);
+                                            setNewIncident({
+                                                title: '',
+                                                description: '',
+                                                severity: 'medium',
+                                                isSignificant: true,
+                                                crossBorderImpact: false,
+                                                cause: 'unknown',
+                                            });
                                         }}>Report Incident</Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+
+                            {/* Edit Incident Dialog */}
+                            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                                <DialogContent className="sm:max-w-[500px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Edit Incident</DialogTitle>
+                                        <DialogDescription>
+                                            Update incident details.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    {editingIncident && (
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="edit-title">Incident Title</Label>
+                                                <Input
+                                                    id="edit-title"
+                                                    value={editingIncident.title}
+                                                    onChange={(e) => setEditingIncident({ ...editingIncident, title: e.target.value })}
+                                                    placeholder="Brief description of the incident"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="edit-description">Description</Label>
+                                                <Textarea
+                                                    id="edit-description"
+                                                    value={editingIncident.description}
+                                                    onChange={(e) => setEditingIncident({ ...editingIncident, description: e.target.value })}
+                                                    placeholder="Detailed description of what happened"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>Severity</Label>
+                                                <Select
+                                                    value={editingIncident.severity}
+                                                    onValueChange={(v: any) => setEditingIncident({ ...editingIncident, severity: v })}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="low">Low</SelectItem>
+                                                        <SelectItem value="medium">Medium</SelectItem>
+                                                        <SelectItem value="high">High</SelectItem>
+                                                        <SelectItem value="critical">Critical</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="edit-significant"
+                                                    checked={editingIncident.isSignificant}
+                                                    onChange={(e) => setEditingIncident({ ...editingIncident, isSignificant: e.target.checked })}
+                                                    className="rounded"
+                                                />
+                                                <Label htmlFor="edit-significant" className="font-normal">
+                                                    This is a significant incident (NIS2 reportable)
+                                                </Label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="edit-crossBorder"
+                                                    checked={editingIncident.crossBorderImpact}
+                                                    onChange={(e) => setEditingIncident({ ...editingIncident, crossBorderImpact: e.target.checked })}
+                                                    className="rounded"
+                                                />
+                                                <Label htmlFor="edit-crossBorder" className="font-normal">
+                                                    Cross-border impact
+                                                </Label>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                                        <Button
+                                            onClick={() => {
+                                                if (editingIncident) {
+                                                    updateMutation.mutate({
+                                                        clientId,
+                                                        incidentId: editingIncident.id,
+                                                        title: editingIncident.title,
+                                                        description: editingIncident.description,
+                                                        severity: editingIncident.severity,
+                                                        isSignificant: editingIncident.isSignificant,
+                                                        crossBorderImpact: editingIncident.crossBorderImpact,
+                                                    }, {
+                                                        onSuccess: () => {
+                                                            toast.success('Incident updated successfully!');
+                                                            setIsEditDialogOpen(false);
+                                                            refetch();
+                                                        },
+                                                        onError: (err: any) => {
+                                                            toast.error(`Failed to update: ${err.message}`);
+                                                        }
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            Save Changes
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Button
+                                variant="outline"
+                                onClick={loadSampleData}
+                                disabled={reportMutation.isLoading}
+                            >
+                                Load Sample Data
+                            </Button>
                         </div>
                     </div>
 
-                    {/* Kanban Board View */}
+                    {/* Kanban Board */}
                     <TabsContent value="kanban" className="mt-0">
                         <DndContext
                             sensors={sensors}
                             collisionDetection={closestCorners}
                             onDragStart={handleDragStart}
-                            onDragEnd={handleDragEnd}
                             onDragOver={handleDragOver}
+                            onDragEnd={handleDragEnd}
                         >
                             <div className="grid gap-4 md:grid-cols-3">
-                                {COLUMNS.map((column) => {
-                                    const columnIncidents = getIncidentsByColumn(column.id);
-                                    const { setNodeRef, isOver } = useDroppable({ id: column.id });
-
-                                    // Get static classes based on column
-                                    const getColumnClasses = (colId: string) => {
-                                        switch (colId) {
-                                            case '24h': return 'bg-red-50 border-red-200';
-                                            case '72h': return 'bg-amber-50 border-amber-200';
-                                            case '1month': return 'bg-blue-50 border-blue-200';
-                                            default: return 'bg-gray-50 border-gray-200';
-                                        }
-                                    };
-
-                                    const getColumnTextClasses = (colId: string) => {
-                                        switch (colId) {
-                                            case '24h': return 'text-red-800';
-                                            case '72h': return 'text-amber-800';
-                                            case '1month': return 'text-blue-800';
-                                            default: return 'text-gray-800';
-                                        }
-                                    };
-
-                                    return (
-                                        <div
-                                            key={column.id}
-                                            ref={setNodeRef}
-                                            className={`${getColumnClasses(column.id)} rounded-lg p-4 border-2 ${isOver ? 'border-blue-400 border-dashed' : ''}`}
-                                        >
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="flex items-center gap-2">
-                                                    {column.icon}
-                                                    <h3 className={`font-semibold ${getColumnTextClasses(column.id)}`}>{column.title}</h3>
-                                                </div>
-                                                <Badge className={`${getColumnClasses(column.id)} ${getColumnTextClasses(column.id)}`}>
-                                                    {columnIncidents.length}
-                                                </Badge>
-                                            </div>
-                                            <p className={`text-xs ${getColumnTextClasses(column.id)} mb-4`}>
-                                                {column.description}
-                                            </p>
-                                            <SortableContext
-                                                items={columnIncidents.map(i => `incident-${i.id}`)}
-                                                strategy={verticalListSortingStrategy}
-                                            >
-                                                <div className="space-y-2 max-h-[500px] overflow-y-auto min-h-[200px]">
-                                                    {columnIncidents.length === 0 ? (
-                                                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-muted-foreground/20 rounded-lg">
-                                                            <p className="text-sm">Drop incidents here</p>
-                                                        </div>
-                                                    ) : (
-                                                        columnIncidents.map((incident: IncidentReport) => (
-                                                            <SortableKanbanCard
-                                                                key={incident.id}
-                                                                incident={incident}
-                                                                onSendWarning={() => handleSendEarlyWarning(incident.id)}
-                                                                onSendNotification={() => handleSendNotification(incident.id)}
-                                                                onSendFinal={() => handleSendFinalReport(incident.id)}
-                                                            />
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </SortableContext>
-                                        </div>
-                                    );
-                                })}
+                                {(Object.keys(incidents) as ColumnType[]).map((columnId) => (
+                                    <KanbanColumn
+                                        key={columnId}
+                                        id={columnId}
+                                        title={columnTitles[columnId]}
+                                        incidents={incidents[columnId]}
+                                        color={columnColors[columnId]}
+                                        onSendWarning={handleSendEarlyWarning}
+                                        onSendNotification={handleSendNotification}
+                                        onSendFinal={handleSendFinalReport}
+                                        onEdit={handleEditIncident}
+                                    />
+                                ))}
                             </div>
                             <DragOverlay>
                                 {activeId ? (
-                                    <DragOverlayCard incident={getActiveIncident()!} />
+                                    <IncidentCardOverlay incident={getActiveIncident()!} />
                                 ) : null}
                             </DragOverlay>
                         </DndContext>
                     </TabsContent>
 
-                    {/* List View */}
-                    <TabsContent value="list" className="mt-0">
+                    {/* Table View */}
+                    <TabsContent value="table" className="mt-0">
                         <Card>
                             <CardHeader>
-                                <CardTitle>All Significant Incidents</CardTitle>
-                                <CardDescription>
-                                    {showSignificantOnly
-                                        ? 'Showing NIS2 reportable incidents only'
-                                        : 'Showing all incidents including non-significant'}
-                                </CardDescription>
+                                <CardTitle>All Incidents</CardTitle>
+                                <CardDescription>List of all NIS2 significant incidents</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="overflow-x-auto">
+                                <div className="rounded-md border">
                                     <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b">
-                                                <th className="text-left py-3 px-4 font-medium">Incident</th>
-                                                <th className="text-left py-3 px-4 font-medium">Date</th>
-                                                <th className="text-left py-3 px-4 font-medium">Severity</th>
-                                                <th className="text-left py-3 px-4 font-medium">Status</th>
-                                                <th className="text-left py-3 px-4 font-medium">Deadline</th>
-                                                <th className="text-left py-3 px-4 font-medium">Actions</th>
+                                        <thead className="bg-muted/50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">Incident</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">Severity</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">Detected</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">Cross-border</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredIncidents.map((incident: IncidentReport) => {
-                                                const now = new Date();
-                                                const occurred = new Date(incident.dateOccurred);
-                                                const hoursSinceOccurrence = (now.getTime() - occurred.getTime()) / (1000 * 60 * 60);
-
-                                                const getDeadlineInfo = () => {
-                                                    if (!incident.isSignificant) return null;
-                                                    if (!incident.earlyWarningSent) {
-                                                        const hoursRemaining = 24 - hoursSinceOccurrence;
-                                                        return { overdue: hoursRemaining < 0, stage: '24h', remaining: hoursRemaining };
-                                                    }
-                                                    if (!incident.notificationSent) {
-                                                        const hoursRemaining = 72 - hoursSinceOccurrence;
-                                                        return { overdue: hoursRemaining < 0, stage: '72h', remaining: hoursRemaining };
-                                                    }
-                                                    if (!incident.finalReportSent) {
-                                                        const daysRemaining = 30 - (hoursSinceOccurrence / 24);
-                                                        return { overdue: daysRemaining < 0, stage: '1month', remaining: daysRemaining * 24 };
-                                                    }
-                                                    return null;
-                                                };
-                                                const deadlineInfo = getDeadlineInfo();
-
-                                                const getSeverityColor = (severity: string) => {
-                                                    switch (severity) {
-                                                        case 'critical': return 'bg-red-100 text-red-800';
-                                                        case 'high': return 'bg-orange-100 text-orange-800';
-                                                        case 'medium': return 'bg-amber-100 text-amber-800';
-                                                        default: return 'bg-slate-100 text-slate-800';
-                                                    }
-                                                };
-
-                                                return (
-                                                    <tr key={incident.id} className="border-b hover:bg-muted/50">
-                                                        <td className="py-3 px-4">
-                                                            <div>
-                                                                <p className="font-medium">{incident.title}</p>
-                                                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                                                    {incident.description}
-                                                                </p>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-3 px-4 text-sm">
-                                                            {new Date(incident.dateOccurred).toLocaleDateString()}
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            <span className={`px-2 py-1 rounded-full text-xs ${getSeverityColor(incident.severity)}`}>
-                                                                {incident.severity}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            {incident.status === 'detected' && <Badge variant="outline">Detected</Badge>}
-                                                            {incident.status === 'early_warning_sent' && <Badge className="bg-blue-100 text-blue-800">Early Warning</Badge>}
-                                                            {incident.status === 'notification_sent' && <Badge className="bg-purple-100 text-purple-800">72h Notified</Badge>}
-                                                            {incident.status === 'final_report_sent' && <Badge className="bg-green-100 text-green-800">Completed</Badge>}
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            {incident.isSignificant && deadlineInfo ? (
-                                                                deadlineInfo.overdue ? (
-                                                                    <Badge className="bg-red-100 text-red-800">
-                                                                        <XCircle className="h-3 w-3 mr-1" />
-                                                                        Overdue
-                                                                    </Badge>
-                                                                ) : deadlineInfo.stage === '1month' ? (
-                                                                    <Badge className="bg-blue-100 text-blue-800">
-                                                                        {Math.round(deadlineInfo.remaining / 24)} days left
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge className="bg-amber-100 text-amber-800">
-                                                                        {Math.round(deadlineInfo.remaining)}h left
-                                                                    </Badge>
-                                                                )
-                                                            ) : (
-                                                                <span className="text-muted-foreground">-</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            <div className="flex gap-2">
-                                                                <Button size="sm" variant="ghost">
-                                                                    <Eye className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
+                                            {Object.values(incidents).flat().map((incident) => (
+                                                <tr key={incident.id} className="border-t hover:bg-muted/30">
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-medium">{incident.title}</div>
+                                                        <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                                            {incident.description}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge className={`${incident.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                                                            incident.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                                                                incident.severity === 'medium' ? 'bg-amber-100 text-amber-800' :
+                                                                    'bg-slate-100 text-slate-800'
+                                                            }`}>
+                                                            {incident.severity}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant="outline">
+                                                            {incident.status === 'detected' ? '24h Pending' :
+                                                                incident.status === 'early_warning_sent' ? '72h Pending' :
+                                                                    incident.status === 'notification_sent' ? '1 Month' : 'Closed'}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm">
+                                                        {new Date(incident.dateOccurred).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {incident.crossBorderImpact ? (
+                                                            <Badge variant="secondary">
+                                                                <Globe className="h-3 w-3 mr-1" />
+                                                                Yes
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">-</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1022,8 +1232,9 @@ export default function NIS2IncidentReporting() {
                         </Card>
                     </TabsContent>
                 </Tabs>
-            </div>
-        </DashboardLayout>
+            </div >
+        </DashboardLayout >
     );
 }
+
 
