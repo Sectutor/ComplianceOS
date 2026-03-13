@@ -205,50 +205,7 @@ export default function NIS2CyberResilienceHub() {
                     </div>
                 </div>
 
-                {/* Quick Links */}
-                <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="border-purple-200 bg-purple-50/50">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <Building2 className="h-5 w-5 text-purple-600" />
-                                <div>
-                                    <CardTitle>Entity Classification</CardTitle>
-                                    <CardDescription>Determine your NIS2 entity type</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={() => setLocation(`/clients/${clientId}/nis2/entity-classification`)}
-                            >
-                                Start Classification Wizard
-                            </Button>
-                        </CardContent>
-                    </Card>
 
-                    <Card className="border-amber-200 bg-amber-50/50">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <FileText className="h-5 w-5 text-amber-600" />
-                                <div>
-                                    <CardTitle>Audit Documentation</CardTitle>
-                                    <CardDescription>Generate compliance bundle</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={() => setLocation(`/clients/${clientId}/nis2/audit-bundle`)}
-                            >
-                                Generate Audit Bundle
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
             </div>
         </DashboardLayout>
     );
