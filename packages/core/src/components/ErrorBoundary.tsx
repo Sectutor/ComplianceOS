@@ -16,11 +16,27 @@ class ErrorBoundary extends Component<Props, State> {
     };
 
     public static getDerivedStateFromError(error: Error): State {
+        // If it's a chunk loading error, we might want to reload immediately
+        const isChunkError = 
+            error.name === 'ChunkLoadError' || 
+            error.message?.includes('Failed to fetch dynamically imported module') ||
+            error.message?.includes('error loading dynamically imported module');
+        
         return { hasError: true, error };
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error("Uncaught error:", error, errorInfo);
+        
+        const isChunkError = 
+            error.name === 'ChunkLoadError' || 
+            error.message?.includes('Failed to fetch dynamically imported module') ||
+            error.message?.includes('error loading dynamically imported module');
+
+        if (isChunkError) {
+            console.warn("Chunk load error detected, reloading page...");
+            window.location.reload();
+        }
     }
 
     public render() {

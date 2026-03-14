@@ -464,9 +464,7 @@ function AssetInventoryTable({
                             <SortableHeader label="Owner" sortKey="owner" />
                             <SortableHeader label="Location" sortKey="location" />
                             <SortableHeader label="Status" sortKey="status" />
-                            <SortableHeader label="CUI Scope" sortKey="cuiScope" />
                             <SortableHeader label="Risks" sortKey="riskCount" />
-                            <SortableHeader label="Vulnerabilities" sortKey="vulnerabilityCount" />
                             <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                 Actions
                             </th>
@@ -476,7 +474,7 @@ function AssetInventoryTable({
                         {sortedAssets.map((asset) => (
                             <tr
                                 key={asset.id}
-                                className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
+                                className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
                                 onDoubleClick={() => onEdit(asset)}
                             >
                                 <td className="px-6 py-4 text-sm font-mono text-gray-500">#{asset.id}</td>
@@ -562,26 +560,6 @@ function AssetInventoryTable({
                                         {asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : 'Active'}
                                     </span>
                                 </td>
-                                {/* CUI Scope Badge */}
-                                <td className="px-6 py-4 text-sm">
-                                    {asset.cuiScope ? (
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 cursor-default">
-                                                    <ShieldCheck className="w-3 h-3 mr-1" />
-                                                    CUI
-                                                </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                                <p className="font-semibold text-xs">In CUI Enclave</p>
-                                                {asset.cuiCategory && <p className="text-xs mt-0.5">{asset.cuiCategory}</p>}
-                                                {asset.cuiJustification && <p className="text-xs text-muted-foreground mt-0.5">{asset.cuiJustification}</p>}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    ) : (
-                                        <span className="text-gray-400 text-xs">—</span>
-                                    )}
-                                </td>
                                 <td className="px-6 py-4 text-sm">
                                     <span
                                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:bg-opacity-80 transition-colors ${asset.riskCount > 0 ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}
@@ -591,11 +569,6 @@ function AssetInventoryTable({
                                         }}
                                     >
                                         {asset.riskCount || 0} Risks
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-sm">
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${asset.vulnerabilityCount > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
-                                        {asset.vulnerabilityCount || 0} Vulns
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
