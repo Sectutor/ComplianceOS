@@ -164,7 +164,7 @@ export default function RiskVulnerabilitiesPage() {
         const isSorted = sortConfig?.key === sortKey;
         return (
             <th
-                className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-white/10 transition-colors select-none group"
+                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-[#3ABEF9] transition-colors select-none group"
                 onClick={() => handleSort(sortKey)}
             >
                 <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export default function RiskVulnerabilitiesPage() {
                     {isSorted ? (
                         sortConfig?.direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
                     ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
                     )}
                 </div>
             </th>
@@ -266,7 +266,7 @@ export default function RiskVulnerabilitiesPage() {
                                     paginatedVulns.map((vuln) => (
                                         <tr
                                             key={vuln.id}
-                                            className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
+                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
                                             onDoubleClick={() => handleEditVuln(vuln)}
                                         >
                                             <td className="px-6 py-4 text-sm font-mono text-gray-500">{vuln.vulnerabilityId}</td>

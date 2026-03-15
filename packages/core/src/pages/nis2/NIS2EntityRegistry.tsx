@@ -413,22 +413,23 @@ export default function NIS2EntityRegistry() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Entity</TableHead>
-                                    <TableHead>Country</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Sector</TableHead>
-                                    <TableHead>Competent Authority</TableHead>
-                                    <TableHead>Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredRegistrations.map((reg) => {
-                                    const country = EU_COUNTRIES.find(c => c.code === reg.countryCode);
-                                    return (
-                                        <TableRow key={reg.id}>
+                        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D]">
+                                        <TableHead className="text-white font-semibold">Entity</TableHead>
+                                        <TableHead className="text-white font-semibold">Country</TableHead>
+                                        <TableHead className="text-white font-semibold">Type</TableHead>
+                                        <TableHead className="text-white font-semibold">Sector</TableHead>
+                                        <TableHead className="text-white font-semibold">Competent Authority</TableHead>
+                                        <TableHead className="text-white font-semibold">Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredRegistrations.map((reg) => {
+                                        const country = EU_COUNTRIES.find(c => c.code === reg.countryCode);
+                                        return (
+                                            <TableRow key={reg.id} className="bg-sky-50 border-b border-sky-100 transition-all hover:bg-sky-100 hover:shadow-sm cursor-pointer group">
                                             <TableCell>
                                                 <div>
                                                     <p className="font-medium">{reg.entityName}</p>
@@ -459,8 +460,9 @@ export default function NIS2EntityRegistry() {
                                 })}
                             </TableBody>
                         </Table>
-                    </CardContent>
-                </Card>
+                    </div>
+                </CardContent>
+            </Card>
             </div>
         </DashboardLayout>
     );

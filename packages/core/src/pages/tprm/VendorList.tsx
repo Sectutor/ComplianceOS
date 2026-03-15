@@ -327,17 +327,17 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
                         </div>
                     ) : (
-                        <div className="rounded-md border bg-white">
+                        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Category</TableHead>
-                                        <TableHead>Trust Score</TableHead>
-                                        <TableHead>Risk Level</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Source</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                        <TableHead className="text-white font-bold h-12">Name</TableHead>
+                                        <TableHead className="text-white font-bold h-12">Category</TableHead>
+                                        <TableHead className="text-white font-bold h-12">Trust Score</TableHead>
+                                        <TableHead className="text-white font-bold h-12">Risk Level</TableHead>
+                                        <TableHead className="text-white font-bold h-12">Status</TableHead>
+                                        <TableHead className="text-white font-bold h-12">Source</TableHead>
+                                        <TableHead className="text-right text-white font-bold h-12">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -349,7 +349,11 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                         </TableRow>
                                     )}
                                     {filteredVendors?.map(({ vendor }: { vendor: any }) => (
-                                        <TableRow key={vendor.id} className="hover:bg-slate-50 transition-all cursor-pointer" onClick={() => window.location.href = `/clients/${clientId}/vendors/${vendor.id}`}>
+                                        <TableRow 
+                                            key={vendor.id} 
+                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer" 
+                                            onClick={() => window.location.href = `/clients/${clientId}/vendors/${vendor.id}`}
+                                        >
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-10 w-10 rounded-xl bg-[#1C4D8D]/10 flex items-center justify-center text-[#1C4D8D] font-bold text-sm uppercase border border-[#1C4D8D]/10 shadow-sm">

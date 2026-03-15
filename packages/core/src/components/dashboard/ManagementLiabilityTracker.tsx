@@ -289,20 +289,20 @@ export function ManagementLiabilityTracker({ clientId }: ManagementLiabilityTrac
                 {/* Management Members Table */}
                 <div>
                     <h4 className="font-semibold text-slate-900 mb-3">Management Team</h4>
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                         <Table>
-                            <TableHeader className="bg-slate-50">
-                                <TableRow>
-                                    <TableHead className="font-semibold">Name</TableHead>
-                                    <TableHead className="font-semibold">Role</TableHead>
-                                    <TableHead className="font-semibold">Training</TableHead>
-                                    <TableHead className="font-semibold">Last Oversight</TableHead>
-                                    <TableHead className="font-semibold">Actions</TableHead>
+                            <TableHeader>
+                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D]">
+                                    <TableHead className="text-white font-semibold">Name</TableHead>
+                                    <TableHead className="text-white font-semibold">Role</TableHead>
+                                    <TableHead className="text-white font-semibold">Training</TableHead>
+                                    <TableHead className="text-white font-semibold">Last Oversight</TableHead>
+                                    <TableHead className="text-white font-semibold">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {managementMembers.map((member) => (
-                                    <TableRow key={member.id} className="hover:bg-slate-50/50">
+                                    <TableRow key={member.id} className="bg-sky-50 border-b border-sky-100 transition-all hover:bg-sky-100 hover:shadow-sm cursor-pointer group">
                                         <TableCell className="font-medium">
                                             <div>
                                                 <div className="text-slate-900">{member.name}</div>

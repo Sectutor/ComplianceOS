@@ -123,41 +123,42 @@ export default function CyberIncidentsPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader className="bg-slate-50/50">
-                            <TableRow className="hover:bg-transparent border-0">
-                                <TableHead className="font-bold text-slate-700 h-14 pl-6 w-32">Severity</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Incident / ID</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Status</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Detected</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Reporter</TableHead>
-                                <TableHead className="text-right font-bold text-slate-700 h-14 pr-6">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-12">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <Loader2 className="h-8 w-8 text-[#3ABEF9] animate-spin" />
-                                            <p className="text-sm font-bold text-slate-500">Retrieving incident logs...</p>
-                                        </div>
-                                    </TableCell>
+                    <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-0">
+                                    <TableHead className="text-white font-bold h-14 pl-6 w-32">Severity</TableHead>
+                                    <TableHead className="text-white font-bold h-14">Incident / ID</TableHead>
+                                    <TableHead className="text-white font-bold h-14">Status</TableHead>
+                                    <TableHead className="text-white font-bold h-14">Detected</TableHead>
+                                    <TableHead className="text-white font-bold h-14">Reporter</TableHead>
+                                    <TableHead className="text-white text-right font-bold h-14 pr-6">Actions</TableHead>
                                 </TableRow>
-                            ) : incidents?.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-12">
-                                        <p className="text-sm font-bold text-slate-400">No security incidents recorded.</p>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                incidents?.map((incident, idx) => (
-                                    <TableRow
-                                        key={incident.id}
-                                        className="hover:bg-slate-50/80 transition-colors group border-b border-slate-100 last:border-0"
-                                        style={{ animationDelay: `${idx * 50}ms` }}
-                                    >
-                                        <TableCell className="pl-6">
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-12">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <Loader2 className="h-8 w-8 text-[#3ABEF9] animate-spin" />
+                                                <p className="text-sm font-bold text-slate-500">Retrieving incident logs...</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : incidents?.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-12">
+                                            <p className="text-sm font-bold text-slate-400">No security incidents recorded.</p>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    incidents?.map((incident, idx) => (
+                                        <TableRow
+                                            key={incident.id}
+                                            className="bg-sky-50 border-b border-sky-100 transition-all hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
+                                            style={{ animationDelay: `${idx * 50}ms` }}
+                                        >
+                                            <TableCell className="pl-6 font-medium">
                                             <Badge className={cn(
                                                 "font-bold px-3 py-1 rounded-full uppercase tracking-widest text-[10px]",
                                                 incident.severity === 'critical' ? "bg-red-500 text-white" :
@@ -204,8 +205,9 @@ export default function CyberIncidentsPage() {
                             )}
                         </TableBody>
                     </Table>
-                </CardContent>
-            </Card>
+                </div>
+            </CardContent>
+        </Card>
         </div>
     );
 }

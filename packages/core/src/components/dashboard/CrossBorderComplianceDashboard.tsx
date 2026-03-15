@@ -418,24 +418,24 @@ export function CrossBorderComplianceDashboard({ clientId }: CrossBorderComplian
                         </div>
                     </div>
 
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                         <Table>
-                            <TableHeader className="bg-slate-50">
-                                <TableRow>
-                                    <TableHead className="font-semibold">Country</TableHead>
-                                    <TableHead className="font-semibold">Entity</TableHead>
-                                    <TableHead className="font-semibold">Type</TableHead>
-                                    <TableHead className="font-semibold">Competent Authority</TableHead>
-                                    <TableHead className="font-semibold">Compliance</TableHead>
-                                    <TableHead className="font-semibold">Status</TableHead>
-                                    <TableHead className="font-semibold">Actions</TableHead>
+                            <TableHeader>
+                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D]">
+                                    <TableHead className="text-white font-semibold">Country</TableHead>
+                                    <TableHead className="text-white font-semibold">Entity</TableHead>
+                                    <TableHead className="text-white font-semibold">Type</TableHead>
+                                    <TableHead className="text-white font-semibold">Competent Authority</TableHead>
+                                    <TableHead className="text-white font-semibold">Compliance</TableHead>
+                                    <TableHead className="text-white font-semibold">Status</TableHead>
+                                    <TableHead className="text-white font-semibold">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredRegistrations.map((reg) => {
                                     const authority = getCompetentAuthorityInfo(reg.countryCode);
                                     return (
-                                        <TableRow key={reg.id} className="hover:bg-slate-50/50">
+                                        <TableRow key={reg.id} className="bg-sky-50 border-b border-sky-100 transition-all hover:bg-sky-100 hover:shadow-sm cursor-pointer group">
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     <MapPin className="h-4 w-4 text-slate-400" />

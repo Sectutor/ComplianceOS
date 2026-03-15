@@ -291,7 +291,7 @@ export default function RiskThreatsPage() {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody>
                                 {isLoading ? (
                                     <tr><td colSpan={10} className="p-8 text-center text-gray-500 bg-white">Loading threats...</td></tr>
                                 ) : paginatedThreats.length === 0 ? (
@@ -300,7 +300,7 @@ export default function RiskThreatsPage() {
                                     paginatedThreats.map((threat) => (
                                         <tr
                                             key={threat.id}
-                                            className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
+                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
                                             onDoubleClick={() => handleEditThreat(threat)}
                                         >
                                             <td className="px-6 py-4 text-sm font-mono text-gray-500">{threat.threatId}</td>

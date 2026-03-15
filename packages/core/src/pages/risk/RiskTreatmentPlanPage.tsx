@@ -230,7 +230,7 @@ export default function RiskTreatmentPlanPage() {
                                 </TableRow>
                             ) : (
                                 paginatedTreatments.map((treatment) => (
-                                    <TableRow key={treatment.id} className="group">
+                                    <TableRow key={treatment.id} className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group">
                                         <TableCell className="align-top py-4">
                                             <div className="space-y-1">
                                                 <div className="font-medium text-slate-900 line-clamp-2">{treatment.strategy}</div>

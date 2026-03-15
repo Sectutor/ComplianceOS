@@ -77,7 +77,7 @@ export default function CallTreeManager() {
                                         <TableBody>
                                             {isLoading && <TableRow><TableCell colSpan={3} className="bg-white text-gray-500">Loading...</TableCell></TableRow>}
                                             {contacts?.internal.map((user: any) => (
-                                                <TableRow key={user.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm">
+                                                <TableRow key={user.id} className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm">
                                                     <TableCell className="font-medium py-4">
                                                         <div className="flex items-center gap-2 text-black">
                                                             <User className="h-4 w-4 text-slate-500" />
@@ -123,7 +123,7 @@ export default function CallTreeManager() {
                                             {isLoading && <TableRow><TableCell colSpan={4} className="bg-white text-gray-500">Loading...</TableCell></TableRow>}
                                             {contacts?.external.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-4 text-gray-500 bg-white">No vendor contacts found.</TableCell></TableRow>}
                                             {contacts?.external.map((contact: any) => (
-                                                <TableRow key={contact.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm">
+                                                <TableRow key={contact.id} className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm">
                                                     <TableCell className="font-medium text-black py-4">{contact.name}</TableCell>
                                                     <TableCell className="text-gray-600 py-4">{contact.role || '-'}</TableCell>
                                                     <TableCell className="py-4">

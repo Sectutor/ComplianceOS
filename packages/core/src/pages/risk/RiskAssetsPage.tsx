@@ -3,7 +3,7 @@ import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Database, Search, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, Filter, Trash2, Edit } from 'lucide-react';
+import { Plus, Database, ArrowLeft, Zap, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { AddAssetDialog } from '@/components/risk/AddAssetDialog';
 import { Button } from '@complianceos/ui/ui/button';
@@ -55,31 +55,18 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
     });
 
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
-    const [cuiFilterActive, setCuiFilterActive] = useState(false);
 
-    const cuiStats = useMemo(() => {
-        if (!assets) return { total: 0, inScope: 0, outScope: 0 };
-        const inScope = assets.filter((a: any) => a.cuiScope).length;
-        return { total: assets.length, inScope, outScope: assets.length - inScope };
-    }, [assets]);
-
-    // Apply CUI filter first, then pagination
-    const filteredAssets = useMemo(() => {
-        if (!assets) return [];
-        if (cuiFilterActive) return assets.filter((a: any) => a.cuiScope);
-        return assets;
-    }, [assets, cuiFilterActive]);
 
     // Pagination
     const pagination = usePagination({
-        totalItems: filteredAssets.length,
+        totalItems: assets?.length || 0,
         pageSize: DEFAULT_PAGE_SIZE,
     });
 
     // Get paginated items
     const displayedAssets = useMemo(() => {
-        return pagination.getPageItems(filteredAssets);
-    }, [filteredAssets, pagination]);
+        return pagination.getPageItems(assets || []);
+    }, [assets, pagination]);
 
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -243,28 +230,7 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
                 </div>
             </div>
 
-            {/* CUI Enclave Summary Banner */}
-            {cuiStats.inScope > 0 && (
-                <div className="flex items-center gap-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                    <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                    <div className="flex-1">
-                        <p className="text-sm font-semibold text-blue-800">
-                            CUI Boundary: <span className="text-blue-600">{cuiStats.inScope}</span> of {cuiStats.total} assets in scope
-                        </p>
-                        <p className="text-xs text-blue-600/70">Assets marked as storing, processing, or transmitting Controlled Unclassified Information</p>
-                    </div>
-                    <button
-                        onClick={() => setCuiFilterActive(!cuiFilterActive)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${cuiFilterActive
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
-                            }`}
-                    >
-                        <Filter className="w-3 h-3" />
-                        {cuiFilterActive ? 'Show All' : 'Show CUI Only'}
-                    </button>
-                </div>
-            )}
+
 
             <div id="asset-inventory-table" className="bg-card rounded-xl border shadow-sm min-h-[400px]">
                 <AssetInventoryTable
@@ -279,7 +245,7 @@ export default function RiskAssetsPage({ hideLayout = false, hideBreadcrumb = fa
                 <Pagination
                     currentPage={pagination.pagination.page}
                     totalPages={pagination.totalPages}
-                    totalItems={filteredAssets.length}
+                    totalItems={assets?.length || 0}
                     startIndex={pagination.startIndex}
                     endIndex={pagination.endIndex}
                     pageSize={pagination.pagination.pageSize}

@@ -730,7 +730,6 @@ function DashboardLayoutContent({
         items: [
           { icon: ShieldCheck, label: "Overview", path: "/cyber" },
           { icon: Building2, label: "Cyber Resilience Hub", path: `/clients/${persistentClientId}/nis2` },
-          { icon: ClipboardCheck, label: "Assessment", path: `/clients/${persistentClientId}/nis2/assessment` },
           { icon: Shield, label: "Security Measures", path: `/clients/${persistentClientId}/nis2/security-measures` },
           { icon: AlertTriangle, label: "Incident Reporting", path: `/clients/${persistentClientId}/nis2/incident-reporting` },
           { icon: Building2, label: "Entity Registry", path: `/clients/${persistentClientId}/nis2/entity-registry` },

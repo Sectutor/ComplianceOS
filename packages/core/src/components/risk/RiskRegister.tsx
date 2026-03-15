@@ -335,7 +335,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
     // Sortable header component
     const SortableHeader = ({ field, children, className = '' }: { field: SortField; children: React.ReactNode; className?: string }) => (
         <th
-            className={`px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 select-none transition-colors ${className}`}
+            className={`px-4 py-3 text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-white/10 transition-colors select-none group ${className}`}
             onClick={() => handleSort(field)}
         >
             <div className="flex items-center gap-1 justify-center">
@@ -343,7 +343,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                 {sortField === field ? (
                     sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                 ) : (
-                    <ArrowUpDown className="w-3 h-3 opacity-40" />
+                    <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
                 )}
             </div>
         </th>
@@ -452,11 +452,11 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             </div>
 
             {/* Table */}
-            <div className="rounded-xl border border-slate-200 shadow-2xl overflow-hidden bg-white m-4">
+            <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white m-4">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1200px] table-fancy">
+                    <table className="w-full min-w-[1200px]">
                         <thead>
-                            <tr className="border-none">
+                            <tr className="bg-[#1C4D8D]">
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
                                 <SortableHeader field="assessmentId" className="text-left text-white">Risk ID</SortableHeader>
                                 <SortableHeader field="threatDescription" className="text-left max-w-[250px] text-white">Description</SortableHeader>
@@ -471,7 +471,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                 <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider min-w-[120px]">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border">
+                        <tbody>
                             {paginatedRisks.length === 0 ? (
                                 <tr>
                                     <td colSpan={13} className="px-4 py-12 text-center bg-white">
@@ -484,7 +484,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                     <React.Fragment key={risk.id}>
                                         {/* Main Row */}
                                         <tr
-                                            className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 cursor-pointer group"
+                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
                                             onDoubleClick={() => onEditRisk(risk)}
                                             title="Double-click to edit"
                                         >

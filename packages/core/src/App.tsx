@@ -77,7 +77,6 @@ const NIS2ManagementLiability = lazyLoad(() => import("./pages/nis2/NIS2Manageme
 const NIS2CrossBorderCompliance = lazyLoad(() => import("./pages/nis2/NIS2CrossBorderCompliance"));
 const NIS2AuditBundle = lazyLoad(() => import("./pages/nis2/NIS2AuditBundle"));
 const NIS2SecurityMeasures = lazyLoad(() => import("./pages/nis2/NIS2SecurityMeasures"));
-const NIS2Assessment = lazyLoad(() => import("./pages/nis2/NIS2Assessment"));
 const NIS2IncidentReporting = lazyLoad(() => import("./pages/nis2/NIS2IncidentReporting"));
 const NIS2EntityRegistry = lazyLoad(() => import("./pages/nis2/NIS2EntityRegistry"));
 const NIS2SupplyChainSecurity = lazyLoad(() => import("./pages/nis2/NIS2SupplyChainSecurity"));
@@ -622,14 +621,7 @@ function CyberAlias() {
   return <Redirect to="/clients" />;
 }
 
-function NIS2AssessmentAlias() {
-  const { selectedClientId } = useClientContext();
 
-  if (selectedClientId) {
-    return <Redirect to={`/clients/${selectedClientId}/nis2-assessment`} />;
-  }
-  return <Redirect to="/clients" />;
-}
 
 
 
@@ -997,9 +989,6 @@ function Router() {
         </Route>
         <Route path="/clients/:id/nis2/security-measures">
           {(_params) => <ProtectedRoute component={NIS2SecurityMeasures} />}
-        </Route>
-        <Route path="/clients/:id/nis2/assessment">
-          {(_params) => <ProtectedRoute component={NIS2Assessment} />}
         </Route>
         <Route path="/clients/:id/nis2/incident-reporting">
           {(_params) => <ProtectedRoute component={NIS2IncidentReporting} />}

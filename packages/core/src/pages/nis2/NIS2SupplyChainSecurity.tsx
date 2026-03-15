@@ -444,21 +444,22 @@ export default function NIS2SupplyChainSecurity() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Vendor</TableHead>
-                                    <TableHead>Sector</TableHead>
-                                    <TableHead>Criticality</TableHead>
-                                    <TableHead>NIS2</TableHead>
-                                    <TableHead>Security Score</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Last Assessment</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredVendors.map((vendor) => (
-                                    <TableRow key={vendor.id}>
+                        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D]">
+                                        <TableHead className="text-white font-semibold">Vendor</TableHead>
+                                        <TableHead className="text-white font-semibold">Sector</TableHead>
+                                        <TableHead className="text-white font-semibold">Criticality</TableHead>
+                                        <TableHead className="text-white font-semibold">NIS2</TableHead>
+                                        <TableHead className="text-white font-semibold">Security Score</TableHead>
+                                        <TableHead className="text-white font-semibold">Status</TableHead>
+                                        <TableHead className="text-white font-semibold">Last Assessment</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredVendors.map((vendor) => (
+                                        <TableRow key={vendor.id} className="bg-sky-50 border-b border-sky-100 transition-all hover:bg-sky-100 hover:shadow-sm cursor-pointer group">
                                         <TableCell>
                                             <div>
                                                 <p className="font-medium">{vendor.name}</p>
@@ -495,8 +496,9 @@ export default function NIS2SupplyChainSecurity() {
                                 ))}
                             </TableBody>
                         </Table>
-                    </CardContent>
-                </Card>
+                    </div>
+                </CardContent>
+            </Card>
             </div>
         </DashboardLayout>
     );
