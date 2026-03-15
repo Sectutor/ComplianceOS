@@ -40,7 +40,9 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           'NIS2': ['ISO 27001', 'ISO 27001:2022', 'NIST CSF', 'SOC 2', 'PCI DSS', 'NIS2'],
           'ISO 27001': ['ISO 27001', 'ISO 27001:2022'],
           'GDPR': ['GDPR'],
-          'SOC2': ['SOC 2']
+          'SOC2': ['SOC 2'],
+          'PCI DSS': ['PCI DSS'],
+          'NIST CSF': ['NIST CSF']
         };
 
         if (!ctx?.user) {
