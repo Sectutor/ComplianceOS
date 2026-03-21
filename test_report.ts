@@ -1,30 +1,18 @@
-import 'dotenv/config';
-import { getDb } from './packages/core/src/db';
 
-async function testReport() {
+const { generateGapAnalysisReport } = require('./packages/core/src/lib/reporting');
+const fs = require('fs');
+
+async function test() {
     try {
-        console.log('[Test] Starting report generation test...');
-
-        const { generateCustomProfessionalReport, generateCustomProfessionalReportDOCX } = await import('./packages/core/src/lib/reporting');
-
-        console.log('[Test] Imported functions successfully');
-        console.log('[Test] generateCustomProfessionalReport:', typeof generateCustomProfessionalReport);
-        console.log('[Test] generateCustomProfessionalReportDOCX:', typeof generateCustomProfessionalReportDOCX);
-
-        console.log('[Test] Calling PDF generator...');
-        const buffer = await generateCustomProfessionalReport(3, {
-            title: 'Test Report',
-            sections: ['executive_summary'],
-            branding: {}
-        });
-
-        console.log('[Test] SUCCESS! Buffer length:', buffer.length);
-    } catch (error: any) {
-        console.error('[Test] FATAL ERROR:', error.message);
-        console.error('[Test] Stack:', error.stack);
+        console.log('Starting report generation for client 3...');
+        const buffer = await generateGapAnalysisReport(3);
+        console.log('Success! Buffer size:', buffer.length);
+        fs.writeFileSync('test_report.pdf', buffer);
+    } catch (err) {
+        console.error('Error during report generation:', err);
+    } finally {
+        process.exit(0);
     }
-
-    process.exit(0);
 }
 
-testReport();
+test();

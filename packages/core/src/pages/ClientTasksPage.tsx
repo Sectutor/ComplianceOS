@@ -257,21 +257,19 @@ export default function ClientTasksPage() {
                 </div>
 
                 {/* Task Board */}
-                <Card id="tasks-table-board" className="border shadow-lg rounded-xl overflow-hidden bg-white">
-                    <CardHeader className="pb-3 border-b bg-white">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg text-black">Active Tasks</CardTitle>
-                                <CardDescription>
-                                    Double-click a task to view details and manage.
-                                </CardDescription>
-                            </div>
+                <div id="tasks-table-board" className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                    <div className="bg-[#1C4D8D] px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-white">Active Tasks</h3>
+                            <p className="text-white/70 text-sm">
+                                Double-click a task to view details and manage.
+                            </p>
                         </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <Table className="table-fancy">
+                    </div>
+                    <div className="overflow-x-auto">
+                        <Table className="min-w-full">
                             <TableHeader>
-                                <TableRow className="border-none">
+                                <TableRow className="bg-[#1C4D8D]">
                                     <TableHead className="w-[400px] text-white font-semibold py-4">Task Details</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Source</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Assignee</TableHead>
@@ -301,7 +299,7 @@ export default function ClientTasksPage() {
                                     filteredTasks.map((task: any) => (
                                         <TableRow
                                             key={task.id}
-                                            className="bg-white border-b border-slate-200 hover:bg-slate-50 cursor-pointer transition-all duration-200 hover:shadow-sm group"
+                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
                                             onDoubleClick={() => handleDoubleClick(task)}
                                         >
                                             <TableCell className="py-4">
@@ -369,8 +367,8 @@ export default function ClientTasksPage() {
                                 )}
                             </TableBody>
                         </Table>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
 
                 {/* Create Task Dialog using Sheet for consistency */}
                 <Sheet open={isCreateOpen} onOpenChange={setIsCreateOpen}>

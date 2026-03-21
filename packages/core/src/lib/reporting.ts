@@ -4,7 +4,7 @@ import { PassThrough } from 'stream';
 import { getDb } from '../db';
 import * as schema from '../schema';
 import { clients, controls, clientControls, clientPolicies, evidence, reportLogs } from '../schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, or, like } from 'drizzle-orm';
 // import { nis2 } from '../data/regulations/nis2';
 // import { dora } from '../data/regulations/dora';
 // import { gdpr } from '../data/regulations/gdpr';
@@ -27,92 +27,312 @@ export async function generateGapAnalysisReport(clientId: number): Promise<Buffe
     const [client] = await dbConn.select().from(clients).where(eq(clients.id, clientId)).limit(1);
     if (!client) throw new Error("Client not found");
 
-    // Fetch stats
+    // Fetch ISO 27001 controls specifically
     const allClientControls = await dbConn.select({
         id: clientControls.id,
         status: clientControls.status,
+        applicability: clientControls.applicability,
+        justification: clientControls.justification,
+        implementationNotes: clientControls.implementationNotes,
         control: {
+            id: controls.id,
             controlId: controls.controlId,
             name: controls.name,
-            framework: controls.framework
+            description: controls.description,
+            framework: controls.framework,
+            category: controls.category
         }
     })
         .from(clientControls)
         .leftJoin(controls, eq(clientControls.controlId, controls.id))
-        .where(eq(clientControls.clientId, clientId));
+        .where(and(
+            eq(clientControls.clientId, clientId),
+            or(
+                eq(controls.framework, "ISO 27001:2022"),
+                eq(controls.framework, "ISO 27001")
+            )
+        ));
 
     const totalControls = allClientControls.length;
     const implemented = allClientControls.filter((c: any) => c.status === 'implemented').length;
     const inProgress = allClientControls.filter((c: any) => c.status === 'in_progress').length;
-    const score = totalControls > 0 ? Math.round((implemented / totalControls) * 100) : 0;
+    const notImplemented = allClientControls.filter((c: any) => c.status === 'not_implemented' && c.applicability === 'applicable').length;
+    const notApplicable = allClientControls.filter((c: any) => c.applicability === 'not_applicable').length;
 
-    // Create PDF
-    const doc = new PDFDocument();
+    // Calculate weighted compliance score (in-progress counts as 50%)
+    const applicableControls = totalControls - notApplicable;
+    const score = applicableControls > 0
+        ? Math.round(((implemented + (inProgress * 0.5)) / applicableControls) * 100)
+        : 0;
+
+    // Group controls by category
+    const controlsByCategory: Record<string, any[]> = {};
+    allClientControls.forEach((c: any) => {
+        const category = c.control?.category || "Other";
+        if (!controlsByCategory[category]) {
+            controlsByCategory[category] = [];
+        }
+        controlsByCategory[category].push(c);
+    });
+
+    // Get gaps (not implemented and applicable)
+    const gaps = allClientControls.filter((c: any) =>
+        c.status === 'not_implemented' && c.applicability === 'applicable'
+    );
+
+    // Create PDF with page buffering for global footer
+    const doc = new PDFDocument({
+        margin: 50
+    });
     const buffers: Buffer[] = [];
 
     doc.on('data', buffers.push.bind(buffers));
 
-    // 1. Header
-    doc.fontSize(25).text('Compliance Gap Analysis Report', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(16).text(`Client: ${client.name}`, { align: 'center' });
-    doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'center' });
-    doc.moveDown(2);
 
-    // 2. Executive Summary
-    doc.fontSize(18).text('Executive Summary');
-    doc.moveDown();
-    doc.fontSize(12).text(`Overall Compliance Score: ${score}%`);
-    doc.text(`Total Controls: ${totalControls}`);
-    doc.text(`Implemented: ${implemented}`);
-    doc.text(`In Progress: ${inProgress}`);
-    doc.moveDown(2);
-
-    // 3. Regulation Breakdown
-    doc.fontSize(18).text('Regulation Breakdown');
-    doc.moveDown();
-
-    const verifyRegulation = (name: string, articleCount: number) => {
-        doc.fontSize(14).text(name);
-        doc.fontSize(12).text(`Estimated Readiness: ${Math.max(0, score - Math.floor(Math.random() * 10))}%`);
-        doc.text(`Articles Analyzed: ${articleCount}`);
-        doc.moveDown();
+    // Helper for status badge
+    const getStatusColor = (status: string) => {
+        if (status === 'implemented') return '#10b981';
+        if (status === 'in_progress') return '#f59e0b';
+        return '#ef4444';
     };
 
-    // verifyRegulation('NIS2 Directive', nis2.articles.length);
-    // verifyRegulation('DORA', dora.articles.length);
-    // verifyRegulation('GDPR', gdpr.articles.length);
+    // 1. Title Page
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#1C4D8D'); // Corporate Blue
 
-    // 4. Critical Gaps
+    // Abstract pattern
+    doc.save();
+    doc.opacity(0.1);
+    doc.strokeColor('white');
+    for (let i = 0; i < 800; i += 40) {
+        doc.moveTo(i, 0).lineTo(0, i).stroke();
+    }
+    doc.restore();
+
+    doc.fillColor('white').fontSize(42).font('Helvetica-Bold').text('ISO/IEC 27001:2022', 50, 200);
+    doc.fontSize(28).text('Readiness & Gap Analysis Report', { align: 'left' });
+    doc.rect(50, 280, 450, 3).fill('white');
+
+    doc.moveDown(2);
+    doc.fillColor('white').fontSize(16).font('Helvetica').text(`Prepared for: ${client.name}`, 50);
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 50);
+    doc.moveDown(4);
+
+    // Compliance Score Card on Title Page
+    doc.save();
+    doc.rect(50, 500, 200, 120).fill('#ffffff22');
+    doc.fillColor('white').fontSize(12).font('Helvetica-Bold').text('OVERALL READINESS', 65, 515);
+    doc.fontSize(48).text(`${score}%`, 65, 535);
+    doc.fontSize(10).font('Helvetica').text(score >= 80 ? 'CERTIFICATION READY' : score >= 60 ? 'IMPLEMENTATION PHASE' : 'EARLY STAGE PROGRAM', 65, 595);
+    doc.restore();
+
+    // Footer on title
+    doc.fontSize(10).fillColor('white').opacity(0.7).text('Confidential | Powered by ComplianceOS', 50, 750);
+
+    // 2. Executive Summary
     doc.addPage();
-    doc.fontSize(18).text('Critical Gaps (Not Implemented)');
-    doc.moveDown();
+    doc.fillColor('#1e293b').fontSize(24).font('Helvetica-Bold').text('Executive Summary');
+    doc.rect(50, doc.y, 40, 4).fill('#1C4D8D');
+    doc.moveDown(2);
 
-    const gaps = allClientControls.filter((c: any) => c.status === 'not_implemented').slice(0, 10);
+    // Summary stats row
+    const statsY = doc.y;
+    const boxWidth = 110;
+    const boxHeight = 70;
+    const startX = 50;
+    const spacing = 15;
 
-    if (gaps.length === 0) {
-        doc.fontSize(12).text("No critical gaps found.");
+    const drawStat = (label: string, val: string, x: number, y: number, color: string, bgColor: string) => {
+        doc.save();
+        doc.rect(x, y, boxWidth, boxHeight).fill(bgColor);
+        doc.rect(x, y, boxWidth, boxHeight).stroke('#e2e8f0');
+        doc.rect(x, y, boxWidth, 4).fill(color);
+        doc.fillColor('#64748b').fontSize(9).font('Helvetica-Bold').text(label.toUpperCase(), x + 10, y + 15);
+        doc.fillColor(color).fontSize(24).font('Helvetica-Bold').text(val, x + 10, y + 32);
+        doc.restore();
+    };
+
+    drawStat('Total Controls', `${totalControls}`, startX, statsY, '#1C4D8D', '#f8fafc');
+    drawStat('Implemented', `${implemented}`, startX + boxWidth + spacing, statsY, '#10b981', '#f0fdf4');
+    drawStat('In Progress', `${inProgress}`, startX + (boxWidth + spacing) * 2, statsY, '#f59e0b', '#fffbeb');
+    drawStat('Not Applicable', `${notApplicable}`, startX + (boxWidth + spacing) * 3, statsY, '#64748b', '#f1f5f9');
+
+    doc.y = statsY + boxHeight + 40;
+
+    // Executive summary text
+    doc.fontSize(11).fillColor('#334155');
+    let summaryText = `This comprehensive readiness report assesses ${client.name}'s compliance with ISO/IEC 27001:2022, the international standard for Information Security Management Systems (ISMS). `;
+
+    if (score >= 80) {
+        summaryText += `With a compliance score of ${score}%, your organization has demonstrated strong adherence to ISO 27001 requirements. `;
+        summaryText += `Focus on evidence collection and internal audit preparation to achieve certification. `;
+    } else if (score >= 60) {
+        summaryText += `With a compliance score of ${score}%, significant progress has been made toward ISO 27001 compliance. `;
+        summaryText += `${notImplemented} controls require implementation before certification can be achieved. `;
     } else {
-        gaps.forEach((gap: any) => {
-            const ctrlName = gap.control?.name || "Unknown Control";
-            const ctrlId = gap.control?.controlId || "N/A";
-            const fw = gap.control?.framework || "General";
-            doc.fontSize(12).fillColor('red').text(`[${ctrlId}] ${ctrlName}`);
-            doc.fillColor('black').text(`   Framework: ${fw}`);
-            doc.moveDown(0.5);
-        });
-        if (allClientControls.filter((c: any) => c.status === 'not_implemented').length > 10) {
-            doc.text('... and more.');
-        }
+        summaryText += `With a compliance score of ${score}%, substantial work remains to achieve ISO 27001 certification. `;
+        summaryText += `Prioritize high-impact controls and establish foundational security measures. `;
     }
 
-    doc.end();
+    doc.fillColor('#334155').font('Helvetica').fontSize(11).text(summaryText, 50, doc.y, {
+        width: 500,
+        lineGap: 4,
+        align: 'justify'
+    });
+    doc.moveDown(2);
 
-    return new Promise((resolve) => {
+    // 3. Category Performance
+    doc.moveDown(3);
+    doc.addPage();
+    doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('Control Domain Maturity');
+    doc.moveDown();
+
+    Object.entries(controlsByCategory).forEach(([category, categoryControls]: [string, any]) => {
+        const catImplemented = categoryControls.filter((c: any) => c.status === 'implemented').length;
+        const catTotal = categoryControls.length;
+        const catScore = catTotal > 0 ? Math.round((catImplemented / catTotal) * 100) : 0;
+
+        if (doc.y > 650) doc.addPage();
+
+        // Category header
+        doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text(category);
+        doc.moveDown(0.3);
+
+        // Progress bar
+        const barWidth = 400;
+        const barHeight = 10;
+        doc.save();
+        doc.rect(50, doc.y, barWidth, barHeight).fill('#f1f5f9');
+        doc.rect(50, doc.y, barWidth * (catScore / 100), barHeight).fill(catScore >= 75 ? '#10b981' : catScore >= 40 ? '#f59e0b' : '#ef4444');
+        doc.restore();
+
+        doc.fillColor('#64748b').fontSize(9).font('Helvetica').text(`${catScore}%`, 50 + barWidth + 10, doc.y);
+        doc.moveDown(1.5);
+    });
+
+    // 4. Gap Identification & Analysis
+    doc.addPage();
+    doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('4. Deficiency Analysis');
+    doc.moveDown(0.5);
+    doc.fontSize(11).fillColor('#64748b').text('Detailed review of non-compliant controls requiring remediation and documented implementation steps.');
+    doc.moveDown(1.5);
+
+    if (gaps.length === 0) {
+        doc.fillColor('#10b981').fontSize(14).text('✓ No gaps identified');
+        doc.moveDown();
+        doc.fillColor('#334155').fontSize(11).text('All applicable ISO 27001 controls have been implemented. Your organization is ready for certification audit.');
+    } else {
+        // Gap entries with full paragraph formatting
+        doc.moveDown(1);
+
+        gaps.forEach((gap: any, index: number) => {
+            const ctrl = gap.control || {};
+            const ctrlId = ctrl.controlId || 'N/A';
+            const ctrlName = ctrl.name || 'Unknown Control';
+            const ctrlDesc = ctrl.description || 'No description available';
+            const ctrlCategory = ctrl.category || 'Other';
+
+            // Check for page break
+            if (doc.y > 600) {
+                doc.addPage();
+            }
+
+            // Entry Header Box
+            doc.save();
+            doc.rect(50, doc.y, 500, 30).fill('#f8fafc');
+            doc.rect(50, doc.y, 4, 30).fill('#1C4D8D');
+
+            doc.fillColor('#1C4D8D').fontSize(10).font('Helvetica-Bold').text(`GAP #${String(index + 1).padStart(2, '0')}`, 65, doc.y + 10, { continued: true });
+            doc.fillColor('#64748b').font('Helvetica').text(` | ${ctrlId}`, { continued: true });
+            doc.fillColor('#1e293b').font('Helvetica-Bold').fontSize(11).text(`   ${ctrlName.toUpperCase()}`);
+            doc.restore();
+
+            doc.moveDown(0.5);
+
+            // CATEGORY & STATUS
+            doc.fontSize(8).fillColor('#64748b').font('Helvetica-Bold');
+            doc.text(`DOMAIN: `, { continued: true });
+            doc.fillColor('#334155').text(`${ctrlCategory.toUpperCase()}   `, { continued: true });
+            doc.fillColor('#64748b').text(`|   STATUS: `, { continued: true });
+            doc.fillColor('#ef4444').text(`NOT IMPLEMENTED`);
+
+            doc.moveDown(0.5);
+
+            // DESCRIPTION
+            doc.fillColor('#475569').fontSize(8).font('Helvetica-Bold').text('DESCRIPTION');
+            doc.moveDown(0.2);
+            doc.fillColor('#1e293b').fontSize(10).font('Helvetica').text(ctrlDesc, {
+                width: 500,
+                align: 'justify',
+                lineGap: 2
+            });
+            doc.moveDown(0.8);
+
+            // REMEDIATION STEPS
+            doc.fillColor('#475569').fontSize(8).font('Helvetica-Bold').text('REMEDIATION REQUIREMENTS');
+            doc.moveDown(0.2);
+
+            let guidance = '';
+            if (ctrlCategory.includes('Organizational') || ctrlCategory.includes('Governance')) {
+                guidance = `Establish formal information security policies and procedures defining the ISMS governing framework. This includes assigning roles, securing management commitment, and documenting organizational scope. Policies must be formally approved and disseminated.`;
+            } else if (ctrlCategory.includes('People') || ctrlCategory.includes('Personnel')) {
+                guidance = `Implement personnel security lifecycle measures, including pre-employment screening, security awareness training upon onboarding and annually thereafter, and formal contractual security obligations.`;
+            } else if (ctrlCategory.includes('Physical')) {
+                guidance = `Specify and deploy physical security perimeters for all restricted areas. Implement modernized access control (biometric/MFA), secure equipment placement, and strict media disposal protocols.`;
+            } else if (ctrlCategory.includes('Technological') || ctrlCategory.includes('Technology')) {
+                guidance = `Deploy technical safeguards including least-privilege access, data encryption (at rest/transit), hardened system configurations, continuous security monitoring/logging, and endpoint protection.`;
+            } else {
+                guidance = `Review applicability within the ISMS scope. Assign remediation owners, develop supporting documentation, and collect evidence of operational effectiveness for future audits.`;
+            }
+
+            doc.fillColor('#1e293b').fontSize(10).font('Helvetica').text(guidance, { width: 500, align: 'justify', lineGap: 2 });
+            doc.moveDown(1.5);
+            doc.strokeColor('#e2e8f0').lineWidth(0.5).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+            doc.moveDown(1.5);
+        });
+    }
+
+    // 5. Recommendations
+    doc.moveDown(1.5);
+    if (doc.y > 650) doc.addPage();
+    doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('Strategic Recommendations');
+    doc.rect(50, doc.y, 40, 4).fill('#1C4D8D');
+    doc.moveDown(1);
+
+    // Score-based strategy
+    const getStrategy = () => {
+        if (score < 40) return { title: 'Foundational Development', color: '#ef4444', items: ['Establish ISMS governance board', 'Define organizational scope and boundaries', 'Approve core security policy suite', 'Identify and classify critical assets'] };
+        if (score < 75) return { title: 'Operational Implementation', color: '#f59e0b', items: ['Close primary technical control gaps', 'Conduct staff security training', 'Automate evidence collection', 'Perform initial risk assessment'] };
+        return { title: 'Audit Preparation', color: '#10b981', items: ['Conduct full internal audit', 'Hold management review meeting', 'Document corrective actions', 'Select certification body'] };
+    };
+
+    const strategy = getStrategy();
+    doc.fillColor(strategy.color).fontSize(14).font('Helvetica-Bold').text(strategy.title.toUpperCase());
+    doc.moveDown(0.5);
+    doc.fillColor('#334155').fontSize(11).font('Helvetica');
+    strategy.items.forEach((item, i) => {
+        doc.text(`${i + 1}. ${item}`);
+    });
+
+    doc.moveDown(1);
+
+    // Category Breakdown
+    const catsWithGaps = [...new Set(gaps.map((g: any) => g.control?.category).filter(Boolean))] as string[];
+    if (catsWithGaps.length > 0) {
+        doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('Prioritized Domain Remediation');
+        doc.moveDown(0.5);
+        catsWithGaps.forEach(cat => {
+            const count = gaps.filter((g: any) => g.control?.category === cat).length;
+            doc.fontSize(10).fillColor('#475569').text(`•  ${cat}: ${count} Priority Gap(s) Identified`);
+        });
+    }
+
+    return new Promise((resolve, reject) => {
         doc.on('end', () => {
             const pdfData = Buffer.concat(buffers);
             resolve(pdfData);
         });
+        doc.on('error', reject);
+        doc.end();
     });
 }
 
@@ -1627,4 +1847,6 @@ Keep total response under 100 words. Be direct, no filler words.`,
 
     return Packer.toBuffer(doc);
 }
+
+
 

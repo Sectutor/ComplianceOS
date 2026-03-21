@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { clientControls, controls } from "../../schema";
 import * as db from "../../db";
-import { eq, and, inArray, or } from "drizzle-orm";
+import { eq, and, desc, or, like } from 'drizzle-orm';
 import { iso27001Controls } from "../../data/frameworks/iso27001";
 
 export const createIso27001Router = (t: any, clientProcedure: any, clientEditorProcedure: any) => {
@@ -24,7 +24,9 @@ export const createIso27001Router = (t: any, clientProcedure: any, clientEditorP
                         eq(clientControls.clientId, input.clientId),
                         or(
                             eq(controls.framework, "ISO 27001:2022"),
-                            eq(controls.framework, "ISO 27001")
+                            eq(controls.framework, "ISO 27001"),
+                            eq(controls.framework, "ISO/IEC 27001"),
+                            like(controls.framework, "ISO 27001%")
                         )
                     ));
 
@@ -65,7 +67,7 @@ export const createIso27001Router = (t: any, clientProcedure: any, clientEditorP
                         ));
 
                     // Auto-assign to client
-                    const clientBatch = newGlobal.map(c => ({
+                    const clientBatch = newGlobal.map((c: any) => ({
                         clientId: input.clientId,
                         controlId: c.id,
                         clientControlId: c.controlId,
@@ -99,11 +101,11 @@ export const createIso27001Router = (t: any, clientProcedure: any, clientEditorP
                     .from(clientControls)
                     .where(eq(clientControls.clientId, input.clientId));
 
-                const existingSet = new Set(existingClientControlIds.map(c => c.controlId));
+                const existingSet = new Set(existingClientControlIds.map((c: { controlId: number }) => c.controlId));
 
                 const clientBatch = globalControls
-                    .filter(c => !existingSet.has(c.id))
-                    .map(c => ({
+                    .filter((c: any) => !existingSet.has(c.id))
+                    .map((c: any) => ({
                         clientId: input.clientId,
                         controlId: c.id,
                         clientControlId: c.controlId,

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Progress } from "@complianceos/ui/ui/progress";
@@ -15,18 +15,88 @@ import {
     Users,
     Key,
     Lock,
-    BookOpen
+    BookOpen,
+    Loader2,
+    Download,
+    Trash2
 } from "lucide-react";
+
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@complianceos/ui/ui/alert-dialog";
 
 import { ISOLayout } from "./ISOLayout";
 import { PageGuide } from "@/components/PageGuide";
 import { useTranslation } from "@/hooks/useTranslation";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function ISODashboard() {
     const { id } = useParams<{ id: string }>();
     const { t } = useTranslation('dashboard');
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
+    const [generatingReport, setGeneratingReport] = useState(false);
+
+    const { data: reportHistory, refetch: refetchHistory } = trpc.readiness.getReportHistory.useQuery({ 
+        clientId 
+    });
+
+    const downloadReportMutation = trpc.readiness.downloadReport.useMutation({
+        onSuccess: (data) => {
+            const linkSource = `data:application/pdf;base64,${data.pdfBase64}`;
+            const downloadLink = document.createElement("a");
+            downloadLink.href = linkSource;
+            downloadLink.download = data.filename;
+            downloadLink.click();
+            toast.success('Report downloaded!');
+        },
+        onError: (error) => {
+            toast.error("Failed to download report: " + error.message);
+        }
+    });
+
+    const generateReportMutation = trpc.readiness.generateReport.useMutation();
+    const [reportToDelete, setReportToDelete] = useState<number | null>(null);
+
+    const deleteReportMutation = trpc.readiness.deleteReport.useMutation({
+        onSuccess: () => {
+            toast.success("Report deleted successfully");
+            refetchHistory();
+            setReportToDelete(null);
+        },
+        onError: (error) => {
+            toast.error(`Failed to delete report: ${error.message}`);
+        }
+    });
+
+    const handleGenerateReport = async () => {
+        setGeneratingReport(true);
+        try {
+            const result = await generateReportMutation.mutateAsync({ clientId });
+            // Handle PDF download
+            const link = document.createElement('a');
+            link.href = `data:application/pdf;base64,${result.pdfBase64}`;
+            link.download = result.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success('Readiness report generated successfully!');
+            refetchHistory();
+        } catch (error: any) {
+            console.error('Failed to generate report:', error);
+            toast.error(error.message || 'Failed to generate readiness report');
+        } finally {
+            setGeneratingReport(false);
+        }
+    };
 
     const modules = [
         {
@@ -300,13 +370,152 @@ export default function ISODashboard() {
                                     </li>
                                 </ul>
                             </div>
-                            <Button className="w-full bg-white text-indigo-600 hover:bg-indigo-50 font-bold py-6 rounded-xl shadow-lg">
-                                Run Readiness Report
+                            <Button 
+                                className="w-full bg-white text-indigo-600 hover:bg-indigo-50 font-bold py-6 rounded-xl shadow-lg"
+                                onClick={handleGenerateReport}
+                                disabled={generatingReport}
+                            >
+                                {generatingReport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                                {generatingReport ? 'Generating Report...' : 'Run Readiness Report'}
                             </Button>
                         </CardContent>
                     </Card>
                 </div>
+
+                <Card className="mt-8 bg-white shadow-xl shadow-slate-200/50 border-slate-200/60 overflow-hidden">
+                    <CardHeader className="border-b border-slate-50 bg-slate-50/30">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xl flex items-center gap-2 text-slate-800">
+                                    <FileText className="h-5 w-5 text-indigo-500" />
+                                    Report History Archive
+                                </CardTitle>
+                                <CardDescription className="text-slate-500">Historical snapshots of your ISO 27001 readiness posture</CardDescription>
+                            </div>
+                            <Badge variant="outline" className="bg-white text-indigo-600 border-indigo-100">
+                                {reportHistory?.length || 0} Reports Found
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {!reportHistory || reportHistory.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                <div className="p-4 bg-slate-50 rounded-full mb-4">
+                                    <FileText className="h-8 w-8 text-slate-300" />
+                                </div>
+                                <h3 className="text-slate-600 font-semibold text-lg">No reports yet</h3>
+                                <p className="text-slate-400 text-sm max-w-[280px] mt-1">
+                                    Generate your first readiness report using the button above to start your compliance history.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-100 text-slate-400 text-xs uppercase tracking-wider text-left bg-slate-50/50">
+                                            <th className="px-6 py-4 font-semibold">Report Name</th>
+                                            <th className="px-6 py-4 font-semibold">Created Date</th>
+                                            <th className="px-6 py-4 font-semibold">File Details</th>
+                                            <th className="px-6 py-4 font-semibold text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {reportHistory.map((report) => (
+                                            <tr key={report.id} className="hover:bg-slate-50/30 transition-all duration-200 group">
+                                                <td className="px-6 py-5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 group-hover:bg-indigo-100 group-hover:scale-110 transition-all">
+                                                            <FileText className="h-4 w-4" />
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-bold text-slate-700 block">
+                                                                {(report.metadata as any)?.filename || `Readiness Report - ${report.id}`}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                                                <Shield className="h-3 w-3" /> ISO 27001:2022 Standard
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-600 font-medium">{new Date(report.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        <span className="text-[10px] text-slate-400">{new Date(report.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <Badge variant="outline" className="text-slate-500 font-normal border-slate-200">
+                                                        {report.format?.toUpperCase() || 'PDF'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-5 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm"
+                                                            className="text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm rounded-lg h-9 px-4"
+                                                            onClick={() => downloadReportMutation.mutate({ clientId, reportId: report.id })}
+                                                            disabled={downloadReportMutation.isPending}
+                                                        >
+                                                            {downloadReportMutation.isPending && downloadReportMutation.variables?.reportId === report.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Download className="h-4 w-4 mr-2" />
+                                                            )}
+                                                            Download
+                                                        </Button>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="icon"
+                                                            className="text-slate-400 border-slate-100 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all rounded-lg h-9 w-9"
+                                                            onClick={() => setReportToDelete(report.id)}
+                                                            disabled={deleteReportMutation.isPending}
+                                                        >
+                                                            {deleteReportMutation.isPending && deleteReportMutation.variables?.reportId === report.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        <div className="p-4 bg-slate-50/30 border-t border-slate-50 text-center">
+                            <p className="text-[10px] text-slate-400">
+                                This history displays the last 10 generated reports for audit trail compliance.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
+
+            <AlertDialog open={reportToDelete !== null} onOpenChange={(open) => !open && setReportToDelete(null)}>
+                <AlertDialogContent className="bg-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-xl font-bold text-slate-900">Delete Readiness Report?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500">
+                            This action cannot be undone. This will permanently delete the report file and its entry from the audit history.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0">
+                        <AlertDialogCancel className="border-slate-200 text-slate-600 hover:bg-slate-50">Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="bg-red-600 text-white hover:bg-red-700 border-none shadow-lg shadow-red-200"
+                            onClick={() => reportToDelete && deleteReportMutation.mutate({ clientId, reportId: reportToDelete })}
+                        >
+                            {deleteReportMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Delete Permanently
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </ISOLayout>
     );
 }

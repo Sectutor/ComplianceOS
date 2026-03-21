@@ -12,7 +12,8 @@ export default defineConfig({
     schema: [
         "./packages/core/src/schema.ts",
         "./packages/core/src/db/maturity-schema.ts",
-        "./packages/core/src/schema/licenses.ts"
+        "./packages/core/src/schema/licenses.ts",
+        "./packages/core/src/schema_client_settings.ts"
     ],
     out: "./packages/core/drizzle",
     driver: "pg",

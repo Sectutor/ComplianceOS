@@ -1,4 +1,4 @@
-import { Shield, FileText, BookOpen, Sparkles, Link, ClipboardCheck, AlertTriangle, Code, Activity, Compass, Flag, Brain, Building2, Users, FileBarChart, Calendar, Bell, Settings, ListTodo, MessageSquare, History, GraduationCap, Palette, ClipboardList, ShieldCheck } from "lucide-react";
+import { Shield, FileText, BookOpen, Sparkles, Link, ClipboardCheck, AlertTriangle, Code, Activity, Compass, Flag, Brain, Building2, Users, FileBarChart, Calendar, Bell, Settings, ListTodo, MessageSquare, History, GraduationCap, Palette, ClipboardList, ShieldCheck, ShoppingBag } from "lucide-react";
 
 export const clientSpecificMenuItems = [
     { icon: Shield, label: "Controls", path: "/client-controls" },
@@ -31,6 +31,7 @@ export const clientSpecificMenuItems = [
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: FileBarChart, label: "Reports", path: "/reports" },
     { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: ShoppingBag, label: "Plugins", path: "/settings/plugins" },
     { icon: ListTodo, label: "Tasks", path: "/tasks" },
     { icon: MessageSquare, label: "Communication", path: "/communication" },
     { icon: History, label: "Activity Log", path: "/activity" },
@@ -38,7 +39,8 @@ export const clientSpecificMenuItems = [
     { icon: Palette, label: "White-Label Branding", path: "/settings?tab=branding" },
 ];
 
-export function resolveNavigationPath(itemPath: string, clientId: number | null): string {
+export function resolveNavigationPath(itemPath: string | undefined | null, clientId: number | null): string {
+    if (!itemPath) return '';   // submenu-only parents have no path
     if (!clientId) return itemPath;
 
     const [purePath, query] = itemPath.split('?');
@@ -83,6 +85,7 @@ export function resolveNavigationPath(itemPath: string, clientId: number | null)
     if (purePath === "/cmmc-2") return `/clients/${clientId}/cmmc-2${queryStr}`;
     if (purePath === "/c2m2-2.1") return `/clients/${clientId}/c2m2-2.1${queryStr}`;
     if (purePath === "/settings") return `/clients/${clientId}/settings${queryStr}`;
+    if (purePath === "/settings/plugins") return `/clients/${clientId}/settings/plugins${queryStr}`;
     if (purePath === "/compliance-obligations") return `/clients/${clientId}/compliance-obligations${queryStr}`;
     if (purePath === "/frameworks") return `/frameworks${queryStr}`;
     if (purePath === "/questionnaires") return `/clients/${clientId}/questionnaires${queryStr}`;
@@ -94,6 +97,7 @@ export function resolveNavigationPath(itemPath: string, clientId: number | null)
         purePath.startsWith('/federal') ||
         purePath.startsWith('/nist') ||
         purePath.startsWith('/privacy') ||
+        purePath.startsWith('/plugins') ||
         purePath.startsWith('/workflows') ||
         purePath.startsWith('/cyber') ||
         purePath.startsWith('/ai-governance') ||

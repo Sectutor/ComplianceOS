@@ -300,16 +300,20 @@ export default function ROPADashboard() {
                     <p className="text-slate-400 font-medium animate-pulse">Loading ROPA registry...</p>
                 </div>
             ) : (
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden">
+                <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                    <div className="bg-[#1C4D8D] px-6 py-4">
+                        <h3 className="text-lg font-semibold text-white">Processing Activities</h3>
+                        <p className="text-white/70 text-sm">Manage your ROPA registry (Article 30 GDPR)</p>
+                    </div>
                     <Table>
-                        <TableHeader className="bg-slate-50/50">
+                        <TableHeader className="bg-[#1C4D8D]">
                             <TableRow className="hover:bg-transparent border-0">
-                                <TableHead className="font-bold text-slate-700 h-14">Process Name</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Department</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Criticality</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">RTO</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">RPO</TableHead>
-                                <TableHead className="text-right font-bold text-slate-700 h-14 px-6">Actions</TableHead>
+                                <TableHead className="font-bold text-white h-14">Process Name</TableHead>
+                                <TableHead className="font-bold text-white h-14">Department</TableHead>
+                                <TableHead className="font-bold text-white h-14">Criticality</TableHead>
+                                <TableHead className="font-bold text-white h-14">RTO</TableHead>
+                                <TableHead className="font-bold text-white h-14">RPO</TableHead>
+                                <TableHead className="text-right font-bold text-white h-14 px-6">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -317,8 +321,7 @@ export default function ROPADashboard() {
                                 processes.map((proc: Process, idx: number) => (
                                     <TableRow
                                         key={proc.id}
-                                        className="hover:bg-slate-50/80 transition-colors group border-b border-slate-100 last:border-0"
-                                        style={{ animationDelay: `${idx * 50}ms` }}
+                                        className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm"
                                     >
                                         <TableCell className="py-4">
                                             <div className="flex items-center gap-3">

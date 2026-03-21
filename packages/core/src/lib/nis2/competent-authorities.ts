@@ -467,7 +467,7 @@ export function getCompetentAuthority(countryCode: EUCountryCode): CompetentAuth
 // Helper function to get authority by country name
 export function getCompetentAuthorityByName(countryName: string): CompetentAuthority | undefined {
     const normalized = countryName.toLowerCase();
-    return COMPENTENT_AUTHORITIES.find(ca =>
+    return COMPETENT_AUTHORITIES.find(ca =>
         ca.countryName.toLowerCase() === normalized ||
         ca.countryName.toLowerCase().includes(normalized)
     );

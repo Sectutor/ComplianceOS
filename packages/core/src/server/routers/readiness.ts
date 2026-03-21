@@ -1,8 +1,9 @@
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getDb, bulkAssignControls } from "../../db";
 import { eq, and, desc } from "drizzle-orm";
-import { clients, readinessAssessments } from "../../schema";
+import { clients, readinessAssessments, reportLogs } from "../../schema";
 
 export const createReadinessRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -205,12 +206,120 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
          */
         generateReport: clientProcedure
             .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input, ctx }: any) => {
+                const { generateGapAnalysisReport, logReportGeneration } = await import("../../lib/reporting");
+                const { storage } = await import("../../lib/storage");
+                
+                const buffer = await generateGapAnalysisReport(input.clientId);
+                const filename = `compliance-report-${new Date().toISOString().split('T')[0]}-${Date.now()}.pdf`;
+                
+                // Save to storage for history
+                const storageUrl = await storage.save(`reports/readiness/${input.clientId}/${filename}`, buffer, 'application/pdf');
+                
+                // Log generation
+                await logReportGeneration({
+                    clientId: input.clientId,
+                    userId: ctx.session?.user?.id,
+                    reportType: "compliance_readiness",
+                    format: "pdf",
+                    metadata: {
+                        filename,
+                        storageUrl,
+                        generatedAt: new Date().toISOString()
+                    }
+                });
+
+                return {
+                    filename,
+                    pdfBase64: buffer.toString('base64'),
+                    storageUrl
+                };
+            }),
+
+        getReportHistory: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                return await dbConn.select().from(reportLogs)
+                    .where(and(
+                        eq(reportLogs.clientId, input.clientId),
+                        eq(reportLogs.reportType, "compliance_readiness")
+                    ))
+                    .orderBy(desc(reportLogs.timestamp))
+                    .limit(10);
+            }),
+
+        downloadReport: clientProcedure
+            .input(z.object({ 
+                clientId: z.number(),
+                reportId: z.number()
+            }))
             .mutation(async ({ input }: any) => {
-                const { generateGapAnalysisReport } = await import("../../lib/reporting");
-                return await generateGapAnalysisReport(input.clientId).then(buffer => ({
-                    filename: `compliance-report-${new Date().toISOString().split('T')[0]}.pdf`,
+                const dbConn = await getDb();
+                const [report] = await dbConn.select().from(reportLogs)
+                    .where(and(
+                        eq(reportLogs.id, input.reportId),
+                        eq(reportLogs.clientId, input.clientId)
+                    ))
+                    .limit(1);
+
+                if (!report) throw new TRPCError({ code: 'NOT_FOUND', message: 'Report not found' });
+                
+                const metadata = report.metadata as any;
+                if (!metadata?.storageUrl) throw new TRPCError({ code: 'NOT_FOUND', message: 'Report file reference missing' });
+
+                const { storage } = await import("../../lib/storage");
+                
+                // key is the part after /api/storage/ if using local storage or just the key if using S3
+                // LocalStorageProvider.save returns `/api/storage/${key}`
+                const key = metadata.storageUrl.replace('/api/storage/', '');
+                const buffer = await storage.get(key);
+
+                return {
+                    filename: metadata.filename || `report-${report.id}.pdf`,
                     pdfBase64: buffer.toString('base64')
-                }));
+                };
+            }),
+
+        deleteReport: clientProcedure
+            .input(z.object({ 
+                clientId: z.number(),
+                reportId: z.number()
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+                
+                // 1. Fetch the report log to get storage info
+                const [report] = await dbConn.select().from(reportLogs)
+                    .where(and(
+                        eq(reportLogs.id, input.reportId),
+                        eq(reportLogs.clientId, input.clientId)
+                    ))
+                    .limit(1);
+
+                if (!report) throw new TRPCError({ code: 'NOT_FOUND', message: 'Report not found' });
+
+                // 2. Delete file from storage if it exists
+                const metadata = report.metadata as any;
+                if (metadata?.storageUrl) {
+                    try {
+                        const { storage } = await import("../../lib/storage");
+                        const key = metadata.storageUrl.replace('/api/storage/', '');
+                        await storage.delete(key);
+                    } catch (err) {
+                        console.error("Failed to delete report file from storage:", err);
+                        // We continue with DB deletion even if file deletion fails
+                    }
+                }
+
+                // 3. Delete from DB
+                await dbConn.delete(reportLogs)
+                    .where(and(
+                        eq(reportLogs.id, input.reportId),
+                        eq(reportLogs.clientId, input.clientId)
+                    ));
+
+                return { success: true };
             }),
     });
 };

@@ -89,17 +89,21 @@ export default function DSARManager() {
                     <p className="text-slate-400 font-medium animate-pulse">Loading request registry...</p>
                 </div>
             ) : (
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden">
+                <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                    <div className="bg-[#1C4D8D] px-6 py-4 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-white">DSAR Requests</h3>
+                        <span className="text-sm text-sky-200">{requests?.length || 0} requests</span>
+                    </div>
                     <Table>
-                        <TableHeader className="bg-slate-50/50">
-                            <TableRow className="hover:bg-transparent border-0">
-                                <TableHead className="font-bold text-slate-700 h-14">Request ID</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Type</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Subject</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Status</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Date Filed</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Priority</TableHead>
-                                <TableHead className="text-right font-bold text-slate-700 h-14 px-6">Actions</TableHead>
+                        <TableHeader>
+                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-0">
+                                <TableHead className="font-bold text-white h-12">Request ID</TableHead>
+                                <TableHead className="font-bold text-white h-12">Type</TableHead>
+                                <TableHead className="font-bold text-white h-12">Subject</TableHead>
+                                <TableHead className="font-bold text-white h-12">Status</TableHead>
+                                <TableHead className="font-bold text-white h-12">Date Filed</TableHead>
+                                <TableHead className="font-bold text-white h-12">Priority</TableHead>
+                                <TableHead className="text-right font-bold text-white h-12 px-6">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -107,7 +111,7 @@ export default function DSARManager() {
                                 requests.map((req, idx) => (
                                     <TableRow
                                         key={req.id}
-                                        className="hover:bg-slate-50/80 transition-colors group border-b border-slate-100 last:border-0"
+                                        className="bg-sky-50 border-b border-sky-200 hover:bg-sky-100 transition-colors group"
                                         style={{ animationDelay: `${idx * 50}ms` }}
                                     >
                                         <TableCell className="py-5 font-bold text-slate-900">

@@ -463,9 +463,10 @@ export default function NIS2IncidentReporting() {
             setNewIncident({
                 title: '',
                 description: '',
-                severity: 'medium',
+                severity: 'medium' as 'low' | 'medium' | 'high' | 'critical',
                 isSignificant: true,
                 crossBorderImpact: false,
+                cause: 'unknown',
             });
             refetch();
         },
@@ -734,7 +735,7 @@ export default function NIS2IncidentReporting() {
 
     return (
         <DashboardLayout fullWidth={true}>
-            <div className="container mx-auto py-8 space-y-6">
+            <div className="mx-auto py-8 space-y-6 max-w-7xl px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="flex items-center gap-4">
                     <Button

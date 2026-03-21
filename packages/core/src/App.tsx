@@ -21,7 +21,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SystemFeedbackModal } from "@/components/SystemFeedbackModal";
 
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { lazyLoad } from "@/lib/lazyLoad";
 import { trpc } from "@/lib/trpc";
 
@@ -65,6 +65,8 @@ const SystemFeedbackPage = lazyLoad(() => import("./pages/admin/SystemFeedbackPa
 const ClientSettings = lazyLoad(() => import("./pages/ClientSettings"));
 const OnboardingSettings = lazyLoad(() => import("./pages/settings/OnboardingSettings"));
 const SecuritySettings = lazyLoad(() => import("./pages/settings/SecuritySettings"));
+const PluginSettings = lazyLoad(() => import("./pages/settings/PluginSettings"));
+const PluginPage = lazyLoad(() => import("./pages/plugins/PluginPage"));
 const IntegrationsPage = lazyLoad(() => import("./pages/settings/IntegrationsPage"));
 const PersonnelComplianceHub = lazyLoad(() => import("./pages/PersonnelComplianceHub"));
 const ClientActivity = lazyLoad(() => import("./pages/ClientActivity"));
@@ -361,9 +363,14 @@ function GlobalBrandingSync() {
   );
 
   const { updateBranding } = useBranding();
+  const updateBrandingRef = useRef(updateBranding);
+  updateBrandingRef.current = updateBranding;
+
+  // Track which client we last synced to avoid re-applying on every render
+  const lastSyncedClientRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (client) {
+    if (client && client.id !== lastSyncedClientRef.current) {
       const brandingUpdates: Partial<import("./config/branding").BrandingConfig> = {};
       if (client.brandPrimaryColor) brandingUpdates.primaryColor = client.brandPrimaryColor;
       if (client.sidebarBg) brandingUpdates.sidebarBg = client.sidebarBg;
@@ -374,10 +381,11 @@ function GlobalBrandingSync() {
       if (client.portalTitle) brandingUpdates.portalTitle = client.portalTitle;
 
       if (Object.keys(brandingUpdates).length > 0) {
-        updateBranding(brandingUpdates);
+        lastSyncedClientRef.current = client.id;
+        updateBrandingRef.current(brandingUpdates);
       }
     }
-  }, [client, updateBranding]);
+  }, [client]);
 
   return null;
 }
@@ -1386,6 +1394,12 @@ function Router() {
         <Route path="/clients/:id/compliance-obligations/:regId">
           {(_params) => <ProtectedRoute component={RegulationDetail} />}
         </Route>
+        <Route path="/clients/:id/settings/plugins">
+          {(_params) => <ProtectedRoute component={PluginSettings} />}
+        </Route>
+        <Route path="/clients/:id/plugins/:slug">
+          {(_params) => <ProtectedRoute component={PluginPage} />}
+        </Route>
         <Route path="/clients/:id/federal/fedramp">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FedRAMPPackagesPage} /></UnifiedClientGuard>}
         </Route>
@@ -1683,13 +1697,13 @@ function Router() {
           )}
         </Route>
         <Route path="/clients/:id/cyber/vulnerabilities">
-            {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><VulnerabilityManagement /></UnifiedClientGuard></CyberLayout>}
+          {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><VulnerabilityManagement /></UnifiedClientGuard></CyberLayout>}
         </Route>
         <Route path="/clients/:id/cyber/assets">
-            {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><AssetCriticalityMatrix /></UnifiedClientGuard></CyberLayout>}
+          {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><AssetCriticalityMatrix /></UnifiedClientGuard></CyberLayout>}
         </Route>
         <Route path="/clients/:id/cyber/testing">
-            {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><SecurityTesting /></UnifiedClientGuard></CyberLayout>}
+          {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><SecurityTesting /></UnifiedClientGuard></CyberLayout>}
         </Route>
         <Route path="/clients/:id/cyber/monitoring">
           {(_params) => (
@@ -1846,6 +1860,9 @@ function Router() {
                 </Route>
                 <Route path="/settings/security">
                   <ProtectedRoute component={SecuritySettings} />
+                </Route>
+                <Route path="/settings/plugins">
+                  <ProtectedRoute component={PluginSettings} />
                 </Route>
                 <Route path="/settings/invitations">
                   <ProtectedRoute component={UserInvitations} />
@@ -2133,9 +2150,9 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <BrandingProvider>
-        <AuthProvider>
-          <ClientContextProvider>
+      <AuthProvider>
+        <ClientContextProvider>
+          <BrandingProvider>
             <GlobalBrandingSync />
             <AdvisorProvider>
               <ThemeProvider defaultTheme="light">
@@ -2147,9 +2164,9 @@ function App() {
                 </TooltipProvider>
               </ThemeProvider>
             </AdvisorProvider>
-          </ClientContextProvider>
-        </AuthProvider>
-      </BrandingProvider>
+          </BrandingProvider>
+        </ClientContextProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

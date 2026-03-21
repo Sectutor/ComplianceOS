@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { trpc } from '@/lib/trpc';
+import { useClientContext } from '@/contexts/ClientContext';
 
 export interface BrandingConfig {
     appName: string;
@@ -90,7 +92,28 @@ const defaultBranding: BrandingConfig = {
 const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
 
 export const BrandingProvider = ({ children }: { children: React.ReactNode }) => {
-    // Load from localStorage if available
+    const { selectedClientId } = useClientContext();
+    const utils = trpc.useUtils();
+
+    // Fetch client-specific branding from database
+    const { data: clientSettings, isLoading: settingsLoading } = trpc.settings.getClientSettings.useQuery(
+        { clientId: selectedClientId || 0 },
+        {
+            enabled: !!selectedClientId,
+            staleTime: 1000 * 60 * 5, // 5 min — prevents constant refetch loops
+        }
+    );
+
+    // Hold mutate fn in a ref so useCallback deps stay stable
+    const mutateFnRef = useRef<((args: any) => void) | null>(null);
+    const updateSettingsMutation = trpc.settings.updateClientSettings.useMutation({
+        onSuccess: () => {
+            utils.settings.getClientSettings.invalidate({ clientId: selectedClientId });
+        }
+    });
+    mutateFnRef.current = updateSettingsMutation.mutate;
+
+    // Merge localStorage with database settings
     const [config, setConfig] = useState<BrandingConfig>(() => {
         const saved = localStorage.getItem('branding-config-v3') || localStorage.getItem('branding-config-v2');
         if (saved) {
@@ -102,6 +125,20 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
         }
         return defaultBranding;
     });
+
+    // Track last applied server branding to avoid infinite re-renders from TRPC refetch
+    const lastAppliedRef = useRef<string | null>(null);
+
+    // Update config when server settings are loaded — guarded by JSON comparison
+    useEffect(() => {
+        if (clientSettings?.brandingOverrides && settingsLoading === false) {
+            const serialized = JSON.stringify(clientSettings.brandingOverrides);
+            if (serialized === lastAppliedRef.current) return; // no change, skip
+            lastAppliedRef.current = serialized;
+            const serverBranding = clientSettings.brandingOverrides as Partial<BrandingConfig>;
+            setConfig(prev => ({ ...prev, ...serverBranding }));
+        }
+    }, [clientSettings, settingsLoading]);
 
     useEffect(() => {
         localStorage.setItem('branding-config-v3', JSON.stringify(config));
@@ -149,13 +186,35 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
         }
     }, [config]);
 
+    const selectedClientIdRef = useRef(selectedClientId);
+    selectedClientIdRef.current = selectedClientId;
+
     const updateBranding = useCallback((newConfig: Partial<BrandingConfig>) => {
-        setConfig((prev) => ({ ...prev, ...newConfig }));
-    }, []);
+        setConfig((prev) => {
+            const updated = { ...prev, ...newConfig };
+            localStorage.setItem('branding-config-v3', JSON.stringify(updated));
+            return updated;
+        });
+        // Use refs so this callback never needs to be recreated
+        const cid = selectedClientIdRef.current;
+        if (cid && cid > 0) {
+            mutateFnRef.current?.({
+                clientId: cid,
+                brandingOverrides: newConfig
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // stable — reads current values via refs
 
     const resetBranding = useCallback(() => {
         setConfig(defaultBranding);
-    }, []);
+        localStorage.setItem('branding-config-v3', JSON.stringify(defaultBranding));
+        
+        // Reset server settings if we have a clientId
+        if (selectedClientId && selectedClientId > 0) {
+            trpc.settings.resetClientSettings.mutate({ clientId: selectedClientId });
+        }
+    }, [selectedClientId]);
 
     return (
         <BrandingContext.Provider value={{ ...config, updateBranding, resetBranding }}>

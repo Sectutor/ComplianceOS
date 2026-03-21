@@ -142,6 +142,9 @@ import { createGumroadRouter } from "./server/routers/gumroad";
 import { feedbackRouter } from "./server/routers/feedback";
 import { createBackupRestoreRouter } from "./server/routers/backupRestore";
 import { createRiskSettingsRouter } from "./server/routers/riskSettings";
+import { createSettingsRouter } from "./server/routers/settings";
+import { createRiskGameRouter } from "./server/routers/riskGame";
+import { pluginRouter } from "./server/routers/plugins";
 import { createKrisRouter } from "./server/routers/kris";
 import { createLlmRouter } from "./server/routers/llm";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
@@ -239,6 +242,9 @@ export const appRouter = router({
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
   riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
+  settings: createSettingsRouter(t, clientProcedure),
+  riskGame: createRiskGameRouter(t, clientProcedure),
+  plugins: pluginRouter,
   kris: createKrisRouter(t, clientProcedure),
   metrics: createMetricsRouter(t, clientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),

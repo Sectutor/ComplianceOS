@@ -1,0 +1,14 @@
+{
+    "version": "1.0.0",
+    "plugins": [
+        {
+            "slug": "custom-executive-dashboard",
+            "enabled": false,
+            "config": {}
+        }
+    ],
+    "settings": {
+        "autoLoad": true,
+        "allowServerCode": true
+    }
+}

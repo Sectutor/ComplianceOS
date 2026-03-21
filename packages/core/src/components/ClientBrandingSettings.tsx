@@ -5,13 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@comp
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { trpc } from "@/lib/trpc";
-import { Save, Loader2, Palette, LayoutTemplate } from "lucide-react";
+import { Save, Loader2, Palette, LayoutTemplate, Settings, Code, Zap } from "lucide-react";
 import { toast } from "sonner";
 import ClientLogoUpload from "@/components/ClientLogoUpload";
 import { CURATED_FONTS, getContrastColor, BRAND_PRESETS } from "@/config/branding";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Slider } from "@complianceos/ui/ui/slider";
 import { Type, Sparkles, Check } from "lucide-react";
+import { Switch } from "@complianceos/ui/ui/switch";
+import { Textarea } from "@complianceos/ui/ui/textarea";
 
 interface ClientBrandingSettingsProps {
     clientId: number;
@@ -60,13 +62,42 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
             utils.clients.get.invalidate({ id: clientId });
             if (onUpdate) onUpdate();
             setHasChanges(false);
-
-            // Force reload to apply new branding if needed, or we can use a context later
-            // window.location.reload(); 
         },
         onError: (error) => {
             toast.error(error.message || "Failed to save branding settings");
         },
+    });
+
+    // Feature flags state
+    const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+    const [customSettings, setCustomSettings] = useState<string>("");
+
+    // Fetch existing client settings from new table
+    const { data: clientSettings } = trpc.settings.getClientSettings.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+
+    // Load settings when data arrives
+    useEffect(() => {
+        if (clientSettings) {
+            if (clientSettings.featureFlags) {
+                setFeatureFlags(clientSettings.featureFlags as Record<string, boolean>);
+            }
+            if (clientSettings.customSettings) {
+                setCustomSettings(JSON.stringify(clientSettings.customSettings, null, 2));
+            }
+        }
+    }, [clientSettings]);
+
+    // Save feature flags mutation
+    const saveFeatureFlagsMutation = trpc.settings.updateClientSettings.useMutation({
+        onSuccess: () => {
+            toast.success("Feature flags saved successfully");
+        },
+        onError: (error) => {
+            toast.error(error.message || "Failed to save feature flags");
+        }
     });
 
     const handleSave = () => {
@@ -366,6 +397,123 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
                                     Save Changes
                                 </>
                             )}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Feature Flags */}
+            <Card className="border-amber-100 bg-amber-50/10">
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-amber-500" />
+                        Feature Flags
+                    </CardTitle>
+                    <CardDescription>
+                        Enable or disable specific features for this organization.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-white/50">
+                            <div>
+                                <Label className="text-sm font-medium">AI Assistant</Label>
+                                <p className="text-xs text-muted-foreground">Enable AI-powered compliance recommendations</p>
+                            </div>
+                            <Switch
+                                checked={featureFlags.aiAssistant ?? true}
+                                onCheckedChange={(checked) => setFeatureFlags(prev => ({ ...prev, aiAssistant: checked }))}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-white/50">
+                            <div>
+                                <Label className="text-sm font-medium">Advanced Analytics</Label>
+                                <p className="text-xs text-muted-foreground">Enable detailed compliance analytics</p>
+                            </div>
+                            <Switch
+                                checked={featureFlags.advancedAnalytics ?? true}
+                                onCheckedChange={(checked) => setFeatureFlags(prev => ({ ...prev, advancedAnalytics: checked }))}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-white/50">
+                            <div>
+                                <Label className="text-sm font-medium">Threat Intelligence</Label>
+                                <p className="text-xs text-muted-foreground">Enable threat intelligence feeds</p>
+                            </div>
+                            <Switch
+                                checked={featureFlags.threatIntel ?? true}
+                                onCheckedChange={(checked) => setFeatureFlags(prev => ({ ...prev, threatIntel: checked }))}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-white/50">
+                            <div>
+                                <Label className="text-sm font-medium">Custom Workflows</Label>
+                                <p className="text-xs text-muted-foreground">Enable custom workflow automation</p>
+                            </div>
+                            <Switch
+                                checked={featureFlags.customWorkflows ?? false}
+                                onCheckedChange={(checked) => setFeatureFlags(prev => ({ ...prev, customWorkflows: checked }))}
+                            />
+                        </div>
+                    </div>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            saveFeatureFlagsMutation.mutate({
+                                clientId,
+                                featureFlags
+                            });
+                        }}
+                        disabled={saveFeatureFlagsMutation.isPending}
+                    >
+                        {saveFeatureFlagsMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings className="mr-2 h-4 w-4" />}
+                        Save Feature Flags
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {/* Custom Settings */}
+            <Card className="border-purple-100 bg-purple-50/10">
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Code className="h-5 w-5 text-purple-500" />
+                        Custom Settings
+                    </CardTitle>
+                    <CardDescription>
+                        Advanced JSON configuration for deep customization. Leave empty to use premium defaults.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Textarea
+                        value={customSettings}
+                        onChange={(e) => setCustomSettings(e.target.value)}
+                        placeholder='{ "customField": "value" }'
+                        className="font-mono text-sm min-h-[150px]"
+                    />
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                try {
+                                    const parsed = customSettings ? JSON.parse(customSettings) : {};
+                                    saveFeatureFlagsMutation.mutate({
+                                        clientId,
+                                        customSettings: parsed
+                                    });
+                                } catch (e) {
+                                    toast.error("Invalid JSON format");
+                                }
+                            }}
+                            disabled={saveFeatureFlagsMutation.isPending}
+                        >
+                            {saveFeatureFlagsMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Code className="mr-2 h-4 w-4" />}
+                            Save Custom Settings
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setCustomSettings("")}
+                        >
+                            Reset to Defaults
                         </Button>
                     </div>
                 </CardContent>

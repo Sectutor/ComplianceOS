@@ -77,15 +77,19 @@ export default function DataBreachRegister() {
                 </Button>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                <div className="bg-[#1C4D8D] px-6 py-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Incident Register</h3>
+                    <span className="text-sm text-sky-200">{breaches?.length || 0} incidents</span>
+                </div>
                 <Table>
-                    <TableHeader className="bg-slate-50/50">
-                        <TableRow className="hover:bg-transparent border-0">
-                            <TableHead className="font-bold text-slate-700 h-14">Incident Title</TableHead>
-                            <TableHead className="font-bold text-slate-700 h-14">Severity</TableHead>
-                            <TableHead className="font-bold text-slate-700 h-14">Occurred On</TableHead>
-                            <TableHead className="font-bold text-slate-700 h-14">Status</TableHead>
-                            <TableHead className="text-right font-bold text-slate-700 h-14 px-6">Actions</TableHead>
+                    <TableHeader>
+                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-0">
+                            <TableHead className="font-bold text-white h-12">Incident Title</TableHead>
+                            <TableHead className="font-bold text-white h-12">Severity</TableHead>
+                            <TableHead className="font-bold text-white h-12">Occurred On</TableHead>
+                            <TableHead className="font-bold text-white h-12">Status</TableHead>
+                            <TableHead className="text-right font-bold text-white h-12 px-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -102,7 +106,7 @@ export default function DataBreachRegister() {
                             (breaches as any[]).map((b, idx) => (
                                 <TableRow
                                     key={b.id}
-                                    className="hover:bg-slate-50/80 transition-colors group border-b border-slate-100 last:border-0"
+                                    className="bg-sky-50 border-b border-sky-200 hover:bg-sky-100 transition-colors group"
                                     style={{ animationDelay: `${idx * 50}ms` }}
                                 >
                                     <TableCell className="py-5 font-bold text-slate-900">

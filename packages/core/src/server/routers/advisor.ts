@@ -306,7 +306,7 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
-                const { IndexingService } = await import('../../lib/advisor/indexing');
+                const { IndexingService } = await import('../../lib/advisor/indexing.ts');
 
                 const stats = {
                     policies: 0,

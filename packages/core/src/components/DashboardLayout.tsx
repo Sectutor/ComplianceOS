@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -397,6 +397,11 @@ function DashboardLayoutContent({
 
   // Redirect to payment completion if user has a paid tier but no active subscription
   const syncSubscription = trpc.billing.syncSubscriptionStatus.useMutation();
+
+  // Fetch installed plugins for the current client
+  const { data: installedPlugins } = trpc.plugins.listInstalled.useQuery(undefined, {
+    enabled: !!persistentClientId
+  });
 
   // Redirect to payment completion if user has a paid tier but no active subscription
   useEffect(() => {
@@ -768,8 +773,9 @@ function DashboardLayoutContent({
           { icon: ListTodo, label: "Tasks", path: "/tasks" },
           { icon: MessageSquare, label: "Communication", path: "/communication" },
           {
-            icon: Settings, label: "Client Settings", path: "/settings", submenu: [
+            icon: Settings, label: "Client Settings", submenu: [
               { label: "Security", path: "/settings/security" },
+              { label: "Plugins", path: "/settings/plugins" },
               { label: "Onboarding", path: "/settings/onboarding" },
               { label: "Users", path: "/settings/users" },
               { label: "Organization", path: "/settings/organization" },
@@ -789,6 +795,29 @@ function DashboardLayoutContent({
         ]
       }
     );
+
+    // Add dynamic plugin groups if any are enabled
+    if (installedPlugins && installedPlugins.length > 0) {
+      const enabledPlugins = installedPlugins.filter(p => p.enabled);
+
+      if (enabledPlugins.length > 0) {
+        groups.push({
+          label: "App Extensions",
+          items: enabledPlugins.map(plugin => {
+            // Mapping specific plugins to icons for demo
+            let icon = ShoppingBag;
+            if (plugin.id === 'cos-risk-game') icon = Gamepad2;
+
+            return {
+              icon,
+              label: plugin.name,
+              path: `/plugins/${plugin.slug}`,
+              // Manifests might define where they go, for now we map them here
+            };
+          })
+        });
+      }
+    }
   }
 
 
@@ -836,9 +865,9 @@ function DashboardLayoutContent({
   // Note: we need to handle the structure of groups -> items -> potentially submenu
   const allItems = groups.flatMap(group =>
     group.items.flatMap((item: any) =>
-      item.submenu ? [item, ...item.submenu] : [item]
+      item.submenu ? [...item.submenu] : [item]  // skip pathless parents, keep submenu leaves + path-having parents
     )
-  );
+  ).filter((item: any) => !!item.path);  // guard: skip items with no path
 
   const matchedItems = allItems.filter(item => {
     const navPath = resolveNavigationPath(item.path, persistentClientId);

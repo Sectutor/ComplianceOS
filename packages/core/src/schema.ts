@@ -14973,3 +14973,8 @@ export const nis2Mappings = pgTable("nis2_mappings", {
 
 export type Nis2Mapping = typeof nis2Mappings.$inferSelect;
 export type InsertNis2Mapping = typeof nis2Mappings.$inferInsert;
+
+// Client-specific settings (branding, feature flags) — must be in the shared schema
+// so drizzle's db.query.clientSettings is available at runtime
+export { clientSettings } from "./schema_client_settings";
+export type { ClientSettings, InsertClientSettings } from "./schema_client_settings";

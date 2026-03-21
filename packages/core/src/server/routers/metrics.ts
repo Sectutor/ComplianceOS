@@ -30,7 +30,8 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                     acknowledgments,
                     bcpProjects,
                     businessProcesses,
-                    audits
+                    audits,
+                    evidence
                 ] = await Promise.all([
                     db.query.riskAssessments.findMany({
                         where: eq(schema.riskAssessments.clientId, input.clientId),
@@ -65,7 +66,8 @@ export const createMetricsRouter = (t: any, procedure: any) => {
 
                     db.query.bcpProjects.findMany({ where: eq(schema.bcpProjects.clientId, input.clientId) }),
                     db.query.businessProcesses.findMany({ where: eq(schema.businessProcesses.clientId, input.clientId) }),
-                    db.query.certificationAudits.findMany({ where: eq(schema.certificationAudits.clientId, input.clientId) })
+                    db.query.certificationAudits.findMany({ where: eq(schema.certificationAudits.clientId, input.clientId) }),
+                    db.query.evidence.findMany({ where: eq(schema.evidence.clientId, input.clientId) })
                 ]);
 
                 // --- DOMAIN 1: Strategic Risk ---
@@ -115,10 +117,33 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                 const mttr = closedVulns.length > 0 ? Math.round((totalRemediationTime / closedVulns.length) / (1000 * 60 * 60 * 24)) : 0;
 
                 const criticalAssets = assets.filter((a: any) => (a.valuationC || 0) + (a.valuationI || 0) + (a.valuationA || 0) >= 12); // High value
-                // Assume asset is assessed if it has a linked riskScenario (simplified check: assetId in risks?)
-                // Since we didn't fetch riskScenarios separately, we'll mock or use existing risk links if available.
-                // For now, let's use a placeholder logic: Critical Assets Assessed = 75%
-                const assetCriticalityCoverage = 75; 
+                const assessedAssets = assets.filter((a: any) => a.criticality && a.valuationC && a.valuationI && a.valuationA).length;
+                const assetCriticalityCoverage = assets.length > 0 ? Math.round((assessedAssets / assets.length) * 100) : 0; 
+
+                // --- DOMAIN 2.5: Incident & Breach Response ---
+                const significantIncidents = incidents.filter((i: any) => i.isSignificant).length;
+                const crossBorderIncidents = incidents.filter((i: any) => i.crossBorderImpact).length;
+                
+                // Reporting Timeliness (Early Warning within 24h)
+                const timelyReports = incidents.filter((i: any) => {
+                    if (!i.detectedAt || !i.earlyWarningSentAt) return false;
+                    const diff = new Date(i.earlyWarningSentAt).getTime() - new Date(i.detectedAt).getTime();
+                    return diff <= 24 * 60 * 60 * 1000;
+                }).length;
+                const reportingTimeliness = incidents.filter(i => i.isSignificant).length > 0
+                    ? Math.round((timelyReports / incidents.filter(i => i.isSignificant).length) * 100)
+                    : 100;
+
+                // Data Breach Velocity (Detection Delta)
+                const totalBreachDelta = breaches.reduce((acc: number, b: any) => {
+                    if (!b.dateOccurred || !b.dateDetected) return acc;
+                    return acc + (new Date(b.dateDetected).getTime() - new Date(b.dateOccurred).getTime());
+                }, 0);
+                const avgBreachDetectionDays = breaches.length > 0 
+                    ? Math.round((totalBreachDelta / breaches.length) / (1000 * 60 * 60 * 24))
+                    : 0;
+                
+                const notifiableBreaches = breaches.filter((b: any) => b.isNotifiableToDpa || b.isNotifiableToSubjects).length;
 
                 // --- DOMAIN 3: Governance & Culture ---
                 const activeEmployees = employees.filter((e: any) => e.status !== 'terminated');
@@ -151,6 +176,9 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                 const implementedControls = controls.filter((c: any) => c.status === 'implemented');
                 const effectiveControls = implementedControls.filter((c: any) => c.testResult === 'pass' || c.testResult === 'effective');
                 const controlEffectiveness = implementedControls.length > 0 ? Math.round((effectiveControls.length / implementedControls.length) * 100) : 0;
+
+                const verifiedEvidence = evidence.filter((e: any) => e.status === 'verified').length;
+                const evidenceVerificationRate = evidence.length > 0 ? Math.round((verifiedEvidence / evidence.length) * 100) : 0;
 
                 // --- DOMAIN 6: Business Continuity ---
                 const criticalProcesses = businessProcesses.filter((bp: any) => bp.criticality === 'high'); // Assuming field exists or using proxy
@@ -187,11 +215,19 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                         controlEffectiveness,
                         totalControls: controls.length,
                         implementedControls: implementedControls.length,
-                        auditCount: audits.length
+                        auditCount: audits.length,
+                        evidenceVerificationRate
                     },
                     resilience: {
                         biaCompletionRate,
                         activeProjects: bcpProjects.filter((p: any) => p.status === 'active').length
+                    },
+                    ops: {
+                        significantIncidents,
+                        crossBorderIncidents,
+                        reportingTimeliness,
+                        avgBreachDetectionDays,
+                        notifiableBreaches
                     },
                     raw: {
                         risks: risks // Keep for heatmap
