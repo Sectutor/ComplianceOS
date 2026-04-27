@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SystemFeedbackModal } from "@/components/SystemFeedbackModal";
+import { HarmonizationView } from "@/components/controls/HarmonizationView";
 
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { lazyLoad } from "@/lib/lazyLoad";
@@ -78,6 +79,14 @@ const NIS2CyberResilienceHub = lazyLoad(() => import("./pages/nis2/NIS2CyberResi
 const NIS2ManagementLiability = lazyLoad(() => import("./pages/nis2/NIS2ManagementLiability"));
 const NIS2CrossBorderCompliance = lazyLoad(() => import("./pages/nis2/NIS2CrossBorderCompliance"));
 const NIS2AuditBundle = lazyLoad(() => import("./pages/nis2/NIS2AuditBundle"));
+
+const HarmonizationStudio = () => (
+  <DashboardLayout>
+    <div className="p-6">
+      <HarmonizationView />
+    </div>
+  </DashboardLayout>
+);
 const NIS2SecurityMeasures = lazyLoad(() => import("./pages/nis2/NIS2SecurityMeasures"));
 const NIS2IncidentReporting = lazyLoad(() => import("./pages/nis2/NIS2IncidentReporting"));
 const NIS2EntityRegistry = lazyLoad(() => import("./pages/nis2/NIS2EntityRegistry"));
@@ -1837,6 +1846,9 @@ function Router() {
 
         <Route path="/controls">
           <ProtectedRoute component={Controls} />
+        </Route>
+        <Route path="/harmonization">
+          <ProtectedRoute component={HarmonizationStudio} />
         </Route>
         <Route path="/policy-templates">
           <ProtectedRoute component={PolicyTemplates} />

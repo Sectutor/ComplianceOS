@@ -16,6 +16,8 @@ const reportSectionSchema = z.enum([
     "gap_analysis",
     "risks",
     "controls",
+    "harmonization_crosswalk",
+    "ai_agent_governance_pack",
     "bcp",
     "bia",
     "assets",

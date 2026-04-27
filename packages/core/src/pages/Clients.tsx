@@ -1,5 +1,5 @@
 import { Button } from "@complianceos/ui/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,13 +16,12 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
 import { trpc } from "@/lib/trpc";
-import { useTranslation } from "@/hooks/useTranslation";
-import { Plus, FolderOpen, ArrowRight, Search, Building2, Trash2, Edit, Settings, BookOpen } from "lucide-react";
+import { Plus, FolderOpen, ArrowRight, Search, Building2, Trash2, Settings, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useBilling } from "@/hooks/useBilling";
@@ -30,22 +29,13 @@ import { PageGuide } from "@/components/PageGuide";
 
 
 export default function Clients() {
-  const { user } = useAuth();
-  const { t } = useTranslation('dashboard');
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<number | null>(null);
   const [clientToDelete, setClientToDelete] = useState<number | null>(null);
   const [clientData, setClientData] = useState({ name: "", description: "", industry: "", size: "" });
 
   const { data: clients, isLoading, error: clientsError, refetch } = trpc.clients.list.useQuery();
-  console.log('Clients page render. isLoading:', isLoading, 'clients:', clients, 'error:', clientsError);
-
-  // Add error state handling
-  if (clientsError) {
-    console.error('Failed to load clients:', clientsError);
-  }
 
   const { upgradeAccount, isLoading: isBillingLoading } = useBilling();
 
@@ -58,17 +48,6 @@ export default function Clients() {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create client");
-    },
-  });
-
-  const updateMutation = trpc.clients.update.useMutation({
-    onSuccess: () => {
-      toast.success("Client updated successfully");
-      setEditingClient(null);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update client");
     },
   });
 
@@ -86,13 +65,30 @@ export default function Clients() {
 
   const { data: me } = trpc.users.me.useQuery();
 
-  const clientsArray = Array.isArray(clients) ? clients : (clients as any)?.json || [];
+  type ClientSummary = {
+    id: number;
+    name: string;
+    industry?: string | null;
+    role?: string;
+  };
+
+  const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+  const isClientSummary = (v: unknown): v is ClientSummary =>
+    isRecord(v) && typeof v.id === "number" && typeof v.name === "string";
+
+  const rawClients: unknown[] = Array.isArray(clients)
+    ? clients
+    : isRecord(clients) && Array.isArray(clients.json)
+      ? (clients.json as unknown[])
+      : [];
+
+  const clientsArray: ClientSummary[] = rawClients.filter(isClientSummary);
 
   const isCommunityEdition = import.meta.env.VITE_ENABLE_PREMIUM === 'false';
 
   // Count organizations where user is owner
   const ownedClientsLimit = me?.maxClients || 2;
-  const ownedClientsCount = clientsArray.filter((c: any) => c.role === 'owner').length;
+  const ownedClientsCount = clientsArray.filter((c) => c.role === "owner").length;
 
   // Logic identifying if the user can create more clients
   const isAtLimit = (isCommunityEdition && clientsArray.length >= 1 && me?.role !== 'admin' && me?.role !== 'super_admin') ||
@@ -107,6 +103,10 @@ export default function Clients() {
   );
 
   const handleCreateClient = () => {
+    if (!clientData.name.trim()) {
+      toast.error("Company name is required");
+      return;
+    }
     if (isAtLimit) {
       toast.error(isCommunityEdition
         ? "Community Edition is limited to 1 workspace."
@@ -302,7 +302,14 @@ export default function Clients() {
         </div>
 
         {
-          isLoading ? (
+          clientsError ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="Failed to load clients"
+              description="Please check your connection and try again."
+              action={{ label: "Retry", onClick: () => refetch() }}
+            />
+          ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Skeleton className="h-[200px] w-full" />
               <Skeleton className="h-[200px] w-full" />

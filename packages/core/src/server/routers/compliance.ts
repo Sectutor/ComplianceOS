@@ -375,6 +375,13 @@ export const createComplianceRouter = (
         }))
         .mutation(async ({ input, ctx }: any) => {
           const dbConn = await getDb();
+          const existing = await dbConn.select().from(schema.controlMappings).where(and(
+            eq(schema.controlMappings.sourceControlId, input.sourceControlId),
+            eq(schema.controlMappings.targetControlId, input.targetControlId)
+          )).limit(1);
+
+          if (existing.length > 0) return existing[0];
+
           const [mapping] = await dbConn.insert(schema.controlMappings).values({
             ...input,
             createdBy: ctx.user?.id,

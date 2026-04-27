@@ -1,15 +1,12 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "../hooks/useMobile"
 import { cn } from "../lib/utils"
 import { Button } from "./button"
 import { Input } from "./input"
-import { Separator } from "./separator"
 import { Sheet, SheetContent } from "./sheet"
-import { Skeleton } from "./skeleton"
 import {
     Tooltip,
     TooltipContent,
@@ -507,6 +504,8 @@ const SidebarMenuButton = React.forwardRef<
         asChild?: boolean
         isActive?: boolean
         tooltip?: string | React.ComponentProps<typeof TooltipContent>
+        variant?: "default" | "outline" | "ghost"
+        size?: "default" | "sm" | "lg"
     }
 >(
     (
@@ -531,11 +530,14 @@ const SidebarMenuButton = React.forwardRef<
                 ref={ref}
                 data-sidebar="menu-button"
                 data-size={size}
+                data-variant={variant}
                 data-active={isActive}
                 className={cn(
                     "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
                     "data-[size=sm]:text-xs",
                     "data-[size=lg]:text-base",
+                    "data-[variant=outline]:border data-[variant=outline]:border-sidebar-border",
+                    "data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-sidebar-accent",
                     className
                 )}
                 {...props}

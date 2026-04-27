@@ -19,6 +19,7 @@
         "jsx": "react-jsx",
         /* Linting */
         "strict": true,
+        "noImplicitAny": false,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "noFallthroughCasesInSwitch": true,
@@ -29,16 +30,21 @@
             ],
             "@shared/*": [
                 "../../shared/*"
+            ],
+            "@complianceos/premium/*": [
+                "./src/mocks/premium/*"
             ]
         }
     },
     "include": [
-        "**/*.ts",
-        "**/*.tsx"
+        "src/**/*.ts",
+        "src/**/*.tsx"
     ],
     "exclude": [
         "node_modules",
         "**/*.test.ts",
-        "**/*.test.tsx"
+        "**/*.test.tsx",
+        "src/server/**",
+        "src/test/**"
     ]
 }

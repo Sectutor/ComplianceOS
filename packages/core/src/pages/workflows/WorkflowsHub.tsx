@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { Rocket, Zap, Database, ShieldCheck, ArrowRight, Play, Shield, AlertTriangle, Lock, Globe, Activity, Users, Briefcase, ShieldAlert, Building2, ClipboardCheck } from "lucide-react";
+import { Rocket, Zap, Database, ShieldCheck, ArrowRight, Play, Shield, AlertTriangle, Lock, Globe, Activity, Users, Briefcase, ShieldAlert, Building2, ClipboardCheck, Brain } from "lucide-react";
 import { WORKFLOWS } from "@/lib/workflows/rmf-step-data";
 
 export default function WorkflowsHub() {
@@ -25,6 +25,7 @@ export default function WorkflowsHub() {
         "cmmc": Building2,
         "incident-response": Activity,
         "data-security": Database,
+        "ai-agent-safe-deployment": Brain,
     };
 
     return (

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/lib/cache/**/*.ts",
+    "src/lib/logger.ts",
+    "src/lib/planLimits.ts",
+    "src/lib/riskCalculations.ts",
+    "src/lib/risk-quant/**/*.ts"
+  ]
+}

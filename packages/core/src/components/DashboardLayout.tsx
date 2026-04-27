@@ -529,6 +529,7 @@ function DashboardLayoutContent({
       label: "Libraries & Knowledge",
       items: [
         { icon: Shield, label: "Global Control Library", path: "/controls" },
+        { icon: GitBranch, label: "Harmonization", path: "/harmonization" },
         ...(persistentClientId ? [
           { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
         ] : []),
@@ -1330,12 +1331,12 @@ function CollapsibleGroup({
         <CollapsibleContent className="mt-1">
           <SidebarGroupContent>
             <SidebarMenu>
-              {group.items.map((item: any) => {
+              {group.items.map((item: any, idx: number) => {
                 const navigationPath = resolveNavigationPath(item.path, persistentClientId);
                 const isActive = item === bestMatchItem;
 
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={`${item.path ?? item.label ?? 'item'}-${idx}`}>
                     {!item.submenu ? (
                       <SidebarMenuButton
                         isActive={isActive}

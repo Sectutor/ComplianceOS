@@ -4,6 +4,7 @@ import * as schema from "../schema";
 import { userClients } from "../schema";
 import { eq, and, asc } from "drizzle-orm";
 import { rateLimiter } from "../lib/redis";
+import { logger } from "../lib/logger";
 import { router, publicProcedure, middleware, t } from "./trpc-base";
 export { router, publicProcedure, middleware, t };
 
@@ -16,16 +17,16 @@ const DEBUG_AUTH = process.env.DEBUG_AUTH === 'true';
 export const PLATFORM_ADMIN_ROLES = ['admin', 'owner', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
 
 // Helper function for conditional debug logging
-const debugLog = (message: string, ...args: any[]) => {
+const debugLog = (message: string, ...args: unknown[]) => {
     if (DEBUG_AUTH) {
-        console.log(message, ...args);
+        logger.debug({ message, args });
     }
 };
 
 // Helper function for conditional debug error logging
-const debugError = (message: string, ...args: any[]) => {
+const debugError = (message: string, ...args: unknown[]) => {
     if (DEBUG_AUTH) {
-        console.error(message, ...args);
+        logger.error({ message, args });
     }
 };
 
@@ -36,7 +37,12 @@ export const isAuthed = middleware(async ({ ctx, next, path }) => {
         debugError(`[isAuthed Debug] UNAUTHORIZED for path: ${path}`);
 
         // Provide specific error message based on auth header presence
-        const authInfo = (ctx as any).authInfo;
+        type AuthInfo = {
+            hasAuthHeader?: boolean;
+            supabaseUser?: unknown;
+            dbUser?: unknown;
+        };
+        const authInfo = (ctx as unknown as { authInfo?: AuthInfo }).authInfo;
         let message = "Authentication required. Please sign in.";
 
         if (authInfo) {
@@ -80,7 +86,7 @@ export const rateLimit = middleware(async ({ ctx, next, path }) => {
     if (process.env.RATE_LIMITING_ENABLED !== 'true') return next();
 
     const isAuthed = !!ctx.user;
-    const isPremium = (ctx as any).isPremium;
+    const isPremium = (ctx as unknown as { isPremium?: boolean }).isPremium;
     const isSensitive = path.includes('ai') || path.includes('auth') || path.includes('users.create') || path.includes('export');
 
     const identifier = ctx.user?.id?.toString() || ctx.ip || 'anonymous';
@@ -117,15 +123,15 @@ export const isAdmin = middleware(async ({ ctx, next, path }) => {
 
 export const checkClientAccess = middleware(async (opts) => {
     const { ctx, next, path } = opts;
-    const rawInput = (opts as any).rawInput;
-    const typedInput = (opts as any).input; // Try to get parsed input
+    const rawInput = (opts as unknown as { rawInput?: unknown }).rawInput;
+    const typedInput = (opts as unknown as { input?: unknown }).input; // Try to get parsed input
 
     if (!ctx.user) {
         debugError(`[checkClientAccess Debug] UNAUTHORIZED for path: ${path}`);
         throw new TRPCError({ code: 'UNAUTHORIZED', message: "Authentication required for client access." });
     }
 
-    const input = typedInput || rawInput || {};
+    const input = (typedInput || rawInput || {}) as { clientId?: number; id?: number };
     const clientId = input?.clientId || input?.id || ctx.clientId;
 
     // Admins have implicit access
@@ -198,10 +204,17 @@ export const checkClientAccess = middleware(async (opts) => {
             .where(and(eq(userClients.userId, ctx.user.id), eq(userClients.role, 'owner')))
             .orderBy(asc(schema.clients.createdAt));
 
-        const allowedClientIds = allOwned.slice(0, maxClients).map((r: any) => r.clientId);
+        const allowedClientIds = (allOwned as Array<{ clientId: number }>)
+            .slice(0, maxClients)
+            .map((r) => r.clientId);
 
         if (!allowedClientIds.includes(clientId)) {
-            console.log(`[checkClientAccess] Client ${clientId} exceeds maxClients limit (${maxClients}) for user ${ctx.user.id}`);
+            logger.warn({
+                message: "[checkClientAccess] Client exceeds maxClients limit",
+                clientId,
+                maxClients,
+                userId: ctx.user.id,
+            });
             throw new TRPCError({
                 code: 'FORBIDDEN',
                 message: `This workspace exceeds your plan limit of ${maxClients} organizations. Please upgrade or remove excess workspaces.`
@@ -210,12 +223,12 @@ export const checkClientAccess = middleware(async (opts) => {
     }
 
     const effectiveRole = membership[0]?.role || (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '') ? 'owner' : 'none');
-    console.log('[DEBUG checkClientAccess] Access granted with role:', effectiveRole);
+    debugLog('[DEBUG checkClientAccess] Access granted with role:', effectiveRole);
     return next({ ctx: { ...ctx, clientId, clientRole: effectiveRole } });
 });
 
 export const checkClientEditor = middleware(({ ctx, next }) => {
-    const clientRole = (ctx as any).clientRole;
+    const clientRole = (ctx as unknown as { clientRole?: string }).clientRole;
     if (clientRole !== 'owner' && clientRole !== 'admin' && clientRole !== 'editor') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Read-only access' });
     }
@@ -224,12 +237,12 @@ export const checkClientEditor = middleware(({ ctx, next }) => {
 
 export const checkPremiumAccess = middleware(async (opts) => {
     const { ctx, next } = opts;
-    const rawInput = (opts as any).rawInput;
-    const input = rawInput as any;
+    const rawInput = (opts as unknown as { rawInput?: unknown }).rawInput;
+    const input = rawInput as { clientId?: number };
     const clientId = input?.clientId || ctx.clientId;
 
     // Allow global admins or client admins/owners to bypass all checks including environment flags
-    const clientRole = (ctx as any).clientRole;
+    const clientRole = (ctx as unknown as { clientRole?: string }).clientRole;
     if (PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '') || clientRole === 'owner' || clientRole === 'admin') {
         return next({ ctx: { ...ctx, isPremium: true } });
     }
@@ -269,7 +282,7 @@ export const checkPremiumAccess = middleware(async (opts) => {
         return next({ ctx: { ...ctx, isPremium: true } });
     } catch (err) {
         if (err instanceof TRPCError) throw err;
-        console.error('[PremiumGuard] Error checking premium access:', err);
+        logger.error({ message: "[PremiumGuard] Error checking premium access", error: err });
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify subscription status' });
     }
 });
@@ -278,8 +291,8 @@ export const checkPremiumAccess = middleware(async (opts) => {
  * MFA Enforcement Middleware - AL 3 High Assurance
  * Enforces aal2 for all privileged/sensitive operations.
  */
-export const requiresMFA = middleware(async ({ ctx, next, path }) => {
-    const aal = (ctx as any).aal;
+export const requiresMFA = middleware(async ({ ctx, next, path: _path }) => {
+    const aal = (ctx as unknown as { aal?: string }).aal;
     const dbUser = ctx.user;
     if (!dbUser) return next();
 
@@ -288,7 +301,7 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
 
     if (aal === 'aal2') return next(); // Already at max level
 
-    const clientId = (ctx as any).clientId;
+    const clientId = (ctx as unknown as { clientId?: number }).clientId;
 
     try {
         const dbConn = await db.getDb();
@@ -296,7 +309,7 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
         let must = isPrivilegedRole; // Forced for admins
 
         if (!must && clientId) {
-            console.log('[DEBUG requiresMFA] Checking client MFA req for clientId:', clientId);
+            debugLog('[DEBUG requiresMFA] Checking client MFA req for clientId:', clientId);
             // Check specific client's requirement for standard users
             const [client] = await dbConn.select({ requireMfa: schema.clients.requireMfa })
                 .from(schema.clients)
@@ -315,7 +328,7 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
         }
     } catch (err) {
         if (err instanceof TRPCError) throw err;
-        console.error('[MFA Middleware Error]', err);
+        logger.error({ message: "[MFA Middleware Error]", error: err });
         // Don't proceed if there was a database error - fail secure
         throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
@@ -331,7 +344,7 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
  * Demo Mode Guard
  * Blocks all mutations in demo environment, except for authentication-related ones.
  */
-export const demoModeGuard = middleware(async ({ ctx, type, path, next }) => {
+export const demoModeGuard = middleware(async ({ ctx: _ctx, type, path, next }) => {
     if (process.env.VITE_APP_MODE === 'demo' && type === 'mutation') {
         const allowedMutations = ['auth.', 'users.login', 'users.register', 'users.logout'];
         const isAllowed = allowedMutations.some(p => path.startsWith(p));

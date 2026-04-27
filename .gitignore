@@ -74,3 +74,10 @@ sendgrid.env
 
 # Landing pages (commercial/marketing - not open source)
 packages/landing/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

@@ -1027,6 +1027,30 @@ export type InsertClient = typeof clients.$inferInsert;
 
 
 
+export const personalAccessTokens = pgTable("personal_access_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull().unique(), // Hashed/Secret token
+  prefix: varchar("prefix", { length: 50 }).notNull(), // cos_...
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    userIdIdx: index("idx_pat_user").on(table.userId),
+    tokenIdx: uniqueIndex("idx_pat_token").on(table.token),
+  };
+});
+
+export type PersonalAccessToken = typeof personalAccessTokens.$inferSelect;
+export type InsertPersonalAccessToken = typeof personalAccessTokens.$inferInsert;
+
+
+
+
+
 export const userClients = pgTable("user_clients", {
 
 

@@ -148,6 +148,9 @@ import { pluginRouter } from "./server/routers/plugins";
 import { createKrisRouter } from "./server/routers/kris";
 import { createLlmRouter } from "./server/routers/llm";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
+import { createMcpRouter } from "./server/routers/mcp";
+import { createTokensRouter } from "./server/routers/tokens";
+
 
 
 // Procedures and Middleware are now imported from ./server/trpc
@@ -295,6 +298,9 @@ export const appRouter = router({
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
   llm: createLlmRouter(t, publicProcedure, isAuthed, adminProcedure),
+  mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
+  tokens: createTokensRouter(t, protectedProcedure),
+
 
   ai: router({
     systems: createAiSystemsRouter(t, clientProcedure),

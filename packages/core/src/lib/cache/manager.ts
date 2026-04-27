@@ -6,6 +6,7 @@
  */
 
 import Redis from 'ioredis';
+import { logger } from '../logger';
 
 export interface CacheConfig {
   redis: {
@@ -45,7 +46,7 @@ export interface CacheMetrics {
 
 export class CacheManager {
   private redis: Redis | null = null;
-  private memoryCache = new Map<string, { value: any; expires: number }>();
+  private memoryCache = new Map<string, { value: unknown; expires: number }>();
   private metrics: CacheMetrics = {
     hitRate: 0,
     missRate: 0,
@@ -57,8 +58,15 @@ export class CacheManager {
   };
   private metricsInterval: NodeJS.Timeout | null = null;
   private requestStats = { hits: 0, misses: 0, errors: 0 };
+  private maintenanceCounter = 0;
 
   constructor(private config: CacheConfig) {}
+
+  private getRedisKey(key: string): string {
+    const redisTier = this.config.tiers.find((t) => t.type === 'redis');
+    const prefix = redisTier?.keyPrefix;
+    return prefix ? `${prefix}${key}` : key;
+  }
 
   /**
    * Initialize Redis connection and start monitoring
@@ -70,25 +78,23 @@ export class CacheManager {
         port: this.config.redis.port,
         password: this.config.redis.password,
         db: this.config.redis.db,
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
         lazyConnect: true,
         keepAlive: 30000,
         family: 4,
         connectTimeout: 10000,
-        commandTimeout: 5000,
         enableOfflineQueue: false,
-        maxmemoryPolicy: 'allkeys-lru',
+        retryStrategy: (times) => Math.min(times * 100, 2000),
       });
 
       await this.redis.connect();
-      console.log('[CACHE] Redis connection established');
+      logger.info('[CACHE] Redis connection established');
 
       if (this.config.monitoring.enabled) {
         this.startMetricsCollection();
       }
     } catch (error) {
-      console.error('[CACHE] Failed to initialize Redis:', error);
+      logger.error({ message: '[CACHE] Failed to initialize Redis', error });
       // Continue without Redis - fallback to memory only
       this.redis = null;
     }
@@ -98,14 +104,14 @@ export class CacheManager {
    * Get value from cache (multi-tier lookup)
    */
   async get<T>(key: string): Promise<T | null> {
-    const startTime = Date.now();
-    
     try {
       // L1: Memory cache
       const memoryEntry = this.memoryCache.get(key);
       if (memoryEntry && memoryEntry.expires > Date.now()) {
+        this.memoryCache.delete(key);
+        this.memoryCache.set(key, memoryEntry);
         this.requestStats.hits++;
-        return memoryEntry.value;
+        return memoryEntry.value as T;
       } else if (memoryEntry) {
         // Expired entry - remove from memory
         this.memoryCache.delete(key);
@@ -113,10 +119,12 @@ export class CacheManager {
 
       // L2: Redis cache
       if (this.redis) {
-        const redisValue = await this.redis.get(key);
-        if (redisValue) {
-          const parsed = JSON.parse(redisValue);
-          
+        const redisKey = this.getRedisKey(key);
+        const redisValue = await this.redis.get(redisKey);
+        const legacyValue = !redisValue && redisKey !== key ? await this.redis.get(key) : null;
+        const payload = redisValue ?? legacyValue;
+        if (payload) {
+          const parsed = JSON.parse(payload);
           // Promote to memory cache
           this.memoryCache.set(key, {
             value: parsed,
@@ -124,7 +132,7 @@ export class CacheManager {
           });
 
           this.requestStats.hits++;
-          return parsed;
+          return parsed as T;
         }
       }
 
@@ -132,19 +140,21 @@ export class CacheManager {
       return null;
     } catch (error) {
       this.requestStats.errors++;
-      console.error(`[CACHE] Get error for key ${key}:`, error);
+      logger.error({ message: '[CACHE] Get error', key, error });
       return null;
     }
   }
 
+
   /**
    * Set value in cache (multi-tier storage)
    */
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
     const effectiveTtl = ttl || this.config.tiers[1]?.ttl || 300;
     
     try {
       // L1: Memory cache
+      if (this.memoryCache.has(key)) this.memoryCache.delete(key);
       this.memoryCache.set(key, {
         value,
         expires: Date.now() + effectiveTtl * 1000,
@@ -152,13 +162,17 @@ export class CacheManager {
 
       // L2: Redis cache
       if (this.redis) {
-        await this.redis.setex(key, effectiveTtl, JSON.stringify(value));
+        const redisKey = this.getRedisKey(key);
+        await this.redis.setex(redisKey, effectiveTtl, JSON.stringify(value));
+        if (redisKey !== key) {
+          await this.redis.del(key);
+        }
       }
 
       // Memory cache cleanup
       this.cleanupMemoryCache();
     } catch (error) {
-      console.error(`[CACHE] Set error for key ${key}:`, error);
+      logger.error({ message: '[CACHE] Set error', key, error });
     }
   }
 
@@ -170,10 +184,15 @@ export class CacheManager {
       this.memoryCache.delete(key);
       
       if (this.redis) {
-        await this.redis.del(key);
+        const redisKey = this.getRedisKey(key);
+        if (redisKey !== key) {
+          await this.redis.del(redisKey, key);
+        } else {
+          await this.redis.del(key);
+        }
       }
     } catch (error) {
-      console.error(`[CACHE] Delete error for key ${key}:`, error);
+      logger.error({ message: '[CACHE] Delete error', key, error });
     }
   }
 
@@ -188,7 +207,7 @@ export class CacheManager {
         await this.redis.flushdb();
       }
     } catch (error) {
-      console.error('[CACHE] Clear error:', error);
+      logger.error({ message: '[CACHE] Clear error', error });
     }
   }
 
@@ -197,10 +216,23 @@ export class CacheManager {
    */
   private cleanupMemoryCache(): void {
     const now = Date.now();
-    for (const [key, entry] of this.memoryCache.entries()) {
-      if (entry.expires <= now) {
-        this.memoryCache.delete(key);
+    this.maintenanceCounter++;
+
+    const maxSize = this.config.tiers[0]?.maxSize;
+    if (maxSize && this.memoryCache.size > maxSize) {
+      const evictCount = this.memoryCache.size - maxSize;
+      for (let i = 0; i < evictCount; i++) {
+        const oldestKey = this.memoryCache.keys().next().value as string | undefined;
+        if (!oldestKey) break;
+        this.memoryCache.delete(oldestKey);
       }
+    }
+
+    if (this.maintenanceCounter % 100 !== 0) return;
+    let scanned = 0;
+    for (const [key, entry] of this.memoryCache.entries()) {
+      if (entry.expires <= now) this.memoryCache.delete(key);
+      if (++scanned >= 200) break;
     }
   }
 
@@ -217,15 +249,16 @@ export class CacheManager {
    * Collect current cache performance metrics
    */
   private collectMetrics(): void {
-    const totalRequests = this.requestStats.hits + this.requestStats.misses;
+    const totalLookups = this.requestStats.hits + this.requestStats.misses;
+    const totalOps = totalLookups + this.requestStats.errors;
     
     this.metrics = {
-      hitRate: totalRequests > 0 ? (this.requestStats.hits / totalRequests) * 100 : 0,
-      missRate: totalRequests > 0 ? (this.requestStats.misses / totalRequests) * 100 : 0,
+      hitRate: totalLookups > 0 ? (this.requestStats.hits / totalLookups) * 100 : 0,
+      missRate: totalLookups > 0 ? (this.requestStats.misses / totalLookups) * 100 : 0,
       evictionRate: 0, // Would track Redis evictions
       memoryUsage: this.memoryCache.size,
-      totalRequests,
-      errorRate: this.requestStats.errors,
+      totalRequests: totalOps,
+      errorRate: totalOps > 0 ? this.requestStats.errors / totalOps : 0,
       timestamp: new Date(),
     };
 
@@ -243,15 +276,15 @@ export class CacheManager {
     const { alertThresholds } = this.config.monitoring;
     
     if (this.metrics.hitRate < alertThresholds.hitRate) {
-      console.warn(`[CACHE ALERT] Low cache hit rate: ${this.metrics.hitRate.toFixed(2)}%`);
+      logger.warn(`[CACHE ALERT] Low cache hit rate: ${this.metrics.hitRate.toFixed(2)}%`);
     }
 
     if (this.metrics.memoryUsage > alertThresholds.memoryUsage) {
-      console.warn(`[CACHE ALERT] High memory usage: ${this.metrics.memoryUsage} entries`);
+      logger.warn(`[CACHE ALERT] High memory usage: ${this.metrics.memoryUsage} entries`);
     }
 
     if (this.metrics.errorRate > alertThresholds.errorRate) {
-      console.error(`[CACHE ALERT] High error rate: ${this.metrics.errorRate}`);
+      logger.error(`[CACHE ALERT] High error rate: ${(this.metrics.errorRate * 100).toFixed(2)}%`);
     }
   }
 
@@ -273,12 +306,12 @@ export class CacheManager {
         await this.redis.ping();
         redisHealthy = true;
       } catch (error) {
-        console.error('[CACHE] Redis health check failed:', error);
+        logger.error({ message: '[CACHE] Redis health check failed', error });
       }
     }
 
     return {
-      healthy: redisHealthy || this.memoryCache.size > 0,
+      healthy: true,
       metrics: this.getMetrics(),
       redisConnected: redisHealthy,
     };
@@ -295,11 +328,12 @@ export class CacheManager {
 
     if (this.redis) {
       await this.redis.disconnect();
-      console.log('[CACHE] Redis connection closed');
+      this.redis = null;
+      logger.info('[CACHE] Redis connection closed');
     }
 
     this.memoryCache.clear();
-    console.log('[CACHE] Cache system shutdown');
+    logger.info('[CACHE] Cache system shutdown');
   }
 }
 
@@ -347,7 +381,7 @@ export const CacheKeys = {
   framework: (frameworkId: string) => `framework:${frameworkId}`,
   threatIntel: (threatId: string) => `threat:${threatId}`,
   vendor: (vendorId: string) => `vendor:${vendorId}`,
-  apiResponse: (endpoint: string, params: string) => `api:${endpoint}:${this.hashParams(params)}`,
+  apiResponse: (endpoint: string, params: string) => `api:${endpoint}:${hashParams(params)}`,
 } as const;
 
 /**

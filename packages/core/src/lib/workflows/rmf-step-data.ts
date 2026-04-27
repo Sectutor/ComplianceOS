@@ -22,6 +22,119 @@ export interface WorkflowDefinition {
     steps: WorkflowStep[];
 }
 
+export const AI_AGENT_SAFE_DEPLOYMENT_WORKFLOW: WorkflowDefinition = {
+    id: "ai-agent-safe-deployment",
+    title: "AI Agent Governance & Safe Deployment (Cybersecurity)",
+    description: "A gated, 8-step playbook for deploying autonomous cybersecurity agents safely with clear accountability, least privilege, guardrails, monitoring, and incident readiness.",
+    steps: [
+        {
+            id: "inventory-scope",
+            title: "1. Inventory & Scope",
+            description: "Establish ownership, purpose, and boundaries for the agent.",
+            longDescription: "Start by registering the agent as a governed system-of-record. Define purpose, intended users, data sensitivity, and the boundaries of what the agent can and cannot do.",
+            tasks: [
+                { title: "Register the agent/system", description: "Create an AI System record for the agent, including name, purpose, deployment context, and owner." },
+                { title: "Define autonomy tier", description: "Classify the agent as Observation-only, Low-risk action, or High-risk execution based on blast radius." },
+                { title: "Define tool boundary", description: "List all tools the agent can call and explicitly document prohibited tools/actions." },
+                { title: "Define data boundary", description: "Document what data sources the agent can read/write (logs, tickets, cloud APIs) and sensitive data constraints." }
+            ],
+            link: "/ai-governance",
+            linkLabel: "Open AI Governance"
+        },
+        {
+            id: "risk-model",
+            title: "2. Threat Model & Misuse Cases",
+            description: "Model the agent’s attack surface and failure modes.",
+            longDescription: "Agents amplify risk via tool execution, memory, and autonomy. Identify realistic failure modes like prompt injection, tool misuse, privilege escalation, memory poisoning, drift, and shadow agents.",
+            tasks: [
+                { title: "Enumerate failure modes", description: "Document prompt injection, tool misuse, privilege escalation, memory poisoning, cascading actions, and drift scenarios." },
+                { title: "Identify privilege escalation paths", description: "Map how agent access could expand (tokens, service accounts, ticket automation) and where to break the chain." },
+                { title: "Define blast radius", description: "Quantify what the agent could impact (prod changes, user access, outage potential) under worst-case actions." }
+            ],
+            link: "/risks/assessments",
+            linkLabel: "Open Risk Assessments"
+        },
+        {
+            id: "assessment-gate",
+            title: "3. Governance Gate: Risk & Impact Assessment",
+            description: "Run a structured assessment and record decisions.",
+            longDescription: "Perform an AI impact assessment and decide if the agent is acceptable to deploy given the autonomy tier, data sensitivity, and tool access. Record risk score and required mitigations.",
+            tasks: [
+                { title: "Run AI impact assessment", description: "Complete the impact assessment and capture recommendations and overall risk score." },
+                { title: "Set deployment status", description: "Mark the system as evaluation/development/production based on outcome and required mitigations." },
+                { title: "Define acceptance criteria", description: "Document the conditions required for go-live (guardrails, approvals, monitoring, kill switch)." }
+            ],
+            link: "/ai-governance",
+            linkLabel: "Run AI Assessment"
+        },
+        {
+            id: "controls-guardrails",
+            title: "4. Controls & Guardrails Design",
+            description: "Implement least privilege and runtime guardrails.",
+            longDescription: "Build technical controls that limit what the agent can do, where it can do it, and how quickly it can act. Emphasize least privilege, tool allowlisting, sandboxing, and auditability.",
+            tasks: [
+                { title: "Least-privilege tokens", description: "Use purpose-bound credentials with minimal scopes, short TTLs, and strong rotation." },
+                { title: "Tool allowlist and constraints", description: "Allow only approved tools and restrict parameters for high-impact actions." },
+                { title: "Guardrail system prompt", description: "Define explicit constraints, refusal policy, escalation policy, and safe defaults for tool use." },
+                { title: "Immutable audit logging", description: "Log every tool call and output to tamper-evident storage with correlation IDs." }
+            ],
+            link: "/ai-governance",
+            linkLabel: "Map Controls"
+        },
+        {
+            id: "sandbox-redteam",
+            title: "5. Sandbox & Adversarial Testing",
+            description: "Validate defenses before production access.",
+            longDescription: "Test the agent in a sandbox with realistic adversarial prompts and tool misuse attempts. Validate injection resistance, policy adherence, and that kill switches and approval gates function as designed.",
+            tasks: [
+                { title: "Prompt injection testing", description: "Run adversarial prompts against the agent and confirm it refuses unsafe actions." },
+                { title: "Tool misuse testing", description: "Attempt parameter abuse and forbidden tool calls and verify enforcement." },
+                { title: "Drift and regression tests", description: "Create repeatable test cases and rerun after configuration or model changes." }
+            ],
+            artifacts: ["Adversarial test results", "Regression test suite", "Sandbox approval record"]
+        },
+        {
+            id: "approval-gate",
+            title: "6. Governance Gate: Deployment Approval",
+            description: "Enforce sign-off and change control.",
+            longDescription: "Before production, confirm required controls are mapped, approvals are recorded, and operational ownership is established. Treat agent changes like production change management.",
+            tasks: [
+                { title: "Approval checklist", description: "Confirm autonomy tier, tool allowlist, least privilege, monitoring, and kill switch are complete." },
+                { title: "Assign accountable owner", description: "Designate who can authorize changes, pause the agent, and respond to incidents." },
+                { title: "Change management", description: "Define how prompt/config/model/tool changes are reviewed and rolled out." }
+            ],
+            link: "/governance/workbench",
+            linkLabel: "Open Governance Workbench"
+        },
+        {
+            id: "deploy-monitor",
+            title: "7. Production Deployment & Monitoring",
+            description: "Deploy with controls, monitoring, and kill switches.",
+            longDescription: "Deploy the agent with strict guardrails and continuous monitoring. Track behavior anomalies, drift, failure rates, and sensitive operations. Ensure operators can disable the agent quickly.",
+            tasks: [
+                { title: "Enable kill switch", description: "Ensure immediate disable mechanisms exist for the agent and its credentials." },
+                { title: "Runtime monitoring", description: "Monitor tool calls, error rates, anomalous actions, and policy violations." },
+                { title: "Audit trail verification", description: "Verify logs are complete, tamper-evident, and linked to incident workflows." }
+            ],
+            link: "/activity",
+            linkLabel: "View Activity Log"
+        },
+        {
+            id: "ir-playbook",
+            title: "8. Agent Incident Response",
+            description: "Respond to agent compromise or unintended actions.",
+            longDescription: "Prepare for incidents involving agent compromise, runaway automation, or unsafe tool execution. Contain quickly, preserve logs, and remediate root causes with post-incident improvements.",
+            tasks: [
+                { title: "Containment runbook", description: "Revoke credentials, disable the agent, and isolate affected systems." },
+                { title: "Forensic preservation", description: "Preserve tool logs, prompts, outputs, and relevant system telemetry." },
+                { title: "Post-incident improvements", description: "Update guardrails, reduce privileges, and add detection rules based on findings." }
+            ],
+            link: "/cyber/incidents",
+            linkLabel: "Open Incidents"
+        }
+    ]
+};
+
 export const NIST_RMF_WORKFLOW: WorkflowDefinition = {
     id: "nist-rmf",
     title: "NIST Risk Management Framework (RMF)",
@@ -725,6 +838,7 @@ export const WORKFLOWS: Record<string, WorkflowDefinition> = {
     "hipaa": HIPAA_WORKFLOW,
     "cmmc": CMMC_WORKFLOW,
     "incident-response": IR_WORKFLOW,
+    "ai-agent-safe-deployment": AI_AGENT_SAFE_DEPLOYMENT_WORKFLOW,
     "data-security": {
         id: "data-security",
         title: "Data Security Lifecycle",

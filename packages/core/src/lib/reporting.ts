@@ -4,7 +4,7 @@ import { PassThrough } from 'stream';
 import { getDb } from '../db';
 import * as schema from '../schema';
 import { clients, controls, clientControls, clientPolicies, evidence, reportLogs } from '../schema';
-import { eq, and, desc, or, like } from 'drizzle-orm';
+import { eq, and, desc, or, like, inArray, aliasedTable, sql } from 'drizzle-orm';
 // import { nis2 } from '../data/regulations/nis2';
 // import { dora } from '../data/regulations/dora';
 // import { gdpr } from '../data/regulations/gdpr';
@@ -19,6 +19,75 @@ import {
     WidthType, BorderStyle, ShadingType, PageBreak,
     convertInchesToTwip, Header, Footer, PageNumber
 } from "docx";
+
+const AGENT_GOVERNANCE_BLOCK_RE = /(?:^|\n)---\nAGENT_GOVERNANCE\n([\s\S]*)$/;
+
+const getAgentGovernanceDefaults = () => ({
+    autonomyTier: 'observation_only',
+    allowedTools: '',
+    approvalRequiredForHighRisk: true,
+    killSwitchImplemented: false,
+    auditLoggingImplemented: false,
+    sandboxTested: false,
+    guardrailsSystemPrompt: '',
+    lastGovernanceReviewAt: undefined as string | undefined
+});
+
+const extractAgentGovernanceJsonFromTechnicalConstraints = (technicalConstraints: string | null | undefined) => {
+    if (!technicalConstraints) return undefined;
+    const trimmed = technicalConstraints.trim();
+    if (!trimmed) return undefined;
+    if (trimmed.startsWith('{')) return trimmed;
+    const match = AGENT_GOVERNANCE_BLOCK_RE.exec(technicalConstraints);
+    if (!match) return undefined;
+    const candidate = (match[1] || '').trim();
+    return candidate ? candidate : undefined;
+};
+
+const stripAgentGovernanceBlockFromTechnicalConstraints = (technicalConstraints: string | null | undefined) => {
+    if (!technicalConstraints) return '';
+    const trimmed = technicalConstraints.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (typeof parsed?.notes === 'string') return parsed.notes;
+            if (typeof parsed?.technicalConstraints === 'string') return parsed.technicalConstraints;
+        } catch {
+            return '';
+        }
+        return '';
+    }
+    const match = AGENT_GOVERNANCE_BLOCK_RE.exec(technicalConstraints);
+    if (!match) return technicalConstraints;
+    const idx = match.index ?? 0;
+    return technicalConstraints.slice(0, idx).trimEnd();
+};
+
+const parseAgentGovernanceFromTechnicalConstraints = (technicalConstraints: string | null | undefined) => {
+    const defaults = getAgentGovernanceDefaults();
+    const jsonCandidate = extractAgentGovernanceJsonFromTechnicalConstraints(technicalConstraints);
+    if (!jsonCandidate) return defaults;
+    try {
+        const parsed = JSON.parse(jsonCandidate);
+        const gov = (parsed?.agentGovernance && typeof parsed.agentGovernance === 'object')
+            ? parsed.agentGovernance
+            : (parsed && typeof parsed === 'object' ? parsed : undefined);
+        if (!gov || typeof gov !== 'object') return defaults;
+        return {
+            autonomyTier: typeof gov.autonomyTier === 'string' ? gov.autonomyTier : defaults.autonomyTier,
+            allowedTools: typeof gov.allowedTools === 'string' ? gov.allowedTools : defaults.allowedTools,
+            approvalRequiredForHighRisk: typeof gov.approvalRequiredForHighRisk === 'boolean' ? gov.approvalRequiredForHighRisk : defaults.approvalRequiredForHighRisk,
+            killSwitchImplemented: typeof gov.killSwitchImplemented === 'boolean' ? gov.killSwitchImplemented : defaults.killSwitchImplemented,
+            auditLoggingImplemented: typeof gov.auditLoggingImplemented === 'boolean' ? gov.auditLoggingImplemented : defaults.auditLoggingImplemented,
+            sandboxTested: typeof gov.sandboxTested === 'boolean' ? gov.sandboxTested : defaults.sandboxTested,
+            guardrailsSystemPrompt: typeof gov.guardrailsSystemPrompt === 'string' ? gov.guardrailsSystemPrompt : defaults.guardrailsSystemPrompt,
+            lastGovernanceReviewAt: typeof gov.lastGovernanceReviewAt === 'string' ? gov.lastGovernanceReviewAt : defaults.lastGovernanceReviewAt
+        };
+    } catch {
+        return defaults;
+    }
+};
 
 export async function generateGapAnalysisReport(clientId: number): Promise<Buffer> {
     const dbConn = await getDb();
@@ -783,7 +852,7 @@ export async function generateAIImpactAssessmentPdf(aiSystemId: number): Promise
     doc.moveDown();
 
     doc.font('Helvetica-Bold').fontSize(11).text('Technical Constraints');
-    doc.font('Helvetica').fontSize(10).text(system.technicalConstraints || 'None documented.', { align: 'justify' });
+    doc.font('Helvetica').fontSize(10).text(stripAgentGovernanceBlockFromTechnicalConstraints(system.technicalConstraints) || 'None documented.', { align: 'justify' });
     doc.moveDown(2);
 
     // 4. Compliance Status
@@ -1151,6 +1220,153 @@ export async function generateCustomProfessionalReport(clientId: number, options
         }
     }
 
+    // 5b. Harmonization Crosswalk
+    if (options.sections.includes('harmonization_crosswalk')) {
+        drawSectionHeader('Harmonization Crosswalk', 'Cross-Framework Control Mapping');
+
+        const clientControlRows = await getClientControls(clientId);
+        const clientFrameworks = Array.from(new Set(
+            (clientControlRows || [])
+                .map((r: any) => r.control?.framework)
+                .filter(Boolean)
+        ));
+
+        const sourceControls = aliasedTable(schema.controls, "source_controls");
+        const targetControls = aliasedTable(schema.controls, "target_controls");
+
+        const baseQuery = dbConn
+            .select({
+                mappingType: schema.controlMappings.mappingType,
+                confidence: schema.controlMappings.confidence,
+                notes: schema.controlMappings.notes,
+                sourceControlCode: sourceControls.controlId,
+                sourceControlName: sourceControls.name,
+                sourceFramework: sourceControls.framework,
+                targetControlCode: targetControls.controlId,
+                targetControlName: targetControls.name,
+                targetFramework: targetControls.framework,
+            })
+            .from(schema.controlMappings)
+            .innerJoin(sourceControls, eq(schema.controlMappings.sourceControlId, sourceControls.id))
+            .innerJoin(targetControls, eq(schema.controlMappings.targetControlId, targetControls.id));
+
+        const mappings = clientFrameworks.length > 0
+            ? await baseQuery.where(or(
+                inArray(sourceControls.framework, clientFrameworks),
+                inArray(targetControls.framework, clientFrameworks)
+            )).limit(30)
+            : await baseQuery.limit(30);
+
+        doc.fillColor('#334155').fontSize(10).font('Helvetica')
+            .text(`Included frameworks: ${clientFrameworks.length > 0 ? clientFrameworks.join(', ') : 'All'}`);
+        doc.moveDown(0.5);
+
+        if (mappings.length > 0) {
+            drawTable(
+                ['Source', 'Target', 'Type', 'Confidence'],
+                mappings.map((m: any) => [
+                    `${m.sourceFramework || ''} ${m.sourceControlCode || ''} - ${(m.sourceControlName || '').slice(0, 40)}`,
+                    `${m.targetFramework || ''} ${m.targetControlCode || ''} - ${(m.targetControlName || '').slice(0, 40)}`,
+                    m.mappingType || 'equivalent',
+                    m.confidence || 'N/A'
+                ]),
+                { colWidths: [180, 180, 70, 70] }
+            );
+        } else {
+            doc.fillColor('#64748b').fontSize(10).font('Helvetica')
+                .text('No mappings found for the selected client frameworks.');
+            doc.moveDown(1);
+        }
+    }
+
+    // 5c. AI Agent Governance Pack
+    if (options.sections.includes('ai_agent_governance_pack')) {
+        drawSectionHeader('AI Agent Governance Pack', 'Agentic AI Governance and Safe Deployment Evidence');
+
+        const systems = await dbConn.select().from(schema.aiSystems)
+            .where(eq(schema.aiSystems.clientId, clientId))
+            .orderBy(desc(schema.aiSystems.createdAt))
+            .limit(25);
+
+        const assessmentAgg = await dbConn.select({
+            aiSystemId: schema.aiImpactAssessments.aiSystemId,
+            lastRiskScore: sql<number>`max(${schema.aiImpactAssessments.overallRiskScore})`.as('lastRiskScore'),
+            lastAssessmentAt: sql<Date>`max(${schema.aiImpactAssessments.createdAt})`.as('lastAssessmentAt')
+        })
+            .from(schema.aiImpactAssessments)
+            .innerJoin(schema.aiSystems, eq(schema.aiSystems.id, schema.aiImpactAssessments.aiSystemId))
+            .where(eq(schema.aiSystems.clientId, clientId))
+            .groupBy(schema.aiImpactAssessments.aiSystemId);
+
+        const controlAgg = await dbConn.select({
+            aiSystemId: schema.aiSystemControls.aiSystemId,
+            mappedControls: sql<number>`count(*)`.as('mappedControls')
+        })
+            .from(schema.aiSystemControls)
+            .innerJoin(schema.aiSystems, eq(schema.aiSystems.id, schema.aiSystemControls.aiSystemId))
+            .where(eq(schema.aiSystems.clientId, clientId))
+            .groupBy(schema.aiSystemControls.aiSystemId);
+
+        const assessmentBySystem = new Map<number, any>(assessmentAgg.map((r: any) => [r.aiSystemId, r]));
+        const controlsBySystem = new Map<number, any>(controlAgg.map((r: any) => [r.aiSystemId, r]));
+
+        const highRiskCount = systems.filter((s: any) => ['high', 'critical', 'unacceptable'].includes(String(s.riskLevel || '').toLowerCase())).length;
+        drawStatCard("AI Systems", systems.length.toString(), "Registered Inventory", 60, 150, 150, '#4f46e5');
+        drawStatCard("High Risk", highRiskCount.toString(), "High/Critical/Unacceptable", 220, 150, 150, '#ef4444');
+        drawStatCard("Mapped Controls", controlAgg.reduce((sum: number, r: any) => sum + Number(r.mappedControls || 0), 0).toString(), "NIST AI RMF Mappings", 380, 150, 150, '#0ea5e9');
+
+        doc.y = 260;
+        doc.fillColor('#475569').fontSize(10).font('Helvetica')
+            .text('This section is educational guidance, not legal advice. Use it to document governance readiness for autonomous or semi-autonomous cybersecurity agents.');
+        doc.moveDown(1);
+
+        const rows = systems.slice(0, 15).map((s: any) => {
+            const a = assessmentBySystem.get(s.id);
+            const c = controlsBySystem.get(s.id);
+            const gov = parseAgentGovernanceFromTechnicalConstraints(s.technicalConstraints);
+            return [
+                s.name || 'N/A',
+                (s.riskLevel || 'N/A').toString(),
+                (gov.autonomyTier || 'observation_only').toString().replaceAll('_', ' '),
+                a?.lastRiskScore !== null && a?.lastRiskScore !== undefined ? String(a.lastRiskScore) : 'N/A',
+                gov.approvalRequiredForHighRisk ? 'Yes' : 'No',
+                gov.killSwitchImplemented ? 'Yes' : 'No',
+                gov.auditLoggingImplemented ? 'Yes' : 'No',
+                gov.sandboxTested ? 'Yes' : 'No',
+                c?.mappedControls !== null && c?.mappedControls !== undefined ? String(c.mappedControls) : '0'
+            ];
+        });
+
+        if (rows.length > 0) {
+            drawTable(
+                ['System', 'Risk', 'Autonomy', 'Last Score', 'Approval', 'Kill', 'Audit', 'Sandbox', 'Mapped'],
+                rows,
+                { colWidths: [160, 55, 80, 60, 55, 45, 45, 55, 45] }
+            );
+        } else {
+            doc.fillColor('#64748b').fontSize(10).font('Helvetica')
+                .text('No AI systems are registered for this client.');
+            doc.moveDown(1);
+        }
+
+        doc.fillColor('#0f172a').fontSize(12).font('Helvetica-Bold').text('Safe Deployment Checklist (Gated)', 60, doc.y);
+        doc.moveDown(0.5);
+        doc.fillColor('#475569').fontSize(10).font('Helvetica').text(
+            [
+                "1) Inventory & scope the agent (owner, purpose, autonomy tier, tools, data boundaries)",
+                "2) Threat model failure modes (prompt injection, tool misuse, privilege escalation, drift)",
+                "3) Run impact assessment and define acceptance criteria",
+                "4) Implement least privilege, tool allowlisting, and guardrails",
+                "5) Sandbox and adversarial testing",
+                "6) Approval workflow and change control",
+                "7) Production monitoring, tamper-evident logs, and kill switch",
+                "8) Agent incident response and post-incident hardening"
+            ].join("\n"),
+            { width: 500, lineGap: 3 }
+        );
+        doc.moveDown(2);
+    }
+
     // 6. BCP
     if (options.sections.includes('bcp')) {
         drawSectionHeader('Business Continuity', 'Resilience and Disaster Recovery Roadmap');
@@ -1265,7 +1481,7 @@ export async function generateCustomProfessionalReport(clientId: number, options
     }
 
     // Process other sections with standard professional layout
-    const handledSections = ['cover_page', 'executive_summary', 'gap_analysis', 'risks', 'controls', 'bcp', 'bia', 'assets', 'vendors', 'incidents', 'vulnerabilities', 'audit'];
+    const handledSections = ['cover_page', 'executive_summary', 'gap_analysis', 'risks', 'controls', 'harmonization_crosswalk', 'ai_agent_governance_pack', 'bcp', 'bia', 'assets', 'vendors', 'incidents', 'vulnerabilities', 'audit'];
     for (const secId of options.sections) {
         if (handledSections.includes(secId)) continue;
 
@@ -1627,6 +1843,236 @@ Keep total response under 100 words. Be direct, no filler words.`,
                 })
             );
         }
+    }
+
+    // ============================================
+    // HARMONIZATION CROSSWALK
+    // ============================================
+    if (options.sections.includes('harmonization_crosswalk')) {
+        const clientControlRows = await getClientControls(clientId);
+        const clientFrameworks = Array.from(new Set(
+            (clientControlRows || [])
+                .map((r: any) => r.control?.framework)
+                .filter(Boolean)
+        ));
+
+        const sourceControls = aliasedTable(schema.controls, "source_controls");
+        const targetControls = aliasedTable(schema.controls, "target_controls");
+
+        const baseQuery = dbConn.select({
+            mappingType: schema.controlMappings.mappingType,
+            confidence: schema.controlMappings.confidence,
+            notes: schema.controlMappings.notes,
+            sourceControlCode: sourceControls.controlId,
+            sourceControlName: sourceControls.name,
+            sourceFramework: sourceControls.framework,
+            targetControlCode: targetControls.controlId,
+            targetControlName: targetControls.name,
+            targetFramework: targetControls.framework,
+        })
+            .from(schema.controlMappings)
+            .innerJoin(sourceControls, eq(schema.controlMappings.sourceControlId, sourceControls.id))
+            .innerJoin(targetControls, eq(schema.controlMappings.targetControlId, targetControls.id))
+            .limit(40);
+
+        const mappings = clientFrameworks.length > 0
+            ? await baseQuery.where(or(
+                inArray(sourceControls.framework, clientFrameworks),
+                inArray(targetControls.framework, clientFrameworks)
+            ))
+            : await baseQuery;
+
+        children.push(...createSectionHeader('Harmonization Crosswalk', 'Cross-Framework Control Mapping'));
+
+        const frameworkLabel = clientFrameworks.length > 0 ? clientFrameworks.join(', ') : 'All frameworks';
+        children.push(
+            new Paragraph({
+                children: [new TextRun({ text: `Included frameworks: ${safeText(frameworkLabel)}`, size: 18, color: '64748B' })],
+                spacing: { after: 300 }
+            })
+        );
+
+        if (mappings.length > 0) {
+            children.push(
+                new DocxTable({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: [
+                        new DocxTableRow({
+                            tableHeader: true,
+                            children: [
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Source", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Target", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Confidence", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                            ]
+                        }),
+                        ...mappings.map((m: any, i: number) => new DocxTableRow({
+                            children: [
+                                new DocxTableCell({
+                                    children: [new Paragraph({
+                                        children: [new TextRun({ text: safeText(`${m.sourceFramework} ${m.sourceControlCode} - ${m.sourceControlName}`), size: 18 })]
+                                    })],
+                                    shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' }
+                                }),
+                                new DocxTableCell({
+                                    children: [new Paragraph({
+                                        children: [new TextRun({ text: safeText(`${m.targetFramework} ${m.targetControlCode} - ${m.targetControlName}`), size: 18 })]
+                                    })],
+                                    shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' }
+                                }),
+                                new DocxTableCell({
+                                    children: [new Paragraph({
+                                        children: [new TextRun({ text: safeText(m.mappingType || 'equivalent'), size: 18 })]
+                                    })],
+                                    shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' }
+                                }),
+                                new DocxTableCell({
+                                    children: [new Paragraph({
+                                        children: [new TextRun({ text: safeText(m.confidence || 'N/A'), size: 18 })]
+                                    })],
+                                    shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' }
+                                }),
+                            ]
+                        }))
+                    ]
+                }),
+                new Paragraph({ children: [], spacing: { after: 300 } })
+            );
+        } else {
+            children.push(
+                new Paragraph({
+                    children: [new TextRun({ text: 'No mappings found for the selected client frameworks.', size: 18, color: '64748B' })],
+                    spacing: { after: 300 }
+                })
+            );
+        }
+    }
+
+    // ============================================
+    // AI AGENT GOVERNANCE PACK
+    // ============================================
+    if (options.sections.includes('ai_agent_governance_pack')) {
+        const systems = await dbConn.select().from(schema.aiSystems)
+            .where(eq(schema.aiSystems.clientId, clientId))
+            .orderBy(desc(schema.aiSystems.createdAt))
+            .limit(25);
+
+        const assessmentAgg = await dbConn.select({
+            aiSystemId: schema.aiImpactAssessments.aiSystemId,
+            lastRiskScore: sql<number>`max(${schema.aiImpactAssessments.overallRiskScore})`.as('lastRiskScore'),
+            lastAssessmentAt: sql<Date>`max(${schema.aiImpactAssessments.createdAt})`.as('lastAssessmentAt')
+        })
+            .from(schema.aiImpactAssessments)
+            .innerJoin(schema.aiSystems, eq(schema.aiSystems.id, schema.aiImpactAssessments.aiSystemId))
+            .where(eq(schema.aiSystems.clientId, clientId))
+            .groupBy(schema.aiImpactAssessments.aiSystemId);
+
+        const controlAgg = await dbConn.select({
+            aiSystemId: schema.aiSystemControls.aiSystemId,
+            mappedControls: sql<number>`count(*)`.as('mappedControls')
+        })
+            .from(schema.aiSystemControls)
+            .innerJoin(schema.aiSystems, eq(schema.aiSystems.id, schema.aiSystemControls.aiSystemId))
+            .where(eq(schema.aiSystems.clientId, clientId))
+            .groupBy(schema.aiSystemControls.aiSystemId);
+
+        const assessmentBySystem = new Map<number, any>(assessmentAgg.map((r: any) => [r.aiSystemId, r]));
+        const controlsBySystem = new Map<number, any>(controlAgg.map((r: any) => [r.aiSystemId, r]));
+
+        const highRiskCount = systems.filter((s: any) => ['high', 'critical', 'unacceptable'].includes(String(s.riskLevel || '').toLowerCase())).length;
+        const mappedControlsTotal = controlAgg.reduce((sum: number, r: any) => sum + Number(r.mappedControls || 0), 0);
+
+        children.push(...createSectionHeader('AI Agent Governance Pack', 'Agentic AI Governance and Safe Deployment Evidence'));
+
+        children.push(
+            new DocxTable({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new DocxTableRow({
+                        children: [
+                            createKPICard('AI Systems', `${systems.length}`, 'Registered Inventory', accentColor),
+                            createKPICard('High Risk', `${highRiskCount}`, 'High/Critical/Unacceptable', dangerColor),
+                            createKPICard('Mapped Controls', `${mappedControlsTotal}`, 'NIST AI RMF Mappings', warningColor),
+                        ]
+                    })
+                ]
+            }),
+            new Paragraph({ children: [], spacing: { after: 400 } })
+        );
+
+        children.push(
+            new Paragraph({
+                children: [new TextRun({ text: 'Educational guidance only, not legal advice.', size: 18, color: '64748B' })],
+                spacing: { after: 300 }
+            })
+        );
+
+        if (systems.length > 0) {
+            children.push(
+                new DocxTable({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: [
+                        new DocxTableRow({
+                            tableHeader: true,
+                            children: [
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "System", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Risk", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Autonomy", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Last Score", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Guardrails", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Mapped", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                            ]
+                        }),
+                        ...systems.slice(0, 15).map((s: any, i: number) => {
+                            const a = assessmentBySystem.get(s.id);
+                            const c = controlsBySystem.get(s.id);
+                            const gov = parseAgentGovernanceFromTechnicalConstraints(s.technicalConstraints);
+                            const autonomy = (gov.autonomyTier || 'observation_only').toString().replaceAll('_', ' ');
+                            const guardrails = `Appr:${gov.approvalRequiredForHighRisk ? 'Y' : 'N'} Kill:${gov.killSwitchImplemented ? 'Y' : 'N'} Audit:${gov.auditLoggingImplemented ? 'Y' : 'N'} Sb:${gov.sandboxTested ? 'Y' : 'N'}`;
+                            return new DocxTableRow({
+                                children: [
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(s.name), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(s.riskLevel || 'N/A'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(autonomy), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(a?.lastRiskScore ?? 'N/A'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(guardrails), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(c?.mappedControls ?? '0'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                ]
+                            });
+                        })
+                    ]
+                }),
+                new Paragraph({ children: [], spacing: { after: 400 } })
+            );
+        } else {
+            children.push(
+                new Paragraph({
+                    children: [new TextRun({ text: 'No AI systems are registered for this client.', size: 18, color: '64748B' })],
+                    spacing: { after: 300 }
+                })
+            );
+        }
+
+        children.push(
+            new Paragraph({
+                children: [new TextRun({ text: 'Safe Deployment Checklist (Gated)', bold: true, size: 24, color: primaryColor })],
+                spacing: { before: 400, after: 200 }
+            }),
+            ...[
+                "Inventory & scope the agent (owner, purpose, autonomy tier, tools, data boundaries)",
+                "Threat model failure modes (prompt injection, tool misuse, privilege escalation, drift)",
+                "Run impact assessment and define acceptance criteria",
+                "Implement least privilege, tool allowlisting, and guardrails",
+                "Sandbox and adversarial testing",
+                "Approval workflow and change control",
+                "Production monitoring, tamper-evident logs, and kill switch",
+                "Agent incident response and post-incident hardening"
+            ].map((t) => new Paragraph({
+                children: [new TextRun({ text: `• ${safeText(t)}`, size: 18, color: '475569' })],
+                spacing: { after: 80 }
+            })),
+            new Paragraph({ children: [], spacing: { after: 300 } })
+        );
     }
 
     // ============================================

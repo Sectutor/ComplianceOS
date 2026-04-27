@@ -971,7 +971,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                     const methodology = (model.methodology || 'STRIDE').toUpperCase();
 
                     // Determine which mappings to run
-                    const mappingsToRun = [];
+                    const mappingsToRun: Array<{ map: any; prefix: string }> = [];
                     if (methodology === 'COMBINED' || methodology === 'STRIDE+LINDDUN') {
                         mappingsToRun.push({ map: STRIDE_MAPPING, prefix: 'STRIDE Security' });
                         mappingsToRun.push({ map: LINDDUN_MAPPING, prefix: 'LINDDUN Privacy' });
@@ -985,8 +985,8 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                         mappingsToRun.push({ map: STRIDE_MAPPING, prefix: 'STRIDE Security' });
                     }
 
-                    let components = [];
-                    let flows = [];
+                    let components: any[] = [];
+                    let flows: any[] = [];
                     try {
                         components = await db.select().from(threatModelComponents).where(eq(threatModelComponents.threatModelId, input.threatModelId));
                         flows = await db.select().from(threatModelDataFlows).where(eq(threatModelDataFlows.threatModelId, input.threatModelId));
@@ -997,7 +997,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
 
                     console.log(`[generateRisks] Found ${components.length} components and ${flows.length} flows`);
 
-                    const suggestedRisks = [];
+                    const suggestedRisks: any[] = [];
                     const seenTitles = new Set(); // Avoid dupes
 
                     // 1. Component Analysis Loop

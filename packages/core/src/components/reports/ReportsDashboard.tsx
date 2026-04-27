@@ -45,6 +45,8 @@ const REPORT_SECTIONS = [
     { id: 'gap_analysis', label: 'Gap Analysis & Maturity', desc: 'Detailed breakdown of compliance readiness score', icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { id: 'risks', label: 'Risk Portfolio', desc: 'Strategic risks and mitigation status', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
     { id: 'controls', label: 'Control Verification', desc: 'Evidence-backed status for all active controls', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'harmonization_crosswalk', label: 'Harmonization Crosswalk', desc: 'Auditor-friendly cross-framework control mapping table', icon: FileBarChart, color: 'text-slate-700', bg: 'bg-slate-50' },
+    { id: 'ai_agent_governance_pack', label: 'AI Agent Governance Pack', desc: 'AI system inventory, assessments, controls mapping, and safe deployment checklist', icon: Sparkles, color: 'text-indigo-700', bg: 'bg-indigo-50' },
     { id: 'bcp', label: 'Business Continuity (BCP)', desc: 'Resilience projects and recovery strategies', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'bia', label: 'Business Impact (BIA)', desc: 'Analysis of critical processes and RTOs', icon: FileText, color: 'text-cyan-600', bg: 'bg-cyan-50' },
     { id: 'assets', label: 'Asset Inventory', desc: 'Hardware, software, and information assets', icon: Layout, color: 'text-slate-600', bg: 'bg-slate-50' },

@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { logger } from "./logger";
 
 export interface EnvConfig {
     DATABASE_URL: string;
@@ -87,7 +88,7 @@ export async function healthCheck(): Promise<HealthCheckResult> {
         await db.execute(sql`SELECT 1`);
         services.database = true;
     } catch (err) {
-        console.error('❌ Database health check failed:', err);
+        logger.error({ message: "[HealthCheck] Database health check failed", error: err });
         services.database = false;
     }
 
@@ -102,7 +103,7 @@ export async function healthCheck(): Promise<HealthCheckResult> {
             await stripeClient.balance.retrieve();
             services.stripe = true;
         } catch (err) {
-            console.error('❌ Stripe health check failed:', err);
+            logger.error({ message: "[HealthCheck] Stripe health check failed", error: err });
             services.stripe = false;
         }
     }
@@ -126,14 +127,12 @@ export async function healthCheck(): Promise<HealthCheckResult> {
 
 export function logValidationResults(result: ValidationResult): void {
     if (!result.valid) {
-        console.error('❌ Environment validation failed:');
-        result.errors.forEach(err => console.error(`  - ${err}`));
+        logger.error({ message: "[Env] Environment validation failed", errors: result.errors });
     } else {
-        console.log('✅ Environment validation passed');
+        logger.info("[Env] Environment validation passed");
     }
 
     if (result.warnings.length > 0) {
-        console.warn('⚠️  Warnings:');
-        result.warnings.forEach(warn => console.warn(`  - ${warn}`));
+        logger.warn({ message: "[Env] Environment validation warnings", warnings: result.warnings });
     }
 }

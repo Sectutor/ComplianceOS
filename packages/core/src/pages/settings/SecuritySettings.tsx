@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useClientContext } from "@/contexts/ClientContext";
 import MFAChallengeModal from "@/components/auth/MFAChallengeModal";
+import { PATManagement } from "@/components/settings/PATManagement";
 
 type Factor = {
   id: string;
@@ -445,6 +446,8 @@ export default function SecuritySettings() {
             )}
           </CardContent>
         </Card>
+
+        <PATManagement />
       </div>
 
       <Dialog open={showEnroll} onOpenChange={setShowEnroll}>

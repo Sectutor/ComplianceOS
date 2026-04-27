@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray, desc, ilike, or } from "drizzle-orm";
 
 export const createHarmonizationRouter = (t: any, protectedProcedure: any) => {
     return t.router({
@@ -148,6 +148,187 @@ export const createHarmonizationRouter = (t: any, protectedProcedure: any) => {
                 savingsPercentage,
                 opportunities
             };
-        })
+        }),
+
+        listCommonControls: protectedProcedure
+            .query(async () => {
+                const db = await getDb();
+                return db.select().from(schema.commonControls).orderBy(desc(schema.commonControls.updatedAt));
+            }),
+
+        createCommonControl: protectedProcedure
+            .input(z.object({
+                name: z.string().min(1),
+                description: z.string().optional(),
+                domain: z.string().optional()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const [created] = await db.insert(schema.commonControls).values({
+                    name: input.name,
+                    description: input.description,
+                    domain: input.domain,
+                    createdById: ctx.user?.id,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any).returning();
+                return created;
+            }),
+
+        updateCommonControl: protectedProcedure
+            .input(z.object({
+                id: z.number(),
+                name: z.string().min(1).optional(),
+                description: z.string().optional(),
+                domain: z.string().optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                const { id, ...rest } = input;
+                const updateData: any = { updatedAt: new Date() };
+                for (const [k, v] of Object.entries(rest)) {
+                    if (v !== undefined) updateData[k] = v;
+                }
+                const [updated] = await db.update(schema.commonControls)
+                    .set(updateData)
+                    .where(eq(schema.commonControls.id, id))
+                    .returning();
+                return updated;
+            }),
+
+        deleteCommonControl: protectedProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.delete(schema.commonControls).where(eq(schema.commonControls.id, input.id));
+                return { success: true };
+            }),
+
+        listRequirements: protectedProcedure
+            .input(z.object({
+                frameworkId: z.number(),
+                search: z.string().optional(),
+                limit: z.number().min(1).max(500).optional().default(200)
+            }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const search = input.search?.trim();
+                const whereClause = search
+                    ? and(
+                        eq(schema.frameworkRequirements.frameworkId, input.frameworkId),
+                        or(
+                            ilike(schema.frameworkRequirements.identifier, `%${search}%`),
+                            ilike(schema.frameworkRequirements.title, `%${search}%`)
+                        )
+                    )
+                    : eq(schema.frameworkRequirements.frameworkId, input.frameworkId);
+
+                return db.select()
+                    .from(schema.frameworkRequirements)
+                    .where(whereClause)
+                    .orderBy(desc(schema.frameworkRequirements.updatedAt))
+                    .limit(input.limit);
+            }),
+
+        listRequirementMappings: protectedProcedure
+            .input(z.object({
+                sourceFrameworkId: z.number(),
+                targetFrameworkId: z.number()
+            }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                const mappings = await db.select()
+                    .from(schema.frameworkMappings)
+                    .where(and(
+                        eq(schema.frameworkMappings.sourceFrameworkId, input.sourceFrameworkId),
+                        eq(schema.frameworkMappings.targetFrameworkId, input.targetFrameworkId)
+                    ))
+                    .orderBy(desc(schema.frameworkMappings.createdAt));
+
+                const sourceIds = Array.from(new Set(mappings.map(m => m.sourceRequirementId).filter(Boolean))) as number[];
+                const targetIds = Array.from(new Set(mappings.map(m => m.targetRequirementId).filter(Boolean))) as number[];
+                const commonIds = Array.from(new Set(mappings.map(m => m.commonControlId).filter(Boolean))) as number[];
+
+                const [sourceReqs, targetReqs, commonControls] = await Promise.all([
+                    sourceIds.length
+                        ? db.select().from(schema.frameworkRequirements).where(inArray(schema.frameworkRequirements.id, sourceIds))
+                        : Promise.resolve([]),
+                    targetIds.length
+                        ? db.select().from(schema.frameworkRequirements).where(inArray(schema.frameworkRequirements.id, targetIds))
+                        : Promise.resolve([]),
+                    commonIds.length
+                        ? db.select().from(schema.commonControls).where(inArray(schema.commonControls.id, commonIds))
+                        : Promise.resolve([])
+                ]);
+
+                const sourceMap = new Map(sourceReqs.map(r => [r.id, r]));
+                const targetMap = new Map(targetReqs.map(r => [r.id, r]));
+                const commonMap = new Map(commonControls.map(c => [c.id, c]));
+
+                return mappings.map(m => ({
+                    ...m,
+                    sourceRequirement: m.sourceRequirementId ? sourceMap.get(m.sourceRequirementId) : null,
+                    targetRequirement: m.targetRequirementId ? targetMap.get(m.targetRequirementId) : null,
+                    commonControl: m.commonControlId ? commonMap.get(m.commonControlId) : null
+                }));
+            }),
+
+        upsertRequirementMapping: protectedProcedure
+            .input(z.object({
+                sourceFrameworkId: z.number(),
+                sourceRequirementId: z.number(),
+                targetFrameworkId: z.number(),
+                targetRequirementId: z.number(),
+                strength: z.enum(['exact', 'subset', 'superset', 'partial', 'related']).optional().default('related'),
+                justification: z.string().optional(),
+                commonControlId: z.number().nullable().optional()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+
+                const existing = await db.select()
+                    .from(schema.frameworkMappings)
+                    .where(and(
+                        eq(schema.frameworkMappings.sourceFrameworkId, input.sourceFrameworkId),
+                        eq(schema.frameworkMappings.sourceRequirementId, input.sourceRequirementId),
+                        eq(schema.frameworkMappings.targetFrameworkId, input.targetFrameworkId),
+                        eq(schema.frameworkMappings.targetRequirementId, input.targetRequirementId)
+                    ))
+                    .limit(1);
+
+                if (existing.length > 0) {
+                    const [updated] = await db.update(schema.frameworkMappings)
+                        .set({
+                            strength: input.strength,
+                            justification: input.justification,
+                            commonControlId: input.commonControlId ?? null
+                        } as any)
+                        .where(eq(schema.frameworkMappings.id, existing[0].id))
+                        .returning();
+                    return updated;
+                }
+
+                const [created] = await db.insert(schema.frameworkMappings).values({
+                    sourceFrameworkId: input.sourceFrameworkId,
+                    sourceRequirementId: input.sourceRequirementId,
+                    targetFrameworkId: input.targetFrameworkId,
+                    targetRequirementId: input.targetRequirementId,
+                    strength: input.strength,
+                    justification: input.justification,
+                    commonControlId: input.commonControlId ?? null,
+                    createdById: ctx.user?.id,
+                    createdAt: new Date()
+                } as any).returning();
+                return created;
+            }),
+
+        deleteRequirementMapping: protectedProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.delete(schema.frameworkMappings).where(eq(schema.frameworkMappings.id, input.id));
+                return { success: true };
+            })
     });
 };

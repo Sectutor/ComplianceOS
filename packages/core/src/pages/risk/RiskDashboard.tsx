@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@comp
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Link } from "wouter";
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayoutSkeleton from '@/components/DashboardLayoutSkeleton';
 import { RiskRegister } from '@/components/risk/RiskRegister';
 import { RiskHeatmap } from '@/components/risk/RiskHeatmap';
 import { RiskReductionROI } from '@/components/risk/RiskCharts';
@@ -57,14 +58,19 @@ export default function RiskDashboard() {
     };
 
     if (loadingClientDetails) return (
-        <DashboardLayout>
-            <div className="p-8 text-center text-muted-foreground">Loading client data...</div>
-        </DashboardLayout>
+        <DashboardLayoutSkeleton />
     );
 
     if (!client) return (
         <DashboardLayout>
-            <div className="p-8 text-center text-destructive">Client not found.</div>
+            <div className="p-8">
+                <EmptyState
+                    icon={AlertTriangle}
+                    title="Client Not Found"
+                    description="The requested client workspace could not be loaded."
+                    action={{ label: "Return to Dashboard", onClick: () => setLocation('/dashboard') }}
+                />
+            </div>
         </DashboardLayout>
     );
 

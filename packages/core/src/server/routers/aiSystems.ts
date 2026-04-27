@@ -4,6 +4,28 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 
+const AGENT_GOVERNANCE_BLOCK_RE = /(?:^|\n)---\nAGENT_GOVERNANCE\n([\s\S]*)$/;
+
+const stripAgentGovernanceBlockFromTechnicalConstraints = (technicalConstraints: string | null | undefined) => {
+    if (!technicalConstraints) return '';
+    const trimmed = technicalConstraints.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (typeof parsed?.notes === 'string') return parsed.notes;
+            if (typeof parsed?.technicalConstraints === 'string') return parsed.technicalConstraints;
+        } catch {
+            return '';
+        }
+        return '';
+    }
+    const match = AGENT_GOVERNANCE_BLOCK_RE.exec(technicalConstraints);
+    if (!match) return technicalConstraints;
+    const idx = match.index ?? 0;
+    return technicalConstraints.slice(0, idx).trimEnd();
+};
+
 export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
     return t.router({
         list: protectedProcedure
@@ -65,18 +87,24 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                 purpose: z.string().optional(),
                 status: z.enum(["evaluation", "development", "production", "monitoring", "retired"]).optional(),
                 riskLevel: z.enum(["low", "medium", "high", "critical", "unacceptable"]).optional(),
-                vendorId: z.number().optional()
+                vendorId: z.number().optional(),
+                owner: z.string().optional(),
+                intendedUsers: z.string().optional(),
+                deploymentContext: z.string().optional(),
+                type: z.string().optional(),
+                dataSensitivity: z.string().optional(),
+                technicalConstraints: z.string().optional()
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
+                const { id, ...updateData } = input;
                 const [updated] = await dbConn.update(schema.aiSystems)
                     .set({
-                        ...input,
+                        ...updateData,
                         updatedAt: new Date()
                     })
-                    .where(eq(schema.aiSystems.id, input.id))
+                    .where(eq(schema.aiSystems.id, id))
                     .returning();
-                return updated;
                 return updated;
             }),
 
@@ -252,7 +280,7 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                         complianceMapping: controls
                     },
                     technicalContext: {
-                        constraints: system.technicalConstraints || "Not documented",
+                        constraints: stripAgentGovernanceBlockFromTechnicalConstraints(system.technicalConstraints) || "Not documented",
                         deploymentContext: system.deploymentContext || "Not documented"
                     }
                 };

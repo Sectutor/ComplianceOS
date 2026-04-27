@@ -258,7 +258,7 @@ export const usersSubRouter = router({
 
             // Fetch client context if possible
             const dbConn = await db.getDb();
-            let clientData = null;
+            let clientData: any = null;
 
             if (ctx.clientId) {
                 const [c] = await dbConn.select().from(clients).where(eq(clients.id, ctx.clientId)).limit(1);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@complianceos/ui";
 import { trpc } from '@/lib/trpc';
 import {
@@ -11,7 +11,10 @@ import {
     Target,
     Zap,
     Brain,
-    ArrowUpRight
+    ArrowUpRight,
+    AlertTriangle,
+    TrendingDown,
+    CheckSquare
 } from "lucide-react";
 import {
     BarChart,
@@ -28,8 +31,12 @@ import {
     Radar,
     Cell,
     PieChart,
-    Pie
+    Pie,
+    ScatterChart,
+    Scatter,
+    ZAxis
 } from 'recharts';
+import { calculateReadinessScore, generateRiskHeatmap, getAuditRiskAlerts, type ReadinessScore, type RiskHeatmapData } from '@/lib/readinessScoring';
 
 interface ExecutiveDashboardProps {
     clientId: number;
@@ -38,11 +45,40 @@ interface ExecutiveDashboardProps {
 
 export const ExecutiveDashboard = ({ clientId, onViewFullAnalysis }: ExecutiveDashboardProps) => {
     const { data: dashboard, isLoading } = trpc.metrics.getDashboard.useQuery({ clientId });
+    const [readinessScore, setReadinessScore] = useState<ReadinessScore | null>(null);
+    const [riskHeatmap, setRiskHeatmap] = useState<RiskHeatmapData[]>([]);
+    const [riskAlerts, setRiskAlerts] = useState<string[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    if (isLoading) {
+    useEffect(() => {
+        const loadReadinessData = async () => {
+            try {
+                setIsRefreshing(true);
+                const [score, heatmap] = await Promise.all([
+                    calculateReadinessScore(clientId),
+                    generateRiskHeatmap(clientId)
+                ]);
+                setReadinessScore(score);
+                setRiskHeatmap(heatmap);
+                setRiskAlerts(getAuditRiskAlerts(score, heatmap));
+            } catch (error) {
+                console.error('Failed to load readiness data:', error);
+            } finally {
+                setIsRefreshing(false);
+            }
+        };
+
+        loadReadinessData();
+        
+        // Refresh every 5 minutes
+        const interval = setInterval(loadReadinessData, 5 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, [clientId]);
+
+    if (isLoading || !readinessScore) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="h-32 bg-slate-100 rounded-xl" />
                 ))}
             </div>
@@ -63,31 +99,40 @@ export const ExecutiveDashboard = ({ clientId, onViewFullAnalysis }: ExecutiveDa
 
     const stats = [
         {
-            label: "Compliance Posture",
-            value: `${compliance?.controlEffectiveness || 0}%`,
-            description: "Implemented & Passing Controls",
+            label: "Readiness Score",
+            value: `${readinessScore.overall}%`,
+            description: "Overall audit readiness",
+            icon: readinessScore.overall >= 80 ? CheckSquare : readinessScore.overall >= 60 ? AlertCircle : AlertTriangle,
+            bg: readinessScore.overall >= 80 ? "bg-emerald-100" : readinessScore.overall >= 60 ? "bg-amber-100" : "bg-red-100",
+            color: readinessScore.overall >= 80 ? "text-emerald-600" : readinessScore.overall >= 60 ? "text-amber-600" : "text-red-600",
+            trend: readinessScore.overall >= 80 ? "Excellent" : readinessScore.overall >= 60 ? "Needs Work" : "Critical"
+        },
+        {
+            label: "Evidence Coverage",
+            value: `${readinessScore.evidenceCoverage}%`,
+            description: "Controls with evidence",
+            icon: CheckCircle2,
+            bg: readinessScore.evidenceCoverage >= 80 ? "bg-emerald-100" : readinessScore.evidenceCoverage >= 60 ? "bg-amber-100" : "bg-red-100",
+            color: readinessScore.evidenceCoverage >= 80 ? "text-emerald-600" : readinessScore.evidenceCoverage >= 60 ? "text-amber-600" : "text-red-600",
+            trend: readinessScore.evidenceCoverage >= 80 ? "Strong" : readinessScore.evidenceCoverage >= 60 ? "Moderate" : "Weak"
+        },
+        {
+            label: "Risk Appetite",
+            value: strategic?.riskAppetiteConsumption ? `${100 - strategic.riskAppetiteConsumption}%` : "0%",
+            description: "Remaining risk capacity",
             icon: Shield,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
-            trend: "+2.4% from last month"
+            bg: "bg-blue-100",
+            color: "text-blue-600",
+            trend: "+2.5%"
         },
         {
-            label: "Critical Risks",
-            value: strategic?.criticalRisksUnmitigated || 0,
-            description: "High inherent risk, no treatment",
-            icon: AlertCircle,
-            color: "text-rose-600",
-            bg: "bg-rose-50",
-            trend: "Action required"
-        },
-        {
-            label: "Open Vulnerabilities",
-            value: cyber?.openVulns || 0,
-            description: "Detected in active assets",
-            icon: Zap,
-            color: "text-amber-600",
-            bg: "bg-amber-50",
-            trend: "-12% improvement"
+            label: "Control Effectiveness",
+            value: `${readinessScore.controlImplementation}%`,
+            description: "Controls implemented",
+            icon: Target,
+            bg: readinessScore.controlImplementation >= 80 ? "bg-emerald-100" : readinessScore.controlImplementation >= 60 ? "bg-amber-100" : "bg-red-100",
+            color: readinessScore.controlImplementation >= 80 ? "text-emerald-600" : readinessScore.controlImplementation >= 60 ? "text-amber-600" : "text-red-600",
+            trend: readinessScore.controlImplementation >= 80 ? "Strong" : readinessScore.controlImplementation >= 60 ? "Moderate" : "Weak"
         }
     ];
 
@@ -123,35 +168,67 @@ export const ExecutiveDashboard = ({ clientId, onViewFullAnalysis }: ExecutiveDa
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                {/* Maturity Radar */}
+                {/* Risk Heatmap */}
                 <Card className="lg:col-span-3 border-none shadow-md bg-white overflow-hidden">
                     <CardHeader className="border-b border-slate-50 pb-4">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <Target className="w-5 h-5 text-indigo-500" />
-                            Domain Maturity Profile
+                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                            Risk Heatmap
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="h-[350px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                                    <PolarGrid stroke="#e2e8f0" />
-                                    <PolarAngleAxis
-                                        dataKey="subject"
-                                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                                <ScatterChart
+                                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis 
+                                        dataKey="framework" 
+                                        type="category"
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={80}
                                     />
-                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                    <Radar
-                                        name="Maturity"
-                                        dataKey="A"
-                                        stroke="#6366f1"
-                                        fill="#6366f1"
-                                        fillOpacity={0.5}
+                                    <YAxis 
+                                        dataKey="controlName" 
+                                        type="category"
+                                        width={120}
+                                    />
+                                    <ZAxis 
+                                        dataKey="riskLevel"
+                                        range={[100, 400]}
+                                        domain={['low', 'medium', 'high', 'critical']}
                                     />
                                     <Tooltip
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                        cursor={{ strokeDasharray: '3 3' }}
+                                        content={({ payload }) => {
+                                            if (!payload || !payload.length) return null;
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-white p-3 rounded-lg shadow-lg border">
+                                                    <p className="font-semibold">{data.controlName}</p>
+                                                    <p className="text-sm">Framework: {data.framework}</p>
+                                                    <p className="text-sm">Risk: {data.riskLevel}</p>
+                                                    <p className="text-sm">Evidence: {data.evidenceStatus}</p>
+                                                </div>
+                                            );
+                                        }}
                                     />
-                                </RadarChart>
+                                    <Scatter
+                                        name="Risk Level"
+                                        data={riskHeatmap}
+                                        fill={({ riskLevel }) => {
+                                            switch (riskLevel) {
+                                                case 'critical': return '#dc2626';
+                                                case 'high': return '#ea580c';
+                                                case 'medium': return '#f59e0b';
+                                                case 'low': return '#22c55e';
+                                                default: return '#6b7280';
+                                            }
+                                        }}
+                                    />
+                                </ScatterChart>
                             </ResponsiveContainer>
                         </div>
                     </CardContent>
@@ -168,14 +245,36 @@ export const ExecutiveDashboard = ({ clientId, onViewFullAnalysis }: ExecutiveDa
                     <CardContent className="space-y-6">
                         <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
                             <h4 className="font-bold text-sm mb-1 text-indigo-100 uppercase tracking-widest flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                Current Summary
+                                <span className={`w-2 h-2 rounded-full ${
+                                    readinessScore.auditRisk === 'critical' ? 'bg-red-400' :
+                                    readinessScore.auditRisk === 'high' ? 'bg-amber-400' :
+                                    readinessScore.auditRisk === 'medium' ? 'bg-yellow-400' : 'bg-emerald-400'
+                                } animate-pulse`} />
+                                Audit Risk: {readinessScore.auditRisk.toUpperCase()}
                             </h4>
                             <p className="text-sm leading-relaxed text-indigo-50">
-                                Your overall compliance posture is <b>{compliance?.controlEffectiveness || 0}%</b>.
-                                Risk appetite consumption is currently within within set thresholds, but critical vendor risks require attention.
+                                Overall readiness score: <b>{readinessScore.overall}%</b>.
+                                {readinessScore.overall >= 80 ? 'Excellent position for upcoming audits.' :
+                                 readinessScore.overall >= 60 ? 'Moderate readiness - some areas need attention.' :
+                                 'Critical readiness - immediate action required.'}
                             </p>
                         </div>
+
+                        {riskAlerts.length > 0 && (
+                            <div className="bg-red-500/20 backdrop-blur-md rounded-xl p-4 border border-red-400/30">
+                                <h4 className="font-bold text-sm mb-2 text-red-100 uppercase tracking-widest flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Critical Alerts
+                                </h4>
+                                <div className="space-y-2">
+                                    {riskAlerts.map((alert, index) => (
+                                        <p key={index} className="text-sm text-red-100 leading-relaxed">
+                                            • {alert}
+                                        </p>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-200">Key Recommendations</h4>

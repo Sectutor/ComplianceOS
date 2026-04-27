@@ -200,13 +200,15 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 
   if (!_db) {
     const databaseUrl = getSecret('DATABASE_URL');
-    console.log('[DB] Using DATABASE_URL (prefix):', databaseUrl?.substring(0, 50));
-    console.log('[DB] Full URL (masked):', databaseUrl?.replace(/:[^:@]+@/, ':***@'));
     if (!databaseUrl) {
       throw new DatabaseConnectionError("DATABASE_URL environment variable is not set");
     }
 
-    console.log('[DB] Attempting to connect to database...');
+    logger.info({
+      message: "[DB] Initializing database connection",
+      poolMax: 10,
+      ssl: true,
+    });
 
     try {
       if (!_sql) {
@@ -221,27 +223,24 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
             statement_timeout: 30000, // 30s statement timeout
           },
           onnotice: (notice) => {
-            console.log('[DB Notice]', notice);
+            logger.debug({ message: "[DB Notice]", notice });
           },
         });
-        console.log(`[DB] Connection pool created with URL length: ${process.env.DATABASE_URL?.length}`);
 
         // Test the connection
-        console.log('[DB] Testing connection...');
         const testResult = await _sql`SELECT 1 as test`;
-        console.log('[DB] Connection test result:', testResult);
+        logger.info({ message: "[DB] Connection test OK", testResult });
 
       }
 
       _db = drizzle(_sql, { schema });
-      console.log('[DB] Database connection initialized successfully');
+      logger.info("[DB] Database connection initialized successfully");
 
     } catch (error) {
 
-      logger.warn({ message: "[Database] Failed to connect:", error });
+      logger.error({ message: "[DB] Failed to connect", error });
 
       _db = null;
-      console.error('[DB] Database connection failed:', error);
 
       throw new DatabaseConnectionError(`Failed to connect to database: ${(error as Error).message}`);
 
@@ -280,9 +279,9 @@ export async function closeDb() {
  * The next call to getDb() will create a fresh pool.
  */
 export async function resetDb() {
-  console.warn('[DB] Resetting connection pool due to stale/broken connection...');
+  logger.warn('[DB] Resetting connection pool due to stale/broken connection...');
   await closeDb();
-  console.warn('[DB] Connection pool reset. Will reconnect on next request.');
+  logger.warn('[DB] Connection pool reset. Will reconnect on next request.');
 }
 
 

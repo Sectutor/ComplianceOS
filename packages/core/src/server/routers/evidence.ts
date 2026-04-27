@@ -8,6 +8,7 @@ import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
 import { recalculateRiskScore } from "../services/riskService";
+import { workflowAutomation } from "../services/workflowAutomation";
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {
@@ -963,6 +964,63 @@ Provide a structured JSON response:
                     checked: true,
                     expiredCount: expiredItems.length
                 };
+            }),
+
+        // Workflow Automation Endpoints
+        sendEvidenceNotification: publicProcedure
+            .input(z.object({
+                evidenceId: z.number(),
+                channel: z.enum(['slack', 'email', 'both']).default('both')
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const evidence = await dbConn.select()
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.evidenceId));
+
+                if (evidence.length === 0) {
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: 'Evidence not found'
+                    });
+                }
+
+                const request = await workflowAutomation.buildEvidenceRequest(evidence[0]);
+                
+                const results = [];
+                if (input.channel === 'slack' || input.channel === 'both') {
+                    results.push(await workflowAutomation.sendSlackNotification(request));
+                }
+                if (input.channel === 'email' || input.channel === 'both') {
+                    results.push(await workflowAutomation.sendEmailNotification(request));
+                }
+
+                return { success: results.every(r => r), sentTo: input.channel };
+            }),
+
+        autoCreateEvidenceRequests: publicProcedure
+            .input(z.object({
+                clientId: z.number(),
+                framework: z.string()
+            }))
+            .mutation(async ({ input }: any) => {
+                await workflowAutomation.autoCreateEvidenceRequests(input.clientId, input.framework);
+                return { success: true, framework: input.framework };
+            }),
+
+        checkOverdueEvidence: publicProcedure
+            .mutation(async () => {
+                await workflowAutomation.checkOverdueEvidence();
+                return { success: true };
+            }),
+
+        processSlackInteraction: publicProcedure
+            .input(z.object({
+                payload: z.any()
+            }))
+            .mutation(async ({ input }: any) => {
+                await workflowAutomation.processSlackInteraction(input.payload);
+                return { success: true };
             }),
     });
 };

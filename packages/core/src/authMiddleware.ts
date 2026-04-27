@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextFunction, Request, Response } from 'express';
 import { getDb } from './db';
-import { users } from './schema';
-import { eq } from 'drizzle-orm';
+import { users, personalAccessTokens } from './schema';
+import { eq, and } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
@@ -43,6 +43,43 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         console.log(`[Auth Debug] Authorization header present for ${url}`);
 
         const token = authHeader.replace('Bearer ', '');
+
+        // Handle Personal Access Tokens (PATs)
+        if (token.startsWith('cos_')) {
+            console.log(`[Auth Debug] Handling PAT for ${url}`);
+            const dbConn = await getDb();
+            const [pat] = await dbConn.select()
+                .from(personalAccessTokens)
+                .where(eq(personalAccessTokens.token, token))
+                .limit(1);
+
+            if (!pat) {
+                console.warn(`[Auth Debug] Invalid PAT provided for ${url}`);
+                return next();
+            }
+
+            const dbUser = await dbConn.query.users.findFirst({
+                where: eq(users.id, pat.userId)
+            });
+
+            if (!dbUser) {
+                console.error(`[Auth Debug] PAT linked to non-existent user: ${pat.userId}`);
+                return next();
+            }
+
+            // Update last used timestamp (background)
+            dbConn.update(personalAccessTokens)
+                .set({ lastUsedAt: new Date() })
+                .where(eq(personalAccessTokens.id, pat.id))
+                .execute().catch(err => console.error('[Auth Debug] Failed to update PAT lastUsedAt:', err));
+
+            authInfo.dbUser = true;
+            authInfo.isPat = true;
+            console.log(`[Auth Debug] PAT validated for user: ${dbUser.id} (${dbUser.email})`);
+            req.user = dbUser;
+            return next();
+        }
+
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {

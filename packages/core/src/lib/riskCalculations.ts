@@ -40,7 +40,7 @@ const CONTROL_REDUCTION: Record<string, number> = {
 export function normalizeControlEffectiveness(value: string | null | undefined): string {
     if (!value) return '';
     
-    const normalized = value.toLowerCase().replace(' ', '_');
+    const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
     if (normalized === 'effective' || normalized === 'partially_effective' || normalized === 'ineffective') {
         return normalized;
     }
@@ -57,7 +57,7 @@ export function normalizeControlEffectiveness(value: string | null | undefined):
 export function parseLikelihoodImpact(value: string | number | null | undefined): number {
     if (value === null || value === undefined || value === '') return 0;
     
-    const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+    const num = typeof value === 'number' ? value : parseInt(String(value).trim(), 10);
     if (isNaN(num)) return 0;
     
     // Clamp to valid range (1-5)

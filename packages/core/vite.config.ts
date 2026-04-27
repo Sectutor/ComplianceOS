@@ -23,6 +23,11 @@ const licenseType = buildType === 'AGPLv3' ? 'AGPLv3 Community' :
 console.log(`[Vite] Building ${licenseType} edition (Build Type: ${buildType})`);
 console.log(`[Vite] Premium features: ${hasPremium ? 'ENABLED' : 'DISABLED'}`);
 
+const devHost = process.env.VITE_HOST || '127.0.0.1';
+const devPort = parseInt(process.env.VITE_PORT || process.env.PORT || '5173', 10);
+const hmrProtocol = (process.env.VITE_HMR_PROTOCOL || 'ws') as 'ws' | 'wss';
+const hmrClientPort = parseInt(process.env.VITE_HMR_CLIENT_PORT || String(devPort), 10);
+
 export default defineConfig({
     plugins: [react(), tailwindcss()],
     define: {
@@ -40,6 +45,14 @@ export default defineConfig({
         },
     },
     server: {
+        host: devHost,
+        port: devPort,
+        strictPort: true,
+        hmr: {
+            protocol: hmrProtocol,
+            host: devHost,
+            clientPort: hmrClientPort,
+        },
         proxy: {
             '/api': {
                 target: 'http://127.0.0.1:3002',
