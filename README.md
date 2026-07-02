@@ -135,7 +135,7 @@ GRCompliance is built with a modern, type-safe stack designed for performance an
 ### Docker (Recommended) — One Command
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/dev/deploy/docker/install.sh | bash
 ```
 
 This clones the repo, builds the image, and starts PostgreSQL + Redis + ComplianceOS on port 3002.
