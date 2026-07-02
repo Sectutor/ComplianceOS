@@ -1,20 +1,23 @@
 # ComplianceOS Self-Host — Production Stack
 # Usage:
-#   Quick start: curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash
+#   Quick start: curl -fsSL https://grcompliance.com/install.sh | bash
 #   Or manual:   docker compose -f docker-compose.selfhost.yml up -d
 #
 # First run:
-#   1. Set DATABASE_URL (or use defaults for local dev)
-#   2. Set APP_ENCRYPTION_KEY (REQUIRED for production)
-#   3. docker compose -f docker-compose.selfhost.yml up -d
-#   4. Visit http://localhost:3002
+#   1. docker compose -f docker-compose.selfhost.yml pull
+#   2. docker compose -f docker-compose.selfhost.yml up -d
+#   3. Visit http://localhost:3002
+#
+# Images are published to ghcr.io (GitHub Container Registry).
+# Build locally by adding: docker compose -f docker-compose.selfhost.yml build
 
 services:
   complianceos:
-    image: complianceos/self-hosted:latest
+    image: ghcr.io/sectutor/complianceos-self-hosted:dev
     build:
       context: .
       dockerfile: Dockerfile.selfhost
+      pull: true
     ports:
       - "3002:3002"
     environment:

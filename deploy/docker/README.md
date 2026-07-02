@@ -3,64 +3,37 @@
 ## One-Command Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash
+curl -fsSL https://grcompliance.com/install.sh | bash
 ```
 
-This clones the repo, creates a default `.env`, builds the Docker image, and starts all services.
-
-### Custom options
-
-```bash
-# Custom port
-curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash -s -- -p 8080
-
-# With encryption key
-curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash -s -- -k my-secret-key
-
-# Custom directory + branch
-curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash -s -- -d /opt/complianceos -b main
-```
+Pulls the pre-built image from GitHub Container Registry, creates a `.env`, and starts PostgreSQL + ComplianceOS on port 3002.
 
 ## Manual Setup
 
 ```bash
-git clone https://github.com/sectutor/ComplianceOS.git
-cd ComplianceOS
+# Pull the image
+docker pull ghcr.io/sectutor/complianceos-self-hosted:dev
+
+# Create a directory and .env
+mkdir complianceos && cd complianceos
+curl -o docker-compose.yml https://grcompliance.com/docker-compose.yml
 cp .env.example .env
-# Edit .env with your settings
-docker compose -f docker-compose.selfhost.yml up -d --build
+
+# Start
+docker compose up -d
 ```
 
-## Services
+## Container Images
 
-| Service       | Image                    | Port  |
-|---------------|--------------------------|-------|
-| ComplianceOS  | (built from source)      | 3002  |
-| PostgreSQL    | postgres:15-alpine       | 5432  |
-| Redis         | redis:7-alpine           | 6379  |
+| Registry | Image | 
+|----------|-------|
+| ghcr.io | `ghcr.io/sectutor/complianceos-self-hosted:dev` |
+
+Tags: `dev` (latest from dev branch), `latest` (stable), `v*.*.*` (releases), `commit-<sha>` (per-commit).
 
 ## Updating
 
 ```bash
-# Same one-liner updates existing install
-curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash
+docker compose pull
+docker compose up -d
 ```
-
-Or manually:
-```bash
-cd ComplianceOS
-git pull origin main
-docker compose -f docker-compose.selfhost.yml up -d --build
-```
-
-## Environment Variables
-
-See `.env.example` in the repo root for all available variables. Key ones:
-
-| Variable              | Required | Default                                |
-|-----------------------|----------|----------------------------------------|
-| `DATABASE_URL`        | Yes      | `postgres://complianceos:***@db:5432/complianceos` |
-| `APP_ENCRYPTION_KEY`  | Yes (prod) | —                                    |
-| `VITE_ENABLE_PREMIUM` | No       | `true`                                 |
-| `VITE_LICENSE_KEY`    | No       | `community`                            |
-| `NO_TELEMETRY`        | No       | `true`                                 |
