@@ -1,0 +1,116 @@
+# ComplianceOS Self-Host — Production Stack
+# Usage:
+#   Quick start: curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash
+#   Or manual:   docker compose -f docker-compose.selfhost.yml up -d
+#
+# First run:
+#   1. Set DATABASE_URL (or use defaults for local dev)
+#   2. Set APP_ENCRYPTION_KEY (REQUIRED for production)
+#   3. docker compose -f docker-compose.selfhost.yml up -d
+#   4. Visit http://localhost:3002
+
+services:
+  complianceos:
+    image: complianceos/self-hosted:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.selfhost
+    ports:
+      - "3002:3002"
+    environment:
+      # Core
+      - NODE_ENV=production
+      - PORT=3002
+      - HOST=0.0.0.0
+
+      # Database
+      - DATABASE_URL=${DATABASE_URL:-postgres://complianceos:complianceos@db:5432/complianceos?sslmode=disable}
+
+      # Encryption — REQUIRED for production self-host
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+      # APP_ENCRYPTION_KEY alias (read by some modules)
+      - APP_ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+
+      # Auth — Supabase (optional, local auth fallback available)
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-placeholder}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-placeholder}
+      - SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
+
+      # License
+      - VITE_ENABLE_PREMIUM=${VITE_ENABLE_PREMIUM:-true}
+      - VITE_LICENSE_KEY=${VITE_LICENSE_KEY:-community}
+      - VITE_LICENSE_SERVER=${VITE_LICENSE_SERVER:-https://license.complianceos.com}
+      - BUILD_TYPE=${BUILD_TYPE:-AGPLv3}
+
+      # Telemetry & AI
+      - NO_TELEMETRY=${NO_TELEMETRY:-true}
+      - ENABLE_AI=${ENABLE_AI:-false}
+
+      # Redis (optional, for rate limiting & caching)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - RATE_LIMIT_REDIS_URL=${RATE_LIMIT_REDIS_URL:-redis://redis:6379}
+
+      # Rate limiting
+      - RATE_LIMITING_ENABLED=${RATE_LIMITING_ENABLED:-true}
+
+      # CORS
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3002}
+
+      # HMAC / misc
+      - TOOL_HMAC_SECRET=${TOOL_HMAC_SECRET:-}
+    volumes:
+      - complianceos_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - complianceos-net
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: complianceos
+      POSTGRES_PASSWORD: complianceos
+      POSTGRES_DB: complianceos
+    volumes:
+      - complianceos_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complianceos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - complianceos_redis:/data
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
+networks:
+  complianceos-net:
+    driver: bridge
+
+volumes:
+  complianceos_db:
+  complianceos_redis:
+  complianceos_uploads:

@@ -132,40 +132,46 @@ GRCompliance is built with a modern, type-safe stack designed for performance an
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 15+
+### Docker (Recommended) — One Command
 
-### Installation
+```bash
+curl -fsSL https://raw.githubusercontent.com/sectutor/ComplianceOS/main/deploy/docker/install.sh | bash
+```
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/sectutor/ComplianceOS.git GRCompliance
-    cd GRCompliance
-    ```
+This clones the repo, builds the image, and starts PostgreSQL + Redis + ComplianceOS on port 3002.
 
-2.  **Install dependencies**
-    ```bash
-    npm install
-    ```
+**Visit http://localhost:3002** to log in. Default credentials for local auth:
+- Email: `admin@local`
+- Password: `admin`
 
-3.  **Configure Environment**
-    ```bash
-    cp .env.example .env
-    # Update .env with your database credentials
-    ```
+> Supabase is optional — local auth works out of the box for self-hosted deployments.
 
-4.  **Initialize Database**
-    ```bash
-    npm run db:push
-    ```
+### Manual Setup (Development)
 
-5.  **Run Development Server**
-    ```bash
-    # Run both frontend and backend
-    npm run dev
-    npm run server
-    ```
+| Prerequisite  | Version   |
+|---------------|-----------|
+| Node.js       | 18+       |
+| PostgreSQL    | 15+       |
+
+```bash
+# Clone
+git clone https://github.com/sectutor/ComplianceOS.git
+cd ComplianceOS
+
+# Install
+npm install
+
+# Configure
+cp .env.example .env
+# Edit .env with your database connection string
+
+# Initialize database schema
+npm run db:push
+
+# Start dev servers (frontend + backend)
+npm run dev
+npm run server
+```
 
 Visit `http://localhost:5173` to start using GRCompliance.
 

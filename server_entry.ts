@@ -33,6 +33,7 @@ import './env-loader';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
 import { createContext } from './packages/core/src/server/context';
@@ -43,13 +44,20 @@ import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
 import { aiRouter } from './packages/core/src/server/routers/ai';
 import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroad';
+import { purchaseWebhookRouter } from './packages/core/src/server/webhooks/purchase';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
 import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
 import * as evidenceExpirationScheduler from './packages/core/src/server/services/evidenceExpirationScheduler';
 import redis from './packages/core/src/lib/redis';
+import * as crypto from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
+import { logTelemetryStatus, isTelemetryAllowed } from './packages/core/src/lib/telemetry';
+import { readCachedLicense, enforceLicense } from './packages/core/src/lib/license/local-license-cache';
+import { jobRouter } from './packages/core/src/server/routers/jobs';
+import { localAuth } from './packages/core/src/lib/auth/local-auth';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -62,7 +70,30 @@ app.get(['/health', '/api/health'], async (req, res) => {
     try {
         const dbConn = await getDb();
         await dbConn.execute(sql`SELECT 1`);
-        res.status(200).json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+
+        // License status
+        const cached = readCachedLicense();
+        const enforcement = enforceLicense();
+        const license = cached ? {
+            tier: cached.tier,
+            status: cached.status,
+            expiresAt: cached.expiresAt,
+            graceDaysRemaining: enforcement.graceDaysRemaining,
+        } : {
+            tier: enforcement.tier,
+            status: enforcement.status,
+            expiresAt: null,
+            graceDaysRemaining: 0,
+        };
+
+        res.status(200).json({
+            status: 'ok',
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+            license,
+            edition: process.env.VITE_ENABLE_PREMIUM === 'false' ? 'community' : 'premium',
+            version: '1.0.0',
+        });
     } catch (e: any) {
         console.error('[Health] Database connection check failed:', e);
         res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
@@ -97,7 +128,7 @@ process.on('uncaughtException', (err: any) => {
 process.on('unhandledRejection', (reason: any, promise) => {
     console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
     // Reset DB pool on connection-related errors so the next request reconnects cleanly
-    if (reason?.code === 'ERR_INVALID_ARG_TYPE' || reason?.message?.includes('connect') || reason?.message?.includes('address') || reason?.code === 'ECONNRESET' || reason?.code === 'ECONNREFUSED') {
+    if (reason?.code === 'ERR_INVALID_ARG_TYPE' || reason?.message?.includes('connect') || reason?.message?.includes('address') || reason?.code === 'ECONNRESET' || reason?.code === 'ECONNREFUSED' || reason?.message?.includes('db.select')) {
         console.warn('[DB] Resetting DB pool due to unhandledRejection...');
         resetDb().catch(() => { });
     }
@@ -109,11 +140,17 @@ console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(`- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'false' ? 'CORE (Open Source)' : 'PREMIUM (Full Access)'}`);
 console.log(`- REDIS: ${process.env.REDIS_HOST ? 'Configured' : 'Disabled'}`);
+console.log(`- NO_TELEMETRY: ${process.env.NO_TELEMETRY === 'true' ? 'ON (outbound blocked)' : 'OFF'}`);
+console.log(`- ENABLE_AI: ${process.env.ENABLE_AI === 'true' ? 'ON' : 'OFF'}`);
+console.log(`- APP_ENCRYPTION_KEY: ${process.env.APP_ENCRYPTION_KEY ? 'Set' : 'MISSING - single-user mode'}`);
+logTelemetryStatus();
 
 
 // Add request logging for ALL routes BEFORE anything else
 app.use((req, res, next) => {
-    console.log(`[Incoming] ${req.method} ${req.url}`);
+    // SECURITY: Only log path, not query params (may contain tokens)
+    const pathOnly = req.path;
+    console.log(`[Incoming] ${req.method} ${pathOnly}`);
     next();
 });
 
@@ -124,11 +161,17 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://*.supabase.co", "https://*.netlify.app", "https://grcompliance.com", "https://*.grcompliance.com"],
+            connectSrc: ["'self'", process.env.VITE_SUPABASE_URL ? process.env.VITE_SUPABASE_URL.replace(/\/$/, '') : "'none'"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
         },
     },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
 }));
 
 // Configure CORS
@@ -168,8 +211,8 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Rate Limiting
-if (process.env.RATE_LIMITING_ENABLED === 'true') {
+// Rate Limiting — ON by default (opt-out with RATE_LIMITING_ENABLED=false)
+if (process.env.RATE_LIMITING_ENABLED !== 'false') {
     const limiter = rateLimit({
         windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
         max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
@@ -184,6 +227,48 @@ if (process.env.RATE_LIMITING_ENABLED === 'true') {
 // Apply Authentication Middleware to populate req.user
 app.use(authMiddleware);
 
+// Local auth fallback: init default admin + login endpoint
+if (localAuth.isLocalAuthActive()) {
+  localAuth.initDefaultAdmin();
+  console.log('[LocalAuth] Local authentication active — default admin: admin@local / admin');
+}
+
+// Local login endpoint (used when Supabase is not configured)
+app.post('/api/auth/local-login', express.json(), (req: any, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const result = localAuth.login(email, password);
+  if (!result.success) {
+    return res.status(401).json({ error: result.error || 'Invalid credentials' });
+  }
+
+  res.json({
+    user: result.user,
+    token: result.token,
+  });
+});
+
+// Local registration endpoint (creates new users)
+app.post('/api/auth/local-register', express.json(), (req: any, res) => {
+  const { email, password, name } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const result = localAuth.register(email, password, name || undefined);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error || 'Registration failed' });
+  }
+
+  res.json({
+    user: result.user,
+    token: result.token,
+  });
+});
+
 // Secure static uploads - must be after authMiddleware
 app.use('/uploads', (req: any, res, next) => {
     if (!req.user) {
@@ -195,9 +280,12 @@ app.use('/uploads', (req: any, res, next) => {
 
 
 
-// Production Diagnostics Endpoint - Restricted to Admins
+// Production Diagnostics Endpoint - Restricted to Admins + DEBUG mode
 // Diagnostic endpoint to check polyfills
 app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: express.Response) => {
+    if (process.env.DEBUG !== 'true') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     const g = global as any;
     res.json({
         DOMMatrix: typeof g.DOMMatrix,
@@ -214,6 +302,9 @@ app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: ex
 });
 
 app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) => {
+    if (process.env.DEBUG !== 'true') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
         return res.status(403).json({ error: 'Unauthorized diagnostic access' });
     }
@@ -255,8 +346,21 @@ app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) =>
 // APIs
 app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
-app.use('/api/ai', aiRouter);
+
+// AI router: gated by NO_TELEMETRY / ENABLE_AI (Phase 1.2)
+if (isTelemetryAllowed('ai_drafting') || isTelemetryAllowed('ai_evidence_analysis')) {
+  app.use('/api/ai', aiRouter);
+  console.log('[Telemetry] AI router enabled (ENABLE_AI=true)');
+} else if (process.env.ENABLE_AI !== 'true') {
+  // Also register a dead-end so callers get 404 instead of hanging
+  app.use('/api/ai', (_req: express.Request, res: express.Response) => {
+    res.status(404).json({ error: 'AI endpoints are disabled. Set ENABLE_AI=true to enable.' });
+  });
+}
+
 app.use('/api/webhooks', gumroadWebhookRouter);
+app.use('/api/webhooks', purchaseWebhookRouter);
+app.use('/api/jobs', jobRouter);
 
 // Redundant local uploads removed for security
 // app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -266,7 +370,8 @@ app.use(
     '/api/trpc',
     (req, res, next) => {
         if (req.url === '/health' || req.url === '/api/health') return next();
-        console.log(`[TRPC Request] ${req.method} ${req.path}${req.url.includes('?') ? '?' + req.url.split('?')[1] : ''}`);
+        // SECURITY: Don't log query strings (may contain tokens)
+        console.log(`[TRPC Request] ${req.method} ${req.path}`);
         next();
     },
     createExpressMiddleware({
@@ -284,6 +389,8 @@ app.use(
 // Serve static files in production (Docker)
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     console.log('[Server] Serving static files from packages/core/dist');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     const distPath = path.join(__dirname, 'packages/core/dist');
     app.use(express.static(distPath));
 
@@ -329,6 +436,17 @@ if (process.env.ENABLE_EVIDENCE_EXPIRATION_SCHEDULER !== 'false') {
     console.log('[Server] Evidence expiration scheduler started');
 }
 
+// Addon system initialization
+if (process.env.ENABLE_ADDONS !== 'false') {
+    import('./addon-init').then(({ initializeAddonSystem }) => {
+        initializeAddonSystem().then(({ executor }) => {
+            console.log(`[Server] Addon system initialized with ${executor.listRegistered().length} addon(s)`);
+        }).catch(err => {
+            console.error('[Server] Failed to initialize addon system:', err);
+        });
+    });
+}
+
 // Global error handler to ensure all errors return JSON - MUST BE LAST
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('[Server Error]', {
@@ -360,7 +478,6 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
         message: errorMessage,
         code: errorCode,
         data: null,
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined,
     });
 });
 
