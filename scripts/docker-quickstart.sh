@@ -12,7 +12,7 @@ set -euo pipefail
 
 REPO_URL="https://github.com/sectutor/ComplianceOS.git"
 TARGET_DIR="${HOME}/complianceos"
-BRANCH="main"
+BRANCH="dev"
 
 # If we're already in the repo, use it directly
 if [ -f "./docker-compose.selfhost.yml" ] && [ -f "./Dockerfile.selfhost" ]; then

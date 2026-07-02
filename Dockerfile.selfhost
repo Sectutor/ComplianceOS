@@ -9,9 +9,7 @@ RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 COPY packages/core/package.json ./packages/core/
 COPY packages/ui/package.json ./packages/ui/
-COPY packages/addons/package.json ./packages/addons/
 COPY packages/mcp-server/package.json ./packages/mcp-server/
-COPY packages/premium/package.json ./packages/premium/
 
 RUN npm ci --legacy-peer-deps
 
@@ -34,7 +32,6 @@ ENV PORT=3002
 # Copy package files and dependencies
 COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/packages/addons ./packages/addons
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy built frontend
@@ -53,10 +50,8 @@ COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/.env.example ./.env.example
 
 # Copy landing pages
-COPY --from=builder /app/packages/landing ./packages/landing
-
-# Copy self-host docs
-COPY docs/self-hosted /app/docs/self-hosted
+# Copy landing pages
+# COPY --from=builder /app/packages/landing ./packages/landing
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh

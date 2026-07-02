@@ -13,7 +13,7 @@ set -euo pipefail
 
 # ── Config ──────────────────────────────────────────────────────────────────
 REPO_URL="https://github.com/sectutor/ComplianceOS.git"
-BRANCH="main"
+BRANCH="${BRANCH:-dev}"
 TARGET_DIR="${HOME}/complianceos"
 PORT="${PORT:-3002}"
 ENCRYPTION_KEY="${APP_ENCRYPTION_KEY:-}"
