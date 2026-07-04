@@ -24,7 +24,7 @@ const AGENT_API_URL =
   (typeof window !== 'undefined' && (window as any).__ENV__?.AGENT_API_URL) ||
   'http://localhost:9090/api/chat';
 
-const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 180_000;
 
 // Read API key from env or localStorage
 const AGENT_API_KEY =
