@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""
+Compliance Agent Chat Server — Embedded HTTP endpoint for the web chat widget.
+
+Provides:
+  POST /api/chat  — accepts {message, conversation_id?} streams response via SSE
+  GET  /health    — health check
+
+Runs alongside Hermes Agent. Forwards messages to Hermes CLI subprocess.
+"""
+
+import json, os, subprocess, uuid, re, html
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse
+
+HOST = os.environ.get("CHAT_HOST", "0.0.0.0")
+PORT = int(os.environ.get("CHAT_PORT", "9090"))
+API_KEY = os.environ.get("COMPLIANCE_API_KEY", "")
+HERMES_SKILLS = os.environ.get("HERMES_SKILLS", "compliance-agent")
+HERMES_PROFILE = os.environ.get("HERMES_PROFILE", "")
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from Hermes terminal output."""
+    return re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
+
+def call_hermes(message: str) -> str:
+    """Call Hermes CLI with the message and return the response."""
+    cmd = ["hermes", "chat", "-q", message]
+    if HERMES_PROFILE:
+        cmd += ["--profile", HERMES_PROFILE]
+    if HERMES_SKILLS:
+        cmd += ["--skills", HERMES_SKILLS]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env={**os.environ, "PYTHONUNBUFFERED": "1"}
+        )
+        output = result.stdout or result.stderr or ""
+        cleaned = strip_ansi(output)
+        # Strip Hermes banner/header lines
+        lines = cleaned.split("\n")
+        body_lines = [l for l in lines if not l.startswith("╔") and not l.startswith("║") 
+                      and not l.startswith("╚") and "Hermes" not in l 
+                      and not l.startswith("?") and l.strip()]
+        return "\n".join(body_lines).strip()
+    except subprocess.TimeoutExpired:
+        return "I'm sorry, the request timed out. Please try again with a simpler question."
+    except Exception as e:
+        return f"I encountered an error: {str(e)}"
+
+class ChatHandler(BaseHTTPRequestHandler):
+    """HTTP handler for chat API."""
+    
+    def _send_cors(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-API-Key")
+    
+    def _check_auth(self) -> bool:
+        if not API_KEY:
+            return True  # dev mode
+        key = self.headers.get("X-API-Key", "")
+        if key != API_KEY:
+            self.send_error(401, "Invalid API key")
+            return False
+        return True
+    
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self._send_cors()
+        self.end_headers()
+    
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/health":
+            self.send_response(200)
+            self._send_cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "ok",
+                "service": "compliance-agent-chat",
+                "version": "1.0.0",
+            }).encode())
+            return
+        self.send_error(404)
+    
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path != "/api/chat":
+            self.send_error(404)
+            return
+        
+        if not self._check_auth():
+            return
+        
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length)
+        
+        try:
+            data = json.loads(body)
+            message = data.get("message", "").strip()
+            conversation_id = data.get("conversation_id") or str(uuid.uuid4())
+            
+            if not message:
+                self.send_error(400, "Message is required")
+                return
+            
+            # Call Hermes
+            response = call_hermes(message)
+            
+            # SSE response
+            self.send_response(200)
+            self._send_cors()
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self.end_headers()
+            
+            # Stream response tokens (word by word for UI effect)
+            words = response.split(" ")
+            for i, word in enumerate(words):
+                chunk = {"token": word + (" " if i < len(words) - 1 else "")}
+                self.wfile.write(f"event: token\ndata: {json.dumps(chunk)}\n\n".encode())
+                self.wfile.flush()
+            
+            # Send done event
+            done = {
+                "summary": response[:200] + ("..." if len(response) > 200 else ""),
+                "conversation_id": conversation_id,
+            }
+            self.wfile.write(f"event: done\ndata: {json.dumps(done)}\n\n".encode())
+            self.wfile.flush()
+            
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON")
+        except Exception as e:
+            self.send_error(500, str(e))
+    
+    def log_message(self, format, *args):
+        """Suppress default HTTP server logging."""
+        pass
+
+def main():
+    server = HTTPServer((HOST, PORT), ChatHandler)
+    print(f"[ChatServer] Compliance Agent chat API running on http://{HOST}:{PORT}")
+    print(f"[ChatServer] API key auth: {'enabled' if API_KEY else 'disabled (dev mode)'}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\n[ChatServer] Shutting down...")
+        server.shutdown()
+
+if __name__ == "__main__":
+    main()
