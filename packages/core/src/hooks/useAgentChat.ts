@@ -26,6 +26,12 @@ const AGENT_API_URL =
 
 const TIMEOUT_MS = 60_000;
 
+// Read API key from env or localStorage
+const AGENT_API_KEY =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_COMPLIANCE_API_KEY) ||
+  (typeof window !== 'undefined' && (window as any).__ENV__?.COMPLIANCE_API_KEY) ||
+  'test-api-key-for-local-dev';
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 let nextId = 1;
@@ -203,6 +209,7 @@ export function useAgentChat(): UseAgentChatReturn {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-API-Key': AGENT_API_KEY,
         },
         body: JSON.stringify({
           message: text.trim(),

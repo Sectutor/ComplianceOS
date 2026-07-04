@@ -1,28 +1,23 @@
-# ComplianceOS Docker build context
-# Exclude node_modules (installed inside container)
 node_modules
 .git
-
-# Exclude .env files (injected at runtime)
 .env
-.env.local
-.env.production
-.env.development
-
-# Exclude built artifacts
+.env.*
 dist
 .next
 *.tsbuildinfo
-
-# Exclude large test/data files
 *.db
 *.sqlite
-nuclei_*.jsonl
 *.log
-
-# Keep symlinked public dirs — they break Docker build
-# because symlinks resolve to Windows host paths
-# Instead, the Dockerfile copies packages/landing/ explicitly
+nuclei_*.jsonl
+.DS_Store
+__pycache__
+*.pyc
+.venv
+.vscode
+.idea
+*.swp
+*.swo
+# Broken symlinks (Windows Docker can't resolve them)
 packages/core/public/ai-governance
 packages/core/public/assets
 packages/core/public/contract-review

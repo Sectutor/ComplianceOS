@@ -20,7 +20,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [aal, setAal] = useState<'aal1' | 'aal2' | null>(null);
 
     useEffect(() => {
-        // Check active sessions and sets the user
+        // Check for local auth token first (self-hosted mode)
+        const localToken = localStorage.getItem('localAuthToken');
+        const localUserStr = localStorage.getItem('localAuthUser');
+        if (localToken && localUserStr) {
+            try {
+                const localUser = JSON.parse(localUserStr);
+                setSession({ access_token: localToken } as any);
+                setUser({ id: localUser.id, email: localUser.email, role: localUser.role } as any);
+                setLoading(false);
+                return;
+            } catch {
+                localStorage.removeItem('localAuthToken');
+                localStorage.removeItem('localAuthUser');
+            }
+        }
+
+        // Check active sessions and sets the user (Supabase mode)
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
@@ -45,6 +61,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error('Email and password are required');
         }
 
+        // Try local auth first (self-hosted mode, no Supabase dependency)
+        try {
+            const res = await fetch('/api/auth/local-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // Set the session manually — the onAuthStateChange listener
+                // won't fire for local auth, so we handle it here
+                if (data.token && data.user) {
+                    // Store token for API calls
+                    localStorage.setItem('localAuthToken', data.token);
+                    localStorage.setItem('localAuthUser', JSON.stringify(data.user));
+                    // Set user directly — the AuthProvider state needs updating
+                    setSession({ access_token: data.token } as any);
+                    setUser({ id: data.user.id, email: data.user.email, role: data.user.role } as any);
+                    return;
+                }
+            }
+        } catch {
+            // Local auth unavailable — fall through to Supabase
+            console.log('[Auth] Local auth unavailable, trying Supabase...');
+        }
+
+        // Fallback to Supabase auth (SaaS/cloud mode)
         const { error } = await supabase.auth.signInWithPassword({
             email,
             password,

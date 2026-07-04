@@ -13,9 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl jq git python3 && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy compliance-agent profile and skills
+# Copy compliance-agent profile, skills, and scripts
 COPY packages/compliance-agent/profile /app/profile
 COPY packages/compliance-agent/skills /app/skills
+COPY packages/compliance-agent/scripts /app/scripts
 
 # Copy gateway configs
 COPY packages/compliance-agent/gateway /app/gateway

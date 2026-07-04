@@ -12,6 +12,11 @@ Runs alongside Hermes Agent. Forwards messages to Hermes CLI subprocess.
 import json, os, subprocess, uuid, re, html
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
+from socketserver import ThreadingMixIn
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Multi-threaded HTTP server — health checks don't block on requests."""
+    daemon_threads = True
 
 HOST = os.environ.get("CHAT_HOST", "0.0.0.0")
 PORT = int(os.environ.get("CHAT_PORT", "9090"))
@@ -145,7 +150,7 @@ class ChatHandler(BaseHTTPRequestHandler):
         pass
 
 def main():
-    server = HTTPServer((HOST, PORT), ChatHandler)
+    server = ThreadedHTTPServer((HOST, PORT), ChatHandler)
     print(f"[ChatServer] Compliance Agent chat API running on http://{HOST}:{PORT}")
     print(f"[ChatServer] API key auth: {'enabled' if API_KEY else 'disabled (dev mode)'}")
     try:

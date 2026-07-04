@@ -388,6 +388,9 @@ export const requiresMFA = middleware(async ({ ctx, next, path: _path }) => {
     // AL 3: Mandatory MFA for all Global Admins and Owners
     const isPrivilegedRole = PLATFORM_ADMIN_ROLES.includes(dbUser.role || '');
 
+    // Skip MFA for local auth (no Supabase session — can't enforce)
+    if (aal === undefined && process.env.AUTH_MODE !== 'supabase') return next();
+
     if (aal === 'aal2') return next(); // Already at max level
 
     const clientId = (ctx as unknown as { clientId?: number }).clientId;

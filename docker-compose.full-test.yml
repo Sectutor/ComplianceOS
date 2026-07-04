@@ -1,0 +1,98 @@
+services:
+  complianceos:
+    image: complianceos:latest
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    environment:
+      - LISTEN_ADDR=0.0.0.0
+      - DATABASE_URL=postgres://complianceos:complianceos@db:5432/complianceos?sslmode=disable
+      - AGENT_API_URL=http://hermes-agent:9090/api/chat
+    volumes:
+      - complianceos_uploads:/app/uploads
+      - ./server_entry.ts:/app/server_entry.ts:ro
+      - ./packages/core/src/server/trpc.ts:/app/packages/core/src/server/trpc.ts:ro
+      - ./packages/core/dist:/app/packages/core/dist:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - stack-net
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: complianceos
+      POSTGRES_PASSWORD: complianceos
+      POSTGRES_DB: complianceos
+    volumes:
+      - complianceos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complianceos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - stack-net
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - complianceos_redis:/data
+    restart: unless-stopped
+    networks:
+      - stack-net
+
+  hermes-agent:
+    image: complianceos-agent:latest
+    ports:
+      - "9090:9090"
+    depends_on:
+      complianceos:
+        condition: service_started
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - COMPLIANCE_API_URL=http://complianceos:3002/api/v1
+      - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-test-api-key-for-local-dev}
+      - GATEWAY_ENABLED=false
+      - CRON_ENABLED=false
+      - CISOVAULT_API_URL=http://cisovault:3099
+      - CISOVAULT_API_KEY=${CISOVAULT_API_KEY:-}
+      - NO_TELEMETRY=true
+    volumes:
+      - complianceos_agent_data:/app/data
+    restart: unless-stopped
+    networks:
+      - stack-net
+
+  cisovault:
+    image: cisovault:latest
+    ports:
+      - "3099:3099"
+    environment:
+      - CISOVAULT_HOST=0.0.0.0
+      - CISOVAULT_PORT=3099
+      - CISOVAULT_HOME=/data
+      - CISOVAULT_DB=/data/cisovault.db
+      - SECRET_KEY=${CISOVAULT_SECRET_KEY:-test-cisovault-key}
+    volumes:
+      - cisovault_data:/data
+    restart: unless-stopped
+    networks:
+      - stack-net
+
+volumes:
+  complianceos_db:
+  complianceos_redis:
+  complianceos_uploads:
+  complianceos_agent_data:
+  cisovault_data:
+
+networks:
+  stack-net:
+    driver: bridge

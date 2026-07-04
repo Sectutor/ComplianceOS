@@ -31,11 +31,11 @@ RUN apk add --no-cache tini
 ENV NODE_ENV=production
 ENV PORT=3002
 
-# Copy package files and dependencies
+# Copy package files and install production dependencies
 COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/packages/core/package.json ./packages/core/
 COPY --from=builder /app/packages/addons ./packages/addons
-COPY --from=builder /app/node_modules ./node_modules
+RUN npm ci --omit=dev --legacy-peer-deps && rm -rf ~/.npm
 
 # Copy built frontend
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
@@ -68,7 +68,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
 
 # Security: non-root user
 RUN addgroup -S complianceos && adduser -S complianceos -G complianceos && \
-    mkdir -p /app/uploads /app/packages/core/drizzle && chown -R complianceos:complianceos /app /app/uploads
+    mkdir -p /app/uploads /app/packages/core/drizzle && \
+    chown -R complianceos:complianceos /app/uploads /app/packages/core/drizzle /app/node_modules/.cache
 USER complianceos
 
 EXPOSE 3002

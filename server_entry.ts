@@ -155,16 +155,18 @@ app.use((req, res, next) => {
     next();
 });
 
-// Security headers
+// Security headers — relaxed for local dev, strict in production
+const isLocalDev = process.env.NODE_ENV === 'development' || process.env.AUTH_MODE === 'local';
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'"],
+            scriptSrc: ["'self'", isLocalDev ? "'unsafe-inline'" : ""].filter(Boolean),
+            scriptSrcElem: ["'self'", isLocalDev ? "'unsafe-inline'" : ""].filter(Boolean),
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", process.env.VITE_SUPABASE_URL ? process.env.VITE_SUPABASE_URL.replace(/\/$/, '') : "'none'"],
+            connectSrc: ["'self'", "*"],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
@@ -172,7 +174,7 @@ app.use(helmet({
         },
     },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    hsts: isLocalDev ? false : { maxAge: 31536000, includeSubDomains: true, preload: true },
 }));
 
 // Configure CORS
@@ -397,13 +399,22 @@ app.use(
     })
 );
 
-// Serve static files in production (Docker)
-if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
+// Serve static files for Docker (not Netlify serverless)
+if (!process.env.NETLIFY) {
     console.log('[Server] Serving static files from packages/core/dist');
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     const distPath = path.join(__dirname, 'packages/core/dist');
-    app.use(express.static(distPath));
+    // Serve static files with no-cache for SPA HTML, aggressive caching for assets
+    app.use(express.static(distPath, {
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.html')) {
+                res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.set('Pragma', 'no-cache');
+                res.set('Expires', '0');
+            }
+        }
+    }));
 
     // Handle SPA routing - return index.html for any unknown non-API routes
     app.get('*', (req, res, next) => {

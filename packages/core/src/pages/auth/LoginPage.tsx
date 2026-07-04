@@ -45,6 +45,9 @@ export default function LoginPage() {
 
     useEffect(() => {
         const checkMfaStatus = async () => {
+            // Skip MFA for local auth
+            if (localStorage.getItem('localAuthToken')) return;
+
             if (user && !mfaRequired && !isLoggingIn) {
                 const { data: aalInfo } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
                 console.log("[MFA Login] Auto-check AAL:", aalInfo);
@@ -69,6 +72,13 @@ export default function LoginPage() {
     }, [user, mfaRequired, isLoggingIn]);
 
     useEffect(() => {
+        // For local auth: redirect immediately without waiting for profile fetch
+        if (user && !isLoggingIn && localStorage.getItem('localAuthToken')) {
+            const searchParams = new URLSearchParams(window.location.search);
+            setLocation(searchParams.get('invite') ? `/auth/redeem-link?token=${searchParams.get('invite')}` : '/dashboard');
+            return;
+        }
+
         // Only redirect if user exists, profile is loaded, we're not actively logging in, and MFA is not pending
         if (user && !isProfileLoading && !mfaRequired && !isLoggingIn) {
             if (isError) {

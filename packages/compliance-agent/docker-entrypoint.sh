@@ -22,10 +22,17 @@ env | grep -E '^(DEEPSEEK_|COMPLIANCE_|TELEGRAM_|SLACK_|CISOVAULT_|NO_TELEMETRY|
 echo "[Config] Wrote env vars to $ENV_PATH"
 
 # ── Install the compliance-agent skill into Hermes ─────────────────────
-if [ -d "$HERMES_SKILLS_DIR" ]; then
+if [ -d "$HERMES_SKILLS_DIR/compliance-agent" ]; then
   mkdir -p "$HERMES_HOME/skills"
-  cp -r "$HERMES_SKILLS_DIR"/* "$HERMES_HOME/skills/" 2>/dev/null || true
-  echo "[Skills] Compliance-agent skill loaded"
+  cp -r "$HERMES_SKILLS_DIR/compliance-agent" "$HERMES_HOME/skills/" 2>/dev/null || true
+  echo "[Skills] Compliance-agent skill copied to $HERMES_HOME/skills/"
+fi
+
+# ── Register the compliance-agent profile ────────────────────────────
+mkdir -p "$HERMES_HOME/profiles/compliance-agent"
+if [ -d "$HERMES_PROFILE" ]; then
+  cp -r "$HERMES_PROFILE"/* "$HERMES_HOME/profiles/compliance-agent/" 2>/dev/null || true
+  echo "[Profile] Compliance-agent profile registered"
 fi
 
 # ── Register cron jobs ─────────────────────────────────────────────────
@@ -39,20 +46,11 @@ if [ "${CRON_ENABLED:-true}" = "true" ] && [ -d "$HERMES_HOME/skills/compliance-
   done
 fi
 
-# ── Start Hermes ───────────────────────────────────────────────────────
-echo "[Agent] Starting Hermes with compliance-agent profile..."
-echo "[Agent] API: ${COMPLIANCE_API_URL:-http://complianceos:3002/api/v1}"
-echo "[Agent] Gateway: ${GATEWAY_ENABLED:-false}"
-
-# Start Hermes in background so we can also run the chat server
-hermes --profile "$HERMES_PROFILE" --skills compliance-agent --source docker-sidecar &
-
-HERMES_PID=$!
-
-# ── Optional: start embedded chat server ──────────────────────────────
+# ── Start Hermes chat server (handles web widget requests) ──────────
+echo "[Agent] Starting chat server on port 9090..."
 python3 /app/scripts/chat-server.py &
 CHAT_PID=$!
-echo "[Chat] Chat server started (PID $CHAT_PID) on port 9090"
+echo "[Chat] Chat server started (PID $CHAT_PID)"
 
 # ── Optional: register CISOvault bridge cron ──────────────────────────
 if [ -n "${CISOVAULT_API_URL:-}" ] && [ -n "${CISOVAULT_API_KEY:-}" ]; then
@@ -69,7 +67,6 @@ fi
 # ── Trap shutdown ─────────────────────────────────────────────────────
 cleanup() {
   echo "[Agent] Shutting down..."
-  kill $HERMES_PID 2>/dev/null || true
   kill $CHAT_PID 2>/dev/null || true
   exit 0
 }

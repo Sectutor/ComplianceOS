@@ -179,11 +179,17 @@ const trpcClient = trpc.createClient({
       maxURLLength: 2000,
       async headers() {
         let session = null;
+        let localToken = null;
         try {
           const { data } = await supabase.auth.getSession();
           session = data?.session;
         } catch (e) {
           console.error('[TRPC] Failed to fetch Supabase session for headers:', e);
+        }
+
+        // Check for local auth token (self-hosted mode)
+        if (typeof window !== 'undefined') {
+          localToken = window.localStorage.getItem('localAuthToken');
         }
 
         const reqId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -197,9 +203,12 @@ const trpcClient = trpc.createClient({
 
         if (session?.access_token) {
           headers.Authorization = `Bearer ${session.access_token}`;
-          console.log(`[TRPC Client] Sending request with auth token (session user: ${session.user?.email})`);
+          console.log(`[TRPC Client] Sending request with Supabase auth token`);
+        } else if (localToken) {
+          headers.Authorization = `Bearer ${localToken}`;
+          console.log(`[TRPC Client] Sending request with local auth token`);
         } else {
-          console.warn(`[TRPC Client] Sending request WITHOUT auth token - session:`, session ? 'present but no token' : 'null');
+          console.warn(`[TRPC Client] Sending request WITHOUT auth token`);
         }
 
         if (selectedClientId) {
