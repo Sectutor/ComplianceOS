@@ -1,0 +1,19 @@
+# Compliance Agent — Telegram Gateway Configuration
+# Enable by setting TELEGRAM_BOT_TOKEN in .env and GATEWAY_ENABLED=true
+platforms:
+  telegram:
+    bot_token: ${TELEGRAM_BOT_TOKEN}
+    allowed_ids:
+      - ${CISO_TELEGRAM_ID:-}
+    commands:
+      /status: "Show compliance health summary across all frameworks"
+      /gaps: "List all compliance gaps by severity"
+      /scan: "Trigger immediate evidence collection"
+      /report: "Generate readiness report for NIS2"
+      /expiring: "Show evidence expiring within 7 days"
+      /help: "List all available commands"
+    notifications:
+      daily_scan: true
+      weekly_report: true
+      evidence_expiry: true
+      critical_findings: true

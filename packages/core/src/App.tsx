@@ -21,6 +21,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SystemFeedbackModal } from "@/components/SystemFeedbackModal";
 import { HarmonizationView } from "@/components/controls/HarmonizationView";
+import { ChatWidget } from "@/components/ChatWidget";
 
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { lazyLoad } from "@/lib/lazyLoad";
@@ -2203,6 +2204,7 @@ function App() {
                   <SystemFeedbackModal />
                   <GDPRBanner />
                   <Router />
+                  <ChatWidget />
                 </TooltipProvider>
               </ThemeProvider>
             </AdvisorProvider>

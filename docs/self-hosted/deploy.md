@@ -55,6 +55,15 @@ curl http://localhost:3002/health
 | `ENABLE_AI` | no | `false` | Set `true` to enable AI features |
 | `STRIPE_SECRET_KEY` | for sales | — | Stripe API key for payment processing |
 | `STRIPE_WEBHOOK_SECRET` | for sales | — | Stripe webhook signing secret |
+| `COMPLIANCE_API_KEY` | 🟡 | — | API key for Hermes agent → API communication |
+| `AUTH_MODE` | no | `auto` | `auto`, `local`, or `supabase` |
+| `COMPLIANCE_ADMIN_EMAIL` | no | `admin@complianceos.local` | Local auth admin login |
+| `COMPLIANCE_ADMIN_PASSWORD` | no | auto-generated | Auto-generated on first boot |
+| `DEEPSEEK_API_KEY` | for agent | — | LLM provider for the Compliance Agent |
+| `GATEWAY_ENABLED` | no | `false` | Enable Telegram/Slack notifications |
+| `TELEGRAM_BOT_TOKEN` | for Telegram | — | Bot token from @BotFather |
+| `CISOVAULT_API_URL` | for CISOvault | — | CISOvault API endpoint |
+| `CISOVAULT_API_KEY` | for CISOvault | — | CISOvault API key |
 
 ## Public Pages
 

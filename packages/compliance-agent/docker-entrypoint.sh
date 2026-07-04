@@ -50,13 +50,27 @@ hermes --profile "$HERMES_PROFILE" --skills compliance-agent --source docker-sid
 HERMES_PID=$!
 
 # ── Optional: start embedded chat server ──────────────────────────────
-# (Phase 3 — will be implemented when chat widget is built)
-# python3 /app/scripts/chat-server.py &
+python3 /app/scripts/chat-server.py &
+CHAT_PID=$!
+echo "[Chat] Chat server started (PID $CHAT_PID) on port 9090"
+
+# ── Optional: register CISOvault bridge cron ──────────────────────────
+if [ -n "${CISOVAULT_API_URL:-}" ] && [ -n "${CISOVAULT_API_KEY:-}" ]; then
+  echo "[Bridge] CISOvault integration enabled — scheduling bridge..."
+  # Register via hermes cron (runs every 30 min)
+  hermes cron create "*/30 * * * *" \
+    --name cisovault-bridge \
+    --prompt "Run the CISOvault-to-GRC bridge script and report results" \
+    --skills compliance-agent \
+    --deliver telegram 2>/dev/null || true
+  echo "[Bridge] CISOvault bridge cron registered"
+fi
 
 # ── Trap shutdown ─────────────────────────────────────────────────────
 cleanup() {
   echo "[Agent] Shutting down..."
   kill $HERMES_PID 2>/dev/null || true
+  kill $CHAT_PID 2>/dev/null || true
   exit 0
 }
 trap cleanup SIGTERM SIGINT

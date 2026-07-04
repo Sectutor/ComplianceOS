@@ -94,6 +94,81 @@ else
   check "install.sh exists" "fail"
 fi
 
+# ── 6. Phase 3: Chat widget files ────────────────────────────────────
+echo ""
+echo "=== Phase 3: Chat Widget ==="
+for f in \
+  "packages/core/src/components/ChatWidget/ChatWidget.tsx" \
+  "packages/core/src/components/ChatWidget/ChatBubble.tsx" \
+  "packages/core/src/components/ChatWidget/ChatMessage.tsx" \
+  "packages/core/src/components/ChatWidget/index.ts" \
+  "packages/core/src/components/ChatWidget/chat-widget.css" \
+  "packages/core/src/hooks/useAgentChat.ts" \
+  "packages/compliance-agent/scripts/chat-server.py"; do
+  if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/$f" ]; then
+    check "$f exists" "pass"
+  else
+    check "$f exists" "fail"
+  fi
+done
+
+# ── 7. Phase 4: Gateway configs ──────────────────────────────────────
+echo ""
+echo "=== Phase 4: Gateway ==="
+for f in \
+  "packages/compliance-agent/gateway/telegram.yml" \
+  "packages/compliance-agent/gateway/slack.yml" \
+  "packages/compliance-agent/gateway/gateway.yml"; do
+  if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/$f" ]; then
+    check "$f exists" "pass"
+  else
+    check "$f exists" "fail"
+  fi
+done
+
+# ── 8. Phase 5: CISOvault bridge ─────────────────────────────────────
+echo ""
+echo "=== Phase 5: CISOvault Bridge ==="
+if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/packages/compliance-agent/scripts/cisovault-to-grc.py" ]; then
+  check "cisovault-to-grc.py exists" "pass"
+  LINES=$(wc -l < "/d/OneDrive - Intellfence/WebDev/ComplianceOS/packages/compliance-agent/scripts/cisovault-to-grc.py")
+  check "Bridge script: $LINES lines" "pass"
+else
+  check "cisovault-to-grc.py exists" "fail"
+fi
+
+# ── 9. Phase 6: Launch docs ──────────────────────────────────────────
+echo ""
+echo "=== Phase 6: Launch ==="
+for f in \
+  "docs/self-hosted/agent-setup.md" \
+  "docs/self-hosted/agent-commands.md"; do
+  if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/$f" ]; then
+    check "$f exists" "pass"
+  else
+    check "$f exists" "fail"
+  fi
+done
+
+# ── 10. Version consistency ──────────────────────────────────────────
+echo ""
+echo "=== Cross-Cutting ==="
+if grep -q "hermes-agent" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/docker-compose.selfhost.yml"; then
+  check "hermes-agent wired in compose" "pass"
+else
+  check "hermes-agent wired in compose" "fail"
+fi
+if grep -q "chat-server.py" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/packages/compliance-agent/docker-entrypoint.sh"; then
+  check "Chat server wired in entrypoint" "pass"
+else
+  check "Chat server wired in entrypoint" "fail"
+fi
+if grep -q "cisovault" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/packages/compliance-agent/docker-entrypoint.sh"; then
+  check "CISOvault bridge wired in entrypoint" "pass"
+else
+  check "CISOvault bridge wired in entrypoint" "fail"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════╗"

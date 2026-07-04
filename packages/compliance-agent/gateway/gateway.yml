@@ -1,0 +1,40 @@
+# Compliance Agent Gateway Configuration
+# Place this file at ~/.hermes/gateway.yml or pass via --gateway-config
+
+# Default delivery target for cron alerts (when no deliver field set)
+default_deliver: telegram
+
+# Platform configs loaded from:
+#   telegram.yml  — if TELEGRAM_BOT_TOKEN is set
+#   slack.yml     — if SLACK_BOT_TOKEN is set
+
+# Message format templates
+formatting:
+  daily_scan: |
+    📋 *Daily Compliance Scan*
+    {summary}
+    
+    ✅ Active frameworks: {frameworks}
+    ✅ Controls fresh: {fresh_controls}
+    ⚠️ Gaps: {gaps}
+    🔴 Expiring: {expiring}
+
+  weekly_report: |
+    📊 *Weekly Compliance Report*
+    
+    {table}
+    
+    🔴 Critical: {critical_count}
+    🟡 High: {high_count}
+    🟢 Medium: {medium_count}
+    
+    *Top Recommendations:* {recommendations}
+
+  evidence_expiry: |
+    ⏰ *Evidence Expiry Alert*
+    
+    🔴 Expiring *within 7 days*: {critical_count}
+    {critical_list}
+    
+    🟡 Expiring *within 14 days*: {warning_count}
+    {warning_list}

@@ -1,0 +1,22 @@
+# Compliance Agent — Slack Gateway Configuration
+# Enable by setting SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET in .env and GATEWAY_ENABLED=true
+platforms:
+  slack:
+    bot_token: ${SLACK_BOT_TOKEN}
+    signing_secret: ${SLACK_SIGNING_SECRET}
+    app_token: ${SLACK_APP_TOKEN:-}
+    channels:
+      - ${SLACK_COMPLIANCE_CHANNEL:-#compliance}
+    commands:
+      /compliance-status: "Show compliance health"
+      /compliance-gaps: "List gaps by framework"
+      /compliance-scan: "Trigger evidence collection"
+      /compliance-report: "Generate readiness report"
+    events:
+      - message.channels
+      - message.im
+    notifications:
+      daily_scan: true
+      weekly_report: true
+      evidence_expiry: true
+      critical_findings: true
