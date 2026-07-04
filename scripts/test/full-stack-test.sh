@@ -188,6 +188,16 @@ if grep -q "AGENT_IMAGE" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/deploy/d
 else
   check "Install script pulls agent image" "fail"
 fi
+if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/Dockerfile.cisovault" ]; then
+  check "CISOvault Dockerfile exists" "pass"
+else
+  check "CISOvault Dockerfile exists" "fail"
+fi
+if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/.github/workflows/publish-cisovault.yml" ]; then
+  check "CISOvault publish workflow exists" "pass"
+else
+  check "CISOvault publish workflow exists" "fail"
+fi
 
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""

@@ -1,0 +1,45 @@
+# CISOvault Security Scanner — Production Image for ComplianceOS Stack
+# Build:
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     -f Dockerfile.cisovault \
+#     -t ghcr.io/sectutor/cisovault:latest .
+#
+# Run as part of complianceos-full stack via docker-compose.full.yml
+# Exposes the 16-probe domain recon scanner API on port 3099.
+
+FROM python:3.11-slim
+
+# ── System deps ──────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl wget git unzip ca-certificates \
+    nmap \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Security tools ───────────────────────────────────────────────────
+# Nuclei (vulnerability scanner)
+RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v3.1.8/nuclei_3.1.8_linux_amd64.zip -O /tmp/nuclei.zip \
+    && unzip /tmp/nuclei.zip -d /tmp/ \
+    && mv /tmp/nuclei /usr/local/bin/ \
+    && chmod +x /usr/local/bin/nuclei \
+    && rm -rf /tmp/nuclei*
+
+# ── Python deps ─────────────────────────────────────────────────────
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        fastapi uvicorn[standard] httpx pydantic \
+        python-multipart python-jose passlib[bcrypt] \
+        pyyaml aiofiles
+
+# ── Application ──────────────────────────────────────────────────────
+WORKDIR /app
+
+COPY backend/ ./
+
+# CISOvault backend runs on port 3099 for the integrated stack
+EXPOSE 3099
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD curl -sf http://localhost:3099/health || exit 1
+
+CMD ["python", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "3099"]

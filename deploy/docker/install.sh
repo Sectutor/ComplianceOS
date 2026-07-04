@@ -62,13 +62,106 @@ COMPOSE_FILE="docker-compose.yml"
 
 if [ "$STACK" = "full" ]; then
   echo "🔧 Full stack selected — including CISOvault security scanner"
-  # Download the full compose file from the repo
-  curl -fsSL -o "$COMPOSE_FILE" \
-    "https://raw.githubusercontent.com/sectutor/ComplianceOS/main/docker-compose.full.yml" \
-    2>/dev/null || {
-    echo "⚠️ Could not fetch full compose file. Generating inline..."
-    STACK="base"
-  }
+  # Generate full stack compose inline (no GitHub dependency)
+  cat > "$COMPOSE_FILE" <<-FULLEOF
+services:
+  complianceos:
+    image: ${IMAGE}
+    ports:
+      - "${PORT}:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - HOST=0.0.0.0
+      - DATABASE_URL=\${DATABASE_URL:-postgres://complianceos:***@db:5432/complianceos?sslmode=disable}
+      - ENCRYPTION_KEY=\${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+      - APP_ENCRYPTION_KEY=\${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+      - AUTH_MODE=\${AUTH_MODE:-auto}
+      - COMPLIANCE_ADMIN_EMAIL=\${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=\${COMPLIANCE_ADMIN_PASSWORD:-}
+      - COMPLIANCE_API_KEY=\${COMPLIANCE_API_KEY:-}
+      - VITE_SUPABASE_URL=\${VITE_SUPABASE_URL:-}
+      - VITE_SUPABASE_ANON_KEY=\${VITE_SUPABASE_ANON_KEY:-}
+      - SUPABASE_SERVICE_ROLE_KEY=\${SUPABASE_SERVICE_ROLE_KEY:-}
+      - VITE_ENABLE_PREMIUM=\${VITE_ENABLE_PREMIUM:-false}
+      - VITE_LICENSE_KEY=\${VITE_LICENSE_KEY:-community}
+      - NO_TELEMETRY=\${NO_TELEMETRY:-true}
+      - ENABLE_AI=\${ENABLE_AI:-false}
+      - CORS_ORIGIN=\${CORS_ORIGIN:-http://localhost:${PORT}}
+      - AGENT_API_URL=http://hermes-agent:9090/api/chat
+    volumes:
+      - complianceos_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: complianceos
+      POSTGRES_PASSWORD: complianceos
+      POSTGRES_DB: complianceos
+    volumes:
+      - complianceos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complianceos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - complianceos_redis:/data
+    restart: unless-stopped
+
+  hermes-agent:
+    image: ${AGENT_IMAGE}
+    depends_on:
+      complianceos:
+        condition: service_healthy
+    environment:
+      - DEEPSEEK_API_KEY=\${DEEPSEEK_API_KEY:-}
+      - COMPLIANCE_API_URL=http://complianceos:3002/api/v1
+      - COMPLIANCE_API_KEY=\${COMPLIANCE_API_KEY:-}
+      - GATEWAY_ENABLED=\${GATEWAY_ENABLED:-false}
+      - CRON_ENABLED=\${CRON_ENABLED:-true}
+      - CISOVAULT_API_URL=http://cisovault:3099
+      - CISOVAULT_API_KEY=\${CISOVAULT_API_KEY:-}
+      - CISO_EMAIL=\${CISO_EMAIL:-}
+      - NO_TELEMETRY=true
+    volumes:
+      - complianceos_agent_data:/app/data
+    restart: unless-stopped
+
+  cisovault:
+    image: ghcr.io/sectutor/cisovault:latest
+    ports:
+      - "3099:3099"
+    environment:
+      - CISOVAULT_HOST=0.0.0.0
+      - CISOVAULT_PORT=3099
+      - CISOVAULT_HOME=/data
+      - CISOVAULT_DB=/data/cisovault.db
+      - SECRET_KEY=\${CISOVAULT_SECRET_KEY:-change-me-to-a-random-key}
+      - DOMAINS_MONITOR_API_KEY=\${DOMAINS_MONITOR_API_KEY:-}
+      - DOMAINS_MONITOR_ENABLED=\${DOMAINS_MONITOR_ENABLED:-false}
+    volumes:
+      - cisovault_data:/data
+    restart: unless-stopped
+
+networks: {}
+volumes:
+  complianceos_db:
+  complianceos_redis:
+  complianceos_uploads:
+  complianceos_agent_data:
+  cisovault_data:
+FULLEOF
 fi
 
 if [ "$STACK" != "full" ]; then

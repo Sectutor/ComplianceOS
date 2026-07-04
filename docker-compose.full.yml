@@ -132,47 +132,22 @@ services:
   # as GRCompliance risks every 30 minutes. You can also ask the agent
   # to trigger ad-hoc scans through the chat interface.
   #
-  # Remove this block and cisovault_db to strip CISOvault from the stack.
+  # Remove this block to strip CISOvault from the stack.
   cisovault:
     image: ghcr.io/sectutor/cisovault:latest
     ports:
       - "3099:3099"
     environment:
-      - DATABASE_URL=postgres://cisovault:***@cisovault_db:5432/cisovault?sslmode=disable
+      - CISOVAULT_HOST=0.0.0.0
+      - CISOVAULT_PORT=3099
+      - CISOVAULT_HOME=/data
+      - CISOVAULT_DB=/data/cisovault.db
       - SECRET_KEY=${CISOVAULT_SECRET_KEY:-change-me-to-a-random-key}
       - DOMAINS_MONITOR_API_KEY=${DOMAINS_MONITOR_API_KEY:-}
       - DOMAINS_MONITOR_ENABLED=${DOMAINS_MONITOR_ENABLED:-false}
     volumes:
-      - cisovault_data:/app/data
-    depends_on:
-      cisovault_db:
-        condition: service_healthy
+      - cisovault_data:/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3099/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks:
-      - complianceos-net
-
-  cisovault_db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: cisovault
-      POSTGRES_PASSWORD: cisovault
-      POSTGRES_DB: cisovault
-    volumes:
-      - cisovault_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cisovault"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - complianceos-net
 
 networks:
   complianceos-net:
@@ -184,4 +159,3 @@ volumes:
   complianceos_uploads:
   complianceos_agent_data:
   cisovault_data:
-  cisovault_db_data:
