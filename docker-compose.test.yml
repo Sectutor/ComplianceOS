@@ -1,0 +1,44 @@
+services:
+  complianceos:
+    image: complianceos-test:latest
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    environment:
+      - LISTEN_ADDR=0.0.0.0
+      - DATABASE_URL=postgres://complianceos:complianceos@db:5432/complianceos?sslmode=disable
+    volumes:
+      - complianceos_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: complianceos
+      POSTGRES_PASSWORD: complianceos
+      POSTGRES_DB: complianceos
+    volumes:
+      - complianceos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complianceos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - complianceos_redis:/data
+    restart: unless-stopped
+
+volumes:
+  complianceos_db:
+  complianceos_redis:
+  complianceos_uploads:
