@@ -13,9 +13,11 @@ set -euo pipefail
 
 # ── Config ──────────────────────────────────────────────────────────────────
 IMAGE="${IMAGE:-ghcr.io/sectutor/complianceos-self-hosted:dev}"
+AGENT_IMAGE="${AGENT_IMAGE:-ghcr.io/sectutor/complianceos-agent:latest}"
 PORT="${PORT:-3002}"
 ENCRYPTION_KEY="${APP_ENCRYPTION_KEY:-}"
 TARGET_DIR="${HOME}/complianceos"
+STACK="base"  # base or full
 
 # Parse CLI flags
 while [[ $# -gt 0 ]]; do
@@ -23,7 +25,19 @@ while [[ $# -gt 0 ]]; do
     -d|--dir)       TARGET_DIR="$2"; shift 2 ;;
     -p|--port)      PORT="$2";        shift 2 ;;
     -k|--key)       ENCRYPTION_KEY="$2"; shift 2 ;;
-    -h|--help)      echo "Usage: $0 [-d dir] [-p port] [-k encryption_key]"; exit 0 ;;
+    --full)         STACK="full";     shift ;;
+    --base)         STACK="base";     shift ;;
+    -h|--help)
+      echo "Usage: $0 [-d dir] [-p port] [-k encryption_key] [--full|--base]"
+      echo ""
+      echo "Modes:"
+      echo "  --base    GRCompliance + Hermes Agent (default)"
+      echo "  --full    GRCompliance + Hermes Agent + CISOvault Scanner"
+      echo ""
+      echo "Examples:"
+      echo "  curl -fsSL https://grcompliance.com/install.sh | bash"
+      echo "  curl -fsSL https://grcompliance.com/install.sh | bash -s -- --full"
+      exit 0 ;;
     *)              echo "Unknown: $1"; exit 1 ;;
   esac
 done
@@ -44,7 +58,22 @@ mkdir -p "${TARGET_DIR}"
 cd "${TARGET_DIR}"
 
 # ── Generate compose file ────────────────────────────────────────────────────
-cat > docker-compose.yml <<-COMPOSEEOF
+COMPOSE_FILE="docker-compose.yml"
+
+if [ "$STACK" = "full" ]; then
+  echo "🔧 Full stack selected — including CISOvault security scanner"
+  # Download the full compose file from the repo
+  curl -fsSL -o "$COMPOSE_FILE" \
+    "https://raw.githubusercontent.com/sectutor/ComplianceOS/main/docker-compose.full.yml" \
+    2>/dev/null || {
+    echo "⚠️ Could not fetch full compose file. Generating inline..."
+    STACK="base"
+  }
+fi
+
+if [ "$STACK" != "full" ]; then
+  # Generate base stack compose (GRCompliance + Hermes Agent)
+  cat > "$COMPOSE_FILE" <<-COMPOSEEOF
 services:
   complianceos:
     image: ${IMAGE}
@@ -56,6 +85,10 @@ services:
       - DATABASE_URL=\${DATABASE_URL:-postgres://complianceos:***@db:5432/complianceos?sslmode=disable}
       - ENCRYPTION_KEY=\${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
       - APP_ENCRYPTION_KEY=\${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+      - AUTH_MODE=\${AUTH_MODE:-auto}
+      - COMPLIANCE_ADMIN_EMAIL=\${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=\${COMPLIANCE_ADMIN_PASSWORD:-}
+      - COMPLIANCE_API_KEY=\${COMPLIANCE_API_KEY:-}
       - VITE_SUPABASE_URL=\${VITE_SUPABASE_URL:-}
       - VITE_SUPABASE_ANON_KEY=\${VITE_SUPABASE_ANON_KEY:-}
       - SUPABASE_SERVICE_ROLE_KEY=\${SUPABASE_SERVICE_ROLE_KEY:-}
@@ -69,6 +102,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
@@ -92,11 +127,41 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - complianceos_redis:/data
+    restart: unless-stopped
+
+  hermes-agent:
+    image: ${AGENT_IMAGE}
+    depends_on:
+      complianceos:
+        condition: service_healthy
+    environment:
+      - DEEPSEEK_API_KEY=\${DEEPSEEK_API_KEY:-}
+      - COMPLIANCE_API_URL=http://complianceos:3002/api/v1
+      - COMPLIANCE_API_KEY=\${COMPLIANCE_API_KEY:-}
+      - COMPLIANCE_ADMIN_EMAIL=\${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=\${COMPLIANCE_ADMIN_PASSWORD:-}
+      - GATEWAY_ENABLED=\${GATEWAY_ENABLED:-false}
+      - CRON_ENABLED=\${CRON_ENABLED:-true}
+      - CISOVAULT_API_URL=\${CISOVAULT_API_URL:-}
+      - CISOVAULT_API_KEY=\${CISOVAULT_API_KEY:-}
+      - CISO_EMAIL=\${CISO_EMAIL:-}
+      - NO_TELEMETRY=true
+    volumes:
+      - complianceos_agent_data:/app/data
+    restart: unless-stopped
+
 networks: {}
 volumes:
   complianceos_db:
+  complianceos_redis:
   complianceos_uploads:
+  complianceos_agent_data:
 COMPOSEEOF
+fi
 
 # ── Generate .env if missing ────────────────────────────────────────────────
 if [ ! -f .env ]; then
@@ -121,26 +186,43 @@ VITE_LICENSE_KEY=community
 # Telemetry
 NO_TELEMETRY=true
 ENABLE_AI=false
+
+# Compliance Agent (auto-enabled)
+COMPLIANCE_API_KEY=
+DEEPSEEK_API_KEY=
+
+# CISOvault (optional — set for full stack)
+CISOVAULT_API_URL=
+CISOVAULT_API_KEY=
 ENVEOF
   echo "   Edit .env to customize, then re-run the install script."
 else
   echo "✅ .env already exists — keeping existing config."
 fi
 
-# ── Pull image ───────────────────────────────────────────────────────────────
+# ── Pull images ──────────────────────────────────────────────────────────────
 echo "📥 Pulling ComplianceOS image from GHCR..."
 docker pull "${IMAGE}" 2>&1 | tail -3
+echo "📥 Pulling Hermes Agent image from GHCR..."
+docker pull "${AGENT_IMAGE}" 2>&1 | tail -3
 
 # ── Start ────────────────────────────────────────────────────────────────────
 echo "🚀 Starting ComplianceOS on port ${PORT}..."
 docker compose up -d
 
+STACK_NAME="GRCompliance + Compliance Agent"
+[ "$STACK" = "full" ] && STACK_NAME="GRCompliance + Compliance Agent + CISOvault Scanner"
+
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║  ✅ ComplianceOS is running!                  ║"
+echo "║  ✅ ${STACK_NAME}        ║"
 echo "║                                               ║"
-echo "║  Visit:  http://localhost:${PORT}                  ║"
-echo "║  Health: http://localhost:${PORT}/health          ║"
+echo "║  Web App: http://localhost:${PORT}                  ║"
+echo "║  Agent:   Online (chat bubble in web app)     ║"
+echo "║  Health:  http://localhost:${PORT}/health          ║"
+echo "║                                               ║"
+echo "║  Admin:   admin@complianceos.local             ║"
+echo "║  Password: auto-generated (check logs)         ║"
 echo "║                                               ║"
 echo "║  Logs:   docker compose logs -f               ║"
 echo "║  Stop:   docker compose down                  ║"

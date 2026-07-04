@@ -154,9 +154,19 @@ done
 echo ""
 echo "=== Cross-Cutting ==="
 if grep -q "hermes-agent" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/docker-compose.selfhost.yml"; then
-  check "hermes-agent wired in compose" "pass"
+  check "hermes-agent wired in selfhost compose" "pass"
 else
-  check "hermes-agent wired in compose" "fail"
+  check "hermes-agent wired in selfhost compose" "fail"
+fi
+if [ -f "/d/OneDrive - Intellfence/WebDev/ComplianceOS/docker-compose.full.yml" ]; then
+  check "Full stack compose exists" "pass"
+  if grep -q "cisovault" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/docker-compose.full.yml"; then
+    check "Full stack includes CISOvault" "pass"
+  else
+    check "Full stack includes CISOvault" "fail"
+  fi
+else
+  check "Full stack compose exists" "fail"
 fi
 if grep -q "chat-server.py" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/packages/compliance-agent/docker-entrypoint.sh"; then
   check "Chat server wired in entrypoint" "pass"
@@ -167,6 +177,16 @@ if grep -q "cisovault" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/packages/c
   check "CISOvault bridge wired in entrypoint" "pass"
 else
   check "CISOvault bridge wired in entrypoint" "fail"
+fi
+if grep -q "\-\-full" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/deploy/docker/install.sh"; then
+  check "Install script supports --full flag" "pass"
+else
+  check "Install script supports --full flag" "fail"
+fi
+if grep -q "AGENT_IMAGE" "/d/OneDrive - Intellfence/WebDev/ComplianceOS/deploy/docker/install.sh"; then
+  check "Install script pulls agent image" "pass"
+else
+  check "Install script pulls agent image" "fail"
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────

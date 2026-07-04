@@ -1,0 +1,187 @@
+# ComplianceOS Full Stack — GRCompliance + Hermes Agent + CISOvault Scanner
+# Usage:
+#   curl -fsSL https://grcompliance.com/install.sh | bash -s -- --full
+#   # Or: docker compose -f docker-compose.full.yml up -d
+#
+# This stack adds CISOvault security domain scanning to the base GRC + Agent stack.
+# CISOvault runs the 16-probe domain recon scanner — finds vulnerabilities,
+# exposed secrets, misconfigurations across domains and repos.
+#
+# Without CISOvault, use docker-compose.selfhost.yml instead (4 services).
+
+services:
+  complianceos:
+    image: ghcr.io/sectutor/complianceos-self-hosted:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.selfhost
+      pull: true
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - HOST=0.0.0.0
+      - DATABASE_URL=${DATABASE_URL:-postgres://complianceos:***@db:5432/complianceos?sslmode=disable}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+      - APP_ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
+      - AUTH_MODE=${AUTH_MODE:-auto}
+      - COMPLIANCE_ADMIN_EMAIL=${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=${COMPLIANCE_ADMIN_PASSWORD:-}
+      - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-}
+      - LOCAL_JWT_SECRET=${LOCAL_JWT_SECRET:-change-this-to-a-random-secret}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-placeholder}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-placeholder}
+      - SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
+      - VITE_ENABLE_PREMIUM=${VITE_ENABLE_PREMIUM:-true}
+      - VITE_LICENSE_KEY=${VITE_LICENSE_KEY:-community}
+      - VITE_LICENSE_SERVER=${VITE_LICENSE_SERVER:-https://license.complianceos.com}
+      - BUILD_TYPE=${BUILD_TYPE:-AGPLv3}
+      - NO_TELEMETRY=${NO_TELEMETRY:-true}
+      - ENABLE_AI=${ENABLE_AI:-false}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - RATE_LIMIT_REDIS_URL=${RATE_LIMIT_REDIS_URL:-redis://redis:6379}
+      - RATE_LIMITING_ENABLED=${RATE_LIMITING_ENABLED:-true}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3002}
+      - TOOL_HMAC_SECRET=${TOOL_HMAC_SECRET:-}
+      - AGENT_API_URL=http://hermes-agent:9090/api/chat
+    volumes:
+      - complianceos_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - complianceos-net
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: complianceos
+      POSTGRES_PASSWORD: complianceos
+      POSTGRES_DB: complianceos
+    volumes:
+      - complianceos_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complianceos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - complianceos_redis:/data
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
+  hermes-agent:
+    image: ghcr.io/sectutor/complianceos-agent:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    depends_on:
+      complianceos:
+        condition: service_healthy
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - COMPLIANCE_API_URL=http://complianceos:3002/api/v1
+      - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-}
+      - COMPLIANCE_ADMIN_EMAIL=${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=${COMPLIANCE_ADMIN_PASSWORD:-}
+      - GATEWAY_ENABLED=${GATEWAY_ENABLED:-false}
+      - CRON_ENABLED=${CRON_ENABLED:-true}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+      # CISOvault integration — auto-detected when set
+      - CISOVAULT_API_URL=http://cisovault:3099
+      - CISOVAULT_API_KEY=${CISOVAULT_API_KEY:-}
+      - CISO_EMAIL=${CISO_EMAIL:-}
+      - NO_TELEMETRY=true
+    volumes:
+      - complianceos_agent_data:/app/data
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
+  # ── CISOvault Security Scanner — Optional Add-On ──────────────────────
+  # Removes all services below this line for the base stack.
+  # CISOvault performs domain-level security recon: 16 probes per domain
+  # including WHOIS, DNS, TLS, open ports, exposed secrets, vuln detection.
+  #
+  # The Hermes agent auto-detects CISOvault and begins importing findings
+  # as GRCompliance risks every 30 minutes. You can also ask the agent
+  # to trigger ad-hoc scans through the chat interface.
+  #
+  # Remove this block and cisovault_db to strip CISOvault from the stack.
+  cisovault:
+    image: ghcr.io/sectutor/cisovault:latest
+    ports:
+      - "3099:3099"
+    environment:
+      - DATABASE_URL=postgres://cisovault:***@cisovault_db:5432/cisovault?sslmode=disable
+      - SECRET_KEY=${CISOVAULT_SECRET_KEY:-change-me-to-a-random-key}
+      - DOMAINS_MONITOR_API_KEY=${DOMAINS_MONITOR_API_KEY:-}
+      - DOMAINS_MONITOR_ENABLED=${DOMAINS_MONITOR_ENABLED:-false}
+    volumes:
+      - cisovault_data:/app/data
+    depends_on:
+      cisovault_db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3099/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - complianceos-net
+
+  cisovault_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: cisovault
+      POSTGRES_PASSWORD: cisovault
+      POSTGRES_DB: cisovault
+    volumes:
+      - cisovault_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cisovault"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
+networks:
+  complianceos-net:
+    driver: bridge
+
+volumes:
+  complianceos_db:
+  complianceos_redis:
+  complianceos_uploads:
+  complianceos_agent_data:
+  cisovault_data:
+  cisovault_db_data:
