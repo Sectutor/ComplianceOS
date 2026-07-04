@@ -69,6 +69,9 @@ export default function ClientControlsPage() {
     const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
     const [currentPage, setCurrentPage] = useState(1);
     const PAGE_SIZE = 50;
+    const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<number>>(new Set());
+    const [isBulkMode, setIsBulkMode] = useState(false);
+    const [bulkStatus, setBulkStatus] = useState<string>('');
 
     // Memoized unique frameworks
     const uniqueFrameworks = useMemo(() =>
@@ -190,6 +193,19 @@ export default function ClientControlsPage() {
             if (error.message.toLowerCase().includes('justification')) {
                 // Determine ID from context if possible, or just rely on toast
             }
+        },
+    });
+
+    const batchUpdateMutation = trpc.clientControls.batchUpdateStatus.useMutation({
+        onSuccess: (data: any) => {
+            toast.success(`Updated ${data.updatedCount} controls successfully`);
+            setBulkSelectedIds(new Set());
+            setIsBulkMode(false);
+            setBulkStatus('');
+            refetchControls();
+        },
+        onError: (err: any) => {
+            toast.error(`Batch update failed: ${err.message}`);
         },
     });
 
@@ -385,6 +401,13 @@ export default function ClientControlsPage() {
                                 <List className="h-4 w-4" />
                             </Button>
                         </div>
+                        <Button
+                            variant={isBulkMode ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => { setIsBulkMode(!isBulkMode); setBulkSelectedIds(new Set()); setBulkStatus(''); }}
+                        >
+                            {isBulkMode ? 'Exit Bulk Edit' : 'Bulk Edit'}
+                        </Button>
 
                         <div className="w-[200px]">
                             <Select
@@ -653,6 +676,50 @@ export default function ClientControlsPage() {
                     </div>
                 </EnhancedDialog>
 
+                {/* Bulk Status Update Toolbar */}
+                {bulkSelectedIds.size > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg mb-4 border border-blue-200 dark:border-blue-800">
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                            {bulkSelectedIds.size} control{bulkSelectedIds.size !== 1 ? 's' : ''} selected
+                        </span>
+                        <Select
+                            value={bulkStatus}
+                            onValueChange={(val) => setBulkStatus(val)}
+                        >
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Set status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="not_implemented">Not Implemented</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="implemented">Implemented</SelectItem>
+                                <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            size="sm"
+                            onClick={() => {
+                                if (!bulkStatus) { toast.error('Please select a status'); return; }
+                                batchUpdateMutation.mutate({
+                                    clientId,
+                                    ids: Array.from(bulkSelectedIds),
+                                    status: bulkStatus as any,
+                                });
+                            }}
+                            disabled={!bulkStatus || batchUpdateMutation.isLoading}
+                        >
+                            {batchUpdateMutation.isLoading ? 'Updating...' : 'Apply'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setBulkSelectedIds(new Set()); setBulkStatus(''); }}
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                )}
+
                 {/* Controls List */}
                 {controlsError ? (
                     <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded-md">
@@ -679,10 +746,21 @@ export default function ClientControlsPage() {
                                             <h4 className="text-sm font-semibold text-muted-foreground mb-3 pl-2">{category}</h4>
                                             <div className="space-y-3">
                                                 {items.map((item) => (
-                                                    <Card key={`${clientId}-${item.clientControl.id}`} className="cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
+                                                    <Card key={`${clientId}-${item.clientControl.id}`} className="cursor-pointer relative" onDoubleClick={() => setSelectedControl(item)}>
                                                         <CardContent className="p-4">
                                                             <div className="flex items-start justify-between">
                                                                 <div className="flex-1">
+                                                                    <div className="absolute top-2 right-2 z-10">
+                                                                        <Checkbox
+                                                                            checked={bulkSelectedIds.has(item.clientControl.id)}
+                                                                            onCheckedChange={(checked) => {
+                                                                                const next = new Set(bulkSelectedIds);
+                                                                                if (checked) next.add(item.clientControl.id);
+                                                                                else next.delete(item.clientControl.id);
+                                                                                setBulkSelectedIds(next);
+                                                                            }}
+                                                                        />
+                                                                    </div>
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <span className="font-mono text-sm text-muted-foreground">
                                                                             {item.clientControl.clientControlId}
@@ -737,6 +815,19 @@ export default function ClientControlsPage() {
                                 <Table className="table-fancy w-full">
                                     <TableHeader>
                                         <TableRow className="border-none hover:bg-transparent bg-slate-50">
+                                            <TableHead className="w-10 py-3">
+                                                <Checkbox
+                                                    checked={isBulkMode && paginatedControls.length > 0 && bulkSelectedIds.size === paginatedControls.length}
+                                                    onCheckedChange={(checked) => {
+                                                        if (!isBulkMode) return;
+                                                        if (checked) {
+                                                            setBulkSelectedIds(new Set(paginatedControls.map((c: any) => c.clientControl.id)));
+                                                        } else {
+                                                            setBulkSelectedIds(new Set());
+                                                        }
+                                                    }}
+                                                />
+                                            </TableHead>
                                             <TableHead className="w-[100px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Control ID</TableHead>
                                             <TableHead className="w-[200px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Name</TableHead>
                                             <TableHead className="w-[120px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Framework</TableHead>
@@ -750,6 +841,17 @@ export default function ClientControlsPage() {
                                     <TableBody>
                                         {paginatedControls.map((item: any) => (
                                             <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
+                                                <TableCell className="w-10 py-3">
+                                                    <Checkbox
+                                                        checked={bulkSelectedIds.has(item.clientControl.id)}
+                                                        onCheckedChange={(checked) => {
+                                                            const next = new Set(bulkSelectedIds);
+                                                            if (checked) next.add(item.clientControl.id);
+                                                            else next.delete(item.clientControl.id);
+                                                            setBulkSelectedIds(next);
+                                                        }}
+                                                    />
+                                                </TableCell>
                                                 <TableCell className="font-mono text-xs font-medium text-slate-700 py-3">
                                                     {item.clientControl.clientControlId}
                                                 </TableCell>

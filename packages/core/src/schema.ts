@@ -14998,6 +14998,46 @@ export const nis2Mappings = pgTable("nis2_mappings", {
 export type Nis2Mapping = typeof nis2Mappings.$inferSelect;
 export type InsertNis2Mapping = typeof nis2Mappings.$inferInsert;
 
+// ==========================================
+// Access Review Module (W4)
+// ==========================================
+
+export const accessReviewCampaigns = pgTable("access_review_campaigns", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  scope: varchar("scope", { length: 50 }).default("all"),
+  scopeValue: varchar("scope_value", { length: 255 }),
+  dueDate: timestamp("due_date"),
+  status: varchar("status", { length: 50 }).default("draft"),
+  createdById: integer("created_by_id"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const accessReviewAssignments = pgTable("access_review_assignments", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull(),
+  reviewerId: integer("reviewer_id").notNull(),
+  revieweeId: integer("reviewee_id").notNull(),
+  status: varchar("status", { length: 50 }).default("pending"),
+  justification: text("justification"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const accessReviewHistory = pgTable("access_review_history", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  campaignId: integer("campaign_id"),
+  userId: integer("user_id").notNull(),
+  action: varchar("action", { length: 50 }).notNull(),
+  details: jsonb("details"),
+  reviewedBy: integer("reviewed_by").notNull(),
+  reviewedAt: timestamp("reviewed_at").defaultNow(),
+});
+
 // Client-specific settings (branding, feature flags) — must be in the shared schema
 // so drizzle's db.query.clientSettings is available at runtime
 export { clientSettings } from "./schema_client_settings";

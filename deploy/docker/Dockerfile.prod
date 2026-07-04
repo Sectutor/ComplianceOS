@@ -1,0 +1,57 @@
+# Stage 1: Build the application
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency definitions
+COPY package.json package-lock.json ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/premium/package.json ./packages/premium/
+
+# Install dependencies
+RUN npm ci --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Build the frontend bundle only
+WORKDIR /app/packages/core
+ENV VITE_ENABLE_PREMIUM=true
+RUN npx vite build
+
+# Stage 2: Production Runtime
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Install only production dependencies
+COPY package.json package-lock.json ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/premium/package.json ./packages/premium/
+
+RUN npm ci --legacy-peer-deps --production=false && \
+    npm cache clean --force
+
+# Copy built assets
+COPY --from=builder /app/packages/core/dist ./packages/core/dist
+
+# Copy backend source code
+COPY --from=builder /app/packages/core/src ./packages/core/src
+COPY --from=builder /app/packages/core/drizzle ./packages/core/drizzle
+COPY --from=builder /app/packages/ui/src ./packages/ui/src
+COPY --from=builder /app/server_entry.ts ./
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/tsconfig.json ./
+
+EXPOSE 3001
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
+
+CMD ["sh", "-c", "npx drizzle-kit push:pg && npx tsx server_entry.ts"]

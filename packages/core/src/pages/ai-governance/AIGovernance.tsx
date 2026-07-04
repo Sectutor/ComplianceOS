@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { AIAssessmentWizard } from './AIAssessmentWizard';
 import { AIControlMapping } from './AIControlMapping';
+import { PageGuide } from '@/components/PageGuide';
 
 const AI_AGENT_SAFE_DEPLOYMENT_WORKFLOW_ID = "ai-agent-safe-deployment";
 
@@ -109,6 +110,71 @@ const upsertAgentGovernanceIntoTechnicalConstraints = (technicalConstraints: str
     return withoutGov ? `${withoutGov.trimEnd()}\n\n${block}` : block;
 };
 
+const computeSystemReadiness = (system: any, assessments: any[] | undefined) => {
+    const gov = parseAgentGovernanceFromTechnicalConstraints(system?.technicalConstraints);
+    const blockers: string[] = [];
+    let score = 0;
+
+    if (system?.name) score += 15;
+    if (system?.purpose) score += 5;
+
+    const hasAssessment = !!assessments?.some((a: any) => a.aiSystemId === system?.id);
+    if (hasAssessment) score += 25;
+    else blockers.push('Run an impact assessment');
+
+    const govChecks: Array<{ ok: boolean; label: string; points: number }> = [
+        { ok: !!gov.allowedTools?.trim(), label: 'Document allowed tools', points: 10 },
+        { ok: !!gov.guardrailsSystemPrompt?.trim(), label: 'Add guardrails system prompt', points: 10 },
+        { ok: !!gov.lastGovernanceReviewAt, label: 'Set governance review date', points: 5 },
+        { ok: !!gov.approvalRequiredForHighRisk, label: 'Enable approval for high-risk actions', points: 5 },
+        { ok: !!gov.killSwitchImplemented, label: 'Implement kill switch', points: 10 },
+        { ok: !!gov.auditLoggingImplemented, label: 'Implement audit logging', points: 10 },
+        { ok: !!gov.sandboxTested, label: 'Complete sandbox/adversarial testing', points: 10 }
+    ];
+
+    for (const c of govChecks) {
+        if (c.ok) score += c.points;
+        else blockers.push(c.label);
+    }
+
+    score = Math.max(0, Math.min(100, score));
+    return { score, blockers: blockers.slice(0, 4), gov };
+};
+
+const computeClientReadiness = (systems: any[] | undefined, stats: any | undefined, assessments: any[] | undefined) => {
+    const sys = systems || [];
+    if (sys.length === 0) {
+        return { score: 0, blockers: ['Register your first AI system', 'Run your first impact assessment', 'Map NIST AI RMF core subcategories'] };
+    }
+    const systemReadiness = sys.map((s) => computeSystemReadiness(s, assessments).score);
+    const avgSystem = systemReadiness.length > 0 ? systemReadiness.reduce((a, b) => a + b, 0) / systemReadiness.length : 0;
+    const nistPct = Number(stats?.nistCompliance?.percentage || 0);
+    const hasAssessment = Number(stats?.totalAssessments || 0) > 0;
+
+    const score =
+        Math.round(
+            20 +
+            (hasAssessment ? 15 : 0) +
+            (Math.max(0, Math.min(100, nistPct)) * 0.35) +
+            (avgSystem * 0.30)
+        );
+
+    const blockers: string[] = [];
+    if (!hasAssessment) blockers.push('Run at least one impact assessment');
+    if (nistPct === 0) blockers.push('Start mapping NIST AI RMF subcategories');
+    const topMissing = sys
+        .map((s) => computeSystemReadiness(s, assessments).blockers)
+        .flat()
+        .reduce((acc: Record<string, number>, b) => {
+            acc[b] = (acc[b] || 0) + 1;
+            return acc;
+        }, {});
+    const ranked = Object.entries(topMissing).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+    blockers.push(...ranked.filter((b) => !blockers.includes(b)).slice(0, 3 - blockers.length));
+
+    return { score: Math.max(0, Math.min(100, score)), blockers: blockers.slice(0, 3) };
+};
+
 const AIGovernance = () => {
     const { id } = useParams<{ id: string }>();
     const activeClientId = id ? parseInt(id) : 1;
@@ -118,13 +184,21 @@ const AIGovernance = () => {
     const [selectedSystemId, setSelectedSystemId] = useState<number | null>(null);
     const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'inventory' | 'assessments' | 'nist-map' | 'agent-playbook'>('inventory');
+    const [inventoryQuery, setInventoryQuery] = useState('');
+    const [nistScope, setNistScope] = useState<'all' | string>('all');
 
     const startSafeDeploymentWorkflow = () => {
         setLocation(`/clients/${activeClientId}/workflows/${AI_AGENT_SAFE_DEPLOYMENT_WORKFLOW_ID}`);
     };
 
-    const { data: systems, refetch: refetchSystems } = trpc.ai.systems.list.useQuery({ clientId: activeClientId });
+    const { data: systems, isLoading: systemsLoading, refetch: refetchSystems } = trpc.ai.systems.list.useQuery({ clientId: activeClientId });
     const { data: stats } = trpc.ai.systems.getStats.useQuery({ clientId: activeClientId });
+    const nistScopedSystemId = nistScope === 'all' ? undefined : Number(nistScope);
+    const { data: nistScopedStats } = trpc.ai.systems.getStats.useQuery(
+        nistScopedSystemId ? { clientId: activeClientId, aiSystemId: nistScopedSystemId } : { clientId: activeClientId },
+        { enabled: !!nistScopedSystemId }
+    );
     const { data: allAssessments } = trpc.ai.systems.listAllAssessments.useQuery({ clientId: activeClientId });
     const { data: vendorsData } = trpc.vendors.listVendors.useQuery({ clientId: activeClientId });
     const { data: selectedSystem, refetch: refetchDetail } = trpc.ai.systems.getWithAssessments.useQuery(
@@ -133,10 +207,14 @@ const AIGovernance = () => {
     );
 
     const createSystem = trpc.ai.systems.create.useMutation({
-        onSuccess: () => {
+        onSuccess: (created: any) => {
             toast.success("AI System registered successfully");
             setIsAddSystemOpen(false);
             refetchSystems();
+            if (created?.id) {
+                setSelectedSystemId(created.id);
+                setIsAssessmentOpen(true);
+            }
         }
     });
 
@@ -298,6 +376,32 @@ const AIGovernance = () => {
             });
         }
     }, [isEditSystemOpen, selectedSystem]);
+
+    const latestAssessmentBySystemId = React.useMemo(() => {
+        const map = new Map<number, any>();
+        for (const a of allAssessments || []) {
+            const existing = map.get(a.aiSystemId);
+            if (!existing) {
+                map.set(a.aiSystemId, a);
+                continue;
+            }
+            const nextTs = new Date(a.createdAt).getTime();
+            const prevTs = new Date(existing.createdAt).getTime();
+            if (Number.isFinite(nextTs) && Number.isFinite(prevTs) && nextTs > prevTs) {
+                map.set(a.aiSystemId, a);
+            }
+        }
+        return map;
+    }, [allAssessments]);
+
+    const filteredSystems = React.useMemo(() => {
+        const q = inventoryQuery.trim().toLowerCase();
+        if (!q) return systems || [];
+        return (systems || []).filter((s: any) => {
+            const hay = `${s?.name || ''} ${s?.description || ''} ${s?.purpose || ''} ${s?.type || ''} ${s?.status || ''} ${s?.riskLevel || ''}`.toLowerCase();
+            return hay.includes(q);
+        });
+    }, [systems, inventoryQuery]);
 
     if (selectedSystemId && selectedSystem) {
         const gov = parseAgentGovernanceFromTechnicalConstraints(selectedSystem.technicalConstraints);
@@ -876,9 +980,43 @@ const AIGovernance = () => {
                             NIST AI Risk Management Framework (RMF 1.0) Lifecycle Management
                         </p>
                     </div>
-                    <Button onClick={() => setIsAddSystemOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-                        <Plus className="h-4 w-4" /> Register AI System
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                        <Button
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => setLocation(`/clients/${activeClientId}/ai-governance/program-guide`)}
+                        >
+                            <BookOpen className="h-4 w-4" />
+                            Guide
+                        </Button>
+                        <PageGuide
+                            title="AI Governance"
+                            description="How to inventory AI systems, assess risk, map NIST AI RMF controls, and produce audit-ready evidence."
+                            rationale="AI governance is the operating system for deploying AI safely. This page helps you build an inventory, assign guardrails, assess risk, map controls, and generate evidence that auditors can validate."
+                            howToUse={[
+                                { step: "Register AI System", description: "Create an inventory entry and capture governance guardrails (autonomy tier, allowed tools, approvals, kill switch, audit logging, sandbox tests, and guardrails prompt)." },
+                                { step: "Run Impact Assessment", description: "Use the rubric (Safety/Bias/Privacy/Security) to generate a suggested risk score and document recommendations." },
+                                { step: "Map NIST AI RMF", description: "Use All Controls to triage scope, then use Mapped Controls as your execution queue (Mapped → Implemented → Verified)." },
+                                { step: "Run Safe Deployment", description: "Use the gated workflow to require approvals, sandboxing, and least-privilege permissions before production release." },
+                                { step: "Generate Reports", description: "Export Impact Assessment PDFs and the AI Agent Governance Pack for audit snapshots." }
+                            ]}
+                            scenarios={[
+                                {
+                                    title: "Deploying a SOC threat-hunting agent",
+                                    example: "Register the agent, restrict tools to read-only queries first, require approval for response actions, run assessment, then map RMF controls and move the highest-risk subcategories to Implemented/Verified with evidence.",
+                                    auditTip: "Auditors look for traceability: inventory → assessment rationale → mapped controls → evidence that controls are operating."
+                                },
+                                {
+                                    title: "Autonomy increase (Observation-only → High-risk execution)",
+                                    example: "Update governance guardrails, re-run assessment, and re-run the safe deployment workflow before enabling write-capable tools or privileged actions.",
+                                    auditTip: "Treat autonomy and tool changes as a re-authorization event with explicit approvals and updated evidence."
+                                }
+                            ]}
+                        />
+                        <Button onClick={() => setIsAddSystemOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+                            <Plus className="h-4 w-4" /> Register AI System
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Quick Stats */}
@@ -926,7 +1064,51 @@ const AIGovernance = () => {
                     </Card>
                 </div>
 
-                <Tabs defaultValue="inventory" className="w-full">
+                {(() => {
+                    const { score, blockers } = computeClientReadiness(systems, stats, allAssessments);
+                    const barColor = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-rose-500';
+                    return (
+                        <Card className="rounded-3xl border-muted/30 shadow-xl overflow-hidden">
+                            <CardHeader className="bg-muted/30 pb-6 border-b border-muted/20">
+                                <CardTitle className="flex items-center justify-between gap-4">
+                                    <span>Governance Readiness</span>
+                                    <Badge variant={score >= 80 ? 'secondary' : score >= 50 ? 'outline' : 'destructive'}>{score}%</Badge>
+                                </CardTitle>
+                                <CardDescription>Operational signal across inventory, assessments, governance guardrails, and RMF mapping.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-6 space-y-4">
+                                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                    <div className={`h-full ${barColor}`} style={{ width: `${score}%` }} />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {blockers.map((b) => (
+                                        <Badge key={b} variant="outline">{b}</Badge>
+                                    ))}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button variant="outline" className="gap-2" onClick={() => { setActiveTab('inventory'); setIsAddSystemOpen(true); }}>
+                                        <Plus className="h-4 w-4" />
+                                        Register AI System
+                                    </Button>
+                                    <Button variant="outline" className="gap-2" onClick={() => setActiveTab('assessments')}>
+                                        <ClipboardCheck className="h-4 w-4" />
+                                        View Assessments
+                                    </Button>
+                                    <Button variant="outline" className="gap-2" onClick={() => setActiveTab('nist-map')}>
+                                        <ShieldCheck className="h-4 w-4" />
+                                        Map RMF Core
+                                    </Button>
+                                    <Button className="gap-2" onClick={() => setActiveTab('agent-playbook')}>
+                                        <BookOpen className="h-4 w-4" />
+                                        Open Playbook
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
+
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
                     <TabsList className="grid w-full grid-cols-4 mb-10 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
                         <TabsTrigger
                             value="inventory"
@@ -955,47 +1137,190 @@ const AIGovernance = () => {
                     </TabsList>
 
                     <TabsContent value="inventory" className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {systems?.map((system: any) => (
-                                <Card
-                                    key={system.id}
-                                    className="hover:border-primary/50 transition-colors shadow-sm cursor-pointer group hover:shadow-md"
-                                    onClick={() => setSelectedSystemId(system.id)}
-                                >
-                                    <CardHeader>
-                                        <div className="flex justify-between items-start">
-                                            <div className="p-3 bg-primary/5 rounded-xl group-hover:bg-primary/10 transition-colors">
-                                                <Brain className="h-6 w-6 text-primary" />
-                                            </div>
-                                            <Badge variant={system.riskLevel === 'high' ? 'destructive' : 'secondary'}>
-                                                {system.riskLevel?.toUpperCase()} RISK
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="mt-4">{system.name}</CardTitle>
-                                        <CardDescription className="line-clamp-2">{system.description}</CardDescription>
+                        {systemsLoading && (
+                            <Card className="rounded-3xl border-muted/30 shadow-xl overflow-hidden">
+                                <CardHeader className="bg-muted/30 pb-6 border-b border-muted/20">
+                                    <CardTitle>AI System Inventory</CardTitle>
+                                    <CardDescription>Loading systems…</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-10 flex items-center justify-center gap-3 text-muted-foreground">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Fetching AI systems
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {!systemsLoading && systems?.length === 0 && (
+                                <Card className="col-span-full rounded-3xl border-dashed border-2 bg-muted/20">
+                                    <CardHeader className="text-center">
+                                        <Brain className="h-12 w-12 text-muted-foreground/30 mx-auto mb-2" />
+                                        <CardTitle>No AI Systems Registered</CardTitle>
+                                        <CardDescription className="max-w-xl mx-auto">
+                                            Follow this quickstart to become audit-ready: register inventory, run an impact assessment, map RMF core, then execute the safe deployment workflow.
+                                        </CardDescription>
                                     </CardHeader>
-                                    <CardContent>
-                                        <div className="flex gap-2">
-                                            <Badge variant="outline">{system.status}</Badge>
-                                            <Badge variant="outline">{system.type}</Badge>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="rounded-2xl border bg-background p-4">
+                                                <div className="font-semibold">1) Register Inventory</div>
+                                                <div className="text-sm text-muted-foreground mt-1">Capture purpose, risk level, and vendor context.</div>
+                                                <Button className="mt-3 w-full gap-2" onClick={() => setIsAddSystemOpen(true)}>
+                                                    <Plus className="h-4 w-4" />
+                                                    Register AI System
+                                                </Button>
+                                            </div>
+                                            <div className="rounded-2xl border bg-background p-4">
+                                                <div className="font-semibold">2) Run Assessment</div>
+                                                <div className="text-sm text-muted-foreground mt-1">Generate the first risk score and recommendations.</div>
+                                                <Button
+                                                    className="mt-3 w-full gap-2"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setActiveTab('assessments');
+                                                        toast.message('Register an AI system first, then run an assessment from its detail page.');
+                                                    }}
+                                                >
+                                                    <ClipboardCheck className="h-4 w-4" />
+                                                    Open Assessments
+                                                </Button>
+                                            </div>
+                                            <div className="rounded-2xl border bg-background p-4">
+                                                <div className="font-semibold">3) Map & Deploy</div>
+                                                <div className="text-sm text-muted-foreground mt-1">Map RMF core controls and start gated deployment.</div>
+                                                <div className="mt-3 grid grid-cols-1 gap-2">
+                                                    <Button variant="outline" className="w-full gap-2" onClick={() => setActiveTab('nist-map')}>
+                                                        <ShieldCheck className="h-4 w-4" />
+                                                        Open RMF Core
+                                                    </Button>
+                                                    <Button className="w-full gap-2" onClick={() => setActiveTab('agent-playbook')}>
+                                                        <BookOpen className="h-4 w-4" />
+                                                        Open Playbook
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))}
+                        )}
 
-                            {systems?.length === 0 && (
-                                <div className="col-span-full py-20 text-center border-2 border-dashed rounded-3xl bg-muted/20">
-                                    <Brain className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold">No AI Systems Registered</h3>
-                                    <p className="text-muted-foreground max-w-xs mx-auto mt-2">
-                                        Start by documenting your AI models or third-party AI services to map them against NIST RMF.
-                                    </p>
-                                    <Button variant="outline" className="mt-6" onClick={() => setIsAddSystemOpen(true)}>
-                                        Add Your First System
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
+                        {!systemsLoading && (systems?.length || 0) > 0 && (
+                            <Card className="rounded-3xl border-muted/30 shadow-xl overflow-hidden">
+                                <CardHeader className="bg-muted/30 pb-6 border-b border-muted/20">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <CardTitle>AI System Inventory</CardTitle>
+                                            <CardDescription>Manage systems, assess risk, and track readiness.</CardDescription>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                            <div className="relative">
+                                                <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                                                <Input
+                                                    value={inventoryQuery}
+                                                    onChange={(e) => setInventoryQuery(e.target.value)}
+                                                    placeholder="Search systems..."
+                                                    className="pl-9 w-full sm:w-64"
+                                                />
+                                            </div>
+                                            <Button className="gap-2" onClick={() => setIsAddSystemOpen(true)}>
+                                                <Plus className="h-4 w-4" />
+                                                Register AI System
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-[64px]">#</TableHead>
+                                                <TableHead>System</TableHead>
+                                                <TableHead className="w-[130px]">Type</TableHead>
+                                                <TableHead className="w-[140px]">Status</TableHead>
+                                                <TableHead className="w-[140px]">Risk</TableHead>
+                                                <TableHead className="w-[180px]">Latest Assessment</TableHead>
+                                                <TableHead className="w-[160px]">Readiness</TableHead>
+                                                <TableHead className="w-[140px] text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredSystems.map((system: any, idx: number) => {
+                                                const { score } = computeSystemReadiness(system, allAssessments);
+                                                const barColor = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-rose-500';
+                                                const latest = latestAssessmentBySystemId.get(system.id);
+                                                const latestLabel = latest
+                                                    ? `${latest.overallRiskScore}/100 • ${new Date(latest.createdAt).toLocaleDateString()}`
+                                                    : 'None';
+                                                const riskVariant = system.riskLevel === 'high' || system.riskLevel === 'critical' ? 'destructive' : 'secondary';
+                                                return (
+                                                    <TableRow
+                                                        key={system.id}
+                                                        className="cursor-pointer hover:bg-muted/5"
+                                                        onClick={() => setSelectedSystemId(system.id)}
+                                                    >
+                                                        <TableCell className="text-muted-foreground font-medium">{idx + 1}</TableCell>
+                                                        <TableCell>
+                                                            <div className="font-semibold">{system.name}</div>
+                                                            {system.description && (
+                                                                <div className="text-xs text-muted-foreground line-clamp-1">{system.description}</div>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="capitalize">{system.type || 'internal'}</TableCell>
+                                                        <TableCell className="capitalize">
+                                                            <Badge variant="outline">{system.status}</Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={riskVariant as any}>{(system.riskLevel || 'medium').toUpperCase()} RISK</Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-sm">{latestLabel}</TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Badge variant="outline">{score}%</Badge>
+                                                                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                                                    <div className={`h-full ${barColor}`} style={{ width: `${score}%` }} />
+                                                                </div>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedSystemId(system.id);
+                                                                        setIsAssessmentOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <ClipboardCheck className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedSystemId(system.id);
+                                                                        setIsEditSystemOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                            {filteredSystems.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={8} className="py-14 text-center text-muted-foreground">
+                                                        No systems match your search.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="assessments">
@@ -1037,6 +1362,16 @@ const AIGovernance = () => {
                                             <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
                                                 Select an individual system from the inventory to run your first impact assessment.
                                             </p>
+                                            <div className="flex flex-wrap justify-center gap-2 mt-6">
+                                                <Button variant="outline" className="gap-2" onClick={() => setActiveTab('inventory')}>
+                                                    <LayoutGrid className="h-4 w-4" />
+                                                    View Inventory
+                                                </Button>
+                                                <Button className="gap-2" onClick={() => { setActiveTab('inventory'); setIsAddSystemOpen(true); }}>
+                                                    <Plus className="h-4 w-4" />
+                                                    Register AI System
+                                                </Button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1047,12 +1382,52 @@ const AIGovernance = () => {
                     <TabsContent value="nist-map">
                         <Card className="rounded-3xl border-muted/30 shadow-xl overflow-hidden">
                             <CardHeader className="bg-muted/30 pb-6 border-b border-muted/20">
-                                <CardTitle>NIST AI RMF 1.0 Core Mapping</CardTitle>
-                                <CardDescription>Visualizing your coverage across the 73 subcategories</CardDescription>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <CardTitle>NIST AI RMF 1.0 Core Mapping</CardTitle>
+                                        <CardDescription>Visualize and actively map coverage across the 73 subcategories.</CardDescription>
+                                    </div>
+                                    <div className="w-full md:w-[320px]">
+                                        <Select value={nistScope} onValueChange={setNistScope}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select scope" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All AI Systems (Client)</SelectItem>
+                                                {(systems || []).map((s: any) => (
+                                                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent className="p-8">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                    {(stats?.categoryBreakdown || []).map((stat: any) => (
+                                {(() => {
+                                    const s = nistScope === 'all' ? stats : (nistScopedStats || stats);
+                                    const breakdown = s?.categoryBreakdown || [];
+                                    const nist = s?.nistCompliance;
+                                    return (
+                                        <>
+                                            <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="outline">
+                                                        Mapped {nist?.mappedCount || 0} / {nist?.totalCount || 73}
+                                                    </Badge>
+                                                    <Badge variant="outline">
+                                                        Coverage {nist?.percentage || 0}%
+                                                    </Badge>
+                                                </div>
+                                                {nistScope !== 'all' && (
+                                                    <Button variant="outline" className="gap-2" onClick={() => setSelectedSystemId(Number(nistScope))}>
+                                                        <LayoutGrid className="h-4 w-4" />
+                                                        Open System Detail
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                {breakdown.map((stat: any) => (
                                         <div key={stat.category} className="p-8 rounded-3xl bg-slate-50 border border-muted/30 flex flex-col items-center shadow-sm hover:shadow-md transition-all">
                                             <span className="text-xs font-black text-indigo-600 mb-3 tracking-[0.2em]">{stat.category}</span>
                                             <div className="relative h-24 w-24 flex items-center justify-center mb-4">
@@ -1084,17 +1459,37 @@ const AIGovernance = () => {
                                                 {stat.mapped} of {stat.total} mapped
                                             </p>
                                         </div>
-                                    ))}
-                                    {(!stats?.categoryBreakdown || stats.categoryBreakdown.length === 0) && (
-                                        <div className="col-span-full text-center py-10">
-                                            <p className="text-muted-foreground italic">No mapping data available for this client yet.</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="mt-12 text-center py-10 bg-indigo-50/30 rounded-3xl border border-indigo-100/50">
-                                    <ShieldCheck className="h-10 w-10 text-indigo-200 mx-auto mb-4" />
-                                    <p className="text-slate-600 font-medium">Select an AI System to begin mapping controls across the NIST AI RMF core lifecycle.</p>
-                                </div>
+                                                ))}
+                                                {breakdown.length === 0 && (
+                                                    <div className="col-span-full text-center py-10">
+                                                        <p className="text-muted-foreground italic">No NIST AI RMF controls are available for mapping yet.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {nistScope === 'all' ? (
+                                                <div className="mt-12 text-center py-10 bg-indigo-50/30 rounded-3xl border border-indigo-100/50">
+                                                    <ShieldCheck className="h-10 w-10 text-indigo-200 mx-auto mb-4" />
+                                                    <p className="text-slate-600 font-medium">Pick a specific AI system above to actively map NIST AI RMF controls.</p>
+                                                    <div className="flex flex-wrap justify-center gap-2 mt-6">
+                                                        <Button variant="outline" className="gap-2" onClick={() => setActiveTab('inventory')}>
+                                                            <LayoutGrid className="h-4 w-4" />
+                                                            View Inventory
+                                                        </Button>
+                                                        <Button className="gap-2" onClick={() => { setActiveTab('inventory'); setIsAddSystemOpen(true); }}>
+                                                            <Plus className="h-4 w-4" />
+                                                            Register AI System
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="mt-10">
+                                                    <AIControlMapping aiSystemId={Number(nistScope)} clientId={activeClientId} />
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </CardContent>
                         </Card>
                     </TabsContent>

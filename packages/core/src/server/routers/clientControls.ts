@@ -467,5 +467,67 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         return { success: true, appliedCount, totalControls: validControls.length };
       }),
 
+    batchUpdateStatus: clientEditorProcedure
+      .input(z.object({
+        ids: z.array(z.number()).min(1).max(200),
+        status: z.enum(["not_implemented", "in_progress", "implemented", "not_applicable"]),
+        clientId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        const dbConn = await getDb();
+
+        // Fetch existing controls to check they belong to this client and get previous state
+        const existingControls = await dbConn.select()
+          .from(clientControls)
+          .where(and(
+            inArray(clientControls.id, input.ids),
+            eq(clientControls.clientId, input.clientId)
+          ));
+
+        if (existingControls.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "No matching controls found for this client." });
+        }
+
+        // Skip N/A justification validation for batch — users can edit individually
+
+        // Update all matching controls
+        await dbConn.update(clientControls)
+          .set({
+            status: input.status,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            inArray(clientControls.id, input.ids),
+            eq(clientControls.clientId, input.clientId)
+          ));
+
+        // Write audit log entries for each changed control
+        for (const ctrl of existingControls) {
+          if (ctrl.status !== input.status) {
+            try {
+              await logActivity({
+                userId: ctx.user!.id,
+                clientId: input.clientId,
+                action: 'update',
+                entityType: 'control',
+                entityId: ctrl.controlId,
+                details: {
+                  field: 'status',
+                  old: ctrl.status,
+                  new: input.status,
+                  clientControlId: ctrl.id,
+                  batchUpdate: true,
+                },
+              });
+            } catch (e) {
+              console.error("Batch audit log failure for control", ctrl.id, ":", e);
+            }
+          }
+        }
+
+        return { success: true, updatedCount: existingControls.length };
+      }),
+
+
   });
 };

@@ -3,6 +3,7 @@ import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
 import { createEvidenceRouter } from "./server/routers/evidence";
+import { createEvidenceExpiryRouter } from "./server/routers/evidenceExpiry";
 import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
 import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
 import { createAdvisorRouter } from "./server/routers/advisor";
@@ -90,6 +91,7 @@ import { createBillingRouter } from "./server/routers/billing";
 import { createFrameworksRouter } from "./server/routers/frameworks";
 import { createCompliancePlanningRouter } from "./server/routers/compliancePlanning";
 import { createHarmonizationRouter } from "./server/routers/harmonization";
+import { createFrameworkHarmonizationRouter } from "./server/routers/frameworkHarmonization";
 import { createAuditRouter } from "./server/routers/audit";
 // notifications handled by modular router
 import { createNotificationsRouter } from "./server/routers/notifications";
@@ -112,9 +114,11 @@ import { createReportsRouter } from "./server/routers/reports";
 import { createFindingsRouter } from "./server/routers/findings";
 import { createTrustCenterRouter } from "./server/routers/trustCenter";
 import { createIso27001Router } from "./server/routers/iso27001";
+import { createComplianceDebtRouter } from "./server/routers/complianceDebt";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
+import { createComplianceJourneyRouter } from "./server/routers/complianceJourney";
 import { trainingRouter } from "./modules/training";
 import { complianceRouter } from "./modules/compliance";
 
@@ -150,6 +154,7 @@ import { createLlmRouter } from "./server/routers/llm";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
+import { createAddonRouter } from "@complianceos/addons/router";
 
 
 
@@ -201,6 +206,14 @@ SI-4: Information System Monitoring
 import { createAuditorsRouter } from "./server/routers/auditors";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
+import { createControlMeshRouter } from "./server/routers/controlMesh";
+import { createEvidenceReportRouter } from "./server/routers/evidenceReport";
+import { createAccessReviewsRouter } from "./server/routers/accessReviews";
+import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
+import { createActionCenterRouter } from "./server/routers/actionCenter";
+import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
+import { createConnectorsRouter } from "./server/routers/connectors";
+import { createAuditorPortalRouter } from "./server/routers/auditorPortal";
 
 export const appRouter = router({
   programGuides: createProgramGuidesRouter(t, clientProcedure),
@@ -213,8 +226,8 @@ export const appRouter = router({
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   users: usersSubRouter,
   employees: employeesRouter,
-  crm: createCrmRouter(t, clientProcedure),
-  sales: createSalesRouter(t, clientProcedure),
+  crm: createCrmRouter(t, premiumClientProcedure),
+  sales: createSalesRouter(t, premiumClientProcedure),
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
@@ -222,15 +235,15 @@ export const appRouter = router({
   frameworkImport: createFrameworkImportRouter(t, clientProcedure),
   frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
   requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
-  autopilot: createAutopilotRouter(t, clientProcedure),
+  autopilot: createAutopilotRouter(t, premiumClientProcedure, adminProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
-  federal: createFederalRouter(t, clientProcedure),
-  nist80030: createNist80030Router(t, clientProcedure),
-  readiness: createReadinessRouter(t, clientProcedure),
+  federal: createFederalRouter(t, premiumClientProcedure),
+  nist80030: createNist80030Router(t, premiumClientProcedure),
+  readiness: createReadinessRouter(t, premiumClientProcedure),
   samm: createSammRouter(t, clientProcedure),
-  sammV2: createSammV2Router(t, clientProcedure),
-  essentialEight: createEssentialEightRouter(t, clientProcedure),
+  sammV2: createSammV2Router(t, premiumClientProcedure),
+  essentialEight: createEssentialEightRouter(t, premiumClientProcedure),
   asvs: createAsvsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
@@ -240,6 +253,8 @@ export const appRouter = router({
   dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
   compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
   evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  evidenceExpiry: createEvidenceExpiryRouter(t, premiumClientProcedure),
+  complianceDebt: createComplianceDebtRouter(t, premiumClientProcedure),
   notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
 
   // Risk Management Module
@@ -248,15 +263,15 @@ export const appRouter = router({
   settings: createSettingsRouter(t, clientProcedure),
   riskGame: createRiskGameRouter(t, clientProcedure),
   plugins: pluginRouter,
-  kris: createKrisRouter(t, clientProcedure),
-  metrics: createMetricsRouter(t, clientProcedure),
-  devProjects: createDevProjectsRouter(t, clientProcedure),
-  projects: createProjectsRouter(t, clientProcedure),
+  kris: createKrisRouter(t, premiumClientProcedure),
+  metrics: createMetricsRouter(t, premiumClientProcedure),
+  devProjects: createDevProjectsRouter(t, premiumClientProcedure),
+  projects: createProjectsRouter(t, premiumClientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
   adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
   vendors: vendorsRouter,
-  roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
+  roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
@@ -265,6 +280,9 @@ export const appRouter = router({
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
   harmonization: createHarmonizationRouter(t, protectedProcedure),
+  frameworkHarmonization: createFrameworkHarmonizationRouter(t, clientProcedure),
+  controlMesh: createControlMeshRouter(t, premiumClientProcedure),
+  evidenceReport: createEvidenceReportRouter(t, premiumClientProcedure, clientEditorProcedure),
   audit: createAuditRouter(t, clientProcedure, adminProcedure),
   findings: createFindingsRouter(t, protectedProcedure),
 
@@ -273,19 +291,20 @@ export const appRouter = router({
   emailTemplates: emailTemplatesRouter,
   emailTriggers: emailTriggersRouter,
 
-  globalCrm: createGlobalCrmRouter(t, adminProcedure),
-  privacy: createPrivacyRouter(t, clientProcedure),
-  privacyEnhancements: createPrivacyEnhancementsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
-  cyber: createCyberRouter(t, clientProcedure),
+  globalCrm: createGlobalCrmRouter(t, premiumClientProcedure),
+  privacy: createPrivacyRouter(t, premiumClientProcedure),
+  privacyEnhancements: createPrivacyEnhancementsRouter(t, premiumClientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
+  cyber: createCyberRouter(t, premiumClientProcedure),
   assets: createAssetsRouter(t, clientProcedure, clientEditorProcedure),
-  securityTesting: createSecurityTestingRouter(t, clientProcedure, clientEditorProcedure),
+  securityTesting: createSecurityTestingRouter(t, premiumClientProcedure, clientEditorProcedure),
   // integrations handled by modular router below
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
 
-  learning: createLearningRouter(t, publicProcedure, adminProcedure),
+  learning: createLearningRouter(t, premiumClientProcedure, adminProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
+  complianceJourney: createComplianceJourneyRouter(t, premiumClientProcedure, clientEditorProcedure),
   training: trainingRouter,
   policy: policyRouter,
   integrations: integrationsRouter(t, clientProcedure, publicProcedure, protectedProcedure),
@@ -296,18 +315,18 @@ export const appRouter = router({
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed, adminProcedure),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
-  trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
-  llm: createLlmRouter(t, publicProcedure, isAuthed, adminProcedure),
+  trustCenter: createTrustCenterRouter(t, premiumClientProcedure, protectedProcedure),
+  llm: createLlmRouter(t, premiumClientProcedure, isAuthed, adminProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 
 
   ai: router({
-    systems: createAiSystemsRouter(t, clientProcedure),
+    systems: createAiSystemsRouter(t, premiumClientProcedure),
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
   feedback: feedbackRouter,
-  studio: createStudioRouter(t, protectedProcedure),
+  studio: createStudioRouter(t, premiumClientProcedure),
   backupRestore: createBackupRestoreRouter(t, clientProcedure),
   advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
     const sig = ctx.req.headers["x-signature"] as string | undefined;
@@ -330,7 +349,7 @@ export const appRouter = router({
   }))),
 
   comments: createCommentsRouter(t, clientProcedure),
-  maturity: createMaturityRouter(t, clientProcedure),
+  maturity: createMaturityRouter(t, premiumClientProcedure),
 
   // New and Management Readiness Tools
   // management: createManagementRouter(t, protectedProcedure),
@@ -4406,6 +4425,14 @@ ONLY return the JSON. No Markdown formatting.
   admin: router({
     // Admin procedures go here
   }),
+
+  addons: createAddonRouter(t, clientProcedure, adminProcedure, publicProcedure, protectedProcedure),
+  accessReviews: createAccessReviewsRouter(t, premiumClientProcedure, adminProcedure),
+  complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure, adminProcedure),
+  actionCenter: createActionCenterRouter(t, premiumClientProcedure),
+  connectors: createConnectorsRouter(t, clientProcedure, adminProcedure),
+  msspCockpit: createMsspCockpitRouter(t, premiumClientProcedure),
+  auditorPortal: createAuditorPortalRouter(t, premiumClientProcedure, adminProcedure, publicProcedure),
 });
 
 

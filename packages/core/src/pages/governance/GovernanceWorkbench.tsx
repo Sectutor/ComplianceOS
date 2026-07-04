@@ -15,11 +15,18 @@ import { formatDistanceToNow } from "date-fns";
 
 export default function GovernanceWorkbench() {
     const { id } = useParams<{ id: string }>();
-    const clientId = parseInt(id, 10);
+    const clientId = Number(id);
+    const clientIdReady = Number.isFinite(clientId) && clientId > 0;
     const utils = trpc.useUtils();
 
-    const { data: lastRun } = trpc.autopilot.getLastRun.useQuery({ clientId });
-    const { data: stats, isLoading: statsLoading } = trpc.governance.getStats.useQuery({ clientId });
+    const { data: lastRun } = trpc.autopilot.getLastRun.useQuery(
+        { clientId },
+        { enabled: clientIdReady }
+    );
+    const { data: stats, isLoading: statsLoading } = trpc.governance.getStats.useQuery(
+        { clientId } as any,
+        { enabled: clientIdReady }
+    );
 
     const runAutopilot = trpc.autopilot.trigger.useMutation({
         onSuccess: (data) => {
@@ -35,7 +42,7 @@ export default function GovernanceWorkbench() {
         }
     });
 
-    if (!clientId || isNaN(clientId)) {
+    if (!clientIdReady) {
         return (
             <div className="flex items-center justify-center h-screen">
                 <p className="text-muted-foreground">Please select a client to view the workbench.</p>

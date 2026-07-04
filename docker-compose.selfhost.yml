@@ -35,6 +35,11 @@ services:
       - APP_ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
 
       # Auth — Supabase (optional, local auth fallback available)
+      - AUTH_MODE=${AUTH_MODE:-auto}
+      - COMPLIANCE_ADMIN_EMAIL=${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=${COMPLIANCE_ADMIN_PASSWORD:-}
+      - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-}
+      - LOCAL_JWT_SECRET=${LOCAL_JWT_SECRET:-change-this-to-a-random-secret}
       - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
       - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-placeholder}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-placeholder}
@@ -109,6 +114,35 @@ services:
     networks:
       - complianceos-net
 
+  hermes-agent:
+    image: ghcr.io/sectutor/complianceos-agent:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    depends_on:
+      complianceos:
+        condition: service_healthy
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - COMPLIANCE_API_URL=http://complianceos:3002/api/v1
+      - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-}
+      - COMPLIANCE_ADMIN_EMAIL=${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=${COMPLIANCE_ADMIN_PASSWORD:-}
+      - GATEWAY_ENABLED=${GATEWAY_ENABLED:-false}
+      - CRON_ENABLED=${CRON_ENABLED:-true}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+      - CISOVAULT_API_URL=${CISOVAULT_API_URL:-}
+      - CISOVAULT_API_KEY=${CISOVAULT_API_KEY:-}
+      - CISO_EMAIL=${CISO_EMAIL:-}
+      - NO_TELEMETRY=true
+    volumes:
+      - complianceos_agent_data:/app/data
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+
 networks:
   complianceos-net:
     driver: bridge
@@ -117,3 +151,4 @@ volumes:
   complianceos_db:
   complianceos_redis:
   complianceos_uploads:
+  complianceos_agent_data:

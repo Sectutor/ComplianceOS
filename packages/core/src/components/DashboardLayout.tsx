@@ -403,6 +403,9 @@ function DashboardLayoutContent({
     enabled: !!persistentClientId
   });
 
+  // Fetch active addon subscriptions for sidebar navigation
+  const { data: addonSubscriptions } = trpc.addons.listMySubscriptions.useQuery(undefined);
+
   // Redirect to payment completion if user has a paid tier but no active subscription
   useEffect(() => {
     // Check for payment_success param
@@ -678,6 +681,7 @@ function DashboardLayoutContent({
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/compliance" },
           { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
+          { icon: GraduationCap, label: "Guides", path: "/guides" },
           { icon: Link, label: "Mappings", path: "/mappings" },
         ]
       }
@@ -796,6 +800,22 @@ function DashboardLayoutContent({
         ]
       }
     );
+
+    // Add addon marketplace + active addon subscriptions
+    const activeAddons = (addonSubscriptions || []).filter(
+      (s: any) => s.status === 'active' || s.status === 'trial'
+    );
+    groups.push({
+      label: "Addons",
+      items: [
+        { icon: ShoppingBag, label: "Marketplace", path: "/addons" },
+        ...activeAddons.map((sub: any) => ({
+          icon: Cloud,
+          label: sub.manifest?.name || sub.addon_slug,
+          path: `/addons/${sub.addon_slug}`,
+        })),
+      ]
+    });
 
     // Add dynamic plugin groups if any are enabled
     if (installedPlugins && installedPlugins.length > 0) {

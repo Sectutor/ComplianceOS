@@ -58,6 +58,7 @@ import { logTelemetryStatus, isTelemetryAllowed } from './packages/core/src/lib/
 import { readCachedLicense, enforceLicense } from './packages/core/src/lib/license/local-license-cache';
 import { jobRouter } from './packages/core/src/server/routers/jobs';
 import { localAuth } from './packages/core/src/lib/auth/local-auth';
+import { apiV1Router } from './packages/core/src/server/routers/api-v1';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -224,13 +225,23 @@ if (process.env.RATE_LIMITING_ENABLED !== 'false') {
     console.log(`[RateLimit] Enabled: ${process.env.RATE_LIMIT_MAX_REQUESTS} reqs / ${process.env.RATE_LIMIT_WINDOW_MS}ms`);
 }
 
-// Apply Authentication Middleware to populate req.user
+// Apply Authentication Middleware to populate req.user (skip API v1 — has own auth)
+app.use('/api/v1', apiV1Router);
+console.log('[API v1] Compliance Agent REST API mounted at /api/v1');
+
 app.use(authMiddleware);
 
 // Local auth fallback: init default admin + login endpoint
-if (localAuth.isLocalAuthActive()) {
-  localAuth.initDefaultAdmin();
-  console.log('[LocalAuth] Local authentication active — default admin: admin@local / admin');
+if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
+  const adminEmail = process.env.COMPLIANCE_ADMIN_EMAIL || 'admin@complianceos.local';
+  const adminPassword = process.env.COMPLIANCE_ADMIN_PASSWORD || randomBytes(4).toString('hex') + '-change-me';
+  localAuth.initDefaultAdmin(adminEmail, adminPassword);
+  console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail} / ${adminPassword}`);
+  // Log password prominently for first-run discovery
+  console.log(`╔══════════════════════════════════════════════════════╗`);
+  console.log(`║  🔑 Admin login: ${adminEmail}                         ║`);
+  console.log(`║  🔑 Password:    ${adminPassword}                         ║`);
+  console.log(`╚══════════════════════════════════════════════════════╝`);
 }
 
 // Local login endpoint (used when Supabase is not configured)

@@ -43,15 +43,22 @@ export function WorkItemList({ clientId }: WorkItemListProps) {
     const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
     const [, setLocation] = useLocation();
     const [editingTask, setEditingTask] = useState<any | null>(null);
+    const clientIdReady = Number.isFinite(clientId) && clientId > 0;
 
     // Query for tasks
-    const { data: tasks, isLoading, refetch } = trpc.governance.list.useQuery({
-        clientId,
-        status: statusFilter as any, // Simple type bypass for demo
-    });
+    const { data: tasks, isLoading, refetch } = trpc.governance.list.useQuery(
+        {
+            clientId,
+            status: statusFilter as any, // Simple type bypass for demo
+        },
+        { enabled: clientIdReady }
+    );
 
     // Fetch users for assignment
-    const { data: assignees } = trpc.actions.listAssignees.useQuery({ clientId });
+    const { data: assignees, isLoading: assigneesLoading } = trpc.actions.listAssignees.useQuery(
+        { clientId },
+        { enabled: clientIdReady }
+    );
 
     const updateMutation = trpc.governance.update.useMutation({
         onSuccess: () => {
@@ -231,11 +238,17 @@ export function WorkItemList({ clientId }: WorkItemListProps) {
                                                             <DropdownMenuItem onClick={() => handleAssignUser(task.id, null)}>
                                                                 Unassign
                                                             </DropdownMenuItem>
-                                                            {assignees?.map((user) => (
-                                                                <DropdownMenuItem key={user.id} onClick={() => handleAssignUser(task.id, user.id)}>
-                                                                    {user.firstName} {user.lastName}
-                                                                </DropdownMenuItem>
-                                                            ))}
+                                                            {assigneesLoading ? (
+                                                                <DropdownMenuItem disabled>Loading users…</DropdownMenuItem>
+                                                            ) : assignees && assignees.length > 0 ? (
+                                                                assignees.map((user) => (
+                                                                    <DropdownMenuItem key={user.id} onClick={() => handleAssignUser(task.id, user.id)}>
+                                                                        {user.firstName} {user.lastName}
+                                                                    </DropdownMenuItem>
+                                                                ))
+                                                            ) : (
+                                                                <DropdownMenuItem disabled>No users found</DropdownMenuItem>
+                                                            )}
                                                         </DropdownMenuSubContent>
                                                     </DropdownMenuPortal>
                                                 </DropdownMenuSub>
@@ -327,11 +340,17 @@ export function WorkItemList({ clientId }: WorkItemListProps) {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                                        {assignees?.map((user) => (
-                                            <SelectItem key={user.id} value={user.id.toString()}>
-                                                {user.firstName} {user.lastName}
-                                            </SelectItem>
-                                        ))}
+                                        {assigneesLoading ? (
+                                            <SelectItem value="loading" disabled>Loading users…</SelectItem>
+                                        ) : assignees && assignees.length > 0 ? (
+                                            assignees.map((user) => (
+                                                <SelectItem key={user.id} value={user.id.toString()}>
+                                                    {user.firstName} {user.lastName}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="none" disabled>No users found</SelectItem>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>

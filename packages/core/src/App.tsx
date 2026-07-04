@@ -71,6 +71,13 @@ const PluginPage = lazyLoad(() => import("./pages/plugins/PluginPage"));
 const IntegrationsPage = lazyLoad(() => import("./pages/settings/IntegrationsPage"));
 const PersonnelComplianceHub = lazyLoad(() => import("./pages/PersonnelComplianceHub"));
 const ClientActivity = lazyLoad(() => import("./pages/ClientActivity"));
+const Guides = lazyLoad(() => import("./pages/Guides"));
+
+// Addon pages
+const AddonMarketplace = lazyLoad(() => import("./pages/addons/AddonMarketplace"));
+const AddonDetail = lazyLoad(() => import("./pages/addons/AddonDetail"));
+const AddonSettings = lazyLoad(() => import("./pages/addons/AddonSettings"));
+const AddonDashboard = lazyLoad(() => import("./pages/addons/AddonDashboard"));
 
 const ClientPoliciesPage = lazyLoad(() => import("./pages/ClientPoliciesPage"));
 const ManagementSignOffPage = lazyLoad(() => import("./pages/ManagementSignOffPage"));
@@ -334,6 +341,7 @@ import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
 
 const AIGovernance = lazyLoad(() => import("./pages/ai-governance/AIGovernance"));
+const AIGovernanceProgramGuide = lazyLoad(() => import("./pages/ai-governance/AIGovernanceProgramGuide"));
 
 
 const StartHere = lazyLoad(() => import("./pages/StartHere"));
@@ -816,6 +824,9 @@ function Router() {
         <Route path="/clients/:id/knowledge-base">
           <ProtectedRoute component={KnowledgeBase} />
         </Route>
+        <Route path="/clients/:id/guides">
+          <ProtectedRoute component={Guides} />
+        </Route>
         <Route path="/clients/:id/questionnaires">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnairesDashboard} /></UnifiedClientGuard>}
         </Route>
@@ -1277,6 +1288,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/ai-governance">
           {(_params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernance /></PremiumGuard>} />}
+        </Route>
+        <Route path="/clients/:id/ai-governance/program-guide">
+          {(_params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernanceProgramGuide /></PremiumGuard>} />}
         </Route>
 
         {/* Privacy routes are handled below in the dedicated section */}
@@ -1904,6 +1918,22 @@ function Router() {
         </Route>
         <Route path="/profile">
           <ProtectedRoute component={Profile} />
+        </Route>
+
+        <Route path="/addons">
+          <ProtectedRoute component={AddonMarketplace} />
+        </Route>
+        <Route path="/addons/my">
+          <ProtectedRoute component={AddonMarketplace} />
+        </Route>
+        <Route path="/addons/:slug/dashboard">
+          <ProtectedRoute component={AddonDashboard} />
+        </Route>
+        <Route path="/addons/:slug/settings">
+          <ProtectedRoute component={AddonSettings} />
+        </Route>
+        <Route path="/addons/:slug">
+          <ProtectedRoute component={AddonDetail} />
         </Route>
 
         <Route path="/onboarding">

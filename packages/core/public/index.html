@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRCompliance — Open Source GRC Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0A0A0A; color: #E2E8F0; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        .glow { box-shadow: 0 0 40px rgba(59,130,246,0.1); }
+        .success-msg { display: none; }
+        .success-msg.visible { display: block; }
+        .error-msg { display: none; }
+        .error-msg.visible { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-lg border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm">G</div>
+            <span class="font-display font-bold text-lg">GRCompliance</span>
+        </a>
+        <div class="flex items-center gap-6 text-sm">
+            <a href="/pricing.html" class="text-gray-400 hover:text-white transition">Pricing</a>
+            <a href="/trust.html" class="text-gray-400 hover:text-white transition">Trust Center</a>
+            <a href="https://github.com/sectutor/ComplianceOS" class="text-gray-400 hover:text-white transition">GitHub</a>
+            <a href="/pricing.html" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full font-semibold text-sm transition">Get Started</a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
+    <div class="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-sm text-blue-400 mb-8">
+        🏗️ Open Source · Self-Host · NIS2/DORA Ready
+    </div>
+    <h1 class="font-display font-900 text-5xl md:text-6xl leading-tight mb-4">
+        Compliance Infrastructure<br><span class="accent-blue">You Own</span>
+    </h1>
+    <p class="text-gray-400 text-lg max-w-2xl mx-auto mb-8">
+        The open source GRC platform that runs on your infrastructure. 
+        Controls, risk, evidence, BCP, privacy, federal — 261 tables, 330 pages, 
+        zero vendor lock-in.
+    </p>
+    <div class="flex gap-4 justify-center flex-wrap">
+        <a href="/pricing.html" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 rounded-full font-semibold transition glow">See Pricing →</a>
+        <a href="https://github.com/sectutor/ComplianceOS" class="border border-white/20 hover:border-white/40 text-white px-8 py-3.5 rounded-full font-semibold transition">Deploy on GitHub</a>
+    </div>
+</section>
+
+<!-- STATS -->
+<section class="max-w-5xl mx-auto px-6 pb-16">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+            <div class="font-display font-900 text-3xl accent-blue">261</div>
+            <div class="text-gray-400 text-sm mt-1">Database Tables</div>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+            <div class="font-display font-900 text-3xl accent-blue">330</div>
+            <div class="text-gray-400 text-sm mt-1">UI Pages</div>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+            <div class="font-display font-900 text-3xl accent-blue">12</div>
+            <div class="text-gray-400 text-sm mt-1">Framework Modules</div>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+            <div class="font-display font-900 text-3xl accent-blue">$0</div>
+            <div class="text-gray-400 text-sm mt-1">Community Edition</div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="max-w-5xl mx-auto px-6 pb-16">
+    <h2 class="font-display font-bold text-3xl text-center mb-10">What You Get</h2>
+    <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="text-2xl mb-3">🛡️</div>
+            <h3 class="font-semibold mb-2">Controls & Risk</h3>
+            <p class="text-sm text-gray-400">Full ISO 31000 risk engine, control library, multi-framework mapping. One control satisfies ISO, SOC2, and GDPR simultaneously.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="text-2xl mb-3">📋</div>
+            <h3 class="font-semibold mb-2">Evidence & Audit</h3>
+            <p class="text-sm text-gray-400">Centralized evidence vault with expiry tracking, snapshot comparison, and auditor read-only portal.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="text-2xl mb-3">🔒</div>
+            <h3 class="font-semibold mb-2">Data Sovereignty</h3>
+            <p class="text-sm text-gray-400">Your compliance data never leaves your VPC. AI runs locally or on your own API keys. No US SaaS middleman.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="text-2xl mb-3">🔄</div>
+            <h3 class="font-semibold mb-2">BCP & Resilience</h3>
+            <p class="text-sm text-gray-400">Business impact analysis, recovery plans, call trees, exercise scoring. Competitors don't have BCP at all.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="text-2xl mb-3">🏛️</div>
+            <h3 class="font-semibold mb-2">Federal & NIS2</h3>
+            <p class="text-sm text-gray-400">CMMC, FedRAMP, NIST 800-53, SSP, POAM tracker, and NIS2 incident reporting. Built for regulated industries.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="text-2xl mb-3">🤖</div>
+            <h3 class="font-semibold mb-2">AI Sovereignty</h3>
+            <p class="text-sm text-gray-400">BYOK: OpenAI, Anthropic, Google, DeepSeek, or local vLLM/Ollama. Your data, your model, your infrastructure.</p>
+        </div>
+    </div>
+</section>
+
+<!-- VS VANTA -->
+<section class="max-w-5xl mx-auto px-6 pb-16">
+    <h2 class="font-display font-bold text-3xl text-center mb-4">GRCompliance vs Vanta</h2>
+    <p class="text-gray-400 text-center mb-8 max-w-xl mx-auto">They're SaaS-only. We're self-host. They charge per framework. We're free. They have 375 integrations. We build our 3 most important ones next.</p>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+            <thead><tr class="border-b border-white/10"><th class="text-left py-3 pr-4 text-gray-400">Feature</th><th class="py-3 px-4 text-blue-400 text-center">GRCompliance</th><th class="py-3 px-4 text-gray-500 text-center">Vanta</th></tr></thead>
+            <tbody>
+                <tr class="border-b border-white/5"><td class="py-3 pr-4">Self-host / data sovereignty</td><td class="text-center text-green-400">✅</td><td class="text-center text-gray-500">❌</td></tr>
+                <tr class="border-b border-white/5 bg-white/5"><td class="py-3 pr-4">BCP/BIA (business continuity)</td><td class="text-center text-green-400">✅</td><td class="text-center text-gray-500">❌</td></tr>
+                <tr class="border-b border-white/5"><td class="py-3 pr-4">Federal (CMMC, FedRAMP)</td><td class="text-center text-green-400">✅</td><td class="text-center text-gray-500">❌</td></tr>
+                <tr class="border-b border-white/5 bg-white/5"><td class="py-3 pr-4">Privacy Center (ROPA/DSAR/DPIA)</td><td class="text-center text-green-400">✅</td><td class="text-center text-gray-500">Basic</td></tr>
+                <tr class="border-b border-white/5"><td class="py-3 pr-4">MSSP multi-tenant mode</td><td class="text-center text-green-400">✅</td><td class="text-center text-gray-500">❌</td></tr>
+                <tr class="border-b border-white/5 bg-white/5"><td class="py-3 pr-4">AI sovereignty (BYOK, local models)</td><td class="text-center text-green-400">✅</td><td class="text-center text-gray-500">❌</td></tr>
+                <tr class="border-b border-white/5"><td class="py-3 pr-4">Automated evidence collection</td><td class="text-center text-amber-400">Building</td><td class="text-center text-green-400">375+ connectors</td></tr>
+                <tr class="border-b border-white/5 bg-white/5"><td class="py-3 pr-4">Guided compliance journey</td><td class="text-center text-amber-400">Building</td><td class="text-center text-green-400">✅</td></tr>
+                <tr class="border-b border-white/5"><td class="py-3 pr-4">Trust Center (public portal)</td><td class="text-center text-amber-400">Building</td><td class="text-center text-green-400">✅</td></tr>
+                <tr class="border-b border-white/5 bg-white/5"><td class="py-3 pr-4">Price</td><td class="text-center text-green-400 font-bold">$0–$999/yr</td><td class="text-center text-gray-500">$10K–$80K/yr</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- LEAD CAPTURE -->
+<section class="max-w-3xl mx-auto px-6 pb-20">
+    <div class="bg-gradient-to-br from-blue-500/5 to-transparent border border-blue-500/20 rounded-2xl p-8 md:p-12 text-center glow">
+        <h2 class="font-display font-bold text-3xl mb-3">Get Early Access</h2>
+        <p class="text-gray-400 mb-6 max-w-md mx-auto">Be first to know when we ship automated connectors, the guided compliance wizard, and the trust center.</p>
+        <form id="waitlist-form" class="max-w-md mx-auto" onsubmit="handleWaitlist(event)">
+            <div class="flex gap-3">
+                <input type="email" id="email" placeholder="you@company.com" required
+                    class="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                <button type="submit" id="submit-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold text-sm transition whitespace-nowrap">
+                    Notify Me →
+                </button>
+            </div>
+            <div class="success-msg mt-4 text-sm text-green-400" id="success-msg">✓ You're on the list. We'll email you when we ship.</div>
+            <div class="error-msg mt-4 text-sm text-red-400" id="error-msg"></div>
+        </form>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/10 py-8 text-center text-sm text-gray-500">
+    <p>GRCompliance — Open Source GRC Platform · AGPLv3 · Self-Hosted</p>
+    <p class="mt-1">
+        <a href="/pricing.html" class="hover:text-white mx-2">Pricing</a>
+        <a href="/trust.html" class="hover:text-white mx-2">Trust Center</a>
+        <a href="https://github.com/sectutor/ComplianceOS" class="hover:text-white mx-2">GitHub</a>
+    </p>
+</footer>
+
+<script>
+async function handleWaitlist(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const btn = document.getElementById('submit-btn');
+    const successMsg = document.getElementById('success-msg');
+    const errorMsg = document.getElementById('error-msg');
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    successMsg.classList.remove('visible');
+    errorMsg.classList.remove('visible');
+
+    try {
+        const res = await fetch('/api/trpc/waitlist.join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ '0': { email, source: 'landing' } })
+        });
+        const data = await res.json();
+        if (data.result?.data?.success || res.ok) {
+            successMsg.classList.add('visible');
+            document.getElementById('email').value = '';
+        } else {
+            errorMsg.textContent = data.error?.message || 'Something went wrong.';
+            errorMsg.classList.add('visible');
+        }
+    } catch (err) {
+        errorMsg.textContent = 'Could not reach server. Try again later.';
+        errorMsg.classList.add('visible');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Notify Me →';
+    }
+}
+</script>
+</body>
+</html>

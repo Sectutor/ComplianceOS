@@ -287,43 +287,56 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
             }),
 
         getStats: protectedProcedure
-            .input(z.object({ clientId: z.number() }))
+            .input(z.object({ clientId: z.number(), aiSystemId: z.number().optional() }))
             .query(async ({ input }: any) => {
                 const dbConn = await getDb();
 
-                // 1. Total AI Systems
-                const systems = await dbConn.select().from(schema.aiSystems)
-                    .where(eq(schema.aiSystems.clientId, input.clientId));
+                let systems: any[] = [];
+                if (input.aiSystemId) {
+                    const s = await dbConn.query.aiSystems.findFirst({
+                        where: and(eq(schema.aiSystems.id, input.aiSystemId), eq(schema.aiSystems.clientId, input.clientId))
+                    });
+                    if (!s) throw new Error("AI System not found");
+                    systems = [s];
+                } else {
+                    systems = await dbConn.select().from(schema.aiSystems)
+                        .where(eq(schema.aiSystems.clientId, input.clientId));
+                }
 
                 const totalSystems = systems.length;
 
-                // 2. High Risk Systems
                 const highRiskSystems = systems.filter((s: any) =>
                     s.riskLevel === "high" ||
                     s.riskLevel === "critical" ||
                     s.riskLevel === "unacceptable"
                 ).length;
 
-                // 3. Active Assessments (total for now)
-                const assessmentsResult = await dbConn.select({ count: sql<number>`count(*)` })
+                const totalAssessmentsResult = await dbConn.select({ count: sql<number>`count(*)` })
                     .from(schema.aiImpactAssessments)
                     .innerJoin(schema.aiSystems, eq(schema.aiImpactAssessments.aiSystemId, schema.aiSystems.id))
-                    .where(eq(schema.aiSystems.clientId, input.clientId));
+                    .where(and(
+                        eq(schema.aiSystems.clientId, input.clientId),
+                        input.aiSystemId ? eq(schema.aiImpactAssessments.aiSystemId, input.aiSystemId) : sql<boolean>`true`
+                    ));
 
-                const totalAssessments = Number(assessmentsResult[0]?.count) || 0;
+                const totalAssessments = Number(totalAssessmentsResult[0]?.count) || 0;
 
                 // 4. NIST Compliance
                 const mappedControlsResult = await dbConn.selectDistinct({ controlId: schema.aiSystemControls.controlId })
                     .from(schema.aiSystemControls)
                     .innerJoin(schema.aiSystems, eq(schema.aiSystemControls.aiSystemId, schema.aiSystems.id))
-                    .where(eq(schema.aiSystems.clientId, input.clientId));
+                    .innerJoin(schema.controls, eq(schema.aiSystemControls.controlId, schema.controls.id))
+                    .where(and(
+                        eq(schema.controls.framework, "NIST AI RMF"),
+                        input.aiSystemId ? eq(schema.aiSystemControls.aiSystemId, input.aiSystemId) : eq(schema.aiSystems.clientId, input.clientId)
+                    ));
 
                 const nistControlsResult = await dbConn.select({ count: sql<number>`count(*)` })
                     .from(schema.controls)
                     .where(eq(schema.controls.framework, "NIST AI RMF"));
 
                 const mappedCount = mappedControlsResult.length;
-                const totalNistCount = Number(nistControlsResult[0]?.count) || 72;
+                const totalNistCount = Number(nistControlsResult[0]?.count) || 73;
 
                 // 5. Category Breakdown for NIST AI RMF
                 const nistCategories = ["GOVERN", "MAP", "MEASURE", "MANAGE"];
@@ -340,9 +353,9 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                         .innerJoin(schema.aiSystems, eq(schema.aiSystemControls.aiSystemId, schema.aiSystems.id))
                         .innerJoin(schema.controls, eq(schema.aiSystemControls.controlId, schema.controls.id))
                         .where(and(
-                            eq(schema.aiSystems.clientId, input.clientId),
                             eq(schema.controls.framework, "NIST AI RMF"),
-                            eq(schema.controls.category, cat)
+                            eq(schema.controls.category, cat),
+                            input.aiSystemId ? eq(schema.aiSystemControls.aiSystemId, input.aiSystemId) : eq(schema.aiSystems.clientId, input.clientId)
                         ));
 
                     const total = Number(totalInCatResult[0]?.count) || 0;

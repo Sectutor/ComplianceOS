@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": false,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "server_entry.ts",
+    "drizzle.config.ts",
+    "packages/core/src/**/*.ts",
+    "packages/core/src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "packages/core/src/**/*.test.ts",
+    "packages/core/src/**/*.test.tsx",
+    "packages/core/dist"
+  ]
+}

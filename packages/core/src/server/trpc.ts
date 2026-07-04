@@ -5,6 +5,7 @@ import { userClients } from "../schema";
 import { eq, and, asc } from "drizzle-orm";
 import { rateLimiter } from "../lib/redis";
 import { logger } from "../lib/logger";
+import { enforceLicense } from "../lib/license/local-license-cache";
 import { router, publicProcedure, middleware, t } from "./trpc-base";
 export { router, publicProcedure, middleware, t };
 
@@ -132,12 +133,30 @@ export const checkClientAccess = middleware(async (opts) => {
     }
 
     const input = (typedInput || rawInput || {}) as { clientId?: number; id?: number };
-    const clientId = input?.clientId || input?.id || ctx.clientId;
+    let clientId = input?.clientId || input?.id || ctx.clientId;
 
     // Admins have implicit access
     if (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '')) {
         debugLog('[DEBUG checkClientAccess] Admin access granted to clientId:', clientId);
         return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
+    }
+
+    if (!clientId) {
+        // Try to resolve from user's first client membership
+        try {
+            const dbConn = await db.getDb();
+            const [membership] = await dbConn.select()
+                .from(userClients)
+                .where(eq(userClients.userId, ctx.user.id))
+                .orderBy(asc(userClients.joinedAt))
+                .limit(1);
+            if (membership) {
+                debugLog('[DEBUG checkClientAccess] Auto-resolved clientId from membership:', membership.clientId);
+                clientId = membership.clientId;
+            }
+        } catch (resolveError) {
+            debugLog('[DEBUG checkClientAccess] Failed to auto-resolve clientId:', resolveError);
+        }
     }
 
     if (!clientId) {
@@ -256,6 +275,19 @@ export const checkPremiumAccess = middleware(async (opts) => {
         });
     }
 
+    // Hybrid license enforcement (Phase 1.1): check local cache + offline grace
+    const enforcement = enforceLicense();
+    if (enforcement.restrictToCommunity) {
+        throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: enforcement.reason === 'expired'
+                ? 'Your license has expired. Please renew to continue using premium features.'
+                : enforcement.reason === 'cache_miss'
+                    ? 'License validation unavailable. Please check your license server connectivity.'
+                    : `Premium features require an active license. Reason: ${enforcement.reason}`
+        });
+    }
+
     if (!clientId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required for premium features' });
     }
@@ -286,6 +318,63 @@ export const checkPremiumAccess = middleware(async (opts) => {
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify subscription status' });
     }
 });
+
+/**
+ * Addon Access Guard
+ *
+ * Checks whether the client has an active subscription or valid trial
+ * for a specific addon. Used to gate addon-specific endpoints.
+ *
+ * Usage:
+ *   someAddonEndpoint: clientProcedure
+ *     .use(checkAddonAccess("cloud-scanner"))
+ *     .query(...)
+ */
+export const checkAddonAccess = (addonSlug: string) =>
+  middleware(async ({ ctx, next }) => {
+    const clientId = (ctx as unknown as { clientId?: number }).clientId;
+    if (!clientId) {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required' });
+    }
+
+    try {
+      const dbConn = await db.getDb();
+      const { addonSubscriptions } = await import('@complianceos/addons/shared/schema');
+
+      const [sub] = await dbConn
+        .select()
+        .from(addonSubscriptions)
+        .where(
+          and(
+            eq(addonSubscriptions.clientId, clientId),
+            eq(addonSubscriptions.addonSlug, addonSlug),
+            or(
+              eq(addonSubscriptions.status, 'active'),
+              and(
+                eq(addonSubscriptions.status, 'trial'),
+                gt(addonSubscriptions.trialEndsAt, new Date()),
+              ),
+            ),
+          ),
+        )
+        .limit(1);
+
+      if (!sub) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `Addon "${addonSlug}" is not active. Start a trial or subscribe in the Addon Marketplace.`,
+        });
+      }
+
+      return next({ ctx: { ...ctx, addonSubscription: sub } });
+    } catch (err) {
+      if (err instanceof TRPCError) throw err;
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to verify addon access',
+      });
+    }
+  });
 
 /**
  * MFA Enforcement Middleware - AL 3 High Assurance

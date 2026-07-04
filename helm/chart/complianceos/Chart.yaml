@@ -1,0 +1,21 @@
+apiVersion: v2
+name: complianceos
+description: ComplianceOS Self-Host — open source GRC platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+icon: https://complianceos.com/favicon.ico
+keywords:
+  - compliance
+  - grc
+  - governance
+  - risk
+  - nis2
+  - dora
+  - gdpr
+home: https://complianceos.com
+sources:
+  - https://github.com/sectutor/complianceos
+maintainers:
+  - name: ComplianceOS Team
+    email: support@complianceos.com

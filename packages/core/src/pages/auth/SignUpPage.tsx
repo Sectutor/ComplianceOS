@@ -7,7 +7,6 @@ import { Input } from '@complianceos/ui/ui/input';
 import { Label } from '@complianceos/ui/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
 import { Building2, Loader2 } from 'lucide-react';
 import MFAChallengeModal from '@/components/auth/MFAChallengeModal';
 
@@ -24,25 +23,9 @@ export default function SignUpPage() {
     const [factorId, setFactorId] = useState<string | undefined>(undefined);
     const [mfaRequired, setMfaRequired] = useState(false);
 
-    // If already logged in AND we aren't in the middle of a signup process (checking params), redirect
-    // But here we want to handle the payment flow, so we might need to be careful not to redirect too early if we just auto-logged in.
-    // However, the checkout creation happens largely before we lose control to the protected route redirect if we are fast, 
-    // or we might need to rely on the fact that we are awaiting the checkout URL.
+    // Redirect to dashboard on successful signup — no payment required.
 
-    // Actually, simple useEffect for redirect might fight us if we auto-login.
-    // Let's remove the auto-redirect effect for now or make it smarter? 
-    // The current effect:
-    /*
-    useEffect(() => {
-        if (user) {
-            setLocation('/dashboard');
-        }
-    }, [user, setLocation]);
-    */
-    // If we auto-login, `user` becomes true, and this effect fires. We need to prevent that if we are intending to go to payment.
-    // We can just rely on the checkout mutation.
-
-    const createUserCheckout = trpc.billing.createUserCheckout.useMutation();
+    // const createUserCheckout = trpc.billing.createUserCheckout.useMutation();
 
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -110,21 +93,8 @@ export default function SignUpPage() {
                 return;
             }
 
-            toast.success("Account created! Redirecting to payment...");
-
-            // Step 3: Create Checkout Session
-            const { url } = await createUserCheckout.mutateAsync({
-                tier,
-                interval,
-                successUrl: `${window.location.origin}/dashboard?onboarding=true&payment_success=true`,
-                cancelUrl: `${window.location.origin}/login`,
-            });
-
-            if (url) {
-                window.location.href = url;
-            } else {
-                throw new Error("Failed to generate payment link");
-            }
+            toast.success("Account created! Welcome to ComplianceOS.");
+            setLocation('/dashboard?onboarding=true');
 
         } catch (error: any) {
             console.error("Signup flow error:", error);
@@ -161,19 +131,9 @@ export default function SignUpPage() {
                             return;
                         }
 
-                        toast.success("Logged in successfully! Proceeding to payment...");
-
-                        const { url } = await createUserCheckout.mutateAsync({
-                            tier: (searchParams.get('tier') || 'startup') as any,
-                            interval: (searchParams.get('interval') || 'month') as any,
-                            successUrl: `${window.location.origin}/dashboard?onboarding=true`,
-                            cancelUrl: `${window.location.origin}/login`,
-                        });
-
-                        if (url) {
-                            window.location.href = url;
-                            return;
-                        }
+                        toast.success("Logged in successfully! Welcome back.");
+                        setLocation('/dashboard');
+                        return;
                     }
                 } catch (loginErr: any) {
                     console.error("Auto-login failed:", loginErr);
@@ -279,7 +239,7 @@ export default function SignUpPage() {
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     Processing...
                                 </span>
-                            ) : 'Create Account & Pay'}
+                            ) : 'Create Account & Try'}
                         </Button>
                         <div className="text-center text-sm text-slate-400">
                             Already have an account?{' '}
@@ -308,16 +268,8 @@ export default function SignUpPage() {
                             if (aal?.currentLevel === 'aal2') {
                                 setMfaRequired(false);
                                 setLoading(true);
-                                const searchParams = new URLSearchParams(window.location.search);
-                                const tier = (searchParams.get('tier') || 'startup') as 'startup' | 'pro' | 'guided' | 'enterprise';
-                                const interval = (searchParams.get('interval') || 'month') as 'month' | 'year';
-                                const { url } = await createUserCheckout.mutateAsync({
-                                    tier,
-                                    interval,
-                                    successUrl: `${window.location.origin}/dashboard?onboarding=true&payment_success=true`,
-                                    cancelUrl: `${window.location.origin}/login`,
-                                });
-                                if (url) window.location.href = url;
+                                toast.success("Account created! Welcome to ComplianceOS.");
+                                setLocation('/dashboard?onboarding=true');
                             }
                         }
                     }}

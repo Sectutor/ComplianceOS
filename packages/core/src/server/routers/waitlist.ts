@@ -20,6 +20,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                 orgSize: z.string().optional(),
                 industry: z.string().optional(),
                 interestedPlay: z.string().optional(),
+                track: z.string().optional(),
                 source: z.string().optional().default("web"),
             }))
             .mutation(async ({ input }: any) => {

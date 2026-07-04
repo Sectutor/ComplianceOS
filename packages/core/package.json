@@ -145,5 +145,9 @@
     "vite": "^5.2.6",
     "vitest": "^4.0.16"
   },
-  "license": "AGPL-3.0-only"
+  "license": "AGPL-3.0-only",
+  "exports": {
+    "./db": "./src/db.ts",
+    "./schema": "./src/schema.ts"
+  }
 }

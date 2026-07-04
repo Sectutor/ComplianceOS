@@ -1,0 +1,31 @@
+# Daily evidence collection — runs at 6 AM
+schedule: "0 6 * * *"
+name: daily-evidence-scan
+deliver: "telegram,slack,email"
+skills: ["compliance-agent"]
+prompt: |
+  Run the daily compliance evidence scan:
+
+  1. **Query frameworks** — GET /api/v1/frameworks to find all active frameworks
+  2. **Check gaps** — For each framework, GET /api/v1/gaps?framework=NAME to find controls missing evidence
+  3. **Collect evidence** — For high-severity gaps, determine what evidence could be auto-collected
+  4. **Report results** — Summarize:
+     - Total frameworks checked
+     - Controls with fresh evidence
+     - Gaps remaining (by severity)
+     - Evidence expiring within 7 days
+  5. **Alert if critical** — If any 🔴 critical gaps found, escalate immediately
+
+  Format output as:
+  ```
+  📋 Daily Compliance Scan — YYYY-MM-DD
+  ✅ Active frameworks: NIS2, DORA, ISO 27001
+  ✅ Controls with fresh evidence: 42
+  ⚠️ Gaps remaining: 7 (2 high, 3 medium, 2 low)
+  🔴 Expiring within 7 days: 1 (control C-15 — "Backup procedures")
+
+  Actions:
+  - Created risk for C-15 expiring evidence
+  ```
+
+  Do NOT fabricate scan results. If the API returns no data, report that clearly.

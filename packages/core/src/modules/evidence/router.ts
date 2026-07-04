@@ -208,6 +208,35 @@ export const evidenceRouter = router({
         }),
 
     // =========================================================================
+    // Notifications & Cron
+    // =========================================================================
+
+    /**
+     * Run evidence request notification checks (due reminders + overdue escalations).
+     * Designed to be called by a cron job or internal scheduler.
+     * Returns counts of notifications created.
+     */
+    runNotificationChecks: adminProcedure
+        .input(z.object({}).optional())
+        .mutation(async () => {
+            const {
+                sendEvidenceDueReminder,
+                sendOverdueEscalation,
+            } = await import("../../lib/evidence-notifications");
+
+            const [remindersSent, escalationsSent] = await Promise.all([
+                sendEvidenceDueReminder(),
+                sendOverdueEscalation(),
+            ]);
+
+            return {
+                remindersSent,
+                escalationsSent,
+                total: remindersSent + escalationsSent,
+            };
+        }),
+
+    // =========================================================================
     // Statistics
     // =========================================================================
 

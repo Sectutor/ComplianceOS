@@ -4,6 +4,22 @@ import { policyGenerator } from '../../lib/policy/policy-generation';
 
 export const aiRouter = Router();
 
+// Input size cap (P1 Security — prevents runaway LLM costs)
+const MAX_INPUT_CHARS = 32000;
+aiRouter.use((req: any, res: any, next) => {
+  const body = req.body || {};
+  const inputs = [body.userPrompt, body.systemPrompt, body.instruction, body.tailor]
+    .filter(Boolean)
+    .map((s: string) => s.length);
+  const total = inputs.reduce((a: number, b: number) => a + b, 0);
+  if (total > MAX_INPUT_CHARS) {
+    return res.status(413).json({
+      error: `Input too large (${total} chars, max ${MAX_INPUT_CHARS}). Reduce prompt size.`,
+    });
+  }
+  next();
+});
+
 // Replaced Stub with Real Implementation
 aiRouter.post('/generate-stream', async (req: any, res: any) => {
     // console.log('[AI Stream] Request received', {

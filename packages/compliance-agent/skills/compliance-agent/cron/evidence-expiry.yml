@@ -1,0 +1,29 @@
+# Evidence expiry alert — runs daily at 8 AM
+schedule: "0 8 * * *"
+name: evidence-expiry-alert
+deliver: "telegram,email"
+skills: ["compliance-agent"]
+prompt: |
+  Check for evidence that is about to expire.
+
+  1. **Query expiring evidence** — GET /api/v1/evidence?expiring_within=30d
+  2. **Group by time bucket**:
+     - 🔴 Expiring within 7 days (critical — action required)
+     - 🟡 Expiring within 14 days (warning)
+     - 🟢 Expiring within 30 days (informational)
+  3. **For each critical item**, POST a risk if one doesn't already exist
+  4. **Report**:
+
+  ```
+  ⏰ Evidence Expiry Alert — YYYY-MM-DD
+
+  🔴 Expiring within 7 days: 3
+    - Control "Incident Reporting" (framework: NIS2) — expires 2026-07-10
+    - Control "Backup Procedures" (framework: ISO 27001) — expires 2026-07-12
+    - Control "Access Reviews" (framework: SOC 2) — expires 2026-07-14
+
+  🟡 Expiring within 14 days: 5
+    ...
+
+  ✅ Risks created for critical items: 3
+  ```

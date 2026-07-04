@@ -109,6 +109,7 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
             entityId: z.number().optional(),
             dueDate: z.string().optional(), // ISO string
             assignedToUserId: z.number().optional(),
+            metadata: z.record(z.any()).optional(),
         }))
         .mutation(async ({ input, ctx }) => {
             const db = await getDb();
@@ -125,6 +126,7 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
                 dueDate: input.dueDate ? new Date(input.dueDate) : null,
                 assignedToUserId: input.assignedToUserId,
                 createdBy: ctx.user?.id || 1, // Fallback for dev if ctx user missing
+                metadata: input.metadata ?? null,
             }).returning();
 
             return newItem[0];

@@ -32,8 +32,8 @@ function verifyGumroadSignature(
       .digest('hex');
     
     return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
+      Buffer.from(signature, 'utf-8'),
+      Buffer.from(expectedSignature, 'utf-8')
     );
   } catch (error) {
     console.error('Error verifying Gumroad signature:', error);
@@ -367,82 +367,6 @@ router.post('/gumroad', async (req, res) => {
   } catch (error) {
     console.error('[Gumroad Webhook] Error:', error);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-/**
- * Webhook test endpoint (for development)
- * POST /api/webhooks/gumroad/test
- */
-router.post('/gumroad/test', async (req, res) => {
-  try {
-    // This is a test endpoint that simulates webhook processing
-    // It doesn't require signature verification
-    
-    console.log('[Gumroad Webhook Test] Received test webhook:', req.body);
-    
-    // Simulate processing
-    const eventData = req.body;
-    const db = await getDb();
-    
-    // Store test event
-    await db.insert(gumroadWebhookEvents).values({
-      eventId: `test-${Date.now()}`,
-      eventType: eventData.event || 'test',
-      rawPayload: eventData,
-      processingStatus: 'processed',
-      processedAt: new Date(),
-      receivedAt: new Date(),
-    });
-    
-    res.status(200).json({ 
-      status: 'test_received',
-      message: 'Test webhook processed successfully',
-      eventId: `test-${Date.now()}`
-    });
-    
-  } catch (error) {
-    console.error('[Gumroad Webhook Test] Error:', error);
-    res.status(500).json({ error: 'Test failed' });
-  }
-});
-
-/**
- * Webhook status endpoint
- * GET /api/webhooks/gumroad/status
- */
-router.get('/gumroad/status', async (req, res) => {
-  try {
-    const db = await getDb();
-    
-    // Get recent webhook events
-    const recentEvents = await db.query.gumroadWebhookEvents.findMany({
-      orderBy: (events, { desc }) => [desc(events.receivedAt)],
-      limit: 10,
-    });
-    
-    // Get statistics
-    const stats = await db.select({
-      total: sql`COUNT(*)`,
-      pending: sql`COUNT(*) FILTER (WHERE processing_status = 'pending')`,
-      processing: sql`COUNT(*) FILTER (WHERE processing_status = 'processing')`,
-      processed: sql`COUNT(*) FILTER (WHERE processing_status = 'processed')`,
-      failed: sql`COUNT(*) FILTER (WHERE processing_status = 'failed')`,
-    }).from(gumroadWebhookEvents);
-    
-    res.status(200).json({
-      status: 'ok',
-      config: {
-        hasWebhookSecret: !!config.gumroad?.webhookSecret,
-        webhookSecretLength: config.gumroad?.webhookSecret?.length || 0,
-      },
-      statistics: stats[0] || {},
-      recentEvents,
-    });
-    
-  } catch (error) {
-    console.error('[Gumroad Webhook Status] Error:', error);
-    res.status(500).json({ error: 'Failed to get status' });
   }
 });
 

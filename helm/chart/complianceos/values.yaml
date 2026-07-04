@@ -1,0 +1,108 @@
+# ComplianceOS Helm Values
+# Override these per-environment in your values-<env>.yaml
+
+replicaCount: 1
+
+image:
+  repository: complianceos/self-hosted
+  tag: latest
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3002
+  targetPort: 3002
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: complianceos.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: complianceos-tls
+      hosts:
+        - complianceos.example.com
+
+env:
+  NODE_ENV: "production"
+  PORT: "3002"
+  HOST: "0.0.0.0"
+  VITE_ENABLE_PREMIUM: "true"
+  NO_TELEMETRY: "false"
+  ENABLE_AI: "false"
+  RATE_LIMITING_ENABLED: "true"
+
+# Secrets are expected to be provided via an external Secret resource
+# or a secrets management tool.  Create one with:
+#   kubectl create secret generic complianceos-secrets \
+#     --from-literal=DATABASE_URL=postgres://... \
+#     --from-literal=APP_ENCRYPTION_KEY=... \
+#     --from-literal=VITE_SUPABASE_URL=... \
+#     --from-literal=SUPABASE_SERVICE_ROLE_KEY=... \
+#     --from-literal=VITE_LICENSE_KEY=...
+existingSecret: "complianceos-secrets"
+
+# PostgreSQL — use a managed service or the bitnami/postgresql chart
+# For dev:   helm install postgres bitnami/postgresql --set auth.database=complianceos
+postgresql:
+  enabled: true
+  auth:
+    database: complianceos
+    username: complianceos
+    password: ""
+  primary:
+    persistence:
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  architecture: standalone
+  master:
+    persistence:
+      size: 1Gi
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2"
+    memory: "2Gi"
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true

@@ -1,182 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSP & vCISO Command Center | ComplianceOS</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MSP / vCISO White-Label Program — ComplianceOS</title>
+    <meta name="description" content="Resell managed GRC under your brand. $4K–$15K per client/year with white-label portal, Advisor Workbench, and volume discounts." />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0A0A0A;
-            color: #E2E8F0;
-            overflow-x: hidden;
-        }
-        .font-display { font-family: 'Outfit', sans-serif; }
-        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
-        .brutal-border { border: 2px solid #E2E8F0; }
-        .accent-blue { color: #3B82F6; }
-        .bg-accent-blue { background-color: #3B82F6; }
-        
-        .stagger-reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .stagger-reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        /* Command Center Grid Animation */
-        .grid-bg {
-            background-size: 50px 50px;
-            background-image: 
-                linear-gradient(to right, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
-        }
-
-        .noise-bg {
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
-            opacity: 0.05;
-            pointer-events: none;
-        }
-
-        .gradient-glow {
-            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="antialiased grid-bg">
-    <div class="fixed inset-0 noise-bg z-50"></div>
 
-    <!-- Background Glow -->
-    <div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
-        <div class="absolute top-1/4 left-1/4 w-[50%] h-[50%] gradient-glow blur-[100px]"></div>
-    </div>
-
-    <main class="relative z-10">
-        
-        <!-- Hero Section -->
-        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20">
-            <div class="mb-12 stagger-reveal">
-                <img src="../assets/logo.png" alt="GRCompliance" class="h-12 w-auto brightness-200" />
+<body class="bg-white text-slate-900 antialiased">
+    <nav class="border-b border-slate-100">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded bg-[#00A36C] flex items-center justify-center text-white font-black text-xs">C</span>
+                <span class="font-bold text-sm tracking-tight">ComplianceOS</span>
             </div>
-            
-            <div class="max-w-7xl">
-                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal">
-                    Margintrap <br>
-                    <span class="accent-blue italic">Is Over.</span>
-                </h1>
-                
-                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
-                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
-                        The old guard charges you $15,000 per client seat. <strong>We don't.</strong> One subscription. Unlimited clients. Recapture 80% of your service margins instantly.
-                    </p>
-                    
-                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
-                        <a href="#economics" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-10 py-6 text-center hover:scale-105 transition-transform duration-300">
-                            Recapture My Margins
-                        </a>
-                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Priority Advisor Access for vCISO Firms</p>
-                    </div>
-                </div>
+            <a href="/waitlist"
+                class="inline-flex items-center justify-center px-4 py-2 rounded bg-[#00A36C] text-white text-sm font-bold hover:bg-[#008F5D] transition-colors">
+                Talk to Sales
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+        <div class="max-w-3xl mb-16">
+            <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-900 mb-6 border border-slate-200 uppercase tracking-widest">
+                MSP / vCISO Program
             </div>
-        </section>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6">
+                Run compliance programs for your clients — without building the platform.
+            </h1>
+            <p class="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl">
+                White-label ComplianceOS as your own. $4K–$15K per managed client per year. Same platform your clients know, under your brand.
+            </p>
+        </div>
 
-        <!-- The Economic Disruption -->
-        <section id="economics" class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#0F0F0F]">
-            <div class="max-w-7xl mx-auto">
-                <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block stagger-reveal">The Disruption</span>
-                <h2 class="text-5xl lg:text-7xl font-display font-black mb-20 uppercase stagger-reveal">Stop being a <span class="italic text-slate-500">Sales Lead</span> for Vanta.</h2>
-                
-                <div class="grid lg:grid-cols-2 gap-4">
-                    <!-- Legacy Model -->
-                    <div class="p-12 border border-slate-800 bg-black/40 stagger-reveal">
-                        <div class="text-slate-500 uppercase font-black tracking-widest text-xs mb-8">The Legacy Trap</div>
-                        <h3 class="text-3xl font-display font-bold mb-6 italic">Vanta / Drata</h3>
-                        <div class="text-6xl font-black mb-8">$750,000<span class="text-xl text-slate-500 font-normal">/year</span></div>
-                        <ul class="space-y-4 text-slate-500">
-                            <li>• Price based on 50 Client Seats</li>
-                            <li>• Zero White-Label Sovereignty</li>
-                            <li>• They own the client relationship</li>
-                            <li>• <strong>-80% Margin Preservation</strong></li>
-                        </ul>
-                    </div>
-
-                    <!-- Disrupted Model -->
-                    <div class="p-12 brutal-border bg-[#1A1A1A] relative stagger-reveal">
-                        <div class="absolute top-0 right-0 bg-accent-blue text-white px-4 py-1 text-xs font-black uppercase">Disruptor</div>
-                        <div class="accent-blue uppercase font-black tracking-widest text-xs mb-8">The compliance OS Vision</div>
-                        <h3 class="text-3xl font-display font-bold mb-6 italic text-white">ComplianceOS</h3>
-                        <div class="text-6xl font-black mb-8">$1,499<span class="text-xl text-slate-500 font-normal">/year</span></div>
-                        <ul class="space-y-4 text-slate-300">
-                            <li>• <strong>Unlimited</strong> Client Management</li>
-                            <li>• Total White-Label Sovereignty</li>
-                            <li>• You are the authority, we are the engine</li>
-                            <li>• <strong>+400% Margin Potential</strong></li>
-                        </ul>
-                    </div>
-                </div>
+        <!-- Pricing -->
+        <div class="grid md:grid-cols-3 gap-8 mb-16">
+            <!-- Starter -->
+            <div class="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Starter</div>
+                <div class="text-4xl font-extrabold text-slate-900 mb-1">$4K</div>
+                <p class="text-slate-600 text-sm mb-6">Per client / year</p>
+                <ul class="space-y-3 text-sm text-slate-700">
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> 1 framework per client</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Evidence, policies, gap questionnaires</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> White-label portal + your branding</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Standard support</li>
+                </ul>
             </div>
-        </section>
 
-        <!-- Features for Advisors -->
-        <section class="py-32 px-6 lg:px-20">
-            <div class="max-w-7xl mx-auto">
-                <div class="grid lg:grid-cols-3 gap-12">
-                    <div class="stagger-reveal">
-                        <div class="h-2 w-12 bg-accent-blue mb-6"></div>
-                        <h3 class="text-2xl font-display font-black uppercase mb-4">Multi-Tenant <br>Sovereignty</h3>
-                        <p class="text-slate-400">Manage 5 or 5,000 clients from a single command portal. Isolated workspaces with unified governance oversight.</p>
-                    </div>
-                    <div class="stagger-reveal" style="transition-delay: 0.1s;">
-                        <div class="h-2 w-12 bg-accent-blue mb-6"></div>
-                        <h3 class="text-2xl font-display font-black uppercase mb-4">Bulk <br>Execution</h3>
-                        <p class="text-slate-400">Deploy a "Gold Standard" policy set or control mapping across your entire client base in one click. Scaling quality, not headcount.</p>
-                    </div>
-                    <div class="stagger-reveal" style="transition-delay: 0.2s;">
-                        <div class="h-2 w-12 bg-accent-blue mb-6"></div>
-                        <h3 class="text-2xl font-display font-black uppercase mb-4">Evidence <br>Auto-Pilot</h3>
-                        <p class="text-slate-400">Your clients upload evidence; our AI classifies, maps, and validates it. You jump straight to the high-value advisory work.</p>
-                    </div>
-                </div>
+            <!-- Growth -->
+            <div class="rounded-2xl border-2 border-[#00A36C] p-8 shadow-sm relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00A36C] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most common</div>
+                <div class="text-xs font-bold text-[#00A36C] uppercase tracking-widest mb-2">Growth</div>
+                <div class="text-4xl font-extrabold text-slate-900 mb-1">$8K</div>
+                <p class="text-slate-600 text-sm mb-6">Per client / year</p>
+                <ul class="space-y-3 text-sm text-slate-700">
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> 2 frameworks per client</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Risk assessments, vendor assessments</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Posture snapshots</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Priority support + onboarding workshop</li>
+                </ul>
             </div>
-        </section>
 
-        <!-- Final CTA -->
-        <section class="py-40 px-6 lg:px-20 bg-accent-blue text-white overflow-hidden relative">
-            <div class="absolute top-0 right-0 text-[20vw] font-black opacity-10 select-none pointer-events-none uppercase -translate-y-1/2">Unlimited</div>
-            
-            <div class="max-w-4xl mx-auto relative z-10">
-                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-12 stagger-reveal leading-none">Become the <br>Authority.</h2>
-                
-                <p class="text-2xl lg:text-3xl mb-16 font-light stagger-reveal">
-                    We aren't here to compete with you. We're here to be your weapon. Build your vCISO firm on the first operating system designed for scale.
+            <!-- Pro -->
+            <div class="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pro</div>
+                <div class="text-4xl font-extrabold text-slate-900 mb-1">$15K</div>
+                <p class="text-slate-600 text-sm mb-6">Per client / year</p>
+                <ul class="space-y-3 text-sm text-slate-700">
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Unlimited frameworks</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Threat intelligence (NVD/CISA KEV)</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> AI advisor (RAG KB, control suggestions)</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Priority support + success manager</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Key features of the program -->
+        <div class="grid md:grid-cols-2 gap-8 mb-16">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-4">Advisor Workbench</h2>
+                <p class="text-sm text-slate-700 leading-relaxed mb-4">
+                    Triage evidence, monitor status, and deploy golden-standard templates across all your client tenants from one command center.
                 </p>
-                
-                <div class="stagger-reveal">
-                    <a href="https://app.grcompliance.com/waitlist" class="inline-block bg-black text-white font-display font-black uppercase text-2xl px-12 py-8 hover:bg-slate-900 transition-colors shadow-2xl">
-                        Apply for Partner Access
-                    </a>
+                <ul class="space-y-3 text-sm text-slate-700">
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Global view across all clients</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Bulk-evidence and bulk-policy actions</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Priority alert queue</li>
+                </ul>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-4">White-label resale</h2>
+                <p class="text-sm text-slate-700 leading-relaxed mb-4">
+                    Your brand, your URL, your pricing. Clients never see ComplianceOS. You own the relationship.
+                </p>
+                <ul class="space-y-3 text-sm text-slate-700">
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Custom domain, logo, primary/secondary colors</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Client billing handled by you, or by us</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">•</span> Template deployment across tenants</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Add-ons -->
+        <div class="rounded-2xl border border-slate-200 p-8 mb-16">
+            <h2 class="text-2xl font-extrabold text-slate-900 mb-4">Add-ons</h2>
+            <p class="text-sm text-slate-600 mb-6">Extend per-client revenue with premium capabilities.</p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div>
+                    <div class="text-sm font-bold text-slate-900 mb-1">Advanced Vendor Risk</div>
+                    <div class="text-[#00A36C] font-extrabold text-lg">+$6K/yr</div>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-900 mb-1">Threat Intelligence</div>
+                    <div class="text-[#00A36C] font-extrabold text-lg">+$4K/yr</div>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-900 mb-1">AI Advisor & Knowledge Base</div>
+                    <div class="text-[#00A36C] font-extrabold text-lg">+$3K/yr</div>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-900 mb-1">Issue Tracker Sync</div>
+                    <div class="text-[#00A36C] font-extrabold text-lg">+$2K/yr</div>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-900 mb-1">Cloud Asset Discovery</div>
+                    <div class="text-[#00A36C] font-extrabold text-lg">+$5K/yr</div>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-900 mb-1">Volume discounts</div>
+                    <div class="text-[#00A36C] font-extrabold text-lg">10–20%+</div>
                 </div>
             </div>
-        </section>
+        </div>
 
+        <!-- CTA -->
+        <div class="rounded-2xl bg-[#001a33] text-white p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold mb-2">Ready to resell ComplianceOS?</h2>
+                <p class="text-slate-300 text-sm">We onboard MSPs and vCISOs in days, not weeks.</p>
+            </div>
+            <a href="/waitlist"
+                class="inline-flex items-center justify-center px-6 py-3 rounded bg-[#00A36C] text-white font-bold hover:bg-[#008F5D] transition-colors whitespace-nowrap">
+                Apply for MSP Program
+            </a>
+        </div>
     </main>
 
-    <script>
-        const observerOptions = { threshold: 0.1 };
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, observerOptions);
+    <footer class="border-t border-slate-200 bg-slate-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row justify-between gap-6 text-sm text-slate-600">
+            <div class="flex items-center gap-2 font-bold text-slate-900">ComplianceOS <span class="text-slate-400">by Intellfence</span></div>
+            <div class="flex gap-6">
+                <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+                <a href="/waitlist" class="hover:text-slate-900 transition-colors">Waitlist</a>
+                <a href="/selfhosted" class="hover:text-slate-900 transition-colors">Self-Hosted</a>
+                <a href="https://github.com/Sectutor/ComplianceOS-Core" class="hover:text-slate-900 transition-colors">GitHub</a>
+            </div>
+            <div class="text-slate-500">© <span id="year"></span> ComplianceOS. All rights reserved.</div>
+        </div>
+    </footer>
 
-        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
-    </script>
+    <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
+
 </html>

@@ -62,6 +62,7 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
     if (purePath === "/board-summary") return `/clients/${clientId}/board-summary${queryStr}`;
     if (purePath === "/communication") return `/clients/${clientId}/communication${queryStr}`;
     if (purePath === "/ai-governance") return `/clients/${clientId}/ai-governance${queryStr}`;
+    if (purePath === "/guides") return `/clients/${clientId}/guides${queryStr}`;
     if (purePath === "/activity") return `/clients/${clientId}/activity${queryStr}`;
     if (purePath === "/readiness/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
     if (purePath === "/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
@@ -101,6 +102,7 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
         purePath.startsWith('/workflows') ||
         purePath.startsWith('/cyber') ||
         purePath.startsWith('/ai-governance') ||
+        purePath.startsWith('/guides') ||
         purePath.startsWith('/iso27001') ||
         purePath.startsWith('/roadmap') ||
         purePath.startsWith('/readiness') ||

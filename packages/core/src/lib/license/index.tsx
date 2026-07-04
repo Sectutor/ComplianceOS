@@ -68,7 +68,7 @@ export class LicenseValidator {
     
     if (buildType === 'COMMERCIAL') {
       // Commercial build - check for actual license
-      const licenseKey = (import.meta as any).env.VITE_LICENSE_KEY;
+      const licenseKey = (import.meta as any).env?.VITE_LICENSE_KEY || process.env.VITE_LICENSE_KEY;
       
       if (licenseKey) {
         // TODO: Implement actual license validation against license server
