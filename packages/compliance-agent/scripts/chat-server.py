@@ -22,7 +22,6 @@ HOST = os.environ.get("CHAT_HOST", "0.0.0.0")
 PORT = int(os.environ.get("CHAT_PORT", "9090"))
 API_KEY = os.environ.get("COMPLIANCE_API_KEY", "")
 HERMES_SKILLS = os.environ.get("HERMES_SKILLS", "compliance-agent")
-HERMES_PROFILE = os.environ.get("HERMES_PROFILE", "")
 
 def strip_ansi(text: str) -> str:
     """Remove ANSI escape codes from Hermes terminal output."""
@@ -31,25 +30,28 @@ def strip_ansi(text: str) -> str:
 def call_hermes(message: str) -> str:
     """Call Hermes CLI with the message and return the response."""
     cmd = ["hermes", "chat", "-q", message]
-    if HERMES_PROFILE:
-        cmd += ["--profile", HERMES_PROFILE]
-    if HERMES_SKILLS:
-        cmd += ["--skills", HERMES_SKILLS]
+    # Use profile name 'compliance-agent' (the entrypoint registers it)
+    cmd += ["--profile", "compliance-agent"]
     try:
+        # Unset HERMES_PROFILE path — use explicit --profile flag instead
+        sub_env = {k: v for k, v in os.environ.items() if k != "HERMES_PROFILE"}
+        sub_env["PYTHONUNBUFFERED"] = "1"
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=120,
-            env={**os.environ, "PYTHONUNBUFFERED": "1"}
+            env=sub_env,
         )
         output = result.stdout or result.stderr or ""
         cleaned = strip_ansi(output)
-        # Strip Hermes banner/header lines
+        # Strip Hermes banner/header lines and TUI artifacts
         lines = cleaned.split("\n")
         body_lines = [l for l in lines if not l.startswith("╔") and not l.startswith("║") 
-                      and not l.startswith("╚") and "Hermes" not in l 
-                      and not l.startswith("?") and l.strip()]
+                      and not l.startswith("╚") and not l.startswith("╭") and not l.startswith("╰")
+                      and "Hermes" not in l and "Initializing" not in l
+                      and not l.startswith("?") and not l.startswith("Query:")
+                      and l.strip() and not l.startswith("─")]
         return "\n".join(body_lines).strip()
     except subprocess.TimeoutExpired:
         return "I'm sorry, the request timed out. Please try again with a simpler question."
