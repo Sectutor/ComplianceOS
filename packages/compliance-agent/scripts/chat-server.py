@@ -36,31 +36,58 @@ def try_direct_answer(message: str) -> str | None:
     import json
     msg = message.lower().strip()
     
-    # ── Risk listing ───────────────────────────────────────────────────
-    if any(kw in msg for kw in ["risk", "high risk", "list risk", "show risk", "top risk"]):
+    # ── Risk mitigation ────────────────────────────────────────────────
+    if any(kw in msg for kw in ["mitigate", "mitigation", "remediate", "how do we", "how to fix"]):
         try:
-            data = api_get("/risks?limit=50")
-            items = data.get("data", [])
-            if not items:
-                return "No risk data found. The risk register may be empty."
-            # Sort by inherent_risk_score descending (highest risk first)
-            scored = [r for r in items if (r.get("inherent_risk_score") or 0) > 0]
-            scored.sort(key=lambda r: -(r.get("inherent_risk_score") or 0))
+            # Extract risk title from the message
+            risk_title = msg.replace("mitigate", "").replace("mitigation", "").replace("remediate", "").replace("how do we", "").replace("how to fix", "").replace("risk:", "").replace("risk", "").strip().title()
             
-            # Extract count
+            # Common mitigation strategies by risk category
+            mitigations = {
+                "weak password": ["Enforce MFA on all production systems", "Deploy a Privileged Access Management (PAM) solution", "Implement password complexity and rotation policies", "Audit SSH key usage monthly", "Deploy SSO with hardware security keys (FIDO2)"],
+                "encryption": ["Enable encryption at rest (AES-256) and in transit (TLS 1.3)", "Implement key management with automated rotation", "Deploy certificate pinning and HSTS", "Audit all S3 bucket configurations for encryption"],
+                "ddos": ["Deploy Web Application Firewall (WAF) with rate limiting", "Enable DDoS protection (AWS Shield / Cloudflare)", "Implement auto-scaling groups with health checks", "Deploy CDN for static content"],
+                "unpatched": ["Deploy automated patch management (WSUS/SCCM/Patch Manager)", "Implement a vulnerability scanning schedule (weekly)", "Enforce a 7-day SLA for critical patches", "Segment legacy systems from production"],
+                "supply chain": ["Implement vendor security assessments", "Require SOC 2 Type II reports from all vendors", "Enforce supply chain security in procurement contracts", "Monitor third-party access logs quarterly"],
+                "backup": ["Test backup restoration quarterly", "Implement the 3-2-1 backup strategy", "Deploy immutable backups for ransomware protection", "Document RTO and RPO for all critical systems"],
+                "hardware theft": ["Deploy full-disk encryption (BitLocker/FileVault) on all endpoints", "Implement device management (MDM) with remote wipe", "Require biometric authentication on laptops", "Maintain hardware asset inventory"],
+                "logging": ["Enable audit logging on all critical systems", "Forward logs to SIEM for real-time monitoring", "Implement log retention policy (minimum 12 months)", "Conduct weekly log review"],
+            }
+            
+            matched = None
+            for key, steps in mitigations.items():
+                if key in risk_title.lower():
+                    matched = steps
+                    break
+            
+            if not matched:
+                matched = ["Implement access controls and monitoring", "Review and update security policies", "Conduct risk assessment and prioritize remediation"]
+            
+            lines = [f"Mitigation steps for {risk_title or 'this risk'}:"]
+            for i, step in enumerate(matched, 1):
+                lines.append(f"{i}. {step}")
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Could not generate mitigation: {e}"
+    if any(kw in msg for kw in ["list risk", "show risk", "top risk", "security risk"]):
+        try:
             count = 10
             if "10" in msg: count = 10
             elif "5" in msg: count = 5
-            elif "all" in msg: count = len(scored) or len(items)
-            
+            elif "20" in msg: count = 20
+            data = api_get(f"/risks?limit={count}")
+            items = data.get("data", [])
+            if not items:
+                return "No risk data found."
+            scored = [r for r in items if (r.get("inherent_risk_score") or 0) > 0]
+            scored.sort(key=lambda r: -(r.get("inherent_risk_score") or 0))
             selected = scored[:count] if scored else items[:count]
-            lines = [f"Here are the top {len(selected)} security risks:"]
+            lines = [f"Top {len(selected)} risks:"]
             for i, r in enumerate(selected, 1):
                 score = r.get("inherent_risk_score") or "N/A"
                 status = r.get("status", "unknown")
                 title = r.get("title", "Untitled")
                 lines.append(f"{i}. [{score}] {title} ({status})")
-            lines.append(f"\nSource: GRCompliance API ({len(items)} total risks)")
             return "\n".join(lines)
         except Exception as e:
             return f"Could not fetch risks: {e}"
@@ -214,17 +241,6 @@ class ChatHandler(BaseHTTPRequestHandler):
         pass
 
 def main():
-    import threading
-    def warmup():
-        try:
-            subprocess.run(
-                ["hermes", "chat", "-q", "ready", "--profile", "compliance-agent"],
-                capture_output=True, timeout=60,
-                env={k: v for k, v in os.environ.items() if k != "HERMES_PROFILE"}
-            )
-        except:
-            pass
-    threading.Thread(target=warmup, daemon=True).start()
     server = ThreadedHTTPServer((HOST, PORT), ChatHandler)
     print(f"[ChatServer] Compliance Agent chat API running on http://{HOST}:{PORT}")
     try:
