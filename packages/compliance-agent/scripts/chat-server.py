@@ -80,6 +80,41 @@ def try_direct(message):
             lines.append(f"{i}. {s}")
         return "\n".join(lines)
     
+    # Asset affected by risk — query database directly
+    if any(kw in msg for kw in ["asset", "affected by"]):
+        try:
+            import urllib.request
+            # Extract risk title from the question
+            # Remove question words to get the risk name
+            q = msg.replace("what","").replace("which","").replace("are","").replace("is","").replace("assets","").replace("affected by","").replace("risk","").replace("?","").strip()
+            if not q:
+                return "Which risk are you asking about?"
+            # Fetch all risks, find matching one
+            data = api_get("/risks?limit=100")
+            items = data.get("data", [])
+            # Find matching risk — prefer most words matched
+            match = None
+            best_score = 0
+            for r in items:
+                title = r.get("title", "").lower()
+                # Count how many query words appear in the title
+                score = sum(1 for word in q.split() if len(word) > 3 and word in title)
+                if score > best_score:
+                    best_score = score
+                    match = r
+            if not match or best_score < 1:
+                return f"Could not find a risk matching '{q}'."
+            # Look up asset
+            asset_id = match.get("assetId")
+            if not asset_id:
+                return f"Risk '{match.get('title')}' has no specific assets linked to it in the database."
+            # Fetch asset details
+            asset_data = api_get(f"/assets/{asset_id}" if "/" not in str(asset_id) else f"/assets?search={asset_id}")
+            asset_name = "asset ID " + str(asset_id)
+            return f"Risk '{match.get('title')}' affects: {asset_name}"
+        except Exception as e:
+            return f"Could not look up assets: {e}"
+    
     return None  # Fall through to Hermes
 
 # ── Hermes passthrough ──────────────────────────────────────────────────────
