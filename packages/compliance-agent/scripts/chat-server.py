@@ -29,41 +29,29 @@ def strip_ansi(text: str) -> str:
 
 def call_hermes(message: str) -> str:
     """Call Hermes CLI with the message and return the response."""
-    # Pre-fetch a quick summary from the API so Hermes doesn't need to search the filesystem
+    # Smart pre-fetch: only inject API context for compliance-related questions
     api_context = ""
-    try:
-        import urllib.request, json
-        api_url = os.environ.get("COMPLIANCE_API_URL", "http://complianceos:3002/api/v1")
-        api_key = os.environ.get("COMPLIANCE_API_KEY", "")
-        headers = {"X-API-Key": api_key, "Accept": "application/json"}
-        
-        req = urllib.request.Request(f"{api_url}/health", headers=headers)
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            if resp.status == 200:
-                # Fetch risk summary
-                req2 = urllib.request.Request(f"{api_url}/risks", headers=headers)
-                with urllib.request.urlopen(req2, timeout=10) as r2:
-                    raw = r2.read().decode('utf-8')
-                    data = json.loads(raw).get('data', [])
-                    total = len(data)
-                    # Compute severity summary from inherent_risk_score
-                    high = sum(1 for r in data if (r.get('inherent_risk_score') or 0) >= 15 or (r.get('inherentScore') or 0) >= 15)
-                    medium = sum(1 for r in data if 8 <= ((r.get('inherent_risk_score') or 0)) < 15)
-                    low = sum(1 for r in data if ((r.get('inherent_risk_score') or 0)) < 8)
-                    open_count = sum(1 for r in data if r.get('status') == 'open')
-                    api_context = f"""
-GRCompliance API risk summary:
-- Total risks: {total}
-- High: {high}
-- Medium: {medium}  
-- Low: {low}
-- Open: {open_count}
-
-First 3 risks: {json.dumps([{'title': r.get('title',''), 'status': r.get('status',''), 'risk_score': r.get('inherent_risk_score') or r.get('inherentScore')} for r in data[:3]])}
-
-Answer the user's question directly using this data."""
-    except Exception as e:
-        api_context = f"\n\nNote: GRCompliance API is not reachable ({e})."
+    risk_keywords = ["risk", "high", "medium", "critical", "control", "evidence", 
+                     "gap", "framework", "compliance", "report", "audit",
+                     "vulnerability", "threat", "incident", "vendor", "policy",
+                     "how many", "list", "summarize", "show"]
+    msg_lower = message.lower()
+    if any(kw in msg_lower for kw in risk_keywords):
+        try:
+            import urllib.request, json
+            api_url = os.environ.get("COMPLIANCE_API_URL", "http://complianceos:3002/api/v1")
+            api_key = os.environ.get("COMPLIANCE_API_KEY", "")
+            req = urllib.request.Request(f"{api_url}/risks?limit=100", 
+                                          headers={"X-API-Key": api_key})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                raw = r.read().decode('utf-8')
+                data = json.loads(raw).get('data', [])
+                high = sum(1 for r2 in data if (r2.get('inherent_risk_score') or 0) >= 15)
+                open_c = sum(1 for r2 in data if r2.get('status') == 'open')
+                total = len(data)
+                api_context = f"\n\nGRC API: {total} risks ({high} high, {open_c} open). Use this to answer."
+        except:
+            api_context = ""
     
     full_message = message + api_context
     cmd = ["hermes", "chat", "-q", full_message]
@@ -77,7 +65,7 @@ Answer the user's question directly using this data."""
             cmd,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=240,
             env=sub_env,
         )
         output = result.stdout or result.stderr or ""
@@ -189,6 +177,19 @@ class ChatHandler(BaseHTTPRequestHandler):
         pass
 
 def main():
+    # Warm-up: pre-load Hermes profile so first user request is fast
+    import threading
+    def warmup():
+        try:
+            subprocess.run(
+                ["hermes", "chat", "-q", "ready", "--profile", "compliance-agent"],
+                capture_output=True, timeout=60,
+                env={k: v for k, v in os.environ.items() if k != "HERMES_PROFILE"}
+            )
+        except:
+            pass
+    threading.Thread(target=warmup, daemon=True).start()
+    
     server = ThreadedHTTPServer((HOST, PORT), ChatHandler)
     print(f"[ChatServer] Compliance Agent chat API running on http://{HOST}:{PORT}")
     print(f"[ChatServer] API key auth: {'enabled' if API_KEY else 'disabled (dev mode)'}")

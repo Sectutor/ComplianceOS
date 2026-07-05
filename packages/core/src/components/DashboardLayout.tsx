@@ -523,6 +523,7 @@ function DashboardLayoutContent({
       items: [
         { icon: Rocket, label: "Start Here", path: "/start-here" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+        { icon: Bot, label: "Agent", path: "/agent" },
         { icon: Users, label: "Clients", path: "/clients" },
         { icon: Settings, label: "Settings", path: "/settings" },
         ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
