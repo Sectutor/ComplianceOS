@@ -8,6 +8,7 @@ services:
     environment:
       - LISTEN_ADDR=0.0.0.0
       - DB_SCHEMA_EXISTS=true
+      - COMPLIANCE_ADMIN_PASSWORD=demo1234
       - DATABASE_URL=postgres://complianceos:complianceos@db:5432/complianceos?sslmode=disable
       - AGENT_API_URL=http://hermes-agent:9090/api/chat
     volumes:

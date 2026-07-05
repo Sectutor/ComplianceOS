@@ -29,7 +29,44 @@ def strip_ansi(text: str) -> str:
 
 def call_hermes(message: str) -> str:
     """Call Hermes CLI with the message and return the response."""
-    cmd = ["hermes", "chat", "-q", message]
+    # Pre-fetch a quick summary from the API so Hermes doesn't need to search the filesystem
+    api_context = ""
+    try:
+        import urllib.request, json
+        api_url = os.environ.get("COMPLIANCE_API_URL", "http://complianceos:3002/api/v1")
+        api_key = os.environ.get("COMPLIANCE_API_KEY", "")
+        headers = {"X-API-Key": api_key, "Accept": "application/json"}
+        
+        req = urllib.request.Request(f"{api_url}/health", headers=headers)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            if resp.status == 200:
+                # Fetch risk summary
+                req2 = urllib.request.Request(f"{api_url}/risks", headers=headers)
+                with urllib.request.urlopen(req2, timeout=10) as r2:
+                    raw = r2.read().decode('utf-8')
+                    data = json.loads(raw).get('data', [])
+                    total = len(data)
+                    # Compute severity summary from inherent_risk_score
+                    high = sum(1 for r in data if (r.get('inherent_risk_score') or 0) >= 15 or (r.get('inherentScore') or 0) >= 15)
+                    medium = sum(1 for r in data if 8 <= ((r.get('inherent_risk_score') or 0)) < 15)
+                    low = sum(1 for r in data if ((r.get('inherent_risk_score') or 0)) < 8)
+                    open_count = sum(1 for r in data if r.get('status') == 'open')
+                    api_context = f"""
+GRCompliance API risk summary:
+- Total risks: {total}
+- High: {high}
+- Medium: {medium}  
+- Low: {low}
+- Open: {open_count}
+
+First 3 risks: {json.dumps([{'title': r.get('title',''), 'status': r.get('status',''), 'risk_score': r.get('inherent_risk_score') or r.get('inherentScore')} for r in data[:3]])}
+
+Answer the user's question directly using this data."""
+    except Exception as e:
+        api_context = f"\n\nNote: GRCompliance API is not reachable ({e})."
+    
+    full_message = message + api_context
+    cmd = ["hermes", "chat", "-q", full_message]
     # Use profile name 'compliance-agent' (the entrypoint registers it)
     cmd += ["--profile", "compliance-agent"]
     try:
