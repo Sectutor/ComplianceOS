@@ -3,10 +3,12 @@
 Compliance Agent Chat Server — Embedded HTTP endpoint for the web chat widget.
 
 Provides:
-  POST /api/chat  — accepts {message, conversation_id?} streams response via SSE
+  POST /api/chat  — accepts {message} streams response via SSE
   GET  /health    — health check
 
-Runs alongside Hermes Agent. Forwards messages to Hermes CLI subprocess.
+Runs alongside Hermes Agent. Forwards messages to Hermes CLI subprocess
+with the compliance-agent profile. No pre-fetch — Hermes queries the API
+directly using curl (as instructed by the compliance-agent SKILL.md).
 """
 
 import json, os, subprocess, uuid, re, html
@@ -15,61 +17,100 @@ from urllib.parse import urlparse
 from socketserver import ThreadingMixIn
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """Multi-threaded HTTP server — health checks don't block on requests."""
     daemon_threads = True
 
 HOST = os.environ.get("CHAT_HOST", "0.0.0.0")
 PORT = int(os.environ.get("CHAT_PORT", "9090"))
+API_URL = os.environ.get("COMPLIANCE_API_URL", "http://complianceos:3002/api/v1")
 API_KEY = os.environ.get("COMPLIANCE_API_KEY", "")
-HERMES_SKILLS = os.environ.get("HERMES_SKILLS", "compliance-agent")
+
+def api_get(path: str) -> dict:
+    """Fetch JSON from the GRCompliance API."""
+    import urllib.request, json
+    req = urllib.request.Request(f"{API_URL}{path}", headers={"X-API-Key": API_KEY})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read().decode('utf-8'))
+
+def try_direct_answer(message: str) -> str | None:
+    """Try to answer common data questions directly via the API — no Hermes needed."""
+    import json
+    msg = message.lower().strip()
+    
+    # ── Risk listing ───────────────────────────────────────────────────
+    if any(kw in msg for kw in ["risk", "high risk", "list risk", "show risk", "top risk"]):
+        try:
+            data = api_get("/risks?limit=50")
+            items = data.get("data", [])
+            if not items:
+                return "No risk data found. The risk register may be empty."
+            # Sort by inherent_risk_score descending (highest risk first)
+            scored = [r for r in items if (r.get("inherent_risk_score") or 0) > 0]
+            scored.sort(key=lambda r: -(r.get("inherent_risk_score") or 0))
+            
+            # Extract count
+            count = 10
+            if "10" in msg: count = 10
+            elif "5" in msg: count = 5
+            elif "all" in msg: count = len(scored) or len(items)
+            
+            selected = scored[:count] if scored else items[:count]
+            lines = [f"Here are the top {len(selected)} security risks:"]
+            for i, r in enumerate(selected, 1):
+                score = r.get("inherent_risk_score") or "N/A"
+                status = r.get("status", "unknown")
+                title = r.get("title", "Untitled")
+                lines.append(f"{i}. [{score}] {title} ({status})")
+            lines.append(f"\nSource: GRCompliance API ({len(items)} total risks)")
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Could not fetch risks: {e}"
+    
+    # ── Risk summary ───────────────────────────────────────────────────
+    if any(kw in msg for kw in ["how many", "count", "total", "summary"]):
+        try:
+            data = api_get("/risks?limit=100")
+            items = data.get("data", [])
+            total = len(items)
+            high = sum(1 for r in items if (r.get("inherent_risk_score") or 0) >= 15)
+            open_c = sum(1 for r in items if r.get("status") == "open")
+            return f"Risk summary: {total} total, {high} high (score >= 15), {open_c} open."
+        except Exception as e:
+            return f"Could not fetch risk summary: {e}"
+    
+    # ── Controls ───────────────────────────────────────────────────────
+    if any(kw in msg for kw in ["control", "framework"]):
+        try:
+            data = api_get("/controls?limit=20")
+            items = data if isinstance(data, list) else data.get("data", [])
+            if not items:
+                return "No controls found."
+            lines = [f"Here are the controls ({len(items)} shown):"]
+            for i, c in enumerate(items[:10], 1):
+                fw = c.get("framework", "")
+                name = c.get("name", "Untitled")
+                lines.append(f"{i}. [{fw}] {name}")
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Could not fetch controls: {e}"
+    
+    return None  # Let Hermes handle it
 
 def strip_ansi(text: str) -> str:
-    """Remove ANSI escape codes from Hermes terminal output."""
     return re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
 
 def call_hermes(message: str) -> str:
-    """Call Hermes CLI with the message and return the response."""
-    # Smart pre-fetch: only inject API context for compliance-related questions
-    api_context = ""
-    risk_keywords = ["risk", "high", "medium", "critical", "control", "evidence", 
-                     "gap", "framework", "compliance", "report", "audit",
-                     "vulnerability", "threat", "incident", "vendor", "policy",
-                     "how many", "list", "summarize", "show"]
-    msg_lower = message.lower()
-    if any(kw in msg_lower for kw in risk_keywords):
-        try:
-            import urllib.request, json
-            api_url = os.environ.get("COMPLIANCE_API_URL", "http://complianceos:3002/api/v1")
-            api_key = os.environ.get("COMPLIANCE_API_KEY", "")
-            req = urllib.request.Request(f"{api_url}/risks?limit=100", 
-                                          headers={"X-API-Key": api_key})
-            with urllib.request.urlopen(req, timeout=10) as r:
-                raw = r.read().decode('utf-8')
-                data = json.loads(raw).get('data', [])
-                high = sum(1 for r2 in data if (r2.get('inherent_risk_score') or 0) >= 15)
-                open_c = sum(1 for r2 in data if r2.get('status') == 'open')
-                total = len(data)
-                api_context = f"""
-[SYSTEM: GRCompliance API response — this is authoritative live data.]
-Risks: {total} total, {high} high (score>=15), {open_c} open.
-Answer the user using ONLY this data. Do NOT search files or make API calls."""
-        except:
-            api_context = ""
+    """Call Hermes CLI with the message and return the cleaned response."""
+    # Try direct API answers for data queries first
+    direct = try_direct_answer(message)
+    if direct:
+        return direct
     
-    full_message = message + api_context
-    cmd = ["hermes", "chat", "-q", full_message]
-    # Use profile name 'compliance-agent' (the entrypoint registers it)
-    cmd += ["--profile", "compliance-agent"]
+    cmd = ["hermes", "chat", "-q", message, "--profile", "compliance-agent"]
     try:
-        # Unset HERMES_PROFILE path — use explicit --profile flag instead
         sub_env = {k: v for k, v in os.environ.items() if k != "HERMES_PROFILE"}
         sub_env["PYTHONUNBUFFERED"] = "1"
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=240,
-            env=sub_env,
+            cmd, capture_output=True, text=True, timeout=240, env=sub_env,
         )
         output = result.stdout or result.stderr or ""
         cleaned = strip_ansi(output)
@@ -78,31 +119,21 @@ Answer the user using ONLY this data. Do NOT search files or make API calls."""
         in_box = False
         body_lines = []
         for l in lines:
-            # Start of message box
             if "╭─" in l or l.startswith("╭"):
-                in_box = True
-                continue
-            # End of message box
+                in_box = True; continue
             if "╰─" in l or l.startswith("╰"):
-                in_box = False
-                continue
+                in_box = False; continue
             if in_box:
-                # Remove box borders (║ characters)
                 text = l.replace("║", "").strip()
                 if text:
                     body_lines.append(text)
-        
-        # If no box content found, fall back to line filtering
         if not body_lines:
-            body_lines = [l for l in lines if not l.startswith("╔") and not l.startswith("║") 
-                          and not l.startswith("╚") and not l.startswith("╭") and not l.startswith("╰")
+            body_lines = [l for l in lines if l.strip() 
+                          and not l.startswith(("╔","║","╚","╭","╰","─"))
                           and "Hermes" not in l and "Initializing" not in l
                           and "Resume this session" not in l
                           and "hermes --resume" not in l
-                          and not l.startswith("Session:") and not l.startswith("Duration:")
-                          and not l.startswith("Messages:")
-                          and l.strip() and not l.startswith("─")]
-        
+                          and not l.startswith(("Session:","Duration:","Messages:"))]
         return "\n".join(body_lines).strip()
     except subprocess.TimeoutExpired:
         return "I'm sorry, the request timed out. Please try again with a simpler question."
@@ -110,8 +141,6 @@ Answer the user using ONLY this data. Do NOT search files or make API calls."""
         return f"I encountered an error: {str(e)}"
 
 class ChatHandler(BaseHTTPRequestHandler):
-    """HTTP handler for chat API."""
-    
     def _send_cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -119,9 +148,8 @@ class ChatHandler(BaseHTTPRequestHandler):
     
     def _check_auth(self) -> bool:
         if not API_KEY:
-            return True  # dev mode
-        key = self.headers.get("X-API-Key", "")
-        if key != API_KEY:
+            return True
+        if self.headers.get("X-API-Key", "") != API_KEY:
             self.send_error(401, "Invalid API key")
             return False
         return True
@@ -139,9 +167,7 @@ class ChatHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
-                "status": "ok",
-                "service": "compliance-agent-chat",
-                "version": "1.0.0",
+                "status": "ok", "service": "compliance-agent-chat", "version": "1.0.0",
             }).encode())
             return
         self.send_error(404)
@@ -151,59 +177,43 @@ class ChatHandler(BaseHTTPRequestHandler):
         if parsed.path != "/api/chat":
             self.send_error(404)
             return
-        
         if not self._check_auth():
             return
-        
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
-        
         try:
             data = json.loads(body)
             message = data.get("message", "").strip()
             conversation_id = data.get("conversation_id") or str(uuid.uuid4())
-            
             if not message:
                 self.send_error(400, "Message is required")
                 return
-            
-            # Call Hermes
             response = call_hermes(message)
-            
-            # SSE response
+            # SSE stream
             self.send_response(200)
             self._send_cors()
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "keep-alive")
             self.end_headers()
-            
-            # Stream response tokens (word by word for UI effect)
             words = response.split(" ")
             for i, word in enumerate(words):
                 chunk = {"token": word + (" " if i < len(words) - 1 else "")}
                 self.wfile.write(f"event: token\ndata: {json.dumps(chunk)}\n\n".encode())
                 self.wfile.flush()
-            
-            # Send done event
-            done = {
-                "summary": response[:200] + ("..." if len(response) > 200 else ""),
-                "conversation_id": conversation_id,
-            }
+            done = {"summary": response[:200] + ("..." if len(response) > 200 else ""),
+                    "conversation_id": conversation_id}
             self.wfile.write(f"event: done\ndata: {json.dumps(done)}\n\n".encode())
             self.wfile.flush()
-            
         except json.JSONDecodeError:
             self.send_error(400, "Invalid JSON")
         except Exception as e:
             self.send_error(500, str(e))
     
     def log_message(self, format, *args):
-        """Suppress default HTTP server logging."""
         pass
 
 def main():
-    # Warm-up: pre-load Hermes profile so first user request is fast
     import threading
     def warmup():
         try:
@@ -215,14 +225,11 @@ def main():
         except:
             pass
     threading.Thread(target=warmup, daemon=True).start()
-    
     server = ThreadedHTTPServer((HOST, PORT), ChatHandler)
     print(f"[ChatServer] Compliance Agent chat API running on http://{HOST}:{PORT}")
-    print(f"[ChatServer] API key auth: {'enabled' if API_KEY else 'disabled (dev mode)'}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n[ChatServer] Shutting down...")
         server.shutdown()
 
 if __name__ == "__main__":
