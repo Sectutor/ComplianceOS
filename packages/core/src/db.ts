@@ -583,8 +583,57 @@ export async function getUserClients(userId: number) {
 export async function getUserById(id: number) {
   console.log('[DEBUG getUserById] id:', id, 'type:', typeof id);
   const db = await getDb();
-  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  return result[0];
+  // Use raw SQL to select only columns that exist (avoids drizzle schema mismatches)
+  const [raw] = await db.execute(
+    sql`SELECT id, open_id, name, email, login_method, last_signed_in, role, deleted_at,
+               max_clients, has_seen_tour, stripe_customer_id, subscription_status, plan_tier,
+               access_expires_at, avatar_url, is_super_admin, created_at, updated_at,
+               email_verified, password_hash, phone, timezone, department, job_title, last_active_at,
+               invited_by, invitation_accepted_at, onboarding_completed, preferences, mfa_enabled,
+               mfa_method, mfa_secret, api_rate_limit, allowed_ips, metadata, notes, status
+        FROM "users" WHERE id = ${id} LIMIT 1`
+  );
+  if (!raw) return undefined;
+  // Map snake_case DB columns -> camelCase (matching Drizzle schema property names)
+  return {
+    id: raw.id,
+    openId: raw.open_id,
+    name: raw.name,
+    email: raw.email,
+    loginMethod: raw.login_method,
+    lastSignedIn: raw.last_signed_in,
+    role: raw.role,
+    deletedAt: raw.deleted_at,
+    maxClients: raw.max_clients,
+    hasSeenTour: raw.has_seen_tour,
+    stripeCustomerId: raw.stripe_customer_id,
+    subscriptionStatus: raw.subscription_status,
+    planTier: raw.plan_tier,
+    accessExpiresAt: raw.access_expires_at,
+    avatarUrl: raw.avatar_url,
+    isSuperAdmin: raw.is_super_admin,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+    emailVerified: raw.email_verified,
+    passwordHash: raw.password_hash,
+    phone: raw.phone,
+    timezone: raw.timezone,
+    department: raw.department,
+    jobTitle: raw.job_title,
+    lastActiveAt: raw.last_active_at,
+    invitedBy: raw.invited_by,
+    invitationAcceptedAt: raw.invitation_accepted_at,
+    onboardingCompleted: raw.onboarding_completed,
+    preferences: raw.preferences,
+    mfaEnabled: raw.mfa_enabled,
+    mfaMethod: raw.mfa_method,
+    mfaSecret: raw.mfa_secret,
+    apiRateLimit: raw.api_rate_limit,
+    allowedIps: raw.allowed_ips,
+    metadata: raw.metadata,
+    notes: raw.notes,
+    status: raw.status,
+  };
 }
 
 // Role hierarchy definition
