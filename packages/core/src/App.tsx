@@ -64,6 +64,8 @@ const AddonManager = lazyLoad(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazyLoad(() => import("./pages/admin/AdminBilling"));
 const LicenseManagement = lazyLoad(() => import("./pages/admin/LicenseManagement"));
 const SystemFeedbackPage = lazyLoad(() => import("./pages/admin/SystemFeedbackPage"));
+const AgentPage = lazyLoad(() => import("./pages/agent/AgentPage").then(m => ({ default: m.AgentPage })));
+const AgentReports = lazyLoad(() => import("./pages/agent/AgentPage").then(m => ({ default: m.AgentReportsPage })));
 const ClientSettings = lazyLoad(() => import("./pages/ClientSettings"));
 const OnboardingSettings = lazyLoad(() => import("./pages/settings/OnboardingSettings"));
 const SecuritySettings = lazyLoad(() => import("./pages/settings/SecuritySettings"));
@@ -698,7 +700,7 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       {/* Domain Enforcement for App Routes - Outside Switch to avoid blocking matches */}
-      <Route path="/(login|signup|auth|dashboard|clients|controls|settings|evidence|policy-templates)">
+      <Route path="/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)">
         {() => {
           const hostname = window.location.hostname;
           const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
@@ -762,6 +764,12 @@ function Router() {
 
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} />
+        </Route>
+        <Route path="/agent/reports">
+          <DashboardLayout><ProtectedRoute component={AgentReports} /></DashboardLayout>
+        </Route>
+        <Route path="/agent">
+          <DashboardLayout><ProtectedRoute component={AgentPage} /></DashboardLayout>
         </Route>
         <Route path="/sales">
           {(_params) => <AdminLayout><UnifiedClientGuard requirePremium><ProtectedRoute component={SalesDashboard} /></UnifiedClientGuard></AdminLayout>}
