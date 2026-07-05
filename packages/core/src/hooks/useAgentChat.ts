@@ -87,8 +87,8 @@ function parseSSEStream(
               const payload = trimmed.slice(6);
               try {
                 const parsed = JSON.parse(payload);
-                if (parsed.text) {
-                  fullText += parsed.text;
+                if (parsed.token) {
+                  fullText += parsed.token;
                   onToken(fullText);
                 }
                 if (parsed.error) {

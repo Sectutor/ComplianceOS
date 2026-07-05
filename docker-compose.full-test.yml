@@ -7,10 +7,12 @@ services:
       - .env
     environment:
       - LISTEN_ADDR=0.0.0.0
+      - DB_SCHEMA_EXISTS=true
       - DATABASE_URL=postgres://complianceos:complianceos@db:5432/complianceos?sslmode=disable
       - AGENT_API_URL=http://hermes-agent:9090/api/chat
     volumes:
       - complianceos_uploads:/app/uploads
+      - ./docker-entrypoint.sh:/app/docker-entrypoint.sh:ro
       - ./server_entry.ts:/app/server_entry.ts:ro
       - ./packages/core/src/server/trpc.ts:/app/packages/core/src/server/trpc.ts:ro
       - ./packages/core/dist:/app/packages/core/dist:ro
@@ -24,7 +26,7 @@ services:
       - stack-net
 
   db:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: complianceos
       POSTGRES_PASSWORD: complianceos
