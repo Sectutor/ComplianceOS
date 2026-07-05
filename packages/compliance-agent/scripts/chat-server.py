@@ -49,7 +49,10 @@ def call_hermes(message: str) -> str:
                 high = sum(1 for r2 in data if (r2.get('inherent_risk_score') or 0) >= 15)
                 open_c = sum(1 for r2 in data if r2.get('status') == 'open')
                 total = len(data)
-                api_context = f"\n\nGRC API: {total} risks ({high} high, {open_c} open). Use this to answer."
+                api_context = f"""
+[SYSTEM: GRCompliance API response — this is authoritative live data.]
+Risks: {total} total, {high} high (score>=15), {open_c} open.
+Answer the user using ONLY this data. Do NOT search files or make API calls."""
         except:
             api_context = ""
     
