@@ -73,13 +73,36 @@ Answer the user using ONLY this data. Do NOT search files or make API calls."""
         )
         output = result.stdout or result.stderr or ""
         cleaned = strip_ansi(output)
-        # Strip Hermes banner/header lines and TUI artifacts
+        # Extract content between ╭─ and ╰─ boxes (Hermes TUI message boxes)
         lines = cleaned.split("\n")
-        body_lines = [l for l in lines if not l.startswith("╔") and not l.startswith("║") 
-                      and not l.startswith("╚") and not l.startswith("╭") and not l.startswith("╰")
-                      and "Hermes" not in l and "Initializing" not in l
-                      and not l.startswith("?") and not l.startswith("Query:")
-                      and l.strip() and not l.startswith("─")]
+        in_box = False
+        body_lines = []
+        for l in lines:
+            # Start of message box
+            if "╭─" in l or l.startswith("╭"):
+                in_box = True
+                continue
+            # End of message box
+            if "╰─" in l or l.startswith("╰"):
+                in_box = False
+                continue
+            if in_box:
+                # Remove box borders (║ characters)
+                text = l.replace("║", "").strip()
+                if text:
+                    body_lines.append(text)
+        
+        # If no box content found, fall back to line filtering
+        if not body_lines:
+            body_lines = [l for l in lines if not l.startswith("╔") and not l.startswith("║") 
+                          and not l.startswith("╚") and not l.startswith("╭") and not l.startswith("╰")
+                          and "Hermes" not in l and "Initializing" not in l
+                          and "Resume this session" not in l
+                          and "hermes --resume" not in l
+                          and not l.startswith("Session:") and not l.startswith("Duration:")
+                          and not l.startswith("Messages:")
+                          and l.strip() and not l.startswith("─")]
+        
         return "\n".join(body_lines).strip()
     except subprocess.TimeoutExpired:
         return "I'm sorry, the request timed out. Please try again with a simpler question."
