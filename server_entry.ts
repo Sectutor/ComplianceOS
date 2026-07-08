@@ -238,11 +238,12 @@ app.post('/api/agent-chat', express.json(), async (req: any, res: express.Respon
         return res.status(400).json({ error: 'Message required' });
     }
 
+    const effectiveConversationId = conversation_id || crypto.randomUUID();
     const agentUrl = process.env.AGENT_API_URL || 'http://hermes-agent:9090/api/chat';
     const apiKey = process.env.COMPLIANCE_API_KEY || '';
 
     try {
-        const requestBody = JSON.stringify({ message, conversation_id });
+        const requestBody = JSON.stringify({ message, conversation_id: effectiveConversationId });
         const contentLength = Buffer.byteLength(requestBody, 'utf-8');
 
         const controller = new AbortController();
@@ -293,13 +294,14 @@ app.post('/api/agent-chat', express.json(), async (req: any, res: express.Respon
         // JSON response (quick answer) — wrap as SSE
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || '';
+        const resConvoId = data.conversation_id || effectiveConversationId;
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
         res.write(`data: ${JSON.stringify({ token: content })}\n\n`);
-        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.write(`data: ${JSON.stringify({ conversation_id: resConvoId, done: true })}\n\n`);
         res.end();
     } catch (err: any) {
         console.error('[Agent Proxy Error] Failed to contact agent:', err.message);
