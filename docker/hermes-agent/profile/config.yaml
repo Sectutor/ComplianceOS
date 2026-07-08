@@ -4,6 +4,8 @@ model:
 agent:
   max_turns: 40
   tool_use_enforcement: auto
+skills:
+  - grcompliance
 toolsets:
   - terminal
   - web

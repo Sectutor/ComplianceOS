@@ -3,6 +3,7 @@ set -e
 
 # ── Setup Hermes config ──────────────────────────────────────────────────────
 cp -r /app/profile/* /app/ 2>/dev/null || true
+cp /app/profile/.env /app/.env 2>/dev/null || true
 cp /app/profile/config.yaml /app/config.yaml 2>/dev/null || true
 
 # Configure Hermes

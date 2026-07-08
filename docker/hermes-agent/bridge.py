@@ -95,27 +95,15 @@ def send_and_wait(session_name, message):
     session_lock = get_session_lock(session_name)
     with session_lock:
         update_last_active(session_name)
+        
+        # Capture the state of the pane BEFORE sending the message
+        before_pane = tmux_capture(session_name)
+        before_response = _extract_last_response(before_pane)
+        before_boxes_count = len(re.findall(r'╭─([^╰]*)╰─', before_pane, re.DOTALL))
+        
         tmux_send(session_name, message)
         
-        # Fast path: check for existing response in first 5 seconds
-        for _ in range(10):
-            time.sleep(0.5)
-            current = tmux_capture(session_name)
-            extracted = _extract_last_response(current)
-            if extracted and not any(w in extracted.lower() for w in
-                ["cogitating", "thinking", "preparing", "installing", "working",
-                 "hermes agent v", "available tools", "yolo mode"]):
-                if _is_prompt_visible(current):
-                    # Clean and return immediately
-                    clean = _final_cleanup(extracted)
-                    if len(clean) > 5:
-                        return clean
-            # If Hermes is still processing, wait for completion
-            if "cogitating" in current.lower() or "preparing" in current.lower():
-                break  # Fall through to main wait loop
-        
-        # Main wait loop
-        last_hash = ""
+        # Wait loop
         last_content_hash = ""
         stable_ticks = 0
         response_text = ""
@@ -123,15 +111,23 @@ def send_and_wait(session_name, message):
         for _ in range(480):  # up to 240 seconds
             time.sleep(0.5)
             current = tmux_capture(session_name)
-            current_hash = hash(current[-1000:] if len(current) > 1000 else current)
-
+            
+            # Check boxes count in current pane
+            current_boxes = re.findall(r'╭─([^╰]*)╰─', current, re.DOTALL)
+            current_boxes_count = len(current_boxes)
+            
             extracted = _extract_last_response(current)
-            content_hash = hash(extracted) if extracted else ""
+            
+            # Skip if we are still showing the previous response
+            if current_boxes_count <= before_boxes_count and extracted == before_response:
+                continue
 
             if extracted and any(w in extracted.lower() for w in
                 ["cogitating", "thinking", "preparing", "installing", "working",
                  "hermes agent v", "available tools", "yolo mode"]):
                 continue
+
+            content_hash = hash(extracted) if extracted else ""
 
             # Stable detection: content present + stable + prompt visible
             if extracted and content_hash == last_content_hash and _is_prompt_visible(current):
@@ -142,7 +138,6 @@ def send_and_wait(session_name, message):
             if extracted:
                 response_text = extracted
 
-            last_hash = current_hash
             last_content_hash = content_hash
 
             if stable_ticks >= 4:

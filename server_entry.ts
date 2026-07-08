@@ -507,6 +507,11 @@ if (!process.env.NETLIFY) {
         }
     }));
 
+        // DEMO: Agent routes → Hermes Dashboard redirect
+    app.get(["/agent-full", "/agent", "/agent-old"], (_req, res) => {
+      return res.redirect("http://localhost:9118");
+    });
+
     // Handle SPA routing - return index.html for any unknown non-API routes
     app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api')) {
