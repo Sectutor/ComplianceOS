@@ -163,8 +163,8 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'", isLocalDev ? "'unsafe-inline'" : ""].filter(Boolean),
-            scriptSrcElem: ["'self'", isLocalDev ? "'unsafe-inline'" : ""].filter(Boolean),
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+            scriptSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'", "*"],
             frameSrc: ["'none'"],
@@ -231,7 +231,95 @@ if (process.env.RATE_LIMITING_ENABLED !== 'false') {
 app.use('/api/v1', apiV1Router);
 console.log('[API v1] Compliance Agent REST API mounted at /api/v1');
 
+// Agent Chat Proxy — must be before authMiddleware
+app.post('/api/agent-chat', express.json(), async (req: any, res: express.Response) => {
+    const { message, conversation_id } = req.body;
+    if (!message) {
+        return res.status(400).json({ error: 'Message required' });
+    }
+
+    const agentUrl = process.env.AGENT_API_URL || 'http://hermes-agent:9090/api/chat';
+    const apiKey = process.env.COMPLIANCE_API_KEY || '';
+
+    try {
+        const requestBody = JSON.stringify({ message, conversation_id });
+        const contentLength = Buffer.byteLength(requestBody, 'utf-8');
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 240_000);
+
+        const response = await fetch(agentUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': contentLength.toString(),
+                'X-API-Key': apiKey,
+            },
+            body: requestBody,
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('[Agent Proxy] Hermes agent error response:', response.status, errText);
+            return res.status(response.status).json({ error: `Agent responded with error (${response.status}): ${errText}` });
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('text/event-stream')) {
+            // Hermes returned SSE — pipe it through directly
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            if (response.body) {
+                const reader = response.body.getReader();
+                const pump = () => {
+                    reader.read().then(({ done, value }) => {
+                        if (done) { res.end(); return; }
+                        res.write(value);
+                        pump();
+                    }).catch(() => res.end());
+                };
+                pump();
+            } else {
+                res.end();
+            }
+            return;
+        }
+
+        // JSON response (quick answer) — wrap as SSE
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        res.write(`data: ${JSON.stringify({ token: content })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+    } catch (err: any) {
+        console.error('[Agent Proxy Error] Failed to contact agent:', err.message);
+        return res.status(502).json({ error: `Failed to contact compliance agent: ${err.message}` });
+    }
+});
+
+app.get('/api/agent-chat-suggested', async (_req: any, res: express.Response) => {
+    try {
+        const resp = await fetch('http://hermes-agent:9090/api/suggested');
+        const data = await resp.json();
+        res.json(data);
+    } catch {
+        res.json({ questions: ['How many risks?', 'List my clients', 'Show vendors', 'What are the top risks?'] });
+    }
+});
+
 app.use(authMiddleware);
+
+// Local auth fallback: init default admin + login endpoint
 
 // Local auth fallback: init default admin + login endpoint
 if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
@@ -281,6 +369,7 @@ app.post('/api/auth/local-register', express.json(), (req: any, res) => {
     token: result.token,
   });
 });
+
 
 // Secure static uploads - must be after authMiddleware
 app.use('/uploads', (req: any, res, next) => {

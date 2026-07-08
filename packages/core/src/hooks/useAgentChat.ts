@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -11,10 +12,13 @@ export interface ChatMessage {
 
 export interface UseAgentChatReturn {
   messages: ChatMessage[];
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, context?: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   clearChat: () => void;
+  suggestedQuestions: string[];
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+  setConversationId: (id: string | undefined) => void;
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────────
@@ -22,15 +26,9 @@ export interface UseAgentChatReturn {
 const AGENT_API_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AGENT_API_URL) ||
   (typeof window !== 'undefined' && (window as any).__ENV__?.AGENT_API_URL) ||
-  'http://localhost:9090/api/chat';
+  '/api/agent-chat';
 
 const TIMEOUT_MS = 180_000;
-
-// Read API key from env or localStorage
-const AGENT_API_KEY =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_COMPLIANCE_API_KEY) ||
-  (typeof window !== 'undefined' && (window as any).__ENV__?.COMPLIANCE_API_KEY) ||
-  'test-api-key-for-local-dev';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +40,7 @@ function uid(): string {
 function parseSSEStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   onToken: (text: string) => void,
-  onDone: (fullText: string) => void,
+  onDone: (fullText: string, conversationId?: string) => void,
   onError: (err: string) => void,
   signal: AbortSignal,
 ): Promise<string> {
@@ -96,6 +94,12 @@ function parseSSEStream(
                   reject(new Error(parsed.error));
                   return;
                 }
+                if (parsed.conversation_id) {
+                  signal.removeEventListener('abort', abortHandler);
+                  onDone(fullText, parsed.conversation_id);
+                  resolve(fullText);
+                  return;
+                }
                 if (parsed.done || payload.includes('"done"')) {
                   signal.removeEventListener('abort', abortHandler);
                   onDone(fullText);
@@ -110,12 +114,9 @@ function parseSSEStream(
               continue;
             }
 
-            // Handle `event: done` line
+            // Handle `event: done` line (Wait for following data: payload line instead of resolving immediately)
             if (trimmed === 'event: done') {
-              signal.removeEventListener('abort', abortHandler);
-              onDone(fullText);
-              resolve(fullText);
-              return;
+              continue;
             }
 
             // Handle bare `data: [DONE]` from some SSE implementations
@@ -147,6 +148,7 @@ export function useAgentChat(): UseAgentChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
 
   const conversationIdRef = useRef<string | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
@@ -159,7 +161,25 @@ export function useAgentChat(): UseAgentChatReturn {
     conversationIdRef.current = undefined;
   }, []);
 
-  const sendMessage = useCallback(async (text: string) => {
+  // Fetch suggested questions on mount
+  useEffect(() => {
+    fetch('/api/agent-chat-suggested')
+      .then(r => r.json())
+      .then(d => {
+        if (d.questions) setSuggestedQuestions(d.questions);
+      })
+      .catch(() => {
+        // Proxy doesn't have /api/suggested — use defaults
+        setSuggestedQuestions([
+          'How many risks?',
+          'List my clients',
+          'Show vendors',
+          'What are the top risks?',
+        ]);
+      });
+  }, []);
+
+  const sendMessage = useCallback(async (text: string, context?: string) => {
     if (!text.trim() || isLoading) return;
 
     // Reset error state
@@ -193,7 +213,7 @@ export function useAgentChat(): UseAgentChatReturn {
       // Timeout timer
       const timeoutId = setTimeout(() => {
         controller.abort();
-        setError('Request timed out after 60 seconds');
+        setError('Request timed out after 3 minutes');
         setIsLoading(false);
         // Update the placeholder to show error
         setMessages((prev) =>
@@ -205,14 +225,30 @@ export function useAgentChat(): UseAgentChatReturn {
         );
       }, TIMEOUT_MS);
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      const localToken = localStorage.getItem('localAuthToken');
+      if (localToken) {
+        headers['Authorization'] = `Bearer ${localToken}`;
+      } else {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data?.session?.access_token) {
+            headers['Authorization'] = `Bearer ${data.session.access_token}`;
+          }
+        } catch (e) {
+          console.error('[AgentChat] Failed to get Supabase session:', e);
+        }
+      }
+
       const response = await fetch(AGENT_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': AGENT_API_KEY,
-        },
+        headers,
         body: JSON.stringify({
           message: text.trim(),
+          context: context || '',
           conversation_id: conversationIdRef.current,
         }),
         signal: controller.signal,
@@ -246,7 +282,11 @@ export function useAgentChat(): UseAgentChatReturn {
           );
         },
         // onDone
-        (_fullText) => {
+        (_fullText, conversationId) => {
+          if (conversationId) {
+            conversationIdRef.current = conversationId;
+            console.log('[AgentChat] Saved conversation ID:', conversationId);
+          }
           // Ensure final content is set
           setMessages((prev) =>
             prev.map((m) =>
@@ -292,5 +332,18 @@ export function useAgentChat(): UseAgentChatReturn {
     }
   }, [isLoading]);
 
-  return { messages, sendMessage, isLoading, error, clearChat };
+  const setConversationId = useCallback((id: string | undefined) => {
+    conversationIdRef.current = id;
+  }, []);
+
+  return {
+    messages,
+    sendMessage,
+    isLoading,
+    error,
+    clearChat,
+    suggestedQuestions,
+    setMessages,
+    setConversationId,
+  };
 }

@@ -35,6 +35,18 @@ export const isAuthed = middleware(async ({ ctx, next, path }) => {
     debugLog(`[isAuthed Debug] Checking auth for path: ${path}, user present: ${!!ctx.user}`);
 
     if (!ctx.user) {
+        // In local dev mode with local auth, auto-create a dev user
+        if (process.env.AUTH_MODE === 'local') {
+            ctx.user = {
+                id: 1,
+                email: 'admin@complianceos.local',
+                name: 'Dev Admin',
+                role: 'owner' as const,
+            } as any;
+            debugLog(`[isAuthed Debug] Local dev auto-auth for path: ${path}`);
+            return next({ ctx });
+        }
+
         debugError(`[isAuthed Debug] UNAUTHORIZED for path: ${path}`);
 
         // Provide specific error message based on auth header presence

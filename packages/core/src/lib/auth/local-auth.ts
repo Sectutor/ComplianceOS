@@ -19,7 +19,7 @@ import { join } from 'path';
 /* ------------------------------------------------------------------ */
 
 const SALT_LENGTH = 32;
-const TOKEN_EXPIRY_HOURS = 24;
+const TOKEN_EXPIRY_HOURS = 720;
 const TOKEN_SECRET = process.env.LOCAL_JWT_SECRET || 'complianceos-local-jwt-change-me';
 
 const DATA_DIR = process.env.COMPLIANCEOS_DATA_DIR
@@ -154,11 +154,24 @@ export const localAuth = {
    */
   initDefaultAdmin(email?: string, password?: string): void {
     const users = loadUsers();
-    if (users.length > 0) return;
-
     const adminEmail = email || 'admin@local';
     const adminPassword = password || 'admin';
 
+    const existingIndex = users.findIndex((u) => u.email.toLowerCase() === adminEmail.toLowerCase());
+
+    if (existingIndex >= 0) {
+      // Admin already exists — update password if it was explicitly provided via env var
+      if (password) {
+        const { hash, salt } = hashPassword(adminPassword);
+        users[existingIndex].passwordHash = hash;
+        users[existingIndex].passwordSalt = salt;
+        saveUsers(users);
+        console.log(`[LocalAuth] Admin password updated: ${adminEmail}`);
+      }
+      return;
+    }
+
+    // No users yet — create default admin
     const { hash, salt } = hashPassword(adminPassword);
     const user: LocalUser = {
       id: randomBytes(8).toString('hex'),

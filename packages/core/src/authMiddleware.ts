@@ -65,6 +65,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             const decoded = localAuth.validateToken(token);
             if (!decoded) {
                 console.log('[Auth] Local auth token validation FAILED');
+                authInfo.hasAuthHeader = false;
                 return next();
             }
             // Use decoded token info directly (avoids Drizzle schema/DB column mismatch)

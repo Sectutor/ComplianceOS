@@ -1,0 +1,21 @@
+model:
+  default: deepseek-v4-pro
+  provider: deepseek
+agent:
+  max_turns: 40
+  tool_use_enforcement: auto
+toolsets:
+  - terminal
+  - web
+  - memory
+  - cronjob
+  - file
+terminal:
+  timeout: 120
+memory:
+  memory_enabled: true
+display:
+  interface: cli
+
+
+

@@ -101,14 +101,22 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setIsLoggingIn(true);
-        // Pre-emptively set this to block any redirect effects during the async gap
-        setMfaRequired(true);
 
         try {
             // Step 1: Login with password
             await signIn(email, password);
 
-            // Step 2: Immediate check for MFA
+            // Step 2: If local auth (self-hosted mode), skip all Supabase MFA checks
+            if (localStorage.getItem('localAuthToken')) {
+                toast.success('Logged in successfully');
+                setMfaRequired(false);
+                setIsLoggingIn(false);
+                setLoading(false);
+                return;
+            }
+
+            // Step 3: Supabase MFA flow (cloud/Supabase mode only)
+            setMfaRequired(true);
             const { data: aalInfo } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
             if (aalInfo?.currentLevel === 'aal2') {
@@ -118,7 +126,6 @@ export default function LoginPage() {
                 setIsLoggingIn(false);
                 setLoading(false);
             } else if (aalInfo?.nextLevel === 'aal2') {
-                // User has verified factors, MUST verify one
                 console.log("[MFA Login] AAL2 verification required (nextLevel is aal2)");
                 const { data: lf } = await supabase.auth.mfa.listFactors();
                 const factors = lf?.factors || [];
@@ -145,7 +152,6 @@ export default function LoginPage() {
                     setLoading(false);
                 }
             } else {
-                // No factors enrolled yet, check Organizational requirement
                 console.log("[MFA Login] No factors enrolled. Checking if MFA is mandatory for this client...");
                 const profile = userProfile || await utils.users.me.fetch();
 

@@ -1,8 +1,35 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Bot, SendHorizontal, Trash2, Save, FileText, Plus, MessageSquare, History, ExternalLink, Clock, Check, X, Download, AlertCircle } from 'lucide-react';
+import { 
+  Bot, 
+  SendHorizontal, 
+  Plus, 
+  MessageSquare, 
+  History, 
+  Clock, 
+  Check, 
+  Pin, 
+  PinOff, 
+  Calendar, 
+  ListTodo, 
+  Trash2, 
+  PanelLeftClose, 
+  PanelLeft, 
+  ChevronDown, 
+  ChevronRight, 
+  Search,
+  Play,
+  Pause,
+  Loader,
+  Zap,
+  Activity,
+  ShieldCheck,
+  Cpu,
+  Settings,
+  Pencil
+} from 'lucide-react';
 import { useAgentChat, ChatMessage } from '../../hooks/useAgentChat';
 
-// ── Conversation persistence ─────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface SavedConversation {
   id: string;
@@ -11,352 +38,786 @@ interface SavedConversation {
   created_at: number;
   updated_at: number;
   message_count: number;
+  pinned?: boolean;
 }
 
-interface SavedReport {
+interface CronJob {
   id: string;
-  conversation_id: string;
-  title: string;
-  content: string;
-  format: 'md' | 'json';
-  created_at: number;
+  name: string;
+  schedule: string;
+  description: string;
+  status: 'active' | 'paused' | 'running';
+  lastRun: string;
+  nextRun: string;
+  messages: ChatMessage[];
 }
 
-const STORAGE_KEY_CONVOS = 'complianceos_agent_conversations';
-const STORAGE_KEY_REPORTS = 'complianceos_agent_reports';
+const STORAGE_KEY = 'complianceos_agent_convos';
+const CRON_STORAGE_KEY = 'complianceos_agent_cron_jobs';
 
-function loadConversations(): SavedConversation[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_CONVOS);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
+// ── Default Cron Jobs ─────────────────────────────────────────────────────────
 
-function saveConversations(list: SavedConversation[]) {
-  try { localStorage.setItem(STORAGE_KEY_CONVOS, JSON.stringify(list)); } catch {}
-}
-
-function loadReports(): SavedReport[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_REPORTS);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveReports(list: SavedReport[]) {
-  try { localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(list)); } catch {}
-}
-
-// ── Generate a title from first user message ────────────────────────────────
-
-function generateTitle(messages: ChatMessage[]): string {
-  const first = messages.find(m => m.role === 'user');
-  if (!first) return 'New Conversation';
-  const text = first.content.slice(0, 80);
-  return text.length < 80 ? text : text + '…';
-}
-
-// ── Generate a report from conversation ──────────────────────────────────────
-
-function generateReport(conv: SavedConversation): SavedReport {
-  const lines: string[] = [];
-  lines.push(`# Compliance Report: ${conv.title}`);
-  lines.push(`\nGenerated: ${new Date(conv.updated_at).toISOString().slice(0, 10)}`);
-  lines.push(`Messages: ${conv.message_count}\n`);
-  lines.push('---\n');
-  for (const msg of conv.messages) {
-    const role = msg.role === 'user' ? '**Q:**' : '**A:**';
-    lines.push(`\n${role} ${msg.content}\n`);
+const DEFAULT_CRON_JOBS: CronJob[] = [
+  {
+    id: 'cron_vuln',
+    name: 'Daily Vulnerability Auditor',
+    schedule: '0 0 * * *',
+    description: 'Scans package dependencies, Docker containers, and public endpoints for CVEs.',
+    status: 'active',
+    lastRun: '14 hours ago',
+    nextRun: 'in 10 hours',
+    messages: [
+      {
+        id: 'msg_vuln_1',
+        role: 'agent',
+        content: `### 🛡️ Cron Run: Daily Vulnerability Auditor\nTriggered: 2026-07-07T00:00:00Z\n\nI have performed a full scan of the ComplianceOS repository and docker containers.\n\n**Results:**\n- **Package Dependencies:** Checked 142 dependencies. 0 critical, 1 medium vulnerability found in \`body-parser\` (prototype pollution risk).\n- **Docker Containers:** Checked base images. All images are using pinned SHA hashes. No high vulnerabilities.\n- **Network Ports:** Verified public firewall rules. Port \`3005\` is restricted to VPN access.\n\n*Remediation recommendation:* Run \`npm update body-parser\` to resolve the medium risk.`,
+        timestamp: Date.now() - 14 * 3600 * 1000
+      }
+    ]
+  },
+  {
+    id: 'cron_aws',
+    name: 'AWS Evidence Intake',
+    schedule: '0 */12 * * *',
+    description: 'Polls AWS CloudTrail, S3, and IAM config to collect evidence for SOC2.',
+    status: 'active',
+    lastRun: '2 hours ago',
+    nextRun: 'in 10 hours',
+    messages: [
+      {
+        id: 'msg_aws_1',
+        role: 'agent',
+        content: `### ☁️ Cron Run: AWS Evidence Intake\nTriggered: 2026-07-07T12:00:00Z\n\nI polled AWS API endpoints for SOC2 CC6.1 and CC6.3 evidence.\n\n**Evidence Collected:**\n- **S3 Bucket Policies:** Verified encryption-at-rest is enabled on all 12 buckets. Policy evidence generated and linked to Control \`CC6.1\`.\n- **IAM Access Keys:** Found 1 active access key older than 90 days for user \`deploy-pipeline\`.\n- **Security Groups:** 0 security groups allow wildcard access (\`0.0.0.0/0\`) to port 22.\n\n*Action taken:* Uploaded S3 encryption evidence to the Audit Hub. Flagged user \`deploy-pipeline\` key rotation task.`,
+        timestamp: Date.now() - 2 * 3600 * 1000
+      }
+    ]
+  },
+  {
+    id: 'cron_soc2',
+    name: 'SOC2 Gap Assessment',
+    schedule: '0 6 * * 0',
+    description: 'Runs weekly compliance gap analysis and updates the readiness scoring.',
+    status: 'active',
+    lastRun: '2 days ago',
+    nextRun: 'in 5 days',
+    messages: [
+      {
+        id: 'msg_soc2_1',
+        role: 'agent',
+        content: `### 📊 Cron Run: SOC2 Gap Assessment\nTriggered: 2026-07-05T06:00:00Z\n\nWeekly readiness assessment completed for **Trust Services Criteria (Security & Confidentiality)**.\n\n**Status Update:**\n- **Overall SOC2 Readiness:** **84%** (+2% from last week)\n- **Completed Controls:** 42 / 50\n- **Open Gaps:** 8 controls missing evidence or policies.\n\n**Detected Gaps:**\n1. *Control CC7.1 (Vulnerability Management):* Missing recent vulnerability scan evidence (remediating via Daily Vulnerability Auditor).\n2. *Control CC2.1 (Security Policies):* Employee handbook signed evidence has expired for 3 new hires.\n\n*Action taken:* Dispatched notification emails to the 3 outstanding employees to sign the security policy.`,
+        timestamp: Date.now() - 2 * 24 * 3600 * 1000
+      }
+    ]
   }
-  return {
-    id: `report_${Date.now()}`,
-    conversation_id: conv.id,
-    title: conv.title,
-    content: lines.join('\n'),
-    format: 'md',
-    created_at: Date.now(),
-  };
-}
-
-// ── Quick actions ────────────────────────────────────────────────────────────
-
-const QUICK_ACTIONS = [
-  { label: 'Show NIS2 gaps', prompt: 'Show NIS2 compliance gaps' },
-  { label: 'Risk summary', prompt: 'Summarize all high risks' },
-  { label: 'Generate report', prompt: 'Generate a compliance readiness report' },
-  { label: 'Expiring evidence', prompt: 'What evidence is expiring soon?' },
 ];
 
-// ── AgentPage Component ──────────────────────────────────────────────────────
+// ── Storage Helpers ──────────────────────────────────────────────────────────
+
+function loadConvos(): SavedConversation[] {
+  try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; } catch { return []; }
+}
+function saveConvos(list: SavedConversation[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
+}
+
+function loadCronJobs(): CronJob[] {
+  try {
+    const r = localStorage.getItem(CRON_STORAGE_KEY);
+    return r ? JSON.parse(r) : DEFAULT_CRON_JOBS;
+  } catch {
+    return DEFAULT_CRON_JOBS;
+  }
+}
+function saveCronJobs(list: CronJob[]) {
+  try { localStorage.setItem(CRON_STORAGE_KEY, JSON.stringify(list)); } catch {}
+}
+
+function genTitle(msgs: ChatMessage[]): string {
+  const first = msgs.find(m => m.role === 'user');
+  if (!first) return 'New Chat';
+  const t = first.content.slice(0, 80);
+  return t.length < 80 ? t : t + '…';
+}
+
+function groupByDate(convos: SavedConversation[]): { label: string; items: SavedConversation[] }[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterday = today - 86400000;
+  const weekAgo = today - 7 * 86400000;
+
+  const groups: Record<string, SavedConversation[]> = { Today: [], Yesterday: [], 'Previous 7 Days': [], Older: [] };
+  for (const c of convos) {
+    if (c.updated_at >= today) groups.Today.push(c);
+    else if (c.updated_at >= yesterday) groups.Yesterday.push(c);
+    else if (c.updated_at >= weekAgo) groups['Previous 7 Days'].push(c);
+    else groups.Older.push(c);
+  }
+  return Object.entries(groups).filter(([_, v]) => v.length > 0).map(([label, items]) => ({ label, items }));
+}
+
+// ── AgentPage ──────────────────────────────────────────────────────────────────────
 
 export function AgentPage() {
-  const { messages, sendMessage, isLoading, error, clearChat } = useAgentChat();
-  const [inputValue, setInputValue] = useState('');
-  const [showHistory, setShowHistory] = useState(true);
-  const [savedConvos, setSavedConvos] = useState<SavedConversation[]>(() => loadConversations());
-  const [showReports, setShowReports] = useState(false);
-  const [savedReports, setSavedReports] = useState<SavedReport[]>(() => loadReports());
-  const [reportCopied, setReportCopied] = useState<string | null>(null);
+  const { 
+    messages, 
+    sendMessage, 
+    isLoading, 
+    error, 
+    clearChat, 
+    suggestedQuestions,
+    setMessages,
+    setConversationId
+  } = useAgentChat();
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [convos, setConvos] = useState<SavedConversation[]>(() => loadConvos());
+  const [cronJobs, setCronJobs] = useState<CronJob[]>(() => loadCronJobs());
+  const [searchQ, setSearchQ] = useState('');
+  const [currentConvId, setCurrentConvId] = useState<string | null>(null);
+  const currentConvIdRef = useRef<string | null>(null);
+  const [runningCronId, setRunningCronId] = useState<string | null>(null);
+
+  // Autosave and Editing states
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  // Collapsible sections
+  const [pinnedExpanded, setPinnedExpanded] = useState(true);
+  const [cronExpanded, setCronExpanded] = useState(true);
+  const [convosExpanded, setConvosExpanded] = useState(true);
+
+  const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  // Load conversation/cron job on mount
+  const hasRestoredRef = useRef(false);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    const activeId = localStorage.getItem('complianceos_active_conv_id');
+    if (activeId) {
+      if (activeId.startsWith('cron_')) {
+        const cronJob = cronJobs.find(c => c.id === activeId);
+        if (cronJob) {
+          setMessages(cronJob.messages);
+          setCurrentConvId(cronJob.id);
+          currentConvIdRef.current = cronJob.id;
+          setConversationId(cronJob.id);
+        }
+      } else {
+        const activeConv = convos.find(c => c.id === activeId);
+        if (activeConv) {
+          setMessages(activeConv.messages);
+          setCurrentConvId(activeConv.id);
+          currentConvIdRef.current = activeConv.id;
+          setConversationId(activeConv.id);
+        }
+      }
+    } else if (convos.length > 0) {
+      const lastConv = convos[0];
+      setMessages(lastConv.messages);
+      setCurrentConvId(lastConv.id);
+      currentConvIdRef.current = lastConv.id;
+      setConversationId(lastConv.id);
+      localStorage.setItem('complianceos_active_conv_id', lastConv.id);
+    }
+  }, [convos, cronJobs, setMessages, setConversationId]);
+
+  // Keep refs of latest state for unmount saving
+  const messagesRef = useRef(messages);
+  const convosRef = useRef(convos);
+
+  useEffect(() => {
+    messagesRef.current = messages;
   }, [messages]);
 
-  // Auto-resize textarea
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  useEffect(() => {
+    convosRef.current = convos;
+  }, [convos]);
+
+  // Auto-save on every message change or load transition complete
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const id = currentConvIdRef.current || `conv_${Date.now()}`;
+    
+    setSaveStatus('saving');
+    
+    if (!currentConvIdRef.current) {
+      currentConvIdRef.current = id;
+      setCurrentConvId(id);
+      localStorage.setItem('complianceos_active_conv_id', id);
+    }
+
+    if (id.startsWith('cron_')) {
+      // It's a Cron Job session! Save to cronJobs
+      setCronJobs(prev => {
+        const updated = prev.map(c => c.id === id ? { ...c, messages: messages.map(m => ({ ...m })), lastRun: 'Just now' } : c);
+        saveCronJobs(updated);
+        return updated;
+      });
+    } else {
+      // Normal conversation!
+      const existing = convos.find(c => c.id === id);
+      const updated = [
+        {
+          id, title: genTitle(messages), messages: messages.map(m => ({ ...m })),
+          created_at: existing?.created_at || Date.now(), updated_at: Date.now(), message_count: messages.length,
+          pinned: existing?.pinned || false,
+        },
+        ...convos.filter(c => c.id !== id),
+      ].slice(0, 100);
+      setConvos(updated);
+      saveConvos(updated);
+    }
+
+    const t = setTimeout(() => {
+      setSaveStatus('saved');
+      const t2 = setTimeout(() => setSaveStatus(null), 2000);
+      return () => clearTimeout(t2);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [messages.length, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save on page close or component unmount (switching screen)
+  useEffect(() => {
+    const saveCurrentState = () => {
+      const msgs = messagesRef.current;
+      const convsList = convosRef.current;
+      const id = currentConvIdRef.current;
+
+      if (msgs.length === 0 || !id) return;
+
+      if (id.startsWith('cron_')) {
+        // Save Cron Job in localStorage only on unmount
+        const cronJobsList = loadCronJobs();
+        const updated = cronJobsList.map(c => c.id === id ? { ...c, messages: msgs.map(m => ({ ...m })) } : c);
+        saveCronJobs(updated);
+      } else {
+        // Save normal conversation in localStorage
+        const existing = convsList.find(c => c.id === id);
+        const updated = [
+          {
+            id,
+            title: genTitle(msgs),
+            messages: msgs.map(m => ({ ...m })),
+            created_at: existing?.created_at || Date.now(),
+            updated_at: Date.now(),
+            message_count: msgs.length,
+            pinned: existing?.pinned || false
+          },
+          ...convsList.filter(c => c.id !== id),
+        ].slice(0, 100);
+        saveConvos(updated);
+      }
+    };
+
+    window.addEventListener('beforeunload', saveCurrentState);
+    return () => {
+      window.removeEventListener('beforeunload', saveCurrentState);
+      saveCurrentState();
+    };
   }, []);
 
   // Send
   const handleSend = useCallback(() => {
-    const text = inputValue.trim();
-    if (!text || isLoading) return;
-    setInputValue('');
-    sendMessage(text);
-  }, [inputValue, isLoading, sendMessage]);
+    const t = input.trim();
+    if (!t || isLoading) return;
+    setInput('');
+    sendMessage(t);
+  }, [input, isLoading, sendMessage]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const handleKey = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }, [handleSend]);
 
-  // New conversation
+  // New chat
   const handleNew = useCallback(() => {
     clearChat();
-    setShowReports(false);
-  }, [clearChat]);
+    setCurrentConvId(null);
+    currentConvIdRef.current = null;
+    setConversationId(undefined);
+    localStorage.removeItem('complianceos_active_conv_id');
+  }, [clearChat, setConversationId]);
 
-  // Save current conversation
-  const handleSave = useCallback(() => {
-    if (messages.length === 0) return;
-    const conv: SavedConversation = {
-      id: `conv_${Date.now()}`,
-      title: generateTitle(messages),
-      messages: messages.map(m => ({ ...m })),
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      message_count: messages.length,
-    };
-    const updated = [conv, ...savedConvos].slice(0, 50); // max 50
-    setSavedConvos(updated);
-    saveConversations(updated);
-  }, [messages, savedConvos]);
-
-  // Load a saved conversation
+  // Load conversation
   const handleLoad = useCallback((conv: SavedConversation) => {
-    clearChat();
-    // Messages will be repopulated via the hook — but the hook uses local state.
-    // We need to inject them. Since useAgentChat manages its own state,
-    // we reload the page with the conversation ID in the URL and let the hook load it.
-    // For simplicity: clear and show saved for read-only, start fresh.
-    clearChat();
-    // Save the conversation to be loaded by the hook on next render
-    sessionStorage.setItem('agent_restore_conversation', JSON.stringify(conv.messages));
-    window.location.reload();
-  }, [clearChat]);
+    setMessages(conv.messages);
+    setCurrentConvId(conv.id);
+    currentConvIdRef.current = conv.id;
+    setConversationId(conv.id);
+    localStorage.setItem('complianceos_active_conv_id', conv.id);
+  }, [setMessages, setConversationId]);
 
-  // Restore conversation from sessionStorage on mount
-  useEffect(() => {
-    const raw = sessionStorage.getItem('agent_restore_conversation');
-    if (raw) {
-      sessionStorage.removeItem('agent_restore_conversation');
-      // The hook has already initialized — we can't inject past messages easily.
-      // Instead, show a note in the UI.
+  // Load Cron Job session
+  const handleLoadCron = useCallback((cron: CronJob) => {
+    setMessages(cron.messages);
+    setCurrentConvId(cron.id);
+    currentConvIdRef.current = cron.id;
+    setConversationId(cron.id);
+    localStorage.setItem('complianceos_active_conv_id', cron.id);
+  }, [setMessages, setConversationId]);
+
+  // Delete Conversation
+  const handleDelete = useCallback((id: string) => {
+    const updated = convos.filter(c => c.id !== id);
+    setConvos(updated);
+    saveConvos(updated);
+    if (currentConvId === id) {
+      handleNew();
     }
+  }, [convos, currentConvId, handleNew]);
+
+  // Pin toggle
+  const handlePin = useCallback((id: string) => {
+    const updated = convos.map(c => c.id === id ? { ...c, pinned: !c.pinned } : c);
+    setConvos(updated);
+    saveConvos(updated);
+  }, [convos]);
+
+  // Rename session handlers
+  const handleStartEdit = useCallback((e: React.MouseEvent, conv: SavedConversation) => {
+    e.stopPropagation();
+    setEditingId(conv.id);
+    setEditTitle(conv.title);
   }, []);
 
-  // Create report from current conversation
-  const handleCreateReport = useCallback(() => {
-    if (messages.length === 0) return;
-    const conv: SavedConversation = {
-      id: `conv_${Date.now()}`,
-      title: generateTitle(messages),
-      messages: messages.map(m => ({ ...m })),
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      message_count: messages.length,
-    };
-    const report = generateReport(conv);
-    // Save
-    const updatedReports = [report, ...savedReports].slice(0, 20);
-    setSavedReports(updatedReports);
-    saveReports(updatedReports);
-    // Also save the conversation
-    const updatedConvos = [conv, ...savedConvos].slice(0, 50);
-    setSavedConvos(updatedConvos);
-    saveConversations(updatedConvos);
-    // Switch to reports view
-    setShowReports(true);
-  }, [messages, savedConvos, savedReports]);
+  const handleSaveTitle = useCallback((id: string) => {
+    if (!editTitle.trim()) {
+      setEditingId(null);
+      return;
+    }
+    const updated = convos.map(c => c.id === id ? { ...c, title: editTitle.trim() } : c);
+    setConvos(updated);
+    saveConvos(updated);
+    setEditingId(null);
+  }, [convos, editTitle]);
 
-  // Delete a conversation
-  const handleDeleteConv = useCallback((id: string) => {
-    const updated = savedConvos.filter(c => c.id !== id);
-    setSavedConvos(updated);
-    saveConversations(updated);
-  }, [savedConvos]);
+  const handleEditKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveTitle(id);
+    } else if (e.key === 'Escape') {
+      setEditingId(null);
+    }
+  }, [handleSaveTitle]);
 
-  // Delete a report
-  const handleDeleteReport = useCallback((id: string) => {
-    const updated = savedReports.filter(r => r.id !== id);
-    setSavedReports(updated);
-    saveReports(updated);
-  }, [savedReports]);
-
-  // Copy report to clipboard
-  const handleCopyReport = useCallback((report: SavedReport) => {
-    navigator.clipboard.writeText(report.content).then(() => {
-      setReportCopied(report.id);
-      setTimeout(() => setReportCopied(null), 2000);
+  // Toggle Cron Job Pause/Active
+  const handleToggleCronStatus = useCallback((e: React.MouseEvent, cronId: string) => {
+    e.stopPropagation();
+    setCronJobs(prev => {
+      const updated = prev.map((c): CronJob => {
+        if (c.id === cronId) {
+          const newStatus: 'active' | 'paused' = c.status === 'paused' ? 'active' : 'paused';
+          return { ...c, status: newStatus };
+        }
+        return c;
+      });
+      saveCronJobs(updated);
+      return updated;
     });
   }, []);
 
-  // Download report as .md
-  const handleDownloadReport = useCallback((report: SavedReport) => {
-    const blob = new Blob([report.content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${report.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
+  // Trigger Cron Job Manually
+  const handleRunCron = useCallback(async (e: React.MouseEvent, cronId: string) => {
+    e.stopPropagation();
+    if (runningCronId) return;
+
+    setRunningCronId(cronId);
+    setCronJobs(prev => {
+      const updated = prev.map((c): CronJob => c.id === cronId ? { ...c, status: 'running' } : c);
+      saveCronJobs(updated);
+      return updated;
+    });
+
+    // Simulate agent run latency
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const nowStr = new Date().toISOString();
+    const timestamp = Date.now();
+    let resultMessage = '';
+
+    if (cronId === 'cron_vuln') {
+      resultMessage = `### 🛡️ Cron Run: Daily Vulnerability Auditor (Manual)\nTriggered manually: ${nowStr}\n\nI initiated a manual security scan of package dependencies and port exposures.\n\n**Findings:**\n- **Package Dependencies:** 142 dependencies checked. Clean. No high/critical CVEs.\n- **Network Ports:** Port scanning completed. Verified zero unauthorized open port exposures.\n- **Security Configuration:** Docker base images are verified and clean.\n\n*Status:* **All checks passed.** No critical gaps found.`;
+    } else if (cronId === 'cron_aws') {
+      resultMessage = `### ☁️ Cron Run: AWS Evidence Intake (Manual)\nTriggered manually: ${nowStr}\n\nI initiated a manual sync with the AWS API endpoints to audit resources.\n\n**Findings:**\n- **S3 Buckets:** 12 buckets audited. Default encryption and public access blocks are verified active.\n- **CloudTrail:** Logging status is active. Logs are streaming to target S3 bucket with MFA delete.\n- **IAM Users:** Checked 18 active users. All active keys rotated in the last 90 days.\n\n*Status:* **Evidence collection updated in the Audit Hub.**`;
+    } else if (cronId === 'cron_soc2') {
+      resultMessage = `### 📊 Cron Run: SOC2 Gap Assessment (Manual)\nTriggered manually: ${nowStr}\n\nI performed a manual gap analysis against SOC2 Trust Services Criteria.\n\n**Findings:**\n- **Readiness Score:** **84%**\n- **Completed Controls:** 42 / 50\n- **Pending Evidence:** 8 items remaining.\n- **Status:** Vulnerability scan evidence successfully verified. Access review logs are still outstanding.\n\n*Status:* **No new gaps identified.**`;
+    }
+
+    const newUserMsg: ChatMessage = {
+      id: `msg_user_run_${Date.now()}`,
+      role: 'user',
+      content: `Trigger manual execution of "${cronJobs.find(c => c.id === cronId)?.name}"`,
+      timestamp: timestamp - 1000
+    };
+
+    const newAgentMsg: ChatMessage = {
+      id: `msg_agent_run_${Date.now()}`,
+      role: 'agent',
+      content: resultMessage,
+      timestamp
+    };
+
+    setCronJobs(prev => {
+      const updated = prev.map((c): CronJob => {
+        if (c.id === cronId) {
+          return {
+            ...c,
+            status: 'active',
+            lastRun: 'Just now',
+            messages: [...c.messages, newUserMsg, newAgentMsg]
+          };
+        }
+        return c;
+      });
+      saveCronJobs(updated);
+      return updated;
+    });
+
+    setRunningCronId(null);
+
+    // If this cron job is currently selected, append messages live
+    if (currentConvIdRef.current === cronId) {
+      setMessages(prev => [...prev, newUserMsg, newAgentMsg]);
+    }
+  }, [cronJobs, runningCronId, setMessages]);
+
+  // Sidebar grouping & filtering
+  const pinnedConvos = convos.filter(c => c.pinned);
+  const recentConvos = convos.filter(c => !c.pinned);
+  
+  const groupedRecent = groupByDate(recentConvos);
+
+  const filteredPinned = searchQ
+    ? pinnedConvos.filter(c => c.title.toLowerCase().includes(searchQ.toLowerCase()))
+    : pinnedConvos;
+
+  const filteredGroups = searchQ
+    ? groupedRecent.map(g => ({ ...g, items: g.items.filter(c => c.title.toLowerCase().includes(searchQ.toLowerCase())) })).filter(g => g.items.length > 0)
+    : groupedRecent;
+
+  const filteredCronJobs = searchQ
+    ? cronJobs.filter(c => c.name.toLowerCase().includes(searchQ.toLowerCase()))
+    : cronJobs;
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] bg-background">
-      {/* ── Sidebar ──────────────────────────────────────────────────── */}
-      <div className={`${showHistory ? 'w-72' : 'w-0'} transition-all duration-200 border-r bg-muted/30 flex flex-col overflow-hidden`}>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {!showReports ? (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">Conversations</h3>
-                <button
-                  onClick={() => setShowReports(true)}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
+      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+      <div className={`${sidebarOpen ? 'w-72 border-r' : 'w-0'} transition-all duration-200 bg-muted/20 flex flex-col overflow-hidden shrink-0`}>
+        <div className="flex flex-col h-full">
+          {/* Search */}
+          <div className="p-3 border-b">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+              <input
+                value={searchQ}
+                onChange={e => setSearchQ(e.target.value)}
+                placeholder="Search sessions…"
+                className="w-full h-9 rounded-lg border bg-background pl-9 pr-3 text-xs placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              />
+            </div>
+          </div>
+
+          {/* New chat button */}
+          <div className="px-3 pt-3 pb-2">
+            <button onClick={handleNew} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-accent/50 text-xs font-semibold text-muted-foreground hover:text-primary transition-all">
+              <Plus size={14} /> New Chat
+            </button>
+          </div>
+
+          {/* Sidebar Sections */}
+          <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-4">
+            
+            {/* 1. Pinned Sessions */}
+            {filteredPinned.length > 0 && (
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setPinnedExpanded(!pinnedExpanded)}
+                  className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/40 rounded transition-colors text-left"
                 >
-                  <FileText size={12} /> Reports
+                  {pinnedExpanded ? <ChevronDown size={11} className="text-muted-foreground/50" /> : <ChevronRight size={11} className="text-muted-foreground/50" />}
+                  <Pin size={11} className="text-amber-500 fill-current" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Pinned Sessions</span>
+                  <span className="text-[10px] text-muted-foreground/30 ml-auto">{filteredPinned.length}</span>
                 </button>
+
+                {pinnedExpanded && (
+                  <div className="space-y-0.5 pl-1.5">
+                    {filteredPinned.map(conv => (
+                      <div
+                        key={conv.id}
+                        onClick={() => handleLoad(conv)}
+                        className={`group relative flex items-start gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all hover:bg-accent/60 ${conv.id === currentConvId ? 'bg-accent border border-primary/20 shadow-sm' : 'border border-transparent'}`}
+                      >
+                        <MessageSquare size={13} className="mt-0.5 text-amber-500/80 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          {editingId === conv.id ? (
+                            <input
+                              value={editTitle}
+                              onChange={e => setEditTitle(e.target.value)}
+                              onKeyDown={e => handleEditKeyDown(e, conv.id)}
+                              onBlur={() => handleSaveTitle(conv.id)}
+                              className="w-full text-xs bg-background border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                              autoFocus
+                              onClick={e => e.stopPropagation()}
+                            />
+                          ) : (
+                            <>
+                              <p 
+                                className="text-xs font-medium truncate text-foreground/80" 
+                                onDoubleClick={(e) => handleStartEdit(e, conv)}
+                              >
+                                {conv.title}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground/40">
+                                {conv.message_count} msgs
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={e => handleStartEdit(e, conv)} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-foreground" title="Rename">
+                            <Pencil size={11} />
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); handlePin(conv.id); }} className="p-0.5 rounded hover:bg-background text-amber-500" title="Unpin">
+                            <PinOff size={11} />
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); handleDelete(conv.id); }} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-destructive" title="Delete">
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {savedConvos.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No saved conversations yet</p>
-              ) : (
-                savedConvos.map(conv => (
-                  <div key={conv.id} className="group relative rounded-lg border p-2.5 hover:bg-accent cursor-pointer"
-                    onClick={() => handleLoad(conv)}>
-                    <p className="text-sm font-medium truncate pr-6">{conv.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {conv.message_count} msgs · {new Date(conv.updated_at).toLocaleDateString()}
+            )}
+
+            {/* 2. Cron Jobs / Autopilot */}
+            {filteredCronJobs.length > 0 && (
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setCronExpanded(!cronExpanded)}
+                  className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/40 rounded transition-colors text-left"
+                >
+                  {cronExpanded ? <ChevronDown size={11} className="text-muted-foreground/50" /> : <ChevronRight size={11} className="text-muted-foreground/50" />}
+                  <Cpu size={11} className="text-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Cron Jobs & Autopilot</span>
+                  <span className="text-[10px] text-muted-foreground/30 ml-auto">{filteredCronJobs.length}</span>
+                </button>
+
+                {cronExpanded && (
+                  <div className="space-y-1.5 pl-1.5 pt-0.5">
+                    {filteredCronJobs.map(cron => {
+                      const isSelected = cron.id === currentConvId;
+                      const isRunning = cron.status === 'running';
+                      const isPaused = cron.status === 'paused';
+
+                      return (
+                        <div
+                          key={cron.id}
+                          onClick={() => handleLoadCron(cron)}
+                          className={`group relative flex flex-col gap-1 p-2.5 rounded-lg cursor-pointer transition-all border hover:bg-accent/60 ${
+                            isSelected 
+                              ? 'bg-accent/50 border-primary/20 shadow-sm' 
+                              : 'border-transparent hover:border-muted-foreground/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {cron.id === 'cron_vuln' && <ShieldCheck size={13} className="text-emerald-500 shrink-0" />}
+                            {cron.id === 'cron_aws' && <Activity size={13} className="text-sky-500 shrink-0" />}
+                            {cron.id === 'cron_soc2' && <Cpu size={13} className="text-indigo-500 shrink-0" />}
+                            
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold truncate text-foreground/80">{cron.name}</p>
+                            </div>
+
+                            {/* Ping Indicator */}
+                            <div className="flex items-center shrink-0">
+                              {isRunning ? (
+                                <span className="flex h-1.5 w-1.5 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                                </span>
+                              ) : isPaused ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500/80"></span>
+                              ) : (
+                                <span className="flex h-1.5 w-1.5 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[9px] text-muted-foreground/50">
+                            <span className="font-mono bg-muted/60 px-1 py-0.5 rounded text-[8px]">{cron.schedule}</span>
+                            <span>{cron.lastRun === 'Just now' ? 'Just now' : `${cron.lastRun}`}</span>
+                          </div>
+
+                          {/* Collapsible Action Footer */}
+                          <div className="max-h-0 opacity-0 overflow-hidden group-hover:max-h-16 group-hover:opacity-100 transition-all duration-300 ease-out border-t border-muted-foreground/5 mt-1.5 pt-1.5 flex items-center justify-between">
+                            <span className="text-[9px] text-muted-foreground/40 italic truncate max-w-[100px]">
+                              {isPaused ? 'Schedule paused' : 'Schedule active'}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={(e) => handleToggleCronStatus(e, cron.id)}
+                                className="p-0.5 px-1.5 rounded bg-background border hover:bg-accent text-muted-foreground hover:text-foreground text-[8px] font-semibold transition-all flex items-center gap-0.5"
+                                title={isPaused ? 'Resume job' : 'Pause job'}
+                              >
+                                {isPaused ? <Play size={7} className="fill-current text-emerald-500" /> : <Pause size={7} className="fill-current text-amber-500" />}
+                                {isPaused ? 'Resume' : 'Pause'}
+                              </button>
+                              <button
+                                onClick={(e) => handleRunCron(e, cron.id)}
+                                disabled={isRunning}
+                                className="p-0.5 px-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50 text-[8px] font-bold transition-all flex items-center gap-0.5"
+                                title="Run manually now"
+                              >
+                                {isRunning ? (
+                                  <Loader size={7} className="animate-spin text-current" />
+                                ) : (
+                                  <Zap size={7} className="fill-current text-amber-300" />
+                                )}
+                                Run
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. Conversations */}
+            <div className="space-y-1">
+              <button 
+                onClick={() => setConvosExpanded(!convosExpanded)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/40 rounded transition-colors text-left"
+              >
+                {convosExpanded ? <ChevronDown size={11} className="text-muted-foreground/50" /> : <ChevronRight size={11} className="text-muted-foreground/50" />}
+                <MessageSquare size={11} className="text-muted-foreground/60" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Conversations</span>
+                <span className="text-[10px] text-muted-foreground/30 ml-auto">
+                  {searchQ ? filteredGroups.reduce((acc, g) => acc + g.items.length, 0) : recentConvos.length}
+                </span>
+              </button>
+
+              {convosExpanded && (
+                <div className="space-y-3 pl-1.5 pt-0.5">
+                  {filteredGroups.length === 0 ? (
+                    <p className="text-[10px] text-center text-muted-foreground/40 py-8">
+                      {searchQ ? 'No matching chats' : 'No saved conversations'}
                     </p>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteConv(conv.id); }}
-                      className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                      title="Delete"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">Reports</h3>
-                <button
-                  onClick={() => setShowReports(false)}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  <MessageSquare size={12} /> Conversations
-                </button>
-              </div>
-              {savedReports.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No reports yet. Start a conversation and create a report.</p>
-              ) : (
-                savedReports.map(report => (
-                  <div key={report.id} className="rounded-lg border p-2.5 space-y-1.5">
-                    <p className="text-sm font-medium truncate">{report.title}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(report.created_at).toLocaleDateString()}</p>
-                    <div className="flex gap-1.5 mt-1">
-                      <button
-                        onClick={() => handleCopyReport(report)}
-                        className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1"
-                      >
-                        {reportCopied === report.id ? <Check size={10} /> : <FileText size={10} />}
-                        {reportCopied === report.id ? 'Copied' : 'Copy'}
-                      </button>
-                      <button
-                        onClick={() => handleDownloadReport(report)}
-                        className="text-xs px-2 py-0.5 rounded bg-muted hover:bg-muted/80 transition-colors flex items-center gap-1"
-                      >
-                        <Download size={10} /> Download
-                      </button>
-                      <button
-                        onClick={() => handleDeleteReport(report.id)}
-                        className="text-xs px-2 py-0.5 rounded text-destructive hover:bg-destructive/10 transition-colors ml-auto"
-                      >
-                        <X size={10} />
-                      </button>
+                  ) : filteredGroups.map(group => (
+                    <div key={group.label} className="space-y-0.5">
+                      <div className="px-2 py-0.5 flex items-center justify-between">
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/40">{group.label}</span>
+                      </div>
+                      
+                      {group.items.map(conv => (
+                        <div
+                          key={conv.id}
+                          onClick={() => handleLoad(conv)}
+                          className={`group relative flex items-start gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all hover:bg-accent/60 ${conv.id === currentConvId ? 'bg-accent border border-primary/20 shadow-sm' : 'border border-transparent'}`}
+                        >
+                          <MessageSquare size={13} className="mt-0.5 text-muted-foreground/40 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            {editingId === conv.id ? (
+                              <input
+                                value={editTitle}
+                                onChange={e => setEditTitle(e.target.value)}
+                                onKeyDown={e => handleEditKeyDown(e, conv.id)}
+                                onBlur={() => handleSaveTitle(conv.id)}
+                                className="w-full text-xs bg-background border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                                autoFocus
+                                onClick={e => e.stopPropagation()}
+                              />
+                            ) : (
+                              <>
+                                <p 
+                                  className="text-xs font-medium truncate text-foreground/80" 
+                                  onDoubleClick={(e) => handleStartEdit(e, conv)}
+                                >
+                                  {conv.title}
+                                </p>
+                                <p className="text-[9px] text-muted-foreground/40">
+                                  {conv.message_count} msgs
+                                </p>
+                              </>
+                            )}
+                          </div>
+                          <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={e => handleStartEdit(e, conv)} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-foreground" title="Rename">
+                              <Pencil size={11} />
+                            </button>
+                            <button onClick={e => { e.stopPropagation(); handlePin(conv.id); }} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-amber-500" title="Pin">
+                              <Pin size={11} />
+                            </button>
+                            <button onClick={e => { e.stopPropagation(); handleDelete(conv.id); }} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-destructive" title="Delete">
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
-            </>
-          )}
+            </div>
+
+          </div>
         </div>
       </div>
 
-      {/* ── Main Chat Area ───────────────────────────────────────────── */}
+      {/* ── Main Chat Area ─────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
-              title="Toggle history"
-            >
-              <History size={18} />
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground" title="Toggle sidebar">
+              {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
             </button>
             <div>
               <h2 className="text-base font-semibold flex items-center gap-2">
                 <Bot size={18} className="text-primary" />
                 Compliance Agent
               </h2>
-              <p className="text-xs text-muted-foreground">Ask anything about your compliance posture</p>
+              <p className="text-[11px] text-muted-foreground/60 flex items-center gap-1.5">
+                <span>
+                  Hermes-native · {
+                    currentConvId?.startsWith('cron_') 
+                      ? `Cron Job active: ${cronJobs.find(c => c.id === currentConvId)?.name}` 
+                      : currentConvId ? 'Active session' : 'New session'
+                  }
+                </span>
+                {saveStatus === 'saving' && (
+                  <span className="inline-flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium bg-muted px-1.5 py-0.5 rounded animate-pulse">
+                    <Loader size={8} className="animate-spin text-primary" /> Saving...
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="inline-flex items-center gap-1 text-[9px] text-emerald-500 font-semibold bg-emerald-500/5 border border-emerald-500/10 px-1.5 py-0.5 rounded transition-all duration-300">
+                    <Check size={8} className="text-emerald-500" /> Saved
+                  </span>
+                )}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleNew}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border hover:bg-accent transition-colors"
-            >
-              <Plus size={14} /> New
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={messages.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border hover:bg-accent transition-colors disabled:opacity-40"
-              title="Save conversation"
-            >
-              <Save size={14} /> Save
-            </button>
-            <button
-              onClick={handleCreateReport}
-              disabled={messages.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
-              title="Create report from conversation"
-            >
-              <FileText size={14} /> Report
+            <button onClick={handleNew} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border hover:bg-accent transition-colors bg-background">
+              <Plus size={13} /> New Chat
             </button>
           </div>
         </div>
@@ -365,23 +826,12 @@ export function AgentPage() {
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {messages.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-20">
-              <Bot size={48} className="text-muted-foreground/40 mb-4" />
+              <Bot size={48} className="text-muted-foreground/30 mb-4 animate-bounce duration-1000" />
               <h3 className="text-lg font-semibold text-muted-foreground mb-2">Ask me anything</h3>
-              <p className="text-sm text-muted-foreground/60 max-w-md">
-                I can help with compliance gaps, evidence status, risk summaries, framework readiness, and more.
-              </p>
+              <p className="text-sm text-muted-foreground/60 max-w-md">I can help with compliance gaps, evidence status, risk summaries, framework readiness, and more.</p>
               <div className="flex flex-wrap gap-2 mt-8 justify-center max-w-lg">
-                {QUICK_ACTIONS.map(action => (
-                  <button
-                    key={action.label}
-                    onClick={() => {
-                      setInputValue(action.prompt);
-                      setTimeout(() => { sendMessage(action.prompt); }, 50);
-                    }}
-                    className="px-3 py-2 text-xs rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors"
-                  >
-                    {action.label}
-                  </button>
+                {(suggestedQuestions.length > 0 ? suggestedQuestions : ['How many risks?', 'List my clients', 'Show vendors', 'What are the top risks?']).map((q, i) => (
+                  <button key={i} onClick={() => { setInput(''); sendMessage(typeof q === 'string' ? q : ''); }} className="px-3 py-1.5 text-xs rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors">{q}</button>
                 ))}
               </div>
             </div>
@@ -393,13 +843,12 @@ export function AgentPage() {
 
           {error && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-              <AlertCircle size={16} />
               <span>{error}</span>
               <button onClick={() => clearChat()} className="ml-auto text-xs underline">Dismiss</button>
             </div>
           )}
 
-          <div ref={messagesEndRef} />
+          <div ref={endRef} />
         </div>
 
         {/* Input */}
@@ -408,23 +857,15 @@ export function AgentPage() {
             <textarea
               ref={inputRef}
               className="flex-1 min-h-[44px] max-h-[160px] rounded-xl border bg-muted/50 px-4 py-3 text-sm placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              placeholder="Ask a compliance question…"
-              value={inputValue}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
+              placeholder={currentConvId?.startsWith('cron_') ? "Ask a question about this cron job run..." : "Ask a compliance question..."}
+              value={input}
+              onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`; }}
+              onKeyDown={handleKey}
               rows={1}
               disabled={isLoading}
             />
-            <button
-              onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading}
-              className="h-[44px] w-[44px] flex items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 shrink-0"
-            >
-              {isLoading ? (
-                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <SendHorizontal size={18} />
-              )}
+            <button onClick={handleSend} disabled={!input.trim() || isLoading} className="h-[44px] w-[44px] flex items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 shrink-0 shadow-sm">
+              {isLoading ? <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <SendHorizontal size={18} />}
             </button>
           </div>
         </div>
@@ -433,115 +874,62 @@ export function AgentPage() {
   );
 }
 
-// ── Message Bubble ───────────────────────────────────────────────────────────
+// ── Message Bubble ────────────────────────────────────────────────────────────────
 
 function MessageBubble({ message, isLoading }: { message: ChatMessage; isLoading: boolean }) {
   const isUser = message.role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[80%] lg:max-w-[65%] ${isUser ? 'order-1' : 'order-1'}`}>
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-            isUser
-              ? 'bg-primary text-primary-foreground rounded-br-sm'
-              : 'bg-muted border rounded-bl-sm'
-          } ${isLoading && !isUser ? 'animate-pulse' : ''}`}
-        >
-          {message.content || (isLoading ? (
-            <span className="text-muted-foreground/60 italic">Thinking…</span>
-          ) : (
-            <span className="text-muted-foreground/60 italic">Empty response</span>
-          ))}
+      <div className={`max-w-[80%] lg:max-w-[65%]`}>
+        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted border rounded-bl-sm'} ${isLoading && !isUser ? 'animate-pulse' : ''}`}>
+          {message.content ? <FormattedText text={message.content} /> : isLoading ? <span className="text-muted-foreground/60 italic">Thinking…</span> : <span className="text-muted-foreground/60 italic">Empty response</span>}
         </div>
-        <p className={`text-[10px] text-muted-foreground/50 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
-          {new Date(message.timestamp).toLocaleTimeString()}
-        </p>
+        <p className={`text-[10px] text-muted-foreground/50 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>{new Date(message.timestamp).toLocaleTimeString()}</p>
       </div>
     </div>
   );
 }
 
-// ── Reports Page (standalone) ────────────────────────────────────────────────
+// ── Formatted Text ────────────────────────────────────────────────────────────────
 
-export function AgentReportsPage() {
-  const [reports, setReports] = useState<SavedReport[]>(() => loadReports());
-  const [copied, setCopied] = useState<string | null>(null);
+function FormattedText({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let inList = false;
 
-  const handleCopy = (report: SavedReport) => {
-    navigator.clipboard.writeText(report.content).then(() => {
-      setCopied(report.id);
-      setTimeout(() => setCopied(null), 2000);
+  lines.forEach((line, i) => {
+    const t = line.trim();
+    if (t.startsWith('## ')) { elements.push(<h2 key={i} className="text-base font-bold mt-3 mb-1">{t.slice(3)}</h2>); return; }
+    if (t.startsWith('# ')) { elements.push(<h1 key={i} className="text-lg font-bold mt-3 mb-1">{t.slice(2)}</h1>); return; }
+    if (/^[-*_]{3,}$/.test(t)) { elements.push(<hr key={i} className="my-2 border-muted-foreground/20" />); return; }
+    if (t.startsWith('```')) { elements.push(<code key={i} className="block bg-black/10 dark:bg-white/10 rounded p-2 my-1 text-xs font-mono whitespace-pre">{t.replace(/```/g, '')}</code>); return; }
+
+    const fmt = formatInline(t);
+
+    if (t.startsWith('- ') || t.startsWith('* ')) {
+      if (!inList) { inList = true; elements.push(<ul key={`ul-${i}`} className="list-disc pl-5 my-1 space-y-0.5" />); }
+      elements.push(<li key={i} className="text-sm">{formatInline(t.slice(2))}</li>); return;
+    }
+    if (/^\d+[.)]\s/.test(t)) {
+      if (!inList) { inList = true; elements.push(<ol key={`ol-${i}`} className="list-decimal pl-5 my-1 space-y-0.5" />); }
+      elements.push(<li key={i} className="text-sm">{formatInline(t.replace(/^\d+[.)]\s/, ''))}</li>); return;
+    }
+    if (inList) inList = false;
+    if (!t) { elements.push(<div key={i} className="h-2" />); return; }
+    elements.push(<p key={i} className="text-sm leading-relaxed">{fmt}</p>);
+  });
+  return <>{elements}</>;
+}
+
+// Inline formatting helper
+function formatInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    const codeParts = part.split(/(\={`[^`]+`)/g);
+    return codeParts.map((cp, j) => {
+      if (cp.startsWith('`') && cp.endsWith('`')) return <code key={`${i}-${j}`} className="bg-black/10 dark:bg-white/10 rounded px-1 text-xs font-mono">{cp.slice(1, -1)}</code>;
+      return cp;
     });
-  };
-
-  const handleDownload = (report: SavedReport) => {
-    const blob = new Blob([report.content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${report.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDelete = (id: string) => {
-    const updated = reports.filter(r => r.id !== id);
-    setReports(updated);
-    saveReports(updated);
-  };
-
-  return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Compliance Reports</h1>
-          <p className="text-sm text-muted-foreground mt-1">Reports generated from Agent conversations</p>
-        </div>
-        <a href="/agent" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-          <MessageSquare size={14} /> Back to Agent
-        </a>
-      </div>
-
-      {reports.length === 0 ? (
-        <div className="text-center py-20">
-          <FileText size={48} className="mx-auto text-muted-foreground/40 mb-4" />
-          <h3 className="text-lg font-semibold text-muted-foreground mb-2">No reports yet</h3>
-          <p className="text-sm text-muted-foreground/60 mb-6">Start a conversation with the Agent and click "Report" to generate one.</p>
-          <a href="/agent" className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground">Go to Agent</a>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {reports.map(report => (
-            <div key={report.id} className="rounded-xl border bg-card p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-base">{report.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(report.created_at).toLocaleString()} · {report.format.toUpperCase()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => handleCopy(report)}
-                    className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Copy">
-                    {copied === report.id ? <Check size={14} /> : <FileText size={14} />}
-                  </button>
-                  <button onClick={() => handleDownload(report)}
-                    className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Download">
-                    <Download size={14} />
-                  </button>
-                  <button onClick={() => handleDelete(report.id)}
-                    className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-destructive transition-colors" title="Delete">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-              <div className="max-h-48 overflow-y-auto rounded-lg bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap text-muted-foreground">
-                {report.content.slice(0, 2000)}{report.content.length > 2000 ? '…' : ''}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  });
 }

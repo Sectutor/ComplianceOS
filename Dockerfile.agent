@@ -6,7 +6,7 @@ FROM python:3.11-slim AS builder
 WORKDIR /app
 
 # Install Hermes Agent
-RUN pip install --no-cache-dir hermes-agent
+RUN pip install --no-cache-dir hermes-agent psycopg2-binary
 
 # Install additional tools for compliance scripts
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy Hermes + dependencies from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin/hermes /usr/local/bin/hermes
+RUN mkdir -p /usr/local/lib/python3.11/site-packages/ui-tui
 
 # Copy profile, skills, gateway configs
 COPY --from=builder /app/profile /app/profile

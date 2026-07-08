@@ -64,13 +64,8 @@ if [ -n "${CISOVAULT_API_URL:-}" ] && [ -n "${CISOVAULT_API_KEY:-}" ]; then
   echo "[Bridge] CISOvault bridge cron registered"
 fi
 
-# ── Trap shutdown ─────────────────────────────────────────────────────
-cleanup() {
-  echo "[Agent] Shutting down..."
-  kill $CHAT_PID 2>/dev/null || true
-  exit 0
-}
-trap cleanup SIGTERM SIGINT
-
-# ── Wait for Hermes ───────────────────────────────────────────────────
-wait $HERMES_PID
+# ── Start Standalone Hermes Agent ──────────────────────────────────────
+echo "[Agent] Starting Standalone Hermes Agent daemon..."
+# Replace the shell process with the hermes agent runtime.
+# This keeps the container alive, executes cron schedules, and runs messaging gateways.
+exec hermes --profile "$HERMES_PROFILE" --skills compliance-agent

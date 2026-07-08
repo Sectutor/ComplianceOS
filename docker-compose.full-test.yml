@@ -62,6 +62,7 @@ services:
         condition: service_started
     environment:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DATABASE_URL=postgres://complianceos:complianceos@db:5432/complianceos?sslmode=disable
       - COMPLIANCE_API_URL=http://complianceos:3002/api/v1
       - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-test-api-key-for-local-dev}
       - GATEWAY_ENABLED=false

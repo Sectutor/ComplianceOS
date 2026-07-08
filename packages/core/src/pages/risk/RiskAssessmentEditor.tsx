@@ -33,20 +33,48 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 
+const LIKELIHOOD_MAP: Record<string, number> = {
+    'Rare': 1,
+    'Unlikely': 2,
+    'Possible': 3,
+    'Likely': 4,
+    'Almost Certain': 5,
+};
+
+const IMPACT_MAP: Record<string, number> = {
+    'Low': 1,
+    'Medium': 2,
+    'High': 3,
+    'Very High': 4,
+    'Critical': 5,
+};
+
+const REVERSE_LIKELIHOOD_MAP: Record<string | number, string> = {
+    '1': 'Rare',
+    '2': 'Unlikely',
+    '3': 'Possible',
+    '4': 'Likely',
+    '5': 'Almost Certain',
+};
+
+const REVERSE_IMPACT_MAP: Record<string | number, string> = {
+    '1': 'Low',
+    '2': 'Medium',
+    '3': 'High',
+    '4': 'Very High',
+    '5': 'Critical',
+};
+
 export default function RiskAssessmentEditor() {
     const [location, setLocation] = useLocation();
     const [_, params] = useRoute('/clients/:clientId/risks/assessments/:assessmentId');
-    const clientId = params?.clientId ? parseInt(params.clientId) : 0;
-    const assessmentId = params?.assessmentId === 'new' ? null : (params?.assessmentId ? parseInt(params.assessmentId) : null);
+    const routeClientId = params?.clientId ? parseInt(params.clientId, 10) : NaN;
+    const assessmentId = params?.assessmentId === 'new' ? null : (params?.assessmentId ? parseInt(params.assessmentId, 10) : null);
 
     const { selectedClientId } = useClientContext();
 
-    // Ensure we are in the correct client context
-    useEffect(() => {
-        if (clientId && selectedClientId && clientId !== selectedClientId) {
-            // Optional: redirect or warn? For now assume URL is source of truth or context syncs
-        }
-    }, [clientId, selectedClientId]);
+    // Use route param first, fall back to context-selected client
+    const clientId = !isNaN(routeClientId) && routeClientId > 0 ? routeClientId : (selectedClientId || 0);
 
     const [loading, setLoading] = useState(false);
     const [isResidualRiskManual, setIsResidualRiskManual] = useState(false);
@@ -124,8 +152,8 @@ export default function RiskAssessmentEditor() {
                 vulnerabilityId: existingAssessment.vulnerabilityId,
                 vulnerabilityDescription: existingAssessment.vulnerabilityDescription || '',
                 affectedAssets: Array.isArray(existingAssessment.affectedAssets) ? existingAssessment.affectedAssets : [],
-                likelihood: existingAssessment.likelihood || 'Possible',
-                impact: existingAssessment.impact || 'High',
+                likelihood: REVERSE_LIKELIHOOD_MAP[existingAssessment.likelihood] || existingAssessment.likelihood || 'Possible',
+                impact: REVERSE_IMPACT_MAP[existingAssessment.impact] || existingAssessment.impact || 'High',
                 inherentRisk: existingAssessment.inherentRisk || 'Medium',
                 controlEffectiveness: existingAssessment.controlEffectiveness || 'Effective',
                 residualRisk: existingAssessment.residualRisk || 'Low',
@@ -154,20 +182,12 @@ export default function RiskAssessmentEditor() {
     }, [formData.inherentRisk, formData.controlEffectiveness, isResidualRiskManual]);
 
     // Mutations
-    const createMutation = trpc.risks.createRiskAssessment.useMutation({
+    const upsertMutation = trpc.risks.upsert.useMutation({
         onSuccess: () => {
-            toast.success('Risk Assessment created successfully');
+            toast.success(assessmentId ? 'Risk Assessment updated successfully' : 'Risk Assessment created successfully');
             setLocation(`/clients/${clientId}/risks/assessments`);
         },
-        onError: (err) => toast.error(`Failed to create: ${err.message}`)
-    });
-
-    const updateMutation = trpc.risks.updateRiskAssessment.useMutation({
-        onSuccess: () => {
-            toast.success('Risk Assessment updated successfully');
-            setLocation(`/clients/${clientId}/risks/assessments`);
-        },
-        onError: (err) => toast.error(`Failed to update: ${err.message}`)
+        onError: (err) => toast.error(`Failed to save: ${err.message}`)
     });
 
     const createThreatMutation = trpc.risks.createThreat.useMutation({
@@ -251,72 +271,43 @@ export default function RiskAssessmentEditor() {
     };
 
     const handleSubmit = async () => {
+        if (!clientId || isNaN(clientId)) {
+            toast.error('No client selected. Please select a client before saving.');
+            return;
+        }
         setLoading(true);
         try {
-            if (assessmentId) { // Update
-                const payload: any = {
-                    id: assessmentId,
-                    title: formData.title,
-                    assessmentDate: formData.assessmentDate || undefined,
-                    assessor: formData.assessor,
-                    method: formData.method,
-                    threatId: formData.threatId || undefined,
-                    threatDescription: formData.threatDescription,
-                    vulnerabilityId: formData.vulnerabilityId || undefined,
-                    vulnerabilityDescription: formData.vulnerabilityDescription,
-                    affectedAssets: formData.affectedAssets,
-                    affectedProcessIds: formData.affectedProcessIds,
-                    likelihood: formData.likelihood,
-                    impact: formData.impact,
-                    inherentRisk: formData.inherentRisk,
-                    controlEffectiveness: formData.controlEffectiveness,
-                    residualRisk: formData.residualRisk,
-                    riskOwner: formData.riskOwner,
-                    treatmentOption: formData.treatmentOption,
-                    recommendedActions: formData.recommendedActions,
-                    priority: formData.priority,
-                    targetResidualRisk: formData.targetResidualRisk,
-                    reviewDueDate: formData.reviewDueDate || undefined,
-                    status: formData.status as "draft" | "approved" | "reviewed",
-                    notes: formData.notes,
-                    nextReviewDate: formData.nextReviewDate || undefined,
-                    controlIds: formData.controlIds,
-                };
-                console.log("Submitting Update Payload:", payload);
-                await updateMutation.mutateAsync(payload);
-            } else { // Create
-                const payload: any = {
-                    clientId,
-                    assessmentId: formData.assessmentId,
-                    title: formData.title,
-                    assessmentDate: formData.assessmentDate || undefined,
-                    assessor: formData.assessor,
-                    method: formData.method,
-                    threatId: formData.threatId || undefined,
-                    threatDescription: formData.threatDescription,
-                    vulnerabilityId: formData.vulnerabilityId || undefined,
-                    vulnerabilityDescription: formData.vulnerabilityDescription,
-                    affectedAssets: formData.affectedAssets,
-                    affectedProcessIds: formData.affectedProcessIds,
-                    likelihood: formData.likelihood,
-                    impact: formData.impact,
-                    inherentRisk: formData.inherentRisk,
-                    controlEffectiveness: formData.controlEffectiveness,
-                    residualRisk: formData.residualRisk,
-                    riskOwner: formData.riskOwner,
-                    treatmentOption: formData.treatmentOption,
-                    recommendedActions: formData.recommendedActions,
-                    priority: formData.priority,
-                    targetResidualRisk: formData.targetResidualRisk,
-                    reviewDueDate: formData.reviewDueDate || undefined,
-                    status: formData.status as "draft" | "approved" | "reviewed",
-                    notes: formData.notes,
-                    nextReviewDate: formData.nextReviewDate || undefined,
-                    controlIds: formData.controlIds,
-                };
-                console.log("Submitting Create Payload:", payload);
-                await createMutation.mutateAsync(payload);
-            }
+            const payload: any = {
+                id: assessmentId || undefined,
+                clientId,
+                title: formData.title,
+                assessmentDate: formData.assessmentDate || undefined,
+                assessor: formData.assessor,
+                method: formData.method,
+                threatId: formData.threatId || undefined,
+                threatDescription: formData.threatDescription,
+                vulnerabilityId: formData.vulnerabilityId || undefined,
+                vulnerabilityDescription: formData.vulnerabilityDescription,
+                affectedAssets: formData.affectedAssets,
+                affectedProcessIds: formData.affectedProcessIds,
+                likelihood: LIKELIHOOD_MAP[formData.likelihood] || 3,
+                impact: IMPACT_MAP[formData.impact] || 3,
+                inherentRisk: formData.inherentRisk,
+                controlEffectiveness: formData.controlEffectiveness,
+                residualRisk: formData.residualRisk,
+                riskOwner: formData.riskOwner,
+                treatmentOption: formData.treatmentOption,
+                recommendedActions: formData.recommendedActions,
+                priority: formData.priority,
+                targetResidualRisk: formData.targetResidualRisk,
+                reviewDueDate: formData.reviewDueDate || undefined,
+                status: formData.status as "draft" | "approved" | "reviewed",
+                notes: formData.notes,
+                nextReviewDate: formData.nextReviewDate || undefined,
+                controlIds: formData.controlIds,
+            };
+            console.log("Submitting Upsert Payload:", payload);
+            await upsertMutation.mutateAsync(payload);
         } catch (error) {
             console.error(error);
         } finally {
