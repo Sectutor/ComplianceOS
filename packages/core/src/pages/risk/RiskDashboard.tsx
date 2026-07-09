@@ -16,6 +16,7 @@ import { RiskReductionROI } from '@/components/risk/RiskCharts';
 import { KRITrendCards } from '@/components/risk/KRITrendCards';
 
 import { Button } from '@complianceos/ui/ui/button';
+import { EmptyState } from '@complianceos/ui/ui/EmptyState';
 import { PageGuide } from "@/components/PageGuide";
 
 export default function RiskDashboard() {
