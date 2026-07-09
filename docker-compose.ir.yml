@@ -1,0 +1,106 @@
+# ──────────────────────────────────────────────────────────
+# Incident Response Stack — Powered by TheHive + Cortex
+# PREMIUM FEATURE — requires Enterprise or Partner license
+# ──────────────────────────────────────────────────────────
+# Deploy: docker compose -f docker-compose.yml -f docker-compose.ir.yml up -d
+#
+# Resource requirements:
+#   TheHive:  2GB RAM, 1 vCPU
+#   Cortex:   1GB RAM, 1 vCPU
+#   DB:       512MB RAM
+#
+# Prerequisites:
+#   1. Set THEHIVE_DB_PASSWORD in .env (default: thehive)
+#   2. Generate Cortex API key + add to TheHive config
+#      docker exec complianceos-cortex-1 python3 /opt/cortex/bin/cortex -c /etc/cortex/application.conf
+#
+# Integration: Wazuh alerts → TheHive cases → Cortex analyzers
+
+services:
+  # ── TheHive PostgreSQL ─────────────────────────────────
+  thehive-db:
+    image: postgres:15-alpine
+    container_name: complianceos-thehive-db-1
+    hostname: thehive-db
+    environment:
+      - POSTGRES_USER=thehive
+      - POSTGRES_PASSWORD=${THEHIVE_DB_PASSWORD:-thehive}
+      - POSTGRES_DB=thehive
+    volumes:
+      - thehive-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thehive -d thehive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Cortex (Analyzer Engine) ───────────────────────────
+  cortex:
+    image: thehiveproject/cortex:3.1
+    container_name: complianceos-cortex-1
+    hostname: cortex
+    ports:
+      - "9001:9001"
+    environment:
+      - CORTEX_INDEX_HOME=/opt/cortex/files
+      - CORTEX_DB_HOST=thehive-db
+      - CORTEX_DB_PORT=5432
+      - CORTEX_DB_NAME=cortex
+      - CORTEX_DB_USER=cortex
+      - CORTEX_DB_PASSWORD=${THEHIVE_DB_PASSWORD:-thehive}
+    volumes:
+      - cortex-data:/opt/cortex/files
+      - ./docker/cortex/config/application.conf:/etc/cortex/application.conf:ro
+    depends_on:
+      thehive-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+  # ── TheHive (IR Case Management) ───────────────────────
+  thehive:
+    image: thehiveproject/thehive:5.2
+    container_name: complianceos-thehive-1
+    hostname: thehive
+    ports:
+      - "9000:9000"
+    environment:
+      - THEHIVE_DB_URI=postgresql://thehive:${THEHIVE_DB_PASSWORD:-thehive}@thehive-db:5432/thehive
+      - CORTEX_URL=http://cortex:9001
+      - CORTEX_API_KEY=${CORTEX_API_KEY:-}
+    volumes:
+      - thehive-data:/opt/thehive/data
+      - ./docker/thehive/config/application.conf:/etc/thehive/application.conf:ro
+    depends_on:
+      thehive-db:
+        condition: service_healthy
+      cortex:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+volumes:
+  thehive-db-data:
+    name: complianceos-thehive-db-data
+  thehive-data:
+    name: complianceos-thehive-data
+  cortex-data:
+    name: complianceos-cortex-data

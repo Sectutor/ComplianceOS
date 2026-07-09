@@ -1,0 +1,114 @@
+# ──────────────────────────────────────────────────────────
+# SIEM Stack — Powered by Wazuh
+# PREMIUM FEATURE — requires Enterprise or Partner license
+# ──────────────────────────────────────────────────────────
+# Deploy: docker compose -f docker-compose.yml -f docker-compose.siem.yml up -d
+#
+# Resource requirements:
+#   Wazuh indexer: 4GB RAM, 2 vCPU
+#   Wazuh server:  4GB RAM, 2 vCPU
+#   Wazuh dashboard: 2GB RAM, 1 vCPU
+#   Storage: ~2GB/day per 50 endpoints
+#
+# Prerequisites:
+#   1. Generate certificates (one-time):
+#      docker compose -f docker-compose.siem.yml run --rm wazuh-certs
+#   2. Set WAZUH_INDEXER_PASSWORD in .env (default: wazuh)
+#
+# Reference: https://documentation.wazuh.com/current/deployment-options/docker/index.html
+
+services:
+  # ── Wazuh Indexer (OpenSearch) ─────────────────────────
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.9
+    container_name: complianceos-wazuh-indexer-1
+    hostname: wazuh-indexer
+    ports:
+      - "9200:9200"
+    environment:
+      - node.name=node-1
+      - cluster.name=wazuh-cluster
+      - discovery.seed_hosts=wazuh-indexer
+      - cluster.initial_master_nodes=node-1
+      - OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${WAZUH_INDEXER_PASSWORD:-wazuh}
+    volumes:
+      - wazuh-indexer-data:/var/lib/wazuh-indexer
+      - ./docker/wazuh/config/indexer.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-sf", "https://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Wazuh Server (Manager) ─────────────────────────────
+  wazuh-server:
+    image: wazuh/wazuh-server:4.9
+    container_name: complianceos-wazuh-server-1
+    hostname: wazuh-server
+    ports:
+      - "55000:55000/tcp"   # Wazuh API
+      - "1514:1514/udp"     # Agent connections
+      - "1515:1515/tcp"     # Agent enrollment
+      - "514:514/udp"       # Syslog
+      - "443:55000"         # Dashboard HTTPS (mapped)
+    environment:
+      - WAZUH_INDEXER_URL=https://wazuh-indexer:9200
+      - WAZUH_INDEXER_USERNAME=admin
+      - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-wazuh}
+    volumes:
+      - wazuh-server-data:/var/ossec
+      - ./docker/wazuh/config/server.yml:/etc/wazuh-server/wazuh-server.yml:ro
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "/var/ossec/bin/wazuh-control", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # ── Wazuh Dashboard ────────────────────────────────────
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.9
+    container_name: complianceos-wazuh-dashboard-1
+    hostname: wazuh-dashboard
+    ports:
+      - "8443:443"
+    environment:
+      - OPENSEARCH_HOSTS=https://wazuh-indexer:9200
+      - WAZUH_SERVER_URL=https://wazuh-server:55000
+    volumes:
+      - ./docker/wazuh/config/dashboard.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+      wazuh-server:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+
+  # ── Certificate Generator (one-shot) ────────────────────
+  wazuh-certs:
+    image: wazuh/wazuh-indexer:4.9
+    container_name: complianceos-wazuh-certs
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh -h
+    profiles:
+      - setup
+
+volumes:
+  wazuh-indexer-data:
+    name: complianceos-wazuh-indexer-data
+  wazuh-server-data:
+    name: complianceos-wazuh-server-data

@@ -1,0 +1,28 @@
+# Wazuh Server Configuration
+# PREMIUM FEATURE
+
+# Connection to the Wazuh indexer
+indexer:
+  enabled: true
+  host: wazuh-indexer
+  port: 9200
+  protocol: https
+  username: admin
+  password: ${WAZUH_INDEXER_PASSWORD:-wazuh}
+  ssl:
+    cert_path: /etc/ssl/certs/server.crt
+    key_path: /etc/ssl/certs/server.key
+    ca_path: /etc/ssl/certs/ca.crt
+
+# Manager settings
+manager:
+  host: wazuh-server
+  port: 1514
+  protocol: tcp
+
+# Integration with TheHive (if available)
+integration:
+  - name: thehive
+    level: 10
+    api_key: ${THEHIVE_API_KEY:-}
+    url: http://thehive:9000
