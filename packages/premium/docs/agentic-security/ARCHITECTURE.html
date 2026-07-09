@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cybersecurity Master Agent — Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #020617; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; display: flex; justify-content: center; padding: 40px 20px; }
+  .container { max-width: 1200px; width: 100%; }
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+  .pulse { width: 10px; height: 10px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+  .header h1 { font-size: 22px; font-weight: 600; color: #f1f5f9; }
+  .subtitle { color: #64748b; font-size: 12px; margin-bottom: 24px; margin-left: 26px; }
+  .diagram-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 30px; margin-bottom: 24px; }
+  .svg-wrapper { width: 100%; overflow-x: auto; }
+  svg { width: 1100px; height: 1020px; display: block; margin: 0 auto; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .card-dot.cyan { background: #22d3ee; }
+  .card-dot.emerald { background: #34d399; }
+  .card-dot.violet { background: #a78bfa; }
+  .card-dot.rose { background: #fb7185; }
+  .card h3 { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+  .card ul { list-style: none; }
+  .card li { font-size: 11px; color: #94a3b8; padding: 3px 0; }
+  .card li::before { content: "▸ "; color: #475569; }
+  .footer { text-align: center; font-size: 10px; color: #334155; border-top: 1px solid #1e293b; padding-top: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="pulse"></div>
+    <h1>Cybersecurity Master Agent — Architecture</h1>
+  </div>
+  <div class="subtitle">GRCompliance + CISOvault + Hermes + Wazuh + TheHive + Neo4j — Microservice Container Topology</div>
+
+  <div class="diagram-card">
+    <div class="svg-wrapper">
+      <svg viewBox="0 0 1100 1020">
+        <defs>
+          <!-- Grid pattern -->
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5" />
+          </pattern>
+          <!-- Arrow markers -->
+          <marker id="arrow-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#22d3ee" />
+          </marker>
+          <marker id="arrow-emerald" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399" />
+          </marker>
+          <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa" />
+          </marker>
+          <marker id="arrow-rose" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185" />
+          </marker>
+          <marker id="arrow-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+          </marker>
+          <!-- Arrowhead dashed -->
+          <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185" />
+          </marker>
+        </defs>
+
+        <!-- Background grid -->
+        <rect width="1100" height="1020" fill="url(#grid)" />
+
+        <!-- ============================================================ -->
+        <!-- LAYER 1 — USER INTERFACE LAYER (y=20-120)                    -->
+        <!-- ============================================================ -->
+
+        <!-- Layer boundary -->
+        <rect x="30" y="15" width="1040" height="120" rx="10" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4" />
+        <text x="50" y="35" font-size="10" fill="#64748b">USER INTERFACE LAYER</text>
+
+        <!-- Telegram -->
+        <rect x="70" y="50" width="130" height="65" rx="6" fill="#0f172a" />
+        <rect x="70" y="50" width="130" height="65" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" />
+        <text x="135" y="80" font-size="12" fill="#f1f5f9" text-anchor="middle" font-weight="600">Telegram</text>
+        <text x="135" y="96" font-size="9" fill="#94a3b8" text-anchor="middle">Chat Bot</text>
+
+        <!-- Slack -->
+        <rect x="250" y="50" width="130" height="65" rx="6" fill="#0f172a" />
+        <rect x="250" y="50" width="130" height="65" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" />
+        <text x="315" y="80" font-size="12" fill="#f1f5f9" text-anchor="middle" font-weight="600">Slack</text>
+        <text x="315" y="96" font-size="9" fill="#94a3b8" text-anchor="middle">Bot / Commands</text>
+
+        <!-- Web UI -->
+        <rect x="430" y="50" width="130" height="65" rx="6" fill="#0f172a" />
+        <rect x="430" y="50" width="130" height="65" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" />
+        <text x="495" y="80" font-size="12" fill="#f1f5f9" text-anchor="middle" font-weight="600">Web UI</text>
+        <text x="495" y="96" font-size="9" fill="#94a3b8" text-anchor="middle">React / Dashboard</text>
+
+        <!-- Email -->
+        <rect x="610" y="50" width="130" height="65" rx="6" fill="#0f172a" />
+        <rect x="610" y="50" width="130" height="65" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" />
+        <text x="675" y="80" font-size="12" fill="#f1f5f9" text-anchor="middle" font-weight="600">Email</text>
+        <text x="675" y="96" font-size="9" fill="#94a3b8" text-anchor="middle">SMTP / Reports</text>
+
+        <!-- API Gateway -->
+        <rect x="790" y="50" width="160" height="65" rx="6" fill="#0f172a" />
+        <rect x="790" y="50" width="160" height="65" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" />
+        <text x="870" y="80" font-size="12" fill="#f1f5f9" text-anchor="middle" font-weight="600">API Gateway</text>
+        <text x="870" y="96" font-size="9" fill="#94a3b8" text-anchor="middle">Nginx / Caddy</text>
+
+        <!-- Arrows from UI layer → Hermes (centered on UI layer) -->
+        <line x1="495" y1="115" x2="495" y2="165" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)" stroke-dasharray="4,3" />
+        <text x="505" y="142" font-size="8" fill="#22d3ee">HTTPS / WS</text>
+
+        <!-- ============================================================ -->
+        <!-- LAYER 2 — ORCHESTRATION LAYER (y=165-400)                    -->
+        <!-- ============================================================ -->
+
+        <rect x="30" y="160" width="1040" height="245" rx="10" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4" />
+        <text x="50" y="180" font-size="10" fill="#64748b">ORCHESTRATION LAYER</text>
+
+        <!-- Hermes Master Agent (big box) -->
+        <rect x="50" y="195" width="380" height="190" rx="8" fill="#0f172a" />
+        <rect x="50" y="195" width="380" height="190" rx="8" fill="rgba(6, 78, 59, 0.3)" stroke="#34d399" stroke-width="2" />
+        <text x="240" y="220" font-size="13" fill="#f1f5f9" text-anchor="middle" font-weight="700">HERMES MASTER AGENT</text>
+
+        <!-- Hermes internal components -->
+        <rect x="70" y="235" width="105" height="40" rx="4" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1" />
+        <text x="122" y="254" font-size="10" fill="#e2e8f0" text-anchor="middle">Cron Scheduler</text>
+        <text x="122" y="268" font-size="8" fill="#94a3b8" text-anchor="middle">12h / daily / weekly</text>
+
+        <rect x="190" y="235" width="105" height="40" rx="4" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1" />
+        <text x="242" y="254" font-size="10" fill="#e2e8f0" text-anchor="middle">Msg Gateway</text>
+        <text x="242" y="268" font-size="8" fill="#94a3b8" text-anchor="middle">Telegram/Email/Slack</text>
+
+        <rect x="310" y="235" width="100" height="40" rx="4" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1" />
+        <text x="360" y="254" font-size="10" fill="#e2e8f0" text-anchor="middle">Delegation</text>
+        <text x="360" y="268" font-size="8" fill="#94a3b8" text-anchor="middle">Sub-agent Router</text>
+
+        <rect x="70" y="290" width="105" height="40" rx="4" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1" />
+        <text x="122" y="309" font-size="10" fill="#e2e8f0" text-anchor="middle">Skills Lib</text>
+        <text x="122" y="323" font-size="8" fill="#94a3b8" text-anchor="middle">30+ pre-built skills</text>
+
+        <rect x="190" y="290" width="105" height="40" rx="4" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1" />
+        <text x="242" y="309" font-size="10" fill="#e2e8f0" text-anchor="middle">Memory/Persist</text>
+        <text x="242" y="323" font-size="8" fill="#94a3b8" text-anchor="middle">Long-term context</text>
+
+        <rect x="310" y="290" width="100" height="40" rx="4" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1" />
+        <text x="360" y="309" font-size="10" fill="#e2e8f0" text-anchor="middle">Tool Runtime</text>
+        <text x="360" y="323" font-size="8" fill="#94a3b8" text-anchor="middle">File/Web/Terminal</text>
+
+        <!-- Specialist Agents (right of Hermes) -->
+        <text x="580" y="220" font-size="11" fill="#64748b">SPECIALIST SUB-AGENTS</text>
+
+        <!-- Risk Agent -->
+        <rect x="480" y="235" width="130" height="55" rx="6" fill="#0f172a" />
+        <rect x="480" y="235" width="130" height="55" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5" />
+        <text x="545" y="259" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Risk Agent</text>
+        <text x="545" y="277" font-size="8" fill="#94a3b8" text-anchor="middle">FAIR scoring · TPRM · What-if</text>
+
+        <!-- Compliance Agent -->
+        <rect x="630" y="235" width="130" height="55" rx="6" fill="#0f172a" />
+        <rect x="630" y="235" width="130" height="55" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5" />
+        <text x="695" y="259" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Compliance Agent</text>
+        <text x="695" y="277" font-size="8" fill="#94a3b8" text-anchor="middle">Gaps · Evidence · Reports</text>
+
+        <!-- Infosec Agent -->
+        <rect x="780" y="235" width="130" height="55" rx="6" fill="#0f172a" />
+        <rect x="780" y="235" width="130" height="55" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5" />
+        <text x="845" y="259" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Infosec Agent</text>
+        <text x="845" y="277" font-size="8" fill="#94a3b8" text-anchor="middle">Threat Hunt · Vulns · IR</text>
+
+        <!-- Policy Agent -->
+        <rect x="930" y="235" width="120" height="55" rx="6" fill="#0f172a" />
+        <rect x="930" y="235" width="120" height="55" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5" />
+        <text x="990" y="259" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Policy Agent</text>
+        <text x="990" y="277" font-size="8" fill="#94a3b8" text-anchor="middle">Drafting · Meta · Tracking</text>
+
+        <!-- Sub-agent rows 2 -->
+        <rect x="555" y="305" width="130" height="40" rx="6" fill="#0f172a" />
+        <rect x="555" y="305" width="130" height="40" rx="6" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1" />
+        <text x="620" y="329" font-size="10" fill="#94a3b8" text-anchor="middle">Training Coach Agent</text>
+
+        <rect x="705" y="305" width="130" height="40" rx="6" fill="#0f172a" />
+        <rect x="705" y="305" width="130" height="40" rx="6" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1" />
+        <text x="770" y="329" font-size="10" fill="#94a3b8" text-anchor="middle">Auditor Agent</text>
+
+        <rect x="855" y="305" width="130" height="40" rx="6" fill="#0f172a" />
+        <rect x="855" y="305" width="130" height="40" rx="6" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1" />
+        <text x="920" y="329" font-size="10" fill="#94a3b8" text-anchor="middle">Remediation Agent</text>
+
+        <!-- Delegation arrows: Hermes → each specialist -->
+        <line x1="430" y1="262" x2="478" y2="262" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)" />
+        <line x1="430" y1="262" x2="478" y2="262" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)" />
+        <path d="M 430 290 Q 440 320 480 320 L 553 320" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-cyan)" />
+
+        <!-- ============================================================ -->
+        <!-- LAYER 3 — SERVICE LAYER (y=420-720)                          -->
+        <!-- ============================================================ -->
+
+        <rect x="30" y="410" width="1040" height="320" rx="10" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4" />
+        <text x="50" y="430" font-size="10" fill="#64748b">SERVICE LAYER (Docker Containers)</text>
+
+        <!-- ============ COLUMN 1: SIEM & IR (x=60-380) ============ -->
+
+        <!-- Wazuh Indexer -->
+        <rect x="60" y="445" width="145" height="70" rx="6" fill="#0f172a" />
+        <rect x="60" y="445" width="145" height="70" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="132" y="470" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Wazuh Indexer</text>
+        <text x="132" y="485" font-size="9" fill="#94a3b8" text-anchor="middle">OpenSearch</text>
+        <text x="132" y="500" font-size="8" fill="#64748b" text-anchor="middle">:9200</text>
+
+        <!-- Wazuh Server -->
+        <rect x="225" y="445" width="145" height="70" rx="6" fill="#0f172a" />
+        <rect x="225" y="445" width="145" height="70" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="297" y="470" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Wazuh Server</text>
+        <text x="297" y="485" font-size="9" fill="#94a3b8" text-anchor="middle">Manager</text>
+        <text x="297" y="500" font-size="8" fill="#64748b" text-anchor="middle">:55000</text>
+
+        <!-- Wazuh Dashboard -->
+        <rect x="60" y="535" width="145" height="55" rx="6" fill="#0f172a" />
+        <rect x="60" y="535" width="145" height="55" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="132" y="560" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Wazuh Dashboard</text>
+        <text x="132" y="578" font-size="8" fill="#64748b" text-anchor="middle">:443 (Kibana)</text>
+
+        <!-- Wazuh Agents (endpoints) -->
+        <rect x="225" y="535" width="145" height="55" rx="6" fill="#0f172a" />
+        <rect x="225" y="535" width="145" height="55" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="297" y="558" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Wazuh Agents</text>
+        <text x="297" y="575" font-size="8" fill="#94a3b8" text-anchor="middle">Windows · Linux · Mac</text>
+
+        <!-- Server → Indexer arrow -->
+        <line x1="225" y1="480" x2="207" y2="480" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-violet)" />
+
+        <!-- Agents → Server arrow -->
+        <line x1="280" y1="535" x2="280" y2="517" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-violet)" />
+
+        <!-- TheHive -->
+        <rect x="60" y="615" width="145" height="55" rx="6" fill="#0f172a" />
+        <rect x="60" y="615" width="145" height="55" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="132" y="640" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">TheHive</text>
+        <text x="132" y="658" font-size="8" fill="#64748b" text-anchor="middle">:9000 (IR Cases)</text>
+
+        <!-- Cortex -->
+        <rect x="225" y="615" width="145" height="55" rx="6" fill="#0f172a" />
+        <rect x="225" y="615" width="145" height="55" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="297" y="640" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Cortex</text>
+        <text x="297" y="658" font-size="8" fill="#64748b" text-anchor="middle">:9001 (Analyzers)</text>
+
+        <!-- Alerts arrow: Wazuh Server → TheHive -->
+        <path d="M 297 515 Q 370 550 200 615" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-dashed)" />
+
+        <!-- ============ COLUMN 2: GRC & SCANNERS (x=420-740) ============ -->
+
+        <!-- GRCompliance -->
+        <rect x="420" y="445" width="155" height="70" rx="6" fill="#0f172a" />
+        <rect x="420" y="445" width="155" height="70" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5" />
+        <text x="497" y="470" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">GRCompliance</text>
+        <text x="497" y="485" font-size="9" fill="#94a3b8" text-anchor="middle">GRC Engine</text>
+        <text x="497" y="500" font-size="8" fill="#64748b" text-anchor="middle">:3005</text>
+
+        <!-- CISOvault -->
+        <rect x="595" y="445" width="155" height="70" rx="6" fill="#0f172a" />
+        <rect x="595" y="445" width="155" height="70" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5" />
+        <text x="672" y="470" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">CISOvault</text>
+        <text x="672" y="485" font-size="9" fill="#94a3b8" text-anchor="middle">Security Scanner</text>
+        <text x="672" y="500" font-size="8" fill="#64748b" text-anchor="middle">:3099</text>
+
+        <!-- Sync Bridge -->
+        <rect x="420" y="540" width="155" height="55" rx="6" fill="#0f172a" />
+        <rect x="420" y="540" width="155" height="55" rx="6" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1" />
+        <text x="497" y="563" font-size="11" fill="#f1f5f9" text-anchor="middle">CISOvault Sync</text>
+        <text x="497" y="580" font-size="8" fill="#64748b" text-anchor="middle">Bridge</text>
+
+        <!-- MISP -->
+        <rect x="595" y="540" width="155" height="55" rx="6" fill="#0f172a" />
+        <rect x="595" y="540" width="155" height="55" rx="6" fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="1" />
+        <text x="672" y="563" font-size="11" fill="#f1f5f9" text-anchor="middle">MISP</text>
+        <text x="672" y="580" font-size="8" fill="#64748b" text-anchor="middle">Threat Intel</text>
+
+        <!-- OPA -->
+        <rect x="420" y="615" width="155" height="55" rx="6" fill="#0f172a" />
+        <rect x="420" y="615" width="155" height="55" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1" />
+        <text x="497" y="638" font-size="11" fill="#f1f5f9" text-anchor="middle">Open Policy Agent</text>
+        <text x="497" y="655" font-size="8" fill="#64748b" text-anchor="middle">Policy Enforcement</text>
+
+        <!-- Sync arrow: CISOvault → Bridge → GRC -->
+        <line x1="595" y1="480" x2="577" y2="515" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)" />
+        <line x1="497" y1="540" x2="497" y2="517" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)" />
+
+        <!-- ============ COLUMN 3: KNOWLEDGE (x=780-1050) ============ -->
+
+        <!-- Neo4j -->
+        <rect x="790" y="445" width="145" height="70" rx="6" fill="#0f172a" />
+        <rect x="790" y="445" width="145" height="70" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="862" y="470" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Neo4j</text>
+        <text x="862" y="485" font-size="9" fill="#94a3b8" text-anchor="middle">Knowledge Graph</text>
+        <text x="862" y="500" font-size="8" fill="#64748b" text-anchor="middle">:7687 · :7474</text>
+
+        <!-- Chroma -->
+        <rect x="790" y="535" width="145" height="55" rx="6" fill="#0f172a" />
+        <rect x="790" y="535" width="145" height="55" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="862" y="558" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Chroma</text>
+        <text x="862" y="575" font-size="8" fill="#64748b" text-anchor="middle">:8001 (Vector DB)</text>
+
+        <!-- RAG Server -->
+        <rect x="790" y="615" width="145" height="55" rx="6" fill="#0f172a" />
+        <rect x="790" y="615" width="145" height="55" rx="6" fill="rgba(6, 78, 59, 0.3)" stroke="#34d399" stroke-width="1" />
+        <text x="862" y="638" font-size="11" fill="#f1f5f9" text-anchor="middle">LlamaIndex RAG</text>
+        <text x="862" y="655" font-size="8" fill="#64748b" text-anchor="middle">:8000</text>
+
+        <!-- RAG → Chroma arrow -->
+        <line x1="862" y1="615" x2="862" y2="592" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)" />
+
+        <!-- ============================================================ -->
+        <!-- LAYER 4 — DATA LAYER (y=745-850)                             -->
+        <!-- ============================================================ -->
+
+        <rect x="30" y="740" width="1040" height="120" rx="10" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4" />
+        <text x="50" y="760" font-size="10" fill="#64748b">DATA LAYER (Persistent Storage)</text>
+
+        <!-- PostgreSQL (GRC) -->
+        <rect x="60" y="775" width="140" height="60" rx="6" fill="#0f172a" />
+        <rect x="60" y="775" width="140" height="60" rx="6" fill="rgba(76, 29, 149, 0.5)" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="130" y="800" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">PostgreSQL</text>
+        <text x="130" y="818" font-size="9" fill="#94a3b8" text-anchor="middle">GRC Database</text>
+
+        <!-- PostgreSQL (TheHive) -->
+        <rect x="230" y="775" width="140" height="60" rx="6" fill="#0f172a" />
+        <rect x="230" y="775" width="140" height="60" rx="6" fill="rgba(76, 29, 149, 0.5)" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="300" y="800" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">PostgreSQL</text>
+        <text x="300" y="818" font-size="9" fill="#94a3b8" text-anchor="middle">TheHive / MISP DBs</text>
+
+        <!-- Redis -->
+        <rect x="400" y="775" width="140" height="60" rx="6" fill="#0f172a" />
+        <rect x="400" y="775" width="140" height="60" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5" />
+        <text x="470" y="800" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">Redis</text>
+        <text x="470" y="818" font-size="9" fill="#94a3b8" text-anchor="middle">Cache / Sessions</text>
+
+        <!-- Wazuh Index Data -->
+        <rect x="570" y="775" width="160" height="60" rx="6" fill="#0f172a" />
+        <rect x="570" y="775" width="160" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="650" y="800" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">OpenSearch</text>
+        <text x="650" y="818" font-size="9" fill="#94a3b8" text-anchor="middle">Index Storage (Wazuh)</text>
+
+        <!-- MinIO / Files -->
+        <rect x="760" y="775" width="140" height="60" rx="6" fill="#0f172a" />
+        <rect x="760" y="775" width="140" height="60" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5" />
+        <text x="830" y="800" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">MinIO / S3</text>
+        <text x="830" y="818" font-size="9" fill="#94a3b8" text-anchor="middle">Evidence Files</text>
+
+        <!-- Data arrows (connecting Service Layer → Data Layer) -->
+        <line x1="497" y1="500" x2="497" y2="773" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-violet)" />
+        <line x1="132" y1="615" x2="132" y2="773" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-violet)" />
+        <line x1="650" y1="515" x2="650" y2="773" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-violet)" />
+        <line x1="672" y1="500" x2="672" y2="773" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-violet)" />
+
+        <!-- ============================================================ -->
+        <!-- Agent arrows: Hermes → Each service                          -->
+        <!-- ============================================================ -->
+
+        <!-- Hermes → GRCompliance -->
+        <path d="M 240 385 Q 240 410 497 410 L 497 443" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)" />
+        <text x="350" y="418" font-size="8" fill="#34d399">REST API</text>
+
+        <!-- Hermes → Wazuh Server -->
+        <path d="M 240 385 Q 240 410 297 410 L 297 443" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-violet)" />
+        <text x="255" y="418" font-size="8" fill="#fbbf24">REST API</text>
+
+        <!-- Hermes → CISOvault -->
+        <path d="M 240 385 Q 300 410 672 410 L 672 443" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)" />
+        <text x="440" y="418" font-size="8" fill="#34d399">REST API</text>
+
+        <!-- Hermes → Neo4j -->
+        <path d="M 240 385 Q 400 410 862 410 L 862 443" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)" />
+        <text x="560" y="418" font-size="8" fill="#a78bfa">Bolt · Cypher</text>
+
+        <!-- Hermes → TheHive -->
+        <path d="M 240 385 Q 280 550 132 613" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrow-violet)" />
+        <text x="190" y="560" font-size="8" fill="#a78bfa">REST API</text>
+
+        <!-- ============================================================ -->
+        <!-- LEGEND (y=875)                                                -->
+        <!-- ============================================================ -->
+
+        <rect x="180" y="875" width="740" height="120" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+        <text x="550" y="895" font-size="11" fill="#f1f5f9" text-anchor="middle" font-weight="600">LEGEND</text>
+
+        <!-- Legend items in 3 rows -->
+        <!-- Row 1: Colors -->
+        <rect x="210" y="910" width="12" height="12" rx="2" fill="rgba(8, 51, 68, 0.6)" stroke="#22d3ee" stroke-width="1" />
+        <text x="228" y="921" font-size="9" fill="#94a3b8">Frontend / UI</text>
+
+        <rect x="370" y="910" width="12" height="12" rx="2" fill="rgba(6, 78, 59, 0.6)" stroke="#34d399" stroke-width="1" />
+        <text x="388" y="921" font-size="9" fill="#94a3b8">Backend / Orchestrator</text>
+
+        <rect x="560" y="910" width="12" height="12" rx="2" fill="rgba(76, 29, 149, 0.6)" stroke="#a78bfa" stroke-width="1" />
+        <text x="578" y="921" font-size="9" fill="#94a3b8">Database / Storage</text>
+
+        <rect x="710" y="910" width="12" height="12" rx="2" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1" />
+        <text x="728" y="921" font-size="9" fill="#94a3b8">SIEM / Monitoring</text>
+
+        <!-- Row 2 -->
+        <rect x="210" y="934" width="12" height="12" rx="2" fill="rgba(136, 19, 55, 0.6)" stroke="#fb7185" stroke-width="1" />
+        <text x="228" y="945" font-size="9" fill="#94a3b8">Security / Sub-Agent</text>
+
+        <rect x="370" y="934" width="12" height="12" rx="2" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1" />
+        <text x="388" y="945" font-size="9" fill="#94a3b8">Cache / Files</text>
+
+        <rect x="530" y="934" width="12" height="12" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1" />
+        <text x="548" y="945" font-size="9" fill="#94a3b8">External / Auxiliary</text>
+
+        <!-- Row 3: Arrows -->
+        <line x1="210" y1="966" x2="240" y2="966" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)" />
+        <text x="248" y="970" font-size="9" fill="#94a3b8">REST / Inter-service</text>
+
+        <line x1="410" y1="966" x2="440" y2="966" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)" />
+        <text x="448" y="970" font-size="9" fill="#94a3b8">Database / Query</text>
+
+        <line x1="590" y1="966" x2="620" y2="966" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-dashed)" />
+        <text x="628" y="970" font-size="9" fill="#94a3b8">Alert / Event (async)</text>
+
+      </svg>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-dot emerald"></div>
+        <h3>Current Stack</h3>
+      </div>
+      <ul>
+        <li>GRCompliance — GRC Engine (:3005)</li>
+        <li>CISOvault — Scanner (:3099)</li>
+        <li>Hermes Agent — Orchestrator (:3004)</li>
+        <li>cisovault-sync — Bridge</li>
+        <li>PostgreSQL + Redis</li>
+        <li>Hermes skills (12+)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-dot cyan"></div>
+        <h3>Phase 1-2 (Next 4 Weeks)</h3>
+      </div>
+      <ul>
+        <li>Wazuh SIEM (3 containers)</li>
+        <li>TheHive + Cortex (IR + analyzers)</li>
+        <li>Hermes Threat Hunting skill</li>
+        <li>Agentic GRC Loop (auto-evidence)</li>
+        <li>SIEM alert → GRC risk pipeline</li>
+        <li>Telegram gateway (CISO phone ops)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-dot violet"></div>
+        <h3>Phase 3-5 (Month 2-3+)</h3>
+      </div>
+      <ul>
+        <li>Neo4j Knowledge Graph</li>
+        <li>Chroma + LlamaIndex RAG</li>
+        <li>Multi-Agent Specialists (5 roles)</li>
+        <li>Open Policy Agent enforcement</li>
+        <li>MISP Threat Intelligence</li>
+        <li>NemoClaw Sandbox + Autonomy</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    Cybersecurity Master Agent — Architecture Diagram · Generated for GRCompliance + CISOvault · 2026
+  </div>
+</div>
+</body>
+</html>

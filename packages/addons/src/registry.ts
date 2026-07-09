@@ -28,7 +28,7 @@ export interface AddonManifest {
   fullDescription: string;
 
   /** Category for filtering */
-  category: 'scanner' | 'siem' | 'dependency' | 'phishing' | 'ztna' | 'password' | 'ai';
+  category: 'scanner' | 'siem' | 'dependency' | 'phishing' | 'ztna' | 'password' | 'ai' | 'ir' | 'knowledge' | 'hunt';
 
   /** Monthly price in cents ($100 = 10000) */
   price: number;
@@ -319,6 +319,165 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
       'Plug-and-play: no infrastructure required',
     ],
   },
+
+  'ir-thehive': {
+    id: 'cos-ir-thehive',
+    slug: 'ir-thehive',
+    name: 'Incident Response — Powered by TheHive + Cortex',
+    description:
+      'Security incident case management with automated playbooks, IOC enrichment via Cortex analyzers (VirusTotal, AbuseIPDB, Shodan), and bi-directional sync with your risk register.',
+    fullDescription:
+      'TheHive is the leading open-source Security Incident Response platform. This addon integrates TheHive and Cortex into your GRCompliance workflow.\\n\\n' +
+      '• Auto-creates IR cases from Wazuh alerts and CISOvault findings\\n' +
+      '• Runs Cortex analyzers for IOC enrichment (IPs, domains, hashes, URLs)\\n' +
+      '• Bi-directional sync: TheHive case status ↔ GRCompliance risk status\\n' +
+      '• Pre-built response playbooks for common incident types\\n' +
+      '• Full forensic evidence chain for audits\\n' +
+      '• Collaborative case handling with built-in task management',
+    category: 'ir',
+    price: 15000, // $150/mo
+    trialDays: 14,
+    icon: '🚨',
+    replaces: 'ServiceNow IR / Splunk SOAR',
+    replacesCost: '$50,000+/yr',
+    tools: [
+      {
+        name: 'TheHive',
+        url: 'https://github.com/TheHive-Project/TheHive',
+        description: 'Open-source security incident response platform',
+      },
+      {
+        name: 'Cortex',
+        url: 'https://github.com/TheHive-Project/Cortex',
+        description: 'Observable analysis and active response engine',
+      },
+    ],
+    requiredInfrastructure: '4 vCPU, 4 GB RAM (Hetzner CCX13 or equivalent)',
+    permissions: ['read:risks', 'write:risks', 'read:clients', 'write:evidence'],
+    uiSlots: [
+      { slot: 'addon:dashboard', position: 'main', priority: 50 },
+      { slot: 'addon:settings', position: 'main', priority: 50 },
+      { slot: 'sidebar:addons', position: 'bottom', priority: 50 },
+    ],
+    version: '1.0.0',
+    isCommunity: false,
+    features: [
+      'Auto-case creation from Wazuh alerts and scanner findings',
+      'IOC enrichment via VirusTotal, AbuseIPDB, Shodan, URLScan.io',
+      'Bi-directional case ↔ risk sync',
+      'Pre-built incident response playbooks',
+      'Forensic evidence chain for audit trails',
+      'Collaborative case handling with task assignments',
+      'Real-time Telegram/Slack notifications on case updates',
+      'Cortex analyzer library with 200+ analyzers',
+    ],
+  },
+
+  'knowledge-graph': {
+    id: 'cos-knowledge-graph',
+    slug: 'knowledge-graph',
+    name: 'Cybersecurity Knowledge Graph — Powered by Neo4j',
+    description:
+      'Relationship-aware compliance intelligence. Maps assets, controls, risks, threats, and regulations into a queryable graph — answer "what protects our crown jewels?" as a graph path.',
+    fullDescription:
+      'Neo4j knowledge graph that transforms flat compliance data into relationship-aware intelligence.\\n\\n' +
+      '• Maps: Assets → Vulnerabilities → Controls → Frameworks → Regulations\\n' +
+      '• Natural language queries via Hermes agent: "What protects our production database?"\\n' +
+      '• Automated sync from GRCompliance DB, CISOvault findings, Wazuh alerts\\n' +
+      '• Risk path analysis: find the shortest path from a threat to a critical asset\\n' +
+      '• Graph visualization dashboard with interactive exploration\\n' +
+      '• Impact analysis: "If control X fails, which regulations are breached?"',
+    category: 'knowledge',
+    price: 10000, // $100/mo
+    trialDays: 14,
+    icon: '🧠',
+    replaces: 'Manual compliance mapping / spreadsheets',
+    replacesCost: '$200+/hr consultant time',
+    tools: [
+      {
+        name: 'Neo4j',
+        url: 'https://neo4j.com',
+        description: 'Leading graph database for connected data',
+      },
+      {
+        name: 'LlamaIndex',
+        url: 'https://github.com/run-llama/llama_index',
+        description: 'RAG framework for semantic document search over policies',
+      },
+    ],
+    requiredInfrastructure: '2 vCPU, 4 GB RAM (Hetzner CCX13 or equivalent)',
+    permissions: ['read:controls', 'read:risks', 'read:evidence', 'read:assets'],
+    uiSlots: [
+      { slot: 'addon:dashboard', position: 'main', priority: 60 },
+      { slot: 'addon:settings', position: 'main', priority: 60 },
+      { slot: 'sidebar:addons', position: 'bottom', priority: 60 },
+    ],
+    version: '1.0.0',
+    isCommunity: false,
+    features: [
+      'Full cybersecurity ontology: assets, controls, risks, threats, regulations',
+      'Natural language graph queries via Hermes agent',
+      'Automated data sync from GRC + CISOvault + Wazuh',
+      'Risk path analysis and impact simulation',
+      'Interactive graph visualization dashboard',
+      'Graph-powered compliance gap analysis',
+      'What-if scenario modeling for control changes',
+      'Regulatory impact mapping across frameworks',
+    ],
+  },
+
+  'threat-hunting': {
+    id: 'cos-threat-hunting',
+    slug: 'threat-hunting',
+    name: 'AI Threat Hunting — Powered by Hermes Agent',
+    description:
+      'Pre-built threat hunting playbooks run by Hermes agent. One-command hunts for credential dumping, C2 beacons, Log4j, ransomware indicators — queries Wazuh + CISOvault in parallel.',
+    fullDescription:
+      'Hermes-powered threat hunting that turns your SIEM + scanner data into proactive defense.\\n\\n' +
+      '• 12 pre-built hunt playbooks: credential dumping, C2 beacon, lateral movement, data exfiltration, privilege escalation, persistence mechanisms, Log4j/zero-day, ransomware indicators, DNS tunneling, port scanning, brute force, email phishing\\n' +
+      '• Each hunt queries Wazuh SIEM and CISOvault findings in parallel\\n' +
+      '• Results collated: findings, evidence, remediation steps\\n' +
+      '• Auto-creates TheHive cases + GRCompliance risks on confirmed findings\\n' +
+      '• Scheduled hunts run weekly, alerts on matches\\n' +
+      '• Natural language: "hunt for credential dumping"',
+    category: 'siem',
+    price: 15000, // $150/mo
+    trialDays: 14,
+    icon: '🎯',
+    replaces: 'Recorded Future / CrowdStrike Falcon OverWatch',
+    replacesCost: '$50,000–$150,000/yr',
+    tools: [
+      {
+        name: 'Hermes Agent',
+        url: 'https://github.com/NousResearch/hermes-agent',
+        description: 'Autonomous AI agent orchestrator with skill-based threat hunting',
+      },
+      {
+        name: 'YARA',
+        url: 'https://github.com/VirusTotal/yara',
+        description: 'Pattern matching for malware and IOC detection',
+      },
+    ],
+    requiredInfrastructure: 'Existing CISOvault + Wazuh deployment',
+    permissions: ['read:risks', 'write:risks', 'read:clients', 'write:evidence', 'read:incidents'],
+    uiSlots: [
+      { slot: 'addon:dashboard', position: 'main', priority: 25 },
+      { slot: 'addon:settings', position: 'main', priority: 25 },
+      { slot: 'sidebar:addons', position: 'bottom', priority: 25 },
+    ],
+    version: '1.0.0',
+    isCommunity: false,
+    features: [
+      '12 pre-built threat hunting playbooks',
+      'Cross-source correlation (Wazuh + CISOvault)',
+      'One-command natural language hunts',
+      'Auto-case creation on confirmed findings',
+      'Scheduled weekly hunts with alerting',
+      'Remediation recommendations with each finding',
+      'Hunt result archive for audit trails',
+      'Custom hunt creation via Hermes skills',
+    ],
+  },
 };
 
 export function getAddonBySlug(slug: string): AddonManifest | undefined {
@@ -338,4 +497,7 @@ export const ADDON_CATEGORIES = [
   { value: 'siem', label: 'Endpoint Security & SIEM' },
   { value: 'dependency', label: 'Supply Chain Security' },
   { value: 'ai', label: 'AI-Powered Compliance' },
+  { value: 'ir', label: 'Incident Response & SOAR' },
+  { value: 'knowledge', label: 'Knowledge Graph & RAG' },
+  { value: 'hunt', label: 'Threat Hunting & Intelligence' },
 ] as const;
