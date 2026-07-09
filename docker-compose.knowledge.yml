@@ -1,0 +1,105 @@
+# ──────────────────────────────────────────────────────────
+# Knowledge Graph & RAG Stack
+# PREMIUM FEATURE — requires Partner license
+# ──────────────────────────────────────────────────────────
+# Deploy: docker compose -f docker-compose.yml -f docker-compose.knowledge.yml up -d
+#
+# Resource requirements:
+#   Neo4j:   2GB RAM, 2 vCPU
+#   Chroma:  1GB RAM, 1 vCPU
+#   RAG:     1GB RAM, 1 vCPU
+#
+# Stack: Neo4j (graph) + Chroma (vectors) + LlamaIndex (RAG API)
+
+services:
+  # ── Neo4j Knowledge Graph ───────────────────────────────
+  neo4j:
+    image: neo4j:5-community
+    container_name: complianceos-neo4j-1
+    hostname: neo4j
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt protocol
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-knowledge123}
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_memory_pagecache_size=512m
+      - NEO4J_dbms_memory_heap_max__size=1G
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+      - ./docker/neo4j/ontology:/ontology:ro
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-knowledge123}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Chroma Vector DB ────────────────────────────────────
+  chroma:
+    image: chromadb/chroma:0.5.23
+    container_name: complianceos-chroma-1
+    hostname: chroma
+    ports:
+      - "8001:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chroma-data:/chroma/chroma
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  # ── LlamaIndex RAG Server ──────────────────────────────
+  rag-server:
+    build: ./docker/rag-server
+    container_name: complianceos-rag-1
+    hostname: rag-server
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_URL=http://chroma:8000
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-knowledge123}
+      - LLM_API_KEY=${DEEPSEEK_API_KEY:-}
+      - LLM_MODEL=deepseek-v4-flash
+      - LLM_BASE_URL=https://api.deepseek.com/v1
+    volumes:
+      - rag-data:/app/data
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  neo4j-data:
+    name: complianceos-neo4j-data
+  neo4j-logs:
+    name: complianceos-neo4j-logs
+  chroma-data:
+    name: complianceos-chroma-data
+  rag-data:
+    name: complianceos-rag-data
