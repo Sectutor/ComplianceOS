@@ -1,0 +1,93 @@
+# ──────────────────────────────────────────────────────────
+# Sandbox + Autonomy Stack
+# PREMIUM FEATURE — requires Partner license
+# ──────────────────────────────────────────────────────────
+# Deploy: docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d
+#
+# Adds:
+#   sandbox-executor — Isolated action runner (ephemeral containers)
+#   prometheus      — Agent + service metrics collection
+#   grafana         — Metrics visualization dashboards
+
+services:
+  # ── Sandbox Executor ────────────────────────────────────
+  # Runs agent actions in ephemeral Docker containers with:
+  # - No outbound network (unless explicitly permitted)
+  # - Read-only filesystem (except /output)
+  # - Strict resource limits
+  # - Full audit logging
+  sandbox-executor:
+    build: ./docker/sandbox
+    container_name: complianceos-sandbox-1
+    hostname: sandbox-executor
+    ports:
+      - "8020:8020"
+    environment:
+      - SANDBOX_DATA_DIR=/data
+      - SANDBOX_MAX_MEMORY=512m
+      - SANDBOX_MAX_CPU=1.0
+      - SANDBOX_TIMEOUT=300
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - sandbox-data:/data
+      - sandbox-audit:/audit
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  # ── Prometheus ──────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: complianceos-prometheus-1
+    hostname: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+
+  # ── Grafana ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: complianceos-grafana-1
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-complianceos}
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - ./docker/monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - ./docker/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+
+volumes:
+  sandbox-data:
+    name: complianceos-sandbox-data
+  sandbox-audit:
+    name: complianceos-sandbox-audit
+  prometheus-data:
+    name: complianceos-prometheus-data
+  grafana-data:
+    name: complianceos-grafana-data
