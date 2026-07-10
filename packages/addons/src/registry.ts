@@ -67,6 +67,9 @@ export interface AddonManifest {
   /** Whether this is available in community edition */
   isCommunity: boolean;
 
+  /** Required tier to access this addon (empty = purchasable individually) */
+  requiredTier?: 'team' | 'enterprise' | 'partner';
+
   /** Features enabled by this addon (for displaying to client) */
   features: string[];
 }
@@ -108,6 +111,7 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
     ],
     version: '1.0.0',
     isCommunity: false,
+    requiredTier: 'enterprise',
     features: [
       'Multi-cloud support (AWS, Azure, GCP)',
       '2,000+ automated compliance checks',
@@ -157,6 +161,7 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
     ],
     version: '1.0.0',
     isCommunity: false,
+    requiredTier: 'enterprise',
     features: [
       'Real-time endpoint event collection',
       'File Integrity Monitoring (FIM)',
@@ -210,6 +215,7 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
     ],
     version: '1.0.0',
     isCommunity: false,
+    requiredTier: 'enterprise',
     features: [
       'Multi-language dependency scanning',
       'SBOM generation (SPDX / CycloneDX)',
@@ -258,6 +264,7 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
     ],
     version: '1.0.0',
     isCommunity: false,
+    requiredTier: 'partner',
     features: [
       'Scheduled gap analysis (daily/weekly/manual)',
       'Missing, expired, and expiring evidence detection',
@@ -335,8 +342,8 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
       '• Full forensic evidence chain for audits\\n' +
       '• Collaborative case handling with built-in task management',
     category: 'ir',
-    price: 15000, // $150/mo
-    trialDays: 14,
+    price: 0,
+    trialDays: 0,
     icon: '🚨',
     replaces: 'ServiceNow IR / Splunk SOAR',
     replacesCost: '$50,000+/yr',
@@ -388,8 +395,8 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
       '• Graph visualization dashboard with interactive exploration\\n' +
       '• Impact analysis: "If control X fails, which regulations are breached?"',
     category: 'knowledge',
-    price: 10000, // $100/mo
-    trialDays: 14,
+    price: 0,
+    trialDays: 0,
     icon: '🧠',
     replaces: 'Manual compliance mapping / spreadsheets',
     replacesCost: '$200+/hr consultant time',
@@ -441,8 +448,8 @@ export const ADDON_REGISTRY: Record<string, AddonManifest> = {
       '• Scheduled hunts run weekly, alerts on matches\\n' +
       '• Natural language: "hunt for credential dumping"',
     category: 'siem',
-    price: 15000, // $150/mo
-    trialDays: 14,
+    price: 0,
+    trialDays: 0,
     icon: '🎯',
     replaces: 'Recorded Future / CrowdStrike Falcon OverWatch',
     replacesCost: '$50,000–$150,000/yr',
