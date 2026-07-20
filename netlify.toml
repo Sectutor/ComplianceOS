@@ -1,7 +1,7 @@
 [build]
-  base = "."
-  command = "mkdir -p packages/core/dist/public-auditor && cp -r public-auditor/. packages/core/dist/public-auditor/; npm ci --legacy-peer-deps 2>/dev/null; npm run build -w @complianceos/core 2>/dev/null; echo 'done'"
-  publish = "packages/core/dist"
+  base = "public-auditor"
+  command = "echo 'Static site — ready'"
+  publish = "."
 
 [build.environment]
   NPM_FLAGS = "--include=dev"
