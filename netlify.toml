@@ -1,6 +1,6 @@
 [build]
   base = "."
-  command = "npm ci --legacy-peer-deps && npm run build -w @complianceos/core && cp -r public-auditor packages/core/dist/public-auditor"
+  command = "npm ci --legacy-peer-deps && npm run build -w @complianceos/core; bash scripts/copy-public-auditor.sh packages/core/dist"
   publish = "packages/core/dist"
 
 [build.environment]
