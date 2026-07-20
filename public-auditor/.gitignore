@@ -1,0 +1,6 @@
+*.pyc
+__pycache__/
+assessment_*.html
+assessment_*.doc
+.env
+.env.*
