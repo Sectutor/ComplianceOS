@@ -5,7 +5,7 @@
 
 //  DEV BYPASS 
 // Set to true to unlock premium features without payment (DEV/TESTING ONLY)
-const DEV_BYPASS_PAYMENT = true;
+const DEV_BYPASS_PAYMENT = false;
 
 //  STATE 
 let wizardState = {
