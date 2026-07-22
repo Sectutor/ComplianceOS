@@ -15,7 +15,7 @@
 }
 
 html {
-  font-size: 18px !important;
+  font-size: 16px !important;
 }
 
 body {
@@ -325,4 +325,9 @@ code, pre {
     transform: rotate(-2deg) !important;
     display: inline-block !important;
   }
+}
+
+/* Prevent status badges from wrapping text */
+#compliance-matrix-rows span {
+  white-space: nowrap !important;
 }
