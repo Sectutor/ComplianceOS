@@ -71,7 +71,7 @@ export default function ClientSettings() {
         userRoleInClient === 'admin' ||
         userRoleInClient === 'owner';
 
-    const isPremiumOrg = client?.planTier === 'pro' || client?.planTier === 'enterprise';
+    const isPremiumOrg = client?.planTier === 'consultant' || client?.planTier === 'enterprise';
     const adminRoles = ['admin', 'owner', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
     const canAccessBackupRestore = isPremiumOrg || adminRoles.includes(userGlobalRole || '');
 

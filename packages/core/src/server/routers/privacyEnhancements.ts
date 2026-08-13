@@ -444,7 +444,7 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
           // This is a simplified auto-discovery implementation
           // In production, this would connect to various systems to automatically discover data flows
 
-          const discoveredFlows = [];
+          const discoveredFlows: any[] = [];
 
           // Simulate discovery logic based on scan type
           if (input.scanType === 'api') {

@@ -9,108 +9,108 @@ const NIST_RMF = {
     name: "GOVERN",
     description: "Cultures, structures, and policies that guide AI risk management",
     subcategories: [
-      { id: "GOV-1", title: "Policies, processes, and procedures for AI risk management", desc: "Organizational policies are in place to identify, assess, and manage AI risks across the system lifecycle" },
-      { id: "GOV-2", title: "Accountability and roles clearly defined", desc: "Roles, responsibilities, and authorities for AI risk management are documented and communicated" },
-      { id: "GOV-3", title: "Workforce AI risk training", desc: "Personnel receive training on AI risks, responsible use, responsibilities, and organizational policies" },
-      { id: "GOV-4", title: "AI risk in enterprise risk management", desc: "AI risks are integrated into broader enterprise risk management strategy and operations" },
-      { id: "GOV-5", title: "Data collection and management policies", desc: "Policies govern data collection, labeling, use, and management for AI training, testing, and deployment" },
-      { id: "GOV-6", title: "AI risk management accountability structures", desc: "Organizational structures assign accountability for AI risk to appropriate decision-makers" }
+      { id: "GOV-1", title: "Does your organization have documented policies and procedures for AI risk management across the system lifecycle?", desc: "Organizational policies are in place to identify, assess, and manage AI risks across the system lifecycle" },
+      { id: "GOV-2", title: "Are roles, responsibilities, and accountability for AI risk management clearly defined and assigned?", desc: "Roles, responsibilities, and authorities for AI risk management are documented and communicated" },
+      { id: "GOV-3", title: "Does your workforce receive regular training on AI risks, responsible AI use, and organizational policies?", desc: "Personnel receive training on AI risks, responsible use, responsibilities, and organizational policies" },
+      { id: "GOV-4", title: "Are AI risks integrated into your enterprise-wide risk management strategy and reporting?", desc: "AI risks are integrated into broader enterprise risk management strategy and operations" },
+      { id: "GOV-5", title: "Do you have policies governing data collection, labeling, and management for AI training and deployment?", desc: "Policies govern data collection, labeling, use, and management for AI training, testing, and deployment" },
+      { id: "GOV-6", title: "Does your organizational structure assign clear accountability for AI risk to appropriate decision-makers?", desc: "Organizational structures assign accountability for AI risk to appropriate decision-makers" }
     ]
   },
   map: {
     name: "MAP",
     description: "Context, scope, and nature of AI systems and their risks",
     subcategories: [
-      { id: "MAP-1", title: "AI system context and purpose documented", desc: "Clear documentation of intended use, users, operating environment, and business requirements" },
-      { id: "MAP-2", title: "AI system risk impacts identified", desc: "Identification of potential harms to individuals, groups, organizations, and society" },
-      { id: "MAP-3", title: "Trustworthiness characteristics mapped", desc: "Mapping of system requirements to trustworthiness characteristics (safety, security, fairness, explainability, privacy, accountability)" },
-      { id: "MAP-4", title: "Risk likelihood and severity assessed", desc: "Assessment of probability and magnitude of identified risks using established methods" },
-      { id: "MAP-5", title: "Risk prioritization established", desc: "Prioritized ranking of risks based on impact, likelihood, and organizational risk tolerance" },
-      { id: "MAP-6", title: "AI system boundaries and limitations defined", desc: "Explicit definition of what the system will and will not do, including out-of-scope uses" }
+      { id: "MAP-1", title: "Do you maintain clear documentation of your AI system intended use, users, and operating environment?", desc: "Clear documentation of intended use, users, operating environment, and business requirements" },
+      { id: "MAP-2", title: "Have you identified potential harms to individuals, groups, or society from your AI system?", desc: "Identification of potential harms to individuals, groups, organizations, and society" },
+      { id: "MAP-3", title: "Have you mapped your system requirements to trustworthiness characteristics like safety, fairness, and explainability?", desc: "Mapping of system requirements to trustworthiness characteristics (safety, security, fairness, explainability, privacy, accountability)" },
+      { id: "MAP-4", title: "Do you assess both the likelihood and severity of identified AI risks using established methods?", desc: "Assessment of probability and magnitude of identified risks using established methods" },
+      { id: "MAP-5", title: "Do you maintain a prioritized ranking of risks based on impact, likelihood, and organizational risk tolerance?", desc: "Prioritized ranking of risks based on impact, likelihood, and organizational risk tolerance" },
+      { id: "MAP-6", title: "Have you explicitly defined what your AI system will and will not do, including out-of-scope uses?", desc: "Explicit definition of what the system will and will not do, including out-of-scope uses" }
     ]
   },
   measure: {
     name: "MEASURE",
     description: "Assessment, analysis, and tracking of AI risks",
     subcategories: [
-      { id: "MEAS-1", title: "AI risk metrics and measurement methods", desc: "Quantitative and qualitative metrics established for tracking AI risks and impacts" },
-      { id: "MEAS-2", title: "AI system trustworthiness testing", desc: "Testing for safety, security, fairness, transparency, and other trustworthiness characteristics" },
-      { id: "MEAS-3", title: "AI system security and privacy testing", desc: "Security testing including adversarial robustness, data protection, access controls, and vulnerability assessment" },
-      { id: "MEAS-4", title: "AI risk monitoring and review", desc: "Ongoing monitoring of AI system performance, risk indicators, and environmental changes" },
-      { id: "MEAS-5", title: "Feedback mechanisms for AI risk events", desc: "Mechanisms for reporting, responding to, and learning from AI risk events" },
-      { id: "MEAS-6", title: "AI impact evaluation methods", desc: "Methods for evaluating AI system impacts on individuals, communities, and society over time" },
-      { id: "MEAS-7", title: "AI risk management outcomes tracked", desc: "Tracking effectiveness of risk mitigation activities and outcomes over time" }
+      { id: "MEAS-1", title: "Do you have quantitative and qualitative metrics for tracking AI risks and their impacts over time?", desc: "Quantitative and qualitative metrics established for tracking AI risks and impacts" },
+      { id: "MEAS-2", title: "Do you test your AI system for safety, security, fairness, transparency, and other trustworthiness characteristics?", desc: "Testing for safety, security, fairness, transparency, and other trustworthiness characteristics" },
+      { id: "MEAS-3", title: "Do you perform security testing including adversarial robustness, data protection, and vulnerability assessment?", desc: "Security testing including adversarial robustness, data protection, access controls, and vulnerability assessment" },
+      { id: "MEAS-4", title: "Do you continuously monitor AI system performance, risk indicators, and environmental changes?", desc: "Ongoing monitoring of AI system performance, risk indicators, and environmental changes" },
+      { id: "MEAS-5", title: "Do you have mechanisms for reporting, responding to, and learning from AI risk events?", desc: "Mechanisms for reporting, responding to, and learning from AI risk events" },
+      { id: "MEAS-6", title: "Do you evaluate AI system impacts on individuals, communities, and society over time?", desc: "Methods for evaluating AI system impacts on individuals, communities, and society over time" },
+      { id: "MEAS-7", title: "Do you track the effectiveness of your risk mitigation activities and outcomes over time?", desc: "Tracking effectiveness of risk mitigation activities and outcomes over time" }
     ]
   },
   manage: {
     name: "MANAGE",
     description: "Response to identified AI risks",
     subcategories: [
-      { id: "MGMT-1", title: "AI risk response plans implemented", desc: "Plans for mitigating, transferring, accepting, or avoiding prioritized risks" },
-      { id: "MGMT-2", title: "AI risk mitigation outcomes monitored", desc: "Monitoring of risk mitigation effectiveness and adjustment of strategies as needed" },
-      { id: "MGMT-3", title: "AI incident response procedures", desc: "Procedures for detecting, reporting, escalating, and responding to AI incidents" },
-      { id: "MGMT-4", title: "Continuous improvement processes", desc: "Regular review and improvement of AI risk management practices based on outcomes and lessons learned" }
+      { id: "MGMT-1", title: "Do you have documented plans for mitigating, transferring, accepting, or avoiding prioritized AI risks?", desc: "Plans for mitigating, transferring, accepting, or avoiding prioritized risks" },
+      { id: "MGMT-2", title: "Do you monitor the effectiveness of your risk mitigation and adjust strategies as needed?", desc: "Monitoring of risk mitigation effectiveness and adjustment of strategies as needed" },
+      { id: "MGMT-3", title: "Do you have incident response procedures specifically for AI system failures or safety events?", desc: "Procedures for detecting, reporting, escalating, and responding to AI incidents" },
+      { id: "MGMT-4", title: "Do you communicate AI risk information to relevant stakeholders including leadership and regulators?", desc: "Regular review and improvement of AI risk management practices based on outcomes and lessons learned" }
     ]
   }
 };
 
 // ─── OWASP LLM Top 10 (2025) ───
 const OWASP_LLM = [
-  { id: "LLM01", title: "Prompt Injection", desc: "Attackers craft inputs that manipulate the LLM into executing unintended actions or revealing sensitive information", severity: "Critical" },
-  { id: "LLM02", title: "Insecure Output Handling", desc: "LLM outputs are used without proper validation, leading to XSS, SSRF, or code execution in downstream systems", severity: "High" },
-  { id: "LLM03", title: "Training Data Poisoning", desc: "Malicious data injected during training to compromise model behavior, introduce backdoors, or bias outputs", severity: "High" },
-  { id: "LLM04", title: "Model Denial of Service", desc: "Resource exhaustion attacks that degrade availability or increase costs through excessive queries", severity: "Medium" },
-  { id: "LLM05", title: "Supply Chain Vulnerabilities", desc: "Compromised models, datasets, or dependencies introduce security weaknesses", severity: "High" },
-  { id: "LLM06", title: "Sensitive Information Disclosure", desc: "LLM inadvertently reveals PII, credentials, or confidential data in responses", severity: "Critical" },
-  { id: "LLM07", title: "Insecure Plugin/Tool Design", desc: "LLM plugins or tools accept untrusted inputs without proper validation", severity: "High" },
-  { id: "LLM08", title: "Excessive Agency", desc: "LLM is granted excessive autonomy or permissions to perform harmful actions", severity: "Critical" },
-  { id: "LLM09", title: "Overreliance", desc: "Users or systems rely excessively on LLM outputs without verification, leading to errors", severity: "Medium" },
-  { id: "LLM10", title: "Model Theft", desc: "Unauthorized access to or exfiltration of proprietary model weights or architecture", severity: "High" }
+  { id: "LLM01", title: "Do you have input sanitization or guardrails to prevent prompt injection attacks on your LLM?", desc: "Attackers craft inputs that manipulate the LLM into executing unintended actions or revealing sensitive information", severity: "Critical" },
+  { id: "LLM02", title: "Do you validate and sanitize LLM outputs before rendering them to users, browsers, or downstream systems?", desc: "LLM outputs are used without proper validation, leading to XSS, SSRF, or code execution in downstream systems", severity: "High" },
+  { id: "LLM03", title: "Do you verify the integrity of your training data sources and protect against data poisoning attacks?", desc: "Malicious data injected during training to compromise model behavior, introduce backdoors, or bias outputs", severity: "High" },
+  { id: "LLM04", title: "Do you have rate limits, resource caps, or timeouts to prevent model denial-of-service attacks?", desc: "Resource exhaustion attacks that degrade availability or increase costs through excessive queries", severity: "Medium" },
+  { id: "LLM05", title: "Do you scan third-party models, datasets, and dependencies for known vulnerabilities before deployment?", desc: "Compromised models, datasets, or dependencies introduce security weaknesses", severity: "High" },
+  { id: "LLM06", title: "Do you have PII/credential redaction or output filtering to prevent sensitive information disclosure from the LLM?", desc: "LLM inadvertently reveals PII, credentials, or confidential data in responses", severity: "Critical" },
+  { id: "LLM07", title: "Do you validate inputs and enforce permissions for any plugins, tools, or extensions your LLM agent can invoke?", desc: "LLM plugins or tools accept untrusted inputs without proper validation", severity: "High" },
+  { id: "LLM08", title: "Do you restrict the LLM agent autonomy with human-in-the-loop approvals for destructive or high-impact actions?", desc: "LLM is granted excessive autonomy or permissions to perform harmful actions", severity: "Critical" },
+  { id: "LLM09", title: "Do you enforce session isolation and prevent the LLM from accessing data from other users or sessions?", desc: "Users or systems rely excessively on LLM outputs without verification, leading to errors", severity: "Medium" },
+  { id: "LLM10", title: "Do you have mechanisms to track and prevent the LLM agent from being used to steal models or exfiltrate proprietary data?", desc: "Unauthorized access to or exfiltration of proprietary model weights or architecture", severity: "High" }
 ];
 
 // ─── EU AI Act (2024) — High-Risk Requirements ───
 const EU_AI_ACT = [
-  { id: "Art.8", title: "Compliance with high-risk requirements", desc: "High-risk AI systems shall comply with the requirements set out in Chapter III, Section 2", obligation: "Mandatory" },
-  { id: "Art.9", title: "Risk management system", desc: "A risk management system shall be established, implemented, documented and maintained throughout the entire lifecycle", obligation: "Mandatory" },
-  { id: "Art.10", title: "Data and data governance", desc: "Training, validation and testing data sets shall be relevant, sufficiently representative, and to the best extent possible free of errors and complete", obligation: "Mandatory" },
-  { id: "Art.11", title: "Technical documentation", desc: "Technical documentation shall be drawn up before the system is placed on the market and shall be kept up to date", obligation: "Mandatory" },
-  { id: "Art.12", title: "Record-keeping", desc: "High-risk AI systems shall be designed to automatically record events (logs) over their lifetime", obligation: "Mandatory" },
-  { id: "Art.13", title: "Transparency and provision of information", desc: "High-risk AI systems shall be designed to ensure transparency and provide clear information to users", obligation: "Mandatory" },
-  { id: "Art.14", title: "Human oversight", desc: "High-risk AI systems shall be designed to allow effective natural persons to oversee their operation", obligation: "Mandatory" },
-  { id: "Art.15", title: "Accuracy, robustness and cybersecurity", desc: "High-risk AI systems shall achieve appropriate levels of accuracy, robustness, and cybersecurity", obligation: "Mandatory" },
-  { id: "Art.16", title: "Conformity assessment", desc: "High-risk AI systems shall be subject to conformity assessment before placement on the market", obligation: "Mandatory" },
-  { id: "Art.17", title: "Quality management system", desc: "Providers shall put in place a quality management system documented in a systematic and orderly manner", obligation: "Mandatory" },
-  { id: "Art.18", title: "Technical documentation obligations", desc: "Providers shall draw up technical documentation containing all information necessary for compliance assessment", obligation: "Mandatory" },
-  { id: "Art.53", title: "Fundamental rights impact assessment", desc: "Prior to deployment, a fundamental rights impact assessment shall be conducted for high-risk AI systems", obligation: "Mandatory" },
-  { id: "Art.72", title: "Post-market monitoring", desc: "Providers shall establish and maintain a post-market monitoring system to collect and review performance data", obligation: "Mandatory" }
+  { id: "Art.8", title: "Is your high-risk AI system compliant with all applicable requirements from the EU AI Act?", desc: "High-risk AI systems shall comply with the requirements set out in Chapter III, Section 2", obligation: "Mandatory" },
+  { id: "Art.9", title: "Do you have a documented risk management system in place for your high-risk AI system throughout its lifecycle?", desc: "A risk management system shall be established, implemented, documented and maintained throughout the entire lifecycle", obligation: "Mandatory" },
+  { id: "Art.10", title: "Are your training, validation, and testing datasets relevant, representative, and free from biases and errors?", desc: "Training, validation and testing data sets shall be relevant, sufficiently representative, and to the best extent possible free of errors and complete", obligation: "Mandatory" },
+  { id: "Art.11", title: "Do you maintain up-to-date technical documentation including design specifications and system architecture?", desc: "Technical documentation shall be drawn up before the system is placed on the market and shall be kept up to date", obligation: "Mandatory" },
+  { id: "Art.12", title: "Does your AI system automatically log all events during operation, including user interactions and system decisions?", desc: "High-risk AI systems shall be designed to automatically record events (logs) over their lifetime", obligation: "Mandatory" },
+  { id: "Art.13", title: "Is your AI system designed to be transparent, providing clear and understandable information to users?", desc: "High-risk AI systems shall be designed to ensure transparency and provide clear information to users", obligation: "Mandatory" },
+  { id: "Art.14", title: "Do you have human oversight mechanisms that allow operators to override or stop the AI system when needed?", desc: "High-risk AI systems shall be designed to allow effective natural persons to oversee their operation", obligation: "Mandatory" },
+  { id: "Art.15", title: "Do you implement accuracy, robustness, and cybersecurity measures appropriate to your AI system's risk level?", desc: "High-risk AI systems shall achieve appropriate levels of accuracy, robustness, and cybersecurity", obligation: "Mandatory" },
+  { id: "Art.16", title: "Has your high-risk AI system undergone a conformity assessment before being placed on the market?", desc: "High-risk AI systems shall be subject to conformity assessment before placement on the market", obligation: "Mandatory" },
+  { id: "Art.17", title: "Do you have a documented quality management system for your AI system's development and operation?", desc: "Providers shall put in place a quality management system documented in a systematic and orderly manner", obligation: "Mandatory" },
+  { id: "Art.18", title: "Do you maintain technical documentation with all information necessary for compliance assessment by authorities?", desc: "Providers shall draw up technical documentation containing all information necessary for compliance assessment", obligation: "Mandatory" },
+  { id: "Art.53", title: "Have you conducted a fundamental rights impact assessment before deploying your high-risk AI system?", desc: "Prior to deployment, a fundamental rights impact assessment shall be conducted for high-risk AI systems", obligation: "Mandatory" },
+  { id: "Art.72", title: "Do you have a post-market monitoring system to collect and review your AI system's performance data?", desc: "Providers shall establish and maintain a post-market monitoring system to collect and review performance data", obligation: "Mandatory" }
 ];
 
 // ─── OWASP Agentic Security Index (ASI) ───
 const OWASP_ASI = [
-  { id: "ASI01", title: "Prompt Injection", desc: "Manipulation of agent behavior through crafted inputs" },
-  { id: "ASI02", title: "Broken Authentication", desc: "Weak authentication mechanisms for agent-to-agent or agent-to-service communication" },
-  { id: "ASI03", title: "Tool Misuse", desc: "Unauthorized or unintended use of tools by AI agents" },
-  { id: "ASI04", title: "Broken Access Control", desc: "Inadequate restrictions on agent actions and data access" },
-  { id: "ASI05", title: "Code Execution", desc: "Unauthorized code execution through agent tool use" },
-  { id: "ASI06", title: "Supply Chain", desc: "Compromised agent dependencies, skills, or plugins" },
-  { id: "ASI07", title: "Data Leakage", desc: "Unauthorized disclosure of sensitive data through agent outputs" },
-  { id: "ASI08", title: "Context Poisoning", desc: "Manipulation of agent memory or context to alter behavior" },
-  { id: "ASI09", title: "Availability", desc: "Denial of service attacks targeting agent infrastructure" },
-  { id: "ASI10", title: "Autonomy Risks", desc: "Excessive agent autonomy leading to uncontrolled actions" }
+  { id: "ASI01", title: "Do you have guardrails that prevent the agent from being manipulated into pursuing unintended goals?", desc: "Manipulation of agent behavior through crafted inputs" },
+  { id: "ASI02", title: "Do you have session-scoped memory that prevents data leaks between user sessions or contexts?", desc: "Weak authentication mechanisms for agent-to-agent or agent-to-service communication" },
+  { id: "ASI03", title: "Do you have command allowlists that restrict which system tools and APIs the agent can execute?", desc: "Unauthorized or unintended use of tools by AI agents" },
+  { id: "ASI04", title: "Do you have path traversal protections that restrict the agent file system access to approved directories only?", desc: "Inadequate restrictions on agent actions and data access" },
+  { id: "ASI05", title: "Do you run the agent in a sandboxed container with network isolation, read-only filesystem, and no-new-privileges?", desc: "Unauthorized code execution through agent tool use" },
+  { id: "ASI06", title: "Do you scan and sandbox any skills, plugins, or extensions before the agent loads them at runtime?", desc: "Compromised agent dependencies, skills, or plugins" },
+  { id: "ASI07", title: "Do you have credential masking that redacts secrets, API keys, and passwords from the agent logs and outputs?", desc: "Unauthorized disclosure of sensitive data through agent outputs" },
+  { id: "ASI08", title: "Do you pin model versions with checksum verification to prevent model substitution or tampering?", desc: "Manipulation of agent memory or context to alter behavior" },
+  { id: "ASI09", title: "Do you enforce rate limits on agent actions to prevent resource exhaustion and abuse?", desc: "Denial of service attacks targeting agent infrastructure" },
+  { id: "ASI10", title: "Do you require manual approval for high-risk agent actions such as file deletion, code execution, or payment processing?", desc: "Excessive agent autonomy leading to uncontrolled actions" }
 ];
 
 // ─── Microsoft End-to-End Governance Framework ───
 const MSFT_GOVERNANCE = [
-  { id: "MSFT-01", title: "Adversarial Testing & PyRIT Red Teaming", desc: "Automated adversarial testing, jailbreak simulation, and prompt injection red teaming", severity: "Critical" },
-  { id: "MSFT-02", title: "Content Filtering & Guardrails", desc: "Azure AI Content Safety, prompt shields, toxicity gates, and automated PII redaction", severity: "High" },
-  { id: "MSFT-03", title: "Continuous Observability & Anomaly Detection", desc: "Azure AI Telemetry, Defender for Cloud runtime detection, and automated anomaly alerts", severity: "High" }
+  { id: "MSFT-01", title: "Do you use content safety filters or moderation APIs to detect harmful content in AI inputs and outputs?", desc: "Automated adversarial testing, jailbreak simulation, and prompt injection red teaming", severity: "Critical" },
+  { id: "MSFT-02", title: "Do you run red-teaming exercises against your AI system using automated adversarial testing tools?", desc: "Azure AI Content Safety, prompt shields, toxicity gates, and automated PII redaction", severity: "High" },
+  { id: "MSFT-03", title: "Do you monitor prompts and completions for jailbreak attempts, PII leaks, and policy violations?", desc: "Azure AI Telemetry, Defender for Cloud runtime detection, and automated anomaly alerts", severity: "High" }
 ];
 
 // ─── NVIDIA Infrastructure Isolation Framework ───
 const NVIDIA_INFRA = [
-  { id: "NV-01", title: "Isolated Agent Workspaces", desc: "NVIDIA NIM microservice container sandboxing, process privilege dropping, and isolation", severity: "Critical" },
-  { id: "NV-02", title: "Infrastructure-Level Policy Enforcement", desc: "OpenShell daemon runtime boundary protection and Morpheus AI security guardrails", severity: "Critical" },
-  { id: "NV-03", title: "Policy as Code & GitOps Compliance", desc: "Declarative GitOps compliance policy files and NeMo Guardrails policy enforcement", severity: "High" }
+  { id: "NV-01", title: "Do you deploy inference behind a secure microservice with authenticated API endpoints and rate limiting?", desc: "NVIDIA NIM microservice container sandboxing, process privilege dropping, and isolation", severity: "Critical" },
+  { id: "NV-02", title: "Do you configure NeMo Guardrails with Colang policies to enforce input and output safety rules?", desc: "OpenShell daemon runtime boundary protection and Morpheus AI security guardrails", severity: "Critical" },
+  { id: "NV-03", title: "Do you deploy Morpheus pipelines to detect anomalies and threats in real-time AI inference traffic?", desc: "Declarative GitOps compliance policy files and NeMo Guardrails policy enforcement", severity: "High" }
 ];
 
 // ─── COMPREHENSIVE MITIGATION PLAYBOOKS ───
@@ -600,13 +600,13 @@ const TRACEABILITY = {
   "NIST GOVERN-1": { nist: ["GOVERN-1"], eu: ["Art.9"], asi: [], playbook: "NIST-GOV-1" },
   "NIST GOVERN-2": { nist: ["GOVERN-2"], eu: ["Art.14"], asi: [], playbook: "NIST-GOV-2" },
   "NIST MAP-1": { nist: ["MAP-1"], eu: ["Art.11"], asi: [], playbook: "NIST-MAP-1" },
-  "NIST MAP-2": { nist: ["MAP-2"], eu: ["Art.53"], asi: [], playbook: "NIST-MAP-2" },
+  "NIST MAP-2": { nist: ["MAP-2"], eu: ["Art.27"], asi: [], playbook: "NIST-MAP-2" },
   "NIST MEASURE-1": { nist: ["MEASURE-1"], eu: ["Art.72"], asi: [], playbook: "NIST-MEAS-1" },
   "NIST MGMT-1": { nist: ["MGMT-1"], eu: ["Art.9"], asi: [], playbook: "NIST-MGMT-1" },
   "EU Art.9": { nist: ["GOVERN-1", "MGMT-1"], eu: ["Art.9"], asi: [], playbook: "EU-Art.9" },
   "EU Art.14": { nist: ["GOVERN-2"], eu: ["Art.14"], asi: ["ASI10"], playbook: "EU-Art.14" },
   "EU Art.15": { nist: ["MEASURE-3"], eu: ["Art.15"], asi: ["ASI01", "ASI03"], playbook: "EU-Art.15" },
-  "EU Art.53": { nist: ["MAP-2"], eu: ["Art.53"], asi: [], playbook: "EU-Art.53" },
+  "EU Art.27": { nist: ["MAP-2"], eu: ["Art.27"], asi: [], playbook: "EU-Art.27" },
   "OWASP ASI01": { nist: ["MEASURE-3"], eu: ["Art.15"], asi: ["ASI01"], playbook: "ASI-ASI01" },
   "OWASP ASI02": { nist: ["GOVERN-1"], eu: ["Art.15"], asi: ["ASI02"], playbook: "ASI-ASI02" },
   "OWASP ASI03": { nist: ["MEASURE-3"], eu: ["Art.15"], asi: ["ASI03"], playbook: "ASI-ASI03" },
@@ -617,6 +617,70 @@ const TRACEABILITY = {
   "OWASP ASI08": { nist: ["GOVERN-5"], eu: ["Art.10"], asi: ["ASI08"], playbook: "ASI-ASI08" },
   "OWASP ASI09": { nist: ["MEASURE-4"], eu: ["Art.15"], asi: ["ASI09"], playbook: "ASI-ASI09" },
   "OWASP ASI10": { nist: ["GOVERN-1"], eu: ["Art.14"], asi: ["ASI10"], playbook: "ASI-ASI10" }
+};
+
+// ─── UNIFIED CONTROL LIBRARY — Cross-Framework Mapping ───
+// 62 controls mapped across OWASP LLM, OWASP ASI, NIST AI RMF, EU AI Act
+// Agent-type scoping: enterprise, coding, self-hosted
+const CONTROL_LIBRARY = {
+  // ── OWASP LLM Top 10 ──
+  LLM01: { name: "Prompt Injection Defense", cat: "Model Security", nist: ["MEASURE-3", "MEASURE-4"], eu: ["Art.15"], asi: ["ASI01"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM02: { name: "Insecure Output Handling", cat: "Output Security", nist: ["MEASURE-3"], eu: ["Art.15"], asi: ["ASI07"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM03: { name: "Training Data Poisoning", cat: "Data Security", nist: ["GOVERN-5", "MEASURE-2"], eu: ["Art.10"], asi: ["ASI06"], scoping: { enterprise: "provider-owned", coding: "provider-owned", self_hosted: "applies" } },
+  LLM04: { name: "Denial of Service", cat: "Availability", nist: ["MEASURE-4"], eu: ["Art.15"], asi: ["ASI09"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM05: { name: "Supply Chain Vulnerabilities", cat: "Supply Chain", nist: ["GOVERN-1"], eu: ["Art.15"], asi: [], scoping: { enterprise: "shared", coding: "applies", self_hosted: "applies" } },
+  LLM06: { name: "Sensitive Information Disclosure", cat: "Data Security", nist: ["MEASURE-3", "GOVERN-5"], eu: ["Art.10"], asi: ["ASI07"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM07: { name: "Insecure Plugin Design", cat: "Plugin Security", nist: ["MEASURE-3"], eu: ["Art.15"], asi: ["ASI03", "ASI04"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM08: { name: "Excessive Agency", cat: "Agent Control", nist: ["GOVERN-1", "GOVERN-2"], eu: ["Art.14"], asi: ["ASI10"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM09: { name: "Overreliance", cat: "Human Factors", nist: ["GOVERN-3"], eu: ["Art.13"], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  LLM10: { name: "Model Theft", cat: "Model Security", nist: ["MEASURE-3", "GOVERN-1"], eu: ["Art.15"], asi: [], scoping: { enterprise: "provider-owned", coding: "provider-owned", self_hosted: "applies" } },
+  // ── OWASP ASI ──
+  ASI01: { name: "Agent-to-Agent Authentication", cat: "Communication", nist: ["MEASURE-3"], eu: ["Art.15"], llm: ["LLM08"], scoping: { enterprise: "N/A", coding: "applies", self_hosted: "applies" } },
+  ASI02: { name: "Inter-Agent Content Validation", cat: "Communication", nist: ["MEASURE-3"], eu: ["Art.15"], llm: [], scoping: { enterprise: "N/A", coding: "applies", self_hosted: "applies" } },
+  ASI03: { name: "Trust Boundary Segmentation", cat: "Architecture", nist: ["GOVERN-1", "MEASURE-3"], eu: ["Art.15"], llm: [], scoping: { enterprise: "N/A", coding: "applies", self_hosted: "applies" } },
+  ASI04: { name: "Tool Access Control", cat: "Access Control", nist: ["GOVERN-1"], eu: ["Art.15"], llm: ["LLM08"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  ASI05: { name: "Session Isolation", cat: "Memory/Privacy", nist: ["GOVERN-5"], eu: ["Art.10"], llm: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  ASI06: { name: "Long-Term Memory Governance", cat: "Memory/Privacy", nist: ["GOVERN-5"], eu: ["Art.10"], llm: ["LLM06"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  ASI07: { name: "Authorization & Credential Management", cat: "Access Control", nist: ["GOVERN-2"], eu: ["Art.12"], llm: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  ASI08: { name: "Audit Logging", cat: "Observability", nist: ["MEASURE-5"], eu: ["Art.12", "Art.26"], llm: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  ASI09: { name: "Sandboxing", cat: "Execution Containment", nist: ["MEASURE-4"], eu: ["Art.15"], llm: ["LLM04"], scoping: { enterprise: "provider-owned", coding: "applies", self_hosted: "applies" } },
+  ASI10: { name: "Fail-Safe Mechanisms", cat: "Reliability", nist: ["MEASURE-4"], eu: ["Art.14", "Art.15"], llm: ["LLM08"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  // ── NIST AI RMF (GOVERN) ──
+  "GOV-1": { name: "AI Risk Management Policies", cat: "Governance", nist: ["GOVERN-1"], eu: ["Art.9", "Art.17"], llm: ["LLM08"], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "GOV-2": { name: "Roles & Accountability", cat: "Governance", nist: ["GOVERN-2"], eu: ["Art.14"], llm: [], asi: ["ASI07"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "GOV-3": { name: "Workforce Training", cat: "Governance", nist: ["GOVERN-3"], eu: ["Art.13"], llm: ["LLM09"], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "GOV-4": { name: "Enterprise Risk Integration", cat: "Governance", nist: ["GOVERN-4"], eu: ["Art.9"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "GOV-5": { name: "Data Governance Policies", cat: "Governance", nist: ["GOVERN-5"], eu: ["Art.10"], llm: ["LLM03", "LLM06"], asi: ["ASI05", "ASI06"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "GOV-6": { name: "Organizational Accountability", cat: "Governance", nist: ["GOVERN-6"], eu: ["Art.9", "Art.17"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  // ── NIST AI RMF (MAP) ──
+  "MAP-1": { name: "System Documentation", cat: "Mapping", nist: ["MAP-1"], eu: ["Art.11"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAP-2": { name: "Harm Identification", cat: "Mapping", nist: ["MAP-2"], eu: ["Art.27"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAP-3": { name: "Trustworthiness Mapping", cat: "Mapping", nist: ["MAP-3"], eu: ["Art.13"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAP-4": { name: "Risk Assessment", cat: "Mapping", nist: ["MAP-4"], eu: ["Art.9"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAP-5": { name: "Risk Prioritization", cat: "Mapping", nist: ["MAP-5"], eu: ["Art.9"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAP-6": { name: "System Boundary Definition", cat: "Mapping", nist: ["MAP-6"], eu: ["Art.13"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  // ── NIST AI RMF (MEASURE) ──
+  "MEA-1": { name: "Test Datasets & Metrics", cat: "Measurement", nist: ["MEASURE-1"], eu: ["Art.15"], llm: ["LLM01", "LLM02"], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MEA-2": { name: "Safety & Security Testing", cat: "Measurement", nist: ["MEASURE-2"], eu: ["Art.15"], llm: ["LLM01", "LLM03"], asi: ["ASI09"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MEA-3": { name: "Fairness & Bias Testing", cat: "Measurement", nist: ["MEASURE-3"], eu: ["Art.10"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MEA-4": { name: "Explainability & Transparency", cat: "Measurement", nist: ["MEASURE-4"], eu: ["Art.13"], llm: ["LLM09"], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MEA-5": { name: "Continuous Monitoring", cat: "Measurement", nist: ["MEASURE-5"], eu: ["Art.72"], llm: [], asi: ["ASI08"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  // ── NIST AI RMF (MANAGE) ──
+  "MAN-1": { name: "Risk Treatment Planning", cat: "Management", nist: ["MGMT-1"], eu: ["Art.9"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAN-2": { name: "Incident Response (AI-Specific)", cat: "Management", nist: ["MGMT-2"], eu: ["Art.73"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "MAN-3": { name: "Post-Market Monitoring", cat: "Management", nist: ["MGMT-3"], eu: ["Art.72"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  // ── EU AI Act ──
+  "ART-9": { name: "Risk Management System", cat: "Risk Management", nist: ["GOVERN-1", "MGMT-1"], eu: ["Art.9"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-10": { name: "Data & Data Governance", cat: "Data Governance", nist: ["GOVERN-5", "MEASURE-3"], eu: ["Art.10"], llm: ["LLM03", "LLM06"], asi: ["ASI05", "ASI06"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-11": { name: "Technical Documentation", cat: "Documentation", nist: ["MAP-1"], eu: ["Art.11"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-12": { name: "Record-Keeping & Logging", cat: "Logging", nist: ["MEASURE-5"], eu: ["Art.12", "Art.26"], llm: [], asi: ["ASI08"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-13": { name: "Transparency", cat: "Transparency", nist: ["GOVERN-3", "MEASURE-4"], eu: ["Art.13"], llm: ["LLM09"], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-14": { name: "Human Oversight", cat: "Oversight", nist: ["GOVERN-2"], eu: ["Art.14"], llm: ["LLM08"], asi: ["ASI10"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-15": { name: "Accuracy, Robustness & Cybersecurity", cat: "Security", nist: ["MEASURE-2", "MEASURE-3", "MEASURE-4"], eu: ["Art.15"], llm: ["LLM01", "LLM02", "LLM04", "LLM05", "LLM10"], asi: ["ASI01", "ASI02", "ASI03", "ASI09"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-27": { name: "Fundamental Rights Impact Assessment", cat: "Rights", nist: ["MAP-2"], eu: ["Art.27"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-43": { name: "Conformity Assessment", cat: "Conformity", nist: ["GOVERN-1", "MGMT-1"], eu: ["Art.43"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-72": { name: "Post-Market Monitoring", cat: "Monitoring", nist: ["MEASURE-5"], eu: ["Art.72"], llm: [], asi: ["ASI08"], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } },
+  "ART-73": { name: "Serious Incident Reporting", cat: "Incident Response", nist: ["MGMT-2"], eu: ["Art.73"], llm: [], asi: [], scoping: { enterprise: "applies", coding: "applies", self_hosted: "applies" } }
 };
 
 // ─── EXPORT ───
@@ -633,6 +697,7 @@ const TRACEABILITY = {
     EU_PLAYBOOKS,
     ASI_PLAYBOOKS,
     ALL_PLAYBOOKS,
-    TRACEABILITY
+    TRACEABILITY,
+    CONTROL_LIBRARY
   };
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this);

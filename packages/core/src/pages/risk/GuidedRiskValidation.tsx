@@ -28,7 +28,7 @@ export default function GuidedRiskValidation() {
 
     return (
         <DashboardLayout>
-            <div className="pl-4 pr-4 py-8 md:pl-20 md:pr-8">
+            <div className="space-y-6 w-full max-w-full">
                 {/* Breadcrumb Navigation */}
                 <Breadcrumb className="mb-6">
                     <BreadcrumbList>

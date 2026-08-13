@@ -82,7 +82,9 @@ export default function Clients() {
       ? (clients.json as unknown[])
       : [];
 
-  const clientsArray: ClientSummary[] = rawClients.filter(isClientSummary);
+  const clientsArray: ClientSummary[] = Array.from(
+    new Map(rawClients.filter(isClientSummary).map((c) => [c.id, c])).values()
+  );
 
   const isCommunityEdition = import.meta.env.VITE_ENABLE_PREMIUM === 'false';
 
@@ -333,8 +335,8 @@ export default function Clients() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredClients.map((client) => (
-                <Card key={client.id} className="card-interactive card-accent-left group cursor-pointer" onClick={() => setLocation(`/clients/${client.id}`)}>
+              {filteredClients.map((client, idx) => (
+                <Card key={`clients-page-card-${client.id}-${idx}`} className="card-interactive card-accent-left group cursor-pointer" onClick={() => setLocation(`/clients/${client.id}`)}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-xl font-bold">{client.name}</CardTitle>
                     <Building2 className="h-4 w-4 text-muted-foreground" />

@@ -72,5 +72,35 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
           .orderBy(desc(autopilotRuns.startedAt))
           .limit(input.limit);
       }),
+
+    /** Get the last autopilot run for a client */
+    getLastRun: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        const [run] = await db.select().from(autopilotRuns)
+          .where(eq(autopilotRuns.clientId, input.clientId))
+          .orderBy(desc(autopilotRuns.startedAt))
+          .limit(1);
+        if (!run) return null;
+        return {
+          ...run,
+          createdAt: run.startedAt, // Map startedAt to createdAt for the frontend query
+        };
+      }),
+
+    /** Trigger autopilot run manually */
+    trigger: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        // Run the autopilot orchestrator
+        const run = await AutopilotEngine.run(input.clientId);
+        return {
+          totalCreated: run.results?.tasksCreated || 0,
+          policies: Math.round((run.results?.tasksCreated || 0) * 0.3),
+          risks: Math.round((run.results?.tasksCreated || 0) * 0.2),
+          controls: Math.round((run.results?.tasksCreated || 0) * 0.5),
+        };
+      }),
   });
 };

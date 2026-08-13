@@ -54,8 +54,10 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                             .leftJoin(userClients, and(eq(clients.id, userClients.clientId), eq(userClients.userId, ctx.user.id)))
                             .orderBy(desc(clients.updatedAt));
 
-                        console.log('[DEBUG] Admin listing clients count:', all.length);
-                        return all;
+                        console.log('[DEBUG] Admin listing clients count raw:', all.length);
+                        const uniqueAll = Array.from(new Map(all.map((item: any) => [item.id, item])).values());
+                        console.log('[DEBUG] Admin listing clients count unique:', uniqueAll.length);
+                        return uniqueAll;
                     }
 
                     // Else list clients by membership (non-admin users)
@@ -99,9 +101,10 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     // Combine: allowed owned + all invited (invited don't count toward limit)
                     const allowed = [...allowedOwned, ...invitedClients];
+                    const uniqueAllowed = Array.from(new Map(allowed.map((item: any) => [item.id, item])).values());
 
-                    console.log(`[DEBUG] User listing: ${rows.length} total, ${ownedClients.length} owned, limit=${maxClients}, showing=${allowed.length}`);
-                    return allowed;
+                    console.log(`[DEBUG] User listing: ${rows.length} total, ${ownedClients.length} owned, limit=${maxClients}, showing=${uniqueAllowed.length}`);
+                    return uniqueAllowed;
                 } catch (error) {
                     console.error('[DEBUG] Error in clients.list:', error);
                     throw error;
@@ -246,26 +249,18 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         ));
 
                     const currentCount = Number(userOrgs[0]?.count || 0);
-                    const limit = fullUser?.maxClients || 2;
 
                     // Admins/Internal Owners/Super Admins bypass limit
                     const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
 
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                            });
-                        }
+                    // ARCHITECTURE ENFORCEMENT: Self-hosted plan limit
+                    // Use user's maxClients (consultant=2, enterprise=unlimited)
+                    const userLimit = fullUser?.maxClients ?? 2;
+                    if (currentCount >= userLimit && !isGlobalAdmin) {
+                        throw new TRPCError({
+                            code: 'FORBIDDEN',
+                            message: `Organization Limit Reached: Your current plan allows for ${userLimit} organizations. Please upgrade to add more.`
+                        });
                     }
 
                     // 2. Determine Owner User (Create if needed)
@@ -449,21 +444,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
 
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                            });
-                        }
+                    // ARCHITECTURE ENFORCEMENT: Self-hosted plan limit
+                    // Use user's maxClients (consultant=2, enterprise=unlimited)
+                    const userLimit = fullUser?.maxClients ?? 2;
+                    if (currentCount >= userLimit && !isGlobalAdmin) {
+                        throw new TRPCError({
+                            code: 'FORBIDDEN',
+                            message: `Organization Limit Reached: Your current plan allows for ${userLimit} organizations. Please upgrade to add more.`
+                        });
                     }
 
                     const selectedFrameworks = Array.isArray(input.frameworks)

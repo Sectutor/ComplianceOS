@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@comp
 import { Button } from '@complianceos/ui/ui/button';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@complianceos/ui/ui/tabs';
-import { Brain, ShieldCheck, ClipboardCheck, LayoutGrid, Plus, Search, Activity, AlertTriangle, ArrowLeft, History, FileText, Loader2, Pencil, Trash2, BookOpen, CheckCircle2, ShieldAlert, Wrench, Lock } from 'lucide-react';
+import { Brain, ShieldCheck, ClipboardCheck, LayoutGrid, Plus, Search, Activity, AlertTriangle, ArrowLeft, History, FileText, Loader2, Pencil, Trash2, BookOpen, CheckCircle2, ShieldAlert, Wrench, Lock, Gavel } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@complianceos/ui/ui/dialog';
 import { Input } from '@complianceos/ui/ui/input';
 import { Label } from '@complianceos/ui/ui/label';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { AIAssessmentWizard } from './AIAssessmentWizard';
 import { AIControlMapping } from './AIControlMapping';
 import { PageGuide } from '@/components/PageGuide';
+import { EuAiActTab } from './EuAiActTab';
 
 const AI_AGENT_SAFE_DEPLOYMENT_WORKFLOW_ID = "ai-agent-safe-deployment";
 
@@ -470,6 +471,13 @@ const AIGovernance = () => {
                             >
                                 <BookOpen className="h-4 w-4 mr-2" /> Agent Playbook
                             </TabsTrigger>
+                            <TabsTrigger
+                                value="eu-ai-act"
+                                className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm text-slate-600 hover:text-slate-900"
+                            >
+                                <Gavel className="h-4 w-4 mr-2" /> EU AI Act
+                            </TabsTrigger>
+
                         </TabsList>
 
                         <TabsContent value="overview" className="mt-6 space-y-6">
@@ -740,6 +748,11 @@ const AIGovernance = () => {
                                     </Card>
                                 </CardContent>
                             </Card>
+                        </TabsContent>
+                        <TabsContent value="eu-ai-act" className="mt-6">
+                            {selectedSystem && (
+                                <EuAiActTab aiSystemId={selectedSystem.id} clientId={activeClientId} />
+                            )}
                         </TabsContent>
                     </Tabs>
 
@@ -1109,7 +1122,7 @@ const AIGovernance = () => {
                 })()}
 
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-10 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
+                    <TabsList className="grid w-full grid-cols-5 mb-10 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
                         <TabsTrigger
                             value="inventory"
                             className="rounded-xl py-3 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md text-slate-500 hover:text-slate-800"
@@ -1134,6 +1147,12 @@ const AIGovernance = () => {
                         >
                             <BookOpen className="h-4 w-4 mr-2" /> Agent Playbook
                         </TabsTrigger>
+                            <TabsTrigger
+                                value="eu-ai-act"
+                                className="rounded-xl py-3 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md text-slate-500 hover:text-slate-800"
+                            >
+                                <Gavel className="h-4 w-4 mr-2" /> EU AI Act
+                            </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="inventory" className="space-y-6">
@@ -1580,6 +1599,39 @@ const AIGovernance = () => {
                                 </Card>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    <TabsContent value="eu-ai-act" className="space-y-6">
+                        {systems && systems.length > 0 ? (
+                            <div className="space-y-4">
+                                {systems.map((system: any) => (
+                                    <Card key={system.id} className="rounded-3xl border-muted/30 shadow-xl overflow-hidden">
+                                        <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100/60 pb-6 border-b border-muted/20">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2.5 rounded-xl bg-amber-500/10">
+                                                        <Gavel className="h-5 w-5 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg">{system.name}</CardTitle>
+                                                        <CardDescription>EU AI Act Compliance Status</CardDescription>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-6">
+                                            <EuAiActTab aiSystemId={system.id} clientId={clientId} />
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-muted-foreground">
+                                <Gavel className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
+                                <p className="font-medium">No AI systems registered</p>
+                                <p className="text-sm mt-1">Register AI systems in the inventory tab to begin EU AI Act compliance tracking</p>
+                            </div>
+                        )}
                     </TabsContent>
                 </Tabs>
 

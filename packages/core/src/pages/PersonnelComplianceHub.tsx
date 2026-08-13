@@ -27,7 +27,7 @@ export default function PersonnelComplianceHub() {
 
     return (
         <DashboardLayout>
-            <div className="pl-4 pr-4 py-8 md:pl-20 md:pr-8 space-y-8 w-full max-w-full animate-in fade-in duration-700">
+            <div className="space-y-8 w-full max-w-full animate-in fade-in duration-700">
                 <div className="flex items-center gap-4">
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => window.history.back()}>
                         <ArrowLeft className="h-4 w-4" />

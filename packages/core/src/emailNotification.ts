@@ -624,3 +624,110 @@ export async function sendThreatAlert(clientId: number, threats: any[]): Promise
 
   return { success: true, count: threats.length };
 }
+
+/**
+ * Send warning alerts for evidence expiring in 30, 14, or 7 days
+ */
+export async function sendEvidenceExpiryWarnings(): Promise<{
+  success: boolean;
+  warningsSent: number;
+}> {
+  const dbConn = await db.getDb();
+  const now = new Date();
+  
+  // Reset time part of now for consistent day comparison
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Fetch all 'verified' evidence
+  const upcomingExpirations = await dbConn.select()
+    .from(schema.evidence)
+    .where(eq(schema.evidence.status, 'verified'));
+
+  let warningsSent = 0;
+
+  for (const ev of upcomingExpirations) {
+    if (!ev.expirationDate) continue;
+
+    const expDate = new Date(ev.expirationDate);
+    const expStart = new Date(expDate.getFullYear(), expDate.getMonth(), expDate.getDate());
+    
+    // Calculate difference in full days
+    const diffTime = expStart.getTime() - todayStart.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 30 || diffDays === 14 || diffDays === 7) {
+      // Check if we already sent a warning for this specific evidence item and day count
+      const recentNotifications = await dbConn.select()
+        .from(schema.notificationLog)
+        .where(and(
+          eq(schema.notificationLog.type, 'evidence_expiring_soon'),
+          eq(schema.notificationLog.relatedEntityType, 'evidence'),
+          eq(schema.notificationLog.relatedEntityId, ev.id)
+        ));
+
+      const alreadyWarned = recentNotifications.some((n: any) => {
+        try {
+          const meta = typeof n.metadata === 'string' ? JSON.parse(n.metadata) : n.metadata;
+          return meta && typeof meta === 'object' && meta.diffDays === diffDays;
+        } catch {
+          return false;
+        }
+      });
+
+      if (alreadyWarned) {
+        continue;
+      }
+
+      const clientId = ev.clientId;
+      const title = `⚠️ Evidence Expiring in ${diffDays} Days`;
+      const message = `Evidence item "${ev.evidenceId}" (${ev.description || 'No description'}) will expire on ${expDate.toLocaleDateString()} (${diffDays} days).`;
+
+      // 1. External notification
+      try {
+        await notifyOwner({
+          title,
+          content: `${message}\n\n---\n*Please prepare updated evidence to maintain continuous compliance.*`
+        });
+      } catch (e) {
+        console.warn("External warning notification failed:", e);
+      }
+
+      // 2. Internal email
+      const htmlBody = `
+        <div style="font-family: sans-serif;">
+          <h2>⚠️ Evidence Expiration Warning</h2>
+          <p>Your compliance evidence item is expiring soon:</p>
+          <ul>
+            <li><strong>ID:</strong> ${ev.evidenceId}</li>
+            <li><strong>Description:</strong> ${ev.description || 'No description'}</li>
+            <li><strong>Expiration Date:</strong> ${expDate.toLocaleDateString()}</li>
+            <li><strong>Time Remaining:</strong> ${diffDays} days</li>
+          </ul>
+          <p>Please upload updated evidence to ensure your controls remain active and verified.</p>
+        </div>
+      `;
+
+      await sendInternalSystemEmail({
+        clientId,
+        subject: title,
+        body: htmlBody,
+        snippet: `Evidence ${ev.evidenceId} expires in ${diffDays} days.`
+      });
+
+      // 3. In-app notification
+      await createInAppNotification(clientId, {
+        type: "evidence_expiring_soon",
+        title: title,
+        message,
+        link: `/clients/${clientId}/evidence`,
+        relatedEntityType: 'evidence',
+        relatedEntityId: ev.id,
+        metadata: { diffDays }
+      });
+
+      warningsSent++;
+    }
+  }
+
+  return { success: true, warningsSent };
+}

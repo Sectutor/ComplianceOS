@@ -69,7 +69,7 @@ export default function RmfWorkflowPage() {
 
     return (
         <DashboardLayout>
-            <div className="pl-6 pr-6 py-8 md:pl-20 md:pr-8 space-y-8">
+            <div className="space-y-8 w-full max-w-full">
                 <Breadcrumb items={[
                     { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
                     { label: "Federal Compliance", href: `/clients/${clientId}/federal` },

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Complete AI Agent Compliance Checklist (2026) — Free Assessment</title>
+  <meta name="description" content="The definitive AI agent compliance checklist covering OWASP LLM Top 10, NIST AI RMF, OWASP Agentic Security Index, and EU AI Act. Free interactive assessment included.">
+  <meta property="og:title" content="The Complete AI Agent Compliance Checklist (2026)">
+  <meta property="og:description" content="Audit your AI agent against 62 controls across 4 frameworks. Free interactive checklist.">
+  <meta property="og:type" content="article">
+  <link rel="canonical" href="https://assess.grcompliance.com/blog/ai-agent-compliance-checklist">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', Georgia, 'Times New Roman', serif; background: #ffffff; color: #1a1a1a; line-height: 2; font-size: 18px; }
+    h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; font-weight: 800; color: #0f172a; }
+    .container { max-width: 760px; margin: 0 auto; padding: 0 56px; }
+    h1 { font-size: 2.4rem; line-height: 1.15; margin-bottom: 0.75rem; font-weight: 800; }
+    h2 { font-size: 1.6rem; margin-top: 3.5rem; margin-bottom: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; font-weight: 800; }
+    h3 { font-size: 1.2rem; margin-top: 3rem; margin-bottom: 0.75rem; font-weight: 800; }
+    p { margin-bottom: 1.8rem; color: #334155; }
+    blockquote { border-left: 4px solid #2563eb; background: #f1f5f9; padding: 1.5rem 2rem; margin: 2.5rem 0; border-radius: 0 10px 10px 0; font-style: italic; color: #1e293b; }
+    ul, ol { margin: 1.2rem 0 2rem 1.8rem; color: #334155; }
+    li { margin-bottom: 0.75rem; }
+    hr { margin: 3.5rem 0; }
+    .cta-box { margin: 3rem 0; }
+    .toc { margin: 2rem 0 3rem; }
+    blockquote strong { font-style: normal; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; color: #2563eb; }
+    .cta-box { background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 2px solid #2563eb; border-radius: 16px; padding: 2.5rem; margin: 3rem 0; text-align: center; }
+    .cta-box h3 { margin-top: 0; font-size: 1.3rem; }
+    .cta-btn { display: inline-block; background: #2563eb; color: white !important; font-weight: 700; padding: 14px 32px; border-radius: 40px; text-decoration: none; font-size: 1.05rem; margin: 0.5rem 0; transition: background 0.2s; }
+    .cta-btn:hover { background: #1d4ed8; }
+    .meta { color: #64748b; font-size: 0.9rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 2rem; }
+    .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0 3rem; }
+    .toc h3 { margin-top: 0; }
+    .toc a { color: #2563eb; text-decoration: none; display: block; padding: 2px 0; font-size: 0.95rem; }
+    .toc a:hover { text-decoration: underline; }
+    .highlight { background: #fef9c3; padding: 1px 4px; border-radius: 2px; }
+    strong { color: #0f172a; }
+    em { color: #475569; }
+    .tag { display: inline-block; background: #e2e8f0; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: #475569; margin-right: 6px; }
+    @media (max-width: 640px) { body { font-size: 16px; } .container { padding: 24px 16px; } h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+
+<!-- Site Header -->
+<header style="background:#0f172a;border-bottom:1px solid #1e293b;position:sticky;top:0;z-index:50;">
+  <div style="max-width:1100px;margin:0 auto;padding:12px 48px;display:flex;align-items:center;justify-content:space-between;">
+    <a href="https://assess.grcompliance.com/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <div style="width:30px;height:30px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:14px;">C</div>
+      <span style="font-weight:700;color:white;font-size:16px;">ComplianceOS</span>
+    </a>
+    <nav style="display:flex;gap:20px;font-size:14px;">
+      <a href="https://assess.grcompliance.com/" style="color:#94a3b8;text-decoration:none;">Free Assessment</a>
+      <a href="https://grcompliance.com/pricing.html" style="color:#94a3b8;text-decoration:none;">Pricing</a>
+      <a href="https://grcompliance.com" style="color:#94a3b8;text-decoration:none;">Platform</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:60px 48px 50px;text-align:center;">
+  <div style="max-width:740px;margin:0 auto;">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.25);border-radius:40px;padding:6px 16px;font-size:13px;color:#60a5fa;margin-bottom:20px;">
+      📋 AI Agent Compliance Guide
+    </div>
+    <h1 style="font-family:'Outfit',sans-serif;font-size:2.6rem;font-weight:800;color:white;line-height:1.15;margin:0 0 12px;">The Complete AI Agent Compliance Checklist (2026)</h1>
+    <p style="font-size:1.1rem;color:#94a3b8;max-width:600px;margin:0 auto 8px;">62 controls across OWASP LLM, NIST AI RMF, OWASP ASI, and the EU AI Act. Free interactive assessment included.</p>
+    <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;color:#64748b;">
+      <span>📅 July 2026</span>
+      <span style="color:#334155;">·</span>
+      <span>📖 12 min read</span>
+      <span style="color:#334155;">·</span>
+      <span style="display:flex;gap:4px;">
+        <span class="tag" style="background:rgba(37,99,235,0.15);color:#60a5fa;border:1px solid rgba(37,99,235,0.2);">AI Security</span>
+        <span class="tag" style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.2);">Compliance</span>
+      </span>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top:48px;">
+
+  <p style="font-size:1.1rem;color:#475569;font-weight:500;margin-bottom:2rem;">62 controls across OWASP LLM, NIST AI RMF, OWASP Agentic Security Index, and the EU AI Act — with a free interactive assessment tool.</p>
+  
+  <div class="meta">
+    <span class="tag">AI Security</span>
+    <span class="tag">Compliance</span>
+    <span class="tag">LLM</span>
+    <span class="tag">EU AI Act</span>
+    <span class="tag">NIST AI RMF</span>
+    <br><span style="font-size:0.85rem;">Updated July 2026 · 12 min read</span>
+  </div>
+
+  <blockquote>
+    "By 2027, 40% of enterprises deploying AI agents will require automated compliance validation as part of their MLOps pipeline." — <strong>Gartner, 2026</strong>
+  </blockquote>
+
+  <p>If you're building or deploying AI agents — from <strong>ChatGPT Operators</strong> to <strong>self-hosted autonomous agents like Hermes or OpenCLAW</strong> — you need a compliance checklist. Not a generic ISO 27001 list. Something <em>specific to AI agents</em>.</p>
+
+  <p>This guide covers <strong>62 controls</strong> across four frameworks that directly apply to AI agent architectures. Use the interactive checklist below, or read on for the full breakdown.</p>
+
+  <div class="cta-box">
+    <h3>🛡️ Run the Free Interactive Assessment</h3>
+    <p style="font-size:0.95rem;margin-bottom:0.5rem;">Answer 20 questions. Get your compliance score in 60 seconds. No signup required.</p>
+    <a href="https://assess.grcompliance.com/" class="cta-btn">Start Your AI Agent Audit →</a>
+  </div>
+
+  <div class="toc">
+    <h3>What's in this guide</h3>
+    <a href="#why">Why AI agents need a separate compliance checklist</a>
+    <a href="#frameworks">The 4 frameworks that apply to AI agents</a>
+    <a href="#llm">1. OWASP LLM Top 10 — The model layer</a>
+    <a href="#asi">2. OWASP Agentic Security Index — The agent layer</a>
+    <a href="#nist">3. NIST AI RMF — The governance layer</a>
+    <a href="#eu">4. EU AI Act — The regulatory layer</a>
+    <a href="#by-agent">Which controls apply to your agent type</a>
+    <a href="#next">Next steps</a>
+  </div>
+
+  <h2 id="why">Why AI agents need a separate compliance checklist</h2>
+
+  <p>A standard compliance checklist assumes a <strong>human-in-the-loop</strong> operating a software tool. AI agents break that assumption.</p>
+
+  <p>When an agent has:</p>
+  <ul>
+    <li>File system access</li>
+    <li>Code execution capabilities</li>
+    <li>Autonomous decision-making</li>
+    <li>Plugin and tool invocation</li>
+    <li>Persistent memory across sessions</li>
+  </ul>
+
+  <p>…your compliance model shifts from <em>"did the user follow procedure?"</em> to <em>"did the agent operate within its sandboxed constraints?"</em></p>
+
+  <blockquote>
+    "An LLM without guardrails is not a tool. It's an employee with no training, no manager, and root access to your production database." — <strong>Industry axiom</strong>
+  </blockquote>
+
+  <p>The key difference: <strong>traditional compliance</strong> looks at organizational policies and human behavior. <strong>AI agent compliance</strong> looks at runtime permissions, input validation, session isolation, and model behavior — because the agent <em>is</em> the operator.</p>
+
+  <h2 id="frameworks">The 4 frameworks that apply to AI agents</h2>
+
+  <p>No single framework covers everything. We combine four:</p>
+
+  <table style="width:100%;border-collapse:collapse;margin:1rem 0;font-size:0.95rem;">
+    <tr style="border-bottom:2px solid #e2e8f0;">
+      <th style="text-align:left;padding:8px 4px;">Framework</th>
+      <th style="text-align:left;padding:8px 4px;">Focus</th>
+      <th style="text-align:left;padding:8px 4px;">Controls</th>
+      <th style="text-align:left;padding:8px 4px;">Applies to</th>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:8px 4px;"><strong>OWASP LLM Top 10</strong></td>
+      <td style="padding:8px 4px;">LLM vulnerability layer</td>
+      <td style="padding:8px 4px;">10</td>
+      <td style="padding:8px 4px;">Every agent that calls an LLM</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:8px 4px;"><strong>OWASP ASI</strong></td>
+      <td style="padding:8px 4px;">Agentic security</td>
+      <td style="padding:8px 4px;">10</td>
+      <td style="padding:8px 4px;">Autonomous agents with tools</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:8px 4px;"><strong>NIST AI RMF</strong></td>
+      <td style="padding:8px 4px;">AI governance & risk</td>
+      <td style="padding:8px 4px;">23</td>
+      <td style="padding:8px 4px;">Any organization deploying AI</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:8px 4px;"><strong>EU AI Act</strong></td>
+      <td style="padding:8px 4px;">High-risk compliance</td>
+      <td style="padding:8px 4px;">13</td>
+      <td style="padding:8px 4px;">EU market operators</td>
+    </tr>
+  </table>
+
+  <p>Together they form <strong>62 controls</strong>. But not every control applies to every agent. An OpenAI API user doesn't need to worry about container sandboxing. A self-hosted Hermes agent doesn't use Microsoft's Azure Content Safety API.</p>
+
+  <div class="cta-box" style="border-color:#059669;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);">
+    <h3>✅ Find out which controls apply to <em>your</em> agent</h3>
+    <p style="font-size:0.95rem;">Select your agent type and get a personalized checklist in seconds.</p>
+    <a href="https://assess.grcompliance.com/" class="cta-btn" style="background:#059669;">Run the Free Assessment →</a>
+  </div>
+
+  <h2 id="llm">1. OWASP LLM Top 10 — The model layer</h2>
+
+  <p>These controls apply to <strong>every</strong> agent that sends prompts to a language model. Even if you're using a managed API like OpenAI or Anthropic, these vulnerabilities exist at the application layer — your responsibility.</p>
+
+  <h3>LLM01: Prompt Injection</h3>
+  <p><em>Do you have input sanitization or guardrails to prevent prompt injection attacks on your LLM?</em></p>
+  <p>This is the <strong>#1 risk</strong> for any LLM-powered agent. An attacker crafts input that overrides the system prompt. The fix: input scanning, role separation, and <code>protect_first_system</code> flags.</p>
+
+  <h3>LLM02: Insecure Output Handling</h3>
+  <p><em>Do you validate and sanitize LLM outputs before rendering them downstream?</em></p>
+  <p>If your agent's output feeds into a terminal command, a database query, or a frontend — and you don't sanitize — you've created an injection vector.</p>
+
+  <h3>LLM03–LLM10: The full list</h3>
+  <p>Training data poisoning, denial of service, supply chain vulnerabilities, sensitive information disclosure, insecure plugin design, excessive agency, overreliance, and model theft.</p>
+  <p>The <strong>free assessment tool</strong> asks you about all 10 and scores you instantly.</p>
+
+  <h2 id="asi">2. OWASP Agentic Security Index — The agent layer</h2>
+
+  <p>Where the LLM Top 10 covers the <em>model</em>, the Agentic Security Index covers the <em>agent itself</em> — its tools, permissions, memory, and execution environment.</p>
+
+  <p>These controls apply if your agent can <strong>execute code, access files, call APIs, or install plugins</strong>. If you're running a self-hosted agent (Hermes, OpenCLAW, AutoGPT) or a multi-agent framework (CrewAI, LangGraph, AutoGen), these are critical.</p>
+
+  <blockquote>
+    "The difference between a chatbot vulnerability and an agent vulnerability is <strong>action</strong>. A chatbot can leak data. An agent can <em>delete</em> it." — <strong>OWASP ASI Working Group</strong>
+  </blockquote>
+
+  <h3>Scoped by agent type:</h3>
+  <ul>
+    <li><strong>API-only agents</strong> (OpenAI, Claude, Copilot): ASI controls generally don't apply — the provider handles the sandbox.</li>
+    <li><strong>Framework agents</strong> (LangChain, CrewAI, AutoGen): ASI controls apply because you control the execution environment.</li>
+    <li><strong>Self-hosted agents</strong> (Hermes, OpenCLAW, Custom): <em>All</em> ASI controls apply.</li>
+  </ul>
+
+  <div class="cta-box" style="border-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#faf5ff);">
+    <h3>🎯 Let our tool filter the right controls for your agent</h3>
+    <p style="font-size:0.95rem;">We support 24 agent types. Pick yours and we'll show only relevant controls.</p>
+    <a href="https://assess.grcompliance.com/" class="cta-btn" style="background:#7c3aed;">Assess Your Agent →</a>
+  </div>
+
+  <h2 id="nist">3. NIST AI RMF — The governance layer</h2>
+
+  <p>The NIST AI Risk Management Framework is the <strong>gold standard</strong> for organizational AI governance. It's framework-agnostic — it doesn't prescribe specific controls, but tells you <em>how</em> to govern AI risk.</p>
+
+  <p>Four functions: <strong>Govern, Map, Measure, Manage.</strong> Our checklist maps 23 subcategories into actionable yes/no questions.</p>
+
+  <p>Example: <em>"Does your organization have documented policies and procedures for AI risk management across the system lifecycle?"</em> (GOV-1)</p>
+
+  <p>These apply to every organization deploying AI, regardless of agent type.</p>
+
+  <h2 id="eu">4. EU AI Act — The regulatory layer</h2>
+
+  <p>The EU AI Act classifies AI systems by risk level: <strong>Unacceptable, High, Limited, Minimal.</strong> If your agent makes decisions about hiring, credit, healthcare, or access to services, it's likely <strong>high-risk</strong>.</p>
+
+  <p>High-risk systems must comply with <strong>13 requirements</strong> covering:</p>
+  <ul>
+    <li>Risk management system (Art. 9)</li>
+    <li>Data governance (Art. 10)</li>
+    <li>Technical documentation (Art. 11)</li>
+    <li>Automatic logging (Art. 12)</li>
+    <li>Transparency (Art. 13)</li>
+    <li>Human oversight (Art. 14)</li>
+    <li>Accuracy, robustness, cybersecurity (Art. 15)</li>
+    <li>Conformity assessment (Art. 16)</li>
+    <li>Fundamental rights impact assessment (Art. 53)</li>
+    <li>Post-market monitoring (Art. 72)</li>
+  </ul>
+
+  <div class="cta-box" style="border-color:#d97706;background:linear-gradient(135deg,#fffbeb,#fef3c7);">
+    <h3>🇪🇺 Is your AI system "high-risk" under the EU AI Act?</h3>
+    <p style="font-size:0.95rem;">Our assessment includes EU AI Act compliance checks. Know your obligations before the regulator asks.</p>
+    <a href="https://assess.grcompliance.com/" class="cta-btn" style="background:#d97706;">Check EU AI Act Compliance →</a>
+  </div>
+
+  <h2 id="by-agent">Which controls apply to your agent type</h2>
+
+  <p>Not every control applies to every agent. Here's the breakdown:</p>
+
+  <table style="width:100%;border-collapse:collapse;margin:1rem 0;font-size:0.85rem;">
+    <tr style="border-bottom:2px solid #e2e8f0;">
+      <th style="text-align:left;padding:6px 4px;">Agent Category</th>
+      <th style="text-align:center;padding:6px 4px;">LLM Controls</th>
+      <th style="text-align:center;padding:6px 4px;">ASI Controls</th>
+      <th style="text-align:center;padding:6px 4px;">NIST Controls</th>
+      <th style="text-align:center;padding:6px 4px;">EU AI Act</th>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:6px 4px;">Enterprise (OpenAI, Claude, Copilot)</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">❌ 0</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 23</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 13</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:6px 4px;">Coding (Devin, Cursor, Copilot Agent)</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 23</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 13</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:6px 4px;">Frameworks (CrewAI, LangChain, OpenCLAW)</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 23</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 13</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 4px;">Self-Hosted (Hermes, Custom)</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 10</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 23</td>
+      <td style="text-align:center;padding:6px 4px;">✅ 13</td>
+    </tr>
+  </table>
+
+  <p><em>Total: 62 controls. Our tool auto-filters based on your agent selection. You only see what matters to you.</em></p>
+
+  <h2 id="next">Next steps — From checklist to compliance</h2>
+
+  <p>A checklist is a starting point. Here's the path to <strong>actual compliance</strong>:</p>
+
+  <ol>
+    <li><strong>Run the free assessment</strong> — 20 questions, 60 seconds, instant score.</li>
+    <li><strong>Download your report</strong> — PDF and Word versions with your score, gaps, and remediation playbooks.</li>
+    <li><strong>Deploy the hardened config</strong> — Copy-paste YAML configurations for your agent framework.</li>
+    <li><strong>Implement the remediation plan</strong> — Step-by-step playbooks for each failed control.</li>
+    <li><strong>Continuous monitoring</strong> — Deploy GRCompliance self-hosted for ongoing compliance tracking.</li>
+  </ol>
+
+  <div class="cta-box" style="border-color:#2563eb;">
+    <h3>👉 Start your free AI agent compliance assessment</h3>
+    <p style="font-size:0.95rem;margin-bottom:0.5rem;">No signup. No credit card. 60 seconds. Get your score, gaps, and remediation playbooks instantly.</p>
+    <a href="https://assess.grcompliance.com/" class="cta-btn">Audit Your AI Agent →</a>
+    <p style="font-size:0.8rem;color:#64748b;margin-top:0.8rem;">2,000+ assessments completed</p>
+  </div>
+
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:2rem 0;">
+
+  <p style="font-size:0.85rem;color:#94a3b8;">
+    <strong>About ComplianceOS</strong> — Open-source GRC platform for AI governance. Self-hosted. Built for NIS2, DORA, EU AI Act, and ISO 27001. 
+    <a href="https://grcompliance.com" style="color:#2563eb;">grcompliance.com</a>
+  </p>
+
+</div>
+<!-- Footer -->
+<footer style="background:#0f172a;border-top:1px solid #1e293b;padding:32px 56px;margin-top:48px;">
+  <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;background:#2563eb;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:12px;">C</div>
+      <span style="font-weight:700;color:white;font-size:15px;">ComplianceOS</span>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:13px;">
+      <a href="https://assess.grcompliance.com/" style="color:#94a3b8;text-decoration:none;">Free Assessment</a>
+      <span style="color:#334155;">·</span>
+      <a href="https://grcompliance.com/pricing.html" style="color:#94a3b8;text-decoration:none;">Pricing</a>
+      <span style="color:#334155;">·</span>
+      <a href="https://grcompliance.com" style="color:#94a3b8;text-decoration:none;">Platform</a>
+      <span style="color:#334155;">·</span>
+      <a href="https://grcompliance.com/privacy" style="color:#94a3b8;text-decoration:none;">Privacy</a>
+      <span style="color:#334155;">·</span>
+      <a href="https://grcompliance.com/terms" style="color:#94a3b8;text-decoration:none;">Terms</a>
+    </div>
+    <p style="color:#475569;font-size:12px;margin:0;">© 2026 ComplianceOS. Open-source GRC platform for AI governance.</p>
+  </div>
+</footer>
+
+</body>
+</html>

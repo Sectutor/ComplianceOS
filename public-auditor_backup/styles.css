@@ -1,0 +1,328 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+:root {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: rgba(15, 23, 42, 0.45);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --primary: #3b82f6;
+  --primary-glow: rgba(59, 130, 246, 0.15);
+  --border: rgba(255, 255, 255, 0.08);
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+html {
+  font-size: 18px !important;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  min-height: 100vh;
+  font-size: 1.05rem !important; /* ~19px base font size */
+  line-height: 1.65;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Global Extra Large Font Scaling Across App Components */
+.text-\[8px\], .text-\[9px\], .text-\[10px\], .text-\[11px\] {
+  font-size: 0.9375rem !important; /* ~17px instead of micro text */
+  line-height: 1.5 !important;
+}
+
+.text-xs {
+  font-size: 1rem !important; /* 18px */
+  line-height: 1.55 !important;
+}
+
+.text-sm {
+  font-size: 1.125rem !important; /* ~20px */
+  line-height: 1.6 !important;
+}
+
+.text-base {
+  font-size: 1.25rem !important; /* ~22.5px */
+  line-height: 1.65 !important;
+}
+
+.text-lg {
+  font-size: 1.4rem !important; /* ~25px */
+}
+
+.text-xl {
+  font-size: 1.65rem !important; /* ~30px */
+}
+
+.text-2xl {
+  font-size: 2rem !important; /* ~36px */
+}
+
+.text-3xl {
+  font-size: 2.5rem !important; /* ~45px */
+}
+
+input, textarea, select, button {
+  font-size: 1rem !important; /* 18px */
+}
+
+code, pre {
+  font-size: 0.95rem !important; /* ~17px */
+}
+
+/* Glassmorphism Styles */
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 1.25rem;
+}
+
+/* Checklist Cards Styling */
+.check-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.check-card.checked {
+  background: rgba(16, 185, 129, 0.04);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.check-card.unchecked {
+  background: rgba(239, 68, 68, 0.02);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.check-card:hover {
+  transform: translateY(-2px);
+}
+
+.check-card.checked:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08);
+}
+
+.check-card.unchecked:hover {
+  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.05);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Simulated Scan Terminal */
+.terminal-console {
+  font-family: 'Fira Code', monospace;
+  background-color: #030712;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.terminal-line {
+  animation: slideIn 0.2s ease-out both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Circular Gauge Animation */
+.gauge-circle {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modal animation overrides */
+.modal-backdrop {
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.modal-enter {
+  animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes modalScaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Timeline Animations */
+.step-dot.active {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+/* Custom gradients */
+.gradient-text-blue {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Print-only screen helper */
+.print-only, .print-book-page {
+  display: none !important;
+}
+
+/* Print Layout Stylesheet */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Hide everything by default except print-book-pages */
+  body > *:not(#print-book-pages) {
+    display: none !important;
+  }
+
+  /* Force display of the book container */
+  #print-book-pages {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-book-page {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 275mm !important;
+    max-height: 275mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  pre {
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    padding: 8pt 10pt !important;
+    border-radius: 6px !important;
+    line-height: 1.4 !important;
+    white-space: pre-wrap !important; /* Ensures long lines wrap instead of running off page */
+    word-wrap: break-word !important;
+    word-break: break-all !important;
+  }
+
+  code {
+    font-family: 'Fira Code', 'Courier New', Courier, monospace !important;
+    font-size: 7.5pt !important;
+    color: #0f172a !important;
+  }
+
+  /* Progress bars colors on paper */
+  .h-2.bg-slate-900 {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  #score-bar-ai-act, #score-bar-nist, #score-bar-owasp {
+    background-color: #2563eb !important;
+  }
+
+  /* Table overrides scoped to print pages only */
+  .print-book-page table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .print-book-page th {
+    font-weight: 700 !important;
+    font-size: 7.5pt !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  .print-book-page td {
+    font-size: 7.5pt !important;
+    vertical-align: top !important;
+  }
+
+  /* Verified & Failed badges color adjustments */
+  .bg-emerald-100.text-emerald-800 {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+    border: 1px solid #a7f3d0 !important;
+    font-weight: 700 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+  }
+
+  .bg-red-100.text-red-800 {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fecaca !important;
+    font-weight: 700 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+  }
+
+  /* Verification stamp */
+  .border-4.border-double.border-emerald-600 {
+    border: 4px double #059669 !important;
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    font-family: monospace !important;
+    font-weight: 700 !important;
+    transform: rotate(-2deg) !important;
+    display: inline-block !important;
+  }
+}

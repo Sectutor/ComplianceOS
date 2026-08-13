@@ -779,7 +779,7 @@ export const users = pgTable("users", {
 
 
 
-  planTier: varchar("plan_tier", { length: 50 }).default("free"),
+  planTier: varchar("plan_tier", { length: 50 }).default("consultant"),
 
 
 
@@ -968,7 +968,7 @@ export const clients = pgTable("clients", {
 
 
 
-  planTier: varchar("plan_tier", { length: 50 }).default("free"), // 'free', 'startup', 'pro', 'enterprise'
+  planTier: varchar("plan_tier", { length: 50 }).default("consultant"), // 'free', 'startup', 'pro', 'enterprise'
 
 
 
@@ -14479,6 +14479,8 @@ export type InsertTrustDocument = typeof trustDocuments.$inferInsert;
 
 export const aiSystemStatusEnum = pgEnum("ai_system_status", ["evaluation", "development", "production", "monitoring", "retired"]);
 export const aiRiskLevelEnum = pgEnum("ai_risk_level", ["low", "medium", "high", "critical", "unacceptable"]);
+// EU AI Act risk classification (Article 6-7)
+export const euAiActClassEnum = pgEnum("eu_ai_act_class", ["unacceptable", "high", "limited", "minimal", "general_purpose_ai", "not_applicable"]);
 
 export const aiSystems = pgTable("ai_systems", {
   id: serial("id").primaryKey(),
@@ -14495,6 +14497,15 @@ export const aiSystems = pgTable("ai_systems", {
   vendorId: integer("vendor_id"), // Linked to vendors table
   dataSensitivity: varchar("data_sensitivity", { length: 100 }),
   technicalConstraints: text("technical_constraints"), // MAP 1.4
+  // EU AI Act Compliance (Articles 6-52)
+  euAiActClass: euAiActClassEnum("eu_ai_act_class").default("not_applicable"),
+  euAiActProhibited: boolean("eu_ai_act_prohibited").default(false),
+  euAiActHighRiskCategory: text("eu_ai_act_high_risk_category"), // Which Article 6 categories apply
+  euAiActDeployer: boolean("eu_ai_act_deployer").default(true), // true=deployer, false=provider
+  euAiActRegistrationNumber: varchar("eu_ai_act_registration_number", { length: 100 }), // EU database ID for high-risk
+  euAiActConformityAssessment: varchar("eu_ai_act_conformity_assessment", { length: 50 }).default("not_required"), // not_required, self_assessment, notified_body
+  euAiActLastAssessmentDate: timestamp("eu_ai_act_last_assessment_date"),
+  euAiActNextAssessmentDate: timestamp("eu_ai_act_next_assessment_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
@@ -14545,6 +14556,68 @@ export type InsertAiImpactAssessment = typeof aiImpactAssessments.$inferInsert;
 
 export type AiSystemControl = typeof aiSystemControls.$inferSelect;
 export type InsertAiSystemControl = typeof aiSystemControls.$inferInsert;
+
+// EU AI Act Compliance Tracking (Articles 9-15, 17, 29, 52)
+export const aiEuAiActCompliance = pgTable("ai_eu_ai_act_compliance", {
+  id: serial("id").primaryKey(),
+  aiSystemId: integer("ai_system_id").notNull().references(() => aiSystems.id, { onDelete: "cascade" }),
+  clientId: integer("client_id").notNull(),
+
+  // Article 9 - Risk Management System
+  riskMgmtSystemEstablished: boolean("risk_mgmt_system_established").default(false),
+  riskMgmtDocLink: text("risk_mgmt_doc_link"),
+  riskMgmtReviewDate: timestamp("risk_mgmt_review_date"),
+
+  // Article 10 - Data Governance
+  dataGovernanceImplemented: boolean("data_governance_implemented").default(false),
+  trainingDataProvenance: text("training_data_provenance"),
+  dataPrivacyCompliant: boolean("data_privacy_compliant").default(false),
+
+  // Article 11-12 - Technical Documentation & Record-Keeping
+  techDocumentationComplete: boolean("tech_documentation_complete").default(false),
+  techDocUrl: text("tech_doc_url"),
+  logsAutomaticallyRecorded: boolean("logs_automatically_recorded").default(false),
+  logRetentionDays: integer("log_retention_days").default(180),
+
+  // Article 13 - Transparency
+  transparencyInfoProvided: boolean("transparency_info_provided").default(false),
+  transparencyInfoUrl: text("transparency_info_url"),
+
+  // Article 14 - Human Oversight
+  humanOversightMeasuresImplemented: boolean("human_oversight_measures_implemented").default(false),
+  humanOversightDescription: text("human_oversight_description"),
+
+  // Article 15 - Accuracy, Robustness, Cybersecurity
+  accuracyBenchmarksMet: boolean("accuracy_benchmarks_met").default(false),
+  robustnessTested: boolean("robustness_tested").default(false),
+  cybersecurityMeasuresImplemented: boolean("cybersecurity_measures_implemented").default(false),
+
+  // Article 26 - Obligations of Deployers
+  deployerHumanOversightAssigned: boolean("deployer_human_oversight_assigned").default(false),
+  deployerMonitoringImplemented: boolean("deployer_monitoring_implemented").default(false),
+  deployerIncidentReportingConfigured: boolean("deployer_incident_reporting_configured").default(false),
+
+  // Article 52 - Transparency for Limited Risk AI
+  transparencyLabelImplemented: boolean("transparency_label_implemented").default(false),
+  transparencyLabelText: text("transparency_label_text"),
+
+  // Overall Status
+  complianceStatus: varchar("compliance_status", { length: 50 }).default("not_assessed"),
+  complianceScore: integer("compliance_score").default(0),
+  lastAssessedAt: timestamp("last_assessed_at"),
+  assessedByUserId: integer("assessed_by_user_id"),
+  assessmentNotes: text("assessment_notes"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  aiSystemIdx: index("idx_eu_ai_system").on(table.aiSystemId),
+  clientIdx: index("idx_eu_ai_client").on(table.clientId),
+}));
+
+export type AiEuAiActCompliance = typeof aiEuAiActCompliance.$inferSelect;
+export type InsertAiEuAiActCompliance = typeof aiEuAiActCompliance.$inferInsert;
+;
 
 
 
@@ -14660,7 +14733,7 @@ export const magicLinks = pgTable("magic_links", {
   label: varchar("label", { length: 255 }), // e.g., "Early Adopter Pro Link"
   email: varchar("email", { length: 255 }), // Optional: restrict to specific email
   role: varchar("role", { length: 50 }).default("viewer"),
-  planTier: varchar("plan_tier", { length: 50 }).default("free"), // free, pro, enterprise
+  planTier: varchar("plan_tier", { length: 50 }).default("consultant"), // free, pro, enterprise
   maxClients: integer("max_clients").default(2), // e.g., 2 for Pro, 10 for Enterprise
   accessDurationType: varchar("access_duration_type", { length: 50 }), // 'lifetime', 'limited'
   accessDurationDays: integer("access_duration_days"), // e.g., 14 for 2 weeks

@@ -487,8 +487,8 @@ export function GlobalSearch() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All clients</SelectItem>
-                    {clientsData?.map((client: { id: number; name: string }) => (
-                      <SelectItem key={client.id} value={client.id.toString()}>
+                    {Array.from(new Map(clientsData?.map((c: any) => [c.id, c]) || []).values()).map((client: any) => (
+                      <SelectItem key={`search-client-${client.id}`} value={client.id.toString()}>
                         {client.name}
                       </SelectItem>
                     ))}

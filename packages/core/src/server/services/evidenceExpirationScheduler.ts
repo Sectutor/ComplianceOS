@@ -45,6 +45,15 @@ export async function syncExpirationsForAllClients() {
     }
 
     console.log(`[EvidenceExpirationScheduler] Synchronization finished. Total evidence items expired: ${totalUpdated}`);
+
+    // 2. Perform warning checks for evidence expiring in 30, 14, or 7 days
+    try {
+      const { sendEvidenceExpiryWarnings } = await import("../../emailNotification");
+      const warningResult = await sendEvidenceExpiryWarnings();
+      console.log(`[EvidenceExpirationScheduler] Sent ${warningResult.warningsSent} evidence expiration warnings.`);
+    } catch (warnErr) {
+      console.error("[EvidenceExpirationScheduler] Failed to process expiration warnings:", warnErr);
+    }
   } catch (err) {
     console.error("[EvidenceExpirationScheduler] Synchronization failed:", err);
   }

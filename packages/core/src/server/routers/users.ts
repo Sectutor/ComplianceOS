@@ -284,7 +284,7 @@ export const usersSubRouter = router({
                 subscriptionStatus: user.subscriptionStatus,
                 maxClients: user.maxClients,
                 createdAt: user.createdAt?.toString() || null,
-                updatedAt: user.updatedAt?.toString() || null,
+                updatedAt: null,
                 client: clientData ? {
                     id: clientData.id,
                     name: clientData.name,

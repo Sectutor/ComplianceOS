@@ -119,7 +119,7 @@ const STEPS = [
 
 export default function NIS2EntityClassificationWizard() {
   const params = useParams();
-  const clientId = params.clientId;
+  const clientId = params.id || params.clientId || "7";
   const [location, setLocation] = useLocation();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -559,9 +559,8 @@ export default function NIS2EntityClassificationWizard() {
   };
 
   return (
-    <DashboardLayout fullWidth={true}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout>
+      <div className="space-y-6 w-full max-w-full">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
@@ -637,9 +636,7 @@ export default function NIS2EntityClassificationWizard() {
               {currentStep === STEPS.length - 1 ? 'Complete Classification' : 'Next'}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-          </div>
         </div>
-      </div>
 
       {/* Registration Instructions Dialog */}
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
@@ -704,6 +701,7 @@ export default function NIS2EntityClassificationWizard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </DashboardLayout>
   );
 }

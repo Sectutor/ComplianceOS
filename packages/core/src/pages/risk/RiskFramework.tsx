@@ -218,7 +218,7 @@ export default function RiskFramework() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 pl-4 pr-4 py-8 md:pl-20 md:pr-8 w-full max-w-full">
+            <div className="space-y-6 w-full max-w-full">
                 <div className="flex items-center justify-between">
                     <div>
                         <div className="mb-2">

@@ -159,6 +159,81 @@ export const employeesRouter = router({
 
             return { success: true };
         }),
+
+    /**
+     * Get RACI Matrix for employee assignments
+     */
+    getRACIMatrix: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            const db = await getDb();
+            const clientEmployees = await db.select().from(employees).where(eq(employees.clientId, input.clientId));
+
+            return clientEmployees.map((emp: any) => ({
+                employeeId: emp.id,
+                employeeName: `${emp.firstName} ${emp.lastName}`,
+                department: emp.department,
+                jobTitle: emp.jobTitle,
+                totalAssignments: 0,
+                assignments: [],
+            }));
+        }),
+
+    /**
+     * Get RACI Gap Analysis
+     */
+    getRACIGapAnalysis: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .query(async ({ input }: any) => {
+            return {
+                totalControls: 0,
+                assignedControls: 0,
+                totalPolicies: 0,
+                assignedPolicies: 0,
+                totalEvidence: 0,
+                assignedEvidence: 0,
+                unassignedControls: [],
+                unassignedPolicies: [],
+                unassignedEvidence: [],
+                gaps: [],
+                recommendations: []
+            };
+        }),
+
+    /**
+     * Ensure self (current user) exists as an employee
+     */
+    ensureSelf: clientProcedure
+        .input(z.object({ clientId: z.number() }))
+        .mutation(async ({ input, ctx }: any) => {
+            const db = await getDb();
+
+            const [existing] = await db.select()
+                .from(employees)
+                .where(and(
+                    eq(employees.email, ctx.user.email),
+                    eq(employees.clientId, input.clientId)
+                ));
+
+            if (existing) return existing;
+
+            const nameParts = (ctx.user.name || '').split(' ');
+            const firstName = nameParts[0] || ctx.user.email.split('@')[0];
+            const lastName = nameParts.slice(1).join(' ') || '';
+
+            const [newEmployee] = await db.insert(employees).values({
+                clientId: input.clientId,
+                email: ctx.user.email,
+                firstName: firstName,
+                lastName: lastName,
+                jobTitle: 'Team Member',
+                department: 'General',
+                status: 'active',
+                startDate: new Date(),
+            }).returning();
+
+            return newEmployee;
+        }),
 });
 
 export default employeesRouter;

@@ -44,5 +44,28 @@ export const createComplianceMonitorRouter = (t: any, clientProcedure: any, admi
           timestamp: new Date().toISOString(),
         };
       }),
+
+    // ─── Control Auto-Testing Engine Endpoints ───
+    runAutoTestForControl: clientProcedure
+      .input(z.object({ clientId: z.number(), clientControlId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { runControlAutoTest } = await import("../../lib/controlAutoTestEngine");
+        return runControlAutoTest(input.clientId, input.clientControlId);
+      }),
+
+    runAllAutoTests: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { runAllControlAutoTestsForClient } = await import("../../lib/controlAutoTestEngine");
+        return runAllControlAutoTestsForClient(input.clientId);
+      }),
+
+    getAutoTestHistory: clientProcedure
+      .input(z.object({ clientId: z.number(), limit: z.number().default(50) }))
+      .query(async ({ input }) => {
+        const { getClientTestRunHistory } = await import("../../lib/controlAutoTestEngine");
+        return getClientTestRunHistory(input.clientId, input.limit);
+      }),
   });
 };
+

@@ -1244,8 +1244,8 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
               <SelectValue placeholder={isLoadingClients ? "Loading clients..." : "Select a client"} />
             </SelectTrigger>
             <SelectContent>
-              {clients?.map((client: any) => (
-                <SelectItem key={client.id} value={client.id.toString()}>
+              {Array.from(new Map(clients?.map((c: any) => [c.id, c]) || []).values()).map((client: any) => (
+                <SelectItem key={`policy-client-${client.id}`} value={client.id.toString()}>
                   {client.name}
                 </SelectItem>
               ))}

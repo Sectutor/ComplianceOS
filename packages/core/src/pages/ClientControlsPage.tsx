@@ -79,7 +79,7 @@ export default function ClientControlsPage() {
         [clientControls]
     );
 
-    const availableFrameworks = ["NIS2", "ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF"];
+    const availableFrameworks = ["NIS2", "ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF", "OWASP LLM Top 10", "OWASP ASI", "NIST AI RMF", "EU AI Act"];
 
     // Memoized filtered controls
     const filteredClientControls = useMemo(() =>

@@ -161,7 +161,7 @@ export default function CyberProgramGuide() {
 
     return (
         <DashboardLayout>
-            <div className="min-h-screen bg-slate-50 flex flex-col md:-mt-8">
+            <div className="min-h-screen bg-slate-50 flex flex-col">
                 <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0 sticky top-0 z-30">
                     <div className="flex items-center gap-2 text-sm">
                         <Link href={`/clients/${clientId}/cyber`}>

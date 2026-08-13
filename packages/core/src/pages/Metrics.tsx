@@ -59,7 +59,7 @@ export default function MetricsPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-4 space-y-3 max-w-7xl mx-auto">
+            <div className="space-y-6 w-full max-w-full">
                 <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-slate-900 leading-tight">Executive Metrics</h1>

@@ -199,8 +199,8 @@ export default function Calendar() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Clients</SelectItem>
-                {clients?.map(client => (
-                  <SelectItem key={client.id} value={String(client.id)}>
+                {Array.from(new Map(clients?.map((c: any) => [c.id, c]) || []).values()).map((client: any) => (
+                  <SelectItem key={`cal-client-${client.id}`} value={String(client.id)}>
                     {client.name}
                   </SelectItem>
                 ))}

@@ -329,14 +329,8 @@ export const createThreatIntelRouter = (t: any, adminProcedure: any, publicProce
     getMITREMatrix: clientProcedure
         .input(z.object({ clientId: z.number() }))
         .query(async ({ input }: any) => {
-            const dbConn = await db.getDb();
-            const { adversaries, adversaryTactics, adversaryTechniques } = await import("../../schema");
-
-            // Simplified: return tactics and techniques for visualization
-            const tactics = await dbConn.select().from(adversaryTactics).orderBy(adversaryTactics.order);
-            const techniques = await dbConn.select().from(adversaryTechniques);
-
-            return { tactics, techniques };
+            const { fetchMitreAttackData } = await import("../../lib/adversaryService");
+            return await fetchMitreAttackData();
         }),
 
     // Get assets affected by a specific threat

@@ -461,7 +461,7 @@ export default function AuditHub() {
             <div className="flex flex-col h-[calc(100vh-64px)] w-full bg-slate-50/50 overflow-hidden">
 
                 {/* 1. Universal Header (Audit Context) - Professionally Redesigned */}
-                <header className="h-16 bg-white border-b flex items-center justify-between pl-4 pr-4 md:pl-20 md:pr-8 shrink-0 z-40 relative shadow-sm">
+                <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-8 shrink-0 z-40 relative shadow-sm">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3">
                             <div className="bg-[#1C4D8D] h-9 w-9 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-slate-900/5">

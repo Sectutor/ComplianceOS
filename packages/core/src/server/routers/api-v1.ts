@@ -1217,4 +1217,32 @@ apiV1Router.get('/employees/:id/acknowledgments', async (req: Request, res: Resp
   }
 });
 
+// ── GET /api/v1/checklists ──────────────────────────────────────────────────
+apiV1Router.get('/checklists', async (_req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const rows = await db.execute(sql`SELECT * FROM checklists ORDER BY id`);
+    res.json({ data: rows, total: rows.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── GET /api/v1/auditor-questions ───────────────────────────────────────────
+apiV1Router.get('/auditor-questions', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const framework = req.query.framework as string | undefined;
+    let query = sql`SELECT * FROM auditor_questions`;
+    if (framework) {
+      query = sql`${query} WHERE framework = ${framework}`;
+    }
+    query = sql`${query} ORDER BY id`;
+    const rows = await db.execute(query);
+    res.json({ data: rows, total: rows.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
 export { apiV1Router };

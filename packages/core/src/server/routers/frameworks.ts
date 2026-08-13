@@ -176,46 +176,16 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         version: 1,
                         grouping: "HITRUST"
                     }));
-                } else if (input.type === "fedramp") {
+                } else if (input.type === "fedramp" || input.type === "fedramp_low" || input.type === "fedramp_high") {
                     frameworkName = "FedRAMP Moderate";
-                    const { fedrampModerateControls } = await import('../../data/frameworks/fedramp');
-                    newControls = fedrampModerateControls.map(c => ({
-                        controlId: c.id,
+                    const { FEDRAMP_CONTROLS } = await import('../../data/frameworks/fedramp');
+                    newControls = FEDRAMP_CONTROLS.map(c => ({
+                        controlId: c.controlId,
                         name: c.name,
                         description: c.description,
                         framework: frameworkName,
-                        category: c.category,
-                        implementationGuidance: "See NIST 800-53 Rev 5 guidance.",
-                        clientId: input.clientId,
-                        status: "active",
-                        version: 1,
-                        grouping: "FedRAMP"
-                    }));
-                } else if (input.type === "fedramp_low") {
-                    frameworkName = "FedRAMP Low";
-                    const { fedrampLowControls } = await import('../../data/frameworks/fedramp');
-                    newControls = fedrampLowControls.map(c => ({
-                        controlId: c.id,
-                        name: c.name,
-                        description: c.description,
-                        framework: frameworkName,
-                        category: c.category,
-                        implementationGuidance: "See NIST 800-53 Rev 5 guidance.",
-                        clientId: input.clientId,
-                        status: "active",
-                        version: 1,
-                        grouping: "FedRAMP"
-                    }));
-                } else if (input.type === "fedramp_high") {
-                    frameworkName = "FedRAMP High";
-                    const { fedrampHighControls } = await import('../../data/frameworks/fedramp');
-                    newControls = fedrampHighControls.map(c => ({
-                        controlId: c.id,
-                        name: c.name,
-                        description: c.description,
-                        framework: frameworkName,
-                        category: c.category,
-                        implementationGuidance: "See NIST 800-53 Rev 5 guidance.",
+                        category: c.family,
+                        implementationGuidance: c.guidance,
                         clientId: input.clientId,
                         status: "active",
                         version: 1,

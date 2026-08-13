@@ -1041,7 +1041,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                     // 3. OWASP Intelligence Enrichment (New)
                     try {
                         console.log(`[generateRisks] Starting OWASP intelligence enrichment`);
-                        let owaspRequirements = [];
+                        let owaspRequirements: any[] = [];
                         try {
                             owaspRequirements = await db.select().from(frameworkRequirements);
                             console.log(`[generateRisks] Found ${owaspRequirements.length} OWASP requirements`);
@@ -1236,7 +1236,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
-                const results = [];
+                const results: any[] = [];
 
                 for (const risk of input.risks) {
                     const inherentScore = risk.likelihood * risk.impact;
@@ -1330,7 +1330,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                 const components = await db.select().from(threatModelComponents).where(eq(threatModelComponents.threatModelId, input.id));
                 const flows = await db.select().from(threatModelDataFlows).where(eq(threatModelDataFlows.threatModelId, input.id));
 
-                const cells = [];
+                const cells: any[] = [];
 
                 // Map Components
                 components.forEach((c: any) => {

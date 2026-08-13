@@ -114,7 +114,7 @@ export default function FrameworksDashboard() {
     const { userRole: clientRole, isPremiumStatus } = useClientContext();
     const isGlobalAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin';
     const isClientAdmin = clientRole === 'owner' || clientRole === 'admin';
-    const hasPremiumTier = client?.planTier === 'pro' || client?.planTier === 'enterprise';
+    const hasPremiumTier = client?.planTier === 'consultant' || client?.planTier === 'enterprise';
 
     // Admins bypass the environment check
     const isPremium = isPremiumStatus;

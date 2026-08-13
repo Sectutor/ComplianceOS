@@ -1,0 +1,19 @@
+[build]
+  command = "echo 'Static site — no build needed'"
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/send-report"
+  to = "/.netlify/functions/send-report"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/generate-doc"
+  to = "/.netlify/functions/send-report"
+  status = 200
+  force = true

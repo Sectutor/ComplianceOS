@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import MFAChallengeModal from "@/components/auth/MFAChallengeModal";
+import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary";
 import { useEffect, useState } from "react";
 import { getLoginUrl } from "./const";
 import { registerDefaults } from "@/registry/defaults";
@@ -40,7 +41,16 @@ if (licenseValidator.isEnterpriseEdition() || licenseValidator.isTrialEdition())
   console.log('[Registry] Premium features disabled (Community Edition)');
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes fresh cache for instant navigation
+      gcTime: 15 * 60 * 1000, // Keep cached data in memory for 15 minutes
+      refetchOnWindowFocus: false, // Prevent layout flashes on tab switches
+      retry: 1, // Single fast retry before error boundary fallback
+    },
+  },
+});
 
 const redirectToLoginIfUnauthorized = async (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -323,11 +333,13 @@ function AppWithMFA() {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <AppWithMFA />
-    </QueryClientProvider>
-  </trpc.Provider>
+  <GlobalErrorBoundary>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <AppWithMFA />
+      </QueryClientProvider>
+    </trpc.Provider>
+  </GlobalErrorBoundary>
 );
 
 console.log('[ComplianceOS] App build updated: ' + new Date().toISOString());

@@ -20,7 +20,7 @@ export default function IntegrationsPage() {
     }, [searchParams]);
 
     return (
-        <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-8 md:-mt-8 md:pl-11 md:pr-8 bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
+        <div className="relative min-h-[calc(100vh-3.5rem)] bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
             {/* Ambient Light Mode Background Glows */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />

@@ -194,7 +194,7 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
             const days = 30;
 
             // Generate last 30 days
-            const trend = [];
+            const trend: any[] = [];
             for (let i = days; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);

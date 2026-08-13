@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import * as db from "../db";
 import * as schema from "../schema";
 import { userClients } from "../schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, or, gt } from "drizzle-orm";
 import { rateLimiter } from "../lib/redis";
 import { logger } from "../lib/logger";
 import { enforceLicense } from "../lib/license/local-license-cache";
@@ -315,7 +315,7 @@ export const checkPremiumAccess = middleware(async (opts) => {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
         }
 
-        const isPremium = client.planTier === 'pro' || client.planTier === 'enterprise';
+        const isPremium = client.planTier === 'consultant' || client.planTier === 'enterprise';
         if (!isPremium) {
             throw new TRPCError({
                 code: 'PRECONDITION_FAILED',

@@ -95,7 +95,7 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
 
     return (
         <DashboardLayout fullWidth={fullWidth}>
-            <div className="flex flex-col min-h-screen bg-transparent md:-mt-8">
+            <div className="flex flex-col min-h-screen bg-transparent">
                 <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
                     {/* Breadcrumb Section */}
                     <Breadcrumb className="mb-0">
@@ -137,7 +137,7 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer shadow-sm border",
+                                        "flex items-center whitespace-nowrap shrink-0 min-w-max px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer shadow-sm border",
                                         active
                                             ? "bg-[#3ABEF9] text-white border-[#3ABEF9]"
                                             : "bg-[#1C4D8D] text-white border-[#1C4D8D] hover:bg-[#3ABEF9] hover:border-[#3ABEF9]"

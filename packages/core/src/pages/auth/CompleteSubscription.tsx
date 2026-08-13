@@ -29,8 +29,7 @@ export default function CompleteSubscription() {
             // Simpler: Just re-use the tier from DB and default interval.
 
             const interval = "month"; // Defaulting to month for recovery flow
-            const tier = dbUser.planTier === 'enterprise' ? 'enterprise' :
-                dbUser.planTier === 'pro' ? 'pro' : 'startup';
+            const tier = dbUser.planTier === 'enterprise' ? 'enterprise' : 'consultant';
 
             toast.loading("Preparing checkout...");
 

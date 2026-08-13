@@ -73,11 +73,22 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
     onSuccess: () => {
       toast.success("AI VRM Analysis complete!");
       if (onRefresh) onRefresh();
-      // Also poll briefly just in case changes are propagating
       setIsPolling(true);
     },
     onError: (error) => {
       toast.error(`Analysis failed: ${error.message}`);
+    }
+  });
+
+  const updateVendorMutation = trpc.vendors.updateVendor.useMutation({
+    onSuccess: () => {
+      toast.success("Trust Center status updated", { duration: 1500 });
+      if (onRefresh) onRefresh();
+    },
+    onError: (err) => {
+      console.error("Failed to update vendor trust center:", err);
+      toast.error("Failed to save: " + (err.message || "Unknown error"));
+      if (vendor?.id) utils.vendors.get.invalidate({ id: vendor.id });
     }
   });
 
@@ -305,20 +316,9 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
                 const currentData = vendor.trustCenterData || {};
                 const newManual = { ...currentData.manual, [check.id]: isChecked };
 
-                // Optimistic update
-                utils.vendors.get.setData({ id: vendor.id }, (old) => old ? { ...old, trustCenterData: { ...currentData, manual: newManual } } : old);
-
-                trpc.vendors.updateVendor.mutate({
+                updateVendorMutation.mutate({
                   id: vendor.id,
                   trustCenterData: { ...currentData, manual: newManual }
-                }).then(() => {
-                  toast.success(`Updated ${check.label}`, { duration: 1500 });
-                  if (onRefresh) onRefresh();
-                }).catch(err => {
-                  console.error("Failed to update vendor trust center:", err);
-                  toast.error("Failed to save: " + (err.message || "Unknown error"));
-                  // Revert optimistic update
-                  utils.vendors.get.invalidate({ id: vendor.id });
                 });
               };
 

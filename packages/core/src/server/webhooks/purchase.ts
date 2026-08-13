@@ -78,7 +78,7 @@ purchaseWebhookRouter.post('/stripe', express.raw({ type: 'application/json' }),
           issuedAt: new Date(),
           expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
           maxUsers: tier === 'enterprise' ? 9999 : 50,
-          maxClients: tier === 'enterprise' ? 9999 : 10,
+          maxClients: tier === 'enterprise' ? 9999 : 2,
           features: [],
         });
 
@@ -131,7 +131,7 @@ purchaseWebhookRouter.post('/paddle', express.json(), async (req: any, res) => {
         issuedAt: new Date(),
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         maxUsers: tier === 'enterprise' ? 9999 : 50,
-        maxClients: tier === 'enterprise' ? 9999 : 10,
+        maxClients: tier === 'enterprise' ? 9999 : 2,
         features: [],
       });
     }

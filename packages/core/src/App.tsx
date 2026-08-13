@@ -9,6 +9,7 @@ import { Toaster } from "@complianceos/ui/ui/sonner";
 import { BrandingProvider, useBranding } from "./config/branding";
 import { TooltipProvider } from "@complianceos/ui/ui/tooltip";
 import GDPRBanner from "@/components/GDPRBanner";
+import { GlobalCommandPalette } from "./components/common/GlobalCommandPalette";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, Redirect, useLocation, useParams } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -84,6 +85,8 @@ const AddonDashboard = lazyLoad(() => import("./pages/addons/AddonDashboard"));
 
 const ClientPoliciesPage = lazyLoad(() => import("./pages/ClientPoliciesPage"));
 const ManagementSignOffPage = lazyLoad(() => import("./pages/ManagementSignOffPage"));
+const PolicyAcknowledgmentPortal = lazyLoad(() => import("./pages/PolicyAcknowledgmentPortal"));
+
 const NIS2EntityClassificationWizard = lazyLoad(() => import("./pages/NIS2EntityClassificationWizard"));
 const NIS2CyberResilienceHub = lazyLoad(() => import("./pages/nis2/NIS2CyberResilienceHub"));
 const NIS2ManagementLiability = lazyLoad(() => import("./pages/nis2/NIS2ManagementLiability"));
@@ -105,6 +108,9 @@ const ClientControlsPage = lazyLoad(() => import("./pages/ClientControlsPage"));
 const AuditorChecklistPage = lazyLoad(() => import("./pages/auditors/AuditorChecklistPage"));
 const ClientEmail = lazyLoad(() => import("./pages/ClientEmail").then(module => ({ default: module.ClientEmail })));
 const ClientTasksPage = lazyLoad(() => import("./pages/ClientTasksPage"));
+const ChecklistsPage = lazyLoad(() => import("./pages/ChecklistsPage"));
+const HandbookPage = lazyLoad(() => import("./pages/HandbookPage"));
+const AuditorQuestionsPage = lazyLoad(() => import("./pages/AuditorQuestionsPage"));
 const AuditReadinessPage = lazyLoad(() => import("./pages/compliance/AuditReadinessPage"));
 const ClientCompliancePage = lazyLoad(() => import("./pages/ClientCompliancePage"));
 const ClientLicenseActivation = lazyLoad(() => import("./pages/ClientLicenseActivation"));
@@ -173,6 +179,7 @@ const MaturitySimulationView = lazyLoad(() => import("@/pages/assurance/Maturity
 
 // New Roadmap & Implementation pages
 const RoadmapDashboard = lazyLoad(() => import("@/components/roadmap/RoadmapDashboard"));
+const MsspPartnerPortal = lazyLoad(() => import("./pages/MsspPartnerPortal"));
 const FrameworkMarketplacePage = lazyLoad(() => import("./pages/FrameworkMarketplacePage"));
 const FrameworkStudio = lazyLoad(() => import("./pages/studio/FrameworkStudio"));
 const RoadmapCreatePage = lazyLoad(() => import("@/components/roadmap/RoadmapCreatePage"));
@@ -459,7 +466,7 @@ function UnifiedClientGuard({
   const globalRole = userMe?.role;
   const isGlobalAdmin = ['admin', 'owner', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
   const isAdminOrOwner = isGlobalAdmin || clientRole === 'owner' || clientRole === 'admin';
-  const isPremiumContext = tier === 'pro' || tier === 'enterprise' || isAdminOrOwner || clientRole === 'owner' || clientRole === 'admin';
+  const isPremiumContext = tier === 'consultant' || tier === 'enterprise' || isAdminOrOwner || clientRole === 'owner' || clientRole === 'admin';
 
   useEffect(() => {
     setIsPremiumStatus(isPremiumContext);
@@ -509,8 +516,7 @@ function ManagementGuard({ children }: { children: React.ReactNode }) {
   return <UnifiedClientGuard requireManagement={true}>{children}</UnifiedClientGuard>;
 }
 
-// Wrapper for protected routes
-function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any> } & any) {
+function ProtectedRoute({ component: Component, children, ...rest }: { component?: React.ComponentType<any>; children?: React.ReactNode } & any) {
   const { session, loading } = useAuth();
 
   if (loading) {
@@ -528,7 +534,8 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
 
   console.log("ProtectedRoute: Session valid, rendering component");
 
-  return <Component {...rest} />;
+  if (Component) return <Component {...rest} />;
+  return <>{children}</>;
 }
 
 function ClientControlsAlias() {
@@ -699,6 +706,7 @@ function PageLoader() {
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <GlobalCommandPalette />
       {/* Domain Enforcement for App Routes - Outside Switch to avoid blocking matches */}
       <Route path="/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)">
         {() => {
@@ -782,6 +790,9 @@ function Router() {
           {(_params) => <AdminLayout><UnifiedClientGuard requireManagement><ProtectedRoute component={SystemFeedbackPage} /></UnifiedClientGuard></AdminLayout>}
         </Route>
 
+        <Route path="/mssp/portal">
+          <ProtectedRoute component={MsspPartnerPortal} />
+        </Route>
         <Route path="/clients">
           <ProtectedRoute component={Clients} />
         </Route>
@@ -861,11 +872,12 @@ function Router() {
         <Route path="/clients/:id/policies">
           {(_params) => <ProtectedRoute component={ClientPoliciesPage} />}
         </Route>
-
-
         <Route path="/clients/:id/policies/:policyId">
           {(params) => <ProtectedRoute component={PolicyEditor} {...params} />}
         </Route>
+
+
+
         <Route path="/clients/:id/mappings">
           {(_params) => <ProtectedRoute component={Mappings} />}
         </Route>
@@ -928,6 +940,13 @@ function Router() {
         <Route path="/clients/:id/management/sign-off">
           {(_params) => <ProtectedRoute component={ManagementSignOffPage} />}
         </Route>
+        <Route path="/portal/policies/signoff">
+          {(_params) => <PolicyAcknowledgmentPortal />}
+        </Route>
+        <Route path="/clients/:id/policies/portal">
+          {(_params) => <ProtectedRoute component={PolicyAcknowledgmentPortal} />}
+        </Route>
+
         <Route path="/clients/:id/compliance-journey">
           {(_params) => <ProtectedRoute component={ComplianceJourneyDashboard} />}
         </Route>
@@ -1015,11 +1034,7 @@ function Router() {
 
         {/* NIS2 Compliance Tools */}
         <Route path="/clients/:id/nis2/entity-classification">
-          {(_params) => (
-            <ProtectedRoute>
-              <NIS2EntityClassificationWizard key={_params.id} />
-            </ProtectedRoute>
-          )}
+          {(_params) => <ProtectedRoute component={NIS2EntityClassificationWizard} />}
         </Route>
         <Route path="/clients/:id/nis2/management-liability">
           {(_params) => <ProtectedRoute component={NIS2ManagementLiability} />}
@@ -1088,6 +1103,15 @@ function Router() {
         </Route>
         <Route path="/clients/:id/tasks">
           {(_params) => <ProtectedRoute component={ClientTasksPage} />}
+        </Route>
+        <Route path="/clients/:id/checklists">
+          {(_params) => <ProtectedRoute component={ChecklistsPage} />}
+        </Route>
+        <Route path="/clients/:id/handbook">
+          {(_params) => <ProtectedRoute component={HandbookPage} />}
+        </Route>
+        <Route path="/clients/:id/auditor-questions">
+          {(_params) => <ProtectedRoute component={AuditorQuestionsPage} />}
         </Route>
         <Route path="/clients/:id/audit-readiness">
           {(_params) => <ProtectedRoute component={AuditReadinessPage} />}
@@ -1789,23 +1813,13 @@ function Router() {
           )}
         </Route>
 
-        {/* Reuse PolicyEditor but maybe wrapped or just passed ID. 
-            PolicyEditor expects params :clientId and :policyId usually? 
-            Let's check how PolicyEditor is used. 
-            It is usually /clients/:clientId/policies/:policyId. 
-            We can reuse it here mapping /clients/:id/privacy/documents/:policyId 
-        */}
+        {/* Privacy documents route: PolicyEditor uses useParams() to get id (clientId) and policyId from URL.
+            Route /clients/:id/privacy/documents/:policyId provides both params automatically. */}
         <Route path="/clients/:id/privacy/documents/:policyId">
           {(_params) => (
-            // We need to verify if PolicyEditor uses 'clientId' or 'id' param.
-            // Looking at lazy import: const PolicyEditor = lazyLoad(() => import("./pages/PolicyEditor"));
-            // Let's assume it works if we match params or use standard route.
-            // Actually PolicyEditor likely looks at specific URL pattern or params.
-            // Let's just point to it.
             <ProtectedRoute component={PolicyEditor} />
           )}
         </Route>
-
 
         <Route path="/clients/:id/intake">
           {(_params) => (

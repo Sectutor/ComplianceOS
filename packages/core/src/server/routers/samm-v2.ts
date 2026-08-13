@@ -403,7 +403,7 @@ export const createSammV2Router = (t: any, clientProcedure: any) => {
                 }
 
                 // Get questions for gap streams to extract activities
-                const tasks = [];
+                const tasks: any[] = [];
 
                 for (const gap of gaps) {
                     // Get questions for the target level

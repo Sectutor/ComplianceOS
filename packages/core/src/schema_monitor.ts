@@ -15,3 +15,21 @@ export const complianceMonitorEvents = pgTable("compliance_monitor_events", {
   clientIdx: index("idx_cme_client").on(table.clientId),
   severityIdx: index("idx_cme_severity").on(table.severity, table.createdAt),
 }));
+
+export const controlTestRuns = pgTable("control_test_runs", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  clientControlId: integer("client_control_id").notNull(),
+  controlCode: varchar("control_code", { length: 50 }),
+  testType: varchar("test_type", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // 'pass' | 'fail' | 'warning' | 'error'
+  score: integer("score").default(100),
+  message: text("message"),
+  findings: jsonb("findings"), // Array of specific finding details
+  executedAt: timestamp("executed_at").defaultNow(),
+}, (table) => ({
+  clientIdx: index("idx_ctr_client").on(table.clientId),
+  controlIdx: index("idx_ctr_control").on(table.clientControlId),
+  statusIdx: index("idx_ctr_status").on(table.clientId, table.status),
+}));
+

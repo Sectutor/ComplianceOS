@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    if (window.location.pathname.endsWith('/public-auditor')) {
+      window.location.pathname += '/';
+    }
+  </script>
+  <title>Free AI Agent Compliance Assessment — Score Your LLM in 60 Seconds</title>
+  <meta name="description" content="Audit your AI agent against OWASP LLM, NIST AI RMF, and EU AI Act frameworks. Free self-assessment. No signup required. Get your compliance score and remediation playbooks instantly.">
+  <meta property="og:title" content="Free AI Agent Compliance Assessment — Score Your LLM in 60 Seconds">
+  <meta property="og:description" content="Audit your AI agent against OWASP, NIST, and EU AI Act. Free. 60 seconds. No signup.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://assess.grcompliance.com/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Free AI Agent Compliance Assessment">
+  <meta name="twitter:description" content="Audit your AI agent against OWASP LLM, NIST AI RMF, and EU AI Act. Free. 60 seconds.">
+  <link rel="canonical" href="https://assess.grcompliance.com/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ComplianceOS AI Agent Auditor",
+    "description": "Free compliance self-assessment for AI agents against OWASP LLM, NIST AI RMF, and EU AI Act frameworks.",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+  <!-- Google Search Console — add content value from GSC verification page -->
+  <!-- <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE"> -->
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN (UMD Build) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css?v=1.5.4">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col justify-between min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-white/5 bg-slate-950/60 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <i data-lucide="shield" class="h-4.5 w-4.5 text-white"></i>
+        </div>
+        <span class="font-bold text-lg tracking-tight font-sans">Compliance<span class="text-blue-500">OS</span></span>
+        <span class="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[10px] text-slate-400 font-medium">Auditor Lite</span>
+        <span id="dev-mode-badge" class="hidden items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-emerald-400 animate-pulse">
+          <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+          DEV MODE
+        </span>
+      </div>
+      <div>
+        <a href="https://grcompliance.com" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1 font-medium">
+          Main Platform <i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-10 flex flex-col justify-center">
+
+    <!-- Timeline Progress Bar -->
+    <div id="progress-timeline" class="mb-10 max-w-2xl mx-auto px-4 hidden">
+      <div class="flex items-center justify-between relative">
+        <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/10 z-0"></div>
+        <div id="timeline-progress-bar" class="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-blue-500 z-0 transition-all duration-500" style="width: 0%;"></div>
+        
+        <div class="flex flex-col items-center z-10 px-2 bg-[#020617]">
+          <div id="step-dot-1" class="step-dot w-7 h-7 rounded-full bg-slate-900 border-2 border-white/10 flex items-center justify-center text-xs font-bold text-slate-400 transition-colors">1</div>
+          <span class="text-[10px] text-slate-400 mt-1.5 font-medium">Preset</span>
+        </div>
+        <div class="flex flex-col items-center z-10 px-2 bg-[#020617]">
+          <div id="step-dot-2" class="step-dot w-7 h-7 rounded-full bg-slate-900 border-2 border-white/10 flex items-center justify-center text-xs font-bold text-slate-400 transition-colors">2</div>
+          <span class="text-[10px] text-slate-400 mt-1.5 font-medium">Policy</span>
+        </div>
+        <div class="flex flex-col items-center z-10 px-2 bg-[#020617]">
+          <div id="step-dot-3" class="step-dot w-7 h-7 rounded-full bg-slate-900 border-2 border-white/10 flex items-center justify-center text-xs font-bold text-slate-400 transition-colors">3</div>
+          <span class="text-[10px] text-slate-400 mt-1.5 font-medium">Checklist</span>
+        </div>
+        <div class="flex flex-col items-center z-10 px-2 bg-[#020617]">
+          <div id="step-dot-4" class="step-dot w-7 h-7 rounded-full bg-slate-900 border-2 border-white/10 flex items-center justify-center text-xs font-bold text-slate-400 transition-colors">4</div>
+          <span class="text-[10px] text-slate-400 mt-1.5 font-medium">Audit</span>
+        </div>
+        <div class="flex flex-col items-center z-10 px-2 bg-[#020617]">
+          <div id="step-dot-5" class="step-dot w-7 h-7 rounded-full bg-slate-900 border-2 border-white/10 flex items-center justify-center text-xs font-bold text-slate-400 transition-colors">5</div>
+          <span class="text-[10px] text-slate-400 mt-1.5 font-medium">Results</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1: Welcome & Preset Selection -->
+    <div id="step-welcome" class="glass-card p-8 md:p-10 space-y-6">
+      <div class="text-center space-y-3">
+        <div class="inline-flex w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 items-center justify-center shadow-lg shadow-blue-500/5 mb-2">
+          <i data-lucide="bot" class="h-6 w-6"></i>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white md:text-4xl">AI Agent Compliance Checklist — Audit Your LLM in 60 Seconds</h1>
+        <p class="text-slate-400 text-sm max-w-lg mx-auto">
+          Scan your AI Agent against EU AI Act, NIST AI RMF, and OWASP Top 10 guidelines using our comprehensive self-audit matrix.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+        <!-- Secure Preset Card -->
+        <button id="btn-preset-secure" class="group text-left glass-card p-6 border border-emerald-500/15 hover:border-emerald-500/35 hover:bg-emerald-500/5 transition-all flex flex-col justify-between min-h-[240px] h-auto">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Secure Setup (Target State)</span>
+              <span class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] text-emerald-400 font-bold uppercase">100% Score</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Isolated Sandbox Bot</h3>
+              <p class="text-xs text-slate-400 leading-relaxed mt-1">
+                Simulates a hardened agent setup mapped to industry security benchmarks:
+              </p>
+            </div>
+            <ul class="text-[10px] text-slate-300 space-y-1 pt-1.5 font-medium">
+              <li class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="h-3.5 w-3.5 text-emerald-400 shrink-0"></i> Docker container sandboxing active</li>
+              <li class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="h-3.5 w-3.5 text-emerald-400 shrink-0"></i> Explicit human command verification</li>
+              <li class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="h-3.5 w-3.5 text-emerald-400 shrink-0"></i> Outbound internet connections isolated</li>
+            </ul>
+          </div>
+          <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform mt-5">
+            Load secure controls <i data-lucide="arrow-right" class="h-3 w-3"></i>
+          </span>
+        </button>
+
+        <!-- Vulnerable Preset Card -->
+        <button id="btn-preset-vulnerable" class="group text-left glass-card p-6 border border-rose-500/15 hover:border-rose-500/35 hover:bg-rose-500/5 transition-all flex flex-col justify-between min-h-[240px] h-auto">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-400">Vulnerable Setup (Default State)</span>
+              <span class="bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded text-[9px] text-rose-400 font-bold uppercase">10% Score</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Excessive Agency Assistant</h3>
+              <p class="text-xs text-slate-400 leading-relaxed mt-1">
+                Simulates standard default configuration settings with critical vulnerabilities:
+              </p>
+            </div>
+            <ul class="text-[10px] text-slate-300 space-y-1 pt-1.5 font-medium">
+              <li class="flex items-center gap-1.5"><i data-lucide="x-circle" class="h-3.5 w-3.5 text-rose-400 shrink-0"></i> Direct host execute access (No Sandbox)</li>
+              <li class="flex items-center gap-1.5"><i data-lucide="x-circle" class="h-3.5 w-3.5 text-rose-400 shrink-0"></i> Automatic command approvals (YOLO mode)</li>
+              <li class="flex items-center gap-1.5"><i data-lucide="x-circle" class="h-3.5 w-3.5 text-rose-400 shrink-0"></i> Outbound internet open (Data leakage risk)</li>
+            </ul>
+          </div>
+          <span class="text-xs font-semibold text-rose-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform mt-5">
+            Load vulnerable controls <i data-lucide="arrow-right" class="h-3 w-3"></i>
+          </span>
+        </button>
+      </div>
+
+      <div class="flex flex-col items-center gap-3 pt-6 border-t border-white/5">
+        <button id="btn-welcome-proceed" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10 flex items-center gap-2">
+          Proceed with Custom Configuration <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </button>
+        <span class="text-[10px] text-slate-500 text-center">
+          Click a template card above to pre-fill, or click 'Proceed' to configure manually.
+        </span>
+      </div>
+
+      <div class="text-center pt-2">
+        <span class="text-[11px] text-slate-500 flex items-center justify-center gap-1">
+          <i data-lucide="lock" class="h-3.5 w-3.5"></i> All selections are computed entirely client-side. No data is stored on our servers.
+        </span>
+      </div>
+    </div>
+
+    <!-- Step 2: Interactive Checklist Grid -->
+    <div id="step-checklist" class="space-y-6 hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white">AI Agent Security Audit Checklist</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Toggle controls to reflect your agent’s setup. Each item impacts the compliance rating.</p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="checklist-counter" class="text-xs font-bold bg-slate-900 border border-white/10 px-3 py-1.5 rounded-lg text-blue-400">
+            0 / 20 Verified
+          </span>
+          <button id="btn-checklist-back" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+            <i data-lucide="arrow-left" class="h-3.5 w-3.5"></i> Back
+          </button>
+        </div>
+      </div>
+
+      <!-- Categories Navigation -->
+      <div class="flex border-b border-white/10 gap-4 overflow-x-auto">
+        <button id="tab-hermes" class="border-b-2 border-blue-500 pb-2.5 text-xs font-bold text-white transition-all flex items-center gap-1.5 shrink-0">
+          <i data-lucide="box" class="h-4 w-4 text-blue-400"></i> Primary Controls (10)
+        </button>
+        <button id="tab-host" class="border-b-2 border-transparent pb-2.5 text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5 shrink-0">
+          <i data-lucide="server" class="h-4 w-4 text-slate-500"></i> Secondary Controls (10)
+        </button>
+        <button id="tab-all" class="border-b-2 border-transparent pb-2.5 text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5 shrink-0">
+          <i data-lucide="layers" class="h-4 w-4 text-slate-500"></i> View All Controls
+        </button>
+      </div>
+
+      <!-- Hermes Sandbox Checklist Container -->
+      <div id="container-hermes-checks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Javascript dynamic rendering -->
+      </div>
+
+      <!-- Host Security Checklist Container -->
+      <div id="container-host-checks" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+        <!-- Javascript dynamic rendering -->
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+        <button id="btn-checklist-continue" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10 flex items-center gap-1.5">
+          <i data-lucide="zap" class="h-4 w-4"></i> Run Compliance Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Policy Selection & Risk Scope -->
+    <div id="step-policy" class="glass-card p-6 md:p-8 space-y-6 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-white">Define Policy Scope</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Determine the regulatory scope and classification criteria.</p>
+        </div>
+        <button id="btn-policy-back" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+          <i data-lucide="arrow-left" class="h-3.5 w-3.5"></i> Back
+        </button>
+      </div>
+
+      <!-- Inferred Risk Banner -->
+      <div class="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 flex gap-3 items-start">
+        <i data-lucide="info" class="h-5 w-5 text-blue-400 shrink-0 mt-0.5"></i>
+        <div>
+          <h4 class="text-xs font-bold text-white">Automated Risk Triage</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+            Based on your geography and use-case options, our engine automatically selects frameworks like the EU AI Act (Article 8-15) and ISO 42001 (A.8-A.10).
+          </p>
+        </div>
+      </div>
+
+      <!-- Assessment Mode Selector (Agentic vs LLM App) -->
+      <div class="space-y-3">
+        <div class="flex items-center gap-2 bg-blue-950/80 border border-blue-500/40 px-4 py-2 rounded-xl w-fit shadow-md">
+          <span class="p-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center">
+            <i data-lucide="layers" class="h-4 w-4"></i>
+          </span>
+          <span class="text-sm font-extrabold text-blue-200 tracking-wide uppercase">Select Assessment Target Type</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="assessment-mode-grid">
+          
+          <button data-mode="agentic" id="btn-mode-agentic" class="mode-btn group text-left bg-blue-500/10 border border-blue-500/40 p-4 rounded-xl transition-all flex flex-col gap-1.5 relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-blue-300 flex items-center gap-1.5 mode-title">🤖 AGENTIC AI ASSESSMENT</span>
+              <span class="bg-blue-500/20 text-blue-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded border border-blue-500/40">RECOMMENDED</span>
+            </div>
+            <p class="text-[11px] text-slate-300 leading-snug">
+              For autonomous tool-calling agents & daemons. Evaluates sandbox isolation, loop timeouts, shell blocklists, HITL approval gates, and vector memory poisoning.
+            </p>
+            <div class="text-[9px] font-mono text-slate-300 mt-1 flex gap-2 font-bold">
+              <span class="text-blue-400">OWASP ASI</span> • <span class="text-amber-400">EU Art 14/15</span> • <span class="text-emerald-400">Agent Controls</span>
+            </div>
+          </button>
+
+          <button data-mode="llm" id="btn-mode-llm" class="mode-btn group text-left bg-slate-900/60 border border-white/10 hover:border-blue-500/30 p-4 rounded-xl transition-all flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-slate-200 flex items-center gap-1.5 mode-title">🧠 LLM APPLICATION ASSESSMENT</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-snug">
+              For chatbots, RAG wrappers, & copilots. Evaluates prompt injection safety, DLP PII redaction, output purifiers, model DoS rate limits, and supply chain SBOMs.
+            </p>
+            <div class="text-[9px] font-mono text-slate-400 mt-1 flex gap-2 font-bold">
+              <span>OWASP LLM 10</span> • <span>NIST RMF</span> • <span>EU Art 10/13</span>
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Agent System Selector -->
+      <div class="space-y-3" id="agent-system-container">
+        <div class="flex items-center gap-2 bg-blue-950/80 border border-blue-500/40 px-4 py-2 rounded-xl w-fit shadow-md">
+          <span class="p-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center">
+            <i data-lucide="cpu" class="h-4 w-4"></i>
+          </span>
+          <span class="text-sm font-extrabold text-blue-200 tracking-wide uppercase">Select Your AI Agent System</span>
+        </div>
+        <div class="flex gap-2 overflow-x-auto pb-1" id="agent-category-tabs">
+          <button data-cat="enterprise" class="agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 transition-all">Enterprise</button>
+          <button data-cat="coding" class="agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-blue-500/20 bg-slate-900/60 text-slate-400 hover:text-blue-300 transition-all">Coding</button>
+          <button data-cat="workflow" class="agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-amber-500/20 bg-slate-900/60 text-slate-400 hover:text-amber-300 transition-all">Workflow</button>
+          <button data-cat="frameworks" class="agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-purple-500/20 bg-slate-900/60 text-slate-400 hover:text-purple-300 transition-all">Frameworks</button>
+          <button data-cat="selfhosted" class="agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-slate-500/20 bg-slate-900/60 text-slate-400 hover:text-slate-200 transition-all">Self-Hosted</button>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 min-h-[180px]" id="agent-system-grid">
+          <!-- Cards injected dynamically by JS -->
+        </div>
+        <p id="agent-system-warning" class="text-xs text-amber-400 font-bold hidden flex items-center gap-1">
+          <i data-lucide="alert-triangle" class="h-3.5 w-3.5"></i> Please select an agent system to continue.
+        </p>
+      </div>
+
+      <!-- Security Standard Selector -->
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center gap-2 bg-blue-950/80 border border-blue-500/40 px-4 py-2 rounded-xl w-fit shadow-md">
+          <span class="p-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center">
+            <i data-lucide="shield-check" class="h-4 w-4"></i>
+          </span>
+          <span class="text-sm font-extrabold text-blue-200 tracking-wide uppercase">Select Target Security Standard</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="compliance-standard-grid">
+
+          <button data-standard="unified" class="std-btn group text-left bg-blue-500/10 border border-blue-500/40 p-3.5 rounded-xl transition-all flex flex-col gap-1">
+            <span class="text-xs font-mono font-black text-blue-400">UNIFIED — ALL FRAMEWORKS</span>
+            <span class="text-[10px] text-slate-300 leading-tight">LLM + Agent + Org governance: full 62-control sweep</span>
+          </button>
+
+          <button data-standard="owasp" class="std-btn group text-left bg-slate-900/60 border border-white/10 hover:border-blue-500/30 p-3.5 rounded-xl transition-all flex flex-col gap-1">
+            <span class="text-xs font-mono font-black text-slate-200">OWASP MODEL + AGENT</span>
+            <span class="text-[10px] text-slate-300 leading-tight">LLM vulnerability layer + agentic security safeguards (20)</span>
+          </button>
+
+          <button data-standard="nist" class="std-btn group text-left bg-slate-900/60 border border-white/10 hover:border-blue-500/30 p-3.5 rounded-xl transition-all flex flex-col gap-1">
+            <span class="text-xs font-mono font-black text-slate-200">NIST AI RISK FRAMEWORK</span>
+            <span class="text-[10px] text-slate-300 leading-tight">Enterprise AI governance: Gov/Map/Measure/Manage (23)</span>
+          </button>
+
+          <button data-standard="eu" class="std-btn group text-left bg-slate-900/60 border border-white/10 hover:border-blue-500/30 p-3.5 rounded-xl transition-all flex flex-col gap-1">
+            <span class="text-xs font-mono font-black text-slate-200">EU AI ACT</span>
+            <span class="text-[10px] text-slate-300 leading-tight">High-risk conformity: documentation, logging, oversight (13)</span>
+          </button>
+
+          <button data-standard="msft" class="std-btn group text-left bg-slate-900/60 border border-white/10 hover:border-cyan-500/30 p-3.5 rounded-xl transition-all flex flex-col gap-1">
+            <span class="text-xs font-mono font-black text-cyan-400">MICROSOFT AI GOV</span>
+            <span class="text-[10px] text-slate-300 leading-tight">PyRIT red-teaming, Azure content safety, Defender (3)</span>
+          </button>
+
+          <button data-standard="nv" class="std-btn group text-left bg-slate-900/60 border border-white/10 hover:border-emerald-500/30 p-3.5 rounded-xl transition-all flex flex-col gap-1">
+            <span class="text-xs font-mono font-black text-emerald-400">NVIDIA INFRASTRUCTURE</span>
+            <span class="text-[10px] text-slate-300 leading-tight">NIM isolation, NeMo Guardrails, Morpheus monitoring (3)</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Setup Fields -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <label id="label-agent-name" class="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5 bg-blue-950/40 px-3 py-1 rounded-lg border border-blue-500/20 w-fit">
+              <i data-lucide="bot" class="h-3.5 w-3.5 text-blue-400"></i> Agent Name
+            </label>
+            <input type="text" id="policy-agent-name" class="w-full bg-slate-900/90 border border-blue-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 shadow-inner" value="Customer Support Bot">
+          </div>
+          <div class="space-y-2">
+            <label class="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5 bg-blue-950/40 px-3 py-1 rounded-lg border border-blue-500/20 w-fit">
+              <i data-lucide="globe" class="h-3.5 w-3.5 text-blue-400"></i> Target Geographies
+            </label>
+            <input type="text" id="policy-geography" class="w-full bg-slate-900/90 border border-blue-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 shadow-inner" value="European Union, United States">
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="space-y-2 flex flex-col h-full justify-between">
+            <label class="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5 bg-blue-950/40 px-3 py-1 rounded-lg border border-blue-500/20 w-fit">
+              <i data-lucide="shield-alert" class="h-3.5 w-3.5 text-blue-400"></i> EU AI Act Risk Classification
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="btn-risk-high" class="risk-opt text-left bg-slate-900/60 border border-white/10 p-3 rounded-xl hover:border-yellow-500/40 transition-all flex flex-col justify-between h-20">
+                <span class="text-xs font-black text-yellow-400 uppercase tracking-wide">High Risk</span>
+                <span class="text-[10px] text-slate-300 leading-tight">Critical decision making, HR, or finance tools.</span>
+              </button>
+              <button id="btn-risk-limited" class="risk-opt text-left bg-blue-500/10 border border-blue-500/40 p-3 rounded-xl transition-all flex flex-col justify-between h-20">
+                <span class="text-xs font-black text-blue-400 uppercase tracking-wide">Limited Risk</span>
+                <span class="text-[10px] text-slate-300 leading-tight">Customer interaction, bots, or summarizers.</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-2">
+        <label class="text-xs font-bold text-slate-300">Intended Agent Uses & Functions</label>
+        <textarea id="policy-uses" class="w-full h-16 bg-slate-900 border border-white/5 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500/50 resize-none">Handles tier-1 user support inquiries, retrieves documentation indexes, and assists with self-service password resets.</textarea>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button id="btn-policy-run" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10 flex items-center gap-1.5">
+          Proceed to Checklist <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 4: Audit Scan Terminal -->
+    <div id="step-scan" class="glass-card p-6 md:p-8 space-y-6 hidden">
+      <div>
+        <h2 class="text-xl font-bold text-white">Neural Mapping Audit</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Scanning container layers and sandboxing rules against compliance frameworks...</p>
+      </div>
+
+      <!-- Scan Terminal -->
+      <div class="terminal-console rounded-xl p-5 text-[10px] text-blue-400 h-64 overflow-y-auto space-y-2">
+        <div class="flex items-center gap-1.5 border-b border-white/5 pb-2 mb-2 text-slate-400">
+          <i data-lucide="terminal" class="h-3.5 w-3.5"></i> Compliance Engine Log Output
+        </div>
+        <div id="terminal-log-container" class="space-y-2">
+          <!-- Dynamic logs inject here -->
+        </div>
+        <div id="terminal-spinner" class="flex items-center gap-2 text-blue-500 pt-1">
+          <i data-lucide="refresh-cw" class="h-3 w-3 animate-spin"></i> Analyzing checklist controls...
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <div class="flex gap-2">
+          <button id="btn-scan-skip" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-bold rounded-xl transition-colors border border-white/5">
+            Skip to Results
+          </button>
+          <button id="btn-scan-results" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5">
+            Generate Readiness Card <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Scorecard Results -->
+    <div id="step-results" class="space-y-6 hidden">
+      <!-- Print-Only Cover Page & Executive Summary (Deloitte/Gartner Corporate Quality) -->
+      <div class="print-executive-summary print-only flex-col gap-6 border-b border-slate-200 pb-8 mb-8">
+        <div class="flex items-center justify-between w-full border-b border-slate-200 pb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
+              <i data-lucide="shield" class="h-4.5 w-4.5 text-white"></i>
+            </div>
+            <span class="font-extrabold text-lg text-slate-900 tracking-tight">Compliance<span class="text-blue-600">OS</span> Advisory</span>
+          </div>
+          <span class="text-[9px] text-slate-500 font-mono tracking-wider">SEC-CLASSIF: CONFIDENTIAL ASSURANCE</span>
+        </div>
+
+        <div class="space-y-3 pt-12 mt-12">
+          <span class="text-[10px] font-bold tracking-widest text-blue-600 uppercase">Audit Attestation & Risk Advisory</span>
+          <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight uppercase">AI Agent Security & Sandbox Maturity Attestation Report</h1>
+          <p class="text-xs text-slate-500 font-medium">Evaluation Reference: COS-ATTEST-2026-X89 | Issued: July 19, 2026</p>
+        </div>
+
+        <!-- Corporate Metadata Table -->
+        <div class="mt-8">
+          <h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">Engagement Metadata</h3>
+          <table class="w-full text-left text-[10px] border-collapse mt-2">
+            <tbody>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 font-bold text-slate-500 w-1/3">Target Host Environment</td>
+                <td id="print-meta-agent" class="py-2 text-slate-800">Customer Support Bot</td>
+              </tr>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 font-bold text-slate-500">Regulatory & Standard Scope</td>
+                <td class="py-2 text-slate-800">EU AI Act (Art 14, 15, 53), NIST AI RMF, OWASP Agentic Security (ASI)</td>
+              </tr>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 font-bold text-slate-500">Evaluation Mechanism</td>
+                <td class="py-2 text-slate-800">Static Sandbox Checks (66+ Control Framework Baselines)</td>
+              </tr>
+              <tr class="border-b border-slate-100">
+                <td class="py-2 font-bold text-slate-500">Target Geographies</td>
+                <td id="print-meta-geography" class="py-2 text-slate-800">European Union, United States</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-8 space-y-4">
+          <h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1">Executive Summary</h3>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            This attestation report details the security configuration audit conducted for the AI Agent workspace system. With the rapid integration of autonomous LLM workflows in production environments, establishing a deterministic, sandboxed execution framework is critical to mitigating autonomous code execution risks, supply chain poisoning, and data exfiltration.
+          </p>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            This evaluation ranks agent maturity across twenty (20) distinct controls mapping sandbox container isolation, process privileges, runtime command blocklists, input validation filters, and host OS security settings. Organizations are advised to maintain a mature sandbox threshold (&ge; 80% compliance score) to satisfy global audit requirements.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 mt-12 p-5 bg-slate-50 border border-slate-200 rounded-xl w-full">
+          <div>
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall Attestation Score</span>
+            <div id="print-score-val" class="text-3xl font-extrabold text-slate-900 mt-0.5">0%</div>
+          </div>
+          <div>
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Maturity Classification</span>
+            <div id="print-risk-val" class="text-xs font-bold text-slate-700 mt-2.5 uppercase">Limited Risk</div>
+          </div>
+          <div>
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Compliance Attestation</span>
+            <div id="print-status-val" class="text-xs font-bold text-emerald-600 mt-2.5 uppercase">Verified</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Rating Circle Card -->
+        <div class="lg:col-span-2 glass-card p-6 md:p-8 flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden min-h-[300px]">
+          <div class="absolute top-0 left-0 w-full h-1.5 bg-blue-500"></div>
+          
+          <div class="relative w-36 h-36 flex items-center justify-center">
+            <svg class="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#0f172a" stroke-width="8" />
+              <circle id="gauge-circle-score" cx="50" cy="50" r="40" fill="transparent" stroke="#3b82f6" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="gauge-circle" />
+            </svg>
+            <div class="text-center">
+              <span id="results-score-num" class="text-4xl font-extrabold text-white">0%</span>
+              <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Readiness</div>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <h3 id="results-score-lbl" class="text-lg font-bold text-white">Scanning...</h3>
+            <p class="text-xs text-slate-400 max-w-[220px] leading-normal mx-auto">Overall compliance rating computed across active governance modules.</p>
+          </div>
+        </div>
+
+        <!-- Details Summary Card -->
+        <div class="lg:col-span-3 glass-card p-6 md:p-8 flex flex-col justify-between min-h-[300px]">
+          <div class="space-y-5">
+            <div class="border-b border-white/5 pb-4">
+              <h3 class="text-lg font-bold text-white">Framework Mapping Details</h3>
+              <p class="text-xs text-slate-400">Compliance checkpoints verified across primary regulatory frameworks.</p>
+            </div>
+
+            <div class="space-y-4">
+              <!-- EU AI Act progress -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-slate-200">EU AI Act (Articles 14, 15, 53)</span>
+                  <span id="score-val-ai-act" class="font-semibold text-slate-300">0/0 Checks</span>
+                </div>
+                <div class="h-2 bg-slate-900 rounded-full overflow-hidden">
+                  <div id="score-bar-ai-act" class="h-full bg-blue-500 transition-all duration-700" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- NIST AI RMF progress -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-slate-200">NIST AI RMF Controls</span>
+                  <span id="score-val-nist" class="font-semibold text-slate-300">0/0 Checks</span>
+                </div>
+                <div class="h-2 bg-slate-900 rounded-full overflow-hidden">
+                  <div id="score-bar-nist" class="h-full bg-blue-500 transition-all duration-700" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- OWASP Top 10 progress -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-slate-200">OWASP Agentic & LLM Security Checks</span>
+                  <span id="score-val-owasp" class="font-semibold text-slate-300">0/0 Checks</span>
+                </div>
+                <div class="h-2 bg-slate-900 rounded-full overflow-hidden">
+                  <div id="score-bar-owasp" class="h-full bg-blue-500 transition-all duration-700" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dedicated Executive Export Action Bar -->
+      <div id="export-section" class="glass-card p-5 md:p-6 mt-6 mb-6 border border-blue-300/40 bg-gradient-to-br from-blue-50 to-sky-50 shadow-xl">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-blue-500/20 border border-blue-400/30 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+            <i data-lucide="file-check-2" class="h-5 w-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-blue-900">Executive Export & Sharing Tools</h4>
+            <p class="text-xs text-blue-700/80">Download printable PDF binders, editable Word DOCX documents, or share score cards.</p>
+          </div>
+        </div>
+
+        <!-- Email capture (shown until user submits) -->
+        <div id="email-capture">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div class="flex-1">
+              <input type="email" id="email-input" placeholder="you@company.com" class="w-full bg-white border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900 placeholder-blue-400 focus:outline-none focus:border-blue-400 shadow-sm">
+            </div>
+            <button id="btn-email-send" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-sm font-bold rounded-xl text-white transition-all whitespace-nowrap shadow-md">
+              Send My Report
+            </button>
+          </div>
+          <p class="text-xs text-blue-600/80 mt-2">We'll email you download links for the PDF and Word report.</p>
+        </div>
+
+        <!-- Download buttons (hidden until email is sent) -->
+        <div id="download-buttons" class="hidden">
+          <div class="flex items-center gap-3 flex-wrap">
+            <button id="btn-results-share" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-bold rounded-xl text-white transition-all flex items-center gap-2">
+              <i data-lucide="share-2" class="h-4 w-4 text-blue-400"></i> Share Score Card
+            </button>
+            <button id="btn-results-pdf" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-bold rounded-xl text-white transition-all flex items-center gap-2">
+              <i data-lucide="download" class="h-4 w-4 text-emerald-400"></i> Download PDF Report
+            </button>
+            <button id="btn-export-docx" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold rounded-xl text-white transition-all shadow-lg shadow-indigo-500/25 flex items-center gap-2">
+              <i data-lucide="file-output" class="h-4 w-4 text-indigo-200"></i> Export Editable Word (.doc)
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Executive Deliverables Package Vault Card -->
+      <div id="deliverables-vault-card" class="glass-card p-6 md:p-8 space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-white/5 pb-4 gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shrink-0">
+              <i data-lucide="package-check" class="h-5 w-5"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2 flex-wrap">
+                Executive Deliverables Vault
+                <span class="text-[9px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-0.5 rounded-full uppercase tracking-wider">Premium Package Unlocked</span>
+              </h3>
+              <p class="text-xs text-slate-400">Complete enterprise implementation assets, configurations, training recordings, and threat monitors.</p>
+            </div>
+          </div>
+          <button id="btn-download-all-vault" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0">
+            <i data-lucide="download" class="h-3.5 w-3.5"></i> Download Full Package (.zip)
+          </button>
+        </div>
+
+        <!-- Deliverables Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          <!-- 1. Hardened config.yaml -->
+          <div class="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-blue-500/30 transition-all">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase">Production Setup</span>
+                <i data-lucide="file-code" class="h-4 w-4 text-blue-400"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">Hardened `config.yaml` & Docker Rules</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-2">Pre-configured daemon settings, container isolation flags, loop caps, and fail2ban rules for your target system.</p>
+            </div>
+            <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+              <a data-gated-download id="btn-download-config-yaml" href="hardened_config.yaml" download="hardened_config.yaml" class="flex-1 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+                <i data-lucide="download" class="h-3 w-3"></i> Download config.yaml
+              </a>
+              <button id="btn-copy-config-yaml" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg transition-all" title="Copy YAML Code">
+                <i data-lucide="copy" class="h-3 w-3"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Security Checklist -->
+          <div class="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-emerald-500/30 transition-all">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase">Interactive Matrix</span>
+                <i data-lucide="check-square" class="h-4 w-4 text-emerald-400"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">Security & Audit Checklist</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-2">Complete 56-control operational audit checklist with verification steps for developer & QA sign-off.</p>
+            </div>
+            <a data-gated-download id="btn-download-checklist" href="compliance_security_checklist.csv" download="compliance_security_checklist.csv" class="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+              <i data-lucide="download" class="h-3 w-3"></i> Download Checklist (.csv)
+            </a>
+          </div>
+
+          <!-- 3. Red Teaming Report -->
+          <div class="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-rose-500/30 transition-all">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 uppercase">Penetration Test</span>
+                <i data-lucide="crosshair" class="h-4 w-4 text-rose-400"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">Red Teaming Attack Report</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-2">Simulated penetration test vectors covering prompt injection, tool misuse, and secret exfiltration exploits.</p>
+            </div>
+            <a data-gated-download id="btn-download-redteam" href="red_teaming_penetration_report.md" download="red_teaming_penetration_report.md" class="w-full py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+              <i data-lucide="download" class="h-3 w-3"></i> Download Pentest Report (.md)
+            </a>
+          </div>
+
+          <!-- 4. Video Training Recording -->
+          <div class="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-purple-500/30 transition-all">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 uppercase">Video Module</span>
+                <i data-lucide="video" class="h-4 w-4 text-purple-400"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">Agent Hardening Video Workshop</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-2">45-minute executive video training session detailing container sandboxing, HITL gates, and EU AI Act compliance.</p>
+            </div>
+            <button id="btn-watch-training" class="w-full py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+              <i data-lucide="play-circle" class="h-3 w-3"></i> Watch Video Recording (45m)
+            </button>
+          </div>
+
+          <!-- 5. Best Practices Guide -->
+          <div class="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-amber-500/30 transition-all">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">Handbook</span>
+                <i data-lucide="book-open" class="h-4 w-4 text-amber-400"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">Agent Security Best Practices Guide</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-2">Comprehensive architectural handbook covering least-privilege tool execution, RAG context isolation, and auditing.</p>
+            </div>
+            <a data-gated-download id="btn-download-handbook" href="agent_security_best_practices_guide.md" download="agent_security_best_practices_guide.md" class="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-400/30 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+              <i data-lucide="download" class="h-3 w-3"></i> Download Handbook (.md)
+            </a>
+          </div>
+
+          <!-- 6. NVIDIA NIM & Morpheus Integration -->
+          <div class="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-cyan-500/30 transition-all">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 uppercase">Advanced Monitoring</span>
+                <i data-lucide="cpu" class="h-4 w-4 text-cyan-400"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">NVIDIA NIM & Morpheus AI Guardrails</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-2">Real-time threat monitoring and inference guardrails setup guide for NVIDIA Morpheus & NeMo Guardrails integration.</p>
+            </div>
+            <a data-gated-download id="btn-download-nvidia-guide" href="nvidia_nim_morpheus_integration_guide.md" download="nvidia_nim_morpheus_integration_guide.md" class="w-full py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+              <i data-lucide="file-text" class="h-3 w-3"></i> Download Guide (.md)
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Public Compliance Matrix Grid -->
+      <div class="glass-card p-6 md:p-8 space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-white">Verified Security Controls Matrix</h3>
+            <p class="text-xs text-slate-400">A detailed mapping of active security safeguards to core compliance standards.</p>
+          </div>
+          <!-- Matrix Category Filter Pills -->
+          <div class="flex items-center gap-1.5 flex-wrap" id="matrix-filter-pills">
+            <button data-filter="all" class="matrix-filter-btn px-3 py-1.5 bg-blue-600 text-white border border-blue-500 text-[11px] font-bold rounded-lg transition-all">All Controls</button>
+            <button data-filter="owasp" class="matrix-filter-btn px-3 py-1.5 bg-slate-800 text-slate-300 border border-white/10 hover:border-white/30 text-[11px] font-bold rounded-lg transition-all">OWASP ASI / LLM</button>
+            <button data-filter="nist" class="matrix-filter-btn px-3 py-1.5 bg-slate-800 text-slate-300 border border-white/10 hover:border-white/30 text-[11px] font-bold rounded-lg transition-all">NIST AI RMF</button>
+            <button data-filter="eu" class="matrix-filter-btn px-3 py-1.5 bg-slate-800 text-slate-300 border border-white/10 hover:border-white/30 text-[11px] font-bold rounded-lg transition-all">EU AI Act</button>
+            <button data-filter="msft" class="matrix-filter-btn px-3 py-1.5 bg-slate-800 text-slate-300 border border-white/10 hover:border-white/30 text-[11px] font-bold rounded-lg transition-all">Microsoft</button>
+            <button data-filter="nv" class="matrix-filter-btn px-3 py-1.5 bg-slate-800 text-slate-300 border border-white/10 hover:border-white/30 text-[11px] font-bold rounded-lg transition-all">NVIDIA</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-white/10 text-slate-400 font-semibold">
+                <th class="py-3 px-3">Control Checklist Item</th>
+                <th class="py-3 px-3">Verification Indicator</th>
+                <th class="py-3 px-3">OWASP ASI</th>
+                <th class="py-3 px-3">NIST AI</th>
+                <th class="py-3 px-3">EU AI Act</th>
+                <th class="py-3 px-3 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="compliance-matrix-rows">
+              <!-- Dynamically injected rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Public Remediation Gaps Widget -->
+      <div class="glass-card p-6 md:p-8 space-y-6">
+        <div>
+          <h3 class="text-base font-bold text-white">Identified Compliance Gaps & Remediation</h3>
+          <p class="text-xs text-slate-400">Developer playbooks and tasks required to bring agent compliance to 100%.</p>
+        </div>
+
+        <div id="results-gaps-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Gaps dynamically inject here -->
+        </div>
+
+        <div class="flex justify-between items-center pt-4 border-t border-white/5">
+          <button id="btn-results-reset" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i> Run another audit
+          </button>
+          <div class="flex items-center gap-3">
+            <span class="hidden md:inline text-[9px] text-slate-500">Deploy self-hosted →</span>
+            <a href="https://grcompliance.com" class="text-[10px] text-slate-400 hover:text-slate-200 transition-colors border border-white/10 px-3 py-1.5 rounded-lg">
+              GRCompliance
+            </a>
+            <button id="btn-cta-results" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5">
+              <i data-lucide="download" class="h-4 w-4"></i> Download Full Report →
+            </button>
+          </div>
+        </div>
+
+
+
+        <!-- Print-only Marketing Banner (Viral loop CTA) -->
+        <div class="print-banner hidden mt-8 p-6 bg-slate-900 border border-blue-500/20 rounded-2xl flex flex-col gap-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+              <i data-lucide="shield" class="h-4 w-4 text-white"></i>
+            </div>
+            <span class="font-bold text-sm text-white">ComplianceOS</span>
+            <span class="text-[9px] text-slate-500 font-mono">Agent Governance Auditor</span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            This compliance scorecard was generated using the **ComplianceOS** static auditor. 
+            To enable continuous Git/CI repository integration, real-time configuration drift detection, and automated developer mitigation playbooks across your team, create your free account at:
+          </p>
+          <div class="text-xs font-bold text-blue-400">
+            👉 https://grcompliance.com
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Dynamic 30-Page Book Chapters Container -->
+  <div id="print-book-pages" class="print-only flex-col gap-6 w-full"></div>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-6 bg-slate-950/60 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <span>&copy; 2026 ComplianceOS. All rights reserved.</span>
+      <div class="flex gap-4">
+        <a href="https://grcompliance.com/privacy" class="hover:text-slate-300">Privacy Policy</a>
+        <a href="https://grcompliance.com/terms" class="hover:text-slate-300">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lead Conversion & Share Dialog Modals -->
+  <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <!-- Backdrop -->
+    <div id="modal-backdrop" class="modal-backdrop absolute inset-0"></div>
+    
+    <!-- Modal Card -->
+    <div id="modal-card" class="modal-enter glass-card w-full max-w-md p-8 relative z-10 flex flex-col gap-6">
+      <button id="btn-modal-close" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+        <i data-lucide="x" class="h-5 w-5"></i>
+      </button>
+
+      <!-- Modal Body (Dynamic injection) -->
+      <div id="modal-body-content" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Script logic loading -->
+  <script src="standards.js?v1.0.0"></script>
+  <script src="auditor.js?v=1.5.4"></script>
+</body>
+</html>

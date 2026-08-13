@@ -118,7 +118,7 @@ export default function NISTEcosystemLayout({
 
     return (
         <DashboardLayout>
-            <div className="-mt-8 -mb-8 -mx-4 md:-ml-20 md:-mr-8 flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen">
 
 
                 {/* System Selection Context Bar (Specifically for RMF/800-30) */}
@@ -177,7 +177,7 @@ export default function NISTEcosystemLayout({
                     </div>
                 )}
 
-                <div key={systemId} className={cn("flex-1", fullWidth ? "py-4" : "pl-4 pr-4 md:pl-20 md:pr-8 py-8")}>
+                <div key={systemId} className="flex-1 w-full max-w-full py-8">
                     {children}
                 </div>
             </div>

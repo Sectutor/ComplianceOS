@@ -11,7 +11,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
         createCheckout: clientProcedure
             .input(z.object({
                 clientId: z.number(),
-                tier: z.enum(['startup', 'pro', 'guided', 'enterprise']),
+                tier: z.enum(['consultant', 'enterprise']),
                 interval: z.enum(['month', 'year']).optional().default('month'), // Added interval
                 successUrl: z.string(),
                 cancelUrl: z.string(),
@@ -24,11 +24,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
 
                 // Map tier to price ID
                 let priceId;
-                if (input.tier === 'startup') {
-                    priceId = input.interval === 'year'
-                        ? config.stripe.prices.startup.yearly
-                        : config.stripe.prices.startup.monthly;
-                } else if (input.tier === 'pro' || input.tier === 'guided') {
+                if (input.tier === 'consultant') {
                     priceId = input.interval === 'year'
                         ? config.stripe.prices.guided.yearly
                         : config.stripe.prices.guided.monthly;
@@ -69,7 +65,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
 
         createUserCheckout: publicProcedure.use(isAuthed)
             .input(z.object({
-                tier: z.enum(['startup', 'pro', 'guided', 'enterprise']),
+                tier: z.enum(['consultant', 'enterprise']),
                 interval: z.enum(['month', 'year']).optional().default('month'), // Added interval
                 successUrl: z.string(),
                 cancelUrl: z.string(),
@@ -80,11 +76,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
                     console.log(`[Billing] Checking Stripe key availability: ${!!process.env.STRIPE_SECRET_KEY}`);
 
                     let priceId;
-                    if (input.tier === 'startup') {
-                        priceId = input.interval === 'year'
-                            ? config.stripe.prices.startup.yearly
-                            : config.stripe.prices.startup.monthly;
-                    } else if (input.tier === 'pro' || input.tier === 'guided') {
+                    if (input.tier === 'consultant') {
                         priceId = input.interval === 'year'
                             ? config.stripe.prices.guided.yearly
                             : config.stripe.prices.guided.monthly;

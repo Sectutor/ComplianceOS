@@ -370,7 +370,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-20 md:-mt-8 md:pl-20 md:pr-28 bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
+      <div className="relative min-h-[calc(100vh-3.5rem)] space-y-8 w-full max-w-full text-slate-900 page-transition">
         {/* Ambient Light Mode Background Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
@@ -550,8 +550,8 @@ export default function Dashboard() {
                     onChange={(e) => setClientId(e.target.value || undefined)}
                   >
                     <option value="" className="bg-white">Global Fleet</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id} className="bg-white text-slate-900">
+                    {clients.map((client, idx) => (
+                      <option key={`client-select-${client.id}-${idx}`} value={client.id} className="bg-white text-slate-900">
                         {client.name}
                       </option>
                     ))}
@@ -772,8 +772,8 @@ export default function Dashboard() {
                         <Skeleton className="h-32 w-full" />
                       ) : clientsOverview.length > 0 ? (
                         <div className="space-y-4">
-                          {clientsOverview.slice(0, 2).map((client) => (
-                            <div key={client.id} className="space-y-2">
+                          {clientsOverview.slice(0, 2).map((client, idx) => (
+                            <div key={`client-overview-${client.id}-${idx}`} className="space-y-2">
                               <div className="flex items-center justify-between text-sm font-bold">
                                 <span>{client.name}</span>
                                 <span>{client.compliancePercentage}%</span>
@@ -1090,8 +1090,8 @@ export default function Dashboard() {
                     <CardContent className="pt-4">
                       {clientsOverview.length > 0 ? (
                         <div className="space-y-4">
-                          {clientsOverview.slice(0, 3).map(client => (
-                            <div key={client.id} className="space-y-1">
+                          {clientsOverview.slice(0, 3).map((client, idx) => (
+                            <div key={`client-card-${client.id}-${idx}`} className="space-y-1">
                               <div className="flex justify-between text-sm">
                                 <span>{client.name}</span>
                                 <span className="font-bold">{client.compliancePercentage}%</span>

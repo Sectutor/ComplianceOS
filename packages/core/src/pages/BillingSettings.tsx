@@ -30,7 +30,7 @@ export default function BillingSettings({ client }: { client: Client }) {
     const isFree = !isPro;
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto p-6">
+        <div className="space-y-6 w-full max-w-full">
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Subscription & Billing</h2>

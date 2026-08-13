@@ -98,8 +98,8 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
     return (
         <DashboardLayout>
             <div className="flex flex-col min-h-screen">
-                <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b md:pl-20 px-4 py-4">
-                    <nav className="flex space-x-3 overflow-x-auto scrollbar-hide pb-2" aria-label="Tabs">
+                <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b px-4 py-4">
+                    <nav className="flex space-x-3 overflow-x-auto no-scrollbar py-2" aria-label="Tabs">
                         {navItems.map((item) => {
                             const active = isActive(item.href);
                             return (
@@ -107,20 +107,20 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "px-4 py-2 rounded-lg transition-all flex items-center whitespace-nowrap text-sm font-bold shadow-sm",
+                                        "px-4 py-2 rounded-lg transition-all flex items-center whitespace-nowrap text-sm font-bold shadow-sm shrink-0 min-w-max",
                                         active
                                             ? "bg-[#3ABEF9] text-white"
                                             : "bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]"
                                     )}
                                 >
                                     <item.icon className={cn(
-                                        "mr-2 h-4 w-4 transition-transform duration-300",
+                                        "mr-2 h-4 w-4 shrink-0 transition-transform duration-300",
                                         active ? "scale-110" : "opacity-80"
                                     )} />
-                                    {item.label}
+                                    <span className="whitespace-nowrap shrink-0">{item.label}</span>
                                     {!!item.badge && (
                                         <span className={cn(
-                                            "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md",
+                                            "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md shrink-0 whitespace-nowrap",
                                             active
                                                 ? "bg-white/20 text-white border-white/30"
                                                 : "bg-[#3ABEF9]/20 text-white border-[#3ABEF9]/30"
@@ -133,7 +133,7 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full pl-4 pr-4 py-8 md:pl-20 md:pr-8 bg-slate-50/30">
+                <div className="flex-1 w-full py-8 bg-slate-50/30">
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {children}
                     </div>

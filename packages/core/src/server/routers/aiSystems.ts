@@ -1,7 +1,6 @@
-
 import { z } from "zod";
 import * as schema from "../../schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { getDb } from "../../db";
 
 const AGENT_GOVERNANCE_BLOCK_RE = /(?:^|\n)---\nAGENT_GOVERNANCE\n([\s\S]*)$/;
@@ -57,7 +56,15 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                 owner: z.string().optional(),
                 vendorId: z.number().optional(),
                 dataSensitivity: z.string().optional(),
-                technicalConstraints: z.string().optional()
+                technicalConstraints: z.string().optional(),
+                euAiActClass: z.enum(["unacceptable", "high", "limited", "minimal", "general_purpose_ai", "not_applicable"]).optional(),
+                euAiActProhibited: z.boolean().optional(),
+                euAiActHighRiskCategory: z.string().optional(),
+                euAiActDeployer: z.boolean().optional(),
+                euAiActRegistrationNumber: z.string().optional(),
+                euAiActConformityAssessment: z.enum(["not_required", "self_assessment", "notified_body"]).optional(),
+                euAiActLastAssessmentDate: z.string().optional(),
+                euAiActNextAssessmentDate: z.string().optional()
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
@@ -74,7 +81,15 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                     owner: input.owner,
                     vendorId: input.vendorId,
                     dataSensitivity: input.dataSensitivity,
-                    technicalConstraints: input.technicalConstraints
+                    technicalConstraints: input.technicalConstraints,
+                    euAiActClass: input.euAiActClass as any,
+                    euAiActProhibited: input.euAiActProhibited,
+                    euAiActHighRiskCategory: input.euAiActHighRiskCategory,
+                    euAiActDeployer: input.euAiActDeployer,
+                    euAiActRegistrationNumber: input.euAiActRegistrationNumber,
+                    euAiActConformityAssessment: input.euAiActConformityAssessment as any,
+                    euAiActLastAssessmentDate: input.euAiActLastAssessmentDate ? new Date(input.euAiActLastAssessmentDate) : undefined,
+                    euAiActNextAssessmentDate: input.euAiActNextAssessmentDate ? new Date(input.euAiActNextAssessmentDate) : undefined
                 }).returning();
                 return newSystem;
             }),
@@ -93,7 +108,15 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                 deploymentContext: z.string().optional(),
                 type: z.string().optional(),
                 dataSensitivity: z.string().optional(),
-                technicalConstraints: z.string().optional()
+                technicalConstraints: z.string().optional(),
+                euAiActClass: z.enum(["unacceptable", "high", "limited", "minimal", "general_purpose_ai", "not_applicable"]).optional(),
+                euAiActProhibited: z.boolean().optional(),
+                euAiActHighRiskCategory: z.string().optional(),
+                euAiActDeployer: z.boolean().optional(),
+                euAiActRegistrationNumber: z.string().optional(),
+                euAiActConformityAssessment: z.enum(["not_required", "self_assessment", "notified_body"]).optional(),
+                euAiActLastAssessmentDate: z.string().optional(),
+                euAiActNextAssessmentDate: z.string().optional()
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
@@ -101,6 +124,8 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                 const [updated] = await dbConn.update(schema.aiSystems)
                     .set({
                         ...updateData,
+                        euAiActLastAssessmentDate: updateData.euAiActLastAssessmentDate ? new Date(updateData.euAiActLastAssessmentDate) : undefined,
+                        euAiActNextAssessmentDate: updateData.euAiActNextAssessmentDate ? new Date(updateData.euAiActNextAssessmentDate) : undefined,
                         updatedAt: new Date()
                     })
                     .where(eq(schema.aiSystems.id, id))
@@ -410,7 +435,181 @@ export const createAiSystemsRouter = (t: any, protectedProcedure: any) => {
                     pdfBase64: pdfBuffer.toString('base64'),
                     filename: `AI_Impact_Assessment_${input.id}.pdf`
                 };
+            }),
+
+        // ──────────────────────────────────────────────
+        // EU AI Act Compliance Procedures
+        // ──────────────────────────────────────────────
+
+        getEuAiActCompliance: protectedProcedure
+            .input(z.object({
+                aiSystemId: z.number()
+            }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const record = await dbConn.query.aiEuAiActCompliance.findFirst({
+                    where: eq(schema.aiEuAiActCompliance.aiSystemId, input.aiSystemId)
+                });
+                return record ?? null;
+            }),
+
+        upsertEuAiActCompliance: protectedProcedure
+            .input(z.object({
+                aiSystemId: z.number(),
+                clientId: z.number(),
+                // Article 9 - Risk Management System
+                riskMgmtSystemEstablished: z.boolean().optional(),
+                riskMgmtDocLink: z.string().optional(),
+                riskMgmtReviewDate: z.string().optional(),
+                // Article 10 - Data Governance
+                dataGovernanceImplemented: z.boolean().optional(),
+                trainingDataProvenance: z.string().optional(),
+                dataPrivacyCompliant: z.boolean().optional(),
+                // Article 11-12 - Technical Documentation & Record-Keeping
+                techDocumentationComplete: z.boolean().optional(),
+                techDocUrl: z.string().optional(),
+                logsAutomaticallyRecorded: z.boolean().optional(),
+                logRetentionDays: z.number().optional(),
+                // Article 13 - Transparency
+                transparencyInfoProvided: z.boolean().optional(),
+                transparencyInfoUrl: z.string().optional(),
+                // Article 14 - Human Oversight
+                humanOversightMeasuresImplemented: z.boolean().optional(),
+                humanOversightDescription: z.string().optional(),
+                // Article 15 - Accuracy, Robustness, Cybersecurity
+                accuracyBenchmarksMet: z.boolean().optional(),
+                robustnessTested: z.boolean().optional(),
+                cybersecurityMeasuresImplemented: z.boolean().optional(),
+                // Article 26 - Obligations of Deployers
+                deployerHumanOversightAssigned: z.boolean().optional(),
+                deployerMonitoringImplemented: z.boolean().optional(),
+                deployerIncidentReportingConfigured: z.boolean().optional(),
+                // Article 52 - Transparency for Limited Risk AI
+                transparencyLabelImplemented: z.boolean().optional(),
+                transparencyLabelText: z.string().optional(),
+                // Overall Status
+                complianceStatus: z.string().optional(),
+                complianceScore: z.number().optional(),
+                lastAssessedAt: z.string().optional(),
+                assessedByUserId: z.number().optional(),
+                assessmentNotes: z.string().optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                // Check if a record already exists
+                const existing = await dbConn.query.aiEuAiActCompliance.findFirst({
+                    where: eq(schema.aiEuAiActCompliance.aiSystemId, input.aiSystemId)
+                });
+
+                const values: any = {
+                    aiSystemId: input.aiSystemId,
+                    clientId: input.clientId,
+                    riskMgmtSystemEstablished: input.riskMgmtSystemEstablished,
+                    riskMgmtDocLink: input.riskMgmtDocLink,
+                    riskMgmtReviewDate: input.riskMgmtReviewDate ? new Date(input.riskMgmtReviewDate) : undefined,
+                    dataGovernanceImplemented: input.dataGovernanceImplemented,
+                    trainingDataProvenance: input.trainingDataProvenance,
+                    dataPrivacyCompliant: input.dataPrivacyCompliant,
+                    techDocumentationComplete: input.techDocumentationComplete,
+                    techDocUrl: input.techDocUrl,
+                    logsAutomaticallyRecorded: input.logsAutomaticallyRecorded,
+                    logRetentionDays: input.logRetentionDays,
+                    transparencyInfoProvided: input.transparencyInfoProvided,
+                    transparencyInfoUrl: input.transparencyInfoUrl,
+                    humanOversightMeasuresImplemented: input.humanOversightMeasuresImplemented,
+                    humanOversightDescription: input.humanOversightDescription,
+                    accuracyBenchmarksMet: input.accuracyBenchmarksMet,
+                    robustnessTested: input.robustnessTested,
+                    cybersecurityMeasuresImplemented: input.cybersecurityMeasuresImplemented,
+                    deployerHumanOversightAssigned: input.deployerHumanOversightAssigned,
+                    deployerMonitoringImplemented: input.deployerMonitoringImplemented,
+                    deployerIncidentReportingConfigured: input.deployerIncidentReportingConfigured,
+                    transparencyLabelImplemented: input.transparencyLabelImplemented,
+                    transparencyLabelText: input.transparencyLabelText,
+                    complianceStatus: input.complianceStatus,
+                    complianceScore: input.complianceScore,
+                    lastAssessedAt: input.lastAssessedAt ? new Date(input.lastAssessedAt) : undefined,
+                    assessedByUserId: input.assessedByUserId,
+                    assessmentNotes: input.assessmentNotes,
+                    updatedAt: new Date()
+                };
+
+                if (existing) {
+                    const [updated] = await dbConn.update(schema.aiEuAiActCompliance)
+                        .set(values)
+                        .where(eq(schema.aiEuAiActCompliance.id, existing.id))
+                        .returning();
+                    return updated;
+                } else {
+                    const [created] = await dbConn.insert(schema.aiEuAiActCompliance)
+                        .values(values)
+                        .returning();
+                    return created;
+                }
+            }),
+
+        assessEuAiActCompliance: protectedProcedure
+            .input(z.object({
+                aiSystemId: z.number(),
+                clientId: z.number()
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                // Fetch the existing compliance record
+                const existing = await dbConn.query.aiEuAiActCompliance.findFirst({
+                    where: eq(schema.aiEuAiActCompliance.aiSystemId, input.aiSystemId)
+                });
+
+                if (!existing) {
+                    throw new Error("EU AI Act compliance record not found. Please create one first.");
+                }
+
+                // Count positive checks completed
+                const positiveChecks = [
+                    existing.riskMgmtSystemEstablished,
+                    existing.dataGovernanceImplemented,
+                    existing.dataPrivacyCompliant,
+                    existing.techDocumentationComplete,
+                    existing.logsAutomaticallyRecorded,
+                    existing.transparencyInfoProvided,
+                    existing.humanOversightMeasuresImplemented,
+                    existing.accuracyBenchmarksMet,
+                    existing.robustnessTested,
+                    existing.cybersecurityMeasuresImplemented,
+                    existing.deployerHumanOversightAssigned,
+                    existing.deployerMonitoringImplemented,
+                    existing.deployerIncidentReportingConfigured,
+                    existing.transparencyLabelImplemented
+                ];
+
+                const totalChecks = positiveChecks.length;
+                const completedChecks = positiveChecks.filter(Boolean).length;
+                const score = Math.round((completedChecks / totalChecks) * 100);
+
+                // Determine compliance status
+                let complianceStatus: string;
+                if (score >= 80) {
+                    complianceStatus = "compliant";
+                } else if (score >= 40) {
+                    complianceStatus = "partially_compliant";
+                } else {
+                    complianceStatus = "non_compliant";
+                }
+
+                // Update the record
+                const [updated] = await dbConn.update(schema.aiEuAiActCompliance)
+                    .set({
+                        complianceStatus,
+                        complianceScore: score,
+                        lastAssessedAt: new Date(),
+                        updatedAt: new Date()
+                    })
+                    .where(eq(schema.aiEuAiActCompliance.id, existing.id))
+                    .returning();
+
+                return updated;
             })
     });
 };
-

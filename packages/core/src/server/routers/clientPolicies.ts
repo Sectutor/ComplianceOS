@@ -5,6 +5,7 @@ import { logActivity } from "../../lib/audit";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import { policyGenerator } from "../../lib/policy/policy-generation";
+import { PLATFORM_ADMIN_ROLES } from "../trpc";
 import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
@@ -103,25 +104,11 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .mutation(async ({ input, ctx }: any) => {
         const data = { ...input };
 
-        // Check Plan Limits
+        // Get client for plan tier check
         const client = await db.getClientById(data.clientId);
         if (!client) {
           console.error(`[PolicyCreate] Client ${data.clientId} not found`);
           throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
-        }
-
-        const { getPlanLimits } = await import("../../lib/limits");
-        const limits = getPlanLimits(client.planTier);
-
-        if (limits.maxPolicies !== Infinity) {
-          const currentPolicies = await db.getClientPolicies(data.clientId);
-          if (currentPolicies.length >= limits.maxPolicies) {
-            console.warn(`[PolicyCreate] Plan limit reached for client ${data.clientId}`);
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxPolicies} policies. Please upgrade to Pro.`
-            });
-          }
         }
 
         // Auto-fill content from template if not provided
@@ -943,7 +930,36 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { content: updatedContent };
       }),
 
+    // ─── Policy Acknowledgment Portal Endpoints ───
+    acknowledgePolicy: publicProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          policyId: z.number(),
+          employeeEmail: z.string().email(),
+          employeeName: z.string().min(1),
+          version: z.string().optional(),
+          ipAddress: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }: any) => {
+        const { recordPolicyAcknowledgment } = await import("../../lib/policy/policyAcknowledgmentService");
+        return recordPolicyAcknowledgment(input);
+      }),
 
+    getAcknowledgments: clientProcedure
+      .input(z.object({ clientId: z.number(), limit: z.number().default(100) }))
+      .query(async ({ input }: any) => {
+        const { getClientPolicyAcknowledgments } = await import("../../lib/policy/policyAcknowledgmentService");
+        return getClientPolicyAcknowledgments(input.clientId, input.limit);
+      }),
 
+    getSignOffStats: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }: any) => {
+        const { getPolicySignOffStats } = await import("../../lib/policy/policyAcknowledgmentService");
+        return getPolicySignOffStats(input.clientId);
+      }),
   });
 };
+

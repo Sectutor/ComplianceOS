@@ -88,6 +88,24 @@ import { createClientsRouter } from "./server/routers/clients";
 import { usersSubRouter } from "./server/routers/users";
 import { createIntakeRouter } from "./server/routers/intake";
 import { createBillingRouter } from "./server/routers/billing";
+import { auditPackageRouter } from "./server/routers/auditPackage";
+import { connectorsRouter } from "./server/routers/connectors";
+import { trustBadgeRouter } from "./server/routers/trustBadge";
+import { cisaKevRouter } from "./server/routers/cisaKev";
+import { msspRouter } from "./server/routers/mssp";
+import { remediationRouter } from "./server/routers/remediation";
+import { questionnaireRouter } from "./server/routers/questionnaire";
+import { cloudAssetsRouter } from "./server/routers/cloudAssets";
+import { vendorSoc2Router } from "./server/routers/vendorSoc2";
+import { accessReviewRouter } from "./server/routers/accessReview";
+import { policyGeneratorRouter } from "./server/routers/policyGenerator";
+import { gapAnalysisEngineRouter } from "./server/routers/gapAnalysisEngine";
+import { privacySovereigntyRouter } from "./server/routers/privacySovereignty";
+import { vendorRiskRouter } from "./server/routers/vendorRisk";
+import { evidenceSentinelRouter } from "./server/routers/evidenceSentinel";
+import { auditorFindingRouter } from "./server/routers/auditorFinding";
+import { peerBenchmarkRouter } from "./server/routers/peerBenchmark";
+import { controlHealthRouter } from "./server/routers/controlHealth";
 import { createFrameworksRouter } from "./server/routers/frameworks";
 import { createCompliancePlanningRouter } from "./server/routers/compliancePlanning";
 import { createHarmonizationRouter } from "./server/routers/harmonization";
@@ -105,7 +123,6 @@ import { createPolicyManagementRouter } from "./lib/routers/policy-management";
 import { createGlobalVendorsRouter } from "./server/routers/globalVendors";
 import { integrationsRouter } from "./server/routers/integrations";
 import { createKnowledgeBaseRouter } from "./server/routers/knowledgeBase";
-import { createQuestionnaireRouter } from "./server/routers/questionnaire";
 import { createLearningRouter } from "./server/routers/learning";
 import { createTaskAssignmentsRouter } from "./server/routers/taskAssignments";
 import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
@@ -212,8 +229,9 @@ import { createAccessReviewsRouter } from "./server/routers/accessReviews";
 import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
 import { createActionCenterRouter } from "./server/routers/actionCenter";
 import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
-import { createConnectorsRouter } from "./server/routers/connectors";
 import { createAuditorPortalRouter } from "./server/routers/auditorPortal";
+import { createWebhooksRouter } from "./server/routers/webhooks";
+
 
 export const appRouter = router({
   programGuides: createProgramGuidesRouter(t, clientProcedure),
@@ -248,6 +266,24 @@ export const appRouter = router({
   calendar: createCalendarRouter(t, clientProcedure),
   intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
   iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
+  auditPackage: auditPackageRouter,
+  connectors: connectorsRouter,
+  trustBadge: trustBadgeRouter,
+  cisaKev: cisaKevRouter,
+  mssp: msspRouter,
+  remediation: remediationRouter,
+  questionnaire: questionnaireRouter,
+  cloudAssets: cloudAssetsRouter,
+  vendorSoc2: vendorSoc2Router,
+  accessReview: accessReviewRouter,
+  policyGenerator: policyGeneratorRouter,
+  gapAnalysisEngine: gapAnalysisEngineRouter,
+  privacySovereignty: privacySovereigntyRouter,
+  vendorRisk: vendorRiskRouter,
+  evidenceSentinel: evidenceSentinelRouter,
+  auditorFinding: auditorFindingRouter,
+  peerBenchmark: peerBenchmarkRouter,
+  controlHealth: controlHealthRouter,
 
 
   dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
@@ -276,6 +312,7 @@ export const appRouter = router({
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
   vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
+  vendorAssessments: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
 
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
@@ -309,7 +346,6 @@ export const appRouter = router({
   policy: policyRouter,
   integrations: integrationsRouter(t, clientProcedure, publicProcedure, protectedProcedure),
   knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
-  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
   subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed, adminProcedure),
@@ -4430,10 +4466,11 @@ ONLY return the JSON. No Markdown formatting.
   accessReviews: createAccessReviewsRouter(t, premiumClientProcedure, adminProcedure),
   complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure, adminProcedure),
   actionCenter: createActionCenterRouter(t, premiumClientProcedure),
-  connectors: createConnectorsRouter(t, clientProcedure, adminProcedure),
   msspCockpit: createMsspCockpitRouter(t, premiumClientProcedure),
   auditorPortal: createAuditorPortalRouter(t, premiumClientProcedure, adminProcedure, publicProcedure),
+  webhooks: createWebhooksRouter(t, clientProcedure),
 });
+
 
 
 export type AppRouter = typeof appRouter;

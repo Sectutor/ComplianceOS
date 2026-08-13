@@ -269,6 +269,9 @@ export const pluginRouter = router({
             // In a real implementation, this would query an installed_plugins table
             // For now, return built-in plugins that are "installed"
             const clientId = ctx.clientId;
+            if (!clientId) {
+                return [];
+            }
 
             // Get plugins enabled for this client from client_settings
             const clientSettings = await db.query.clientSettings.findFirst({
@@ -401,6 +404,12 @@ export const pluginRouter = router({
             try {
                 const db = await getDb();
                 const clientId = ctx.clientId;
+                if (!clientId) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'Client context is missing',
+                    });
+                }
 
                 const { clientSettings: clientSettingsTable } = await import('../../schema_client_settings');
                 const clientSettings = await db.query.clientSettings.findFirst({
@@ -474,6 +483,12 @@ export const pluginRouter = router({
             try {
                 const db = await getDb();
                 const clientId = ctx.clientId;
+                if (!clientId) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'Client context is missing',
+                    });
+                }
 
                 const { clientSettings: clientSettingsTable } = await import('../../schema_client_settings');
                 const clientSettings = await db.query.clientSettings.findFirst({
@@ -528,6 +543,12 @@ export const pluginRouter = router({
             try {
                 const db = await getDb();
                 const clientId = ctx.clientId;
+                if (!clientId) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'Client context is missing',
+                    });
+                }
 
                 const { clientSettings: clientSettingsTable } = await import('../../schema_client_settings');
                 const clientSettings = await db.query.clientSettings.findFirst({
@@ -576,6 +597,12 @@ export const pluginRouter = router({
             try {
                 const db = await getDb();
                 const clientId = ctx.clientId;
+                if (!clientId) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'Client ID is required.',
+                    });
+                }
 
                 const { clientSettings: clientSettingsTable } = await import('../../schema_client_settings');
                 const clientSettings = await db.query.clientSettings.findFirst({

@@ -12,7 +12,7 @@ export const clientSpecificMenuItems = [
     { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
     { icon: Activity, label: "Gap Analysis", path: "/gap-analysis" },
     { icon: ShieldCheck, label: "Audit Manager", path: "/audit-manager" },
-    { icon: Compass, label: "Compliance Journey", path: "/journey" },
+    { icon: Compass, label: "Compliance Journey", path: "/compliance-journey" },
     { icon: Flag, label: "Discovery Wizard", path: "/readiness/wizard" },
     { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
 
@@ -69,7 +69,7 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
     if (purePath === "/implementation") return `/clients/${clientId}/implementation${queryStr}`;
     if (purePath === "/implementation/dashboard") return `/clients/${clientId}/implementation${queryStr}`;
     if (purePath === "/evidence") return `/clients/${clientId}/evidence${queryStr}`;
-    if (purePath === "/journey") return `/clients/${clientId}/journey${queryStr}`;
+    if (purePath === "/compliance-journey") return `/clients/${clientId}/compliance-journey${queryStr}`;
     if (purePath === "/onboarding") return `/onboarding${queryStr}`;
     if (purePath === "/gap-analysis") return `/clients/${clientId}/gap-analysis${queryStr}`;
     if (purePath === "/training/management") return `/clients/${clientId}/training/management${queryStr}`;

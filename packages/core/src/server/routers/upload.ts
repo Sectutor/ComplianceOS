@@ -34,11 +34,18 @@ uploadRouter.post('/', async (req: any, res) => {
             return res.status(400).json({ error: 'Missing filename or data' });
         }
 
-        // SECURITY: Validate content type
-        const detectedType = contentType || 'application/octet-stream';
-        if (!ALLOWED_MIME_TYPES.has(detectedType) && detectedType !== 'application/octet-stream') {
+        // SECURITY: Validate content type strictly (No octet-stream fallback)
+        const detectedType = contentType || '';
+        if (!ALLOWED_MIME_TYPES.has(detectedType)) {
             logger.warn({ message: '[Upload] Rejected disallowed content type', type: detectedType, user: req.user?.id });
             return res.status(400).json({ error: 'File type not allowed' });
+        }
+
+        // SECURITY: Executable & Script extension blacklist
+        const forbiddenExts = /\.(exe|bat|cmd|sh|php|pl|py|cgi|js|vbs|jar|scr|pif|msi|dll)$/i;
+        if (forbiddenExts.test(filename)) {
+            logger.warn({ message: '[Upload] Rejected forbidden executable extension', filename, user: req.user?.id });
+            return res.status(400).json({ error: 'Executable and script file uploads are forbidden' });
         }
 
         // SECURITY: File size limit

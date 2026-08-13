@@ -3,9 +3,13 @@
 // Data source: standards.js (NIST AI RMF, OWASP LLM, EU AI Act, OWASP ASI)
 // ==========================================
 
-//  DEV BYPASS 
-// Set to true to unlock premium features without payment (DEV/TESTING ONLY)
-const DEV_BYPASS_PAYMENT = false;
+//  VARS — NO PAYMENT WALL. Email gate is the only restriction.
+const DEV_BYPASS_PAYMENT = true;
+
+//  EMAIL ENDPOINT — auto-detect dev vs production
+const EMAIL_ENDPOINT = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8099/send-report'
+  : '/.netlify/functions/send-report';
 
 //  STATE 
 let wizardState = {
@@ -268,6 +272,30 @@ function getChecklistTabsInfo(standard, systemName) {
   }
 }
 
+function getAgentTitle(agentId) {
+  const names = {
+    hermes:'Hermes Agent', openlaw:'OpenLaw', openai:'ChatGPT Operator', claude:'Claude Agents/Code', copilot:'Microsoft Copilot',
+    agentforce:'Salesforce Agentforce', sierra:'Sierra', perplexity:'Perplexity AI', rasa:'Rasa',
+    devin:'Devin AI', cursor:'Cursor', 'github-copilot':'GitHub Copilot Agent', replit:'Replit Agent',
+    zapier:'Zapier Agents', n8n:'n8n', arahi:'Arahi AI',
+    crewai:'CrewAI', langchain:'LangGraph/LangChain', autogen:'AutoGen', llamaindex:'LlamaIndex',
+    'semantic-kernel':'Semantic Kernel', openclaw:'OpenCLAW', autogpt:'AutoGPT', custom:'Custom Agent'
+  };
+  return names[agentId] || agentId;
+}
+
+// Returns which agent systems a control applies to (empty = all)
+function getControlScope(code, category) {
+  const infraAgents = ['hermes', 'openclaw', 'custom', 'autogpt', 'crewai', 'langchain', 'autogen', 'llamaindex', 'semantic-kernel', 'devin', 'cursor', 'github-copilot', 'replit', 'openlaw'];
+  const fullScope = ['hermes', 'openlaw', 'custom'];
+  const toolUsingAgents = ['hermes', 'openclaw', 'openlaw', 'custom', 'autogpt', 'crewai', 'langchain', 'autogen', 'llamaindex', 'semantic-kernel', 'devin', 'cursor', 'github-copilot', 'replit', 'openai', 'claude', 'copilot', 'agentforce', 'sierra', 'perplexity', 'zapier', 'n8n', 'arahi'];
+
+  if (code.startsWith('ASI')) return toolUsingAgents;
+  if (code.startsWith('NV-')) return fullScope;
+  if (code === 'MEAS-3') return infraAgents;
+  return [];
+}
+
 function buildChecklist() {
   const s = STANDARDS;
   let checks = [];
@@ -283,6 +311,7 @@ function buildChecklist() {
         title: llm.title,
         desc: llm.desc,
         severity: llm.severity,
+        agents: getControlScope(llm.id, 'owasp'),
         frameworks: {
           owasp: llm.id,
           nist: s.TRACEABILITY[llm.id]?.nist || [],
@@ -300,6 +329,7 @@ function buildChecklist() {
         title: asi.title,
         desc: asi.desc,
         severity: 'High',
+        agents: getControlScope(asi.id, 'asi'),
         frameworks: {
           owasp: s.TRACEABILITY[`OWASP ${asi.id}`]?.owasp || [],
           nist: s.TRACEABILITY[`OWASP ${asi.id}`]?.nist || [],
@@ -322,6 +352,7 @@ function buildChecklist() {
           title: n.title,
           desc: n.desc,
           severity: 'Medium',
+          agents: getControlScope(n.id, 'nist'),
           frameworks: {
             owasp: s.TRACEABILITY[`NIST ${n.id}`]?.owasp || [],
             nist: [n.id],
@@ -343,6 +374,7 @@ function buildChecklist() {
         title: eu.title,
         desc: eu.desc,
         severity: 'High',
+        agents: getControlScope(eu.id, 'eu'),
         frameworks: {
           owasp: s.TRACEABILITY[`EU ${eu.id}`]?.owasp || [],
           nist: s.TRACEABILITY[`EU ${eu.id}`]?.nist || [],
@@ -363,6 +395,7 @@ function buildChecklist() {
         title: msft.title,
         desc: msft.desc,
         severity: msft.severity,
+        agents: getControlScope(msft.id, 'msft'),
         frameworks: {
           owasp: ['LLM01'],
           nist: ['MEAS-3'],
@@ -383,6 +416,7 @@ function buildChecklist() {
         title: nv.title,
         desc: nv.desc,
         severity: nv.severity,
+        agents: getControlScope(nv.id, 'nv'),
         frameworks: {
           owasp: ['LLM08'],
           nist: ['GOV-1'],
@@ -478,25 +512,32 @@ function transitionToStep(targetStep) {
 }
 
 //  CHECKLIST 
+function getRelevantChecks() {
+  const agent = wizardState.agentSystem || 'hermes';
+  return CHECKS.filter(c => !c.agents || c.agents.length === 0 || c.agents.includes(agent));
+}
+function getRelevantTotal() { return getRelevantChecks().length; }
+
 function renderChecklistGrids() {
   const sysName = getAgentSystemDisplayName(wizardState.agentSystem);
   const stdId = wizardState.targetStandard || 'owasp';
   const tabsInfo = getChecklistTabsInfo(stdId, sysName);
 
-  const list1 = CHECKS.filter(c => tabsInfo.route(c) === 1);
-  const list2 = CHECKS.filter(c => tabsInfo.route(c) === 2);
+  const relevant = getRelevantChecks();
+  const list1 = relevant.filter(c => tabsInfo.route(c) === 1);
+  const list2 = relevant.filter(c => tabsInfo.route(c) === 2);
 
   dom['tab-hermes'].innerHTML = `${tabsInfo.tab1} (${list1.length})`;
   dom['tab-host'].innerHTML = `${tabsInfo.tab2} (${list2.length})`;
   if (dom['tab-all']) {
-    dom['tab-all'].innerHTML = `<i data-lucide="layers" class="h-4 w-4 text-slate-500"></i> View All Controls (${CHECKS.length})`;
+    dom['tab-all'].innerHTML = '<i data-lucide="layers" class="h-4 w-4 text-slate-500"></i> View All Controls (' + getRelevantTotal() + ')';
   }
   safeCreateIcons();
 
   dom['container-hermes-checks'].innerHTML = '';
   dom['container-host-checks'].innerHTML = '';
 
-  CHECKS.forEach(check => {
+  getRelevantChecks().forEach(check => {
     const isChecked = wizardState.checkedChecks.includes(check.id);
     const card = document.createElement('div');
     card.className = `check-card glass-card p-5 flex flex-col justify-between select-none cursor-pointer ${isChecked ? 'checked' : 'unchecked'}`;
@@ -546,7 +587,7 @@ function toggleCheck(checkId) {
 }
 
 function updateChecklistCounter() {
-  dom['checklist-counter'].textContent = `${wizardState.checkedChecks.length} / ${CHECKS.length} Verified`;
+  dom['checklist-counter'].textContent = `${wizardState.checkedChecks.length} / ${getRelevantTotal()} Verified`;
 }
 
 //  SCAN 
@@ -1857,7 +1898,7 @@ function renderComplianceMatrixRows(filter = 'all') {
 function renderResultsPanel() {
   const checked = wizardState.checkedChecks;
   const passedCount = checked.length;
-  const totalCount = CHECKS.length;
+  const totalCount = getRelevantTotal();
   const score = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
   wizardState.score = score;
 
@@ -2586,7 +2627,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch(e) { /* ignore corrupted storage */ }
 
-  // If we restored a completed assessment, jump to results
+  // If we restored a completed assessment, show results directly
+  // No email gate — only downloads are gated
   if (wizardState.checkedChecks.length > 0) {
     const total = buildChecklist().length;
     wizardState.score = Math.round((wizardState.checkedChecks.length / total) * 100);
@@ -2663,7 +2705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     transitionToStep('policy');
   };
 
-  // Navigation
+  // Navigation goes directly to results
   dom['btn-policy-back'].onclick = () => transitionToStep('welcome');
   dom['btn-policy-run'].onclick = () => {
     if (wizardState.assessmentMode === 'agentic' && !wizardState.agentSystem) {
@@ -2678,11 +2720,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   dom['btn-checklist-back'].onclick = () => transitionToStep('policy');
   dom['btn-checklist-continue'].onclick = () => transitionToStep('scan');
-  dom['btn-scan-results'].onclick = () => showEmailGate(() => transitionToStep('results'));
+  dom['btn-scan-results'].onclick = () => transitionToStep('results');
   dom['btn-scan-skip'].onclick = () => {
     clearInterval(logInterval);
     document.getElementById('terminal-spinner').classList.add('hidden');
-    showEmailGate(() => transitionToStep('results'));
+    transitionToStep('results');
   };
   dom['btn-results-reset'].onclick = () => transitionToStep('welcome');
   if (dom['btn-export-docx']) {
@@ -2753,27 +2795,103 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Agent system selector
-  document.getElementById('agent-system-grid').onclick = (e) => {
-    const btn = e.target.closest('[data-agent]');
-    if (!btn) return;
-    document.querySelectorAll('.agent-sys-btn').forEach(b => {
-      b.className = 'agent-sys-btn group text-left bg-slate-900/60 border border-white/10 p-3.5 rounded-xl transition-all flex flex-col gap-1.5';
-    });
-    const sys = btn.dataset.agent;
-    const colorMap = {
-      hermes: 'border-blue-500 bg-blue-500/10',
-      openai: 'border-emerald-500 bg-emerald-500/10',
-      claude: 'border-amber-500 bg-amber-500/10',
-      autogpt: 'border-rose-500 bg-rose-500/10',
-      crewai: 'border-purple-500 bg-purple-500/10',
-      langchain: 'border-cyan-500 bg-cyan-500/10',
-      llamaindex: 'border-orange-500 bg-orange-500/10',
-      custom: 'border-slate-300 bg-slate-500/10'
+  // Agent system selector — dynamic category + card grid
+  const AGENT_DB = [
+    { id:'openai', name:'ChatGPT Operator', cat:'enterprise', desc:'OpenAI agent for practical tasks and computer use', color:'emerald', scope:'api' },
+    { id:'claude', name:'Claude Agents / Code', cat:'enterprise', desc:'Anthropic agents for complex knowledge work and coding', color:'amber', scope:'api' },
+    { id:'copilot', name:'Microsoft Copilot', cat:'enterprise', desc:'Enterprise automation via Copilot Studio', color:'sky', scope:'api' },
+    { id:'agentforce', name:'Salesforce Agentforce', cat:'enterprise', desc:'Enterprise customer service and business agents', color:'blue', scope:'api' },
+    { id:'sierra', name:'Sierra', cat:'enterprise', desc:'Premium customer service agents with outcome pricing', color:'teal', scope:'api' },
+    { id:'perplexity', name:'Perplexity AI', cat:'enterprise', desc:'Research and web-interaction focused agent', color:'orange', scope:'api' },
+    { id:'rasa', name:'Rasa', cat:'enterprise', desc:'Enterprise conversational agents for regulated industries', color:'violet', scope:'api' },
+    { id:'devin', name:'Devin AI', cat:'coding', desc:'Autonomous software engineer — plans, codes, debugs', color:'blue', scope:'infra' },
+    { id:'cursor', name:'Cursor', cat:'coding', desc:'IDE-native coding agent for developer productivity', color:'cyan', scope:'infra' },
+    { id:'github-copilot', name:'GitHub Copilot Agent', cat:'coding', desc:'Autonomous pull requests and dev workflows', color:'slate', scope:'infra' },
+    { id:'replit', name:'Replit Agent', cat:'coding', desc:'Builds complete applications from natural language', color:'amber', scope:'infra' },
+    { id:'zapier', name:'Zapier Agents', cat:'workflow', desc:'No-code workflow automation across thousands of apps', color:'orange', scope:'api' },
+    { id:'n8n', name:'n8n', cat:'workflow', desc:'Open-source robust workflow and multi-agent automation', color:'red', scope:'api' },
+    { id:'arahi', name:'Arahi AI', cat:'workflow', desc:'No-code platform for business workflow agents', color:'purple', scope:'api' },
+    { id:'crewai', name:'CrewAI', cat:'frameworks', desc:'Multi-agent orchestration with role-based teams', color:'purple', scope:'infra' },
+    { id:'langchain', name:'LangGraph / LangChain', cat:'frameworks', desc:'Stateful agent workflows and LLM orchestration', color:'cyan', scope:'infra' },
+    { id:'autogen', name:'AutoGen', cat:'frameworks', desc:'Microsoft conversational multi-agent systems', color:'sky', scope:'infra' },
+    { id:'llamaindex', name:'LlamaIndex', cat:'frameworks', desc:'Data-focused agent and retrieval workflows', color:'orange', scope:'infra' },
+    { id:'semantic-kernel', name:'Semantic Kernel', cat:'frameworks', desc:'.NET agent framework with planning and orchestration', color:'indigo', scope:'infra' },
+    { id:'openclaw', name:'OpenCLAW', cat:'frameworks', desc:'Open-source persistent agent with memory and tools', color:'violet', scope:'infra' },
+    { id:'autogpt', name:'AutoGPT', cat:'frameworks', desc:'Autonomous goal-seeking agent with persistent memory', color:'rose', scope:'infra' },
+    { id:'hermes', name:'Hermes Agent', cat:'selfhosted', desc:'Open-source terminal agent daemon with YAML config', color:'blue', scope:'full' },
+    { id:'openlaw', name:'OpenLaw', cat:'selfhosted', desc:'Open-source legal AI agent with memory and tools', color:'violet', scope:'full' },
+    { id:'custom', name:'Custom Agent', cat:'selfhosted', desc:'Bespoke or proprietary in-house agent framework', color:'slate', scope:'full' },
+  ];
+
+  const catColors = { enterprise:'emerald', coding:'blue', workflow:'amber', frameworks:'purple', selfhosted:'slate' };
+  const sysColors = { emerald:'emerald-500 bg-emerald-500/10', amber:'amber-500 bg-amber-500/10', blue:'blue-500 bg-blue-500/10',
+    sky:'sky-500 bg-sky-500/10', teal:'teal-500 bg-teal-500/10', orange:'orange-500 bg-orange-500/10',
+    violet:'violet-500 bg-violet-500/10', cyan:'cyan-500 bg-cyan-500/10', slate:'slate-300 bg-slate-500/10',
+    red:'red-500 bg-red-500/10', purple:'purple-500 bg-purple-500/10', indigo:'indigo-500 bg-indigo-500/10', rose:'rose-500 bg-rose-500/10' };
+
+  function renderAgentCategory(cat) {
+    const grid = document.getElementById('agent-system-grid');
+    const agents = AGENT_DB.filter(a => a.cat === cat);
+    grid.innerHTML = agents.map(a => `
+      <button data-agent="${a.id}" class="agent-sys-btn group text-left bg-slate-900/60 border border-white/10 hover:border-${sysColors[a.color].split(' ')[0]} p-2.5 rounded-xl transition-all flex flex-col gap-1">
+        <span class="text-[11px] font-bold text-white leading-tight">${a.name}</span>
+        <span class="text-[9px] text-slate-400 leading-tight line-clamp-2">${a.desc}</span>
+      </button>
+    `).join('');
+    grid.onclick = (e) => {
+      const btn = e.target.closest('[data-agent]');
+      if (!btn) return;
+      document.querySelectorAll('#agent-system-grid .agent-sys-btn').forEach(b => {
+        b.className = 'agent-sys-btn group text-left bg-slate-900/60 border border-white/10 p-2.5 rounded-xl transition-all flex flex-col gap-1';
+      });
+      const sys = btn.dataset.agent;
+      const agent = AGENT_DB.find(a => a.id === sys);
+      btn.className = `agent-sys-btn group text-left border p-2.5 rounded-xl transition-all flex flex-col gap-1 border-${sysColors[agent.color].split(' ')[0]} bg-${sysColors[agent.color].split(' ')[1]}`;
+      wizardState.agentSystem = sys;
+      document.getElementById('agent-system-warning').classList.add('hidden');
+      updateStandardRecommendation(sys);
     };
-    btn.className = `agent-sys-btn group text-left border p-3.5 rounded-xl transition-all flex flex-col gap-1.5 ${colorMap[sys] || colorMap.custom}`;
-    wizardState.agentSystem = sys;
-    document.getElementById('agent-system-warning').classList.add('hidden');
+  }
+
+  function updateStandardRecommendation(agentId) {
+    const recs = {
+      hermes:'unified', openlaw:'unified', custom:'unified',
+      openai:'owasp', claude:'owasp', copilot:'owasp',
+      agentforce:'owasp', sierra:'owasp', perplexity:'owasp', rasa:'owasp',
+      devin:'unified', cursor:'owasp', 'github-copilot':'owasp', replit:'owasp',
+      zapier:'owasp', n8n:'owasp', arahi:'owasp',
+      crewai:'unified', langchain:'unified', autogen:'unified',
+      llamaindex:'unified', 'semantic-kernel':'unified', openclaw:'unified', autogpt:'unified'
+    };
+    const rec = recs[agentId] || 'unified';
+    document.querySelectorAll('#compliance-standard-grid .std-btn').forEach(b => {
+      const oldBadge = b.querySelector('.rec-badge');
+      if (oldBadge) oldBadge.remove();
+      if (b.dataset.standard === rec) {
+        const badge = document.createElement('span');
+        badge.className = 'rec-badge text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold ml-1';
+        badge.textContent = 'recommended';
+        b.querySelector('span:first-child').appendChild(badge);
+      }
+    });
+  }
+
+  // Category tab switching
+  document.getElementById('agent-category-tabs').onclick = (e) => {
+    const tab = e.target.closest('[data-cat]');
+    if (!tab) return;
+    document.querySelectorAll('.agent-cat-btn').forEach(t => {
+      t.className = 'agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-white/5 bg-slate-900/60 text-slate-400 transition-all';
+    });
+    const cat = tab.dataset.cat;
+    const cc = catColors[cat];
+    tab.className = `agent-cat-btn px-3.5 py-2 rounded-lg text-[11px] font-bold border border-${cc}-500/40 bg-${cc}-500/15 text-${cc}-300 transition-all`;
+    renderAgentCategory(cat);
+    safeCreateIcons();
   };
+
+  // Default: show Enterprise
+  renderAgentCategory('enterprise');
 
   // Standard Selector
   document.getElementById('compliance-standard-grid').onclick = (e) => {
@@ -2818,9 +2936,90 @@ document.addEventListener('DOMContentLoaded', () => {
     `);
   };
 
+  // PDF/Word download buttons — gate if no email yet
   dom['btn-results-pdf'].onclick = () => {
-    window.print();
+    if (wizardState.userEmail) { window.print(); }
+    else { showEmailGate(() => { document.getElementById('email-capture').classList.add('hidden'); document.getElementById('download-buttons').classList.remove('hidden'); }); }
   };
+  if (dom['btn-export-docx']) {
+    dom['btn-export-docx'].onclick = () => {
+      if (wizardState.userEmail) { exportAuditToDocx(); }
+      else { showEmailGate(() => { document.getElementById('email-capture').classList.add('hidden'); document.getElementById('download-buttons').classList.remove('hidden'); }); }
+    };
+  }
+
+  // Vault deliverable downloads — intercept direct <a> tags
+  document.querySelectorAll('[data-gated-download]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (!wizardState.userEmail) {
+        e.preventDefault();
+        showEmailGate(() => { el.click(); });
+      }
+    });
+  });
+
+  // "Download Full Package (.zip)" button
+  const vaultDlBtn = document.getElementById('btn-download-all-vault');
+  if (vaultDlBtn) {
+    vaultDlBtn.onclick = () => {
+      if (!wizardState.userEmail) {
+        showEmailGate(() => { vaultDlBtn.click(); });
+      }
+    };
+  }
+
+  // Email gate — send report and unlock downloads
+  const emailSendBtn = document.getElementById('btn-email-send');
+  if (emailSendBtn) {
+    emailSendBtn.onclick = () => {
+      const email = document.getElementById('email-input')?.value.trim();
+      if (!email || !email.includes('@')) {
+        document.getElementById('email-input')?.focus();
+        return;
+      }
+      emailSendBtn.disabled = true;
+      emailSendBtn.textContent = 'Sending...';
+      wizardState.userEmail = email;
+      // DO NOT unlock yet — wait for server confirmation
+      fetch(EMAIL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          score: wizardState.score || 0,
+          gaps: (wizardState.gaps || []).length,
+          agent_name: wizardState.agentName || 'AI Agent',
+          geo: wizardState.geography || 'European Union'
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          // ✅ Only unlock AFTER confirmed
+          document.getElementById('email-capture').classList.add('hidden');
+          document.getElementById('download-buttons').classList.remove('hidden');
+          emailSendBtn.textContent = 'Sent ✓';
+          emailSendBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
+        } else {
+          emailSendBtn.disabled = false;
+          emailSendBtn.textContent = data.error || 'Try again';
+        }
+      })
+      .catch(() => {
+        emailSendBtn.disabled = false;
+        emailSendBtn.textContent = 'Server unreachable — try again';
+        emailSendBtn.classList.add('bg-red-600');
+      });
+    };
+  }
+
+  // If email already collected (from localStorage restore), skip gate
+  if (wizardState.userEmail) {
+    const ec = document.getElementById('email-capture');
+    const db = document.getElementById('download-buttons');
+    if (ec) ec.classList.add('hidden');
+    if (db) db.classList.remove('hidden');
+  }
 
   // Premium checkout button initialization
   const checkoutBtn = document.getElementById('btn-results-checkout');
@@ -2828,14 +3027,12 @@ document.addEventListener('DOMContentLoaded', () => {
     checkoutBtn.onclick = openCheckoutModal;
   }
 
-  // Results page CTA button
+
   const ctaBtn = document.getElementById('btn-cta-results');
   if (ctaBtn) {
     ctaBtn.onclick = wizardState.premiumUnlocked ? () => window.print() : openCheckoutModal;
   }
 
-  // Inject developer control panel if bypass is active
-  injectDevConsole();
 
   safeCreateIcons();
 });
@@ -2958,7 +3155,7 @@ function showEmailGate(onComplete) {
     btn.disabled = true;
     btn.innerHTML = 'Sending...';
 
-    fetch('http://localhost:8099/send-report', {
+    fetch(EMAIL_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2971,6 +3168,20 @@ function showEmailGate(onComplete) {
     })
     .then(r => r.json())
     .then(data => {
+      if (!data.ok) {
+        // Server returned error — stay in gate
+        btn.disabled = false;
+        btn.innerHTML = 'Send My Report →';
+        const form = document.getElementById('email-gate-form');
+        const existingErr = form.querySelector('.gate-error-msg');
+        if (existingErr) existingErr.remove();
+        const err = document.createElement('p');
+        err.className = 'gate-error-msg text-red-400 text-[10px] mt-2 text-center';
+        err.textContent = data.error || 'Email could not be sent. Please try again.';
+        form.appendChild(err);
+        setTimeout(() => err.remove(), 5000);
+        return;
+      }
       closeModal();
       openModal(`
         <div class="text-center space-y-4">
@@ -2995,8 +3206,18 @@ function showEmailGate(onComplete) {
       };
     })
     .catch(() => {
-      closeModal();
-      onComplete(); // fallback: proceed even if email fails
+      // FAIL-CLOSED: keep user in the gate, show error
+      btn.disabled = false;
+      btn.innerHTML = 'Send My Report →';
+      const form = document.getElementById('email-gate-form');
+      const existingErr = form.querySelector('.gate-error-msg');
+      if (existingErr) existingErr.remove();
+      const err = document.createElement('p');
+      err.className = 'gate-error-msg text-red-400 text-[10px] mt-2 text-center';
+      err.textContent = 'Could not reach email server. Please refresh or try again.';
+      form.appendChild(err);
+      setTimeout(() => err.remove(), 5000);
+      // DO NOT call onComplete() — user stays in the gate
     });
   };
 }
@@ -3009,61 +3230,3 @@ window.triggerLockedPlaybook = () => {
     openCheckoutModal();
   }
 };
-
-//  DEV CONSOLE WIDGET 
-function injectDevConsole() {
-  if (!DEV_BYPASS_PAYMENT) return;
-
-  const panel = document.createElement('div');
-  panel.id = 'dev-console-panel';
-  panel.className = 'fixed bottom-4 right-4 z-[9999] bg-slate-950/90 border border-white/10 rounded-2xl p-4 w-64 shadow-2xl backdrop-blur-md text-xs space-y-3';
-  
-  const updatePanelHtml = () => {
-    const isUnlocked = wizardState.premiumUnlocked;
-    panel.innerHTML = `
-      <div class="flex items-center justify-between border-b border-white/5 pb-2">
-        <div class="flex items-center gap-1.5 font-bold text-white">
-          <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
-          <i data-lucide="wrench" class="h-3.5 w-3.5 text-amber-400"></i> Dev Control Panel
-        </div>
-        <span class="text-[9px] px-1.5 py-0.5 bg-slate-900 border border-white/10 rounded text-slate-400 uppercase font-mono">Bypass: Active</span>
-      </div>
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-[10px]">
-          <span class="text-slate-400">Premium Status:</span>
-          <span class="font-bold uppercase tracking-wider ${isUnlocked ? 'text-emerald-400' : 'text-amber-400'}">
-            ${isUnlocked ? 'Unlocked' : 'Locked'}
-          </span>
-        </div>
-        <p class="text-[9px] text-slate-500 leading-normal">
-          Toggle this bypass switch to instantly test the premium remediation sheets vs. the Stripe payment popup.
-        </p>
-        <button id="btn-dev-toggle" class="w-full py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1">
-          ${isUnlocked ? 'Set to Locked' : 'Set to Unlocked'}
-        </button>
-      </div>
-    `;
-    
-    // Bind toggle button click
-    const toggleBtn = panel.querySelector('#btn-dev-toggle');
-    if (toggleBtn) {
-      toggleBtn.onclick = () => {
-        wizardState.premiumUnlocked = !wizardState.premiumUnlocked;
-        renderResultsPanel();
-        updatePanelHtml();
-        
-        // Show brief toast
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 px-5 py-3 bg-blue-600 text-white text-xs font-bold rounded-2xl shadow-xl';
-        toast.innerHTML = wizardState.premiumUnlocked 
-          ? `Dev Mode: Premium feature playbooks are now UNLOCKED.`
-          : `Dev Mode: Premium is now LOCKED. Click "Unlock Premium Binder" to test the Stripe modal.`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-      };
-    }
-  };
-
-  updatePanelHtml();
-  document.body.appendChild(panel);
-}

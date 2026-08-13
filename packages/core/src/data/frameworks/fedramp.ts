@@ -1,66 +1,184 @@
+export interface FedRampControl {
+  controlId: string;
+  family: string;
+  name: string;
+  description: string;
+  baseline: "Low" | "Moderate" | "High";
+  guidance: string;
+}
 
-// FedRAMP Baselines (Representative Selection)
-// Based on NIST SP 800-53 Rev 5 controls.
+export const FEDRAMP_CONTROLS: FedRampControl[] = [
+  // --- AC: ACCESS CONTROL ---
+  {
+    controlId: "AC-1",
+    family: "Access Control",
+    name: "Access Control Policy and Procedures",
+    description: "Develop, document, and disseminate access control policy and procedures to manage account access.",
+    baseline: "Low",
+    guidance: "Formally document access control responsibilities, role assignments, and review cadences.",
+  },
+  {
+    controlId: "AC-2",
+    family: "Access Control",
+    name: "Account Management",
+    description: "Manage system accounts, specify authorized users, roles, access permissions, and approval procedures.",
+    baseline: "Low",
+    guidance: "Implement formal user onboarding/offboarding workflows with quarterly access reviews.",
+  },
+  {
+    controlId: "AC-3",
+    family: "Access Control",
+    name: "Access Enforcement",
+    description: "Enforce approved authorizations for logical access to information and system resources.",
+    baseline: "Low",
+    guidance: "Implement role-based access control (RBAC) and least privilege principle across all endpoints.",
+  },
+  {
+    controlId: "AC-7",
+    family: "Access Control",
+    name: "Unsuccessful Logon Attempts",
+    description: "Enforce a limit of consecutive invalid logon attempts by a user and automatically lock account.",
+    baseline: "Low",
+    guidance: "Lock accounts for 15 minutes after 5 consecutive invalid login attempts.",
+  },
+  {
+    controlId: "AC-17",
+    family: "Access Control",
+    name: "Remote Access Management",
+    description: "Establish and document usage restrictions, configuration guidelines, and implementation guidance for remote access.",
+    baseline: "Moderate",
+    guidance: "Mandate encrypted VPN / TLS 1.3 tunnels with MFA for all remote administrative access.",
+  },
 
-const commonControls = [
-    { id: "AC-1", name: "Access Control Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant access control policy.", category: "Access Control" },
-    { id: "AC-2", name: "Account Management", description: "The organization identifies and selects types of information system accounts to support organizational missions/business functions.", category: "Access Control" },
-    { id: "AC-3", name: "Access Enforcement", description: "The information system enforces approved authorizations for logical access to information and system resources.", category: "Access Control" },
-    { id: "AT-1", name: "Awareness and Training Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant awareness and training policy.", category: "Awareness and Training" },
-    { id: "AT-2", name: "Security Awareness Training", description: "The organization provides basic security awareness training to information system users.", category: "Awareness and Training" },
-    { id: "AU-1", name: "Audit and Accountability Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant audit and accountability policy.", category: "Audit and Accountability" },
-    { id: "AU-2", name: "Audit Events", description: "The organization determines that the information system is capable of auditing defined events.", category: "Audit and Accountability" },
-    { id: "CM-1", name: "Configuration Management Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant configuration management policy.", category: "Configuration Management" },
-    { id: "IA-1", name: "Identification and Authentication Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant identification and authentication policy.", category: "Identification and Authentication" },
-    { id: "IA-2", name: "Identification and Authentication (Organizational Users)", description: "The information system uniquely identifies and authenticates organizational users.", category: "Identification and Authentication" },
-    { id: "IR-1", name: "Incident Response Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant incident response policy.", category: "Incident Response" },
-    { id: "IR-6", name: "Incident Reporting", description: "The organization requires personnel to report suspected security incidents.", category: "Incident Response" },
-    { id: "RA-1", name: "Risk Assessment Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant risk assessment policy.", category: "Risk Assessment" },
-    { id: "RA-3", name: "Risk Assessment", description: "The organization conducts an assessment of risk to organizational operations and assets.", category: "Risk Assessment" },
-    { id: "SC-1", name: "System and Communications Protection Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant system and communications protection policy.", category: "System and Communications Protection" },
-    { id: "SI-1", name: "System and Information Integrity Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant system and information integrity policy.", category: "System and Information Integrity" },
-    { id: "SI-2", name: "Flaw Remediation", description: "The organization identifies, reports, and corrects information system flaws.", category: "System and Information Integrity" }
+  // --- AU: AUDIT AND ACCOUNTABILITY ---
+  {
+    controlId: "AU-2",
+    family: "Audit and Accountability",
+    name: "Event Logging",
+    description: "Identify and document the types of events that the system is capable of logging in support of audit requirements.",
+    baseline: "Low",
+    guidance: "Log user authentication, privilege escalation, file access, and administrative actions.",
+  },
+  {
+    controlId: "AU-6",
+    family: "Audit and Accountability",
+    name: "Audit Record Review, Analysis, and Reporting",
+    description: "Review and analyze system audit records for indications of unusual or suspicious activity.",
+    baseline: "Moderate",
+    guidance: "Implement automated SIEM alert monitoring and weekly log audit reviews.",
+  },
+  {
+    controlId: "AU-9",
+    family: "Audit and Accountability",
+    name: "Protection of Audit Information",
+    description: "Protect audit information and audit logging tools from unauthorized access, modification, and deletion.",
+    baseline: "Low",
+    guidance: "Store audit logs in read-only write-once-read-many (WORM) storage or append-only S3 bucket.",
+  },
+
+  // --- CM: CONFIGURATION MANAGEMENT ---
+  {
+    controlId: "CM-2",
+    family: "Configuration Management",
+    name: "Baseline Configuration",
+    description: "Develop, document, and maintain under configuration control, a current baseline configuration of the system.",
+    baseline: "Low",
+    guidance: "Maintain Infrastructure-as-Code (Terraform/CloudFormation) and container image golden baselines.",
+  },
+  {
+    controlId: "CM-6",
+    family: "Configuration Management",
+    name: "Configuration Settings",
+    description: "Establish and document mandatory configuration settings for information technology products.",
+    baseline: "Low",
+    guidance: "Apply CIS Benchmarks / DISA STIGs across all operating systems and cloud services.",
+  },
+  {
+    controlId: "CM-8",
+    family: "Configuration Management",
+    name: "Information System Component Inventory",
+    description: "Develop and document an inventory of system components that accurately reflects the system boundaries.",
+    baseline: "Low",
+    guidance: "Maintain automated asset inventory tracking all virtual servers, containers, databases, and IP addresses.",
+  },
+
+  // --- IA: IDENTIFICATION AND AUTHENTICATION ---
+  {
+    controlId: "IA-2",
+    family: "Identification and Authentication",
+    name: "Identification and Authentication (Organizational Users)",
+    description: "Uniquely identify and authenticate organizational users (or processes acting on behalf of users).",
+    baseline: "Low",
+    guidance: "Mandate unique username IDs and Multi-Factor Authentication (MFA) for all system users.",
+  },
+  {
+    controlId: "IA-5",
+    family: "Identification and Authentication",
+    name: "Authenticator Management",
+    description: "Manage system authenticators including passwords, tokens, certificates, and cryptographic keys.",
+    baseline: "Low",
+    guidance: "Enforce 14+ character passwords, 90-day max secret rotation, and FIDO2 hardware MFA keys.",
+  },
+
+  // --- IR: INCIDENT RESPONSE ---
+  {
+    controlId: "IR-4",
+    family: "Incident Response",
+    name: "Incident Handling",
+    description: "Implement an incident handling capability for security incidents that includes preparation, detection, analysis, containment, recovery, and user response.",
+    baseline: "Low",
+    guidance: "Execute formal Incident Response Plan (IRP) with defined escalation roles and playbooks.",
+  },
+  {
+    controlId: "IR-6",
+    family: "Incident Response",
+    name: "Incident Reporting",
+    description: "Require personnel to report suspected security incidents to the organizational incident response capability.",
+    baseline: "Low",
+    guidance: "Report FedRAMP incidents to US-CERT / FedRAMP PMO within required statutory timelines (1 hour).",
+  },
+
+  // --- RA: RISK ASSESSMENT ---
+  {
+    controlId: "RA-3",
+    family: "Risk Assessment",
+    name: "Risk Assessment Execution",
+    description: "Assess risk, including the likelihood and magnitude of harm, from the operation of information systems.",
+    baseline: "Low",
+    guidance: "Conduct formal NIST SP 800-30 annual risk assessments and maintain Plan of Action and Milestones (POA&M).",
+  },
+  {
+    controlId: "RA-5",
+    family: "Risk Assessment",
+    name: "Vulnerability Monitoring and Scanning",
+    description: "Monitor and scan for vulnerabilities in the system and hosted applications.",
+    baseline: "Moderate",
+    guidance: "Perform weekly automated vulnerability scans and monthly authenticated infrastructure penetration scans.",
+  },
+
+  // --- SC: SYSTEM AND COMMUNICATIONS PROTECTION ---
+  {
+    controlId: "SC-7",
+    family: "System and Communications Protection",
+    name: "Boundary Protection",
+    description: "Monitor and control communications at external boundaries of the system and key internal boundaries.",
+    baseline: "Low",
+    guidance: "Deploy Web Application Firewalls (WAF), VPC Security Groups, and Next-Gen Firewalls.",
+  },
+  {
+    controlId: "SC-8",
+    family: "System and Communications Protection",
+    name: "Transmission Confidentiality and Integrity",
+    description: "Protect the confidentiality and integrity of transmitted information.",
+    baseline: "Moderate",
+    guidance: "Enforce TLS 1.3 for all data in transit across public and internal networks.",
+  },
+  {
+    controlId: "SC-28",
+    family: "System and Communications Protection",
+    name: "Protection of Information at Rest",
+    description: "Protect the confidentiality and integrity of information at rest.",
+    baseline: "Moderate",
+    guidance: "Enforce AES-256 encryption for all databases, EBS volumes, S3 buckets, and backup archives.",
+  },
 ];
-
-export const fedrampLowControls = [
-    ...commonControls,
-    // Low specific additions (representative)
-    { id: "AC-7", name: "Unsuccessful Logon Attempts", description: "The information system enforces a limit of consecutive invalid logon attempts.", category: "Access Control" },
-    { id: "MP-1", name: "Media Protection Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant media protection policy.", category: "Media Protection" },
-    { id: "PE-1", name: "Physical and Environmental Protection Policy and Procedures", description: "The organization develops, documents, and disseminates a compliant physical and environmental protection policy.", category: "Physical and Environmental Protection" },
-];
-
-export const fedrampModerateControls = [
-    ...fedrampLowControls,
-    // Moderate additions
-    { id: "AC-2(1)", name: "Automated System Account Management", description: "The organization employs automated mechanisms to support the management of information system accounts.", category: "Access Control" },
-    { id: "AC-4", name: "Information Flow Enforcement", description: "The information system enforces approved authorizations for controlling the flow of information.", category: "Access Control" },
-    { id: "AC-11", name: "Session Lock", description: "The information system prevents further access to the system by initiating a session lock.", category: "Access Control" },
-    { id: "AC-17", name: "Remote Access", description: "The organization establishes and documents usage restrictions, configuration/connection requirements, and implementation guidance for each type of remote access allowed.", category: "Access Control" },
-    { id: "AU-3", name: "Content of Audit Records", description: "The information system generates audit records containing detailed information.", category: "Audit and Accountability" },
-    { id: "AU-6", name: "Audit Review, Analysis, and Reporting", description: "The organization reviews and analyzes information system audit records for indications of inappropriate or unusual activity.", category: "Audit and Accountability" },
-    { id: "CM-2", name: "Baseline Configuration", description: "The organization develops, documents, and maintains under configuration control, a current baseline configuration of the information system.", category: "Configuration Management" },
-    { id: "CP-2", name: "Contingency Plan", description: "The organization develops a contingency plan for the information system.", category: "Contingency Planning" },
-    { id: "IA-5", name: "Authenticator Management", description: "The organization manages information system authenticators.", category: "Identification and Authentication" },
-    { id: "SC-7", name: "Boundary Protection", description: "The information system monitors and controls communications at the external boundary of the system.", category: "System and Communications Protection" },
-    { id: "SC-13", name: "Cryptographic Protection", description: "The information system implements cryptographic modules in accordance with applicable federal laws.", category: "System and Communications Protection" },
-    { id: "MA-2", name: "Controlled Maintenance", description: "The organization schedules, performs, documents, and reviews records of maintenance and repairs.", category: "Maintenance" }
-];
-
-export const fedrampHighControls = [
-    ...fedrampModerateControls,
-    // High specific additions (representative)
-    { id: "AC-2(2)", name: "Removal of Temporary / Emergency Accounts", description: "The info system automatically removes or disables temporary and emergency accounts after a defined time period.", category: "Access Control" },
-    { id: "AC-12", name: "Session Termination", description: "The information system automatically terminates a user session after a defined condition.", category: "Access Control" },
-    { id: "AU-4", name: "Audit Storage Capacity", description: "The organization allocates audit record storage capacity in accordance with defined requirements.", category: "Audit and Accountability" },
-    { id: "CP-6", name: "Alternate Storage Site", description: "The organization establishes an alternate storage site including necessary agreements.", category: "Contingency Planning" },
-    { id: "CP-9", name: "Information System Backup", description: "The organization conducts backups of user-level information contained in the information system.", category: "Contingency Planning" },
-    { id: "IR-4", name: "Incident Handling", description: "The organization implements an incident handling capability for incidents.", category: "Incident Response" },
-    { id: "MA-4", name: "Nonlocal Maintenance", description: "The organization approves and monitors nonlocal maintenance and diagnostic activities.", category: "Maintenance" },
-    { id: "PE-3", name: "Physical Access Control", description: "The organization enforces physical access authorizations at entry/exit points to the facility.", category: "Physical and Environmental Protection" },
-    { id: "SC-8", name: "Transmission Confidentiality and Integrity", description: "The information system protects the confidentiality and integrity of transmitted information.", category: "System and Communications Protection" },
-    { id: "SC-28", name: "Protection of Information at Rest", description: "The information system protects the confidentiality and integrity of information at rest.", category: "System and Communications Protection" },
-    { id: "SI-4", name: "Information System Monitoring", description: "The organization monitors the information system to detect attacks and indicators of potential attacks.", category: "System and Information Integrity" }
-];
-
-export default fedrampModerateControls;

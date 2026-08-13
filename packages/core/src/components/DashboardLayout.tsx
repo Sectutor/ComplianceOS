@@ -39,6 +39,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { GlobalSearch } from "./GlobalSearch";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { GlobalNotificationCenter } from "./common/GlobalNotificationCenter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
 import { CopilotButton } from "@complianceos/premium/components/advisor/CopilotButton";
@@ -1272,7 +1273,7 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div className={`flex border-b h-14 items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0,03)] ${fullWidth ? "pl-0 pr-4 md:pr-8" : "pl-4 pr-4 md:pl-8 md:pr-8"}`}>
+        <div className="flex border-b h-14 items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-4 md:px-8">
           <div className="flex items-center gap-3">
             {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background shadow-sm border" />}
             <div className="flex items-center gap-2">
@@ -1287,10 +1288,11 @@ function DashboardLayoutContent({
             <LanguageSwitcher compact />
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <CopilotHelpTrigger />
+            <GlobalNotificationCenter />
             <NotificationCenter />
           </div>
         </div>
-        <div className={`flex-1 bg-background ${fullWidth ? "p-0" : "pl-4 pr-4 md:pl-8 md:pr-8 py-8"}`}>{children}</div>
+        <div className={`flex-1 bg-background w-full max-w-full ${fullWidth ? "px-4 md:px-8 py-4" : "px-4 md:px-8 py-8"}`}>{children}</div>
 
         {/* AI Copilot Button - Global Access */}
         <CopilotButton clientId={persistentClientId || undefined} />

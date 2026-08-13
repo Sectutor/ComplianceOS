@@ -169,10 +169,16 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
         }
     };
 
-    const filteredVendors = vendors?.filter((row: any) =>
-        row.vendor && (row.vendor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.vendor.description?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredVendors = vendors?.map((row: any) => {
+        const v = row?.vendor || row;
+        return { ...v, vendor: v };
+    }).filter((row: any) => {
+        const v = row.vendor;
+        return v && v.name && (
+            v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (v.description && v.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    });
 
     const getPageTitle = () => {
         switch (mode) {
