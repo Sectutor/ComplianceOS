@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 5 - Collector connections + credential management + UI triggers (2026-08-14)
+- Scorecard #1 (automated evidence collection) completed: collector connections + credential management + UI triggers.
+  - Backend: `evidenceCollectorConnections` lib (masked credentials, secrets never returned; provider manifests from the evidence registry; DB-backed with in-memory fallback; idempotent self-registration of the five built-in collectors) + `evidenceCollectors` tRPC router (`listProviders`/`list`/`save`/`remove`/`test`/`run`) wired into `routers.ts`.
+  - UI: `CollectorConnectionsPanel` on the Evidence page replaces the static strip - per-provider status chips, dynamic credential form rendered from manifests (password/select/number/boolean), Test connection, Run-now trigger with live evidence summary, delete with confirm; token-only per UI-STANDARD, dark-mode safe.
+  - Tests: 374 → 412 (28 files), all green. tsc: no new errors in touched files.
+
 ### Cycle 4 - Cloud evidence collectors + per-client auto-test schedules (2026-08-14)
 - Shipped AWS / Azure / GCP automated evidence collectors (scorecard #1): three new manifest-driven, injectable-fetch collectors registered in the evidence registry (`aws`, `azure`, `gcp`).
   - AWS: `aws.iam-access-key-age` (90d rotation, 60d warning), `aws.s3-bucket-encryption`, `aws.ec2-public-ports`, `aws.cloudtrail-enabled`.
