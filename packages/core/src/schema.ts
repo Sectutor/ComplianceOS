@@ -15115,3 +15115,32 @@ export const accessReviewHistory = pgTable("access_review_history", {
 // so drizzle's db.query.clientSettings is available at runtime
 export { clientSettings } from "./schema_client_settings";
 export type { ClientSettings, InsertClientSettings } from "./schema_client_settings";
+
+
+// ==========================================
+// Policy Acknowledgments (P1 #4) - user sign-off on client policies
+// NOTE: a runtime-created `policy_acknowledgments` table (employee_email based)
+// already exists for the legacy sign-off flow (lib/policy/policyAcknowledgmentService.ts).
+// This table is the Drizzle-native user-based acknowledgment model used by the
+// policyAck router (listPending / acknowledge / listForPolicy).
+// ==========================================
+export const policyAckStatusEnum = pgEnum("policy_ack_status", ["pending", "acknowledged", "declined"]);
+
+export const policyAcknowledgements = pgTable("policy_acknowledgements", {
+  id: serial("id").primaryKey(),
+  policyId: integer("policy_id").notNull(),
+  userId: integer("user_id").notNull(),
+  clientId: integer("client_id").notNull(),
+  status: policyAckStatusEnum("status").default("pending"),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_pa_ack_client").on(table.clientId),
+    policyIdx: index("idx_pa_ack_policy").on(table.policyId),
+    userIdx: index("idx_pa_ack_user").on(table.userId),
+  };
+});
+
+export type PolicyAcknowledgement = typeof policyAcknowledgements.$inferSelect;
+export type InsertPolicyAcknowledgement = typeof policyAcknowledgements.$inferInsert;

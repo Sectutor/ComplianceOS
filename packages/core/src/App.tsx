@@ -212,6 +212,7 @@ const GuidedRiskValidation = lazyLoad(() => import("./pages/risk/GuidedRiskValid
 const RiskReportEditor = lazyLoad(() => import("./pages/risk/RiskReportEditor"));
 const RiskReportList = lazyLoad(() => import("./pages/risk/RiskReportList"));
 const RiskTreatmentPlanPage = lazyLoad(() => import("./pages/risk/RiskTreatmentPlanPage"));
+const RiskHeatmapPage = lazyLoad(() => import("./pages/risk/RiskHeatmapPage"));
 const RiskAlignmentPage = lazyLoad(() => import("./pages/risk/RiskAlignmentPage"));
 const AdversaryIntelPage = lazyLoad(() => import("./pages/risk/AdversaryIntelPage"));
 const VulnerabilityWorkbench = lazyLoad(() => import("./pages/risk/VulnerabilityWorkbench"));
@@ -554,6 +555,12 @@ function ClientPoliciesAlias() {
 function RiskManagementAlias() {
   const { selectedClientId } = useClientContext();
   if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks`} />;
+  return <Redirect to="/clients" />;
+}
+
+function RiskHeatmapAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/heatmap`} />;
   return <Redirect to="/clients" />;
 }
 
@@ -1139,6 +1146,9 @@ function Router() {
         <Route path="/risk-register">
           <RiskRegisterAlias />
         </Route>
+        <Route path="/risk-heatmap">
+          <RiskHeatmapAlias />
+        </Route>
         <Route path="/risk-register/critical">
           <CriticalRisksAlias />
         </Route>
@@ -1168,6 +1178,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/risks/treatment-plan">
           {(_params) => <ProtectedRoute component={RiskTreatmentPlanPage} />}
+        </Route>
+        <Route path="/clients/:id/risks/heatmap">
+          {(_params) => <ProtectedRoute component={RiskHeatmapPage} />}
         </Route>
         <Route path="/clients/:id/risks/overview">
           {(_params) => <ProtectedRoute component={RiskOverview} />}

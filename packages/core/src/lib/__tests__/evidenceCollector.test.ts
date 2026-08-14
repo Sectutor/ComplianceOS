@@ -430,6 +430,35 @@ describe('GitHub evidence collector', () => {
     expect(evidence.every((e) => e.id.endsWith('-acme-api'))).toBe(true);
   });
 
+  it('accepts numeric-string settings.maxRepos via Number() coercion', async () => {
+    const collector = createGithubEvidenceCollector(fakeFetcher(buildRoutes()));
+
+    const evidence = await collector.collect(
+      makeContext({ settings: { maxRepos: '1' } }),
+      { now: NOW },
+    );
+
+    // Number('1') === 1, so the numeric-string behaves like the numeric case.
+    expect(evidence).toHaveLength(3);
+    expect(evidence.every((e) => e.id.endsWith('-acme-api'))).toBe(true);
+  });
+
+  it('silently scans ZERO repos when settings.maxRepos is non-numeric (NaN -> slice(0, NaN) -> [])', async () => {
+    // Regression pin for integrations/github/collector.ts:
+    //   const maxRepos = Number(context.settings.maxRepos ?? 5);
+    // A non-numeric setting (e.g. 'unlimited') coerces to NaN, and
+    // accessibleRepos.slice(0, NaN) returns [] — so no repos are scanned and
+    // the collector returns an empty evidence list without any error/warning.
+    const collector = createGithubEvidenceCollector(fakeFetcher(buildRoutes()));
+
+    const evidence = await collector.collect(
+      makeContext({ settings: { maxRepos: 'unlimited' } }),
+      { now: NOW },
+    );
+
+    expect(evidence).toHaveLength(0);
+  });
+
   it('emits a single error evidence when no credentials are configured', async () => {
     const collector = createGithubEvidenceCollector(fakeFetcher(buildRoutes()));
 

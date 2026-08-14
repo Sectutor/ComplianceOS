@@ -3,7 +3,7 @@ import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, AlertTriangle, CheckCircle, Database, ChevronDown, ChevronUp, Sparkles, Server, Flame, Activity, Stethoscope, BarChart3, ArrowRight, BookOpen } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Database, ChevronDown, ChevronUp, Sparkles, Server, Flame, Activity, Stethoscope, BarChart3, ArrowRight, BookOpen, Grid3x3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Link } from "wouter";
@@ -313,6 +313,12 @@ export default function RiskDashboard() {
                         Risk Analytics & Visualizations
                     </button>
 
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Risk Analytics</span>
+                        <Button variant="outline" size="sm" onClick={() => setLocation(`/clients/${clientId}/risks/heatmap`)}>
+                            <Grid3x3 className="w-4 h-4 mr-2" /> Open Full Heat Map
+                        </Button>
+                    </div>
                     {showVisualizations && (
                         <div className="space-y-6">
                             {/* ROI Dashboard */}

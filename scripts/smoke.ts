@@ -5,7 +5,8 @@ const { runProwlerScan } = await import("../packages/addons/src/prowler/runner.t
 const out = await runProwlerScan({
   provider: "aws", accountName: "test", regions: ["us-east-1"],
   frameworks: ["nist_csf_2.0", "soc2"],
-  credentials: { accessKeyId: "test", secretAccessKey: "test" }
+  credentials: { accessKeyId: "test", secretAccessKey: "test" },
+  mock: true
 });
 console.log("✓ Mock scan:", out.summary.total, "findings");
 

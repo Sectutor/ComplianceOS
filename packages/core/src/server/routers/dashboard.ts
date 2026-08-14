@@ -4,6 +4,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { loadDashboardStats, toPostureStats } from "../../lib/dashboardStats";
 
 export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any) => {
   return t.router({
@@ -592,6 +593,39 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         }
 
         return insights;
-      })
+      }),
+
+    /**
+     * Real-time dashboard aggregate (scorecard P1 #12).
+     * Compliance score, pass rate by framework, evidence coverage, counts and
+     * a 30-day trend from compliance snapshots.
+     */
+    overview: isAuthed
+      .input(z.object({ clientId: z.number().optional() }))
+      .query(async ({ input }) => {
+        return loadDashboardStats({ clientId: input?.clientId });
+      }),
+
+    /**
+     * Posture summary for the dashboard (scorecard P1 #12 + cycle-3 UI
+     * contract: pages/dashboard/postureStatsApi.ts). Accepts a string or
+     * numeric clientId; omitted = all clients (admin view).
+     */
+    getStats: isAuthed
+      .input(
+        z.object({
+          clientId: z.union([z.string(), z.number()]).optional(),
+          framework: z.string().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        let clientId: number | undefined;
+        if (input?.clientId !== undefined && input?.clientId !== null && String(input.clientId).trim().length > 0) {
+          const n = Number(input.clientId);
+          clientId = Number.isFinite(n) ? n : undefined;
+        }
+        const stats = await loadDashboardStats({ clientId });
+        return toPostureStats(stats, input?.framework);
+      }),
   });
 };

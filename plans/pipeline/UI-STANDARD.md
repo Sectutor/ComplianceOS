@@ -149,3 +149,54 @@ Use `EmptyState` (`packages/ui/src/ui/EmptyState.tsx`): `icon + title + descript
 
 - ✅ `text-muted-foreground` · ✅ `bg-card/60` · ✅ `border-border` · ✅ `bg-muted` · ✅ `hover:bg-muted/50`
 - ❌ `text-slate-900/500/600` · ❌ `bg-white/60` · ❌ `border-slate-200` · ❌ `bg-indigo-600` · ❌ `bg-gray-50`
+
+---
+
+## 16. Data-contract conventions (backend coordination by convention)
+
+The UI engineer and backend engineer build in parallel. The UI calls tRPC
+procedures that may not exist yet. Conventions that keep this safe:
+
+1. **Typed API layer per feature** — every feature that targets a new backend
+   procedure ships a small `<feature>Api.ts` under `packages/core/src/pages/**`
+   (e.g. `risk/riskHeatmapApi.ts`, `policyAckApi.ts`) that:
+   - declares the **expected input/output contract** in JSDoc + interfaces
+     (mirroring `packages/core/src/routers/<router>.ts`),
+   - casts the tRPC client once: `trpc as unknown as LocalTrpcType`, and
+   - exports hooks (`useXQuery`, `useYMutation`) that pass `retry: false` and
+     `enabled: clientId > 0`.
+2. **Graceful degradation** — if the endpoint 404s (NOT_FOUND), the query
+   `isError` is true with no data; the UI must render an `EmptyState`:
+   > title: "Connect the <router>.<procedure> API" · description: next step.
+   Never let a missing endpoint crash the page or show a spinner forever.
+3. **No fake data as primary state** — a feature never hardcodes fake data as
+   its default render. A **clearly-labeled demo mode** is allowed (see §17).
+4. **Fallback derivation** — when a richer endpoint (`dashboard.getStats`) is
+   not live, derive the same view-model from existing endpoints
+   (`dashboard.enhanced`, `dashboard.complianceScores`) and show a subtle
+   "Derived from workspace data" badge; swap to the live payload when it
+   arrives. Keep the derivation helper in the `<feature>Api.ts` module.
+5. **Backend contract for cycle 3** (implemented by backend agent):
+   - `riskHeatmap.getHeatmap` `{ clientId }` → `{ matrix: {likelihood,impact,count,riskIds?}[], totals: {totalRisks,criticalCount,highCount,mediumCount,lowCount,treatmentProgress}, updatedAt? }`
+   - `riskHeatmap.listTreatmentPlans` `{ clientId, likelihood?, impact? }` → treatment plan rows `{ id, riskId, riskTitle, strategy, status, owner?, dueDate?, likelihood?, impact? }` with `status ∈ open | in-progress | mitigated | accepted`
+   - `dashboard.getStats` `{ clientId?, framework? }` → `{ postureScore, status, controls, frameworks[], evidence, trend[] }`
+   - `policyAck.list` `{ clientId }` → ack records `{ id, policyId, policyTitle, assigneeName?, status, acknowledgedAt?, dueDate? }`
+   - `policyAck.acknowledge` `{ acknowledgmentId }` → updated record
+
+## 17. Demo-mode conventions
+
+- Gate behind a **toggle** (PageHeader action) or the EmptyState CTA; off by default.
+- Render a persistent **amber banner**: `"Demo mode: showing sample data."`
+- Demo data lives in the `<feature>Api.ts` module (`DEMO_*` consts +
+  `buildDemoXData()`), never inline in JSX.
+- Live endpoint wins: when the endpoint is live, demo mode is irrelevant.
+
+## 18. Documented color exceptions (data visualization)
+
+- Token-only colors are the rule for surfaces, text and status pills.
+- **Data-viz scales are an explicit exception**: heat-map severity scales
+  (green → amber → orange → red) and chart series colors may use the vivid
+  Tailwind palette (`bg-emerald-400/500`, `bg-amber-400`, `bg-orange-500`,
+  `bg-red-500` …) with dark-mode variants, because the signal IS the color.
+  Keep the scale consistent across the app (see `components/risk/RiskHeatmap.tsx`
+  and `pages/risk/RiskHeatmapPage.tsx`).

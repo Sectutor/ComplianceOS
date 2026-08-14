@@ -11,6 +11,7 @@ instructions: |
   Advance ComplianceOS toward Vanta-class parity (see `plans/pipeline/VANTA-SCORECARD.md`). Each cycle must leave the repo better than it found it, with tests green.
 
   ## Cycle steps
+  0. **COLLISION GUARD**: check `git log -1 --format=%ci --date=iso` — if the last commit is newer than 20 minutes, a cycle is already running or just finished. Print "Previous cycle active — skipping" and exit immediately (do NOT spawn agents). This prevents two cycles colliding in the same working tree.
   1. **DIAGNOSE** (read-only): `git status`, `git log --oneline -5`, tail `server-err.log`/`vite-err.log` if present, `npm run smoke`, `npx vitest run` (note pass/fail counts).
   2. **PLAN**: read `plans/pipeline/VANTA-SCORECARD.md`. Pick the next unfinished item (P0 first) and any open bugs. Check `plans/API-FIRST-INTEGRATION-PLAN.md` and `plans/NIS2-Implementation-Plan.md` for guidance.
   3. **BUILD — spawn agents in parallel (async delegates, strictly partitioned files, no shared files)**:

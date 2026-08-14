@@ -26,6 +26,8 @@ import { createSubprocessorsRouter } from "./server/routers/subprocessors";
 import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
 // import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
 import { createControlMonitoringRouter } from "./routers/controlMonitoring";
+import { createRiskHeatmapRouter } from "./routers/riskHeatmap";
+import { createPolicyAckRouter } from "./routers/policyAck";
 import * as schema from "./schema";
 import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrategies, bcPlans, disruptiveScenarios } from "./schema";
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
@@ -4467,6 +4469,8 @@ ONLY return the JSON. No Markdown formatting.
   accessReviews: createAccessReviewsRouter(t, premiumClientProcedure, adminProcedure),
   complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure, adminProcedure),
   controlMonitoring: createControlMonitoringRouter(t, protectedProcedure),
+  riskHeatmap: createRiskHeatmapRouter(t, clientProcedure),
+  policyAck: createPolicyAckRouter(t, clientProcedure),
   actionCenter: createActionCenterRouter(t, premiumClientProcedure),
   msspCockpit: createMsspCockpitRouter(t, premiumClientProcedure),
   auditorPortal: createAuditorPortalRouter(t, premiumClientProcedure, adminProcedure, publicProcedure),

@@ -31,6 +31,7 @@ import { NIS2ControlHealth } from "@/components/dashboard/NIS2ControlHealth";
 import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
 import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
 import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
+import { PostureSummary } from "@/pages/dashboard/PostureSummary";
 
 // Helper to determine compliance status based on rate - Plain Language Version
 function getComplianceStatus(rate: number) {
@@ -628,6 +629,14 @@ export default function Dashboard() {
                     variant="info"
                   />
                 </div>
+
+                {/* Vanta-style Posture Summary (dashboard.getStats w/ enhanced fallback) */}
+                <PostureSummary
+                  clientId={effectiveClientId}
+                  framework={framework}
+                  enhancedStats={enhancedStats}
+                  complianceScores={complianceScores as Array<{ date?: string; score?: number }> | undefined}
+                />
 
                 {/* Compliance Trend Chart */}
                 <Card className="col-span-full bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border" id="dash-compliance-trend">

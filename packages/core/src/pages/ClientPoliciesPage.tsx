@@ -17,6 +17,7 @@ import { BulkGenerateDialog } from "@/components/policy/BulkGenerateDialog";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import PolicyReviewDialog from "@/components/PolicyReviewDialog";
 import { PageGuide } from "@/components/PageGuide";
+import { PolicyAcknowledgmentPanel } from "@/pages/PolicyAcknowledgmentPanel";
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -235,6 +236,9 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     </Button>
                 </div>
             </div>
+
+            {/* Policy Acknowledgment Surface (policyAck.* endpoints; graceful empty state) */}
+            {!hideLayout && clientId > 0 && <PolicyAcknowledgmentPanel clientId={clientId} />}
 
             {/* Policy Creation Dialog */}
             <EnhancedDialog

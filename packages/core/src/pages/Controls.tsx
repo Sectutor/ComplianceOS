@@ -9,9 +9,14 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, FlaskConical, Play, ShieldCheck } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
+import { Badge } from "@complianceos/ui/ui/badge";
+import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { useClientContext } from "@/contexts/ClientContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { usePageHelp } from "@/hooks/usePageHelp";
@@ -90,6 +95,52 @@ export default function Controls() {
   });
 
   const { user } = useAuth();
+  const { selectedClientId } = useClientContext();
+  // Control Auto-Tests (scorecard P0 #2 "Continuous control monitoring - UI trigger").
+  // The page is the master Controls Library (not client-scoped), so the client is
+  // taken from the global client switcher. The controlMonitoring tRPC procedures
+  // (runAllForClient / history) are live on the backend; the local narrow cast
+  // keeps this section type-safe without touching the shared trpc types.
+  const autoTestClientId = selectedClientId ?? undefined;
+
+  const ctlApi = trpc as unknown as {
+    controlMonitoring: {
+      runAllForClient: {
+        useMutation: (opts?: {
+          onSuccess?: (data: unknown) => void;
+          onError?: (error: unknown) => void;
+        }) => { mutate: (input: { clientId: number }) => void; isPending: boolean };
+      };
+      history: {
+        useQuery: (
+          input: { clientId: number; limit?: number },
+          opts?: { enabled?: boolean; retry?: boolean | number }
+        ) => {
+          data?: Array<{
+            id: number;
+            clientControlId: number;
+            controlCode?: string | null;
+            status: string;
+            score?: number | null;
+            message?: string | null;
+            executedAt?: string | Date | null;
+          }>;
+          isLoading: boolean;
+          isError: boolean;
+          refetch: () => unknown;
+        };
+      };
+    };
+  };
+
+  const runAllMutation = ctlApi.controlMonitoring.runAllForClient.useMutation({
+    onSuccess: () => toast.success("Control auto-tests completed"),
+    onError: () => toast.error("Control auto-tests failed"),
+  });
+  const autoTestHistory = ctlApi.controlMonitoring.history.useQuery(
+    { clientId: autoTestClientId ?? 0, limit: 20 },
+    { enabled: !!autoTestClientId, retry: false }
+  );
   const [searchQuery, setSearchQuery] = useState("");
   // Pagination State
   const [page, setPage] = useState(0);
@@ -493,6 +544,87 @@ export default function Controls() {
             assignmentStats={assignmentStats}
             completionStats={completionStats}
           />
+
+          {/* Control Auto-Tests (scorecard P0 #2 - UI trigger for continuous monitoring) */}
+          <Card className="bg-card/70 backdrop-blur-xl border-border shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-4">
+              <div className="min-w-0">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4 text-primary shrink-0" /> Control Auto-Tests
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Run automated verification checks against client controls (continuous control monitoring).
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="shrink-0"
+                disabled={!autoTestClientId || runAllMutation.isPending}
+                onClick={() => autoTestClientId && runAllMutation.mutate({ clientId: autoTestClientId })}
+              >
+                {runAllMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                {runAllMutation.isPending ? "Running..." : "Run all tests"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {!autoTestClientId ? (
+                <EmptyState
+                  icon={ShieldCheck}
+                  title="Select a client to run auto-tests"
+                  description="Choose a client from the client switcher, then run automated checks against its controls."
+                />
+              ) : autoTestHistory.isError ? (
+                <EmptyState
+                  icon={ShieldCheck}
+                  title="Connect the controlMonitoring API"
+                  description="The control-monitoring endpoint is not reachable. Verify the backend controlMonitoring router."
+                />
+              ) : (
+                <ScrollArea className="h-40 rounded-md border border-border">
+                  {autoTestHistory.isLoading ? (
+                    <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading history...
+                    </div>
+                  ) : (autoTestHistory.data?.length ?? 0) === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground">
+                      No auto-test runs yet - click "Run all tests" to start.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {autoTestHistory.data?.map((r) => (
+                        <div key={r.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge
+                              variant={
+                                r.status === "pass"
+                                  ? "success"
+                                  : r.status === "fail"
+                                    ? "destructive"
+                                    : "warning"
+                              }
+                              className="shrink-0 capitalize"
+                            >
+                              {r.status}
+                            </Badge>
+                            <span className="text-sm text-foreground truncate">
+                              {r.controlCode ?? `Control #${r.clientControlId}`}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {r.executedAt ? new Date(String(r.executedAt)).toLocaleString() : "-"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
             <ControlFilterBar

@@ -28,6 +28,8 @@ export interface ProwlerScanConfig {
   imageTag?: string;
   /** Timeout in seconds (default: 600 = 10 min) */
   timeout?: number;
+  /** Skip Docker and return sample data (smoke tests, local dev) */
+  mock?: boolean;
 }
 
 /** Raw Prowler output from a scan */
@@ -77,6 +79,12 @@ export async function runProwlerScan(
 ): Promise<ProwlerRawOutput> {
   const imageTag = config.imageTag ?? 'toniblyx/prowler:latest';
   const timeout = (config.timeout ?? 600) * 1000;
+
+  // Mock mode: skip the Docker path entirely (smoke tests, CI without creds)
+  if (config.mock) {
+    console.warn('[Prowler] Mock mode, returning sample scan data');
+    return getMockOutput(config);
+  }
 
   // Check if Docker is available
   const dockerAvailable = await checkDocker();
