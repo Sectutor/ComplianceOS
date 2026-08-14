@@ -381,6 +381,30 @@ export default function Evidence() {
             </div>
             <p className="text-muted-foreground ml-10">{client?.name} &bull; Phase 2: Implementation</p>
           </div>
+          {/* Automated evidence sources (scorecard P0 #1 - built-in collectors) */}
+          <div className="bg-card/60 backdrop-blur-xl rounded-2xl border border-border shadow-sm p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+                Automated evidence sources
+              </span>
+              {[
+                { slug: "github", name: "GitHub" },
+                { slug: "http-api", name: "HTTP API" },
+                { slug: "aws", name: "AWS" },
+                { slug: "azure", name: "Azure" },
+                { slug: "gcp", name: "GCP" },
+              ].map((c) => (
+                <Badge key={c.slug} variant="outline" className="gap-1 capitalize">
+                  <Shield className="h-3 w-3" />
+                  {c.name}
+                </Badge>
+              ))}
+              <span className="text-xs text-muted-foreground ml-auto">
+                Built-in collectors &middot; connect a source to begin collecting evidence
+              </span>
+            </div>
+          </div>
+
 
           <PageGuide
             title="Evidence Command Center"

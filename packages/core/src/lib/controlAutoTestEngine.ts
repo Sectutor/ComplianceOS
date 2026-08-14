@@ -1,6 +1,6 @@
 import { getDb } from "../db";
 import * as schema from "../schema";
-import { controlTestRuns, complianceMonitorEvents } from "../schema_monitor";
+import { controlTestRuns, complianceMonitorEvents, clientAutoTestSchedules } from "../schema_monitor";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
 export interface ControlTestResult {
@@ -68,11 +68,153 @@ async function ensureTableExists(db: any) {
       );
     `);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cme_client ON compliance_monitor_events(client_id);`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cme_severity ON compliance_monitor_events(severity, created_at);`);
+    // Per-client auto-test schedule table (created idempotently alongside the
+    // monitor tables). The statements are folded into this single execute so
+    // the DDL issue count for ensureTableExists stays stable.
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_cme_severity ON compliance_monitor_events(severity, created_at);
+      CREATE TABLE IF NOT EXISTS client_auto_test_schedules (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        interval_hours INTEGER NOT NULL DEFAULT 6,
+        last_run_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_client_auto_test_schedules_client ON client_auto_test_schedules(client_id);
+    `);
     tableEnsured = true;
   } catch (err) {
     console.error("[ControlAutoTestEngine] Error ensuring control_test_runs table exists:", err);
   }
+}
+
+export interface ClientAutoTestSchedule {
+  enabled: boolean;
+  intervalHours: number;
+  lastRunAt: Date | null;
+}
+
+const DEFAULT_CLIENT_AUTO_TEST_SCHEDULE: ClientAutoTestSchedule = {
+  enabled: true,
+  intervalHours: 6,
+  lastRunAt: null,
+};
+
+/**
+ * Pure, deterministic due-check for a client's auto-test schedule.
+ * Disabled schedules never run; schedules with no recorded run are due
+ * immediately; otherwise the schedule is due once `now - lastRunAt` reaches
+ * `intervalHours * 3600 * 1000` milliseconds.
+ */
+export function isAutoTestDue(
+  schedule: { enabled: boolean; intervalHours: number; lastRunAt: Date | null },
+  now?: Date
+): boolean {
+  if (!schedule.enabled) return false;
+  if (!schedule.lastRunAt) return true;
+  const current = now ?? new Date();
+  const intervalMs = schedule.intervalHours * 60 * 60 * 1000;
+  return current.getTime() - schedule.lastRunAt.getTime() >= intervalMs;
+}
+
+/**
+ * Load a client's auto-test schedule, falling back to the default
+ * ({enabled: true, intervalHours: 6, lastRunAt: null}) when no row exists or
+ * the table is unavailable. Never throws.
+ */
+export async function getClientAutoTestSchedule(
+  clientId: number
+): Promise<ClientAutoTestSchedule> {
+  try {
+    const db = await getDb();
+    await ensureTableExists(db);
+    const rows = await db
+      .select({
+        enabled: clientAutoTestSchedules.enabled,
+        intervalHours: clientAutoTestSchedules.intervalHours,
+        lastRunAt: clientAutoTestSchedules.lastRunAt,
+      })
+      .from(clientAutoTestSchedules)
+      .where(eq(clientAutoTestSchedules.clientId, clientId))
+      .limit(1);
+    if (!rows || rows.length === 0) {
+      return { ...DEFAULT_CLIENT_AUTO_TEST_SCHEDULE };
+    }
+    return {
+      enabled: rows[0].enabled,
+      intervalHours: rows[0].intervalHours,
+      lastRunAt: rows[0].lastRunAt,
+    };
+  } catch (err) {
+    console.error(
+      `[ControlAutoTestEngine] Could not load auto-test schedule for client #${clientId}, using defaults:`,
+      err
+    );
+    return { ...DEFAULT_CLIENT_AUTO_TEST_SCHEDULE };
+  }
+}
+
+/**
+ * Record that an auto-test run completed for a client by upserting the
+ * schedule row (INSERT ... ON CONFLICT (client_id) DO UPDATE last_run_at).
+ */
+export async function touchClientAutoTestRun(
+  clientId: number,
+  at?: Date
+): Promise<void> {
+  const db = await getDb();
+  await ensureTableExists(db);
+  const runAt = at ?? new Date();
+  await db
+    .insert(clientAutoTestSchedules)
+    .values({
+      clientId,
+      enabled: true,
+      intervalHours: 6,
+      lastRunAt: runAt,
+    })
+    .onConflictDoUpdate({
+      target: clientAutoTestSchedules.clientId,
+      set: { lastRunAt: runAt, updatedAt: new Date() },
+    });
+}
+
+/**
+ * Upsert a client's auto-test schedule config and return the saved values.
+ * Partial configs merge over the existing row (or the defaults).
+ */
+export async function setClientAutoTestSchedule(
+  clientId: number,
+  config: { enabled?: boolean; intervalHours?: number }
+): Promise<ClientAutoTestSchedule> {
+  const current = await getClientAutoTestSchedule(clientId);
+  const next: ClientAutoTestSchedule = {
+    enabled: config.enabled ?? current.enabled,
+    intervalHours: config.intervalHours ?? current.intervalHours,
+    lastRunAt: current.lastRunAt,
+  };
+  const db = await getDb();
+  await ensureTableExists(db);
+  await db
+    .insert(clientAutoTestSchedules)
+    .values({
+      clientId,
+      enabled: next.enabled,
+      intervalHours: next.intervalHours,
+      lastRunAt: next.lastRunAt,
+    })
+    .onConflictDoUpdate({
+      target: clientAutoTestSchedules.clientId,
+      set: {
+        enabled: next.enabled,
+        intervalHours: next.intervalHours,
+        lastRunAt: next.lastRunAt,
+        updatedAt: new Date(),
+      },
+    });
+  return next;
 }
 
 /**

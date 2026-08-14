@@ -10,12 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Plus, ArrowLeft, FlaskConical, Play, ShieldCheck } from "lucide-react";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { Switch } from "@complianceos/ui/ui/switch";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -27,7 +28,7 @@ import { ControlsStats } from "@/components/controls/ControlsStats";
 import { ControlTable } from "@/components/controls/ControlTable";
 import { ControlFilterBar } from "@/components/controls/ControlFilterBar";
 import { ControlDetailsSheet } from "@/components/controls/ControlDetailsSheet";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, CalendarClock, Save } from "lucide-react";
 import { Slot } from "@/registry";
 import { PageGuide } from "@/components/PageGuide";
 import { SlotNames } from "@/registry/slotNames";
@@ -130,6 +131,26 @@ export default function Controls() {
           refetch: () => unknown;
         };
       };
+      getScheduleConfig: {
+        useQuery: (
+          input: { clientId: number },
+          opts?: { enabled?: boolean; retry?: boolean | number }
+        ) => {
+          data?: { enabled: boolean; intervalHours: number; lastRunAt?: string | Date | null };
+          isLoading: boolean;
+          isError: boolean;
+          refetch: () => unknown;
+        };
+      };
+      updateScheduleConfig: {
+        useMutation: (opts?: {
+          onSuccess?: (data: unknown) => void;
+          onError?: (error: unknown) => void;
+        }) => {
+          mutate: (input: { clientId: number; enabled?: boolean; intervalHours?: number }) => void;
+          isPending: boolean;
+        };
+      };
     };
   };
 
@@ -141,6 +162,52 @@ export default function Controls() {
     { clientId: autoTestClientId ?? 0, limit: 20 },
     { enabled: !!autoTestClientId, retry: false }
   );
+  // Auto-test schedule: load the saved schedule config for the selected client.
+  // The controlMonitoring.getScheduleConfig / updateScheduleConfig procedures
+  // land on the backend this cycle; the narrow cast keeps this section
+  // type-safe while they are still in flight (graceful degradation below).
+  const scheduleQuery = ctlApi.controlMonitoring.getScheduleConfig.useQuery(
+    { clientId: autoTestClientId ?? 0 },
+    { enabled: !!autoTestClientId, retry: false }
+  );
+  const updateScheduleMutation = ctlApi.controlMonitoring.updateScheduleConfig.useMutation({
+    onSuccess: () => {
+      toast.success("Auto-test schedule saved");
+      scheduleQuery.refetch();
+    },
+    onError: () => toast.error("Failed to save auto-test schedule"),
+  });
+
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleInterval, setScheduleInterval] = useState(6);
+
+  // Sync local form state when the saved config loads (keeps user edits intact
+  // until a save/refetch round-trips).
+  useEffect(() => {
+    if (scheduleQuery.data) {
+      setScheduleEnabled(!!scheduleQuery.data.enabled);
+      if (typeof scheduleQuery.data.intervalHours === "number") {
+        setScheduleInterval(scheduleQuery.data.intervalHours);
+      }
+    }
+  }, [scheduleQuery.data?.enabled, scheduleQuery.data?.intervalHours]);
+
+  const handleSaveSchedule = (e: FormEvent) => {
+    e.preventDefault();
+    if (!autoTestClientId) return;
+    updateScheduleMutation.mutate({
+      clientId: autoTestClientId,
+      enabled: scheduleEnabled,
+      intervalHours: scheduleInterval,
+    });
+  };
+
+  const formatLastRun = (lastRunAt?: string | Date | null) => {
+    if (!lastRunAt) return "Never";
+    const d = new Date(String(lastRunAt));
+    return Number.isNaN(d.getTime()) ? "Never" : d.toLocaleString();
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   // Pagination State
   const [page, setPage] = useState(0);
@@ -622,6 +689,96 @@ export default function Controls() {
                     </div>
                   )}
                 </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Control Auto-Test Schedule (scorecard P0 #2 - scheduled continuous monitoring) */}
+          <Card className="bg-card/70 backdrop-blur-xl border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-primary shrink-0" /> Auto-test schedule
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Automatically run control verification on an interval for the selected client.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {!autoTestClientId ? (
+                <p className="text-sm text-muted-foreground">
+                  Select a client to configure an auto-test schedule.
+                </p>
+              ) : scheduleQuery.isLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading schedule...
+                </div>
+              ) : scheduleQuery.isError ? (
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm text-muted-foreground">
+                    Schedule configuration is unavailable - connect the controlMonitoring.getScheduleConfig API to enable scheduling.
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">
+                    Auto-tests can still be run manually above.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveSchedule} className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="auto-test-schedule-enabled"
+                        checked={scheduleEnabled}
+                        onCheckedChange={setScheduleEnabled}
+                        aria-label="Enable scheduled auto-tests"
+                      />
+                      <Label
+                        htmlFor="auto-test-schedule-enabled"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Scheduled auto-tests
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Label
+                        htmlFor="auto-test-schedule-interval"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Interval
+                      </Label>
+                      <Select
+                        value={String(scheduleInterval)}
+                        onValueChange={(v) => setScheduleInterval(parseInt(v, 10))}
+                      >
+                        <SelectTrigger id="auto-test-schedule-interval" className="w-28 h-9">
+                          <SelectValue placeholder="Select interval" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 6, 12, 24].map((h) => (
+                            <SelectItem key={h} value={String(h)}>
+                              {h}h
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
+                    <p className="text-sm text-muted-foreground">
+                      Last run:{" "}
+                      <span className="font-medium text-foreground">
+                        {formatLastRun(scheduleQuery.data?.lastRunAt)}
+                      </span>
+                    </p>
+                    <Button size="sm" type="submit" disabled={updateScheduleMutation.isPending}>
+                      {updateScheduleMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      {updateScheduleMutation.isPending ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
+                </form>
               )}
             </CardContent>
           </Card>

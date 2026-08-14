@@ -29,6 +29,9 @@ export { threatIntelManifest, executeThreatIntelAction } from './threat-intel';
 import { evidenceCollectorRegistry } from './collector';
 import { githubEvidenceCollector } from './github/collector';
 import { httpApiEvidenceCollector } from './http-api/collector';
+import { awsEvidenceCollector } from './aws/collector';
+import { azureEvidenceCollector } from './azure/collector';
+import { gcpEvidenceCollector } from './gcp/collector';
 
 export {
   normalizeEvidence,
@@ -72,7 +75,43 @@ export type {
   HttpApiFetchResponse,
 } from './http-api/collector';
 
+// AWS evidence collector (IAM access key age, S3 encryption, EC2 ports, CloudTrail)
+export {
+  awsEvidenceManifest,
+  createAwsEvidenceCollector,
+  awsEvidenceCollector,
+} from './aws/collector';
+export type {
+  AwsFetch,
+  AwsFetchResponse,
+} from './aws/collector';
+
+// Azure evidence collector (MFA, Defender, storage encryption, SQL auditing)
+export {
+  azureEvidenceManifest,
+  createAzureEvidenceCollector,
+  azureEvidenceCollector,
+} from './azure/collector';
+export type {
+  AzureFetch,
+  AzureFetchResponse,
+} from './azure/collector';
+
+// GCP evidence collector (bucket public access, SA key rotation, disk encryption, Cloud SQL SSL)
+export {
+  gcpEvidenceManifest,
+  createGcpEvidenceCollector,
+  gcpEvidenceCollector,
+} from './gcp/collector';
+export type {
+  GcpFetch,
+  GcpFetchResponse,
+} from './gcp/collector';
+
 // Register the built-in collectors so runAll() picks them up automatically.
 evidenceCollectorRegistry.register(githubEvidenceCollector);
 evidenceCollectorRegistry.register(httpApiEvidenceCollector);
+evidenceCollectorRegistry.register(awsEvidenceCollector);
+evidenceCollectorRegistry.register(azureEvidenceCollector);
+evidenceCollectorRegistry.register(gcpEvidenceCollector);
 

@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, varchar, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, varchar, text, timestamp, jsonb, index, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 
 export const complianceMonitorEvents = pgTable("compliance_monitor_events", {
   id: serial("id").primaryKey(),
@@ -33,3 +33,14 @@ export const controlTestRuns = pgTable("control_test_runs", {
   statusIdx: index("idx_ctr_status").on(table.clientId, table.status),
 }));
 
+export const clientAutoTestSchedules = pgTable("client_auto_test_schedules", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  intervalHours: integer("interval_hours").notNull().default(6),
+  lastRunAt: timestamp("last_run_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  clientIdx: uniqueIndex("uq_client_auto_test_schedules_client").on(table.clientId),
+}));

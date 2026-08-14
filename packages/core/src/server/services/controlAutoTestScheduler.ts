@@ -1,7 +1,12 @@
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq } from "drizzle-orm";
-import { runAllControlAutoTestsForClient } from "../../lib/controlAutoTestEngine";
+import {
+  runAllControlAutoTestsForClient,
+  getClientAutoTestSchedule,
+  isAutoTestDue,
+  touchClientAutoTestRun,
+} from "../../lib/controlAutoTestEngine";
 import { resolveDatabaseUrl, describeDbHost } from "../../lib/dbUrl";
 
 let autoTestInterval: NodeJS.Timeout | null = null;
@@ -54,7 +59,17 @@ export async function syncControlAutoTestsForAllClients() {
 
     for (const client of clientsList) {
       try {
+        const schedule = await getClientAutoTestSchedule(client.id);
+        if (!isAutoTestDue(schedule)) {
+          console.log(
+            `[ControlAutoTestScheduler] Client #${client.id} (${client.name || 'Client'}): ` +
+            `auto-tests not due yet (interval=${schedule.intervalHours}h, ` +
+            `lastRunAt=${schedule.lastRunAt ? schedule.lastRunAt.toISOString() : 'never'}) - skipping`
+          );
+          continue;
+        }
         const { summary } = await runAllControlAutoTestsForClient(client.id);
+        await touchClientAutoTestRun(client.id);
         totalTestedAll += summary.totalControlsTested;
         totalPassedAll += summary.passedCount;
         totalFailedAll += summary.failedCount;
