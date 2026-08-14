@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 4 - Cloud evidence collectors + per-client auto-test schedules (2026-08-14)
+- Shipped AWS / Azure / GCP automated evidence collectors (scorecard #1): three new manifest-driven, injectable-fetch collectors registered in the evidence registry (`aws`, `azure`, `gcp`).
+  - AWS: `aws.iam-access-key-age` (90d rotation, 60d warning), `aws.s3-bucket-encryption`, `aws.ec2-public-ports`, `aws.cloudtrail-enabled`.
+  - Azure: `azure.mfa-status`, `azure.defender-plan-status`, `azure.storage-encryption`, `azure.sql-auditing-enabled`.
+  - GCP: `gcp.gcs-bucket-public-access`, `gcp.iam-sa-key-rotation`, `gcp.compute-disk-encryption`, `gcp.cloudsql-ssl-required`.
+  - Each collector degrades gracefully (missing credentials / malformed payloads -> `error` evidence, never throws), honors injected clock / TTL / limit, and exports `create{Cloud}EvidenceCollector(fetch?)` for testability.
+- Shipped per-client control auto-test schedules (scorecard #2): `client_auto_test_schedules` table + drizzle schema, `isAutoTestDue` / `getClientAutoTestSchedule` / `touchClientAutoTestRun` / `setClientAutoTestSchedule` in the auto-test engine, scheduler skips disabled/not-due clients and records last run, and `controlMonitoring.getScheduleConfig` / `updateScheduleConfig` (intervalHours 1-168, zod-validated).
+- UI: Auto-test schedule panel on the Controls page (enable toggle, 1/6/12/24h interval, last-run display) + an "Automated evidence sources" strip on the Evidence page; all token-only per UI-STANDARD.md.
+- Tests: 271 -> 374 across 26 files (cloud collector suites + schedule config + router validation), 100% coverage on the 5 configured targets; `npx tsc` adds zero new errors in touched files.
+
+
 ### Cycle 3 — Risk heat map, policy ack, real-time dashboard (2026-08-14)
 - Shipped risk heat map + treatment plans (scorecard #3): 5x5 likelihood x impact matrix, per-cell drill-down via `riskHeatmap.listTreatmentPlans`, treatment summaries and forward-only status transitions, new `/clients/:id/risks/heatmap` route.
 - Shipped policy acknowledgment workflow (scorecard #4): `policy_acknowledgements` table, `policyAck` router (list / listPending / acknowledge-by-id / listForPolicy / summary) and a PolicyAcknowledgmentPanel on the Client Policies page.
