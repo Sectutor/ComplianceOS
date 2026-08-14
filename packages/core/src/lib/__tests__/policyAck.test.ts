@@ -20,12 +20,16 @@ const mocks = vi.hoisted(() => ({
     createdAt: "pa.createdAt",
   },
   clientPolicies: { id: "cp.id", name: "cp.name", clientId: "cp.clientId" },
+  userClients: { userId: "uc.userId", clientId: "uc.clientId" },
+  users: { id: "u.id", name: "u.name" },
 }));
 
 vi.mock("../../db", () => ({ getDb: mocks.getDb }));
 vi.mock("../../schema", () => ({
   policyAcknowledgements: mocks.policyAcknowledgements,
   clientPolicies: mocks.clientPolicies,
+  userClients: mocks.userClients,
+  users: mocks.users,
 }));
 
 type Ack = typeof import("../policyAck");
@@ -346,5 +350,145 @@ describe("getAckSummary", () => {
     const p6 = summary.find((s) => s.policyId === 6)!;
     expect(p6.policyTitle).toBe("Policy #6");
     expect(p6.acknowledgmentRatePct).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle-6 (P1 #4): reminder selection (pure) + assignment (db-backed)
+// ---------------------------------------------------------------------------
+
+describe("selectAcksDueForReminder", () => {
+  const NOW = new Date("2026-01-15T10:00:00.000Z");
+
+  it("flags only pending acks older than the default 3-day threshold", () => {
+    const flagged = ack.selectAcksDueForReminder(
+      [
+        { id: 1, status: "pending", createdAt: new Date("2026-01-11T00:00:00.000Z") }, // > 3 days
+        { id: 2, status: "pending", createdAt: new Date("2026-01-12T10:00:00.000Z") }, // exactly 3 days
+        { id: 3, status: "pending", createdAt: new Date("2026-01-13T00:00:00.000Z") }, // < 3 days
+        { id: 4, status: "acknowledged", createdAt: new Date("2026-01-01T00:00:00.000Z") },
+        { id: 5, status: "declined", createdAt: new Date("2026-01-01T00:00:00.000Z") },
+      ],
+      NOW
+    );
+    expect(flagged.map((f) => f.id)).toEqual([1, 2]);
+    expect(flagged.every((f) => f.overdueDays === 3)).toBe(true);
+  });
+
+  it("respects a custom threshold and skips rows without createdAt", () => {
+    const flagged = ack.selectAcksDueForReminder(
+      [
+        { id: 1, status: "pending", createdAt: new Date("2026-01-13T00:00:00.000Z") }, // 2 days
+        { id: 2, status: "pending", createdAt: null },
+        { id: 3, status: "pending", createdAt: "2026-01-10T00:00:00.000Z" }, // ISO string
+      ],
+      NOW,
+      2
+    );
+    expect(flagged.map((f) => f.id)).toEqual([1, 3]);
+  });
+
+  it("returns [] for empty input", () => {
+    expect(ack.selectAcksDueForReminder([], NOW)).toEqual([]);
+  });
+});
+
+describe("assignPolicy", () => {
+  it("assigns to every linked client user when allUsers is set (idempotent inserts)", async () => {
+    const { db, queue, calls } = makeDb();
+    seedDdl(queue);
+    queue.push([
+      { userId: 11 },
+      { userId: 12 },
+      { userId: 13 },
+    ]); // user_clients links
+    queue.push([]); // existing acks -> none
+    queue.push(undefined); // insert resolution
+    mocks.getDb.mockResolvedValue(db);
+
+    const result = await ack.assignPolicy({ clientId: 7, policyId: 5, allUsers: true });
+
+    expect(result).toEqual({ assigned: 3, existing: 0, userIds: [11, 12, 13] });
+    expect(calls.from[0][0]).toBe(mocks.userClients);
+    expect(calls.from[1][0]).toBe(mocks.policyAcknowledgements);
+    const values = calls.values[0][0];
+    expect(values).toHaveLength(3);
+    expect(values[0]).toMatchObject({ clientId: 7, policyId: 5, userId: 11, status: "pending" });
+  });
+
+  it("assigns explicit userIds without touching user_clients", async () => {
+    const { db, queue, calls } = makeDb();
+    seedDdl(queue);
+    queue.push([]); // existing acks -> none
+    queue.push(undefined); // insert resolution
+    mocks.getDb.mockResolvedValue(db);
+
+    const result = await ack.assignPolicy({ clientId: 7, policyId: 5, userIds: [21, 22] });
+
+    expect(result).toEqual({ assigned: 2, existing: 0, userIds: [21, 22] });
+    expect(calls.from).toHaveLength(1); // only the existing-acks query
+    expect(calls.from[0][0]).toBe(mocks.policyAcknowledgements);
+  });
+
+  it("skips users who already have an ack row (idempotent)", async () => {
+    const { db, queue, calls } = makeDb();
+    seedDdl(queue);
+    queue.push([{ userId: 21 }, { userId: 22 }]); // existing acks
+    mocks.getDb.mockResolvedValue(db);
+
+    const result = await ack.assignPolicy({ clientId: 7, policyId: 5, userIds: [21, 22] });
+
+    expect(result).toEqual({ assigned: 0, existing: 2, userIds: [21, 22] });
+    expect(calls.insert).toHaveLength(0);
+    expect(calls.values).toHaveLength(0);
+  });
+
+  it("returns zeroes when there are no target users", async () => {
+    const { db, queue } = makeDb();
+    seedDdl(queue);
+    queue.push([]); // user_clients links -> none
+    mocks.getDb.mockResolvedValue(db);
+
+    const result = await ack.assignPolicy({ clientId: 7, policyId: 5 });
+    expect(result).toEqual({ assigned: 0, existing: 0, userIds: [] });
+  });
+});
+
+describe("runPolicyAckReminders", () => {
+  it("flags overdue pending acks via the onFlag hook", async () => {
+    const { db, queue, calls } = makeDb();
+    seedDdl(queue);
+    queue.push([
+      { id: 1, policyId: 5, userId: 9, clientId: 7, status: "pending", acknowledgedAt: null, createdAt: new Date("2026-01-01T00:00:00.000Z"), policyTitle: "AUP" },
+      { id: 2, policyId: 5, userId: 10, clientId: 7, status: "pending", acknowledgedAt: null, createdAt: new Date("2026-01-01T00:00:00.000Z"), policyTitle: null },
+    ]);
+    mocks.getDb.mockResolvedValue(db);
+    const onFlag = vi.fn();
+
+    const summary = await ack.runPolicyAckReminders({
+      db,
+      now: new Date("2026-01-15T10:00:00.000Z"),
+      overdueDays: 3,
+      onFlag,
+    });
+
+    expect(calls.innerJoin[0][0]).toBe(mocks.clientPolicies);
+    expect(summary).toMatchObject({ flagged: 2, overdueDays: 3, skipped: false });
+    expect(onFlag).toHaveBeenCalledTimes(2);
+    expect(onFlag.mock.calls[0][0]).toMatchObject({ id: 1, policyTitle: "AUP" });
+    expect(onFlag.mock.calls[1][0].policyTitle).toBe("Policy #5"); // fallback title
+  });
+
+  it("returns zero flagged when nothing is overdue", async () => {
+    const { db, queue } = makeDb();
+    seedDdl(queue);
+    queue.push([]);
+    mocks.getDb.mockResolvedValue(db);
+
+    const summary = await ack.runPolicyAckReminders({
+      db,
+      now: new Date("2026-01-15T10:00:00.000Z"),
+    });
+    expect(summary.flagged).toBe(0);
   });
 });

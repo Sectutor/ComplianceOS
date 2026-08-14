@@ -48,6 +48,8 @@ import { purchaseWebhookRouter } from './packages/core/src/server/webhooks/purch
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
 import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
+import * as evidenceRenewalScheduler from './packages/core/src/server/services/evidenceRenewalScheduler';
+import * as policyAckReminderScheduler from './packages/core/src/server/services/policyAckReminderScheduler';
 import * as evidenceExpirationScheduler from './packages/core/src/server/services/evidenceExpirationScheduler';
 import * as controlAutoTestScheduler from './packages/core/src/server/services/controlAutoTestScheduler';
 import { startEvidenceScheduler } from './packages/core/src/lib/evidenceScheduler';
@@ -715,6 +717,18 @@ if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
 if (process.env.ENABLE_EVIDENCE_EXPIRATION_SCHEDULER !== 'false') {
     evidenceExpirationScheduler.start();
     console.log('[Server] Evidence expiration scheduler started');
+}
+
+// Evidence renewal scheduler (auto-remediation, P1 #14)
+if (process.env.ENABLE_EVIDENCE_RENEWAL_SCHEDULER !== 'false') {
+    evidenceRenewalScheduler.start();
+    console.log('[Server] Evidence renewal scheduler started');
+}
+
+// Policy ACK reminder scheduler (P1 #4)
+if (process.env.ENABLE_POLICY_ACK_REMINDERS !== 'false') {
+    policyAckReminderScheduler.start();
+    console.log('[Server] Policy ACK reminder scheduler started');
 }
 
 // Control auto-testing scheduler

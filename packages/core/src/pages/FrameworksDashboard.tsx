@@ -10,6 +10,7 @@ import { useLocation } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { frameworks } from "@/data/frameworks";
+import { FrameworkLibraryPanel } from "@/pages/frameworkLibrary";
 
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -199,6 +200,9 @@ export default function FrameworksDashboard() {
                         ]}
                     />
                 </div>
+
+                {/* Framework library â€” curated catalog snapshot (presentational, no backend dependency) */}
+                <FrameworkLibraryPanel />
 
                 <div className="flex items-center justify-between gap-4">
                     <div id="fw-search-bar" className="flex items-center space-x-2 bg-white p-2 rounded-lg border shadow-sm flex-1 max-w-md">

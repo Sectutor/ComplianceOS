@@ -10,13 +10,16 @@
  * Structure mirrors the other cycle-3 libs: pure transition logic + db-backed
  * service functions, unit tested with a mocked db.
  */
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "../db";
-import { clientPolicies, policyAcknowledgements, users } from "../schema";
+import { clientPolicies, policyAcknowledgements, userClients, users } from "../schema";
 
 export type AckStatus = "pending" | "acknowledged" | "declined";
 
 export const ACK_STATUSES: readonly AckStatus[] = ["pending", "acknowledged", "declined"];
+
+/** Default age (days) after which a pending ack is flagged for a reminder. */
+export const DEFAULT_ACK_REMINDER_DAYS = 3;
 
 export interface PolicyAckRow {
   id: number;
@@ -375,4 +378,212 @@ export async function acknowledgeById(acknowledgmentId: number): Promise<PolicyA
     .returning();
 
   return updated as unknown as PolicyAckRow;
+}
+
+// ---------------------------------------------------------------------------
+// Cycle-6 (P1 #4): assignment + reminders
+// ---------------------------------------------------------------------------
+
+/**
+ * Pure: pick pending acknowledgment rows older than `overdueDays` (default 3).
+ * Rows with a missing/invalid createdAt are never flagged.
+ */
+export function selectAcksDueForReminder(
+  rows: Array<{
+    id: number;
+    status?: string | null;
+    createdAt?: Date | string | null;
+  }>,
+  now: Date,
+  overdueDays: number = DEFAULT_ACK_REMINDER_DAYS
+): Array<{ id: number; overdueDays: number }> {
+  const cutoff = now.getTime() - overdueDays * 24 * 60 * 60 * 1000;
+  return (rows ?? [])
+    .filter((r) => {
+      if (!r || String(r.status ?? "").toLowerCase() !== "pending") return false;
+      if (!r.createdAt) return false;
+      const t =
+        r.createdAt instanceof Date
+          ? r.createdAt.getTime()
+          : new Date(r.createdAt).getTime();
+      return Number.isFinite(t) && t <= cutoff;
+    })
+    .map((r) => ({ id: r.id, overdueDays }));
+}
+
+export interface AssignPolicyResult {
+  assigned: number;
+  existing: number;
+  userIds: number[];
+}
+
+/**
+ * Assign a policy to users by creating pending acknowledgment rows
+ * (idempotent — users who already have a row for this policy are skipped).
+ *
+ * Target users:
+ *   - explicit `userIds`, and/or
+ *   - every user linked to the client (via `user_clients`) when `allUsers`
+ *     is set or no userIds were provided.
+ */
+export async function assignPolicy(input: {
+  clientId: number;
+  policyId: number;
+  userIds?: number[];
+  allUsers?: boolean;
+}): Promise<AssignPolicyResult> {
+  await ensurePolicyAckTableExists();
+  const db = await getDb();
+
+  let userIds = Array.isArray(input.userIds) ? input.userIds : [];
+  if (input.allUsers || userIds.length === 0) {
+    const links = (await db
+      .select({ userId: userClients.userId })
+      .from(userClients)
+      .where(eq(userClients.clientId, input.clientId))) as unknown as Array<{
+      userId: number;
+    }>;
+    const linked = (links ?? [])
+      .map((l) => Number(l.userId))
+      .filter((id) => Number.isFinite(id));
+    userIds = Array.from(new Set([...userIds, ...linked]));
+  }
+
+  userIds = userIds.filter((id) => Number.isFinite(Number(id)));
+  if (userIds.length === 0) return { assigned: 0, existing: 0, userIds: [] };
+
+  const existing = (await db
+    .select({ userId: policyAcknowledgements.userId })
+    .from(policyAcknowledgements)
+    .where(
+      and(
+        eq(policyAcknowledgements.clientId, input.clientId),
+        eq(policyAcknowledgements.policyId, input.policyId),
+        inArray(policyAcknowledgements.userId, userIds)
+      )
+    )) as unknown as Array<{ userId: number }>;
+
+  const existingSet = new Set((existing ?? []).map((e) => Number(e.userId)));
+  const missing = userIds.filter((id) => !existingSet.has(Number(id)));
+
+  let assigned = 0;
+  if (missing.length > 0) {
+    await db.insert(policyAcknowledgements).values(
+      missing.map((userId) => ({
+        clientId: input.clientId,
+        policyId: input.policyId,
+        userId,
+        status: "pending" as const,
+      }))
+    );
+    assigned = missing.length;
+  }
+
+  return { assigned, existing: existingSet.size, userIds };
+}
+
+/** Pending acknowledgment rows (title resolved) older than `overdueDays`. */
+export async function listOverdueAcks(
+  clientId: number,
+  now: Date = new Date(),
+  overdueDays: number = DEFAULT_ACK_REMINDER_DAYS
+): Promise<PolicyAckWithTitle[]> {
+  await ensurePolicyAckTableExists();
+  const db = await getDb();
+  const cutoff = new Date(now.getTime() - overdueDays * 24 * 60 * 60 * 1000);
+
+  const rows = (await db
+    .select({
+      id: policyAcknowledgements.id,
+      policyId: policyAcknowledgements.policyId,
+      userId: policyAcknowledgements.userId,
+      clientId: policyAcknowledgements.clientId,
+      status: policyAcknowledgements.status,
+      acknowledgedAt: policyAcknowledgements.acknowledgedAt,
+      createdAt: policyAcknowledgements.createdAt,
+      policyTitle: clientPolicies.name,
+    })
+    .from(policyAcknowledgements)
+    .innerJoin(clientPolicies, eq(policyAcknowledgements.policyId, clientPolicies.id))
+    .where(
+      and(
+        eq(policyAcknowledgements.clientId, clientId),
+        eq(policyAcknowledgements.status, "pending"),
+        lte(policyAcknowledgements.createdAt, cutoff)
+      )
+    )
+    .orderBy(desc(policyAcknowledgements.createdAt))) as unknown as PolicyAckWithTitle[];
+
+  return rows.map((r) => ({ ...r, policyTitle: r.policyTitle || `Policy #${r.policyId}` }));
+}
+
+export interface AckReminderSummary {
+  flagged: number;
+  overdueDays: number;
+  skipped: boolean;
+  completedAt: Date;
+}
+
+/**
+ * Run the reminder pass: select every pending ack older than `overdueDays`
+ * (optionally scoped to one client) and invoke `onFlag` for each — the
+ * scheduler wires logging/notification here. Db-backed but fully injectable
+ * for tests.
+ */
+export async function runPolicyAckReminders(options: {
+  db?: any;
+  now?: Date;
+  overdueDays?: number;
+  clientId?: number;
+  onFlag?: (ack: PolicyAckWithTitle) => void | Promise<void>;
+} = {}): Promise<AckReminderSummary> {
+  const now = options.now ?? new Date();
+  const overdueDays = options.overdueDays ?? DEFAULT_ACK_REMINDER_DAYS;
+  try {
+    await ensurePolicyAckTableExists();
+  } catch {
+    /* DDL is best-effort */
+  }
+  const db = options.db ?? (await getDb());
+  const cutoff = new Date(now.getTime() - overdueDays * 24 * 60 * 60 * 1000);
+
+  const rows = (await db
+    .select({
+      id: policyAcknowledgements.id,
+      policyId: policyAcknowledgements.policyId,
+      userId: policyAcknowledgements.userId,
+      clientId: policyAcknowledgements.clientId,
+      status: policyAcknowledgements.status,
+      acknowledgedAt: policyAcknowledgements.acknowledgedAt,
+      createdAt: policyAcknowledgements.createdAt,
+      policyTitle: clientPolicies.name,
+    })
+    .from(policyAcknowledgements)
+    .innerJoin(clientPolicies, eq(policyAcknowledgements.policyId, clientPolicies.id))
+    .where(
+      and(
+        options.clientId !== undefined
+          ? eq(policyAcknowledgements.clientId, options.clientId)
+          : undefined,
+        eq(policyAcknowledgements.status, "pending"),
+        lte(policyAcknowledgements.createdAt, cutoff)
+      )
+    )
+    .orderBy(desc(policyAcknowledgements.createdAt))) as unknown as PolicyAckWithTitle[];
+
+  const flagged = (rows ?? []).map((r) => ({
+    ...r,
+    policyTitle: r.policyTitle || `Policy #${r.policyId}`,
+  }));
+
+  for (const ack of flagged) {
+    if (options.onFlag) await options.onFlag(ack);
+  }
+
+  return {
+    flagged: flagged.length,
+    overdueDays,
+    skipped: false,
+    completedAt: now,
+  };
 }

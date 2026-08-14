@@ -212,29 +212,27 @@ describe("buildHeatmapMatrix (residual)", () => {
 });
 
 describe("aggregateTreatmentStatuses", () => {
-  it("counts by status (case-insensitive) and treats implemented/verified/completed as done", () => {
+  it("normalizes both status vocabularies and treats mitigated as done", () => {
     const result = aggregateTreatmentStatuses([
-      { status: "implemented" },
-      { status: "Verified" },
-      { status: "completed" },
-      { status: "in_progress" },
-      { status: "planned" },
-      { status: "Accepted" },
+      { status: "implemented" }, // DB vocab → mitigated
+      { status: "Verified" }, // DB vocab → mitigated
+      { status: "completed" }, // synonym → mitigated
+      { status: "in_progress" }, // DB vocab → in-progress
+      { status: "planned" }, // DB vocab → open
+      { status: "Accepted" }, // UI vocab → accepted
     ]);
     expect(result.treatmentsByStatus).toEqual({
-      implemented: 1,
-      verified: 1,
-      completed: 1,
-      in_progress: 1,
-      planned: 1,
+      mitigated: 3,
+      "in-progress": 1,
+      open: 1,
       accepted: 1,
     });
     expect(result.treatmentProgressPct).toBe(50); // 3 of 6 done
   });
 
-  it("defaults missing statuses to 'planned'", () => {
+  it("defaults missing statuses to 'planned' (→ open)", () => {
     const result = aggregateTreatmentStatuses([{ status: null }, { status: undefined }, {}]);
-    expect(result.treatmentsByStatus).toEqual({ planned: 3 });
+    expect(result.treatmentsByStatus).toEqual({ open: 3 });
     expect(result.treatmentProgressPct).toBe(0);
   });
 
@@ -441,5 +439,155 @@ describe.skipIf(!buildTreatmentPlansAvailable)("buildTreatmentPlans (BACKEND-DEP
     expect(byId.get(6)!.status).toBe("mitigated");
     expect(byId.get(7)!.status).toBe("mitigated");
     expect(byId.get(8)!.status).toBe("in-progress");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA cycle 6: status-vocab contract lock (planned/in_progress/implemented/
+// verified -> open/in-progress/mitigated) + the listTreatmentPlans loader
+// ---------------------------------------------------------------------------
+
+const normalizeTreatmentStatusAvailable =
+  typeof riskHeatmapModule.normalizeTreatmentStatus === "function";
+const listTreatmentPlansAvailable = typeof riskHeatmapModule.listTreatmentPlans === "function";
+
+describe.skipIf(!normalizeTreatmentStatusAvailable)("normalizeTreatmentStatus (status vocab)", () => {
+  const normalizeTreatmentStatus = riskHeatmapModule.normalizeTreatmentStatus!;
+
+  it("maps planned -> open", () => {
+    expect(normalizeTreatmentStatus("planned")).toBe("open");
+    expect(normalizeTreatmentStatus("Planned")).toBe("open");
+  });
+
+  it("maps in_progress / in-progress -> in-progress", () => {
+    expect(normalizeTreatmentStatus("in_progress")).toBe("in-progress");
+    expect(normalizeTreatmentStatus("in-progress")).toBe("in-progress");
+    expect(normalizeTreatmentStatus("In-Progress")).toBe("in-progress");
+  });
+
+  it("maps implemented / verified / completed -> mitigated", () => {
+    expect(normalizeTreatmentStatus("implemented")).toBe("mitigated");
+    expect(normalizeTreatmentStatus("verified")).toBe("mitigated");
+    expect(normalizeTreatmentStatus("completed")).toBe("mitigated");
+    expect(normalizeTreatmentStatus("Verified")).toBe("mitigated");
+  });
+
+  it("maps accepted -> accepted", () => {
+    expect(normalizeTreatmentStatus("accepted")).toBe("accepted");
+    expect(normalizeTreatmentStatus("Accepted")).toBe("accepted");
+  });
+
+  it("falls back to open for null, empty and unknown statuses", () => {
+    expect(normalizeTreatmentStatus(null)).toBe("open");
+    expect(normalizeTreatmentStatus(undefined)).toBe("open");
+    expect(normalizeTreatmentStatus("")).toBe("open");
+    expect(normalizeTreatmentStatus("nonsense")).toBe("open");
+    expect(normalizeTreatmentStatus("open")).toBe("open");
+  });
+});
+
+describe.skipIf(!listTreatmentPlansAvailable)("listTreatmentPlans (BACKEND-DEP)", () => {
+  const listTreatmentPlans = riskHeatmapModule.listTreatmentPlans!;
+
+  const CHAIN_METHODS = [
+    "select",
+    "from",
+    "innerJoin",
+    "where",
+    "orderBy",
+    "limit",
+    "insert",
+    "values",
+    "update",
+    "set",
+    "returning",
+    "execute",
+  ] as const;
+
+  function makeDb() {
+    const queue: unknown[] = [];
+    const calls: Record<string, unknown[][]> = {};
+    for (const name of CHAIN_METHODS) calls[name] = [];
+
+    function makeChain(): any {
+      const chain: any = {};
+      for (const name of CHAIN_METHODS) {
+        chain[name] = vi.fn((...args: unknown[]) => {
+          calls[name].push(args);
+          return makeChain();
+        });
+      }
+      chain.then = (onFulfilled?: (value: unknown) => unknown) => {
+        const entry = queue.shift();
+        return Promise.resolve(entry).then(onFulfilled);
+      };
+      return chain;
+    }
+
+    const db = makeChain();
+    delete db.then;
+    return { db, queue, calls };
+  }
+
+  const ASSESSMENTS = [
+    { id: 10, title: "XSS in admin panel", likelihood: 4, impact: 3 },
+    { id: 11, title: "Ransomware exposure", likelihood: 5, impact: 5 },
+  ];
+
+  it("joins treatments to assessments and normalises statuses to the UI vocab", async () => {
+    const { db, queue, calls } = makeDb();
+    queue.push([
+      {
+        id: 1,
+        riskAssessmentId: 10,
+        strategy: "Migrate",
+        status: "implemented",
+        owner: "alice",
+        dueDate: "2026-09-01T00:00:00.000Z",
+      },
+      { id: 2, riskAssessmentId: 11, strategy: "Accept", status: "in_progress", owner: "bob", dueDate: null },
+      { id: 3, riskAssessmentId: 10, status: "planned" },
+    ]);
+    queue.push(ASSESSMENTS);
+    mocks.getDb.mockResolvedValue(db);
+
+    const plans = await listTreatmentPlans(7);
+
+    expect(calls.from[0][0]).toBe(mocks.riskTreatments);
+    expect(calls.innerJoin[0][0]).toBe(mocks.riskAssessments);
+    expect(calls.from[1][0]).toBe(mocks.riskAssessments);
+
+    const byId = new Map(plans.map((p) => [p.id, p]));
+    expect(byId.get(1)!.status).toBe("mitigated");
+    expect(byId.get(1)!.riskTitle).toBe("XSS in admin panel");
+    expect(byId.get(1)!.likelihood).toBe(4);
+    expect(byId.get(1)!.impact).toBe(3);
+    expect(byId.get(1)!.owner).toBe("alice");
+    expect(byId.get(1)!.dueDate).toBe("2026-09-01T00:00:00.000Z");
+    expect(byId.get(2)!.status).toBe("in-progress");
+    expect(byId.get(3)!.status).toBe("open");
+  });
+
+  it("filters plans to a 5x5 cell via likelihood/impact", async () => {
+    const { db, queue } = makeDb();
+    queue.push([
+      { id: 1, riskAssessmentId: 10, status: "implemented" }, // assessment 10 -> (4,3)
+      { id: 2, riskAssessmentId: 11, status: "in_progress" }, // assessment 11 -> (5,5)
+      { id: 3, riskAssessmentId: 10, status: "planned" }, // assessment 10 -> (4,3)
+    ]);
+    queue.push(ASSESSMENTS);
+    mocks.getDb.mockResolvedValue(db);
+
+    const plans = await listTreatmentPlans(7, 4, 3);
+    expect(plans.map((p) => p.id).sort()).toEqual([1, 3]);
+  });
+
+  it("returns an empty list when there are no treatments", async () => {
+    const { db, queue } = makeDb();
+    queue.push([]);
+    queue.push(ASSESSMENTS);
+    mocks.getDb.mockResolvedValue(db);
+
+    expect(await listTreatmentPlans(7)).toEqual([]);
   });
 });

@@ -232,28 +232,56 @@ describe("summarizeHeatmap", () => {
 });
 
 describe("aggregateTreatmentStatuses", () => {
-  it("groups treatments by status and computes progress", () => {
+  it("normalizes BOTH vocabularies (DB + UI) into the summary buckets", () => {
     const { treatmentsByStatus, treatmentProgressPct } = heatmap.aggregateTreatmentStatuses([
-      { status: "planned" },
-      { status: "in_progress" },
-      { status: "implemented" },
-      { status: "verified" },
-      { status: "completed" },
-      { status: null },
+      { status: "planned" }, // DB vocab → open
+      { status: "open" }, // UI vocab → open
+      { status: "in_progress" }, // DB vocab → in-progress
+      { status: "in-progress" }, // UI vocab → in-progress
+      { status: "implemented" }, // DB vocab → mitigated
+      { status: "verified" }, // DB vocab → mitigated
+      { status: "completed" }, // synonym → mitigated
+      { status: "accepted" }, // UI vocab → accepted
+      { status: null }, // defaults to planned → open
     ]);
     expect(treatmentsByStatus).toEqual({
-      planned: 2, // { status: null } defaults to planned
-      in_progress: 1,
-      implemented: 1,
-      verified: 1,
-      completed: 1,
+      open: 3,
+      "in-progress": 2,
+      mitigated: 3,
+      accepted: 1,
     });
-    // implemented + verified + completed = 3 of 6
-    expect(treatmentProgressPct).toBe(50);
+    // implemented + verified + completed = 3 of 9 resolved
+    expect(treatmentProgressPct).toBe(33);
   });
 
   it("returns 0% progress for no treatments", () => {
     expect(heatmap.aggregateTreatmentStatuses([]).treatmentProgressPct).toBe(0);
+  });
+});
+
+describe("normalizeSummaryStatus", () => {
+  it("maps DB vocabulary onto the summary vocabulary", () => {
+    expect(heatmap.normalizeSummaryStatus("planned")).toBe("open");
+    expect(heatmap.normalizeSummaryStatus("in_progress")).toBe("in-progress");
+    expect(heatmap.normalizeSummaryStatus("implemented")).toBe("mitigated");
+    expect(heatmap.normalizeSummaryStatus("verified")).toBe("mitigated");
+    expect(heatmap.normalizeSummaryStatus("completed")).toBe("mitigated");
+  });
+
+  it("keeps UI vocabulary stable and is case/whitespace tolerant", () => {
+    expect(heatmap.normalizeSummaryStatus("open")).toBe("open");
+    expect(heatmap.normalizeSummaryStatus("in-progress")).toBe("in-progress");
+    expect(heatmap.normalizeSummaryStatus("mitigated")).toBe("mitigated");
+    expect(heatmap.normalizeSummaryStatus("accepted")).toBe("accepted");
+    expect(heatmap.normalizeSummaryStatus("  In Progress  ")).toBe("in-progress");
+    expect(heatmap.normalizeSummaryStatus("Verified")).toBe("mitigated");
+    expect(heatmap.normalizeSummaryStatus(null)).toBe("open");
+    expect(heatmap.normalizeSummaryStatus(undefined)).toBe("open");
+  });
+
+  it("passes unknown statuses through lowercased", () => {
+    expect(heatmap.normalizeSummaryStatus("deferred")).toBe("deferred");
+    expect(heatmap.normalizeSummaryStatus("REVIEW")).toBe("review");
   });
 });
 
@@ -329,7 +357,7 @@ describe("loadRiskHeatmap", () => {
     expect(result.summary.totalAssessments).toBe(2);
     expect(result.summary.critical).toBe(1);
     expect(result.summary.high).toBe(0);
-    expect(result.summary.treatmentsByStatus).toEqual({ planned: 1, implemented: 1, verified: 1 });
+    expect(result.summary.treatmentsByStatus).toEqual({ open: 1, mitigated: 2 });
     expect(result.summary.treatmentProgressPct).toBe(67); // 2 of 3
   });
 
@@ -367,7 +395,7 @@ describe("loadTreatmentSummary", () => {
 
     const summary = await heatmap.loadTreatmentSummary(7);
     expect(summary.total).toBe(3);
-    expect(summary.treatmentsByStatus).toEqual({ planned: 1, in_progress: 1, implemented: 1 });
+    expect(summary.treatmentsByStatus).toEqual({ open: 1, "in-progress": 1, mitigated: 1 });
     expect(summary.treatmentProgressPct).toBe(33);
   });
 });

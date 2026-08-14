@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   acknowledgeById,
   acknowledgePolicy,
+  assignPolicy,
   getAckSummary,
   listAcks,
   listAcksForPolicy,
@@ -88,6 +89,25 @@ export const createPolicyAckRouter = (t: any, clientProcedure: any) => {
           return await getAckSummary(input.clientId);
         } catch (err) {
           throw trpcError(err, "could not load acknowledgment summary");
+        }
+      }),
+
+    // Assign a policy to users (creates pending acknowledgment rows).
+    // Idempotent: users who already have a row for the policy are skipped.
+    assign: clientProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          policyId: z.number(),
+          userIds: z.array(z.number()).optional(),
+          allUsers: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          return await assignPolicy(input);
+        } catch (err) {
+          throw trpcError(err, "could not assign policy acknowledgments");
         }
       }),
   });

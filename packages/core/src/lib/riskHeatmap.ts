@@ -141,7 +141,42 @@ export function buildHeatmapMatrix(
   );
 }
 
-/** Aggregate treatment rows into a status breakdown + progress percentage. */
+/**
+ * Normalize a raw treatment status onto the summary vocabulary used by
+ * `aggregateTreatmentStatuses` / `loadTreatmentSummary`.
+ *
+ * Accepts BOTH vocabularies that exist in the codebase:
+ *   - DB vocabulary written by createRiskTreatment: planned / in_progress /
+ *     implemented / verified
+ *   - UI vocabulary (riskHeatmapApi.ts): open / in-progress / mitigated /
+ *     accepted
+ *
+ * Mapping: planned → open, in_progress|in-progress → in-progress,
+ * implemented|verified|completed → mitigated, accepted → accepted.
+ * Unknown statuses pass through lowercased so no data is silently dropped.
+ */
+export function normalizeSummaryStatus(
+  status: string | null | undefined
+): string {
+  const s = (status || "planned")
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, "_");
+  if (s === "planned") return "open";
+  if (s === "in_progress" || s === "in-progress") return "in-progress";
+  if (s === "implemented" || s === "verified" || s === "completed") return "mitigated";
+  if (s === "accepted") return "accepted";
+  return s;
+}
+
+/**
+ * Aggregate treatment rows into a status breakdown + progress percentage.
+ * Statuses are normalized onto the summary vocabulary (see
+ * `normalizeSummaryStatus`) so treatments written by createRiskTreatment
+ * (planned/in_progress/implemented/verified) count toward the same buckets as
+ * the UI vocabulary (open/in-progress/mitigated/accepted). treatmentProgressPct
+ * counts resolved treatments (implemented/verified/completed → mitigated).
+ */
 export function aggregateTreatmentStatuses(
   treatments: Array<{ status?: string | null }>
 ): { treatmentsByStatus: Record<string, number>; treatmentProgressPct: number } {
@@ -150,10 +185,10 @@ export function aggregateTreatmentStatuses(
   let done = 0;
 
   for (const t of treatments ?? []) {
-    const status = (t.status || "planned").toLowerCase();
+    const status = normalizeSummaryStatus(t.status);
     byStatus[status] = (byStatus[status] || 0) + 1;
     total += 1;
-    if (status === "implemented" || status === "verified" || status === "completed") {
+    if (status === "mitigated") {
       done += 1;
     }
   }

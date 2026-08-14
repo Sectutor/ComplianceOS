@@ -19,6 +19,11 @@
  * 2) policyAck.acknowledge
  *    input:  { acknowledgmentId: number }
  *    output: PolicyAckRecord (updated)
+ *
+ * 3) policyAck.assign   (cycle 6 — "Assign policy" affordance)
+ *    input:  { policyId: number; clientId: number; userId?: number }
+ *            userId omitted ⇒ assign to every employee of the client.
+ *    output: PolicyAckRecord[] (created records)
  * ---------------------------------------------------------------------------
  */
 
@@ -32,6 +37,14 @@ export interface PolicyAckRecord {
   status: "pending" | "acknowledged" | string;
   acknowledgedAt?: string | null;
   dueDate?: string | null;
+  /** Optional — when present, drives the "pending > 3 days" highlight. */
+  createdAt?: string | null;
+}
+
+export interface AssignPolicyInput {
+  policyId: number;
+  clientId: number;
+  userId?: number;
 }
 
 interface QueryLike<T> {
@@ -42,7 +55,35 @@ interface QueryLike<T> {
   refetch: () => unknown;
 }
 
+interface ClientPolicyLike {
+  id: number;
+  name?: string | null;
+}
+
+interface EmployeeLike {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+}
+
 interface PolicyAckTrpc {
+  /** Live endpoints used by the panel — routed through the cast (§16.1). */
+  clientPolicies: {
+    list: {
+      useQuery: (
+        input: { clientId: number },
+        opts?: { enabled?: boolean; retry?: boolean | number; staleTime?: number }
+      ) => QueryLike<ClientPolicyLike[]>;
+    };
+  };
+  employees: {
+    list: {
+      useQuery: (
+        input: { clientId: number },
+        opts?: { enabled?: boolean; retry?: boolean | number; staleTime?: number }
+      ) => QueryLike<EmployeeLike[]>;
+    };
+  };
   policyAck: {
     list: {
       useQuery: (
@@ -61,7 +102,22 @@ interface PolicyAckTrpc {
         error?: unknown;
       };
     };
+    assign: {
+      useMutation: (opts?: {
+        onSuccess?: (data: PolicyAckRecord[]) => void;
+        onError?: (error: unknown) => void;
+      }) => MutationLike<AssignPolicyInput, PolicyAckRecord[]>;
+    };
   };
+}
+
+interface MutationLike<TInput, TResult> {
+  mutate: (input: TInput) => void;
+  mutateAsync: (input: TInput) => Promise<TResult>;
+  isPending: boolean;
+  isError: boolean;
+  error?: unknown;
+  reset: () => void;
 }
 
 const policyAckApi = trpc as unknown as PolicyAckTrpc;
@@ -79,4 +135,25 @@ export function usePolicyAcks(clientId: number, enabled = true) {
 
 export function useAcknowledgePolicy(opts?: { onSuccess?: (data: PolicyAckRecord) => void; onError?: (error: unknown) => void }) {
   return policyAckApi.policyAck.acknowledge.useMutation(opts);
+}
+
+export function useAssignPolicy(opts?: {
+  onSuccess?: (data: PolicyAckRecord[]) => void;
+  onError?: (error: unknown) => void;
+}) {
+  return policyAckApi.policyAck.assign.useMutation(opts);
+}
+
+export function useClientPolicies(clientId: number, enabled = true) {
+  return policyAckApi.clientPolicies.list.useQuery(
+    { clientId },
+    { enabled: enabled && clientId > 0, retry: false, staleTime: 30_000 }
+  );
+}
+
+export function useClientEmployees(clientId: number, enabled = true) {
+  return policyAckApi.employees.list.useQuery(
+    { clientId },
+    { enabled: enabled && clientId > 0, retry: false, staleTime: 30_000 }
+  );
 }

@@ -15,6 +15,7 @@ import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, Ch
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
 import CollectorConnectionsPanel from "@/components/evidence/CollectorConnectionsPanel";
+import EvidenceRenewalPanel from "@/pages/EvidenceRenewalPanel";
 import { GoogleDriveFileBrowser } from "@/components/integrations/GoogleDriveFileBrowser";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useState, useMemo } from "react";
@@ -757,6 +758,9 @@ export default function Evidence() {
             tone="brand"
           />
         </div>
+        {/* Expiring & Renewal (evidenceRenewal.* endpoints; graceful fallback) */}
+        <EvidenceRenewalPanel clientId={clientId} />
+
 {/* Main Content - Categories */}
         {
           isLoading ? (
