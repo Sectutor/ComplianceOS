@@ -2,15 +2,16 @@
 
 > Definition of done for the continuous build pipeline. Source: `docs/vanta-feature-map.md`.
 > Status: ⬜ Not started | 🟨 In progress | 🟩 Done | 🔒 Blocked
-> Last updated: 2026-08-14 (cycle 1 complete — commit 78ee770)
+> Last updated: 2026-08-14 (cycle 2 complete — commit c439fed)
 
 ## Cycle log
 - **Cycle 1** (78ee770): Local Supabase running (DB connected, health 200). AddonScheduler db.select + Date-binding bugs fixed. P0 evidence-collection integration framework skeleton + GitHub collector built (integrations/collector.ts). Vanta UI polish on Clients/Dashboard/NotFound/sidebar + UI-STANDARD.md. Tests 101 → 147 (9 files), all green.
+- **Cycle 2** (c439fed): Control auto-test engine wired into tRPC (controlMonitoring router: runControlAutoTest / runAllForClient / history) + offline guard in scheduler (no more TLS spam to dead remote). Evidence collection scheduler + HTTP/API collector added (P0 #1 auto-collect). dbUrl helper (resolveDatabaseUrl/createSafePgOptions) used by addon-init + schedulers. UI token-only polish on Controls/Evidence/Login/Security/VendorList/ClientPolicies + PageHeader/StatCard components + primary-cta tokens. Tests 147 → 192 (12 files), coverage 100% on 5 targets. tsc: no new errors in touched files (2 dbUrl errors fixed).
 
 | # | Feature | Vanta | ComplianceOS today | Priority | Status |
 |---|---------|-------|--------------------|----------|--------|
-| 1 | Automated evidence collection | 200+ integrations, 24h auto-collect | Framework skeleton + GitHub collector built | P0 | 🟨 next: more collectors + scheduler wiring |
-| 2 | Continuous control monitoring | Controls auto-tested on schedule | ControlAutoTestScheduler exists but errors (TLS to dead remote) | P0 | 🟨 cycle 2: rewire to local DB |
+| 1 | Automated evidence collection | 200+ integrations, 24h auto-collect | Framework + GitHub + HTTP/API collectors, scheduler wired (startEvidenceScheduler) | P0 | 🟨 next: more collectors (AWS/Azure/GCP) + UI triggers |
+| 2 | Continuous control monitoring | Controls auto-tested on schedule | Engine wired via tRPC (controlMonitoring), scheduler offline-guard, 16 unit tests | P0 | 🟨 next: UI trigger + per-client schedule config |
 | 3 | Risk heat map + treatment plans | Full visual matrix + workflow | Phase 2 exists, not activated | P1 | ⬜ |
 | 4 | Policy management + ack | Templates, versioning, employee ack | 13 templates, CRUD, review scheduler; no ack workflow | P1 | ⬜ |
 | 5 | TPRM / vendor risk | Vendor assessments, questionnaires, monitoring | Vendor records only | P2 | ⬜ |
@@ -27,11 +28,11 @@
 
 ## Health (runtime)
 - [x] App boots (Vite dev server, port 5173)
-- [x] Unit suite green (101 tests, 6 files)
+- [x] Unit suite green (192 tests, 12 files)
 - [x] Smoke test green (`npm run smoke`)
 - [x] Local Supabase running (DB connected, health 200 on :3005, Studio on :54323)
 - [x] AddonScheduler `db.select` + Date-binding bugs fixed
-- [ ] ControlAutoTestScheduler TLS errors (still reaching dead remote)
+- [x] ControlAutoTestScheduler offline guard (no TLS spam; skips when no local DB)
 
 ## Definition of Done (per cycle)
 1. `npx vitest run` green (no regressions)
