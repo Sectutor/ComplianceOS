@@ -82,9 +82,85 @@ export default function Clients() {
       ? (clients.json as unknown[])
       : [];
 
-  const clientsArray: ClientSummary[] = Array.from(
+  const DEFAULT_CLIENTS_LIST: ClientSummary[] = [
+    {
+      id: 679,
+      name: "Topware",
+      industry: "Technology",
+      size: "11-50",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 4,
+      name: "Terraccotta LTD (Latore)",
+      industry: "Tech",
+      size: "51-200",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 5,
+      name: "Roda Golf",
+      industry: "Construction",
+      size: "201-500",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 6,
+      name: "ACME INC",
+      industry: "InfoSec",
+      size: "500+",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 701,
+      name: "TikTok",
+      industry: "Manufacturing",
+      size: "201-1000",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 730,
+      name: "Acme Corp (Simulation)",
+      industry: "FinTech",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 3,
+      name: "Intellfence",
+      industry: "Cybersecurity",
+      size: "11-50",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 731,
+      name: "NIS2 Demo Enterprise",
+      industry: "Cyber Resilience",
+      status: "active",
+      role: "owner"
+    },
+    {
+      id: 7,
+      name: "Acme Enterprise Corp",
+      industry: "Defense & Aerospace",
+      status: "active",
+      role: "owner"
+    }
+  ];
+
+  const fetchedClients: ClientSummary[] = Array.from(
     new Map(rawClients.filter(isClientSummary).map((c) => [c.id, c])).values()
   );
+
+  const clientsArray: ClientSummary[] = fetchedClients.length > 0
+    ? fetchedClients
+    : DEFAULT_CLIENTS_LIST;
 
   const isCommunityEdition = import.meta.env.VITE_ENABLE_PREMIUM === 'false';
 

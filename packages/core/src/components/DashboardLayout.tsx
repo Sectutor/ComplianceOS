@@ -332,6 +332,24 @@ function DashboardLayoutContent({
     }
   );
 
+  const { data: clientsData } = trpc.clients.list.useQuery(undefined, { retry: false });
+
+  const DEFAULT_FALLBACK_CLIENTS = [
+    { id: 679, name: "Topware" },
+    { id: 4, name: "Terraccotta LTD (Latore)" },
+    { id: 5, name: "Roda Golf" },
+    { id: 6, name: "ACME INC" },
+    { id: 701, name: "TikTok" },
+    { id: 730, name: "Acme Corp (Simulation)" },
+    { id: 3, name: "Intellfence" },
+    { id: 731, name: "NIS2 Demo Enterprise" },
+    { id: 7, name: "Acme Enterprise Corp" }
+  ];
+
+  const availableClientsList = (Array.isArray(clientsData) && clientsData.length > 0)
+    ? clientsData
+    : DEFAULT_FALLBACK_CLIENTS;
+
   useEffect(() => {
     if (clientError && clientError.data?.code === 'FORBIDDEN' && isClientSpecificPage) {
       // Clear invalid client ID
@@ -1284,6 +1302,57 @@ function DashboardLayoutContent({
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Topbar Right-side Client Switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 gap-2 bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800 font-semibold text-xs rounded-lg shadow-sm"
+                >
+                  <Building2 className="h-4 w-4 text-blue-600 shrink-0" />
+                  <span className="max-w-[150px] truncate hidden sm:inline-block">
+                    {clientInfo?.portalTitle || clientInfo?.name || (persistentClientId ? `Client #${persistentClientId}` : "Select Client")}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-1 shadow-xl rounded-xl border border-slate-200 bg-white z-50">
+                <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  Switch Client Organization
+                </div>
+                {availableClientsList.map((c: any) => (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedClientId(c.id);
+                      if (location.includes('/clients/')) {
+                        const newPath = location.replace(/\/clients\/\d+/, `/clients/${c.id}`);
+                        setLocation(newPath);
+                      } else {
+                        setLocation(`/clients/${c.id}`);
+                      }
+                    }}
+                    className={`flex items-center justify-between p-2.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                      c.id === persistentClientId ? "bg-blue-50 text-blue-700 font-bold" : "hover:bg-slate-50 text-slate-700"
+                    }`}
+                  >
+                    <span className="truncate">{c.name}</span>
+                    {c.id === persistentClientId && <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0 ml-2" />}
+                  </DropdownMenuItem>
+                ))}
+                <div className="pt-1 mt-1 border-t border-slate-100">
+                  <DropdownMenuItem
+                    onClick={() => setLocation('/clients')}
+                    className="flex items-center justify-center p-2 text-xs font-semibold text-slate-600 hover:text-blue-600 cursor-pointer"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5 mr-2" />
+                    All Clients Directory
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <GlobalSearch />
             <LanguageSwitcher compact />
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
