@@ -28,7 +28,7 @@
     "server:trial": "npx cross-env BUILD_TYPE=TRIAL VITE_ENABLE_PREMIUM=true tsx --watch server_entry.ts",
     "cli": "tsx scripts/cli.ts",
     "import:csv": "tsx scripts/seed/importCsv.ts",
-    "smoke": "tsx scripts/test/smoke.ts",
+    "smoke": "tsx scripts/smoke.ts",
     "validate-env": "tsx scripts/setup/validate-env.ts",
     "index-embeddings": "tsx scripts/seed/index-embeddings.ts",
     "seed:risk": "tsx scripts/seed/seedRiskData.ts",
