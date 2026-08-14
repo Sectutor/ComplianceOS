@@ -1,0 +1,46 @@
+version: "1.0.0"
+title: "ComplianceOS Build Loop"
+description: "Continuous build loop for ComplianceOS toward Vanta-class parity — diagnose, plan from the Vanta scorecard, spawn backend/UI/QA agents in parallel, verify, commit, and report."
+prompt: "Run the ComplianceOS continuous build loop for this cycle. Working directory: D:\\OneDrive - Intellfence\\WebDev\\ComplianceOS"
+instructions: |
+  # ComplianceOS Build Loop (scheduled)
+
+  Working directory: `D:\OneDrive - Intellfence\WebDev\ComplianceOS` (cd there first if not already in it).
+
+  ## Mission
+  Advance ComplianceOS toward Vanta-class parity (see `plans/pipeline/VANTA-SCORECARD.md`). Each cycle must leave the repo better than it found it, with tests green.
+
+  ## Cycle steps
+  1. **DIAGNOSE** (read-only): `git status`, `git log --oneline -5`, tail `server-err.log`/`vite-err.log` if present, `npm run smoke`, `npx vitest run` (note pass/fail counts).
+  2. **PLAN**: read `plans/pipeline/VANTA-SCORECARD.md`. Pick the next unfinished item (P0 first) and any open bugs. Check `plans/API-FIRST-INTEGRATION-PLAN.md` and `plans/NIS2-Implementation-Plan.md` for guidance.
+  3. **BUILD — spawn agents in parallel (async delegates, strictly partitioned files, no shared files)**:
+     - BACKEND: packages/addons/src/**, packages/core/src/server/**, packages/core/src/lib/** (code), packages/core/src/routers/**, server_entry.ts, addon-init.ts. Task: fix server bugs + implement the next scorecard item.
+     - UI: packages/core/src/pages/**, packages/ui/**, index.css, packages/core/index.html, plans/pipeline/UI-STANDARD.md. Task: apply Vanta-grade polish per UI-STANDARD.md; never change logic/routes/APIs.
+     - QA: tests/**, packages/core/src/lib/__tests__/**, test/**, packages/core/src/test/**, e2e/**. Task: keep suite green, coverage >= 90% on the 5 configured targets, add unit tests for new code.
+     - Give each agent: this working dir, allowed paths, and the rules below.
+  4. **VERIFY**: after agents report, run `npx vitest run` and `npx tsc -p packages/core/tsconfig.json --noEmit`. If red, send fixes back to the responsible agent (or fix trivial issues yourself).
+  5. **REVIEW**: inspect diffs (`git diff --stat`), reject anything touching .env, secrets, or out-of-scope paths.
+  6. **COMMIT**: `git add` the reviewed files, commit to `dev` with a clear message (`feat/fix/refactor(scope): ...`), push if remote configured.
+  7. **REPORT**: update `plans/pipeline/VANTA-SCORECARD.md` statuses + add one line to `CHANGELOG.md`. Print a concise cycle summary (what changed, tests, next steps).
+
+  ## Rules (give to every agent)
+  - Working tree changes only — NO git commits by agents (conductor commits).
+  - NEVER read/print/modify `.env` or `.env.local` (secrets). Never print secrets.
+  - NEVER start/kill servers or run `npm install`.
+  - No new npm dependencies without conductor approval.
+  - If a task can't be done (blocked), say so clearly and move to the next item.
+
+  ## Notes
+  - DB is currently unreachable (Supabase pooler rejects tenant `erjlkrtccmlrvsjtpppp`). Do not attempt live-DB verification; use unit tests + type checks. Docker 29.7.2 is available if a local Postgres becomes necessary.
+  - Vite dev server may already run on 5173; never start a second one.
+extensions:
+  - type: platform
+    name: summon
+  - type: platform
+    name: developer
+  - type: platform
+    name: analyze
+  - type: platform
+    name: todo
+settings:
+  max_turns: 120
