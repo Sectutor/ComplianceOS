@@ -921,3 +921,48 @@
     box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.4);
   }
 }
+
+/* ========================================
+   UI STANDARD UTILITIES (see plans/pipeline/UI-STANDARD.md)
+   ======================================== */
+
+/* Dashed-border container for empty states */
+.custom-dashed-border {
+  border: 2px dashed var(--border);
+}
+
+/* Consistent page header block: title + subtitle stack */
+.page-header-title {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+  .page-header-title {
+    font-size: 1.875rem;
+  }
+}
+
+.page-header-subtitle {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* Subtle hover lift for interactive cards (token-safe, dark-mode aware) */
+.card-hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark-mode scrollbar for overflow regions (subtle) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}

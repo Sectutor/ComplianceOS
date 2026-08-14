@@ -62,7 +62,7 @@ export function stopAddonScheduler(): void {
 /**
  * Find and execute all addon subscriptions that are due for a scan.
  */
-async function processDueScans(): Promise<void> {
+export async function processDueScans(): Promise<void> {
   if (isRunning) {
     console.log('[AddonScheduler] Previous tick still running, skipping');
     return;
@@ -70,7 +70,7 @@ async function processDueScans(): Promise<void> {
 
   isRunning = true;
   const executor = getExecutor();
-  const db = getDb();
+  const db = await getDb();
   const now = new Date();
 
   try {
@@ -81,7 +81,7 @@ async function processDueScans(): Promise<void> {
       .where(
         and(
           eq(addonSubscriptions.status, 'active'),
-          sql`(${addonSubscriptions.nextScheduledRun} IS NULL OR ${addonSubscriptions.nextScheduledRun} <= ${now})`,
+          sql`(${addonSubscriptions.nextScheduledRun} IS NULL OR ${addonSubscriptions.nextScheduledRun} <= ${now.toISOString()})`,
         ),
       )
       .limit(BATCH_SIZE);
@@ -144,7 +144,7 @@ async function processDueScans(): Promise<void> {
 /**
  * Calculate the next scheduled run time based on the schedule setting.
  */
-function calculateNextRun(schedule: string): Date {
+export function calculateNextRun(schedule: string): Date {
   const now = new Date();
 
   switch (schedule) {

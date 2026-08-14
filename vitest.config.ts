@@ -9,7 +9,7 @@ export default mergeConfig(viteConfig, defineConfig({
         setupFiles: ['./test/setup.ts', './packages/core/src/test/setup.ts'],
         css: true,
         testTimeout: 10000,
-        include: ['packages/core/src/lib/**/*.test.ts'],
+        include: ['packages/core/src/lib/**/*.test.ts', 'tests/**/*.unit.test.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'json-summary'],

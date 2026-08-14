@@ -13,12 +13,14 @@ vi.mock("../logger", () => ({
 
 class RedisMock {
   static lastInstance: RedisMock | null = null;
+  static lastOptions: any = null;
   store = new Map<string, string>();
   connected = false;
   shouldPingFail = false;
 
-  constructor(_opts: unknown) {
+  constructor(opts: unknown) {
     RedisMock.lastInstance = this;
+    RedisMock.lastOptions = opts;
   }
 
   async connect() {
@@ -405,5 +407,231 @@ describe("CacheKeys", () => {
     expect(CacheKeys.framework("f1")).toBe("framework:f1");
     expect(CacheKeys.threatIntel("t1")).toBe("threat:t1");
     expect(CacheKeys.vendor("v1")).toBe("vendor:v1");
+  });
+});
+
+describe("CacheManager error handling & edge cases", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    loggerMock.info.mockClear();
+    loggerMock.warn.mockClear();
+    loggerMock.error.mockClear();
+    loggerMock.debug.mockClear();
+    RedisMock.lastInstance = null;
+    RedisMock.lastOptions = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+
+  function baseCacheConfig(overrides: Record<string, unknown> = {}) {
+    return {
+      redis: { host: "localhost", port: 6379, db: 0 },
+      tiers: [{ type: "memory", ttl: 60, maxSize: 10 }, { type: "redis", ttl: 60, keyPrefix: "compliance:" }],
+      monitoring: { enabled: false, collectInterval: 1000, alertThresholds: { hitRate: 0, memoryUsage: 9999, errorRate: 1 } },
+      ...overrides,
+    };
+  }
+
+  it("records a set error when Redis write fails but keeps the memory copy", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+    await cache.initialize();
+
+    const originalSetex = RedisMock.prototype.setex;
+    RedisMock.prototype.setex = vi.fn(async () => { throw new Error("write failed"); }) as unknown as RedisMock["setex"];
+    try {
+      await cache.set("failKey", { v: 1 }, 60);
+      expect(loggerMock.error).toHaveBeenCalled();
+      await expect(cache.get("failKey")).resolves.toEqual({ v: 1 });
+    } finally {
+      RedisMock.prototype.setex = originalSetex;
+    }
+  });
+
+  it("records a delete error when Redis delete fails", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+    await cache.initialize();
+
+    const originalDel = RedisMock.prototype.del;
+    RedisMock.prototype.del = vi.fn(async () => { throw new Error("del failed"); }) as unknown as RedisMock["del"];
+    try {
+      await cache.set("k", 1, 60);
+      await cache.del("k");
+      expect(loggerMock.error).toHaveBeenCalled();
+    } finally {
+      RedisMock.prototype.del = originalDel;
+    }
+  });
+
+  it("records a clear error when Redis flushdb fails", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+    await cache.initialize();
+    await cache.set("a", 1, 60);
+
+    const originalFlushdb = RedisMock.prototype.flushdb;
+    RedisMock.prototype.flushdb = vi.fn(async () => { throw new Error("flush failed"); }) as unknown as RedisMock["flushdb"];
+    try {
+      await cache.clear();
+      expect(loggerMock.error).toHaveBeenCalled();
+    } finally {
+      RedisMock.prototype.flushdb = originalFlushdb;
+    }
+  });
+
+  it("returns null and logs when Redis get throws", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+    await cache.initialize();
+
+    const originalGet = RedisMock.prototype.get;
+    RedisMock.prototype.get = vi.fn(async () => { throw new Error("get failed"); }) as unknown as RedisMock["get"];
+    try {
+      await expect(cache.get("boom")).resolves.toBeNull();
+      expect(loggerMock.error).toHaveBeenCalled();
+    } finally {
+      RedisMock.prototype.get = originalGet;
+    }
+  });
+
+  it("configures a bounded exponential retry strategy for Redis", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+    await cache.initialize();
+
+    const opts = RedisMock.lastOptions as { retryStrategy?: (times: number) => number };
+    expect(typeof opts?.retryStrategy).toBe("function");
+    expect(opts!.retryStrategy!(1)).toBe(100);
+    expect(opts!.retryStrategy!(20)).toBe(2000);
+    expect(opts!.retryStrategy!(100)).toBe(2000);
+  });
+
+  it("reads redis values directly when no keyPrefix is configured", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig({ tiers: [{ type: "memory", ttl: 60, maxSize: 10 }, { type: "redis", ttl: 60 }] }) as never);
+    await cache.initialize();
+    const redis = RedisMock.lastInstance!;
+    await redis.setex("directKey", 60, JSON.stringify({ direct: true }));
+
+    await expect(cache.get("directKey")).resolves.toEqual({ direct: true });
+    await expect(cache.get("missingDirect")).resolves.toBeNull();
+  });
+
+  it("falls back to tier TTL when ttl argument is omitted", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig({ tiers: [{ type: "memory", ttl: 60, maxSize: 10 }, { type: "redis", ttl: 120, keyPrefix: "compliance:" }] }) as never);
+    await cache.initialize();
+
+    const setexSpy = vi.spyOn(RedisMock.prototype, "setex");
+    await cache.set("noTtl", 1);
+    expect(setexSpy).toHaveBeenCalledWith("compliance:noTtl", 120, "1");
+    setexSpy.mockRestore();
+  });
+
+  it("defaults to 300s TTL when no ttl and no redis tier exists", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig({ tiers: [{ type: "memory", ttl: 60, maxSize: 10 }] }) as never);
+    await cache.initialize();
+
+    const setexSpy = vi.spyOn(RedisMock.prototype, "setex");
+    await cache.set("noTtlNoTier", 2);
+    expect(setexSpy).toHaveBeenCalledWith("noTtlNoTier", 300, "2");
+    setexSpy.mockRestore();
+  });
+
+  it("works with an empty tiers list and falls back to default TTLs", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig({ tiers: [] }) as never);
+    await cache.initialize();
+    const redis = RedisMock.lastInstance!;
+
+    await redis.setex("bareKey", 60, JSON.stringify("bare"));
+    await expect(cache.get("bareKey")).resolves.toBe("bare");
+
+    await cache.set("bareSet", "x");
+    expect(await redis.get("bareSet")).toBe(JSON.stringify("x"));
+  });
+
+  it("reports healthy with redis disconnected when not initialized", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+
+    const result = await cache.healthCheck();
+    expect(result.healthy).toBe(true);
+    expect(result.redisConnected).toBe(false);
+  });
+
+  it("shutdown is safe when monitoring and redis are not active", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager(baseCacheConfig() as never);
+    await cache.set("a", 1, 60);
+
+    await cache.shutdown();
+    await expect(cache.get("a")).resolves.toBeNull();
+    expect(loggerMock.info).toHaveBeenCalled();
+  });
+});
+describe("CacheManager maintenance & idle metrics", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    loggerMock.info.mockClear();
+    loggerMock.warn.mockClear();
+    loggerMock.error.mockClear();
+    loggerMock.debug.mockClear();
+    RedisMock.lastInstance = null;
+    RedisMock.lastOptions = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.resetModules();
+  });
+  it("cleans expired entries and caps the maintenance scan at 200", async () => {
+    const { CacheManager } = await loadCacheModule();
+    // Memory-only path: redis is NOT initialized so L2 cannot resurrect expired values
+    const cache = new CacheManager({ redis: { host: "localhost", port: 6379, db: 0 }, tiers: [{ type: "memory", ttl: 60 }, { type: "redis", ttl: 60, keyPrefix: "compliance:" }], monitoring: { enabled: false, collectInterval: 1000, alertThresholds: { hitRate: 0, memoryUsage: 9999, errorRate: 1 } } });
+
+    for (let i = 0; i < 99; i++) {
+      await cache.set("exp:" + i, i, 1);
+    }
+    vi.advanceTimersByTime(2000);
+
+    // 100th set triggers the maintenance scan, which removes the 99 expired entries
+    await cache.set("trigger100", "x", 60);
+
+    // Grow the cache past the 200-entry scan cap (scan at set #300 will break at 200)
+    for (let i = 100; i < 302; i++) {
+      await cache.set("k:" + i, i, 60);
+    }
+
+    // Overwriting an existing key exercises the memory-cache delete-then-set path
+    await cache.set("dup", 1, 60);
+    await cache.set("dup", 2, 60);
+
+    // Delete with no redis attached exercises the memory-only del path
+    await cache.del("nope");
+
+    await expect(cache.get("exp:0")).resolves.toBeNull();
+    await expect(cache.get("trigger100")).resolves.toBe("x");
+    await expect(cache.get("k:298")).resolves.toBe(298);
+    await expect(cache.get("dup")).resolves.toBe(2);
+  });
+  it("reports zero metrics when no requests have been recorded", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager({ redis: { host: "localhost", port: 6379, db: 0 }, tiers: [{ type: "memory", ttl: 60 }, { type: "redis", ttl: 60, keyPrefix: "compliance:" }], monitoring: { enabled: true, collectInterval: 1000, alertThresholds: { hitRate: 0, memoryUsage: 9999, errorRate: 1 } } });
+    await cache.initialize();
+
+    vi.advanceTimersByTime(1000);
+    const m = cache.getMetrics();
+    expect(m.hitRate).toBe(0);
+    expect(m.missRate).toBe(0);
+    expect(m.errorRate).toBe(0);
+    expect(m.totalRequests).toBe(0);
   });
 });

@@ -22,3 +22,42 @@ export { vulnerabilityScannerManifest, executeVulnerabilityScannerAction } from 
 export { siemManifest, executeSIEMAction } from './siem';
 export { soarManifest, executeSOARAction } from './soar';
 export { threatIntelManifest, executeThreatIntelAction } from './threat-intel';
+
+// ---------------------------------------------------------------------------
+// Automated Evidence Collection (manifest-driven collector engine)
+// ---------------------------------------------------------------------------
+import { evidenceCollectorRegistry } from './collector';
+import { githubEvidenceCollector } from './github/collector';
+
+export {
+  normalizeEvidence,
+  collectEvidence,
+  summarizeResults,
+  EvidenceCollectorRegistry,
+  evidenceCollectorRegistry,
+} from './collector';
+export type {
+  EvidenceStatus,
+  CollectedEvidence,
+  CollectOptions,
+  EvidenceCollector,
+  CollectorRunResult,
+  CollectorRunSummary,
+} from './collector';
+
+// Built-in evidence collectors
+export {
+  githubEvidenceManifest,
+  createGithubApiClient,
+  createGithubEvidenceCollector,
+  githubEvidenceCollector,
+} from './github/collector';
+export type {
+  GithubFetch,
+  GithubFetchResponse,
+  GithubApiClient,
+} from './github/collector';
+
+// Register the built-in collectors so runAll() picks them up automatically.
+evidenceCollectorRegistry.register(githubEvidenceCollector);
+

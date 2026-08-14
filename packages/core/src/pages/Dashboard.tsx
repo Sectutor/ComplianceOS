@@ -311,7 +311,7 @@ export default function Dashboard() {
             <OnboardingChecklist stats={enhancedStats} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
-              <Card className="bg-slate-100 border-none shadow-sm h-full">
+              <Card className="bg-muted border-none shadow-sm h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
                     <FileText className="h-4 w-4 text-blue-500" />
@@ -322,7 +322,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground leading-relaxed">Get 20+ policies tailored to your industry instantly using our AI policy engine.</p>
                 </CardContent>
               </Card>
-              <Card className="bg-slate-100 border-none shadow-sm h-full">
+              <Card className="bg-muted border-none shadow-sm h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
                     <Shield className="h-4 w-4 text-purple-500" />
@@ -333,7 +333,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground leading-relaxed">Map one master control to multiple frameworks like ISO 27001 and SOC 2 seamlessly.</p>
                 </CardContent>
               </Card>
-              <Card className="bg-slate-100 border-none shadow-sm h-full">
+              <Card className="bg-muted border-none shadow-sm h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
                     <Activity className="h-4 w-4 text-emerald-500" />
@@ -370,7 +370,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="relative min-h-[calc(100vh-3.5rem)] space-y-8 w-full max-w-full text-slate-900 page-transition">
+      <div className="relative min-h-[calc(100vh-3.5rem)] space-y-8 w-full max-w-full text-foreground page-transition">
         {/* Ambient Light Mode Background Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
@@ -423,10 +423,10 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-3xl lg:text-5xl font-black text-foreground tracking-tight">
                   Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Commander'}.
                 </h1>
-                <p className="text-slate-600 font-medium mt-2 text-lg">
+                <p className="text-muted-foreground font-medium mt-2 text-lg">
                   Your compliance posture is active and scanning. Here is your daily briefing.
                 </p>
               </motion.div>
@@ -436,7 +436,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm rounded-3xl p-6 shadow-2xl relative overflow-hidden group"
+                className="bg-card/70 backdrop-blur-xl border border-border shadow-sm rounded-2xl p-6 relative overflow-hidden group"
                 id="dash-critical-actions"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent group-hover:from-blue-500/20 transition-all duration-700 pointer-events-none" />
@@ -445,14 +445,14 @@ export default function Dashboard() {
                     <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                       <BrainCircuit className="h-5 w-5" />
                     </div>
-                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">AI Posture Insights</h3>
+                    <h3 className="text-xl font-extrabold text-foreground tracking-tight">AI Posture Insights</h3>
                   </div>
                   <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Scanning Live</Badge>
                 </div>
 
                 <div className="space-y-4 relative z-10 mt-6">
                   {insights.length > 0 ? insights.slice(0, 3).map((insight: any) => (
-                    <div key={insight.id} className="flex gap-4 p-4 rounded-2xl bg-slate-100 border border-white/60 hover:bg-white/10 hover:border-white/20 transition-all group/item">
+                    <div key={insight.id} className="flex gap-4 p-4 rounded-2xl bg-muted border border-border/60 hover:bg-accent hover:border-border/20 transition-all group/item">
                       <div className="mt-0.5">
                         {insight.type === 'critical' ? <AlertCircle className="h-5 w-5 text-red-400" /> :
                           insight.type === 'warning' ? <Clock className="h-5 w-5 text-amber-400" /> :
@@ -460,15 +460,15 @@ export default function Dashboard() {
                               <Sparkles className="h-5 w-5 text-blue-400" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-slate-900 font-bold text-sm truncate">{insight.title}</h4>
-                        <p className="text-slate-500 text-xs mt-1 leading-relaxed truncate">{insight.description}</p>
+                        <h4 className="text-foreground font-bold text-sm truncate">{insight.title}</h4>
+                        <p className="text-muted-foreground text-xs mt-1 leading-relaxed truncate">{insight.description}</p>
                       </div>
-                      <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase tracking-wider font-bold text-slate-900/70 hover:text-slate-900 bg-slate-100 hover:bg-white/20 ml-2" onClick={() => setLocation(resolveNavigationPath(insight.link, effectiveClientId ? parseInt(effectiveClientId) : null))}>
+                      <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase tracking-wider font-bold text-foreground/70 hover:text-foreground bg-muted hover:bg-accent/80 ml-2" onClick={() => setLocation(resolveNavigationPath(insight.link, effectiveClientId ? parseInt(effectiveClientId) : null))}>
                         {insight.action} <ArrowRight className="h-3 w-3 ml-2 opacity-50 group-hover/item:opacity-100 group-hover/item:translate-x-1 transition-all" />
                       </Button>
                     </div>
                   )) : (
-                    <div className="text-center py-6 text-slate-500">
+                    <div className="text-center py-6 text-muted-foreground">
                       <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500 mb-3 opacity-50" />
                       <p>No critical actions required today. You are fully aligned.</p>
                     </div>
@@ -485,11 +485,11 @@ export default function Dashboard() {
               id="dash-posture-score"
             >
               {/* Real-time Posture Score */}
-              <div className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm rounded-3xl p-8 relative overflow-hidden group shadow-2xl h-full flex flex-col items-center justify-center text-center">
+              <div className="bg-card/70 backdrop-blur-xl border border-border shadow-sm rounded-2xl p-8 relative overflow-hidden group h-full flex flex-col items-center justify-center text-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-duration-500 pointer-events-none" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-[80px] pointer-events-none" />
 
-                <h3 className="text-sm font-extrabold text-slate-500 uppercase tracking-widest mb-6 relative z-10">Live Posture Score</h3>
+                <h3 className="text-sm font-extrabold text-muted-foreground uppercase tracking-widest mb-6 relative z-10">Live Posture Score</h3>
 
                 <div className="relative z-10">
                   <CircularProgress
@@ -508,16 +508,16 @@ export default function Dashboard() {
           </div>
 
           {/* Filters & Actions Header */}
-          <div className="flex items-center flex-wrap justify-between mt-8 relative z-10 pb-4 border-b border-slate-200" id="dash-filters-bar">
+          <div className="flex items-center flex-wrap justify-between mt-8 relative z-10 pb-4 border-b border-border" id="dash-filters-bar">
             <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Command Interface</h2>
+              <h2 className="text-xl font-bold text-foreground tracking-tight mb-4 md:mb-0">Command Interface</h2>
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-slate-100 rounded-lg p-1">
+              <div className="flex items-center bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('executive')}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'executive'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground/80'
                     }`}
                 >
                   <span className="flex items-center gap-1.5">
@@ -528,8 +528,8 @@ export default function Dashboard() {
                 <button
                   onClick={() => setViewMode('full')}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'full'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground/80'
                     }`}
                 >
                   <span className="flex items-center gap-1.5">
@@ -542,45 +542,45 @@ export default function Dashboard() {
             <div className="flex gap-4 items-center">
               {/* Light Client Selector */}
               {clients && clients.length > 0 && (
-                <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500/50 group">
-                  <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Context:</span>
+                <div className="flex items-center gap-3 bg-card/70 backdrop-blur-md border border-border rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-muted/60 focus-within:ring-2 focus-within:ring-blue-500/50 group">
+                  <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">Context:</span>
                   <select
-                    className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-blue-600 max-w-[150px] truncate outline-none appearance-none transition-colors"
+                    className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-foreground focus:text-blue-600 max-w-[150px] truncate outline-none appearance-none transition-colors"
                     value={clientId || ""}
                     onChange={(e) => setClientId(e.target.value || undefined)}
                   >
-                    <option value="" className="bg-white">Global Fleet</option>
+                    <option value="" className="bg-card">Global Fleet</option>
                     {clients.map((client, idx) => (
-                      <option key={`client-select-${client.id}-${idx}`} value={client.id} className="bg-white text-slate-900">
+                      <option key={`client-select-${client.id}-${idx}`} value={client.id} className="bg-card text-foreground">
                         {client.name}
                       </option>
                     ))}
                   </select>
-                  <div className="ml-[-1.5rem] pointer-events-none text-slate-500 group-hover:text-slate-900 transition-colors">
+                  <div className="ml-[-1.5rem] pointer-events-none text-muted-foreground group-hover:text-foreground transition-colors">
                     <ChevronDown className="w-4 h-4" />
                   </div>
                 </div>
               )}
 
               {/* Light Standard Selector */}
-              <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-purple-500/50 group">
-                <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Protocol:</span>
+              <div className="flex items-center gap-3 bg-card/70 backdrop-blur-md border border-border rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-muted/60 focus-within:ring-2 focus-within:ring-purple-500/50 group">
+                <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">Protocol:</span>
                 <select
-                  className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-purple-600 outline-none appearance-none transition-colors"
+                  className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-foreground focus:text-purple-600 outline-none appearance-none transition-colors"
                   value={framework || ""}
                   onChange={(e) => setFramework(e.target.value || undefined)}
                 >
-                  <option value="" className="bg-white">All Protocols</option>
-                  <option value="ISO 27001" className="bg-white text-slate-900">ISO 27001</option>
-                  <option value="SOC 2" className="bg-white text-slate-900">SOC 2</option>
+                  <option value="" className="bg-card">All Protocols</option>
+                  <option value="ISO 27001" className="bg-card text-foreground">ISO 27001</option>
+                  <option value="SOC 2" className="bg-card text-foreground">SOC 2</option>
                 </select>
-                <div className="ml-[-1.5rem] pointer-events-none text-slate-500 group-hover:text-slate-900 transition-colors">
+                <div className="ml-[-1.5rem] pointer-events-none text-muted-foreground group-hover:text-foreground transition-colors">
                   <ChevronDown className="w-4 h-4" />
                 </div>
               </div>
 
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (
-                <Button onClick={() => setLocation('/clients')} className="bg-blue-600 hover:bg-blue-700 text-white shadow-xl h-10 px-5 rounded-xl font-bold transition-all hover:scale-105 active:scale-95">
+                <Button onClick={() => setLocation('/clients')} className="bg-[#0F2C59] hover:bg-[#3B82F6] text-white shadow-xl h-10 px-5 rounded-xl font-bold transition-all hover:scale-105 active:scale-95">
                   <Plus className="mr-2 h-4 w-4" />
                   Deploy Node
                 </Button>
@@ -630,16 +630,16 @@ export default function Dashboard() {
                 </div>
 
                 {/* Compliance Trend Chart */}
-                <Card className="col-span-full bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200" id="dash-compliance-trend">
+                <Card className="col-span-full bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border" id="dash-compliance-trend">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-50 pointer-events-none" />
-                  <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                    <CardTitle className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <CardHeader className="pb-4 relative z-10 border-b border-border">
+                    <CardTitle className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
                       <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm shadow-blue-500/20">
                         <TrendingUp className="h-5 w-5" />
                       </div>
                       Compliance Performance Trend
                     </CardTitle>
-                    <CardDescription className="font-medium text-slate-500">Overall compliance improvement over the last 6 months</CardDescription>
+                    <CardDescription className="font-medium text-muted-foreground">Overall compliance improvement over the last 6 months</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 relative z-10">
                     {scoresLoading ? (
@@ -697,7 +697,7 @@ export default function Dashboard() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div className="h-64 flex items-center justify-center border-2 border-dashed rounded-xl mt-4 bg-slate-100">
+                      <div className="h-64 flex items-center justify-center border-2 border-dashed rounded-xl mt-4 bg-muted">
                         <EmptyState
                           icon={Activity}
                           title="No Trend Data"
@@ -712,10 +712,10 @@ export default function Dashboard() {
                 {/* Sub-metrics Row */}
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {/* Overdue Vendor Assessments - High Priority */}
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/overdue rounded-3xl border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/overdue rounded-2xl border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 to-rose-500" />
-                    <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                      <CardTitle className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-red-500/10 text-red-600">
                           <AlertCircle className="h-5 w-5" />
                         </div>
@@ -734,7 +734,7 @@ export default function Dashboard() {
                       ) : overdueAssessments && overdueAssessments.length > 0 ? (
                         <div className="space-y-3">
                           {overdueAssessments.slice(0, 3).map((assessment) => (
-                            <div key={assessment.id} className="flex items-center justify-between p-3 rounded-lg border bg-white/80 border border-slate-200 shadow-lg">
+                            <div key={assessment.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/80 border border-border shadow-lg">
                               <div className="flex-1 min-w-0 mr-4">
                                 <p className="font-medium truncate text-sm">{assessment.vendorName}</p>
                                 <p className="text-xs text-muted-foreground truncate">{assessment.assessmentType}</p>
@@ -757,10 +757,10 @@ export default function Dashboard() {
                   </Card>
 
                   {/* Client Compliance Overview */}
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/clients rounded-3xl border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/clients rounded-2xl border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
-                    <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                      <CardTitle className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
                           <Users className="h-5 w-5" />
                         </div>
@@ -789,10 +789,10 @@ export default function Dashboard() {
                   </Card>
 
                   {/* Recent Activity Mini */}
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/activity rounded-3xl border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/activity rounded-2xl border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500" />
-                    <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                      <CardTitle className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
                           <Activity className="h-5 w-5" />
                         </div>
@@ -825,16 +825,16 @@ export default function Dashboard() {
               >
                 {/* Full Metrics Row */}
                 <div className="dashboard-grid grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/metric rounded-3xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/metric rounded-2xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Total Clients</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Total Clients</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
-                            <h3 className="text-4xl font-black mt-1 text-slate-900 tracking-tighter">
+                            <h3 className="text-4xl font-black mt-1 text-foreground tracking-tighter">
                               {overview?.totalClients || 0}
                             </h3>
                           )}
@@ -846,16 +846,16 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/metric rounded-3xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/metric rounded-2xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-fuchsia-500" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Master Controls</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Master Controls</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
-                            <h3 className="text-4xl font-black mt-1 text-slate-900 tracking-tighter">
+                            <h3 className="text-4xl font-black mt-1 text-foreground tracking-tighter">
                               {overview?.totalControls || 0}
                             </h3>
                           )}
@@ -867,16 +867,16 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/metric rounded-3xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/metric rounded-2xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Policy Templates</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Policy Templates</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
-                            <h3 className="text-4xl font-black mt-1 text-slate-900 tracking-tighter">
+                            <h3 className="text-4xl font-black mt-1 text-foreground tracking-tighter">
                               {overview?.totalPolicies || 0}
                             </h3>
                           )}
@@ -888,16 +888,16 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/metric rounded-3xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/metric rounded-2xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 to-rose-600" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Flagged Risks</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Flagged Risks</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
-                            <h3 className="text-4xl font-black mt-1 text-slate-900 tracking-tighter">
+                            <h3 className="text-4xl font-black mt-1 text-foreground tracking-tighter">
                               {overview?.highRisks || 0}
                             </h3>
                           )}
@@ -909,16 +909,16 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/metric rounded-3xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/metric rounded-2xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-border">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Compliance</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Compliance</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
-                            <h3 className="text-4xl font-black mt-1 text-slate-900 tracking-tighter">
+                            <h3 className="text-4xl font-black mt-1 text-foreground tracking-tighter">
                               {overallComplianceRate}%
                             </h3>
                           )}
@@ -934,16 +934,16 @@ export default function Dashboard() {
                 {/* Charts Row */}
                 <div className="grid gap-6 md:grid-cols-3">
                   {/* Control Status Chart */}
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-50 pointer-events-none" />
-                    <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                      <CardTitle className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
                           <PieChart className="h-5 w-5" />
                         </div>
                         Control Status
                       </CardTitle>
-                      <CardDescription className="font-medium text-slate-500">Implementation status across all clients</CardDescription>
+                      <CardDescription className="font-medium text-muted-foreground">Implementation status across all clients</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (
@@ -983,16 +983,16 @@ export default function Dashboard() {
                   </Card>
 
                   {/* Policy Status Chart */}
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-fuchsia-500/5 opacity-50 pointer-events-none" />
-                    <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                      <CardTitle className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
                           <FileText className="h-5 w-5" />
                         </div>
                         Policy Status
                       </CardTitle>
-                      <CardDescription className="font-medium text-slate-500">Policy approval status</CardDescription>
+                      <CardDescription className="font-medium text-muted-foreground">Policy approval status</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (
@@ -1032,16 +1032,16 @@ export default function Dashboard() {
                   </Card>
 
                   {/* Evidence Status Chart */}
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-50 pointer-events-none" />
-                    <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-                      <CardTitle className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-blue-600/10 text-emerald-600">
                           <CheckCircle2 className="h-5 w-5" />
                         </div>
                         Evidence Status
                       </CardTitle>
-                      <CardDescription className="font-medium text-slate-500">Evidence verification status</CardDescription>
+                      <CardDescription className="font-medium text-muted-foreground">Evidence verification status</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (
@@ -1083,8 +1083,8 @@ export default function Dashboard() {
 
                 {/* Detailed Blocks */}
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
-                    <CardHeader className="pb-4 border-b border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <CardHeader className="pb-4 border-b border-border">
                       <CardTitle className="text-lg font-bold">Client Overview</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
@@ -1100,12 +1100,12 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                      ) : <p className="text-center py-4 text-slate-500 text-sm">No organizations</p>}
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">No organizations</p>}
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
-                    <CardHeader className="pb-4 border-b border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <CardHeader className="pb-4 border-b border-border">
                       <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
@@ -1118,12 +1118,12 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                      ) : <p className="text-center py-4 text-slate-500 text-sm">No activity</p>}
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">No activity</p>}
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
-                    <CardHeader className="pb-4 border-b border-slate-200">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <CardHeader className="pb-4 border-b border-border">
                       <CardTitle className="text-lg font-bold">Controls by Framework</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
@@ -1137,7 +1137,7 @@ export default function Dashboard() {
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
-                      ) : <p className="text-center py-4 text-slate-500 text-sm">No frameworks</p>}
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">No frameworks</p>}
                     </CardContent>
                   </Card>
                 </div>
@@ -1158,54 +1158,54 @@ export default function Dashboard() {
           </AnimatePresence>
 
           {/* Quick Actions */}
-          <Card className="bg-white/60 backdrop-blur-xl rounded-3xl overflow-hidden relative group/qa border-slate-200">
+          <Card className="bg-card/70 backdrop-blur-xl rounded-2xl overflow-hidden relative group/qa border-border">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-50 pointer-events-none group-hover/qa:opacity-100 transition-opacity duration-500" />
-            <CardHeader className="pb-4 relative z-10 border-b border-slate-200">
-              <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">Quick Actions</CardTitle>
-              <CardDescription className="text-slate-500 font-medium">Common tasks to manage compliance</CardDescription>
+            <CardHeader className="pb-4 relative z-10 border-b border-border">
+              <CardTitle className="text-2xl font-black text-foreground tracking-tight">Quick Actions</CardTitle>
+              <CardDescription className="text-muted-foreground font-medium">Common tasks to manage compliance</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 relative z-10">
               <div className="grid gap-4 md:grid-cols-4">
                 {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (
                   <>
-                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-white hover:border-[#0284c7]/30 bg-slate-100 backdrop-blur-sm hover:bg-white/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/clients')}>
+                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/clients')}>
                       <div className="flex flex-col items-start gap-1.5">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
                             <Plus className="h-4 w-4" />
                           </div>
-                          <span className="font-extrabold text-slate-900 group-hover:text-[#0284c7] transition-colors">Add Client</span>
+                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">Add Client</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-wider">Create new workspace</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Create new workspace</span>
                       </div>
                     </Button>
-                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-white hover:border-[#0284c7]/30 bg-slate-100 backdrop-blur-sm hover:bg-white/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/controls')}>
+                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/controls')}>
                       <div className="flex flex-col items-start gap-1.5">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
                             <Shield className="h-4 w-4" />
                           </div>
-                          <span className="font-extrabold text-slate-900 group-hover:text-[#0284c7] transition-colors">Control Library</span>
+                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">Control Library</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-wider">Manage master controls</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Manage master controls</span>
                       </div>
                     </Button>
-                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-white hover:border-[#0284c7]/30 bg-slate-100 backdrop-blur-sm hover:bg-white/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/policy-templates')}>
+                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/policy-templates')}>
                       <div className="flex flex-col items-start gap-1.5">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
                             <FileText className="h-4 w-4" />
                           </div>
-                          <span className="font-extrabold text-slate-900 group-hover:text-[#0284c7] transition-colors">Policy Templates</span>
+                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">Policy Templates</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-wider">Create templates</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Create templates</span>
                       </div>
                     </Button>
                   </>
                 )}
                 <Button
                   variant="outline"
-                  className="justify-start h-auto py-5 px-5 rounded-2xl border-white hover:border-emerald-300 bg-slate-100 backdrop-blur-sm hover:bg-white/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-emerald-500/20"
+                  className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-emerald-300 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-emerald-500/20"
                   onClick={() => setLocation(resolveNavigationPath('/evidence', effectiveClientId))}
                 >
                   <div className="flex flex-col items-start gap-1.5">
@@ -1213,9 +1213,9 @@ export default function Dashboard() {
                       <div className="p-1.5 rounded-lg bg-blue-600/10 text-emerald-600 group-hover:scale-110 transition-transform">
                         <CheckCircle2 className="h-4 w-4" />
                       </div>
-                      <span className="font-extrabold text-slate-900 group-hover:text-emerald-600 transition-colors">Evidence Tracking</span>
+                      <span className="font-extrabold text-foreground group-hover:text-emerald-600 transition-colors">Evidence Tracking</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-wider">Track compliance evidence</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Track compliance evidence</span>
                   </div>
                 </Button>
               </div>

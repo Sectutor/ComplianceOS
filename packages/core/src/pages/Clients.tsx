@@ -214,7 +214,7 @@ export default function Clients() {
               <p className="text-muted-foreground">Manage your client organizations and their compliance workspaces.</p>
               {me && (
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                     {me.role === 'admin' || me.role === 'owner' || me.role === 'super_admin' ? "Unlimited Organizations" : `${ownedClientsCount} / ${ownedClientsLimit} used`}
                   </span>
                   <PageGuide
@@ -281,7 +281,7 @@ export default function Clients() {
               open={isCreateOpen}
               onOpenChange={setIsCreateOpen}
               trigger={
-                <Button id="add-new-client-btn" className="gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700" disabled={isAtLimit} variant={isAtLimit ? "outline" : "default"}>
+                <Button id="add-new-client-btn" className="gap-2 shadow-sm bg-[#0F2C59] hover:bg-[#3B82F6]" disabled={isAtLimit} variant={isAtLimit ? "outline" : "default"}>
                   <Plus className="h-4 w-4" />
                   {isAtLimit ? "Limit Reached" : "New Client"}
                 </Button>
@@ -302,7 +302,7 @@ export default function Clients() {
                     </Button>
                   )}
                   {isAtLimit && (
-                    <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => upgradeAccount('pro')} disabled={isBillingLoading}>
+                    <Button className="bg-[#0F2C59] hover:bg-[#3B82F6]" onClick={() => upgradeAccount('pro')} disabled={isBillingLoading}>
                       Upgrade Plan
                     </Button>
                   )}
@@ -412,12 +412,12 @@ export default function Clients() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredClients.map((client, idx) => (
-                <Card key={`clients-page-card-${client.id}-${idx}`} className="card-interactive card-accent-left group cursor-pointer" onClick={() => setLocation(`/clients/${client.id}`)}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Card key={`clients-page-card-${client.id}-${idx}`} className="card-interactive card-accent-left group cursor-pointer h-full flex flex-col" onClick={() => setLocation(`/clients/${client.id}`)}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 shrink-0">
                     <CardTitle className="text-xl font-bold">{client.name}</CardTitle>
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex flex-col flex-1">
                     <div className="grid gap-4">
                       <div className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
                         {client.description || "No description provided."}
@@ -434,7 +434,7 @@ export default function Clients() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t">
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <FolderOpen className="h-3 w-3" />
                           Workspace Ready

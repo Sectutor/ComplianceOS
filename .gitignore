@@ -81,3 +81,11 @@ packages/landing/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# conductor scratch/tests
+scratch/
+*.backup-conductor
+server-local.log
+vite-dev.log
+supabase-start*.log
+
