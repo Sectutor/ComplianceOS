@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 6 - Evidence renewal + policy ack assignment/reminders + framework library (2026-08-14)
+- Scorecard #14 (evidence expiration & renewal) completed: renewal loop with auto-remediation.
+  - Backend: `evidenceRenewal` lib (due-for-renewal horizon via `buildDueForRenewalWhere`, `getRenewalStateSummary`, `runEvidenceRenewal` with renewed/expired/skipped/failed counts + remediation notes), tRPC router (`evidenceRenewal.getSummary`/`runNow`, zod-validated) wired into `routers.ts`, scheduler wired in `server_entry.ts` (guarded by `ENABLE_EVIDENCE_RENEWAL_SCHEDULER`).
+  - UI: `EvidenceRenewalPanel` on the Evidence page - live summary when the endpoint is up, graceful fallback to `evidenceExpiry.getStats` with a "Derived from workspace data" badge (UI-STANDARD §16); token-only, dark-mode safe.
+- Scorecard #4 (policy management + ack) completed: employee assignment + reminders.
+  - `assignPolicy` (idempotent; explicit userIds or all client-linked users via `user_clients`), `listOverdueAcks`/`selectAcksDueForReminder`/`runPolicyAckReminders` (3-day threshold), `policyAck.assign` procedure, `policyAckReminderScheduler` (12h interval, `ENABLE_POLICY_ACK_REMINDERS`), `PolicyAcknowledgmentPanel` rewrite with assignment UI.
+- Scorecard #11 (framework coverage) completed: SOC 2 / PCI DSS v4 / HIPAA / SOX control manifests (`frameworkSeed` + `applyFrameworkControls`) + presentational `FrameworkLibraryPanel` on the Frameworks Dashboard.
+- Risk heat map: `normalizeSummaryStatus` unifies DB (planned/in_progress/implemented/verified) and UI (open/in-progress/mitigated/accepted) treatment status vocabularies.
+- Tests: 412 -> 482 (30 files), all green; coverage 100% on the 5 configured targets; tsc 2044 -> 2041 (0 new errors, 3 fixed in touched files).
+
 ### Cycle 5 - Collector connections + credential management + UI triggers (2026-08-14)
 - Scorecard #1 (automated evidence collection) completed: collector connections + credential management + UI triggers.
   - Backend: `evidenceCollectorConnections` lib (masked credentials, secrets never returned; provider manifests from the evidence registry; DB-backed with in-memory fallback; idempotent self-registration of the five built-in collectors) + `evidenceCollectors` tRPC router (`listProviders`/`list`/`save`/`remove`/`test`/`run`) wired into `routers.ts`.
