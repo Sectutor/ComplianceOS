@@ -26,6 +26,7 @@ import { createSubprocessorsRouter } from "./server/routers/subprocessors";
 import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
 // import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
 import { createControlMonitoringRouter } from "./routers/controlMonitoring";
+import { createEvidenceCollectorsRouter } from "./routers/evidenceCollectors";
 import { createRiskHeatmapRouter } from "./routers/riskHeatmap";
 import { createPolicyAckRouter } from "./routers/policyAck";
 import * as schema from "./schema";
@@ -4469,6 +4470,7 @@ ONLY return the JSON. No Markdown formatting.
   accessReviews: createAccessReviewsRouter(t, premiumClientProcedure, adminProcedure),
   complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure, adminProcedure),
   controlMonitoring: createControlMonitoringRouter(t, protectedProcedure),
+  evidenceCollectors: createEvidenceCollectorsRouter(t, protectedProcedure),
   riskHeatmap: createRiskHeatmapRouter(t, clientProcedure),
   policyAck: createPolicyAckRouter(t, clientProcedure),
   actionCenter: createActionCenterRouter(t, premiumClientProcedure),
