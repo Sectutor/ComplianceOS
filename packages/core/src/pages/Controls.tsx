@@ -26,6 +26,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import { Slot } from "@/registry";
 import { PageGuide } from "@/components/PageGuide";
 import { SlotNames } from "@/registry/slotNames";
+import { PageHeader } from "@complianceos/ui/ui/PageHeader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -342,19 +343,14 @@ export default function Controls() {
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              {frameworkParam ? `${frameworkParam} Controls` : "Global Control Library"}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {frameworkParam
-                ? `Manage controls for ${frameworkParam} framework`
-                : "Manage master controls, frameworks, and requirements."
-              }
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+        <PageHeader
+          title={frameworkParam ? `${frameworkParam} Controls` : "Global Control Library"}
+          subtitle={frameworkParam
+            ? `Manage controls for ${frameworkParam} framework`
+            : "Manage master controls, frameworks, and requirements."
+          }
+          className="mb-4"
+          actions={<div className="flex items-center gap-3">
             <PageGuide
               title="Global Control Library"
               description="Your centralized repository for operational security controls. Define once, comply many times."
@@ -488,8 +484,8 @@ export default function Controls() {
                 </div>
               </form>
             </EnhancedDialog>
-          </div>
-        </div>
+          </div>}
+        />
 
         <div className="space-y-6">
           <ControlsStats
@@ -498,7 +494,7 @@ export default function Controls() {
             completionStats={completionStats}
           />
 
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="bg-card p-6 rounded-xl border border-border shadow-sm">
             <ControlFilterBar
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -537,9 +533,9 @@ export default function Controls() {
                 />
 
                 {totalCount > 0 && (
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-4">
-                    <div className="text-sm text-slate-500">
-                      Showing <span className="font-medium text-slate-900">{page * pageSize + 1}</span> to <span className="font-medium text-slate-900">{Math.min((page + 1) * pageSize, totalCount)}</span> of <span className="font-medium text-slate-900">{totalCount}</span> controls
+                  <div className="flex items-center justify-between border-t border-border pt-4 mt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing <span className="font-medium text-foreground">{page * pageSize + 1}</span> to <span className="font-medium text-foreground">{Math.min((page + 1) * pageSize, totalCount)}</span> of <span className="font-medium text-foreground">{totalCount}</span> controls
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -552,7 +548,7 @@ export default function Controls() {
                         <ChevronLeft className="h-4 w-4 mr-2" />
                         Previous
                       </Button>
-                      <div className="text-sm font-medium px-2 text-slate-600">
+                      <div className="text-sm font-medium px-2 text-muted-foreground">
                         Page {page + 1} of {totalPages}
                       </div>
                       <Button
@@ -608,20 +604,20 @@ export default function Controls() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-controlId" className="font-semibold text-foreground/80">Control ID</Label>
-                <Input id="edit-controlId" name="controlId" defaultValue={controls.find(c => c.id === editingControl)?.controlId} required className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" />
+                <Input id="edit-controlId" name="controlId" defaultValue={controls.find(c => c.id === editingControl)?.controlId} required  />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-framework" className="font-semibold text-foreground/80">Framework</Label>
-                <Input id="edit-framework" name="framework" defaultValue={controls.find(c => c.id === editingControl)?.framework} readOnly className="border-2 border-slate-300 bg-slate-100 text-muted-foreground focus:ring-2 focus:ring-primary/20" />
+                <Input id="edit-framework" name="framework" defaultValue={controls.find(c => c.id === editingControl)?.framework} readOnly className="bg-muted text-muted-foreground" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-name" className="font-semibold text-foreground/80">Name</Label>
-              <Input id="edit-name" name="name" defaultValue={controls.find(c => c.id === editingControl)?.name} required className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" />
+              <Input id="edit-name" name="name" defaultValue={controls.find(c => c.id === editingControl)?.name} required  />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description" className="font-semibold text-foreground/80">Description</Label>
-              <Textarea id="edit-description" name="description" className="min-h-[80px] border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" defaultValue={controls.find(c => c.id === editingControl)?.description || ""} />
+              <Textarea id="edit-description" name="description" className="min-h-[80px]" defaultValue={controls.find(c => c.id === editingControl)?.description || ""} />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
@@ -648,18 +644,18 @@ export default function Controls() {
                 ref={guidanceRef}
                 name="implementationGuidance"
                 placeholder="e.g. Ex1: Identify relevant internal stakeholders..."
-                className="min-h-[120px] font-mono text-sm border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20"
+                className="min-h-[120px] font-mono text-sm"
                 defaultValue={(controls.find(c => c.id === editingControl) as any)?.implementationGuidance || ""}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-owner" className="font-semibold text-foreground/80">Owner</Label>
-                <Input id="edit-owner" name="owner" className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" defaultValue={controls.find(c => c.id === editingControl)?.owner || ""} />
+                <Input id="edit-owner" name="owner"  defaultValue={controls.find(c => c.id === editingControl)?.owner || ""} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-changeNote" className="font-semibold text-foreground/80">Change Note (Optional)</Label>
-                <Input id="edit-changeNote" name="changeNote" className="border-2 border-slate-300 bg-slate-50 focus:ring-2 focus:ring-primary/20" placeholder="Reason for update..." />
+                <Input id="edit-changeNote" name="changeNote"  placeholder="Reason for update..." />
               </div>
             </div>
             {/* Hidden fields for required but unchanged enums if needed, or rely on defaults */}
@@ -718,7 +714,7 @@ export default function Controls() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.preventDefault();
                 confirmDelete();

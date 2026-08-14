@@ -2,13 +2,43 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq } from "drizzle-orm";
 import { runAllControlAutoTestsForClient } from "../../lib/controlAutoTestEngine";
+import { resolveDatabaseUrl, describeDbHost } from "../../lib/dbUrl";
 
 let autoTestInterval: NodeJS.Timeout | null = null;
+let offlineWarned = false;
+
+/**
+ * Offline guard: when no LOCAL database is configured (e.g. the process is
+ * still pointing at a retired remote pooler URL), skip auto-testing entirely
+ * instead of attempting a TLS handshake against an unreachable endpoint. This
+ * is what produced the repeated
+ * "Client network socket disconnected before secure TLS connection was
+ * established" spam. Logs exactly once per process, never prints credentials.
+ */
+export function isOfflineMode(): boolean {
+  const { url, isLocal } = resolveDatabaseUrl();
+  return !url || !isLocal;
+}
+
+function warnOfflineOnce() {
+  if (offlineWarned) return;
+  offlineWarned = true;
+  const { url } = resolveDatabaseUrl();
+  console.warn(
+    `[ControlAutoTestScheduler] No local DATABASE_URL configured (current host: ${describeDbHost(url) || "none"}) - ` +
+      "auto-test sync is running in OFFLINE mode and will be skipped. " +
+      "Point DATABASE_URL at a reachable local database to enable continuous control monitoring."
+  );
+}
 
 /**
  * Execute control auto-testing for all active clients.
  */
 export async function syncControlAutoTestsForAllClients() {
+  if (isOfflineMode()) {
+    warnOfflineOnce();
+    return;
+  }
   try {
     const db = await getDb();
     const clientsList = await db
@@ -54,6 +84,12 @@ export async function syncControlAutoTestsForAllClients() {
  */
 export function start(intervalHours = 6) {
   stop();
+
+  if (isOfflineMode()) {
+    warnOfflineOnce();
+    console.log("[ControlAutoTestScheduler] Scheduler disabled (offline mode: no local DATABASE_URL)");
+    return;
+  }
 
   // Initial execution on startup
   syncControlAutoTestsForAllClients().catch((err) =>

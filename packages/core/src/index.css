@@ -17,6 +17,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-cta: var(--primary-cta);
+  --color-primary-cta-hover: var(--primary-cta-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -261,6 +263,8 @@
   /* Primary Brand Colors - Deep Navy/Teal */
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
+  --primary-cta: #0F2C59;
+  --primary-cta-hover: #3B82F6;
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
 
@@ -372,6 +376,8 @@
   --primary: oklch(0.922 0 0);
   /* Teal for better visibility in dark mode */
   --primary-foreground: oklch(0.205 0 0);
+  --primary-cta: #1E3A8A;
+  --primary-cta-hover: #3B82F6;
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
 

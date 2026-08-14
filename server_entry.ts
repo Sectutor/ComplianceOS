@@ -50,6 +50,7 @@ import * as licenseRenewalScheduler from './packages/core/src/server/services/li
 import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
 import * as evidenceExpirationScheduler from './packages/core/src/server/services/evidenceExpirationScheduler';
 import * as controlAutoTestScheduler from './packages/core/src/server/services/controlAutoTestScheduler';
+import { startEvidenceScheduler } from './packages/core/src/lib/evidenceScheduler';
 
 import redis from './packages/core/src/lib/redis';
 import * as crypto from 'crypto';
@@ -722,6 +723,11 @@ if (process.env.ENABLE_CONTROL_AUTO_TESTING_SCHEDULER !== 'false') {
     console.log('[Server] Control auto-testing scheduler started');
 }
 
+// Evidence collection scheduler (automated evidence collection, P0)
+if (process.env.ENABLE_EVIDENCE_SCHEDULER !== 'false') {
+    startEvidenceScheduler();
+    console.log('[Server] Evidence collection scheduler started');
+}
 
 // Addon system initialization
 if (process.env.ENABLE_ADDONS !== 'false') {

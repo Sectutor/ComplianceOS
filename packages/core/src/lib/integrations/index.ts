@@ -28,6 +28,7 @@ export { threatIntelManifest, executeThreatIntelAction } from './threat-intel';
 // ---------------------------------------------------------------------------
 import { evidenceCollectorRegistry } from './collector';
 import { githubEvidenceCollector } from './github/collector';
+import { httpApiEvidenceCollector } from './http-api/collector';
 
 export {
   normalizeEvidence,
@@ -58,6 +59,20 @@ export type {
   GithubApiClient,
 } from './github/collector';
 
+// HTTP/API evidence collector (generic scanner/GRC JSON endpoint)
+export {
+  httpApiEvidenceManifest,
+  mapHttpApiStatus,
+  stableHttpApiItemId,
+  createHttpApiEvidenceCollector,
+  httpApiEvidenceCollector,
+} from './http-api/collector';
+export type {
+  HttpApiFetch,
+  HttpApiFetchResponse,
+} from './http-api/collector';
+
 // Register the built-in collectors so runAll() picks them up automatically.
 evidenceCollectorRegistry.register(githubEvidenceCollector);
+evidenceCollectorRegistry.register(httpApiEvidenceCollector);
 

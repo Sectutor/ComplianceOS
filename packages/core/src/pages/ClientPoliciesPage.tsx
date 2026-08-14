@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
@@ -228,7 +229,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             Bulk Generate
                         </Button>
                     )}
-                    <Button id="create-policy-btn" onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} className="bg-sky-600 hover:bg-sky-700 text-white">
+                    <Button id="create-policy-btn" onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} >
                         <Plus className="mr-2 h-4 w-4" />
                         Create Policy
                     </Button>
@@ -256,7 +257,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                     if (form) form.requestSubmit();
                                 }}
                                 disabled={addPolicyMutation.isPending}
-                                className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold min-w-[160px]"
+                                className="transition-all font-semibold min-w-[160px]"
                             >
                                 {addPolicyMutation.isPending ? (
                                     <>
@@ -368,7 +369,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                             <p className="text-xs text-muted-foreground">AI is crafting a tailored policy. This may take a moment.</p>
                                         </div>
                                     </div>
-                                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                                         <div
                                             className="bg-gradient-to-r from-[#1C4D8D] to-[#3ABEF9] h-2 rounded-full"
                                             style={{
@@ -451,7 +452,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : clientPolicies && clientPolicies.length > 0 ? (
-                <div className="rounded-2xl border border-slate-200 shadow-xl overflow-hidden bg-white transition-all">
+                <div className="rounded-xl border border-border shadow-sm overflow-hidden bg-card transition-all">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gradient-to-r from-[#1C4D8D] to-[#2B6CB0] hover:from-[#1C4D8D] hover:to-[#2B6CB0] border-none shadow-sm">
@@ -472,19 +473,19 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                 return (
                                     <TableRow
                                         key={item.clientPolicy.id}
-                                        className="cursor-pointer bg-white border-b border-slate-100 transition-all duration-300 ease-in-out hover:bg-sky-50/40 hover:shadow-inner group"
+                                        className="cursor-pointer bg-card border-b border-border transition-all duration-300 ease-in-out hover:bg-muted/50 hover:shadow-inner group"
                                         onClick={() => setLocation(`/clients/${clientId}/policies/${item.clientPolicy.id}`)}
                                         style={{ animationDelay: `${index * 50}ms` }}
                                     >
-                                        <TableCell className="font-semibold text-slate-900 py-5">
+                                        <TableCell className="font-semibold text-foreground py-5">
                                             <div className="flex items-center gap-3.5 group-hover:translate-x-1.5 transition-transform duration-300">
-                                                <div className="p-2.5 rounded-xl bg-sky-50 group-hover:bg-sky-100 transition-colors duration-300 shadow-sm border border-sky-100/50">
-                                                    <FileText className="h-5 w-5 text-sky-700" />
+                                                <div className="p-2.5 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/15 transition-colors duration-300 shadow-sm border border-blue-500/10">
+                                                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                                 </div>
                                                 <span className="text-[15px]">{item.clientPolicy.name}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-slate-500 font-medium py-5">
+                                        <TableCell className="text-muted-foreground font-medium py-5">
                                             {item.template?.framework || 'Custom'}
                                         </TableCell>
                                         <TableCell className="py-5">
@@ -493,10 +494,10 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                                 const configs: Record<string, { bg: string, text: string, border: string, dot: string }> = {
                                                     approved: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
                                                     active: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-                                                    draft: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-400' },
+                                                    draft: { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border', dot: 'bg-muted-foreground/50' },
                                                     review: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
-                                                    pending: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', dot: 'bg-sky-500' },
-                                                    expired: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
+                                                    pending: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', dot: 'bg-blue-500' },
+                                                    expired: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20', dot: 'bg-red-500' },
                                                 };
                                                 const config = configs[status] || configs.review;
                                                 return (
@@ -510,14 +511,14 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                                 );
                                             })()}
                                         </TableCell>
-                                        <TableCell className="text-slate-500 text-center py-5 text-sm">
+                                        <TableCell className="text-muted-foreground text-center py-5 text-sm">
                                             {createdAt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                         </TableCell>
-                                        <TableCell className="text-slate-500 text-center py-5 text-sm">
+                                        <TableCell className="text-muted-foreground text-center py-5 text-sm">
                                             {createdAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                         </TableCell>
-                                        <TableCell className="text-slate-500 text-center py-5">
-                                            <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold shadow-sm">
+                                        <TableCell className="text-muted-foreground text-center py-5">
+                                            <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-muted/50 border border-border text-foreground/80 text-[11px] font-bold shadow-sm">
                                                 v{item.clientPolicy.version || 1}
                                             </span>
                                         </TableCell>
@@ -526,7 +527,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                                    className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors duration-200"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setLocation(`/clients/${clientId}/policies/${item.clientPolicy.id}`);
@@ -537,7 +538,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                                    className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors duration-200"
                                                     title="Distribute Policy"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -549,7 +550,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
+                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors duration-200"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setDeletePolicyId(item.clientPolicy.id);
@@ -566,16 +567,12 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     </Table>
                 </div>
             ) : (
-                <Card className="py-8">
-                    <CardContent className="text-center">
-                        <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                        <p className="text-muted-foreground mb-4">No policies created yet</p>
-                        <Button onClick={() => setIsAddPolicyOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create First Policy
-                        </Button>
-                    </CardContent>
-                </Card>
+                            <EmptyState
+                icon={FileText}
+                title="No policies created yet"
+                description="Create your first policy from a framework template, or start from scratch with AI assistance."
+                action={{ label: "Create First Policy", onClick: () => setIsAddPolicyOpen(true) }}
+            />
             )}
         </div>
     );

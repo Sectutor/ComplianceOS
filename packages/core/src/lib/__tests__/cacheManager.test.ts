@@ -634,4 +634,29 @@ describe("CacheManager maintenance & idle metrics", () => {
     expect(m.errorRate).toBe(0);
     expect(m.totalRequests).toBe(0);
   });
+  it("survives a degenerate negative maxSize without crashing (eviction loop defensive break)", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager({ redis: { host: "localhost", port: 6379, db: 0 }, tiers: [{ type: "memory", ttl: 60, maxSize: -1 }, { type: "redis", ttl: 60, keyPrefix: "compliance:" }], monitoring: { enabled: false, collectInterval: 1000, alertThresholds: { hitRate: 0, memoryUsage: 9999, errorRate: 1 } } });
+
+    // maxSize -1 keeps the cache permanently over budget: evictCount = size + 1,
+    // so the loop drains the map and must stop via the `if (!oldestKey) break`
+    // guard instead of throwing (regression coverage for manager.ts eviction).
+    await cache.set("a", 1, 60);
+    await cache.set("b", 2, 60);
+
+    await expect(cache.get("a")).resolves.toBeNull();
+    await expect(cache.get("b")).resolves.toBeNull();
+  });
+  it("treats maxSize 0 as unset (no eviction) — documents the falsy-maxSize quirk", async () => {
+    const { CacheManager } = await loadCacheModule();
+    const cache = new CacheManager({ redis: { host: "localhost", port: 6379, db: 0 }, tiers: [{ type: "memory", ttl: 60, maxSize: 0 }, { type: "redis", ttl: 60, keyPrefix: "compliance:" }], monitoring: { enabled: false, collectInterval: 1000, alertThresholds: { hitRate: 0, memoryUsage: 9999, errorRate: 1 } } });
+
+    // `maxSize && size > maxSize` treats 0 as falsy, so a zero maxSize never
+    // triggers eviction (it silently behaves like "unlimited").
+    await cache.set("a", 1, 60);
+    await cache.set("b", 2, 60);
+
+    await expect(cache.get("a")).resolves.toBe(1);
+    await expect(cache.get("b")).resolves.toBe(2);
+  });
 });

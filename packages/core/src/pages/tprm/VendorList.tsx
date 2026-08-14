@@ -17,6 +17,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@complianceos/ui/ui/StatusBadge";
+import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { format } from "date-fns";
 import {
     AlertDialog,
@@ -290,16 +291,16 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 border border-[#1C4D8D]/20 rounded-xl">
+                    <TabsList className="bg-primary/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 border border-primary/20 rounded-xl">
                         <TabsTrigger
                             value="active"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-6 py-2.5 rounded-lg font-bold"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-6 py-2.5 rounded-lg font-bold"
                         >
                             Active Vendors
                         </TabsTrigger>
                         <TabsTrigger
                             value="requests"
-                            className="relative data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-6 py-2.5 rounded-lg font-bold"
+                            className="relative data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-6 py-2.5 rounded-lg font-bold"
                         >
                             Pending Requests
                             {requests?.filter((r: any) => r.status === 'pending').length > 0 && (
@@ -314,10 +315,10 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                     {activeTab === 'active' && (
                         <div className="flex gap-4">
                             <div className="relative w-64" id="vendor-search-input">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search vendors..."
-                                    className="pl-9 bg-white"
+                                    className="pl-9 bg-card"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -329,14 +330,16 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
 
                 <TabsContent value="active" className="space-y-4">
                     {isLoading ? (
-                        <div className="flex justify-center p-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                        <div className="space-y-3">
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                        <div className="rounded-xl border border-border shadow-sm overflow-hidden bg-card">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                    <TableRow className="bg-primary hover:bg-primary border-none">
                                         <TableHead className="text-white font-bold h-12">Name</TableHead>
                                         <TableHead className="text-white font-bold h-12">Category</TableHead>
                                         <TableHead className="text-white font-bold h-12">Trust Score</TableHead>
@@ -357,19 +360,19 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                     {filteredVendors?.map(({ vendor }: { vendor: any }) => (
                                         <TableRow 
                                             key={vendor.id} 
-                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer" 
+                                            className="bg-blue-500/[0.03] border-b border-blue-500/10 transition-all duration-200 hover:bg-blue-500/10 cursor-pointer" 
                                             onClick={() => window.location.href = `/clients/${clientId}/vendors/${vendor.id}`}
                                         >
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-[#1C4D8D]/10 flex items-center justify-center text-[#1C4D8D] font-bold text-sm uppercase border border-[#1C4D8D]/10 shadow-sm">
+                                                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase border border-primary/10 shadow-sm">
                                                         {vendor.name.substring(0, 2)}
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <Link href={`/clients/${clientId}/vendors/${vendor.id}`}>
                                                             <span className="cursor-pointer hover:underline text-[#1C4D8D] font-bold">{vendor.name}</span>
                                                         </Link>
-                                                        <span className="text-xs text-slate-500 truncate max-w-[200px]">
+                                                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                                                             {vendor.description || "No description"}
                                                         </span>
                                                     </div>
@@ -402,7 +405,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                             <TableCell>
                                                 <div className={cn(
                                                     "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                                                    vendor.reviewStatus === 'needs_review' ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-800"
+                                                    vendor.reviewStatus === 'needs_review' ? "bg-amber-100 text-amber-800" : "bg-muted text-foreground/80"
                                                 )}>
                                                     {vendor.reviewStatus === 'needs_review' ? 'Review Needed' : vendor.status}
                                                 </div>
@@ -417,7 +420,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                 <div className="flex justify-end gap-2">
                                                     {mode === 'discovery' ? (
                                                         <>
-                                                            <Button variant="ghost" size="sm" asChild className="h-8 text-indigo-600">
+                                                            <Button variant="ghost" size="sm" asChild className="h-8 text-primary">
                                                                 <Link href={`/clients/${clientId}/vendors/${vendor.id}`}>
                                                                     Start Review <Play className="w-3 h-3 ml-1" />
                                                                 </Link>
@@ -425,7 +428,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                                                 onClick={(e) => handleDelete(e, vendor)}
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
@@ -452,21 +455,21 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                 <TabsContent value="requests" className="space-y-4">
                     <div className="grid gap-6">
                         {requests?.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-white rounded-lg border border-dashed">
-                                <BriefcaseIcon className="h-12 w-12 text-slate-300 mb-2" />
-                                <h3 className="font-semibold text-lg text-slate-700">No Pending Requests</h3>
-                                <p className="text-sm">Employees can request new vendors here.</p>
+                            <div className="flex flex-col items-center justify-center p-12 text-center bg-card rounded-xl border-2 border-dashed border-border">
+                                <BriefcaseIcon className="h-12 w-12 text-muted-foreground/50 mb-2" />
+                                <h3 className="font-semibold text-lg text-foreground">No Pending Requests</h3>
+                                <p className="text-sm text-muted-foreground mt-1">Employees can request new vendors here.</p>
                             </div>
                         )}
                         {requests?.map((req: any) => (
-                            <Card key={req.id} className="bg-white hover:border-indigo-200 transition-colors">
+                            <Card key={req.id} className="hover:border-primary/30 transition-colors">
                                 <CardContent className="p-6 flex justify-between items-start">
                                     <div className="flex items-start gap-4">
                                         <div className={cn(
                                             "h-12 w-12 rounded-lg flex items-center justify-center shrink-0",
                                             req.status === 'pending' ? "bg-amber-50 text-amber-600" :
                                                 req.status === 'approved' ? "bg-green-50 text-green-600" :
-                                                    "bg-red-50 text-red-600"
+                                                    "bg-destructive/10 text-destructive"
                                         )}>
                                             <Building2 className="h-6 w-6" />
                                         </div>
@@ -476,29 +479,29 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                 <Badge variant="outline" className={
                                                     req.status === 'pending' ? "bg-amber-50 text-amber-700 border-amber-200" :
                                                         req.status === 'approved' ? "bg-green-50 text-green-700 border-green-200" :
-                                                            "bg-red-50 text-red-700 border-red-200"
+                                                            "bg-destructive/10 text-destructive border-destructive/20"
                                                 }>
                                                     {req.status}
                                                 </Badge>
                                             </div>
                                             <p className="text-sm text-muted-foreground mb-3">{req.description}</p>
                                             <div className="flex gap-6 text-sm">
-                                                <div className="flex items-center gap-1.5 text-slate-600">
+                                                <div className="flex items-center gap-1.5 text-foreground/70">
                                                     <User className="h-3.5 w-3.5" />
-                                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Business Owner:</span>
+                                                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Business Owner:</span>
                                                     {req.businessOwner || "N/A"}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-slate-600">
+                                                <div className="flex items-center gap-1.5 text-foreground/70">
                                                     <Building2 className="h-3.5 w-3.5" />
-                                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Category:</span>
+                                                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Category:</span>
                                                     {req.category || "N/A"}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-slate-400">
+                                                <div className="flex items-center gap-1.5 text-muted-foreground">
                                                     <span className="text-xs">Requested {req.createdAt ? format(new Date(req.createdAt), 'MMM d, yyyy') : ''}</span>
                                                 </div>
                                             </div>
                                             {req.status === 'rejected' && req.rejectionReason && (
-                                                <div className="mt-3 text-sm text-red-600 bg-red-50 p-2 rounded">
+                                                <div className="mt-3 text-sm text-destructive bg-destructive/10 p-2 rounded">
                                                     Reason: {req.rejectionReason}
                                                 </div>
                                             )}
@@ -507,7 +510,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
 
                                     {req.status === 'pending' && (
                                         <div className="flex gap-2">
-                                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200" onClick={() => {
+                                            <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={() => {
                                                 setSelectedRequestId(req.id);
                                                 setIsRejectOpen(true);
                                             }}>
@@ -687,7 +690,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             onClick={(e) => {
                                 e.preventDefault();
                                 confirmDelete();

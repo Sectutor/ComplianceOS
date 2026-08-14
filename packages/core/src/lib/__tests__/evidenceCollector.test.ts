@@ -17,6 +17,7 @@ import type { EvidenceCollector, CollectedEvidence } from '../integrations/colle
 import {
   githubEvidenceManifest,
   createGithubEvidenceCollector,
+  createGithubApiClient,
 } from '../integrations/github/collector';
 import type { GithubFetch } from '../integrations/github/collector';
 
@@ -193,6 +194,21 @@ describe('collector engine', () => {
     expect(result.evidence).toHaveLength(3);
   });
 
+  it('collectEvidence tolerates a non-array collector result by normalizing to []', async () => {
+    const weird: EvidenceCollector = {
+      manifest: makeManifest('weird'),
+      async collect() {
+        return { not: 'an array' } as unknown as CollectedEvidence[];
+      },
+    };
+
+    const result = await collectEvidence(weird, makeContext(), { now: NOW });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.evidence).toEqual([]);
+  });
+
   it('summarizeResults aggregates pass/warning/fail/error counts', () => {
     const summary = summarizeResults([
       {
@@ -240,6 +256,26 @@ describe('EvidenceCollectorRegistry', () => {
     expect(registry.get('alpha')).toBe(collector);
     expect(registry.list()).toEqual([collector]);
     expect(registry.get('missing')).toBeUndefined();
+  });
+
+  it('warns and overwrites when a collector slug is registered twice', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const registry = new EvidenceCollectorRegistry();
+      const first = makeCollector('dup', []);
+      const second = makeCollector('dup', []);
+
+      registry.register(first);
+      registry.register(second);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('dup already registered'),
+      );
+      expect(registry.get('dup')).toBe(second);
+      expect(registry.list()).toHaveLength(1);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('runAll isolates a failing collector from the rest of the batch', async () => {
@@ -446,5 +482,137 @@ describe('GitHub evidence collector', () => {
     expect(githubEvidenceManifest.category).toBe('source-control');
     expect(githubEvidenceManifest.authentication.type).toBe('bearer');
     expect(githubEvidenceManifest.capabilities.sync).toBe(true);
+  });
+
+  it('returns no evidence when the user repos endpoint reports 404', async () => {
+    const collector = createGithubEvidenceCollector(
+      fakeFetcher({ [reposRoute]: { status: 404, body: { message: 'Not Found' } } }),
+    );
+
+    const evidence = await collector.collect(makeContext(), { now: NOW });
+
+    expect(evidence).toEqual([]);
+  });
+
+  it('returns no evidence when settings.repos matches no accessible repository', async () => {
+    const collector = createGithubEvidenceCollector(fakeFetcher(buildRoutes()));
+
+    const evidence = await collector.collect(
+      makeContext({ settings: { repos: ['nope/missing'] } }),
+      { now: NOW },
+    );
+
+    expect(evidence).toEqual([]);
+  });
+
+  it('treats 404s on alert endpoints as zero open alerts (pass)', async () => {
+    const routes = buildRoutes({
+      [`${BASE}/repos/acme/api/dependabot/alerts?state=open`]: {
+        status: 404,
+        body: { message: 'Not Found' },
+      },
+      [`${BASE}/repos/acme/api/secret-scanning/alerts?state=open`]: {
+        status: 404,
+        body: { message: 'Not Found' },
+      },
+    });
+    const collector = createGithubEvidenceCollector(fakeFetcher(routes));
+
+    const evidence = await collector.collect(makeContext(), { now: NOW });
+    const byId = Object.fromEntries(evidence.map((e) => [e.id, e]));
+
+    expect(byId['github-dependabot-acme-api']?.status).toBe('pass');
+    expect(byId['github-secret-scanning-acme-api']?.status).toBe('pass');
+  });
+
+  it('falls back to "unknown" when the API error body is not parseable JSON', async () => {
+    const routes = {
+      [reposRoute]: { status: 200, body: [{ full_name: 'acme/api' }] },
+      [`${BASE}/repos/acme/api/branches/main/protection`]: {
+        status: 500,
+        body: null,
+      },
+      [`${BASE}/repos/acme/api/dependabot/alerts?state=open`]: {
+        status: 200,
+        body: [],
+      },
+      [`${BASE}/repos/acme/api/secret-scanning/alerts?state=open`]: {
+        status: 200,
+        body: [],
+      },
+    };
+    // json() rejects on error responses only — the success paths must still parse.
+    const fetcher: GithubFetch = async (input: string) => {
+      const route = routes[String(input)];
+      if (!route) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ message: 'Not Found' }),
+        };
+      }
+      return {
+        ok: route.status >= 200 && route.status < 300,
+        status: route.status,
+        json: async () => {
+          if (route.status >= 400) throw new Error('body unreadable');
+          return route.body;
+        },
+      };
+    };
+    const collector = createGithubEvidenceCollector(fetcher);
+
+    const evidence = await collector.collect(makeContext(), { now: NOW });
+    const err = evidence.find((e) => e.id === 'github-repo-error-acme-api');
+
+    expect(err?.status).toBe('error');
+    expect(err?.description).toContain('unknown');
+    expect(err?.description).toContain('500');
+  });
+
+  it('builds requests against a custom API base URL with bearer auth headers', async () => {
+    const seen: string[] = [];
+    const seenInit: RequestInit[] = [];
+    const fetcher: GithubFetch = async (input: string, init?: RequestInit) => {
+      seen.push(String(input));
+      seenInit.push(init ?? {});
+      return { ok: true, status: 200, json: async () => [] };
+    };
+
+    const api = createGithubApiClient(fetcher, 'https://ghe.example.com');
+    await api.get('/user/repos', 'ghp_secret');
+
+    expect(seen[0]).toBe('https://ghe.example.com/user/repos');
+    const headers = seenInit[0].headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer ghp_secret');
+    expect(headers['X-GitHub-Api-Version']).toBe('2022-11-28');
+    expect(headers.Accept).toBe('application/vnd.github.v3+json');
+  });
+
+  it('defaults to global fetch when no fetcher is provided', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ full_name: 'acme/api' }),
+    }));
+    const original = (globalThis as { fetch?: unknown }).fetch;
+    (globalThis as { fetch?: unknown }).fetch = fetchMock;
+    try {
+      const api = createGithubApiClient();
+      const result = await api.get('/user/repos', 'token');
+
+      expect(result.notFound).toBe(false);
+      expect(result.data).toEqual({ full_name: 'acme/api' });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.github.com/user/repos',
+        expect.objectContaining({ headers: expect.any(Object) }),
+      );
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as { fetch?: unknown }).fetch;
+      } else {
+        (globalThis as { fetch?: unknown }).fetch = original;
+      }
+    }
   });
 });

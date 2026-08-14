@@ -34,11 +34,16 @@ export async function initializeAddonSystem(): Promise<{
   const dbAdapter = {
     async getPg() {
       const { default: postgres } = await import('postgres');
-      return postgres(process.env.DATABASE_URL!, {
-        max: 2,
-        ssl: { rejectUnauthorized: false },
-        prepare: false,
-      });
+      const { resolveDatabaseUrl, createSafePgOptions } = await import(
+        './packages/core/src/lib/dbUrl'
+      );
+      const { url } = resolveDatabaseUrl();
+      if (!url) {
+        throw new Error(
+          '[Addons] No DATABASE_URL configured - addon database adapter unavailable',
+        );
+      }
+      return postgres(url, createSafePgOptions(url) as any);
     },
 
     async findSubscription(clientId: number, addonSlug: string) {

@@ -180,7 +180,7 @@ export default function LoginPage() {
 
     if (user && isProfileLoading && !mfaRequired && !showMFAModal) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-[#002a40]">
+            <div className="flex items-center justify-center min-h-screen bg-sidebar">
                 <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
             </div>
         );
@@ -188,11 +188,11 @@ export default function LoginPage() {
 
     if (user && isError) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-[#002a40] p-4">
-                <Card className="w-full max-w-md bg-[#001e2b] border-red-900/50 shadow-2xl">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-sidebar p-4">
+                <Card className="w-full max-w-md bg-sidebar-muted border-red-900/50 shadow-2xl">
                     <CardHeader>
                         <CardTitle className="text-red-500">Authentication Error</CardTitle>
-                        <CardDescription className="text-slate-400">
+                        <CardDescription className="text-sidebar-foreground/60">
                             We verified your credentials, but could not load your profile.
                         </CardDescription>
                     </CardHeader>
@@ -219,12 +219,12 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-[#002a40]">
+        <div className="flex items-center justify-center min-h-screen bg-sidebar">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20" />
 
-            <Card className="w-full max-w-md relative z-10 bg-[#001e2b] border-slate-700 shadow-2xl">
+            <Card className="w-full max-w-md relative z-10 bg-sidebar-muted border-sidebar-border shadow-2xl">
                 <CardHeader className="text-center space-y-1">
-                    <div className="mx-auto h-12 w-12 rounded-xl bg-[#0ea5e9] flex items-center justify-center text-white mb-4">
+                    <div className="mx-auto h-12 w-12 rounded-xl bg-sidebar-accent flex items-center justify-center text-white mb-4">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -239,12 +239,12 @@ export default function LoginPage() {
                         </svg>
                     </div>
                     <CardTitle className="text-2xl font-bold text-white">Welcome Back</CardTitle>
-                    <CardDescription className="text-slate-400">Sign in to your GRCompliance account</CardDescription>
+                    <CardDescription className="text-sidebar-foreground/60">Sign in to your GRCompliance account</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleLogin}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-slate-300">Email</Label>
+                            <Label htmlFor="email" className="text-sidebar-foreground/80">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -252,13 +252,13 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="bg-[#002a40] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#0ea5e9] hover:bg-[#003554] transition-colors"
+                                className="bg-sidebar border-sidebar-border text-white placeholder:text-sidebar-foreground/40 focus:border-[#0ea5e9] hover:bg-sidebar-primary/80 transition-colors"
                             />
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="text-slate-300">Password</Label>
-                                <Button variant="link" className="px-0 font-normal h-auto text-[#0ea5e9] hover:text-[#0284c7]" type="button">Forgot password?</Button>
+                                <Label htmlFor="password" className="text-sidebar-foreground/80">Password</Label>
+                                <Button variant="link" className="px-0 font-normal h-auto text-sidebar-accent hover:text-sidebar-accent" type="button">Forgot password?</Button>
                             </div>
                             <Input
                                 id="password"
@@ -266,7 +266,7 @@ export default function LoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="bg-[#002a40] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#0ea5e9] hover:bg-[#003554] transition-colors"
+                                className="bg-sidebar border-sidebar-border text-white placeholder:text-sidebar-foreground/40 focus:border-[#0ea5e9] hover:bg-sidebar-primary/80 transition-colors"
                             />
                         </div>
                     </CardContent>
@@ -274,12 +274,12 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium text-lg border-none" disabled={loading}>
                             {loading ? 'Signing in...' : 'Sign In'}
                         </Button>
-                        <div className="text-center text-sm text-slate-400">
+                        <div className="text-center text-sm text-sidebar-foreground/60">
                             Don't have an account?{' '}
                             <Button
                                 variant="link"
                                 type="button"
-                                className="px-0 font-semibold text-[#0ea5e9] hover:text-[#0284c7]"
+                                className="px-0 font-semibold text-sidebar-accent hover:text-sidebar-accent"
                                 onClick={() => setLocation('/signup')}
                             >
                                 Sign up

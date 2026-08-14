@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
-import { Card, CardContent } from "@complianceos/ui/ui/card";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { StatCard } from "@complianceos/ui/ui/StatCard";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
@@ -376,9 +377,9 @@ export default function Evidence() {
               <Button variant="ghost" size="sm" onClick={() => setLocation(`/clients/${clientId}`)} className="h-8 w-8 p-0">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Evidence & Documents</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Evidence & Documents</h1>
             </div>
-            <p className="text-slate-500 ml-10">{client?.name} &bull; Phase 2: Implementation</p>
+            <p className="text-muted-foreground ml-10">{client?.name} &bull; Phase 2: Implementation</p>
           </div>
 
           <PageGuide
@@ -468,7 +469,7 @@ export default function Evidence() {
               open={isAddOpen}
               onOpenChange={setIsAddOpen}
               trigger={
-                <Button className="bg-[#5844ED] hover:bg-[#4736C9] font-semibold" id="evidence-add-document">
+                <Button className="font-semibold" id="evidence-add-document">
                   <Plus className="mr-2 h-4 w-4" /> Add document
                 </Button>
               }
@@ -480,7 +481,7 @@ export default function Evidence() {
                     Cancel
                   </Button>
                   <Button
-                    className="bg-[#5844ED] hover:bg-[#4736C9]"
+                    
                     onClick={(e) => {
                       const form = document.getElementById('add-evidence-form') as HTMLFormElement;
                       if (form) form.requestSubmit();
@@ -605,7 +606,7 @@ export default function Evidence() {
                   <div className="grid gap-2 mt-4">
                     <Label>Attachments</Label>
                     <div
-                      className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative border-slate-200"
+                      className="border-2 border-dashed rounded-xl p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer relative border-border"
                       onClick={() => document.getElementById('evidence-file-upload')?.click()}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
@@ -618,16 +619,16 @@ export default function Evidence() {
                       <input id="evidence-file-upload" type="file" className="hidden" multiple onChange={(e) => {
                         if (e.target.files) setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                       }} />
-                      <Upload className="h-8 w-8 mx-auto text-slate-400 mb-2" />
-                      <p className="text-sm font-medium text-slate-700">Drag & drop files here, or click to select</p>
-                      <p className="text-xs text-slate-500 mt-1">Supports PDF, PNG, JPG, DOCX</p>
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm font-medium text-foreground/80">Drag & drop files here, or click to select</p>
+                      <p className="text-xs text-muted-foreground mt-1">Supports PDF, PNG, JPG, DOCX</p>
                     </div>
                     {selectedFiles.length > 0 && (
                       <div className="space-y-2 mt-2">
                         {selectedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-slate-50 p-2 rounded-md border border-slate-200 text-sm">
+                          <div key={index} className="flex items-center justify-between bg-muted/50 p-2 rounded-md border border-border text-sm">
                             <span className="truncate max-w-[200px] flex items-center gap-2">
-                              <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                               {file.name}
                             </span>
                             <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {
@@ -648,7 +649,7 @@ export default function Evidence() {
         </div>
 
         {/* Framework Selector - High Assurance Implementation */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-premium p-6 mb-8 relative overflow-hidden" id="evidence-framework-selector">
+        <div className="bg-card/60 backdrop-blur-xl rounded-2xl border border-border shadow-sm p-6 mb-8 relative overflow-hidden" id="evidence-framework-selector">
           <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-5">
@@ -658,7 +659,7 @@ export default function Evidence() {
               <div>
                 <Label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#5844ED]/70 mb-2 block leading-none">Compliance Identity</Label>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                  <h2 className="text-3xl font-black text-foreground tracking-tight leading-none">
                     {frameworkFilter === 'all' ? 'Consolidated Frameworks' : frameworkFilter}
                   </h2>
                   <Badge className="bg-[#5844ED]/10 text-[#5844ED] border-[#5844ED]/20 shadow-none h-6 px-3 text-[10px] font-black tracking-wider animate-pulse uppercase">LIVE VIEW</Badge>
@@ -667,14 +668,14 @@ export default function Evidence() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm backdrop-blur-sm">
+              <div className="flex items-center gap-2 bg-card/80 p-1.5 rounded-2xl border border-border shadow-sm backdrop-blur-sm">
                 <div className="relative group ml-1">
-                  <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-[#5844ED] transition-colors" />
+                  <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-[#5844ED] transition-colors" />
                   <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
-                    <SelectTrigger className="w-[320px] h-11 pl-10 bg-white border-transparent hover:bg-slate-50 transition-all rounded-xl font-bold text-slate-700 shadow-sm focus:ring-[#5844ED]/20 relative">
+                    <SelectTrigger className="w-[320px] h-11 pl-10 bg-card border-transparent hover:bg-muted/50 transition-all rounded-xl font-bold text-foreground/80 shadow-sm focus:ring-[#5844ED]/20 relative">
                       <SelectValue placeholder="Switch Framework..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-2xl">
+                    <SelectContent className="rounded-xl border-border shadow-lg">
                       <SelectItem value="all" className="font-bold text-[#5844ED]">
                         <div className="flex items-center gap-2">
                           <BarChart3 className="h-4 w-4" /> All Frameworks (Consolidated)
@@ -690,10 +691,10 @@ export default function Evidence() {
                   </Select>
                 </div>
 
-                <div className="h-7 w-[1px] bg-slate-200 mx-1" />
+                <div className="h-7 w-[1px] bg-border mx-1" />
 
                 <Select id="evidence-filter-status" value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px] h-11 bg-transparent border-transparent hover:bg-white transition-all rounded-xl font-bold text-slate-500 gap-2">
+                  <SelectTrigger className="w-[140px] h-11 bg-transparent border-transparent hover:bg-card transition-all rounded-xl font-bold text-muted-foreground gap-2">
                     <Filter className="h-4 w-4 opacity-50" />
                     <SelectValue placeholder="Filter" />
                   </SelectTrigger>
@@ -706,88 +707,53 @@ export default function Evidence() {
               </div>
 
               <div className="relative group w-full md:w-72">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#5844ED] transition-colors" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-[#5844ED] transition-colors" />
                 <Input
                   id="evidence-search"
                   placeholder="Search in view..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-14 md:h-11 pl-11 border-white/60 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm focus:ring-[#5844ED]/20 focus:border-[#5844ED]/30 transition-all font-medium"
+                  className="h-14 md:h-11 pl-11 border-border bg-card/80 backdrop-blur-sm rounded-2xl shadow-sm focus:ring-[#5844ED]/20 focus:border-[#5844ED]/30 transition-all font-medium"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Global Summary Stats */}
+                {/* Global Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="evidence-stats-summary">
-          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300">
-            <CardContent className="p-6 flex items-center gap-5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
-                <BookOpen className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Total Controls</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + cat.totalItems, 0)}</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300">
-            <CardContent className="p-6 flex items-center gap-5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
-                <CheckCircle2 className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Verified OK</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + cat.okItems, 0)}</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300 border-l-4 border-l-red-500">
-            <CardContent className="p-6 flex items-center gap-5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:scale-110 group-hover:-rotate-12 transition-transform">
-                <Clock className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Expired / Stale</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">
-                  {evidenceList?.filter(e => e.status === 'expired').length || 0}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-white/60 backdrop-blur-xl shadow-premium hover-lift transition-all duration-300 border-l-4 border-l-amber-500">
-            <CardContent className="p-6 flex items-center gap-5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-110 group-hover:rotate-12 transition-transform">
-                <AlertCircle className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Missing Docs</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + (cat.totalItems - cat.okItems), 0)}</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-gradient-to-br from-[#5844ED] to-[#7E6EF2] text-white shadow-premium hover-lift transition-all duration-300 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-            <CardContent className="p-6 flex items-center gap-5 relative z-10">
-              <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:bg-white/30 transition-colors">
-                <BarChart3 className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[11px] font-black text-white/80 uppercase tracking-widest mb-1 drop-shadow-sm">Completion Rate</div>
-                <div className="text-3xl font-black text-white tracking-tight drop-shadow-md">
-                  {Math.round((groupedData.reduce((acc, cat) => acc + cat.okItems, 0) / (groupedData.reduce((acc, cat) => acc + cat.totalItems, 0) || 1)) * 100)}%
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="Total Controls"
+            value={groupedData.reduce((acc, cat) => acc + cat.totalItems, 0)}
+            icon={BookOpen}
+            tone="blue"
+          />
+          <StatCard
+            label="Verified OK"
+            value={groupedData.reduce((acc, cat) => acc + cat.okItems, 0)}
+            icon={CheckCircle2}
+            tone="green"
+          />
+          <StatCard
+            label="Expired / Stale"
+            value={evidenceList?.filter(e => e.status === 'expired').length || 0}
+            icon={Clock}
+            tone="red"
+          />
+          <StatCard
+            label="Missing Docs"
+            value={groupedData.reduce((acc, cat) => acc + (cat.totalItems - cat.okItems), 0)}
+            icon={AlertCircle}
+            tone="amber"
+          />
+          <StatCard
+            label="Completion Rate"
+            value={`${Math.round((groupedData.reduce((acc, cat) => acc + cat.okItems, 0) / (groupedData.reduce((acc, cat) => acc + cat.totalItems, 0) || 1)) * 100)}%`}
+            icon={BarChart3}
+            tone="brand"
+          />
         </div>
-
-        {/* Main Content - Categories */}
+{/* Main Content - Categories */}
         {
           isLoading ? (
             <div className="space-y-4">
@@ -799,24 +765,24 @@ export default function Evidence() {
               {groupedData.map((category) => (
                 <div key={category.name} className="space-y-4">
                   <div className="flex items-center justify-between px-2">
-                    <h2 className="text-xl font-bold text-slate-900">{category.name}</h2>
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                    <h2 className="text-xl font-bold text-foreground">{category.name}</h2>
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-card px-3 py-1 rounded-full border border-border">
                       <div className={`h-2.5 w-2.5 rounded-full border ${category.okItems === category.totalItems ? 'bg-green-500 border-green-200' : 'bg-amber-400 border-amber-200'}`} />
                       {category.okItems} / {category.totalItems} OK
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <Accordion type="multiple" defaultValue={Object.keys(category.subgroups)} className="divide-y divide-slate-100">
+                  <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                    <Accordion type="multiple" defaultValue={Object.keys(category.subgroups)} className="divide-y divide-border">
                       {Object.values(category.subgroups).map((subgroup: any) => (
                         <AccordionItem key={subgroup.name} value={subgroup.name} className="border-none">
-                          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-slate-50 transition-all group border-b border-transparent data-[state=open]:border-slate-100">
+                          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-all group border-b border-transparent data-[state=open]:border-border">
                             <div className="flex items-center justify-between w-full pr-6">
                               <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center h-6 w-6 rounded-md bg-slate-100 group-data-[state=open]:bg-[#5844ED]/10 group-data-[state=open]:text-[#5844ED] transition-colors">
+                                <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted group-data-[state=open]:bg-[#5844ED]/10 group-data-[state=open]:text-[#5844ED] transition-colors">
                                   <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
                                 </div>
-                                <span className="font-bold text-slate-700 tracking-tight">{subgroup.name}</span>
+                                <span className="font-bold text-foreground/80 tracking-tight">{subgroup.name}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 {subgroup.items.some((i: any) => i.evidence.length === 0) && (
@@ -824,39 +790,39 @@ export default function Evidence() {
                                     {subgroup.items.filter((i: any) => i.evidence.length === 0).length} Action Required
                                   </Badge>
                                 )}
-                                <Badge className="bg-slate-50 text-slate-500 font-medium px-2 py-0 h-6 border-slate-100 border shadow-none">
+                                <Badge className="bg-muted/50 text-muted-foreground font-medium px-2 py-0 h-6 border-border border shadow-none">
                                   {subgroup.items.length} Controls
                                 </Badge>
                               </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            <div className="border-t border-slate-100 bg-slate-50/30">
+                            <div className="border-t border-border bg-muted/30">
                               <Table>
                                 <TableBody>
                                   {subgroup.items.map((item: any) => (
-                                    <TableRow key={item.clientControl.id} className="hover:bg-white group/row border-b border-slate-100 last:border-0 transition-colors">
-                                      <TableCell className="w-12 text-center text-slate-400 font-mono text-[10px] opacity-50 group-hover/row:opacity-100">
+                                    <TableRow key={item.clientControl.id} className="hover:bg-card group/row border-b border-border last:border-0 transition-colors">
+                                      <TableCell className="w-12 text-center text-muted-foreground font-mono text-[10px] opacity-50 group-hover/row:opacity-100">
                                         {item.clientControl.clientControlId}
                                       </TableCell>
                                       <TableCell className="max-w-[300px]">
-                                        <div className="font-semibold text-slate-800">{item.control?.name}</div>
-                                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.control?.description}</div>
+                                        <div className="font-semibold text-foreground">{item.control?.name}</div>
+                                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.control?.description}</div>
                                       </TableCell>
                                       <TableCell>
                                         {item.evidence.length > 0 ? (
                                           <div className="flex flex-wrap gap-2">
                                             {item.evidence.map((ev: any) => (
                                               <div key={ev.evidence.id} className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-slate-200 text-xs shadow-sm group/ev">
-                                                  <span className="font-medium text-slate-700">{ev.evidence.evidenceId}</span>
+                                                <div className="flex items-center gap-2 bg-card px-2 py-1 rounded-md border border-border text-xs shadow-sm group/ev">
+                                                  <span className="font-medium text-foreground/80">{ev.evidence.evidenceId}</span>
                                                   <span className={`h-1.5 w-1.5 rounded-full ${ev.evidence.status === 'verified' ? 'bg-green-500' :
                                                     ev.evidence.status === 'pending' ? 'bg-blue-400' :
-                                                      ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-slate-300'
+                                                      ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-muted'
                                                     }`} />
 
                                                   {ev.isInherited && (
-                                                    <Badge variant="outline" className="h-4 px-1 text-[10px] bg-slate-50 text-slate-500 border-slate-200 font-normal">
+                                                    <Badge variant="outline" className="h-4 px-1 text-[10px] bg-muted/50 text-muted-foreground border-border font-normal">
                                                       Inherited
                                                     </Badge>
                                                   )}
@@ -874,14 +840,14 @@ export default function Evidence() {
                                                   </div>
                                                 </div>
                                                 {ev.isInherited && (
-                                                  <div className="text-[10px] text-slate-400 ml-1 flex items-center gap-1">
+                                                  <div className="text-[10px] text-muted-foreground ml-1 flex items-center gap-1">
                                                     <Shield className="h-2.5 w-2.5" />
                                                     via {ev.sourceFramework} {ev.sourceControlId}
                                                   </div>
                                                 )}
                                               </div>
                                             ))}
-                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full border border-dashed border-slate-300" onClick={() => {
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full border border-dashed border-border" onClick={() => {
                                               setSelectedClientControlId(item.clientControl.id.toString());
                                               setIsAddOpen(true);
                                             }}>
@@ -889,7 +855,7 @@ export default function Evidence() {
                                             </Button>
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-2 text-slate-400 italic text-sm">
+                                          <div className="flex items-center gap-2 text-muted-foreground italic text-sm">
                                             <AlertCircle className="h-3.5 w-3.5" />
                                             No evidence provided
                                             <Button variant="link" size="sm" className="h-fit p-0 ml-1 text-[#5844ED] font-semibold" onClick={() => {
@@ -902,8 +868,8 @@ export default function Evidence() {
                                         )}
                                       </TableCell>
                                       <TableCell className="w-40">
-                                        <div className="flex items-center gap-2 text-slate-600 text-xs">
-                                          <User className="h-3 w-3 text-slate-400" />
+                                        <div className="flex items-center gap-2 text-foreground/70 text-xs">
+                                          <User className="h-3 w-3 text-muted-foreground" />
                                           {item.clientControl.owner || "Unassigned"}
                                         </div>
                                       </TableCell>
@@ -911,24 +877,24 @@ export default function Evidence() {
                                         <EnhancedDialog
                                           open={viewingFiles === item.evidence[0]?.evidence.id} // Simple shim for view
                                           onOpenChange={(open) => !open && setViewingFiles(null)}
-                                          trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400"><Info className="h-4 w-4" /></Button>}
+                                          trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Info className="h-4 w-4" /></Button>}
                                           title="Control Details"
                                           size="lg"
                                         >
                                           <div className="space-y-4 py-4">
                                             <div className="grid grid-cols-2 gap-4">
                                               <div>
-                                                <Label className="text-xs text-slate-400 uppercase tracking-wider">Framework</Label>
+                                                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Framework</Label>
                                                 <div className="font-medium">{item.control?.framework}</div>
                                               </div>
                                               <div>
-                                                <Label className="text-xs text-slate-400 uppercase tracking-wider">Frequency</Label>
+                                                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Frequency</Label>
                                                 <div className="font-medium">{item.control?.frequency || "Continuous"}</div>
                                               </div>
                                             </div>
                                             <div>
-                                              <Label className="text-xs text-slate-400 uppercase tracking-wider">Implementation Guidance</Label>
-                                              <p className="text-sm text-slate-600 mt-1">{item.control?.implementationGuidance || "No guidance available"}</p>
+                                              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Implementation Guidance</Label>
+                                              <p className="text-sm text-foreground/70 mt-1">{item.control?.implementationGuidance || "No guidance available"}</p>
                                             </div>
                                           </div>
                                         </EnhancedDialog>
@@ -947,20 +913,12 @@ export default function Evidence() {
               ))}
             </div>
           ) : (
-            <Card className="py-20 border-dashed border-2">
-              <CardContent className="text-center">
-                <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Shield className="h-10 w-10 text-slate-300" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No documents found</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mb-8">
-                  Try adjusting your search or filters to find what you're looking for.
-                </p>
-                <Button variant="outline" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setFrameworkFilter("all"); }}>
-                  Clear all filters
-                </Button>
-              </CardContent>
-            </Card>
+                        <EmptyState
+              icon={Search}
+              title="No documents found"
+              description="Try adjusting your search or filters to find what you're looking for."
+              action={{ label: "Clear all filters", onClick: () => { setSearchQuery(""); setStatusFilter("all"); setFrameworkFilter("all"); } }}
+            />
           )
         }
 
@@ -988,7 +946,7 @@ export default function Evidence() {
                   </Button>
                 </div>
                 <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-4 border-t border-border">
                   <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
                   <EvidenceAnalysisButton
                     evidenceId={viewingFiles}
@@ -1012,7 +970,7 @@ export default function Evidence() {
               footer={
                 <div className="flex justify-end gap-2 w-full">
                   <Button variant="outline" onClick={() => setEditingEvidence(null)}>Cancel</Button>
-                  <Button className="bg-[#5844ED] hover:bg-[#4736C9]" onClick={() => (document.getElementById('edit-evidence-form') as HTMLFormElement)?.requestSubmit()}>
+                  <Button  onClick={() => (document.getElementById('edit-evidence-form') as HTMLFormElement)?.requestSubmit()}>
                     Update Evidence
                   </Button>
                 </div>
@@ -1029,7 +987,7 @@ export default function Evidence() {
                           <Label>Evidence ID</Label>
                           <Input name="evidenceId" defaultValue={ev.evidenceId} />
                         </div>
-                        <div className="grid gap-2 text-sm text-slate-500 flex items-center">
+                        <div className="grid gap-2 text-sm text-muted-foreground flex items-center">
                           Linked to: {ev.control?.controlId} - {ev.control?.name}
                         </div>
                       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageHeader } from "@complianceos/ui/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
@@ -295,14 +296,11 @@ export default function SecuritySettings() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'Security', active: true }]} />
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Security</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage multi-factor authentication and enforcement for your workspace.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Security"
+        subtitle="Manage multi-factor authentication and enforcement for your workspace."
+        className="mb-6"
+      />
 
       <div className="grid gap-6">
         <Card>
@@ -318,7 +316,7 @@ export default function SecuritySettings() {
           </CardHeader>
           <CardContent>
             {enrollPolicyError && (
-              <div className="p-3 mb-4 rounded-md border bg-yellow-50 text-yellow-700 text-sm">
+              <div className="p-3 mb-4 rounded-md border bg-amber-500/10 text-amber-700 text-sm">
                 {enrollPolicyError}
                 {factors.length > 0 && (
                   <div className="mt-2 flex gap-2">
@@ -371,10 +369,10 @@ export default function SecuritySettings() {
                   </div>
                   <div className="space-y-2">
                     {factors.length === 0 && (
-                      <div className="text-sm text-gray-500">No factors enrolled.</div>
+                      <div className="text-sm text-muted-foreground">No factors enrolled.</div>
                     )}
                     {factors.map((f) => (
-                      <div key={f.id} className="flex items-center justify-between p-5 border-2 rounded-2xl bg-[#002C43] border-slate-700/50 group hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-900/30 transition-all duration-300 cursor-default">
+                      <div key={f.id} className="flex items-center justify-between p-5 border-2 rounded-2xl bg-sidebar border-sidebar-border group hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-900/30 transition-all duration-300 cursor-default">
                         <div className="flex items-center gap-5">
                           <div className={`relative flex h-3 w-3`}>
                             {f.status === 'verified' && (
@@ -383,9 +381,9 @@ export default function SecuritySettings() {
                             <span className={`relative inline-flex rounded-full h-3 w-3 ${f.status === 'verified' ? 'bg-blue-400' : 'bg-amber-400'}`}></span>
                           </div>
 
-                          <div className="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 flex flex-col items-center justify-center min-w-[70px]">
+                          <div className="bg-sidebar-muted px-3 py-1.5 rounded-lg border border-sidebar-border flex flex-col items-center justify-center min-w-[70px]">
                             <span className="text-[10px] font-black text-blue-300 tracking-tighter uppercase">{f.factor_type}</span>
-                            <span className="text-[8px] font-bold text-slate-500 uppercase -mt-0.5">TYPE</span>
+                            <span className="text-[8px] font-bold text-sidebar-foreground/60 uppercase -mt-0.5">TYPE</span>
                           </div>
 
                           <div className="flex flex-col">
@@ -428,7 +426,7 @@ export default function SecuritySettings() {
 
                 <div className="space-y-2">
                   <div className="text-sm text-muted-foreground">Workspace Enforcement</div>
-                  <div className="flex items-center justify-between p-4 border rounded-xl bg-[#0a89c9] border-[#0a89c9]/20 shadow-sm">
+                  <div className="flex items-center justify-between p-4 border rounded-xl bg-sidebar-accent border-sidebar-accent/20 shadow-sm">
                     <div>
                       <div className="font-semibold text-white">Require MFA for all users</div>
                       <div className="text-sm text-white/90">Users must verify MFA before accessing protected features.</div>
@@ -436,7 +434,7 @@ export default function SecuritySettings() {
                     <Button
                       variant={requireMfa ? "secondary" : "outline"}
                       onClick={() => toggleRequireMfa(!requireMfa)}
-                      className={requireMfa ? "bg-white text-[#0a89c9] hover:bg-white/90 border-transparent shadow-none" : "bg-transparent text-white border-white/40 hover:bg-white/10"}
+                      className={requireMfa ? "bg-white text-sidebar-accent hover:bg-white/90 border-transparent shadow-none" : "bg-transparent text-white border-white/40 hover:bg-white/10"}
                     >
                       {requireMfa ? "Enabled" : "Disabled"}
                     </Button>

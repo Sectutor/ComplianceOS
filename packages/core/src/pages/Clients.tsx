@@ -281,7 +281,7 @@ export default function Clients() {
               open={isCreateOpen}
               onOpenChange={setIsCreateOpen}
               trigger={
-                <Button id="add-new-client-btn" className="gap-2 shadow-sm bg-[#0F2C59] hover:bg-[#3B82F6]" disabled={isAtLimit} variant={isAtLimit ? "outline" : "default"}>
+                <Button id="add-new-client-btn" className="gap-2 shadow-sm" disabled={isAtLimit} variant={isAtLimit ? "outline" : "default"}>
                   <Plus className="h-4 w-4" />
                   {isAtLimit ? "Limit Reached" : "New Client"}
                 </Button>
@@ -302,7 +302,7 @@ export default function Clients() {
                     </Button>
                   )}
                   {isAtLimit && (
-                    <Button className="bg-[#0F2C59] hover:bg-[#3B82F6]" onClick={() => upgradeAccount('pro')} disabled={isBillingLoading}>
+                    <Button onClick={() => upgradeAccount('pro')} disabled={isBillingLoading}>
                       Upgrade Plan
                     </Button>
                   )}
