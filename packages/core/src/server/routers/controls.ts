@@ -29,25 +29,28 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 // Currently our seed might not have "NIST SP 800-171 Rev 2" explicitly if it's using 800-53
                 
                 const framework = input?.framework;
-                if (framework === "NIST SP 800-171 Rev 2") {
-                    // Fallback to fetch all or fetch 800-53 and filter in UI? 
-                    // Better: If DB has 171, use it. If not, try 800-53.
-                    // For now, let's pass it through. If DB returns empty, we might need to seed it or alias it.
-                    
-                    // CHECK: Do we have "NIST SP 800-171 Rev 2" in the controls table?
-                    // If not, we should probably return "NIST SP 800-53 Rev 5" controls that map to 171?
-                    // Or just let the UI handle the mapping if we return nothing.
-                    
-                    // Temporary Hack: If 171 requested and returns 0, try returning 800-53
-                    const results = await db.getControls(framework, input?.clientId);
+                let results = await db.getControls(framework, input?.clientId);
+
+                if (results.length === 0 && (framework === "NIST SP 800-53 Rev 5" || framework === "NIST SP 800-171 Rev 2" || framework?.includes("FedRAMP") || framework?.includes("NIST"))) {
+                    results = await db.getControls("FedRAMP Moderate", input?.clientId);
                     if (results.length === 0) {
-                        console.log("No 800-171 controls found, trying NIST SP 800-53 Rev 5");
-                        return await db.getControls("NIST SP 800-53 Rev 5", input?.clientId);
+                        results = await db.getControls("FedRAMP", input?.clientId);
                     }
-                    return results;
+                    if (results.length === 0) {
+                        const { FEDRAMP_CONTROLS } = await import('../../data/frameworks/fedramp');
+                        results = FEDRAMP_CONTROLS.map((c: any) => ({
+                            id: c.controlId,
+                            controlId: c.controlId,
+                            name: c.name,
+                            description: `${c.description}\n\nGuidance:\n${c.guidance}`,
+                            category: c.family,
+                            framework: framework || "NIST SP 800-53 Rev 5",
+                            status: "active"
+                        }));
+                    }
                 }
 
-                return await db.getControls(framework, input?.clientId);
+                return results;
             } catch (e) {
                 console.error("[ControlsRouter] list error:", e);
                 throw e;

@@ -171,8 +171,8 @@ export default function Nist80053AssessmentPage() {
             const baseline = impactLevel === "High" ? fedrampHighControls :
                 impactLevel === "Moderate" ? fedrampModerateControls :
                     fedrampLowControls;
-            const baselineIds = new Set(baseline.map(c => c.id));
-            baseControls = controls.filter(c => baselineIds.has(c.controlId));
+            const baselineIds = new Set(baseline.map((c: any) => c.controlId || c.id));
+            baseControls = controls.filter((c: any) => baselineIds.has(c.controlId || c.id));
         }
 
         return baseControls.filter((ctrl: any) => {
