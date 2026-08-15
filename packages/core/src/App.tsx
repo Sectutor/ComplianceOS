@@ -13,7 +13,10 @@ import { GlobalCommandPalette } from "./components/common/GlobalCommandPalette";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, Redirect, useLocation, useParams } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { ThemeProvider as MUIThemeProvider } from "@mui/material/styles";
+import { getTheme } from "./theme/mui-theme";
+import type { Theme } from "./contexts/ThemeContext";
 import { ClientContextProvider, useClientContext } from "./contexts/ClientContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AdvisorProvider } from "./contexts/AdvisorContext";
@@ -2225,6 +2228,21 @@ function Router() {
   );
 }
 
+/**
+ * MUI Theme Bridge
+ * Reads the current theme mode from ThemeContext and provides the matching MUI theme.
+ * This allows MUI components to coexist with the existing Tailwind-based theme system.
+ */
+function MUIThemeBridge({ children }: { children: React.ReactNode }) {
+    const { theme } = useTheme();
+    const muiTheme = getTheme(theme === "dark" ? "dark" : "light");
+    return (
+        <MUIThemeProvider theme={muiTheme}>
+            {children}
+        </MUIThemeProvider>
+    );
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -2234,13 +2252,14 @@ function App() {
             <GlobalBrandingSync />
             <AdvisorProvider>
               <ThemeProvider defaultTheme="light">
+              <MUIThemeBridge>
                 <TooltipProvider>
                   <Toaster />
                   <SystemFeedbackModal />
                   <GDPRBanner />
                   <Router />
                   <ChatWidget />
-                </TooltipProvider>
+                </TooltipProvider>\r\n                </MUIThemeBridge>
               </ThemeProvider>
             </AdvisorProvider>
           </BrandingProvider>
