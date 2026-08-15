@@ -238,8 +238,16 @@ app.use(cors({
 
 // Parse JSON bodies (though TRPC handles its own, auth middleware might need it if used for other routes)
 // Parse JSON bodies with increased limit for uploads
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// IMPORTANT: Skip body parsing for tRPC routes - tRPC handles its own body parsing
+// and double-consumption of the body stream causes requests to hang forever.
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/trpc')) return next();
+    express.json({ limit: '50mb' })(req, res, next);
+});
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/trpc')) return next();
+    express.urlencoded({ limit: '50mb', extended: true })(req, res, next);
+});
 
 import session from 'express-session';
 

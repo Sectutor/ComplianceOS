@@ -417,7 +417,7 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 
   logger.info({
     message: "[DB] Initializing database connection",
-    poolMax: 10,
+    poolmax: 20,
     ssl: true,
   });
 
@@ -430,7 +430,7 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
         idle_timeout: 30,
         max_lifetime: 300,
         connect_timeout: 2,
-        max: 10,
+        max: 20,
         connection: {
           statement_timeout: 15000,
         },

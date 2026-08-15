@@ -308,7 +308,7 @@ function DashboardLayoutContent({
   const activeClientId = clientIdMatch ? parseInt(clientIdMatch[1], 10) : null;
 
   // Use persistent client context
-  const { selectedClientId, clearSelectedClient, userRole: clientRole } = useClientContext();
+  const { selectedClientId, setSelectedClientId, clearSelectedClient, userRole: clientRole } = useClientContext();
 
   // Use selectedClientId from context if available, otherwise fall back to URL
   const persistentClientId = selectedClientId || activeClientId;
