@@ -161,7 +161,8 @@ import {
 
 
   projects, InsertProject, Project,
-  projectComplianceMappings, InsertProjectComplianceMapping, ProjectComplianceMapping
+  projectComplianceMappings, InsertProjectComplianceMapping, ProjectComplianceMapping,
+  complianceRequirements,
 } from "./schema";
 
 import * as schema from "./schema";
