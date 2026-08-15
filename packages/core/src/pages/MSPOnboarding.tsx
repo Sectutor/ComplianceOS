@@ -8,12 +8,11 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
-import { Badge } from "@complianceos/ui/ui/badge";
 import {
     Building2, Shield, FileText, CheckCircle2,
-    Loader2, Rocket, Globe, ArrowLeft, ArrowRight,
-    Users, Mail, Sparkles, Lock, BarChart3, Zap,
-    ChevronRight, Star, AlertCircle
+    Loader2, Rocket, ArrowLeft, ArrowRight,
+    Users, Sparkles, Lock, BarChart3,
+    ChevronRight, Info, HelpCircle
 } from "lucide-react";
 
 const FRAMEWORKS = [
@@ -55,12 +54,13 @@ const INDUSTRIES = [
 ];
 
 const STEPS = [
-    { id: 1, title: "Company Info", icon: Building2, desc: "Client basics" },
-    { id: 2, title: "Frameworks", icon: Shield, desc: "Standards" },
-    { id: 3, title: "Risk Profile", icon: BarChart3, desc: "Scope & context" },
-    { id: 4, title: "Branding", icon: Sparkles, desc: "White-label" },
-    { id: 5, title: "Invite Client", icon: Users, desc: "Onboard contact" },
-    { id: 6, title: "Launch", icon: Rocket, desc: "Go live" },
+    { id: 1, title: "Company Info", icon: Building2, desc: "Client basics", help: "Enter your client's basic information to set up their workspace" },
+    { id: 2, title: "Frameworks", icon: Shield, desc: "Standards", help: "Select which compliance frameworks your client needs to meet" },
+    { id: 3, title: "Risk Profile", icon: BarChart3, desc: "Scope & context", help: "Help us prioritise controls based on your client's risk profile" },
+    { id: 4, title: "Branding", icon: Sparkles, desc: "White-label", help: "Customise how the workspace appears to your client" },
+    { id: 5, title: "Invite Client", icon: Users, desc: "Onboard contact", help: "Invite your client contact to access their workspace" },
+    { id: 6, title: "Review", icon: FileText, desc: "Confirm details", help: "Review all details before launching the workspace" },
+    { id: 7, title: "Launch", icon: Rocket, desc: "Go live", help: "Your client's workspace is ready!" },
 ];
 
 export default function MSPOnboarding() {
@@ -119,20 +119,11 @@ export default function MSPOnboarding() {
             setCreatedClientId(result.id);
             utils.clients.list.invalidate();
             toast.success(`${company.name}'s workspace is ready! 🎉`);
-            setStep(6);
+            setStep(7);
         } catch (err) {
             toast.error("Failed to create workspace. Please try again.");
             setIsProcessing(false);
         }
-    };
-
-    const colorMap: Record<string, string> = {
-        blue: "border-blue-300 bg-blue-50 text-blue-700",
-        indigo: "border-indigo-300 bg-indigo-50 text-indigo-700",
-        emerald: "border-emerald-300 bg-emerald-50 text-emerald-700",
-        purple: "border-purple-300 bg-purple-50 text-purple-700",
-        rose: "border-rose-300 bg-rose-50 text-rose-700",
-        amber: "border-amber-300 bg-amber-50 text-amber-700",
     };
 
     const totalControls = selectedFrameworks
@@ -140,18 +131,18 @@ export default function MSPOnboarding() {
         .reduce((a, b) => a + b, 0);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 flex flex-col">
+        <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #020617 0%, #312e81 50%, #020617 100%)' }}>
             {/* Header */}
-            <header className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+            <header className="flex items-center justify-between px-8 py-5 border-b border-white/10">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate("/clients")}
-                        className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm"
+                        className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 text-sm"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back to clients
                     </button>
-                    <div className="h-4 w-px bg-white/10" />
+                    <div className="h-4 w-px bg-white/20" />
                     <div className="flex items-center gap-2">
                         <div className="h-7 w-7 rounded-lg bg-indigo-500 flex items-center justify-center">
                             <Shield className="h-4 w-4 text-white" />
@@ -169,8 +160,8 @@ export default function MSPOnboarding() {
                                 step === s.id
                                     ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
                                     : step > s.id
-                                        ? "bg-emerald-500/20 text-emerald-400"
-                                        : "bg-white/5 text-slate-500"
+                                        ? "bg-emerald-500/20 text-emerald-300"
+                                        : "bg-white/10 text-gray-400"
                             )}>
                                 {step > s.id
                                     ? <CheckCircle2 className="h-3 w-3" />
@@ -178,14 +169,30 @@ export default function MSPOnboarding() {
                                 <span className="hidden lg:inline">{s.title}</span>
                             </div>
                             {i < STEPS.length - 1 && (
-                                <ChevronRight className="h-3 w-3 text-slate-600" />
+                                <ChevronRight className="h-3 w-3 text-gray-500" />
                             )}
                         </div>
                     ))}
                 </div>
 
-                <div className="text-xs text-slate-500">Step {step} of {STEPS.length}</div>
+                <div className="text-xs text-gray-400">Step {step} of {STEPS.length}</div>
             </header>
+
+            {/* Progress bar */}
+            <div className="px-8 py-3 border-b border-white/5">
+                <div className="max-w-2xl mx-auto">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-400">Progress</span>
+                        <span className="text-xs text-gray-400">{Math.round((step / STEPS.length) * 100)}%</span>
+                    </div>
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-out rounded-full"
+                            style={{ width: `${(step / STEPS.length) * 100}%` }}
+                        />
+                    </div>
+                </div>
+            </div>
 
             {/* Main content */}
             <div className="flex-1 flex items-center justify-center p-6">
@@ -202,18 +209,18 @@ export default function MSPOnboarding() {
                             {step === 1 && (
                                 <div className="space-y-6">
                                     <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-500/30 mb-4">
-                                            <Building2 className="h-7 w-7 text-indigo-400" />
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-400/30 mb-4">
+                                            <Building2 className="h-7 w-7 text-indigo-300" />
                                         </div>
                                         <h1 className="text-3xl font-bold text-white mb-2">Who's your client?</h1>
-                                        <p className="text-slate-400">Basic details to set up their workspace</p>
+                                        <p className="text-gray-300">Basic details to set up their workspace</p>
                                     </div>
                                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur-sm">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="col-span-2">
-                                                <Label className="text-slate-300 text-sm">Company Name *</Label>
+                                                <Label className="text-gray-200 text-sm font-medium">Company Name *</Label>
                                                 <Input
-                                                    className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-indigo-500 focus:ring-indigo-500/20"
+                                                    className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500 focus:border-indigo-400 focus:ring-indigo-400/20"
                                                     placeholder="e.g. Acme Corp"
                                                     value={company.name}
                                                     onChange={e => setCompany({ ...company, name: e.target.value })}
@@ -221,7 +228,7 @@ export default function MSPOnboarding() {
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-slate-300 text-sm">Industry *</Label>
+                                                <Label className="text-gray-200 text-sm font-medium">Industry *</Label>
                                                 <div className="mt-1.5 grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-1">
                                                     {INDUSTRIES.map(ind => (
                                                         <button
@@ -230,8 +237,8 @@ export default function MSPOnboarding() {
                                                             className={cn(
                                                                 "text-left px-3 py-2 rounded-lg text-sm border transition-all",
                                                                 company.industry === ind
-                                                                    ? "bg-indigo-600 border-indigo-500 text-white font-medium"
-                                                                    : "bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300"
+                                                                    ? "bg-indigo-600 border-indigo-400 text-white font-medium"
+                                                                    : "bg-white/5 border-white/10 text-gray-300 hover:border-white/30 hover:text-white"
                                                             )}
                                                         >
                                                             {ind}
@@ -241,16 +248,16 @@ export default function MSPOnboarding() {
                                             </div>
                                             <div className="space-y-4">
                                                 <div>
-                                                    <Label className="text-slate-300 text-sm">Website</Label>
+                                                    <Label className="text-gray-200 text-sm font-medium">Website</Label>
                                                     <Input
-                                                        className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                                                        className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500"
                                                         placeholder="https://acme.com"
                                                         value={company.website}
                                                         onChange={e => setCompany({ ...company, website: e.target.value })}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label className="text-slate-300 text-sm">Employees</Label>
+                                                    <Label className="text-gray-200 text-sm font-medium">Employees</Label>
                                                     <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                                                         {["1–10", "11–50", "51–200", "201–500", "500+"].map(size => (
                                                             <button
@@ -259,8 +266,8 @@ export default function MSPOnboarding() {
                                                                 className={cn(
                                                                     "px-2 py-1.5 rounded-lg text-xs border transition-all",
                                                                     company.employees === size
-                                                                        ? "bg-indigo-600 border-indigo-500 text-white"
-                                                                        : "bg-white/5 border-white/10 text-slate-400 hover:border-white/20"
+                                                                        ? "bg-indigo-600 border-indigo-400 text-white"
+                                                                        : "bg-white/5 border-white/10 text-gray-300 hover:border-white/30"
                                                                 )}
                                                             >
                                                                 {size}
@@ -271,9 +278,9 @@ export default function MSPOnboarding() {
                                             </div>
                                         </div>
                                         <div>
-                                            <Label className="text-slate-300 text-sm">Description (optional)</Label>
+                                            <Label className="text-gray-200 text-sm font-medium">Description (optional)</Label>
                                             <Textarea
-                                                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500 resize-none"
+                                                className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500 resize-none"
                                                 placeholder="Brief description for AI context..."
                                                 rows={2}
                                                 value={company.description}
@@ -288,11 +295,11 @@ export default function MSPOnboarding() {
                             {step === 2 && (
                                 <div className="space-y-6">
                                     <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-500/30 mb-4">
-                                            <Shield className="h-7 w-7 text-purple-400" />
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-400/30 mb-4">
+                                            <Shield className="h-7 w-7 text-purple-300" />
                                         </div>
                                         <h1 className="text-3xl font-bold text-white mb-2">Compliance frameworks</h1>
-                                        <p className="text-slate-400">Which standards does {company.name || "your client"} need to meet?</p>
+                                        <p className="text-gray-300">Which standards does {company.name || "your client"} need to meet?</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         {FRAMEWORKS.map(fw => {
@@ -304,20 +311,20 @@ export default function MSPOnboarding() {
                                                     className={cn(
                                                         "relative flex flex-col text-left p-4 rounded-xl border-2 transition-all duration-200",
                                                         selected
-                                                            ? "border-indigo-500 bg-indigo-500/10"
-                                                            : "border-white/10 bg-white/5 hover:border-white/20"
+                                                            ? "border-indigo-400 bg-indigo-500/20"
+                                                            : "border-white/10 bg-white/5 hover:border-white/30"
                                                     )}
                                                 >
                                                     {selected && (
                                                         <div className="absolute top-3 right-3">
-                                                            <CheckCircle2 className="h-5 w-5 text-indigo-400" />
+                                                            <CheckCircle2 className="h-5 w-5 text-indigo-300" />
                                                         </div>
                                                     )}
                                                     <span className="text-2xl mb-2">{fw.icon}</span>
                                                     <div className="font-semibold text-sm text-white mb-0.5">{fw.name}</div>
-                                                    <div className="text-xs text-slate-400 mb-2 line-clamp-2">{fw.desc}</div>
+                                                    <div className="text-xs text-gray-400 mb-2 line-clamp-2">{fw.desc}</div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">
+                                                        <span className="text-[10px] bg-white/10 text-gray-300 px-2 py-0.5 rounded-full">
                                                             {fw.controls} controls
                                                         </span>
                                                         <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
@@ -329,7 +336,7 @@ export default function MSPOnboarding() {
                                         })}
                                     </div>
                                     {selectedFrameworks.length > 0 && (
-                                        <div className="flex items-center justify-center gap-6 text-sm text-slate-400 bg-white/5 border border-white/10 rounded-xl py-3">
+                                        <div className="flex items-center justify-center gap-6 text-sm text-gray-300 bg-white/5 border border-white/10 rounded-xl py-3">
                                             <span><strong className="text-white">{selectedFrameworks.length}</strong> frameworks selected</span>
                                             <span className="text-white/20">|</span>
                                             <span><strong className="text-white">~{totalControls}</strong> controls to implement</span>
@@ -342,11 +349,11 @@ export default function MSPOnboarding() {
                             {step === 3 && (
                                 <div className="space-y-6">
                                     <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/30 mb-4">
-                                            <BarChart3 className="h-7 w-7 text-amber-400" />
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-400/30 mb-4">
+                                            <BarChart3 className="h-7 w-7 text-amber-300" />
                                         </div>
                                         <h1 className="text-3xl font-bold text-white mb-2">Risk context</h1>
-                                        <p className="text-slate-400">Helps us prioritise controls for {company.name || "your client"}</p>
+                                        <p className="text-gray-300">Helps us prioritise controls for {company.name || "your client"}</p>
                                     </div>
                                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
                                         {[
@@ -360,29 +367,29 @@ export default function MSPOnboarding() {
                                                 className={cn(
                                                     "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
                                                     riskProfile[item.key as keyof typeof riskProfile]
-                                                        ? "border-amber-500/50 bg-amber-500/10"
-                                                        : "border-white/10 bg-white/5 hover:border-white/20"
+                                                        ? "border-amber-400/50 bg-amber-500/10"
+                                                        : "border-white/10 bg-white/5 hover:border-white/30"
                                                 )}
                                             >
                                                 <div className={cn(
                                                     "h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
                                                     riskProfile[item.key as keyof typeof riskProfile]
-                                                        ? "border-amber-500 bg-amber-500"
-                                                        : "border-white/20 bg-transparent"
+                                                        ? "border-amber-400 bg-amber-500"
+                                                        : "border-white/30 bg-transparent"
                                                 )}>
                                                     {riskProfile[item.key as keyof typeof riskProfile] &&
                                                         <CheckCircle2 className="h-3 w-3 text-white" />}
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-semibold text-white">{item.label}</div>
-                                                    <div className="text-xs text-slate-400 mt-0.5">{item.desc}</div>
+                                                    <div className="text-xs text-gray-400 mt-0.5">{item.desc}</div>
                                                 </div>
                                             </div>
                                         ))}
                                         <div>
-                                            <Label className="text-slate-300 text-sm">Additional context (optional)</Label>
+                                            <Label className="text-gray-200 text-sm font-medium">Additional context (optional)</Label>
                                             <Textarea
-                                                className="mt-2 bg-white/5 border-white/10 text-white placeholder:text-slate-500 resize-none"
+                                                className="mt-2 bg-white/5 border-white/20 text-white placeholder:text-gray-500 resize-none"
                                                 placeholder="Any specific compliance requirements, industry regulations, or security concerns..."
                                                 rows={3}
                                                 value={riskProfile.notes}
@@ -397,33 +404,33 @@ export default function MSPOnboarding() {
                             {step === 4 && (
                                 <div className="space-y-6">
                                     <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/20 border border-pink-500/30 mb-4">
-                                            <Sparkles className="h-7 w-7 text-pink-400" />
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/20 border border-pink-400/30 mb-4">
+                                            <Sparkles className="h-7 w-7 text-pink-300" />
                                         </div>
                                         <h1 className="text-3xl font-bold text-white mb-2">White-label branding</h1>
-                                        <p className="text-slate-400">Customise how the workspace appears to {company.name || "your client"}</p>
+                                        <p className="text-gray-300">Customise how the workspace appears to {company.name || "your client"}</p>
                                     </div>
                                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5">
                                         <div>
-                                            <Label className="text-slate-300 text-sm">Workspace name</Label>
+                                            <Label className="text-gray-200 text-sm font-medium">Workspace name</Label>
                                             <Input
-                                                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                                                className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500"
                                                 placeholder={`${company.name || "Acme"} Compliance Portal`}
                                                 value={branding.customName}
                                                 onChange={e => setBranding({ ...branding, customName: e.target.value })}
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-slate-300 text-sm">Tagline (optional)</Label>
+                                            <Label className="text-gray-200 text-sm font-medium">Tagline (optional)</Label>
                                             <Input
-                                                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                                                className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500"
                                                 placeholder="Secure by design. Compliant by default."
                                                 value={branding.motto}
                                                 onChange={e => setBranding({ ...branding, motto: e.target.value })}
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-slate-300 text-sm">Accent colour</Label>
+                                            <Label className="text-gray-200 text-sm font-medium">Accent colour</Label>
                                             <div className="flex items-center gap-3 mt-2">
                                                 <input
                                                     type="color"
@@ -444,13 +451,13 @@ export default function MSPOnboarding() {
                                                         />
                                                     ))}
                                                 </div>
-                                                <span className="text-slate-400 text-sm font-mono">{branding.accentColor}</span>
+                                                <span className="text-gray-300 text-sm font-mono">{branding.accentColor}</span>
                                             </div>
                                         </div>
 
                                         {/* Preview card */}
                                         <div className="mt-4 rounded-xl p-4 border border-white/10 bg-white/5">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-3">Preview</div>
+                                            <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">Preview</div>
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className="h-9 w-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
@@ -462,7 +469,7 @@ export default function MSPOnboarding() {
                                                     <div className="text-sm font-bold text-white">
                                                         {branding.customName || `${company.name || "Acme"} Compliance Portal`}
                                                     </div>
-                                                    <div className="text-xs text-slate-400">
+                                                    <div className="text-xs text-gray-400">
                                                         {branding.motto || "Powered by ComplianceOS"}
                                                     </div>
                                                 </div>
@@ -476,27 +483,27 @@ export default function MSPOnboarding() {
                             {step === 5 && (
                                 <div className="space-y-6">
                                     <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-500/30 mb-4">
-                                            <Users className="h-7 w-7 text-emerald-400" />
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-400/30 mb-4">
+                                            <Users className="h-7 w-7 text-emerald-300" />
                                         </div>
                                         <h1 className="text-3xl font-bold text-white mb-2">Invite your client contact</h1>
-                                        <p className="text-slate-400">They'll get access to fill in questionnaires and sign off on policies</p>
+                                        <p className="text-gray-300">They'll get access to fill in questionnaires and sign off on policies</p>
                                     </div>
                                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <Label className="text-slate-300 text-sm">Contact Name</Label>
+                                                <Label className="text-gray-200 text-sm font-medium">Contact Name</Label>
                                                 <Input
-                                                    className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                                                    className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500"
                                                     placeholder="Jane Smith"
                                                     value={invite.contactName}
                                                     onChange={e => setInvite({ ...invite, contactName: e.target.value })}
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-slate-300 text-sm">Contact Email</Label>
+                                                <Label className="text-gray-200 text-sm font-medium">Contact Email</Label>
                                                 <Input
-                                                    className="mt-1.5 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                                                    className="mt-1.5 bg-white/5 border-white/20 text-white placeholder:text-gray-500"
                                                     placeholder="jane@acme.com"
                                                     type="email"
                                                     value={invite.contactEmail}
@@ -510,32 +517,32 @@ export default function MSPOnboarding() {
                                             className={cn(
                                                 "flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
                                                 invite.sendInvite
-                                                    ? "border-emerald-500/50 bg-emerald-500/10"
+                                                    ? "border-emerald-400/50 bg-emerald-500/10"
                                                     : "border-white/10 bg-white/5"
                                             )}
                                         >
                                             <div className={cn(
                                                 "h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all",
-                                                invite.sendInvite ? "border-emerald-500 bg-emerald-500" : "border-white/20"
+                                                invite.sendInvite ? "border-emerald-400 bg-emerald-500" : "border-white/30"
                                             )}>
                                                 {invite.sendInvite && <CheckCircle2 className="h-3 w-3 text-white" />}
                                             </div>
                                             <div>
                                                 <div className="text-sm font-semibold text-white">Send invitation email immediately</div>
-                                                <div className="text-xs text-slate-400 mt-0.5">
+                                                <div className="text-xs text-gray-400 mt-0.5">
                                                     They'll receive a secure link to access their compliance workspace
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3 text-xs text-slate-500 pt-1">
-                                            <Lock className="h-3.5 w-3.5 text-slate-600" />
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
+                                            <Lock className="h-3.5 w-3.5 text-gray-500" />
                                             <span>Client can only see their own data — your MSP account stays private</span>
                                         </div>
 
                                         <button
-                                            onClick={() => setStep(prev => prev + 1)}
-                                            className="w-full text-center text-sm text-slate-400 hover:text-slate-300 py-2 transition-colors"
+                                            onClick={() => setStep(6)}
+                                            className="w-full text-center text-sm text-gray-400 hover:text-gray-200 py-2 transition-colors"
                                         >
                                             Skip for now → set up later
                                         </button>
@@ -543,19 +550,99 @@ export default function MSPOnboarding() {
                                 </div>
                             )}
 
-                            {/* Step 6: Done */}
-                            {step === 6 && createdClientId && (
+                            {/* Step 6: Review & Confirm */}
+                            {step === 6 && (
+                                <div className="space-y-6">
+                                    <div className="text-center mb-8">
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-400/30 mb-4">
+                                            <FileText className="h-7 w-7 text-indigo-300" />
+                                        </div>
+                                        <h1 className="text-3xl font-bold text-white mb-2">Review & confirm</h1>
+                                        <p className="text-gray-300">Double-check everything before launching</p>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+                                        {/* Company summary */}
+                                        <div className="flex items-start gap-4 pb-4 border-b border-white/10">
+                                            <Building2 className="h-5 w-5 text-indigo-300 mt-0.5" />
+                                            <div>
+                                                <div className="text-sm font-semibold text-white">{company.name}</div>
+                                                <div className="text-xs text-gray-400">{company.industry} • {company.employees || 'N/A'} employees</div>
+                                                {company.website && <div className="text-xs text-gray-500">{company.website}</div>}
+                                            </div>
+                                        </div>
+                                        {/* Frameworks summary */}
+                                        <div className="flex items-start gap-4 pb-4 border-b border-white/10">
+                                            <Shield className="h-5 w-5 text-purple-300 mt-0.5" />
+                                            <div>
+                                                <div className="text-sm font-semibold text-white">{selectedFrameworks.length} Frameworks</div>
+                                                <div className="text-xs text-gray-400">{selectedFrameworks.map(id => FRAMEWORKS.find(f => f.id === id)?.name).join(', ')}</div>
+                                                <div className="text-xs text-indigo-300 mt-1">~{totalControls} controls will be generated</div>
+                                            </div>
+                                        </div>
+                                        {/* Risk summary */}
+                                        <div className="flex items-start gap-4 pb-4 border-b border-white/10">
+                                            <BarChart3 className="h-5 w-5 text-amber-300 mt-0.5" />
+                                            <div>
+                                                <div className="text-sm font-semibold text-white">Risk Profile</div>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {riskProfile.cloudOnly && <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Cloud-first</span>}
+                                                    {riskProfile.hasPersonalData && <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Personal data</span>}
+                                                    {riskProfile.regulated && <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Regulated</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/* Branding summary */}
+                                        <div className="flex items-start gap-4 pb-4 border-b border-white/10">
+                                            <Sparkles className="h-5 w-5 text-pink-300 mt-0.5" />
+                                            <div>
+                                                <div className="text-sm font-semibold text-white">
+                                                    {branding.customName || `${company.name} Compliance Portal`}
+                                                </div>
+                                                <div className="text-xs text-gray-400">{branding.motto || 'Default tagline'}</div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <div className="h-4 w-4 rounded-full border border-white/20" style={{ backgroundColor: branding.accentColor }} />
+                                                    <span className="text-xs text-gray-500">{branding.accentColor}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/* Contact summary */}
+                                        <div className="flex items-start gap-4">
+                                            <Users className="h-5 w-5 text-emerald-300 mt-0.5" />
+                                            <div>
+                                                {invite.contactName ? (
+                                                    <>
+                                                        <div className="text-sm font-semibold text-white">{invite.contactName}</div>
+                                                        <div className="text-xs text-gray-400">{invite.contactEmail}</div>
+                                                        <div className="text-xs text-emerald-300 mt-1">
+                                                            {invite.sendInvite ? '✓ Invitation will be sent' : 'Invitation skipped'}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-sm text-gray-400">No contact invited yet</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs text-gray-500 pt-2">
+                                        <Info className="h-3.5 w-3.5 text-gray-500" />
+                                        <span>You can always update these settings after launch</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 7: Done */}
+                            {step === 7 && createdClientId && (
                                 <div className="text-center space-y-6">
                                     <motion.div
                                         initial={{ scale: 0, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
                                         transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                        className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/30 mx-auto mb-2"
+                                        className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-400/30 mx-auto mb-2"
                                     >
-                                        <CheckCircle2 className="h-12 w-12 text-emerald-400" />
+                                        <CheckCircle2 className="h-12 w-12 text-emerald-300" />
                                     </motion.div>
                                     <h1 className="text-4xl font-bold text-white">Workspace ready! 🎉</h1>
-                                    <p className="text-slate-400 text-lg">
+                                    <p className="text-gray-200 text-lg">
                                         <strong className="text-white">{company.name}</strong>'s compliance workspace has been provisioned with {selectedFrameworks.length} framework{selectedFrameworks.length !== 1 ? "s" : ""} and ~{totalControls} controls.
                                     </p>
 
@@ -566,9 +653,9 @@ export default function MSPOnboarding() {
                                             { label: "AI Policies", value: "Auto-generated", icon: Sparkles },
                                         ].map(stat => (
                                             <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                                                <stat.icon className="h-5 w-5 text-indigo-400 mb-2 mx-auto" />
+                                                <stat.icon className="h-5 w-5 text-indigo-300 mb-2 mx-auto" />
                                                 <div className="text-xl font-bold text-white">{stat.value}</div>
-                                                <div className="text-xs text-slate-400">{stat.label}</div>
+                                                <div className="text-xs text-gray-400">{stat.label}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -577,9 +664,16 @@ export default function MSPOnboarding() {
                                         <Button
                                             variant="outline"
                                             onClick={() => navigate("/clients")}
-                                            className="border-white/10 text-slate-300 hover:bg-white/5"
+                                            className="border-white/20 text-gray-200 hover:bg-white/10"
                                         >
                                             Back to clients
+                                        </Button>
+                                        <Button
+                                            onClick={() => navigate(`/clients/${createdClientId}/settings?tab=onboarding`)}
+                                            className="border-white/20 text-gray-200 hover:bg-white/10 gap-2"
+                                        >
+                                            <Users className="h-4 w-4" />
+                                            Setup employee onboarding
                                         </Button>
                                         <Button
                                             onClick={() => navigate(`/clients/${createdClientId}`)}
@@ -594,14 +688,14 @@ export default function MSPOnboarding() {
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* Navigation footer (hidden on step 5 skip link and step 6) */}
-                    {step < 6 && (
+                    {/* Navigation footer (hidden on step 7 - success) */}
+                    {step < 7 && (
                         <div className="flex items-center justify-between mt-8">
                             <Button
                                 variant="ghost"
                                 onClick={() => setStep(prev => Math.max(1, prev - 1))}
                                 disabled={step === 1}
-                                className="text-slate-400 hover:text-white hover:bg-white/5 gap-2"
+                                className="text-gray-300 hover:text-white hover:bg-white/10 gap-2"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 Back
@@ -619,6 +713,14 @@ export default function MSPOnboarding() {
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-lg shadow-indigo-500/20"
                                 >
                                     Continue
+                                    <ArrowRight className="h-4 w-4" />
+                                </Button>
+                            ) : step === 5 ? (
+                                <Button
+                                    onClick={() => setStep(6)}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-lg shadow-indigo-500/20"
+                                >
+                                    Continue to review
                                     <ArrowRight className="h-4 w-4" />
                                 </Button>
                             ) : (

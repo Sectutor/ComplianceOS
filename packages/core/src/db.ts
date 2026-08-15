@@ -3075,8 +3075,34 @@ export async function onboardClient(data: {
     // 4. Generate Policies
     await bulkGeneratePolicies(client.id, data.companyName, tx);
 
+    // 5. Seed default compliance requirements for employee onboarding
+    await seedDefaultRequirements(client.id, tx);
+
     return client;
   });
+}
+
+/**
+ * Seed default compliance requirements for a new client
+ * Connects new client onboarding to employee onboarding system
+ */
+async function seedDefaultRequirements(clientId, tx) {
+  const defaults = [
+    { key: 'code_of_conduct', title: 'Code of Conduct', category: 'Ethics & Conduct', estimatedTimeMinutes: 10, isMandatory: true, displayOrder: 1 },
+    { key: 'acceptable_use_policy', title: 'Acceptable Use Policy', category: 'IT Security', estimatedTimeMinutes: 8, isMandatory: true, displayOrder: 2 },
+    { key: 'data_protection_agreement', title: 'Data Protection Agreement', category: 'Privacy & Data', estimatedTimeMinutes: 10, isMandatory: true, displayOrder: 3 },
+    { key: 'confidentiality_nda', title: 'Confidentiality & NDA', category: 'Legal', estimatedTimeMinutes: 8, isMandatory: true, displayOrder: 4 },
+    { key: 'infosec_policy', title: 'Information Security Policy', category: 'IT Security', estimatedTimeMinutes: 8, isMandatory: true, displayOrder: 5 },
+    { key: 'anti_harassment', title: 'Anti-Harassment Policy', category: 'Ethics & Conduct', estimatedTimeMinutes: 6, isMandatory: true, displayOrder: 6 },
+    { key: 'health_safety', title: 'Health & Safety Policy', category: 'Safety', estimatedTimeMinutes: 5, isMandatory: true, displayOrder: 7 },
+    { key: 'remote_work', title: 'Remote Work Policy', category: 'Workplace', estimatedTimeMinutes: 6, isMandatory: true, displayOrder: 8 },
+    { key: 'social_media', title: 'Social Media Policy', category: 'Communications', estimatedTimeMinutes: 4, isMandatory: false, displayOrder: 9 },
+    { key: 'travel_expense', title: 'Travel & Expense Policy', category: 'Finance', estimatedTimeMinutes: 5, isMandatory: true, displayOrder: 10 },
+    { key: 'whistleblower', title: 'Whistleblower Policy', category: 'Ethics & Conduct', estimatedTimeMinutes: 5, isMandatory: true, displayOrder: 11 },
+    { key: 'ai_usage_policy', title: 'AI Usage Policy', category: 'IT Security', estimatedTimeMinutes: 6, isMandatory: true, displayOrder: 12 },
+  ];
+  await tx.insert(complianceRequirements).values(defaults.map(d => ({ clientId, key: d.key, title: d.title, category: d.category, estimatedTimeMinutes: d.estimatedTimeMinutes, isMandatory: d.isMandatory, displayOrder: d.displayOrder, documentType: 'acknowledgment', isActive: true })));
+  console.log(`[onboardClient] Seeded ${defaults.length} compliance requirements for client ${clientId}`);
 }
 
 /**
