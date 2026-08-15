@@ -1620,7 +1620,7 @@ const AIGovernance = () => {
                                             </div>
                                         </CardHeader>
                                         <CardContent className="p-6">
-                                            <EuAiActTab aiSystemId={system.id} clientId={clientId} />
+                                            <EuAiActTab aiSystemId={system.id} clientId={activeClientId} />
                                         </CardContent>
                                     </Card>
                                 ))}
