@@ -284,7 +284,32 @@ export const createRequirementsRouter = (t: any, protectedProcedure: any, public
                     .limit(input.limit);
 
                 return controls;
+            }),
+
+        create: protectedProcedure
+            .input(z.object({
+                clientId: z.number(),
+                key: z.string().min(1),
+                title: z.string().min(1),
+                description: z.string().optional(),
+                isMandatory: z.boolean().optional(),
+                displayOrder: z.number().optional(),
+                updatedAt: z.string().optional(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                const [created] = await dbConn.insert(schema.complianceRequirements).values({
+                    clientId: input.clientId,
+                    key: input.key,
+                    title: input.title,
+                    description: input.description || null,
+                    isMandatory: input.isMandatory !== false,
+                    displayOrder: input.displayOrder || 0,
+                    updatedAt: input.updatedAt ? new Date(input.updatedAt) : new Date(),
+                }).returning();
+
+                return created;
             })
     });
 };
-

@@ -59,6 +59,47 @@ export const createEmployeesRouter = (t: any, clientProcedure: any) => {
         return employee;
       }),
 
+    create: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        email: z.string().email(),
+        firstName: z.string(),
+        lastName: z.string(),
+        jobTitle: z.string().optional(),
+        department: z.string().optional(),
+        employmentType: z.string().optional(),
+        status: z.string().optional(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const db = await getDb();
+
+        // Check if employee already exists for this client
+        const [existing] = await db.select()
+          .from(employees)
+          .where(and(
+            eq(employees.email, input.email),
+            eq(employees.clientId, input.clientId)
+          ));
+
+        if (existing) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Employee with this email already exists for this client' });
+        }
+
+        const [newEmployee] = await db.insert(employees).values({
+          clientId: input.clientId,
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          jobTitle: input.jobTitle || 'Team Member',
+          department: input.department || 'General',
+          employmentType: input.employmentType || 'Full-time',
+          status: input.status || 'active',
+          startDate: new Date(),
+        }).returning();
+
+        return newEmployee;
+      }),
+
     getByEmail: clientProcedure
       .input(z.object({ email: z.string(), clientId: z.number() }))
       .query(async ({ input }: any) => {

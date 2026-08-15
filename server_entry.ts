@@ -796,6 +796,13 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         console.log(`-> Health check: http://${listenAddr}:${port}/health`);
         console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
     });
+    server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`[Server] Port ${port} is already in use (EADDRINUSE). Server bound port process active.`);
+        } else {
+            console.error('[Server] Listen error:', err);
+        }
+    });
     server.timeout = 300000; // 5 minutes 
     server.keepAliveTimeout = 300000; // 5 minutes
     server.headersTimeout = 302000; // Keep slightly higher than keepAliveTimeout
