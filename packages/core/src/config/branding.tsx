@@ -161,6 +161,7 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
                 const link = document.createElement('link');
                 link.id = fontId;
                 link.rel = 'stylesheet';
+                link.crossOrigin = 'anonymous';
                 link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/\s+/g, '+')}:wght@400;500;600;700&display=swap`;
                 document.head.appendChild(link);
             }
