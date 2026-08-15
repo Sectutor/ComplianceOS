@@ -200,6 +200,28 @@ export default function Nist80053AssessmentPage() {
         });
     }, [controls, searchQuery, selectedFamily, complianceFilter, implFilter, assessmentMap, impactLevel]);
 
+    const familyCounts = useMemo(() => {
+        if (!controls) return new Map<string, number>();
+
+        let baseControls = controls;
+        if (impactLevel) {
+            const baseline = impactLevel === "High" ? fedrampHighControls :
+                impactLevel === "Moderate" ? fedrampModerateControls :
+                    fedrampLowControls;
+            const baselineIds = new Set(baseline.map((c: any) => c.controlId || c.id));
+            baseControls = controls.filter((c: any) => baselineIds.has(c.controlId || c.id));
+        }
+
+        const counts = new Map<string, number>();
+        baseControls.forEach((ctrl: any) => {
+            const familyCode = ctrl.controlId?.split('-')[0]?.toUpperCase();
+            if (familyCode) {
+                counts.set(familyCode, (counts.get(familyCode) || 0) + 1);
+            }
+        });
+        return counts;
+    }, [controls, impactLevel]);
+
     const handleOpenDetail = (control: any) => {
         setSelectedControl(control);
         const assessment = assessmentMap.get(control.controlId);
@@ -343,23 +365,28 @@ export default function Nist80053AssessmentPage() {
                                         >
                                             All Families
                                         </button>
-                                        {CONTROL_FAMILIES.map(family => (
-                                            <button
-                                                key={family.id}
-                                                onClick={() => setSelectedFamily(family.id)}
-                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all group ${selectedFamily === family.id
-                                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                                    : "text-slate-600 hover:bg-slate-100"
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span>{family.id} - {family.name}</span>
-                                                    {selectedFamily !== family.id && (
-                                                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    )}
-                                                </div>
-                                            </button>
-                                        ))}
+                                        {CONTROL_FAMILIES.map(family => {
+                                            const count = familyCounts.get(family.id) || 0;
+                                            return (
+                                                <button
+                                                    key={family.id}
+                                                    onClick={() => setSelectedFamily(family.id)}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all group ${selectedFamily === family.id
+                                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                                        : "text-slate-600 hover:bg-slate-100"
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="truncate">{family.id} - {family.name}</span>
+                                                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ml-2 shrink-0 ${
+                                                            selectedFamily === family.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                                                        }`}>
+                                                            {count}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </ScrollArea>
                             </CardContent>

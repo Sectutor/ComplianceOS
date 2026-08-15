@@ -31,23 +31,26 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 const framework = input?.framework;
                 let results = await db.getControls(framework, input?.clientId);
 
-                if (results.length === 0 && (framework === "NIST SP 800-53 Rev 5" || framework === "NIST SP 800-171 Rev 2" || framework?.includes("FedRAMP") || framework?.includes("NIST"))) {
-                    results = await db.getControls("FedRAMP Moderate", input?.clientId);
+                if (framework === "NIST SP 800-53 Rev 5" || framework === "NIST SP 800-171 Rev 2" || framework?.includes("FedRAMP") || framework?.includes("NIST")) {
                     if (results.length === 0) {
-                        results = await db.getControls("FedRAMP", input?.clientId);
+                        results = await db.getControls("FedRAMP Moderate", input?.clientId);
                     }
-                    if (results.length === 0) {
-                        const { FEDRAMP_CONTROLS } = await import('../../data/frameworks/fedramp');
-                        results = FEDRAMP_CONTROLS.map((c: any) => ({
-                            id: c.controlId,
-                            controlId: c.controlId,
-                            name: c.name,
-                            description: `${c.description}\n\nGuidance:\n${c.guidance}`,
-                            category: c.family,
-                            framework: framework || "NIST SP 800-53 Rev 5",
-                            status: "active"
-                        }));
-                    }
+                    const { FEDRAMP_CONTROLS } = await import('../../data/frameworks/fedramp');
+                    const existingMap = new Map((results || []).map((c: any) => [c.controlId, c]));
+                    FEDRAMP_CONTROLS.forEach((c: any) => {
+                        if (!existingMap.has(c.controlId)) {
+                            existingMap.set(c.controlId, {
+                                id: c.controlId,
+                                controlId: c.controlId,
+                                name: c.name,
+                                description: `${c.description}\n\nGuidance:\n${c.guidance}`,
+                                category: c.family,
+                                framework: framework || "NIST SP 800-53 Rev 5",
+                                status: "active"
+                            });
+                        }
+                    });
+                    results = Array.from(existingMap.values());
                 }
 
                 return results;
