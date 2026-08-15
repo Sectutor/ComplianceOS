@@ -964,15 +964,18 @@ ${reportData.conclusion}
 
         // Get KRI Statistics
         getKRIStats: procedure
-            .input(z.object({ clientId: z.coerce.number() }))
+            .input(z.object({ clientId: z.coerce.number().optional() }).optional())
             .query(async ({ input }: any) => {
                 const db = await getDb();
+                const targetClientId = input?.clientId;
+
+                const clientWhere = targetClientId ? eq(riskAssessments.clientId, targetClientId) : sql`1=1`;
 
                 // 1. Overdue Risk Reviews
                 const [overdueReviewsResult] = await db.select({ count: sql<number>`count(*)` })
                     .from(riskAssessments)
                     .where(and(
-                        eq(riskAssessments.clientId, input.clientId),
+                        clientWhere,
                         sql`${riskAssessments.nextReviewDate} < CURRENT_DATE`,
                         eq(riskAssessments.status, 'approved')
                     ));
@@ -985,7 +988,7 @@ ${reportData.conclusion}
                     .from(riskAssessments)
                     .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
                     .where(and(
-                        eq(riskAssessments.clientId, input.clientId),
+                        clientWhere,
                         sql`${riskAssessments.inherentScore} >= 15` // High/Critical threshold
                     ))
                     .groupBy(riskAssessments.id)
@@ -994,12 +997,12 @@ ${reportData.conclusion}
                 // 3. Risk Mitigation Efficiency (% where Residual < Inherent)
                 const [totalRisksResult] = await db.select({ count: sql<number>`count(*)` })
                     .from(riskAssessments)
-                    .where(eq(riskAssessments.clientId, input.clientId));
+                    .where(clientWhere);
 
                 const [mitigatedRisksResult] = await db.select({ count: sql<number>`count(*)` })
                     .from(riskAssessments)
                     .where(and(
-                        eq(riskAssessments.clientId, input.clientId),
+                        clientWhere,
                         sql`${riskAssessments.residualScore} < ${riskAssessments.inherentScore}`
                     ));
 
@@ -1012,13 +1015,13 @@ ${reportData.conclusion}
                 const [totalTreatments] = await db.select({ count: sql<number>`count(*)` })
                     .from(riskTreatments)
                     .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
-                    .where(eq(riskAssessments.clientId, input.clientId));
+                    .where(clientWhere);
 
                 const [completedTreatments] = await db.select({ count: sql<number>`count(*)` })
                     .from(riskTreatments)
                     .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
                     .where(and(
-                        eq(riskAssessments.clientId, input.clientId),
+                        clientWhere,
                         sql`${riskTreatments.status} IN ('implemented', 'completed')`
                     ));
 

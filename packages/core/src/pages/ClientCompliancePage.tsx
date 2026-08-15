@@ -1,4 +1,5 @@
 import { useParams, Link } from "wouter";
+import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -12,10 +13,16 @@ import { ChecklistProgressWidget } from "@/components/readiness/ChecklistProgres
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@complianceos/ui/ui/dialog";
 import Markdown from "react-markdown";
 
-export default function ClientCompliancePage() {
-    const { id } = useParams<{ id: string }>();
+interface ClientCompliancePageProps {
+    id?: string;
+}
+
+export default function ClientCompliancePage(props?: ClientCompliancePageProps) {
+    const params = useParams<{ id?: string }>();
+    const { selectedClientId } = useClientContext();
+    const rawId = props?.id || params?.id || (selectedClientId ? String(selectedClientId) : "0");
     const { t } = useTranslation('compliance');
-    const clientId = parseInt(id || "0");
+    const clientId = parseInt(rawId || "0", 10);
 
     // Fetch Data
     const { data: client, isLoading: clientLoading } = trpc.clients.get.useQuery({ id: clientId }, { enabled: clientId > 0 });

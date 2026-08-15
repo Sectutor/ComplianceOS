@@ -616,7 +616,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         z.object({
           clientId: z.union([z.string(), z.number()]).optional(),
           framework: z.string().optional(),
-        })
+        }).optional()
       )
       .query(async ({ input }) => {
         let clientId: number | undefined;

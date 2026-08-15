@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
@@ -33,9 +34,15 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 import { NISTBaselineWizard } from "@/components/frameworks/NISTBaselineWizard";
 
-export default function ClientControlsPage() {
-    const { id: idParam } = useParams<{ id: string }>();
-    const clientId = parseInt(idParam || "0");
+interface ClientControlsPageProps {
+    id?: string;
+}
+
+export default function ClientControlsPage(props?: ClientControlsPageProps) {
+    const params = useParams<{ id: string }>();
+    const { selectedClientId } = useClientContext();
+    const rawId = props?.id || params?.id || (selectedClientId ? String(selectedClientId) : "0");
+    const clientId = parseInt(rawId || "0", 10);
     const { user } = useAuth();
     const [location, setLocation] = useLocation();
 

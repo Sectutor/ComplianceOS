@@ -46,9 +46,15 @@ import { PersonalizationReference } from "@/components/settings/PersonalizationR
 import { ListTodo, ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
 
-export default function ClientSettings() {
-    const params = useParams();
-    const clientId = Number(params.id);
+interface ClientSettingsProps {
+    id?: string;
+}
+
+export default function ClientSettings(props?: ClientSettingsProps) {
+    const params = useParams<{ id?: string }>();
+    const { selectedClientId } = useClientContext();
+    const rawId = props?.id || params?.id || (selectedClientId ? String(selectedClientId) : "0");
+    const clientId = Number(rawId);
     const [location, setLocation] = useLocation();
     const { user } = useAuth();
 

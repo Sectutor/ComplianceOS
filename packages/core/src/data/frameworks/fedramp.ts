@@ -182,3 +182,8 @@ export const FEDRAMP_CONTROLS: FedRampControl[] = [
     guidance: "Enforce AES-256 encryption for all databases, EBS volumes, S3 buckets, and backup archives.",
   },
 ];
+
+export const fedrampLowControls = FEDRAMP_CONTROLS.filter(c => c.baseline === "Low");
+export const fedrampModerateControls = FEDRAMP_CONTROLS.filter(c => c.baseline === "Moderate" || c.baseline === "Low");
+export const fedrampHighControls = FEDRAMP_CONTROLS;
+

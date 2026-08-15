@@ -187,8 +187,8 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
     // Get activity trend for the last 30 days
     getActivityTrend: clientProcedure
         .input(z.object({
-            clientId: z.number()
-        }))
+            clientId: z.number().optional()
+        }).optional())
         .query(async ({ input }) => {
             const db = await getDb();
             const days = 30;

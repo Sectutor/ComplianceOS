@@ -18,12 +18,19 @@ import { KRITrendCards } from '@/components/risk/KRITrendCards';
 import { Button } from '@complianceos/ui/ui/button';
 import { EmptyState } from '@complianceos/ui/ui/EmptyState';
 import { PageGuide } from "@/components/PageGuide";
+import { useClientContext } from "@/contexts/ClientContext";
 
-export default function RiskDashboard() {
-    const params = useParams();
+interface RiskDashboardProps {
+    id?: string;
+}
+
+export default function RiskDashboard(props?: RiskDashboardProps) {
+    const params = useParams<{ id?: string }>();
+    const { selectedClientId } = useClientContext();
     const { t } = useTranslation('risk');
     const [_, setLocation] = useLocation();
-    const routeClientId = params.id ? Number(params.id) : null;
+    const rawId = props?.id || params?.id || (selectedClientId ? String(selectedClientId) : null);
+    const routeClientId = rawId ? Number(rawId) : null;
     const { user, client: authClient } = useAuth();
     const [showVisualizations, setShowVisualizations] = useState(true);
     const [showRegister, setShowRegister] = useState(true);
@@ -33,7 +40,7 @@ export default function RiskDashboard() {
     const utils = trpc.useUtils();
 
     // Determine effective client ID
-    const effectiveClientId = routeClientId || authClient?.id;
+    const effectiveClientId = routeClientId || selectedClientId || authClient?.id;
 
     // Fetch client details if needed
     const { data: fetchedClient, isLoading: loadingClientDetails } = trpc.clients.get.useQuery(

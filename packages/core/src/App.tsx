@@ -849,7 +849,7 @@ function Router() {
           <ProtectedRoute component={ComplianceOverview} />
         </Route>
         <Route path="/clients/:id/compliance">
-          <ProtectedRoute component={ClientCompliancePage} />
+          {(params) => <ProtectedRoute component={ClientCompliancePage} {...params} />}
         </Route>
         <Route path="/clients/:id/knowledge-base">
           <ProtectedRoute component={KnowledgeBase} />
@@ -868,7 +868,7 @@ function Router() {
         </Route>
 
         <Route path="/clients/:id/controls">
-          {(_params) => <ProtectedRoute component={ClientControlsPage} />}
+          {(params) => <ProtectedRoute component={ClientControlsPage} {...params} />}
         </Route>
         <Route path="/clients/:id/metrics">
           {(_params) => <ProtectedRoute component={MetricsPage} />}
@@ -1100,7 +1100,7 @@ function Router() {
           {(_params) => <ProtectedRoute component={EmployeeDetails} />}
         </Route>
         <Route path="/clients/:id/settings">
-          {(_params) => <ProtectedRoute component={ClientSettings} />}
+          {(params) => <ProtectedRoute component={ClientSettings} {...params} />}
         </Route>
         <Route path="/clients/:id/license">
           {(_params) => <ProtectedRoute component={ClientLicenseActivation} />}
@@ -1159,37 +1159,37 @@ function Router() {
           <EvidenceAlias />
         </Route>
         <Route path="/clients/:id/risks/critical">
-          {(_params) => <ProtectedRoute component={CriticalRisksPage} />}
+          {(params) => <ProtectedRoute component={CriticalRisksPage} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/register">
-          {(_params) => <ProtectedRoute component={RiskRegisterPage} />}
+          {(params) => <ProtectedRoute component={RiskRegisterPage} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/framework">
-          {(_params) => <ProtectedRoute component={RiskFramework} />}
+          {(params) => <ProtectedRoute component={RiskFramework} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/assets">
-          {(_params) => <ProtectedRoute component={RiskAssetsPage} />}
+          {(params) => <ProtectedRoute component={RiskAssetsPage} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/dashboard">
-          {(_params) => <ProtectedRoute component={RiskDashboard} />}
+          {(params) => <ProtectedRoute component={RiskDashboard} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/report">
-          {(_params) => <ProtectedRoute component={RiskReportList} />}
+          {(params) => <ProtectedRoute component={RiskReportList} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/report/:reportId">
-          {(_params) => <ProtectedRoute component={RiskReportEditor} />}
+          {(params) => <ProtectedRoute component={RiskReportEditor} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/treatment-plan">
-          {(_params) => <ProtectedRoute component={RiskTreatmentPlanPage} />}
+          {(params) => <ProtectedRoute component={RiskTreatmentPlanPage} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/heatmap">
-          {(_params) => <ProtectedRoute component={RiskHeatmapPage} />}
+          {(params) => <ProtectedRoute component={RiskHeatmapPage} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/overview">
-          {(_params) => <ProtectedRoute component={RiskOverview} />}
+          {(params) => <ProtectedRoute component={RiskOverview} {...params} />}
         </Route>
         <Route path="/clients/:id/risks">
-          {(_params) => <ProtectedRoute component={RiskDashboard} />}
+          {(params) => <ProtectedRoute component={RiskDashboard} {...params} />}
         </Route>
         <Route path="/clients/:id/risks/adversary-intel">
           {(_params) => <PremiumGuard><ProtectedRoute component={AdversaryIntelPage} /></PremiumGuard>}
