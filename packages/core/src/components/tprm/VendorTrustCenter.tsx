@@ -73,7 +73,9 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
     onSuccess: () => {
       toast.success("AI VRM Analysis complete!");
       if (onRefresh) onRefresh();
-      setIsPolling(true);
+      utils.vendors.getVendorDetails.invalidate();
+      utils.vendors.get.invalidate();
+      setIsPolling(false);
     },
     onError: (error) => {
       toast.error(`Analysis failed: ${error.message}`);
