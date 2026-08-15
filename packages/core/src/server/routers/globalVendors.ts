@@ -102,5 +102,52 @@ export const createGlobalVendorsRouter = (t: any, clientProcedure: any) => {
                     throw error;
                 }
             }),
+
+        syncFromTrustLists: clientProcedure
+            .mutation(async () => {
+                console.log("[GlobalVendors] Syncing from TrustLists Open Source Database...");
+                const db = await getDb();
+                const { TRUSTLISTS_OPEN_SOURCE_DB } = await import("../../data/trustlistsVendors");
+
+                let addedCount = 0;
+                let updatedCount = 0;
+
+                for (const item of TRUSTLISTS_OPEN_SOURCE_DB) {
+                    const existing = await db.select()
+                        .from(globalVendors)
+                        .where(or(eq(globalVendors.name, item.name), eq(globalVendors.website, item.website)))
+                        .limit(1);
+
+                    if (existing.length > 0) {
+                        await db.update(globalVendors)
+                            .set({
+                                website: item.website,
+                                trustCenterUrl: item.trustCenterUrl,
+                                platform: item.platform,
+                                faviconUrl: item.faviconUrl,
+                                updatedAt: new Date()
+                            })
+                            .where(eq(globalVendors.id, existing[0].id));
+                        updatedCount++;
+                    } else {
+                        await db.insert(globalVendors).values({
+                            name: item.name,
+                            website: item.website,
+                            trustCenterUrl: item.trustCenterUrl,
+                            platform: item.platform,
+                            faviconUrl: item.faviconUrl
+                        });
+                        addedCount++;
+                    }
+                }
+
+                return {
+                    success: true,
+                    totalSynced: TRUSTLISTS_OPEN_SOURCE_DB.length,
+                    added: addedCount,
+                    updated: updatedCount,
+                    message: `Synced ${TRUSTLISTS_OPEN_SOURCE_DB.length} vendors from TrustLists Open Source Database (${addedCount} new added, ${updatedCount} updated).`
+                };
+            }),
     });
 };

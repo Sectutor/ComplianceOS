@@ -5,14 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, Search, ArrowLeft, Plus, ExternalLink, Globe, ShieldCheck, Zap } from "lucide-react";
+import { Loader2, Search, ArrowLeft, Plus, ExternalLink, Globe, ShieldCheck, Zap, RefreshCw } from "lucide-react";
 import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
+
 export default function GlobalVendorCatalog() {
     const { id } = useParams<{ id: string }>();
     const clientId = parseInt(id || "0");
     const [searchTerm, setSearchTerm] = useState("");
     const [, setLocation] = useLocation();
+    const utils = trpc.useUtils();
 
     const PAGE_SIZE = 12;
     const [page, setPage] = useState(0);
@@ -29,6 +31,16 @@ export default function GlobalVendorCatalog() {
     React.useEffect(() => {
         setPage(0);
     }, [searchTerm]);
+
+    const syncMutation = trpc.globalVendors.syncFromTrustLists.useMutation({
+        onSuccess: (res) => {
+            toast.success(res.message);
+            utils.globalVendors.list.invalidate();
+        },
+        onError: (err) => {
+            toast.error(`Sync failed: ${err.message}`);
+        }
+    });
 
     const importMutation = trpc.globalVendors.import.useMutation({
         onSuccess: (vendor) => {
@@ -61,11 +73,26 @@ export default function GlobalVendorCatalog() {
                         { step: "Import", description: "Add verified vendors to your ecosystem." }
                     ]}
                 />
-                <Link href={`/clients/${clientId}/vendors/all`}>
-                    <Button variant="ghost" className="text-slate-500 hover:text-slate-900">
-                        <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => syncMutation.mutate()}
+                        disabled={syncMutation.isPending}
+                        className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 shadow-sm rounded-xl font-semibold transition-all"
+                    >
+                        {syncMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin text-indigo-600" />
+                        ) : (
+                            <RefreshCw className="w-4 h-4 mr-2 text-indigo-600" />
+                        )}
+                        Update from TrustLists DB
                     </Button>
-                </Link>
+                    <Link href={`/clients/${clientId}/vendors/all`}>
+                        <Button variant="ghost" className="text-slate-500 hover:text-slate-900 rounded-xl">
+                            <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <div className="relative max-w-md animate-slide-up">
