@@ -3,12 +3,66 @@ import { autopilotConfigs, autopilotRuns, autopilotActions } from '../../schema_
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { AutopilotConfig, AutopilotRun, AutopilotAction } from './types';
 
+let _autopilotTablesEnsured = false;
+
+export async function ensureAutopilotTablesExist(): Promise<void> {
+  if (_autopilotTablesEnsured) return;
+  try {
+    const db = await getDb();
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "autopilot_configs" (
+        "id" SERIAL PRIMARY KEY,
+        "client_id" INTEGER NOT NULL UNIQUE,
+        "enabled" BOOLEAN DEFAULT false,
+        "schedule" VARCHAR(20) DEFAULT 'daily',
+        "modules" JSONB DEFAULT '{"collectEvidence":true,"runHealthChecks":true,"detectGaps":true,"createRemediationTasks":true,"generateReport":false,"sendNotifications":true}'::jsonb,
+        "approval_mode" VARCHAR(20) DEFAULT 'review',
+        "last_run_at" TIMESTAMP,
+        "created_at" TIMESTAMP DEFAULT NOW(),
+        "updated_at" TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS "autopilot_runs" (
+        "id" SERIAL PRIMARY KEY,
+        "client_id" INTEGER NOT NULL,
+        "started_at" TIMESTAMP DEFAULT NOW() NOT NULL,
+        "completed_at" TIMESTAMP,
+        "status" VARCHAR(20) DEFAULT 'running',
+        "modules_executed" JSONB,
+        "results" JSONB,
+        "error_message" TEXT,
+        "duration" INTEGER
+      );
+      CREATE TABLE IF NOT EXISTS "autopilot_actions" (
+        "id" SERIAL PRIMARY KEY,
+        "run_id" INTEGER NOT NULL,
+        "client_id" INTEGER NOT NULL,
+        "type" VARCHAR(50) NOT NULL,
+        "title" VARCHAR(255) NOT NULL,
+        "description" TEXT,
+        "priority" VARCHAR(20) DEFAULT 'medium',
+        "status" VARCHAR(20) DEFAULT 'pending',
+        "target_entity" JSONB,
+        "ai_rationale" TEXT,
+        "reviewed_by" INTEGER,
+        "reviewed_at" TIMESTAMP,
+        "created_at" TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS "idx_ap_run_client" ON "autopilot_runs" ("client_id");
+      CREATE INDEX IF NOT EXISTS "idx_ap_run_status" ON "autopilot_runs" ("status");
+    `);
+    _autopilotTablesEnsured = true;
+  } catch (err) {
+    console.warn('[Autopilot] Could not ensure tables exist:', (err as Error).message);
+  }
+}
+
 export class AutopilotEngine {
   /**
    * Run autopilot for a single client — the main orchestrator.
    * Called by cron scheduler or manually via "Run Now" button.
    */
   static async run(clientId: number): Promise<AutopilotRun> {
+    await ensureAutopilotTablesExist();
     const config = await this.getConfig(clientId);
     if (!config || !config.enabled) {
       throw new Error('Autopilot is not enabled for this client');
@@ -102,29 +156,52 @@ export class AutopilotEngine {
       } as unknown as AutopilotRun;
     } catch (error: any) {
       const duration = Math.round((Date.now() - startTime) / 1000);
-      await db.update(autopilotRuns)
-        .set({
-          status: 'failed',
-          completedAt: new Date(),
-          modulesExecuted: executed,
-          results,
-          errorMessage: error.message || 'Unknown error',
-          duration,
-        })
-        .where(eq(autopilotRuns.id, run.id));
+      if (run?.id) {
+        await db.update(autopilotRuns)
+          .set({
+            status: 'failed',
+            completedAt: new Date(),
+            modulesExecuted: executed,
+            results,
+            errorMessage: error.message || 'Unknown error',
+            duration,
+          })
+          .where(eq(autopilotRuns.id, run.id));
+      }
       throw error;
     }
   }
 
   /** Get or create autopilot config for a client */
   static async getConfig(clientId: number): Promise<AutopilotConfig | null> {
-    const db = await getDb();
-    let config = await db.query.autopilotConfigs.findFirst({
-      where: eq(autopilotConfigs.clientId, clientId),
-    });
-    if (!config) {
-      // Auto-create default config
-      const [newConfig] = await db.insert(autopilotConfigs).values({
+    await ensureAutopilotTablesExist();
+    try {
+      const db = await getDb();
+      let config = await db.query.autopilotConfigs.findFirst({
+        where: eq(autopilotConfigs.clientId, clientId),
+      });
+      if (!config) {
+        // Auto-create default config
+        const [newConfig] = await db.insert(autopilotConfigs).values({
+          clientId,
+          enabled: false,
+          schedule: 'daily',
+          modules: {
+            collectEvidence: true,
+            runHealthChecks: true,
+            detectGaps: true,
+            createRemediationTasks: true,
+            generateReport: false,
+            sendNotifications: true,
+          },
+          approvalMode: 'review',
+        }).returning();
+        config = newConfig;
+      }
+      return config as unknown as AutopilotConfig;
+    } catch (err) {
+      console.warn('[Autopilot] getConfig failed, returning default:', (err as Error).message);
+      return {
         clientId,
         enabled: false,
         schedule: 'daily',
@@ -137,38 +214,53 @@ export class AutopilotEngine {
           sendNotifications: true,
         },
         approvalMode: 'review',
-      }).returning();
-      config = newConfig;
+      } as unknown as AutopilotConfig;
     }
-    return config as unknown as AutopilotConfig;
   }
 
   /** Update autopilot config */
   static async updateConfig(clientId: number, updates: Partial<AutopilotConfig>): Promise<void> {
-    const db = await getDb();
-    await db.update(autopilotConfigs)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(autopilotConfigs.clientId, clientId));
+    await ensureAutopilotTablesExist();
+    try {
+      const db = await getDb();
+      await db.update(autopilotConfigs)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(autopilotConfigs.clientId, clientId));
+    } catch (err) {
+      console.warn('[Autopilot] updateConfig failed:', (err as Error).message);
+    }
   }
 
   /** Get run history for a client */
   static async getRunHistory(clientId: number, limit = 10): Promise<AutopilotRun[]> {
-    const db = await getDb();
-    return db.select().from(autopilotRuns)
-      .where(eq(autopilotRuns.clientId, clientId))
-      .orderBy(desc(autopilotRuns.startedAt))
-      .limit(limit) as unknown as AutopilotRun[];
+    await ensureAutopilotTablesExist();
+    try {
+      const db = await getDb();
+      return await db.select().from(autopilotRuns)
+        .where(eq(autopilotRuns.clientId, clientId))
+        .orderBy(desc(autopilotRuns.startedAt))
+        .limit(limit) as unknown as AutopilotRun[];
+    } catch (err) {
+      console.warn('[Autopilot] getRunHistory failed:', (err as Error).message);
+      return [];
+    }
   }
 
   /** Get pending actions that need review */
   static async getPendingActions(clientId: number): Promise<AutopilotAction[]> {
-    const db = await getDb();
-    return db.select().from(autopilotActions)
-      .where(and(
-        eq(autopilotActions.clientId, clientId),
-        eq(autopilotActions.status, 'pending'),
-      ))
-      .orderBy(desc(autopilotActions.createdAt)) as unknown as AutopilotAction[];
+    await ensureAutopilotTablesExist();
+    try {
+      const db = await getDb();
+      return await db.select().from(autopilotActions)
+        .where(and(
+          eq(autopilotActions.clientId, clientId),
+          eq(autopilotActions.status, 'pending'),
+        ))
+        .orderBy(desc(autopilotActions.createdAt)) as unknown as AutopilotAction[];
+    } catch (err) {
+      console.warn('[Autopilot] getPendingActions failed:', (err as Error).message);
+      return [];
+    }
   }
 
   /** Approve or reject an autopilot action */

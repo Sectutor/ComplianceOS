@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { AutopilotEngine, runScheduledAutopilot } from "../../lib/autopilot/engine";
+import { AutopilotEngine, runScheduledAutopilot, ensureAutopilotTablesExist } from "../../lib/autopilot/engine";
 import { getDb } from "../../db";
 import { autopilotRuns, autopilotActions } from "../../schema_autopilot";
 import { eq, desc } from "drizzle-orm";
@@ -67,26 +67,38 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
     listAllRuns: adminProcedure
       .input(z.object({ limit: z.number().default(20) }))
       .query(async ({ input }) => {
-        const db = await getDb();
-        return db.select().from(autopilotRuns)
-          .orderBy(desc(autopilotRuns.startedAt))
-          .limit(input.limit);
+        await ensureAutopilotTablesExist();
+        try {
+          const db = await getDb();
+          return await db.select().from(autopilotRuns)
+            .orderBy(desc(autopilotRuns.startedAt))
+            .limit(input.limit);
+        } catch (err) {
+          console.warn('[AutopilotRouter] listAllRuns failed:', (err as Error).message);
+          return [];
+        }
       }),
 
     /** Get the last autopilot run for a client */
     getLastRun: clientProcedure
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }) => {
-        const db = await getDb();
-        const [run] = await db.select().from(autopilotRuns)
-          .where(eq(autopilotRuns.clientId, input.clientId))
-          .orderBy(desc(autopilotRuns.startedAt))
-          .limit(1);
-        if (!run) return null;
-        return {
-          ...run,
-          createdAt: run.startedAt, // Map startedAt to createdAt for the frontend query
-        };
+        await ensureAutopilotTablesExist();
+        try {
+          const db = await getDb();
+          const [run] = await db.select().from(autopilotRuns)
+            .where(eq(autopilotRuns.clientId, input.clientId))
+            .orderBy(desc(autopilotRuns.startedAt))
+            .limit(1);
+          if (!run) return null;
+          return {
+            ...run,
+            createdAt: run.startedAt, // Map startedAt to createdAt for the frontend query
+          };
+        } catch (err) {
+          console.warn('[AutopilotRouter] getLastRun failed:', (err as Error).message);
+          return null;
+        }
       }),
 
     /** Trigger autopilot run manually */
