@@ -43,6 +43,21 @@ const customTransformer = {
             return superjson.serialize(data);
         },
     },
+    output: {
+        deserialize: (data: unknown): unknown => {
+            if (data !== null && typeof data === 'object' && 'json' in data) {
+                try {
+                    return superjson.deserialize(data as any);
+                } catch (e) {
+                    return data;
+                }
+            }
+            return data;
+        },
+        serialize: (data: unknown): unknown => {
+            return superjson.serialize(data);
+        },
+    },
 };
 
 const t = initTRPC.context<Context>().create({
