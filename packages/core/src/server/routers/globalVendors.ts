@@ -103,6 +103,48 @@ export const createGlobalVendorsRouter = (t: any, clientProcedure: any) => {
                 }
             }),
 
+        create: clientProcedure
+            .input(z.object({
+                name: z.string().min(1, "Vendor name is required"),
+                website: z.string().optional(),
+                trustCenterUrl: z.string().optional(),
+                platform: z.string().optional(),
+            }))
+            .mutation(async ({ input }: { input: { name: string; website?: string; trustCenterUrl?: string; platform?: string } }) => {
+                const db = await getDb();
+
+                let cleanWebsite = input.website?.trim() || "";
+                if (cleanWebsite && !cleanWebsite.startsWith("http://") && !cleanWebsite.startsWith("https://")) {
+                    cleanWebsite = `https://${cleanWebsite}`;
+                }
+
+                let cleanTrustCenter = input.trustCenterUrl?.trim() || "";
+                if (cleanTrustCenter && !cleanTrustCenter.startsWith("http://") && !cleanTrustCenter.startsWith("https://")) {
+                    cleanTrustCenter = `https://${cleanTrustCenter}`;
+                }
+
+                let domain = "";
+                if (cleanWebsite) {
+                    try {
+                        domain = new URL(cleanWebsite).hostname;
+                    } catch (e) {
+                        domain = cleanWebsite.replace(/^https?:\/\//, "").split("/")[0];
+                    }
+                }
+
+                const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : "";
+
+                const [newGlobalVendor] = await db.insert(globalVendors).values({
+                    name: input.name.trim(),
+                    website: cleanWebsite || null,
+                    trustCenterUrl: cleanTrustCenter || null,
+                    platform: input.platform?.trim() || "SaaS",
+                    faviconUrl: faviconUrl || null,
+                }).returning();
+
+                return newGlobalVendor;
+            }),
+
         syncFromTrustLists: clientProcedure
             .mutation(async () => {
                 console.log("[GlobalVendors] Syncing from TrustLists Open Source Database...");

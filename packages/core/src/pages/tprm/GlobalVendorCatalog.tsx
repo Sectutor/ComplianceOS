@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, Search, ArrowLeft, Plus, ExternalLink, Globe, ShieldCheck, Zap, RefreshCw } from "lucide-react";
+import { Label } from "@complianceos/ui/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@complianceos/ui/ui/dialog";
+import { Loader2, Search, ArrowLeft, Plus, ExternalLink, Globe, ShieldCheck, Zap, RefreshCw, Building2 } from "lucide-react";
 import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
 
@@ -18,6 +20,15 @@ export default function GlobalVendorCatalog() {
 
     const PAGE_SIZE = 12;
     const [page, setPage] = useState(0);
+
+    // Modal state for adding a custom vendor
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newVendor, setNewVendor] = useState({
+        name: "",
+        website: "",
+        trustCenterUrl: "",
+        platform: "SaaS"
+    });
 
     const { data: globalVendors, isLoading, isPreviousData } = trpc.globalVendors.list.useQuery({
         search: searchTerm,
@@ -42,6 +53,18 @@ export default function GlobalVendorCatalog() {
         }
     });
 
+    const createMutation = trpc.globalVendors.create.useMutation({
+        onSuccess: (vendor) => {
+            toast.success(`Successfully added ${vendor.name} to the Global Catalog!`);
+            utils.globalVendors.list.invalidate();
+            setIsAddModalOpen(false);
+            setNewVendor({ name: "", website: "", trustCenterUrl: "", platform: "SaaS" });
+        },
+        onError: (err) => {
+            toast.error(`Failed to add vendor: ${err.message}`);
+        }
+    });
+
     const importMutation = trpc.globalVendors.import.useMutation({
         onSuccess: (vendor) => {
             toast.success(`Successfully imported ${vendor.name}`);
@@ -57,6 +80,15 @@ export default function GlobalVendorCatalog() {
             clientId,
             globalVendorId: vendorId
         });
+    };
+
+    const handleAddVendorSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newVendor.name.trim()) {
+            toast.error("Please enter a vendor name.");
+            return;
+        }
+        createMutation.mutate(newVendor);
     };
 
     return (
@@ -75,6 +107,14 @@ export default function GlobalVendorCatalog() {
                 />
                 <div className="flex items-center gap-3">
                     <Button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 rounded-xl font-semibold transition-all"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Vendor to Catalog
+                    </Button>
+
+                    <Button
                         variant="outline"
                         onClick={() => syncMutation.mutate()}
                         disabled={syncMutation.isPending}
@@ -87,6 +127,7 @@ export default function GlobalVendorCatalog() {
                         )}
                         Update from TrustLists DB
                     </Button>
+
                     <Link href={`/clients/${clientId}/vendors/all`}>
                         <Button variant="ghost" className="text-slate-500 hover:text-slate-900 rounded-xl">
                             <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
@@ -221,6 +262,120 @@ export default function GlobalVendorCatalog() {
                 <Zap className="w-4 h-4 text-amber-500" />
                 <span>Powered by TrustLists Open Source Database</span>
             </div>
+
+            {/* Modal to Add New Vendor to Catalog */}
+            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                <DialogContent className="sm:max-w-[500px] rounded-2xl bg-white p-6 shadow-2xl">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                                <Building2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-xl font-bold text-slate-900">Add New Vendor to Catalog</DialogTitle>
+                                <DialogDescription className="text-slate-500 text-sm mt-0.5">
+                                    Add a new software product or service provider to the shared catalog.
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <form onSubmit={handleAddVendorSubmit} className="space-y-4 py-3">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="vendorName" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                Vendor / Product Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="vendorName"
+                                placeholder="e.g. Acme Cloud"
+                                value={newVendor.name}
+                                onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
+                                required
+                                className="rounded-xl border-slate-200 h-11 focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="vendorWebsite" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                Official Website / Domain
+                            </Label>
+                            <Input
+                                id="vendorWebsite"
+                                placeholder="e.g. https://acme.com"
+                                value={newVendor.website}
+                                onChange={(e) => setNewVendor({ ...newVendor, website: e.target.value })}
+                                className="rounded-xl border-slate-200 h-11 focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="trustCenterUrl" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                Security / Trust Center URL
+                            </Label>
+                            <Input
+                                id="trustCenterUrl"
+                                placeholder="e.g. https://trust.acme.com"
+                                value={newVendor.trustCenterUrl}
+                                onChange={(e) => setNewVendor({ ...newVendor, trustCenterUrl: e.target.value })}
+                                className="rounded-xl border-slate-200 h-11 focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="platform" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                Platform / Category
+                            </Label>
+                            <select
+                                id="platform"
+                                value={newVendor.platform}
+                                onChange={(e) => setNewVendor({ ...newVendor, platform: e.target.value })}
+                                className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                            >
+                                <option value="Cloud & Infrastructure">Cloud & Infrastructure</option>
+                                <option value="AI & Machine Learning">AI & Machine Learning</option>
+                                <option value="Cybersecurity, EDR & Identity">Cybersecurity, EDR & Identity</option>
+                                <option value="Developer Tools & CI/CD">Developer Tools & CI/CD</option>
+                                <option value="Databases, Data Science & Analytics">Databases, Data Science & Analytics</option>
+                                <option value="Productivity, CRM & Collaboration">Productivity, CRM & Collaboration</option>
+                                <option value="Fintech, Billing & HR">Fintech, Billing & HR</option>
+                                <option value="E-Commerce & CMS">E-Commerce & CMS</option>
+                                <option value="Communications & Media API">Communications & Media API</option>
+                                <option value="Storage, Backup & Monitoring">Storage, Backup & Monitoring</option>
+                                <option value="SaaS">SaaS (General)</option>
+                                <option value="Other">Other Services</option>
+                            </select>
+                        </div>
+
+                        <DialogFooter className="pt-4 border-t border-slate-100 flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="rounded-xl text-slate-600 border-slate-200"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={createMutation.isPending || !newVendor.name.trim()}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md shadow-indigo-100"
+                            >
+                                {createMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Adding Vendor...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Save Vendor to Catalog
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
