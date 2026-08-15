@@ -140,6 +140,7 @@ import { createComplianceDebtRouter } from "./server/routers/complianceDebt";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
 import { createOnboardingRouter } from "./server/routers/onboarding";
+import { createOnboardingExtrasRouter } from "./server/routers/onboardingExtras";
 import { createComplianceJourneyRouter } from "./server/routers/complianceJourney";
 import { trainingRouter } from "./modules/training";
 import { complianceRouter } from "./modules/compliance";
@@ -346,6 +347,7 @@ export const appRouter = router({
 
   learning: createLearningRouter(t, premiumClientProcedure, adminProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
+  onboardingExtras: createOnboardingExtrasRouter(t, clientProcedure, clientEditorProcedure),
   complianceJourney: createComplianceJourneyRouter(t, premiumClientProcedure, clientEditorProcedure),
   training: trainingRouter,
   policy: policyRouter,

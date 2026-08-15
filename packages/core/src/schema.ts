@@ -3458,6 +3458,10 @@ export const complianceRequirements = pgTable("compliance_requirements", {
   description: text("description"),
   isMandatory: boolean("is_mandatory").default(true),
   displayOrder: integer("display_order").default(0),
+  category: varchar("category", { length: 100 }).default("General"),
+  estimatedTimeMinutes: integer("estimated_time_minutes").default(5),
+  documentType: varchar("document_type", { length: 50 }).default("acknowledgment"),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
@@ -3468,6 +3472,44 @@ export const complianceRequirements = pgTable("compliance_requirements", {
 
 export type ComplianceRequirement = typeof complianceRequirements.$inferSelect;
 export type InsertComplianceRequirement = typeof complianceRequirements.$inferInsert;
+
+// Onboarding Templates
+export const onboardingTemplates = pgTable("onboarding_templates", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  roleType: varchar("role_type", { length: 100 }).default("general"),
+  requirementKeys: jsonb("requirement_keys").notNull().default("[]"),
+  trainingModuleIds: jsonb("training_module_ids").notNull().default("[]"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return { clientIdx: index("idx_otmpl_client").on(table.clientId) };
+});
+
+export type OnboardingTemplate = typeof onboardingTemplates.$inferSelect;
+export type InsertOnboardingTemplate = typeof onboardingTemplates.$inferInsert;
+
+// Onboarding Assignments
+export const onboardingAssignments = pgTable("onboarding_assignments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  employeeId: integer("employee_id").notNull(),
+  templateId: integer("template_id"),
+  status: varchar("status", { length: 50 }).default("assigned"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return { clientIdx: index("idx_oassign_client").on(table.clientId), employeeIdx: index("idx_oassign_employee").on(table.clientId) };
+});
+
+export type OnboardingAssignment = typeof onboardingAssignments.$inferSelect;
+export type InsertOnboardingAssignment = typeof onboardingAssignments.$inferInsert;
+
 
 
 // Employee Asset Receipts - tracks asset confirmation
