@@ -4,7 +4,7 @@
 > **Industry:** Manufacturing (Industrial Equipment)
 > **Company Size:** 600 employees across 3 facilities
 > **Timeline:** 2-3 months
-> **Client ID:** 7 (PayFlow Technologies)
+> **Client ID:** 14 (IndustrialTech Manufacturing)
 > **Date Implemented:** 2026-08-15
 
 ---
@@ -77,7 +77,7 @@ POST /api/trpc/clientPolicies.create
 ### Request Body Example
 ```json
 {
-  "clientId": 7,
+  "clientId": 14,
   "name": "Access Control Policy v2.0",
   "content": "1. Purpose\nThis policy establishes requirements for access control...\n\n2. Scope\nThis policy applies to all employees, contractors...\n\n3. Cloud Access Controls\n3.1 Microsoft 365 access requires MFA\n3.2 AWS IAM policies must follow least privilege...",
   "status": "draft",

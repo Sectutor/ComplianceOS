@@ -199,11 +199,21 @@ Your response should be:
 4. Do not include introductory filler ("Here is the guidance..."). Just give the guidance.
 `;
 
-                const completion = await import("../../lib/llm/service").then(m => m.llmService.generate({
-                    userPrompt: prompt,
-                    feature: "control_guidance",
-                    temperature: 0.3
-                }));
+                let completion;
+                try {
+                    completion = await import("../../lib/llm/service").then(m => m.llmService.generate({
+                        userPrompt: prompt,
+                        feature: "control_guidance",
+                        temperature: 0.3
+                    }));
+                } catch (err: any) {
+                    // Surface configuration errors (e.g. demo placeholder API keys)
+                    // to the client instead of a masked internal error.
+                    throw new TRPCError({
+                        code: "PRECONDITION_FAILED",
+                        message: err?.message || "AI generation failed"
+                    });
+                }
 
                 const guidance = completion.text;
 

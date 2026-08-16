@@ -455,6 +455,140 @@ Start Here → Policy Lifecycle → Drafting → Stakeholder Review → Approval
 
 ---
 
+
+---
+
+## Case Study 9: Federal Agency Achieves FedRAMP Authorization
+
+### Company: Federal Digital Services Agency (FDSA)
+
+**Industry:** Government / Federal
+**Size:** 2,500 employees
+**Compliance Driver:** FISMA compliance and FedRAMP authorization for cloud services
+
+### Situation
+
+FDSA is a US federal agency responsible for delivering digital services to citizens. They must comply with FISMA, achieve FedRAMP authorization for their cloud services, and implement NIST CSF across all systems. The agency processes sensitive citizen data and requires the highest level of security controls.
+
+### Pain Points
+
+- No formal NIST CSF implementation
+- FedRAMP authorization not yet achieved
+- Legacy systems with outdated security controls
+- Complex supply chain with federal vendors
+- No continuous monitoring program
+
+### Goals
+
+1. Implement NIST CSF across all federal systems
+2. Achieve FedRAMP authorization for cloud services
+3. Establish continuous monitoring program
+4. Build comprehensive vendor risk management
+5. Pass FISMA annual security audit
+
+### Workflow Path
+
+`
+Start Here ? Federal Cybersecurity ? NIST CSF Assessment ? FedRAMP Preparation ? Continuous Monitoring ? Audit & Authorization
+`
+
+### Expected Outcome
+
+- NIST CSF implemented across all 5 functions
+- FedRAMP authorization achieved
+- 10 federal risks assessed and treated
+- 15 federal policies implemented
+- FISMA audit passed with zero findings
+
+---
+
+## Case Study 10: EU Cloud Provider Complies with GDPR & NIS2
+
+### Company: EuroCloud Services S.A.
+
+**Industry:** Technology / Cloud Services
+**Size:** 800 employees
+**Compliance Driver:** GDPR compliance and NIS2 essential entity requirements
+
+### Situation
+
+EuroCloud is a German cloud services provider serving customers across the EU. As an essential entity under NIS2 and a data controller/processor under GDPR, they must implement comprehensive security measures, incident reporting procedures, and data protection controls.
+
+### Pain Points
+
+- GDPR compliance gaps in data subject rights
+- NIS2 incident reporting not yet implemented
+- Cross-border data transfer mechanisms outdated
+- Supply chain security not assessed
+- No DPIA process standardized
+
+### Goals
+
+1. Achieve full GDPR compliance
+2. Implement NIS2 security measures and incident reporting
+3. Establish cross-border data transfer safeguards
+4. Build comprehensive vendor risk management
+5. Pass GDPR compliance audit
+
+### Workflow Path
+
+`
+Start Here ? EU Data Protection ? GDPR Assessment ? NIS2 Compliance ? Incident Reporting ? Audit & Certification
+`
+
+### Expected Outcome
+
+- 21 GDPR controls assessed and implemented
+- 10 NIS2 requirements met
+- 10 EU risks assessed and treated
+- 15 EU policies implemented
+- GDPR compliance audit passed
+
+---
+
+## Case Study 11: AI Company Implements AI Governance
+
+### Company: NexGen AI Systems Ltd.
+
+**Industry:** Artificial Intelligence / Machine Learning
+**Size:** 350 employees
+**Compliance Driver:** AI regulation compliance and responsible AI development
+
+### Situation
+
+NexGen AI develops and deploys AI/ML solutions for enterprise customers. As AI regulation evolves globally, they must implement comprehensive AI governance, ensure model safety and fairness, protect intellectual property, and comply with emerging AI standards.
+
+### Pain Points
+
+- No formal AI governance framework
+- AI model bias and fairness not assessed
+- Adversarial attack protection not implemented
+- AI intellectual property not protected
+- No AI incident response procedures
+
+### Goals
+
+1. Implement AI governance framework (ISO 42001, NIST AI RMF)
+2. Establish AI ethics review board
+3. Implement model security and protection
+4. Build AI-specific incident response
+5. Pass AI governance audit
+
+### Workflow Path
+
+`
+Start Here ? AI Governance ? AI Risk Assessment ? Model Security ? Ethics Review ? Audit & Compliance
+`
+
+### Expected Outcome
+
+- 28 ISO 27001 controls with AI focus implemented
+- 28 SOC 2 controls with AI focus implemented
+- 12 AI-specific risks assessed and treated
+- 16 AI governance policies implemented
+- AI governance audit passed
+
+---
 ## Using These Case Studies
 
 ### For Sales Conversations

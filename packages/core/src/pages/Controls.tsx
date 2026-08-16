@@ -28,6 +28,7 @@ import { ControlsStats } from "@/components/controls/ControlsStats";
 import { ControlTable } from "@/components/controls/ControlTable";
 import { ControlFilterBar } from "@/components/controls/ControlFilterBar";
 import { ControlDetailsSheet } from "@/components/controls/ControlDetailsSheet";
+import { AutoTestResultDialog, type AutoTestRun } from "@/components/controls/AutoTestResultDialog";
 import { Loader2, Trash2, CalendarClock, Save } from "lucide-react";
 import { Slot } from "@/registry";
 import { PageGuide } from "@/components/PageGuide";
@@ -124,6 +125,7 @@ export default function Controls() {
             status: string;
             score?: number | null;
             message?: string | null;
+            findings?: Array<{ check: string; status: string; detail: string }> | null;
             executedAt?: string | Date | null;
           }>;
           isLoading: boolean;
@@ -228,6 +230,7 @@ export default function Controls() {
 
   const [selectedControlIds, setSelectedControlIds] = useState<number[]>([]);
   const [viewingControl, setViewingControl] = useState<any>(null);
+  const [viewingTestRun, setViewingTestRun] = useState<AutoTestRun | null>(null);
 
   // Fetch Existing Mappings for display
   const { data: mappings, refetch: refetchMappings } = trpc.compliance.frameworkMappings.list.useQuery({});
@@ -651,7 +654,11 @@ export default function Controls() {
                   description="The control-monitoring endpoint is not reachable. Verify the backend controlMonitoring router."
                 />
               ) : (
-                <ScrollArea className="h-40 rounded-md border border-border">
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Click a run to see why it failed, open the control, or add it to the task board.
+                  </p>
+                  <ScrollArea className="h-40 rounded-md border border-border">
                   {autoTestHistory.isLoading ? (
                     <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" /> Loading history...
@@ -663,7 +670,12 @@ export default function Controls() {
                   ) : (
                     <div className="divide-y divide-border">
                       {autoTestHistory.data?.map((r) => (
-                        <div key={r.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setViewingTestRun(r as AutoTestRun)}
+                          className="flex items-center justify-between gap-4 px-4 py-2.5 w-full text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:bg-muted/60"
+                        >
                           <div className="flex items-center gap-2 min-w-0">
                             <Badge
                               variant={
@@ -684,11 +696,12 @@ export default function Controls() {
                           <span className="text-xs text-muted-foreground shrink-0">
                             {r.executedAt ? new Date(String(r.executedAt)).toLocaleString() : "-"}
                           </span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
-                </ScrollArea>
+                  </ScrollArea>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -863,6 +876,14 @@ export default function Controls() {
         open={!!viewingControl}
         onOpenChange={(open) => !open && setViewingControl(null)}
         control={viewingControl}
+      />
+
+      <AutoTestResultDialog
+        run={viewingTestRun}
+        clientId={autoTestClientId}
+        onOpenChange={(open) => !open && setViewingTestRun(null)}
+        onViewControl={(control) => setViewingControl(control)}
+        onOpenTasks={() => autoTestClientId && setLocation(`/clients/${autoTestClientId}/tasks`)}
       />
 
       {/* Edit Dialog */}

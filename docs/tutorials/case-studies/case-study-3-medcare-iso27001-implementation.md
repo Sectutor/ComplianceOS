@@ -5,7 +5,7 @@
 > **Company Size:** 250 employees across 8 locations
 > **Timeline:** 12 months
 > **Test Date:** 2026-08-15
-> **Client:** PayFlow Technologies (ID: 7) - used as test tenant
+> **Client:** MedCare Health Systems (ID: 9) - used as test tenant
 
 ---
 
@@ -33,7 +33,7 @@ POST /api/trpc/gapAnalysis.create
 **Data Created:**
 ```json
 {
-  "clientId": 7,
+  "clientId": 9,
   "name": "MedCare ISO 27001 Gap Analysis",
   "framework": "ISO 27001:2022",
   "scope": "All 8 clinic locations, patient management system, billing system, telemedicine platform, employee workstations, cloud services (Microsoft 365, AWS)"
@@ -41,7 +41,7 @@ POST /api/trpc/gapAnalysis.create
 ```
 
 **Result:**
-- Gap Analysis ID: 3
+- Gap Analysis ID: 4
 - Status: draft
 - Created: 2026-08-15T15:26:00.475Z
 
@@ -124,7 +124,7 @@ POST /api/trpc/gapAnalysis.complete
 **Time Taken:** ~3 minutes
 
 ### Action Taken
-Created 7 risk assessments for client 7, covering various risk categories.
+Created 7 risk assessments for client 9, covering various risk categories.
 
 **API Call:**
 ```
@@ -135,13 +135,13 @@ POST /api/trpc/risks.upsert (x7)
 
 | ID | Title | Category | Likelihood | Impact | Residual Score | Treatment |
 |---|---|---|---|---|---|---|
-| 37 | Patient data breach via compromised credentials | Cyber | 4 | 5 | 10 | mitigate |
-| 38 | Ransomware attack on clinic operations | Cyber | 4 | 5 | 8 | mitigate |
-| 39 | Unauthorized access to medical records | Compliance | 3 | 5 | 5 | mitigate |
-| 40 | System outage during patient care | Operational | 3 | 4 | 4 | mitigate |
-| 41 | Insider threat from disgruntled employee | Human | 2 | 5 | 4 | mitigate |
-| 42 | Third-party vendor data breach | Third Party | 3 | 4 | 6 | transfer |
-| 43 | Phishing attack on clinic staff | Cyber | 5 | 3 | 6 | mitigate |
+| 51 | Patient data breach via compromised credentials | Cyber | 4 | 5 | 10 | mitigate |
+| 52 | Ransomware attack on clinic operations | Cyber | 4 | 5 | 8 | mitigate |
+| 53 | Unauthorized access to medical records | Compliance | 3 | 5 | 5 | mitigate |
+| 54 | System outage during patient care | Operational | 3 | 4 | 4 | mitigate |
+| 55 | Insider threat from disgruntled employee | Human | 2 | 5 | 4 | mitigate |
+| 56 | Third-party vendor data breach | Third Party | 3 | 4 | 6 | transfer |
+| 57 | Phishing attack on clinic staff | Cyber | 5 | 3 | 6 | mitigate |
 
 ### Risk Summary
 - **Total Risks:** 7
@@ -253,7 +253,7 @@ POST /api/trpc/clientPolicies.create (x18)
 **Time Taken:** N/A
 
 ### What Was Attempted
-1. Create 6 employee records for client 7
+1. Create 6 employee records for client 9
 2. Create 6 compliance requirements (training modules)
 3. Assign requirements to employees
 
@@ -292,7 +292,7 @@ POST /api/trpc/clientPolicies.create (x18)
 **Time Taken:** < 1 minute
 
 ### Action Taken
-Created an internal audit record for client 7.
+Created an internal audit record for client 9.
 
 **API Call:**
 ```
@@ -302,7 +302,7 @@ POST /api/trpc/audit.create
 **Data Created:**
 ```json
 {
-  "clientId": 7,
+  "clientId": 9,
   "frameworkId": 1,
   "auditFirm": "MedCare Internal Audit Team",
   "startDate": "2026-09-01",
@@ -311,7 +311,7 @@ POST /api/trpc/audit.create
 ```
 
 **Result:**
-- Audit ID: 3
+- Audit ID: 5
 - Stage: stage_1
 - Status: scheduled → updated to in_progress
 - Start Date: 2026-09-01
@@ -336,7 +336,7 @@ Retrieved dashboard metrics for management review.
 GET /api/trpc/dashboard.enhanced
 ```
 
-**Dashboard Results for Client 7 (ISO 27001):**
+**Dashboard Results for client 9 (ISO 27001):**
 
 | Metric | Value |
 |---|---|
@@ -380,7 +380,7 @@ POST /api/trpc/audit.scheduleAudit
 **Data Created:**
 ```json
 {
-  "clientId": 7,
+  "clientId": 9,
   "frameworkId": 1,
   "title": "ISO 27001 Stage 1 Certification Audit",
   "type": "External",
@@ -392,7 +392,7 @@ POST /api/trpc/audit.scheduleAudit
 ```
 
 **Result:**
-- Audit ID: 4
+- Audit ID: 5
 - Stage: stage_1
 - Status: scheduled
 - Planned Date: 2026-10-01
@@ -426,12 +426,12 @@ POST /api/trpc/audit.scheduleAudit
 
 | Entity | Count | IDs |
 |---|---|---|
-| Gap Analyses | 1 | 3 |
+| Gap Analyses | 1 | 4 |
 | Gap Responses | 30 | - |
-| Risks | 7 | 37-43 |
+| Risks | 7 | 51-57 |
 | Controls Updated | 95 | - |
 | Policies | 18 | - |
-| Audits | 2 | 3, 4 |
+| Audits | 1 | 5 |
 
 ### Student Learning Guide
 

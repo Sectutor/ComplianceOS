@@ -116,6 +116,16 @@ export class LLMService {
     }
 
     /**
+     * Demo setups seed provider rows with placeholder API keys that can never
+     * authenticate. Detect them so we fail fast with an actionable message
+     * instead of burning provider round-trips on guaranteed 401s.
+     */
+    private isPlaceholderKey(apiKey: string | null | undefined): boolean {
+        const k = (apiKey || '').trim();
+        return !k || k.startsWith('enc:demo-') || k.includes('demo-placeholder');
+    }
+
+    /**
      * Track AI usage metrics
      */
     private async trackUsage(
@@ -228,7 +238,24 @@ export class LLMService {
      */
     private getAnthropicClient(provider: LLMProvider): Anthropic {
         const apiKey = decrypt(provider.apiKey);
-        return new Anthropic({ apiKey, timeout: 180000 });
+
+        // PDF/Word generation libraries polyfill window/document in this
+        // Node process, which makes the SDK think it is running in a browser
+        // and refuse to construct. Hide the polyfills while instantiating.
+        const g = global as any;
+        const oldWindow = g.window;
+        const oldLocation = g.location;
+        const oldDocument = g.document;
+        try {
+            if (g.window) delete g.window;
+            if (g.location) delete g.location;
+            if (g.document) delete g.document;
+            return new Anthropic({ apiKey, timeout: 180000, dangerouslyAllowBrowser: true });
+        } finally {
+            if (oldWindow) g.window = oldWindow;
+            if (oldLocation) g.location = oldLocation;
+            if (oldDocument) g.document = oldDocument;
+        }
     }
 
     /**
@@ -257,10 +284,20 @@ export class LLMService {
 
         const startTime = Date.now();
         let lastError: Error | undefined;
+        let placeholderCount = 0;
 
         for (const provider of providers) {
             const providerStart = Date.now();
             try {
+                if (this.isPlaceholderKey(decrypt(provider.apiKey))) {
+                    placeholderCount++;
+                    console.warn(`[LLMService] Provider ${provider.name} uses a demo placeholder API key - skipping`);
+                    lastError = new Error(
+                        `Provider "${provider.name}" has a demo placeholder API key. Add a real API key in Settings > AI Providers.`
+                    );
+                    continue;
+                }
+
                 let response: CompletionResponse;
 
                 switch (provider.provider) {
@@ -322,6 +359,12 @@ export class LLMService {
         logger.error({ message: "All LLM providers failed", error: lastError?.message });
         const overallLatency = Date.now() - overallStart;
         console.log(`[LLMService] All providers failed after ${overallLatency}ms`);
+        if (placeholderCount > 0 && placeholderCount === providers.length) {
+            throw new Error(
+                'AI features are not configured yet: the enabled AI providers use demo placeholder API keys. ' +
+                'Add a real API key (OpenAI, Anthropic, or Gemini) under Settings > AI Providers, then try again.'
+            );
+        }
         throw new Error(`All LLM providers failed. Last error: ${lastError?.message}`);
     }
 
@@ -348,7 +391,23 @@ export class LLMService {
         if (request.maxTokens) params.max_tokens = request.maxTokens;
         if (request.jsonMode) params.response_format = { type: 'json_object' };
 
-        const completion = await client.chat.completions.create(params);
+        // Cloak globals during request execution so OpenAI SDK fetch call does not detect browser environment
+        const g = global as any;
+        const oldWindow = g.window;
+        const oldLocation = g.location;
+        const oldDocument = g.document;
+
+        let completion: any;
+        try {
+            if (g.window) delete g.window;
+            if (g.location) delete g.location;
+            if (g.document) delete g.document;
+            completion = await client.chat.completions.create(params);
+        } finally {
+            if (oldWindow) g.window = oldWindow;
+            if (oldLocation) g.location = oldLocation;
+            if (oldDocument) g.document = oldDocument;
+        }
 
         // Validate response is not empty
         const text = completion.choices[0]?.message?.content;
@@ -391,7 +450,23 @@ export class LLMService {
             params.system = request.systemPrompt;
         }
 
-        const completion = await client.messages.create(params);
+        // Cloak globals during request execution so Anthropic SDK fetch call does not detect browser environment
+        const g = global as any;
+        const oldWindow = g.window;
+        const oldLocation = g.location;
+        const oldDocument = g.document;
+
+        let completion: any;
+        try {
+            if (g.window) delete g.window;
+            if (g.location) delete g.location;
+            if (g.document) delete g.document;
+            completion = await client.messages.create(params);
+        } finally {
+            if (oldWindow) g.window = oldWindow;
+            if (oldLocation) g.location = oldLocation;
+            if (oldDocument) g.document = oldDocument;
+        }
 
         const text = completion.content
             .filter(block => block.type === 'text')

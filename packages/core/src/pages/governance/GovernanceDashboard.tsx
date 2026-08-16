@@ -1,6 +1,6 @@
 
 import React, { useMemo } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -39,6 +39,7 @@ import {
 export default function GovernanceDashboard() {
     const params = useParams();
     const { t } = useTranslation('dashboard');
+    const [_, setLocation] = useLocation();
     const clientId = parseInt(params.id || "0");
 
     // Fetch Data
@@ -250,7 +251,7 @@ export default function GovernanceDashboard() {
                     </Card>
 
                     {/* Policy Status */}
-                    <Card className="card-enhanced border-l-4 border-l-amber-500 bg-amber-50/50 cursor-pointer hover:bg-amber-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/policies`}>
+                    <Card className="card-enhanced border-l-4 border-l-amber-500 bg-amber-50/50 cursor-pointer hover:bg-amber-100/50 transition-colors" onClick={() => setLocation(`/clients/${clientId}/policies`)}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-amber-900">Policy Coverage</CardTitle>
                             <FileText className="h-4 w-4 text-amber-600" />
@@ -264,7 +265,7 @@ export default function GovernanceDashboard() {
                     </Card>
 
                     {/* Control Readiness */}
-                    <Card className="card-enhanced border-l-4 border-l-emerald-600 bg-emerald-50/50 cursor-pointer hover:bg-emerald-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/controls`}>
+                    <Card className="card-enhanced border-l-4 border-l-emerald-600 bg-emerald-50/50 cursor-pointer hover:bg-emerald-100/50 transition-colors" onClick={() => setLocation(`/clients/${clientId}/controls`)}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-emerald-900">Control Readiness</CardTitle>
                             <Shield className="h-4 w-4 text-emerald-600" />
@@ -278,7 +279,7 @@ export default function GovernanceDashboard() {
                     </Card>
 
                     {/* Risk Profile Card (NEW) */}
-                    <Card className="card-enhanced border-l-4 border-l-orange-500 bg-orange-50/50 cursor-pointer hover:bg-orange-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/risks/register`}>
+                    <Card className="card-enhanced border-l-4 border-l-orange-500 bg-orange-50/50 cursor-pointer hover:bg-orange-100/50 transition-colors" onClick={() => setLocation(`/clients/${clientId}/risks/register`)}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-orange-900">Risk Profile</CardTitle>
                             <AlertTriangle className="h-4 w-4 text-orange-600" />

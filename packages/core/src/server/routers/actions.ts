@@ -296,7 +296,9 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
             description: z.string().optional(),
             priority: z.string().optional(),
             dueDate: z.string().optional(),
-            assigneeId: z.number().optional()
+            assigneeId: z.number().optional(),
+            relatedEntityType: z.string().optional(),
+            relatedEntityId: z.number().optional()
         }))
         .mutation(async ({ input }: any) => {
             const db = await getDb();
@@ -308,7 +310,8 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
                 dueDate: input.dueDate ? new Date(input.dueDate) : null,
                 assigneeId: input.assigneeId,
                 status: 'todo',
-                sourceType: 'manual',
+                relatedEntityType: input.relatedEntityType ?? null,
+                relatedEntityId: input.relatedEntityId ?? null,
                 createdAt: new Date(),
                 updatedAt: new Date()
             }).returning();

@@ -4,7 +4,7 @@
 > **Industry:** Retail / E-Commerce
 > **Company Size:** 120 employees
 > **Timeline:** 3 months
-> **Client ID:** 7 (PayFlow Technologies)
+> **Client ID:** 10 (ShopSphere Ltd.)
 > **Date Implemented:** 2026-08-15
 
 ---
@@ -39,7 +39,7 @@ POST /api/trpc/businessContinuity.program.upsert
 ### Request Body
 ```json
 {
-  "clientId": 7,
+  "clientId": 10,
   "programName": "ShopSphere BCMS",
   "scopeDescription": "E-commerce platform, warehouse operations, customer service, payment processing",
   "policyStatement": "ShopSphere is committed to maintaining critical business functions during disruptive incidents. We will identify critical activities, set recovery objectives, document response procedures, and validate our plans through regular testing.",
@@ -54,8 +54,8 @@ POST /api/trpc/businessContinuity.program.upsert
   "result": {
     "data": {
       "json": [{
-        "id": 2,
-        "clientId": 7,
+        "id": 5,
+        "clientId": 10,
         "programName": "ShopSphere BCMS",
         "scopeDescription": "E-commerce platform, warehouse operations, customer service, payment processing",
         "policyStatement": "ShopSphere is committed to maintaining critical business functions during disruptive incidents.",
@@ -87,19 +87,19 @@ POST /api/trpc/businessContinuity.processes.create
 
 | ID | Process Name | Department | Criticality | RTO | RPO |
 |---|---|---|---|---|---|
-| 9 | Order processing | E-commerce | Critical | 1 hour | 15 minutes |
-| 10 | Payment processing | Finance | Critical | 30 minutes | 0 minutes |
-| 11 | Warehouse fulfillment | Operations | Critical | 4 hours | 1 hour |
-| 12 | Customer service | Support | High | 1 hour | 15 minutes |
-| 13 | Website hosting | IT | Critical | 15 minutes | 5 minutes |
-| 14 | Inventory management | Operations | High | 4 hours | 1 hour |
-| 15 | Marketing campaigns | Marketing | Low | 24 hours | 4 hours |
-| 16 | HR operations | HR | Low | 48 hours | 24 hours |
+| 29 | Order processing | E-commerce | Critical | 1 hour | 15 minutes |
+| 30 | Payment processing | Finance | Critical | 30 minutes | 0 minutes |
+| 31 | Warehouse fulfillment | Operations | Critical | 4 hours | 1 hour |
+| 32 | Customer service | Support | High | 1 hour | 15 minutes |
+| 33 | Website hosting | IT | Critical | 15 minutes | 5 minutes |
+| 34 | Inventory management | Operations | High | 4 hours | 1 hour |
+| 35 | Marketing campaigns | Marketing | Low | 24 hours | 4 hours |
+| 36 | HR operations | HR | Low | 48 hours | 24 hours |
 
 ### Request Example (Order Processing)
 ```json
 {
-  "clientId": 7,
+  "clientId": 10,
   "name": "Order processing",
   "description": "Process customer orders through e-commerce platform",
   "department": "E-commerce",
@@ -128,18 +128,18 @@ POST /api/trpc/businessContinuity.scenarios.create
 
 | ID | Scenario | Likelihood | Potential Impact | Mitigation Strategies |
 |---|---|---|---|---|
-| 7 | Ransomware Attack | High | Critical | EDR, backups, incident response plan |
-| 8 | DDoS Attack | High | High | Cloudflare, auto-scaling |
-| 9 | Payment Processor Outage | Medium | Critical | Backup payment processor |
-| 10 | Cloud Provider Outage | Medium | Critical | Multi-region deployment |
-| 11 | Key Personnel Loss | Medium | High | Cross-training, documentation |
-| 12 | Natural Disaster | Low | Critical | Remote work, alternate site |
-| 13 | Supply Chain Disruption | Medium | High | Multiple suppliers, safety stock |
+| 14 | Ransomware Attack | High | Critical | EDR, backups, incident response plan |
+| 15 | DDoS Attack | High | High | Cloudflare, auto-scaling |
+| 29 | Payment Processor Outage | Medium | Critical | Backup payment processor |
+| 30 | Cloud Provider Outage | Medium | Critical | Multi-region deployment |
+| 31 | Key Personnel Loss | Medium | High | Cross-training, documentation |
+| 32 | Natural Disaster | Low | Critical | Remote work, alternate site |
+| 33 | Supply Chain Disruption | Medium | High | Multiple suppliers, safety stock |
 
 ### Request Example (Ransomware Attack)
 ```json
 {
-  "clientId": 7,
+  "clientId": 10,
   "title": "Ransomware Attack",
   "description": "Ransomware encrypts critical systems",
   "likelihood": "High",
@@ -167,16 +167,16 @@ POST /api/trpc/businessContinuity.strategies.create
 
 | ID | Strategy | Description | Resources | Cost | Benefits |
 |---|---|---|---|---|---|
-| 5 | Hot Standby - Order Processing | Failover to secondary region | Secondary AWS region | $15,000 | RTO 1 hour |
-| 6 | Multi-Provider - Payment Processing | Switch to backup processor | Backup payment gateway | $5,000 | RTO 30 minutes |
-| 7 | Alternate Site - Warehouse | Secondary warehouse | Warehouse space | $20,000 | RTO 4 hours |
-| 8 | Remote Work - Customer Service | Cloud-based CRM | VPN, cloud CRM | $3,000 | RTO 1 hour |
-| 9 | Auto-Scaling - Website | Multi-AZ deployment | AWS Auto Scaling | $8,000 | RTO 15 minutes |
+| 10 | Hot Standby - Order Processing | Failover to secondary region | Secondary AWS region | $15,000 | RTO 1 hour |
+| 11 | Multi-Provider - Payment Processing | Switch to backup processor | Backup payment gateway | $5,000 | RTO 30 minutes |
+| 12 | Alternate Site - Warehouse | Secondary warehouse | Warehouse space | $20,000 | RTO 4 hours |
+| 13 | Remote Work - Customer Service | Cloud-based CRM | VPN, cloud CRM | $3,000 | RTO 1 hour |
+| 29 | Auto-Scaling - Website | Multi-AZ deployment | AWS Auto Scaling | $8,000 | RTO 15 minutes |
 
 ### Request Example (Hot Standby)
 ```json
 {
-  "clientId": 7,
+  "clientId": 10,
   "title": "Hot Standby - Order Processing",
   "description": "Failover to secondary region",
   "resourceRequirements": "Secondary AWS region",
@@ -204,16 +204,16 @@ POST /api/trpc/businessContinuity.plans.create
 
 | ID | Plan Title | Description | Status |
 |---|---|---|---|
-| 5 | Ransomware Attack Response Plan | Response plan for ransomware attacks | draft |
-| 6 | DDoS Attack Response Plan | Response plan for DDoS attacks | draft |
-| 7 | Payment Processor Failure Plan | Response plan for payment processor outage | draft |
-| 8 | Cloud Provider Outage Plan | Response plan for cloud provider outage | draft |
-| 9 | Key Personnel Loss Plan | Response plan for key personnel loss | draft |
+| 10 | Ransomware Attack Response Plan | Response plan for ransomware attacks | draft |
+| 11 | DDoS Attack Response Plan | Response plan for DDoS attacks | draft |
+| 12 | Payment Processor Failure Plan | Response plan for payment processor outage | draft |
+| 13 | Cloud Provider Outage Plan | Response plan for cloud provider outage | draft |
+| 29 | Key Personnel Loss Plan | Response plan for key personnel loss | draft |
 
 ### Request Example (Ransomware Plan)
 ```json
 {
-  "clientId": 7,
+  "clientId": 10,
   "title": "Ransomware Attack Response Plan",
   "description": "Response plan for ransomware attacks",
   "scenarioId": 7,
@@ -240,16 +240,16 @@ POST /api/trpc/businessContinuity.exercises.create
 
 | ID | Exercise Title | Type | Plan | Date | Status |
 |---|---|---|---|---|---|
-| 5 | Tabletop 1 - Ransomware | tabletop | Ransomware Attack Response Plan | 2026-08-01 | Completed |
-| 6 | Tabletop 2 - DDoS | tabletop | DDoS Attack Response Plan | 2026-08-08 | Completed |
-| 7 | Simulation 1 - Payment | simulation | Payment Processor Failure Plan | 2026-08-15 | Completed |
-| 8 | Full Drill - Cloud | drill | Cloud Provider Outage Plan | 2026-08-22 | Completed |
-| 9 | Tabletop 3 - Personnel | tabletop | Key Personnel Loss Plan | 2026-08-29 | Completed |
+| 10 | Tabletop 1 - Ransomware | tabletop | Ransomware Attack Response Plan | 2026-08-01 | Completed |
+| 11 | Tabletop 2 - DDoS | tabletop | DDoS Attack Response Plan | 2026-08-08 | Completed |
+| 12 | Simulation 1 - Payment | simulation | Payment Processor Failure Plan | 2026-08-15 | Completed |
+| 13 | Full Drill - Cloud | drill | Cloud Provider Outage Plan | 2026-08-22 | Completed |
+| 29 | Tabletop 3 - Personnel | tabletop | Key Personnel Loss Plan | 2026-08-29 | Completed |
 
 ### Request Example (Tabletop Exercise)
 ```json
 {
-  "clientId": 7,
+  "clientId": 10,
   "planId": 5,
   "title": "Tabletop 1 - Ransomware",
   "type": "tabletop",
@@ -303,12 +303,12 @@ GET /api/trpc/businessContinuity.getDashboardMetrics
 
 | Entity | Count | IDs |
 |---|---|---|
-| Programs | 1 | 2 |
-| Business Processes | 8 | 9-16 |
-| Disruptive Scenarios | 7 | 7-13 |
-| Recovery Strategies | 5 | 5-9 |
-| BC Plans | 5 | 5-9 |
-| Exercises | 5 | 5-9 |
+| Programs | 1 | 5 |
+| Business Processes | 8 | 29-36 |
+| Disruptive Scenarios | 7 | 14-20 |
+| Recovery Strategies | 5 | 10-14 |
+| BC Plans | 5 | 10-14 |
+| Exercises | 5 | 10-14 |
 
 ### Dashboard Metrics
 

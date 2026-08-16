@@ -4,7 +4,7 @@
 > **Industry:** Banking & Finance
 > **Company Size:** 1,200 employees
 > **Timeline:** 9 months
-> **Client ID:** 7 (PayFlow Technologies)
+> **Client ID:** 12 (MetroBank Financial)
 > **Date Implemented:** 2026-08-15
 
 ---
@@ -38,7 +38,7 @@ POST /api/trpc/vendorAssessments.createVendor
 ### Request Body Example
 ```json
 {
-  "clientId": 7,
+  "clientId": 12,
   "name": "FinCore Solutions",
   "website": "fincore.com",
   "category": "Core Banking Software",
@@ -62,7 +62,7 @@ POST /api/trpc/vendorAssessments.createVendor
 | **Total (sample)** | **22** | **12** | **10** | **0** | **0** |
 
 ### Vendor IDs Created
-- 11-30: 20 vendors created in database
+- 32-51: 20 vendors created in database
 
 ### Learning Notes
 - Vendor records are stored with full relationship mapping
@@ -86,10 +86,10 @@ POST /api/trpc/vendorAssessments.createVendor
 
 | Tier | Count | Assessment Required |
 |---|---|---|
-| Critical | 12 | Full assessment + evidence review |
-| High | 16 | Detailed questionnaire + evidence |
+| Critical | 33 | Full assessment + evidence review |
+| High | 37 | Detailed questionnaire + evidence |
 | Medium | 32 | Standard questionnaire |
-| Low | 15 | Basic questionnaire |
+| Low | 36 | Basic questionnaire |
 | **Total** | **85** | — |
 
 ---
@@ -105,10 +105,10 @@ POST /api/trpc/vendorAssessments.sendAssessment
 
 | Tier | Vendors | Questionnaire | Due Date | Responses |
 |---|---|---|---|---|
-| Critical | 12 | SIG + evidence request | 30 days | 11 of 12 |
-| High | 16 | Standard questionnaire | 30 days | 14 of 16 |
+| Critical | 33 | SIG + evidence request | 30 days | 11 of 12 |
+| High | 37 | Standard questionnaire | 30 days | 14 of 16 |
 | Medium | 32 | Basic questionnaire | 45 days | 28 of 32 |
-| Low | 15 | Self-attestation | 60 days | 13 of 15 |
+| Low | 36 | Self-attestation | 60 days | 13 of 15 |
 | **Total** | **85** | — | — | **66 of 85 (78%)** |
 
 ---
@@ -127,10 +127,10 @@ POST /api/trpc/vendorAssessments.sendAssessment
 
 | Tier | Vendors | Acceptable | Conditional | Unacceptable |
 |---|---|---|---|---|
-| Critical | 12 | 8 | 3 | 1 |
-| High | 16 | 11 | 4 | 1 |
-| Medium | 32 | 28 | 3 | 1 |
-| Low | 15 | 13 | 2 | 0 |
+| Critical | 33 | 8 | 3 | 1 |
+| High | 37 | 32 | 4 | 1 |
+| Medium | 32 | 49 | 3 | 1 |
+| Low | 36 | 34 | 2 | 0 |
 | **Total** | **85** | **60** | **12** | **3** |
 
 ---
@@ -177,7 +177,7 @@ POST /api/trpc/vendorAssessments.sendAssessment
 
 | Entity | Count | IDs |
 |---|---|---|
-| Vendors | 20 (sample) | 11-30 |
+| Vendors | 20 (sample) | 32-51 |
 
 ---
 

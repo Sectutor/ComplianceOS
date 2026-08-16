@@ -14,6 +14,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Shield, User, Calendar, Link as LinkIcon, Activity, Sparkles, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import Markdown from 'react-markdown';
 
 interface Control {
@@ -36,6 +37,7 @@ interface ControlDetailsSheetProps {
 
 export function ControlDetailsSheet({ open, onOpenChange, control: initialControl }: ControlDetailsSheetProps) {
     const utils = trpc.useUtils();
+    const [, setLocation] = useLocation();
 
     const { data: fetchedControl } = trpc.controls.get.useQuery(
         { id: initialControl?.id || 0 },
@@ -59,7 +61,13 @@ export function ControlDetailsSheet({ open, onOpenChange, control: initialContro
             utils.controls.listPaginated.invalidate();
         },
         onError: (err) => {
-            toast.error("Failed to generate guidance: " + err.message);
+            const isConfigError = /placeholder|not configured|No LLM provider|Settings > AI Providers/i.test(err.message || '');
+            toast.error("Failed to generate guidance: " + err.message, {
+                duration: 10000,
+                ...(isConfigError
+                    ? { action: { label: "AI Settings", onClick: () => setLocation("/admin/llm") } }
+                    : {}),
+            });
         }
     });
 
