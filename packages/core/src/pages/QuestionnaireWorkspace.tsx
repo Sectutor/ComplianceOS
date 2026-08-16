@@ -678,7 +678,7 @@ export default function QuestionnaireWorkspace() {
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                  <TableRow className="bg-brand hover:bg-brand border-none">
                     <TableHead className="w-[3%] text-white font-semibold py-4">#</TableHead>
                     <TableHead className="w-[8%] text-white font-semibold py-4">Question ID</TableHead>
                     <TableHead className="w-[10%] text-white font-semibold py-4">Focus Area</TableHead>
@@ -832,19 +832,19 @@ export default function QuestionnaireWorkspace() {
                       className={`
                         relative p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md
                         ${selectedTemplateId === template.id
-                          ? 'border-[#3ABEF9] bg-[#3ABEF9]/10'
+                          ? 'border-brand-bright bg-brand-bright/10'
                           : 'border-gray-200 hover:border-gray-300'
                         }
                       `}
                     >
                       {selectedTemplateId === template.id && (
-                        <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-[#3ABEF9] flex items-center justify-center">
+                        <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-brand-bright flex items-center justify-center">
                           <Check className="h-3 w-3 text-white" />
                         </div>
                       )}
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-[#1C4D8D]/10">
-                          <FileText className="h-5 w-5 text-[#1C4D8D]" />
+                        <div className="p-2 rounded-lg bg-brand/10">
+                          <FileText className="h-5 w-5 text-brand" />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900">{template.name}</h3>
@@ -880,7 +880,7 @@ export default function QuestionnaireWorkspace() {
               <Button
                 onClick={handleUseTemplate}
                 disabled={!selectedTemplateId}
-                className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90"
+                className="bg-brand hover:bg-brand/90"
               >
                 Use Template
               </Button>

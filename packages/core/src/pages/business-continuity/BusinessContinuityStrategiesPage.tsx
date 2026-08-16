@@ -238,7 +238,7 @@ export default function BusinessContinuityStrategiesPage() {
                             <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                        <TableRow className="bg-brand hover:bg-brand border-none">
                                             <TableHead className="w-[300px] text-white font-semibold py-4">Strategy</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Resources & Benefits</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Cost</TableHead>

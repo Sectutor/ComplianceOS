@@ -258,7 +258,7 @@ export default function DisruptiveScenarioEditor() {
                         </Button>
                         <div>
                             <h1 className="text-2xl font-bold flex items-center gap-2">
-                                <Zap className="w-6 h-6 text-[#1C4D8D]" />
+                                <Zap className="w-6 h-6 text-brand" />
                                 {isNew ? 'Define New Scenario' : 'Edit Scenario'}
                             </h1>
                             <p className="text-muted-foreground">{isNew ? 'Describe a potential disruptive event' : `Managing scenario: ${formData.title}`}</p>
@@ -268,7 +268,7 @@ export default function DisruptiveScenarioEditor() {
                         <Button variant="outline" onClick={() => setLocation(`/clients/${clientId}/business-continuity/scenarios`)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSubmit} disabled={loading} className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90">
+                        <Button onClick={handleSubmit} disabled={loading} className="bg-brand hover:bg-brand/90">
                             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             <Save className="w-4 h-4 mr-2" />
                             {isNew ? 'Create Scenario' : 'Save Changes'}
@@ -290,7 +290,7 @@ export default function DisruptiveScenarioEditor() {
                                     key={section.id}
                                     onClick={() => setActiveTab(section.id)}
                                     className={`group flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === section.id
-                                        ? 'bg-[#1C4D8D] text-white shadow-md ring-1 ring-[#1C4D8D]'
+                                        ? 'bg-brand text-white shadow-md ring-1 ring-brand'
                                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-transparent'
                                         }`}
                                 >

@@ -30,8 +30,8 @@ export default function CyberLayout({ children, fullWidth = false }: PropsWithCh
                                     className={cn(
                                         "flex items-center gap-2 px-5 py-2.5 rounded-lg whitespace-nowrap shrink-0 min-w-max transition-all duration-300 font-bold text-sm shadow-sm border",
                                         active
-                                            ? "bg-[#3ABEF9] text-white border-[#3ABEF9] shadow-lg shadow-sky-200"
-                                            : "bg-[#1C4D8D] text-white border-[#1C4D8D] hover:bg-[#3ABEF9] hover:border-[#3ABEF9]"
+                                            ? "bg-brand-bright text-white border-brand-bright shadow-lg shadow-sky-200"
+                                            : "bg-brand text-white border-brand hover:bg-brand-bright hover:border-brand-bright"
                                     )}
                                 >
                                     <tab.icon className="h-4 w-4" />

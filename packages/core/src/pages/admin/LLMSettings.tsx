@@ -385,22 +385,22 @@ export default function LLMSettings() {
             </EnhancedDialog>
 
             <Tabs defaultValue="providers" className="w-full">
-                <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl mb-6">
+                <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl mb-6">
                     <TabsTrigger
                         value="providers"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                     >
                         LLM Providers
                     </TabsTrigger>
                     <TabsTrigger
                         value="routing"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                     >
                         Dynamic Routing
                     </TabsTrigger>
                     <TabsTrigger
                         value="indexing"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                     >
                         Data & Indexing
                     </TabsTrigger>

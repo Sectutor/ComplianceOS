@@ -130,13 +130,13 @@ export default function CyberIncidentReporting() {
                         <div key={label} className="flex flex-col items-center gap-2">
                             <div className={cn(
                                 "h-10 w-10 rounded-full flex items-center justify-center font-bold transition-all duration-300",
-                                step >= i ? "bg-[#3ABEF9] text-white shadow-lg shadow-sky-100" : "bg-slate-100 text-slate-400"
+                                step >= i ? "bg-brand-bright text-white shadow-lg shadow-sky-100" : "bg-slate-100 text-slate-400"
                             )}>
                                 {i + 1}
                             </div>
                             <span className={cn(
                                 "text-xs font-bold uppercase tracking-wider",
-                                step >= i ? "text-[#1C4D8D]" : "text-slate-400"
+                                step >= i ? "text-brand" : "text-slate-400"
                             )}>{label}</span>
                         </div>
                     ))}
@@ -167,7 +167,7 @@ export default function CyberIncidentReporting() {
                                     <Label className="text-sm font-bold text-slate-700">Detailed at (UTC)</Label>
                                     <Input
                                         type="datetime-local"
-                                        className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                        className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                                         value={formData.detectedAt}
                                         onChange={(e) => setFormData({ ...formData, detectedAt: e.target.value })}
                                     />
@@ -194,7 +194,7 @@ export default function CyberIncidentReporting() {
                                 <Label className="text-sm font-bold text-slate-700">Incident Description</Label>
                                 <Textarea
                                     placeholder="Briefly describe the nature of the incident..."
-                                    className="min-h-[150px] rounded-xl border-slate-200 p-4 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                    className="min-h-[150px] rounded-xl border-slate-200 p-4 focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 />
@@ -208,7 +208,7 @@ export default function CyberIncidentReporting() {
                                 <Label className="text-sm font-bold text-slate-700">Root Cause (if known)</Label>
                                 <Input
                                     placeholder="e.g., Phishing, Zero-day exploit, Hardware failure"
-                                    className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                    className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={formData.cause}
                                     onChange={(e) => setFormData({ ...formData, cause: e.target.value })}
                                 />
@@ -229,7 +229,7 @@ export default function CyberIncidentReporting() {
                                 <Label className="text-sm font-bold text-slate-700">Affected Assets</Label>
                                 <Input
                                     placeholder="e.g., Production DB, ERP System, Remote Access Portal"
-                                    className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                    className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={formData.affectedAssets || ""}
                                     onChange={(e) => setFormData({ ...formData, affectedAssets: e.target.value })}
                                 />
@@ -239,7 +239,7 @@ export default function CyberIncidentReporting() {
 
                     {step === 2 && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                            <div className="p-6 bg-[#3ABEF9]/5 rounded-2xl border border-[#3ABEF9]/10 items-center justify-between flex">
+                            <div className="p-6 bg-brand-bright/5 rounded-2xl border border-brand-bright/10 items-center justify-between flex">
                                 <div className="space-y-1">
                                     <Label className="text-base font-bold text-slate-900">Mark as Significant Incident</Label>
                                     <p className="text-sm text-slate-500">Requires mandatory 24h Early Warning to authorities.</p>
@@ -293,8 +293,8 @@ export default function CyberIncidentReporting() {
 
                     {step === 3 && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                            <div className="bg-[#1C4D8D]/5 p-8 rounded-2xl border border-[#1C4D8D]/10">
-                                <h3 className="text-lg font-bold text-[#1C4D8D] mb-6 flex items-center gap-2">
+                            <div className="bg-brand/5 p-8 rounded-2xl border border-brand/10">
+                                <h3 className="text-lg font-bold text-brand mb-6 flex items-center gap-2">
                                     <AlertTriangle className="h-5 w-5" />
                                     Reporting Summary
                                 </h3>
@@ -309,7 +309,7 @@ export default function CyberIncidentReporting() {
                                             <Badge className={cn(
                                                 "font-bold px-3 py-1",
                                                 formData.severity === 'critical' ? "bg-red-500 text-white" :
-                                                    formData.severity === 'high' ? "bg-orange-500 text-white" : "bg-[#3ABEF9] text-white"
+                                                    formData.severity === 'high' ? "bg-orange-500 text-white" : "bg-brand-bright text-white"
                                             )}>{formData.severity.toUpperCase()}</Badge>
                                         </div>
                                     </div>
@@ -355,7 +355,7 @@ export default function CyberIncidentReporting() {
                     <Button
                         onClick={() => step < 3 ? setStep(step + 1) : handleSubmit()}
                         disabled={reportMutation.isLoading}
-                        className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                        className="bg-brand-bright hover:bg-brand text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                     >
                         {reportMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {step === 3 ? 'Submit Formal Report' : 'Continue'}

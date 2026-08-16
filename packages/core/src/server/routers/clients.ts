@@ -17,7 +17,6 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .query(async ({ ctx }: any) => {
                 try {
                     const dbConn = await db.getDb();
-                    console.log('[DEBUG] clients.list called');
 
                     // Validate user context
                     if (!ctx.user?.id) {
@@ -27,7 +26,6 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     // Admins/owners/super_admins: list all clients
                     if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin') {
-                        console.log('[DEBUG] Admin path taken');
                         const all = await dbConn.select({
                             id: clients.id,
                             name: clients.name,
@@ -54,14 +52,11 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                             .leftJoin(userClients, and(eq(clients.id, userClients.clientId), eq(userClients.userId, ctx.user.id)))
                             .orderBy(desc(clients.updatedAt));
 
-                        console.log('[DEBUG] Admin listing clients count raw:', all.length);
                         const uniqueAll = Array.from(new Map(all.map((item: any) => [item.id, item])).values());
-                        console.log('[DEBUG] Admin listing clients count unique:', uniqueAll.length);
                         return uniqueAll;
                     }
 
                     // Else list clients by membership (non-admin users)
-                    console.log('[DEBUG] User path taken');
                     const fullUser = await db.getUserById(ctx.user!.id);
                     const maxClients = fullUser?.maxClients || 2;
 
@@ -103,7 +98,6 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     const allowed = [...allowedOwned, ...invitedClients];
                     const uniqueAllowed = Array.from(new Map(allowed.map((item: any) => [item.id, item])).values());
 
-                    console.log(`[DEBUG] User listing: ${rows.length} total, ${ownedClients.length} owned, limit=${maxClients}, showing=${uniqueAllowed.length}`);
                     return uniqueAllowed;
                 } catch (error) {
                     console.error('[DEBUG] Error in clients.list:', error);

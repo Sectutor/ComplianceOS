@@ -447,7 +447,7 @@ export default function NIS2SupplyChainSecurity() {
                         <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D]">
+                                    <TableRow className="bg-brand hover:bg-brand">
                                         <TableHead className="text-white font-semibold">Vendor</TableHead>
                                         <TableHead className="text-white font-semibold">Sector</TableHead>
                                         <TableHead className="text-white font-semibold">Criticality</TableHead>

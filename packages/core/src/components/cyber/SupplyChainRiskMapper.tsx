@@ -147,7 +147,7 @@ export function SupplyChainRiskMapper() {
                             The system automatically calculates the potential impact of a vendor breach on your organization's NIS2 status based on dependencies, data access, and trust center documentation.
                         </p>
                     </div>
-                    <Button size="lg" className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-16 px-8 rounded-2xl shadow-xl shadow-sky-900/50 transition-all flex items-center gap-3">
+                    <Button size="lg" className="bg-brand-bright hover:bg-brand text-white font-bold h-16 px-8 rounded-2xl shadow-xl shadow-sky-900/50 transition-all flex items-center gap-3">
                         Launch VRM Deep Dive <ExternalLink className="w-5 h-5" />
                     </Button>
                 </div>

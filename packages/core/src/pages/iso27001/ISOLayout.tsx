@@ -106,12 +106,12 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
                                     <React.Fragment key={idx}>
                                         <BreadcrumbItem>
                                             {isLast ? (
-                                                <BreadcrumbPage className="font-bold text-[#1C4D8D]">
+                                                <BreadcrumbPage className="font-bold text-brand">
                                                     {item.label}
                                                 </BreadcrumbPage>
                                             ) : (
                                                 <BreadcrumbLink asChild>
-                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-[#3ABEF9] transition-colors">
+                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-brand-bright transition-colors">
                                                         {item.icon && <item.icon className="h-3.5 w-3.5" />}
                                                         {item.label}
                                                     </Link>
@@ -139,8 +139,8 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
                                     className={cn(
                                         "flex items-center whitespace-nowrap shrink-0 min-w-max px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer shadow-sm border",
                                         active
-                                            ? "bg-[#3ABEF9] text-white border-[#3ABEF9]"
-                                            : "bg-[#1C4D8D] text-white border-[#1C4D8D] hover:bg-[#3ABEF9] hover:border-[#3ABEF9]"
+                                            ? "bg-brand-bright text-white border-brand-bright"
+                                            : "bg-brand text-white border-brand hover:bg-brand-bright hover:border-brand-bright"
                                     )}
                                 >
                                     <item.icon className="mr-2.5 h-4 w-4" />

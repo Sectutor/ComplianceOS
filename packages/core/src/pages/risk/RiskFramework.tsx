@@ -223,7 +223,7 @@ export default function RiskFramework() {
                     <div>
                         <div className="mb-2">
                             <Link href={`/clients/${clientId}/risks`}>
-                                <Button variant="ghost" size="sm" className="px-4 py-2 rounded-lg transition-all bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] font-bold flex items-center gap-2">
+                                <Button variant="ghost" size="sm" className="px-4 py-2 rounded-lg transition-all bg-brand text-white hover:bg-brand-bright font-bold flex items-center gap-2">
                                     <ChevronLeft className="w-4 h-4" />
                                     Back to Dashboard
                                 </Button>
@@ -317,11 +317,11 @@ export default function RiskFramework() {
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                     <TabsList className="bg-transparent p-0 gap-2 flex-wrap h-auto">
-                        <TabsTrigger value="scope" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-md">Scope & Context</TabsTrigger>
-                        <TabsTrigger value="appetite" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-md">Risk Appetite</TabsTrigger>
-                        <TabsTrigger value="criteria" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-md">Risk Criteria</TabsTrigger>
-                        <TabsTrigger value="kris" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-md">Key Risk Indicators</TabsTrigger>
-                        <TabsTrigger value="stakeholders" className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-4 py-2 rounded-md">Key Stakeholders</TabsTrigger>
+                        <TabsTrigger value="scope" className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-4 py-2 rounded-md">Scope & Context</TabsTrigger>
+                        <TabsTrigger value="appetite" className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-4 py-2 rounded-md">Risk Appetite</TabsTrigger>
+                        <TabsTrigger value="criteria" className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-4 py-2 rounded-md">Risk Criteria</TabsTrigger>
+                        <TabsTrigger value="kris" className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-4 py-2 rounded-md">Key Risk Indicators</TabsTrigger>
+                        <TabsTrigger value="stakeholders" className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-4 py-2 rounded-md">Key Stakeholders</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="scope" className="space-y-4">

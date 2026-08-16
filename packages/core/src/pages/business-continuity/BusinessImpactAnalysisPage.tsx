@@ -101,7 +101,7 @@ export default function BusinessImpactAnalysisPage() {
                 <Card className="bg-slate-50 border-slate-200">
                     <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-[#1C4D8D]" />
+                            <Shield className="h-5 w-5 text-brand" />
                             Getting Started with Business Impact Analysis
                         </CardTitle>
                         <CardDescription>
@@ -115,7 +115,7 @@ export default function BusinessImpactAnalysisPage() {
                                 <span className="font-semibold text-sm">Define Processes</span>
                                 <p className="text-xs text-muted-foreground mb-2">Create an inventory of your critical business functions first.</p>
                                 <Link href={`/clients/${clientId}/business-continuity/processes`}>
-                                    <Button variant="link" className="p-0 h-auto text-xs text-[#1C4D8D] font-semibold justify-start hover:no-underline">
+                                    <Button variant="link" className="p-0 h-auto text-xs text-brand font-semibold justify-start hover:no-underline">
                                         Open Process Registry <ArrowRight className="ml-1 h-3 w-3" />
                                     </Button>
                                 </Link>
@@ -124,7 +124,7 @@ export default function BusinessImpactAnalysisPage() {
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-slate-100 px-2 py-0.5 rounded w-fit mb-1">Step 2</span>
                                 <span className="font-semibold text-sm">Start New BIA</span>
                                 <p className="text-xs text-muted-foreground mb-2">Click \"New BIA\" below and select a process to analyze.</p>
-                                <Button variant="link" className="p-0 h-auto text-xs text-[#1C4D8D] font-semibold justify-start hover:no-underline" onClick={() => setIsNewOpen(true)}>
+                                <Button variant="link" className="p-0 h-auto text-xs text-brand font-semibold justify-start hover:no-underline" onClick={() => setIsNewOpen(true)}>
                                     Create BIA Now <ArrowRight className="ml-1 h-3 w-3" />
                                 </Button>
                             </div>
@@ -258,7 +258,7 @@ export default function BusinessImpactAnalysisPage() {
                                 <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                                     <Table>
                                         <TableHeader>
-                                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                            <TableRow className="bg-brand hover:bg-brand border-none">
                                                 <TableHead className="text-white font-semibold py-4">Title</TableHead>
                                                 <TableHead className="text-white font-semibold py-4">Process</TableHead>
                                                 <TableHead className="text-white font-semibold py-4">Status</TableHead>
@@ -278,10 +278,10 @@ export default function BusinessImpactAnalysisPage() {
                                                                 <h3 className="font-semibold text-slate-900">No BIAs Found</h3>
                                                                 <p className="text-sm text-slate-500 mt-1">
                                                                     You haven't created any Business Impact Analyses yet.
-                                                                    The first step is to ensure you have <Link href={`/clients/${clientId}/business-continuity/processes`} className="text-[#1C4D8D] hover:underline font-medium">Business Processes</Link> defined.
+                                                                    The first step is to ensure you have <Link href={`/clients/${clientId}/business-continuity/processes`} className="text-brand hover:underline font-medium">Business Processes</Link> defined.
                                                                 </p>
                                                             </div>
-                                                            <Button onClick={() => setIsNewOpen(true)} className="mt-4 bg-[#1C4D8D]">
+                                                            <Button onClick={() => setIsNewOpen(true)} className="mt-4 bg-brand">
                                                                 <Plus className="mr-2 h-4 w-4" /> Create First BIA
                                                             </Button>
                                                         </div>
@@ -300,7 +300,7 @@ export default function BusinessImpactAnalysisPage() {
                                                     <TableCell className="text-gray-500 py-4">{new Date(bia.updatedAt || new Date()).toLocaleDateString()}</TableCell>
                                                     <TableCell className="text-right py-4">
                                                         <Link href={`/clients/${clientId}/business-continuity/bia/${bia.id}`}>
-                                                            <Button variant="ghost" size="sm" className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200">
+                                                            <Button variant="ghost" size="sm" className="hover:bg-brand/10 hover:text-brand transition-colors duration-200">
                                                                 Open <ArrowRight className="ml-2 h-4 w-4" />
                                                             </Button>
                                                         </Link>

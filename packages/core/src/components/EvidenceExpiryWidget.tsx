@@ -120,7 +120,7 @@ export default function EvidenceExpiryWidget({ clientId }: EvidenceExpiryWidgetP
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5 text-[#1C4D8D]" />
+            <FileText className="h-5 w-5 text-brand" />
             Evidence Expiry Overview
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-xs">

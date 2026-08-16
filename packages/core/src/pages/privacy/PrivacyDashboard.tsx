@@ -93,15 +93,15 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
 
             {statsLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                    <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                     <p className="text-slate-400 font-medium animate-pulse">Aggregating privacy insights...</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Card id="privacy-pii-assets" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">PII Assets</CardTitle>
-                            <div className="h-8 w-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#3ABEF9]">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">PII Assets</CardTitle>
+                            <div className="h-8 w-8 rounded-lg bg-sky-50 flex items-center justify-center text-brand-bright">
                                 <Database className="h-4 w-4" />
                             </div>
                         </CardHeader>
@@ -113,7 +113,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
 
                     <Card id="privacy-active-dsars" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">Active DSARs</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">Active DSARs</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
                                 <Users className="h-4 w-4" />
                             </div>
@@ -126,7 +126,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
 
                     <Card id="privacy-impact-tasks" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">Impact Tasks</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">Impact Tasks</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
                                 <CheckCircle className="h-4 w-4" />
                             </div>
@@ -139,7 +139,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
 
                     <Card id="privacy-health-score" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1C4D8D]">Health Score</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">Health Score</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
                                 <Shield className="h-4 w-4" />
                             </div>
@@ -157,7 +157,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-6">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-lg font-bold text-slate-900">Recent DSAR Requests</CardTitle>
-                            <Button variant="ghost" className="text-[#3ABEF9] hover:text-[#1C4D8D] font-bold" onClick={() => setLocation(`/clients/${clientId}/privacy/dsar`)}>View All</Button>
+                            <Button variant="ghost" className="text-brand-bright hover:text-brand font-bold" onClick={() => setLocation(`/clients/${clientId}/privacy/dsar`)}>View All</Button>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -170,17 +170,17 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                                         onClick={() => setLocation(`/clients/${clientId}/privacy/dsar/${dsar.id}`)}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#3ABEF9]/10 group-hover:text-[#3ABEF9] transition-colors">
+                                            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand-bright/10 group-hover:text-brand-bright transition-colors">
                                                 <Users className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-slate-900 group-hover:text-[#3ABEF9] transition-colors">{dsar.requestId}</p>
+                                                <p className="font-bold text-slate-900 group-hover:text-brand-bright transition-colors">{dsar.requestId}</p>
                                                 <p className="text-xs font-medium text-slate-400">
                                                     Filed {dsar.requestDate ? new Date(dsar.requestDate).toLocaleDateString() : 'N/A'}
                                                 </p>
                                             </div>
                                         </div>
-                                        <Badge className={`border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1 ${dsar.status === 'New' ? 'bg-[#3ABEF9]/10 text-[#3ABEF9]' :
+                                        <Badge className={`border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1 ${dsar.status === 'New' ? 'bg-brand-bright/10 text-brand-bright' :
                                             dsar.status === 'Completed' ? 'bg-green-100 text-green-700' :
                                                 'bg-slate-100 text-slate-600'
                                             }`}>
@@ -210,15 +210,15 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                                 {assessments.slice(0, 5).map(assessment => (
                                     <div key={assessment.id} className="flex items-center justify-between p-5 hover:bg-slate-50/80 transition-all cursor-pointer group">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#1C4D8D]/10 group-hover:text-[#1C4D8D] transition-colors">
+                                            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                                                 <FileText className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-slate-900 group-hover:text-[#1C4D8D] transition-colors truncate max-w-[200px]">
+                                                <p className="font-bold text-slate-900 group-hover:text-brand transition-colors truncate max-w-[200px]">
                                                     {assessment.type.replace(/^(DPIA:|TIA:|BREACH:)\s*/, '')}
                                                 </p>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#3ABEF9]">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-bright">
                                                         {assessment.type.split(':')[0]}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-slate-300">•</span>

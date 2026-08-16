@@ -276,7 +276,7 @@ export default function RiskThreatsPage() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full">
                             <thead>
-                                <tr className="bg-[#1C4D8D]">
+                                <tr className="bg-brand">
                                     <SortableHeader label="ID" sortKey="threatId" />
                                     <SortableHeader label="Threat Name" sortKey="name" />
                                     <SortableHeader label="Category" sortKey="category" />

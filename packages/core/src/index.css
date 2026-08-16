@@ -9,6 +9,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Brand palette — replaces the ~570 hardcoded #1C4D8D / #3ABEF9
+     literals that previously bypassed the theme system. */
+  --color-brand: #1C4D8D;
+  --color-brand-bright: #3ABEF9;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

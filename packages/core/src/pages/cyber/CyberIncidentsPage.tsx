@@ -57,7 +57,7 @@ export default function CyberIncidentsPage() {
                 <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-sky-50 text-[#3ABEF9] flex items-center justify-center">
+                            <div className="h-12 w-12 rounded-xl bg-sky-50 text-brand-bright flex items-center justify-center">
                                 <AlertTriangle className="h-6 w-6" />
                             </div>
                             <div>
@@ -113,7 +113,7 @@ export default function CyberIncidentsPage() {
                                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                                 <Input
                                     placeholder="Search incidents..."
-                                    className="pl-9 h-10 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                    className="pl-9 h-10 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                                 />
                             </div>
                             <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200">
@@ -126,7 +126,7 @@ export default function CyberIncidentsPage() {
                     <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-0">
+                                <TableRow className="bg-brand hover:bg-brand border-0">
                                     <TableHead className="text-white font-bold h-14 pl-6 w-32">Severity</TableHead>
                                     <TableHead className="text-white font-bold h-14">Incident / ID</TableHead>
                                     <TableHead className="text-white font-bold h-14">Status</TableHead>
@@ -140,7 +140,7 @@ export default function CyberIncidentsPage() {
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
-                                                <Loader2 className="h-8 w-8 text-[#3ABEF9] animate-spin" />
+                                                <Loader2 className="h-8 w-8 text-brand-bright animate-spin" />
                                                 <p className="text-sm font-bold text-slate-500">Retrieving incident logs...</p>
                                             </div>
                                         </TableCell>
@@ -175,7 +175,7 @@ export default function CyberIncidentsPage() {
                                                     <Badge className="bg-red-50 text-red-600 border-red-100 font-bold px-2 py-0 text-[10px] uppercase">Significant</Badge>
                                                 )}
                                             </div>
-                                            <div className="text-xs font-bold text-[#1C4D8D]/60 mt-0.5 uppercase tracking-widest">ID-INC-{incident.id}</div>
+                                            <div className="text-xs font-bold text-brand/60 mt-0.5 uppercase tracking-widest">ID-INC-{incident.id}</div>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className={cn(
@@ -194,7 +194,7 @@ export default function CyberIncidentsPage() {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents/${incident.id}`)}
-                                                className="h-9 px-4 rounded-lg font-bold text-[#1C4D8D] hover:bg-sky-50 hover:text-[#3ABEF9] transition-all"
+                                                className="h-9 px-4 rounded-lg font-bold text-brand hover:bg-sky-50 hover:text-brand-bright transition-all"
                                             >
                                                 <Eye className="h-4 w-4 mr-2" />
                                                 Review

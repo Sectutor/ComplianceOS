@@ -394,7 +394,7 @@ export default function VendorDashboard() {
                                         <div className={`w-14 h-14 rounded-2xl border ${item.bg} flex items-center justify-center mb-4 shadow-lg ${item.shadow} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
                                             <item.icon className={`w-7 h-7 ${item.color}`} />
                                         </div>
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-[#3ABEF9] mb-1.5">{item.step}</div>
+                                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-bright mb-1.5">{item.step}</div>
                                         <div className="font-bold text-lg mb-1.5 text-white">{item.title}</div>
                                         <div className="text-sm text-slate-400 leading-snug font-medium group-hover:text-slate-300 transition-colors">{item.desc}</div>
                                     </div>
@@ -499,7 +499,7 @@ export default function VendorDashboard() {
 
                                 <div className="z-10 text-center flex flex-col items-center">
                                     <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                                        <Globe className="w-10 h-10 text-slate-300 group-hover:text-[#3ABEF9] transition-colors duration-500" />
+                                        <Globe className="w-10 h-10 text-slate-300 group-hover:text-brand-bright transition-colors duration-500" />
                                     </div>
                                     <h4 className="text-lg font-bold text-slate-700 mb-1">Global Visualization</h4>
                                     <p className="text-sm font-medium text-slate-500">Connecting interactive map modules...</p>

@@ -116,7 +116,7 @@ export default function SalesDashboard() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
                         Sales Pipeline
-                        <Badge variant="outline" className="border-[#3ABEF9]/20 text-[#3ABEF9] bg-[#3ABEF9]/5 flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
+                        <Badge variant="outline" className="border-brand-bright/20 text-brand-bright bg-brand-bright/5 flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
                             Premium
                         </Badge>
                     </h1>
@@ -173,17 +173,17 @@ export default function SalesDashboard() {
 
             <Tabs defaultValue="kanban" className="flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
-                    <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl">
+                    <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl">
                         <TabsTrigger
                             value="kanban"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                         >
                             <LayoutGrid className="w-4 h-4" />
                             Kanban
                         </TabsTrigger>
                         <TabsTrigger
                             value="list"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                         >
                             <List className="w-4 h-4" />
                             List View

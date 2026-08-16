@@ -20,6 +20,27 @@ import { LLMService } from "../../lib/llm/service";
 
 export const createLlmRouter = (t: any, publicProcedure: any, isAuthed: any, adminProcedure: any) => {
     return t.router({
+        // Lightweight AI-readiness check for UI gating (buttons/tooltips).
+        status: publicProcedure
+            .use(isAuthed)
+            .query(async () => {
+                try {
+                    const db = await getDb();
+                    const providers = await db.select().from(llmProviders);
+                    const enabled = providers.filter((p: any) => p.isEnabled);
+                    const isPlaceholder = (k: string | null | undefined) =>
+                        !k || k.startsWith('enc:demo-') || k.includes('demo-placeholder');
+                    const usable = enabled.filter((p: any) => !isPlaceholder(decrypt(p.apiKey)));
+                    return {
+                        configured: usable.length > 0,
+                        enabledCount: enabled.length,
+                        usableCount: usable.length,
+                    };
+                } catch {
+                    return { configured: false, enabledCount: 0, usableCount: 0 };
+                }
+            }),
+
         // List all LLM providers
         list: publicProcedure
             .use(isAuthed)

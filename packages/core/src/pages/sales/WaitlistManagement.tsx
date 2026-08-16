@@ -159,7 +159,7 @@ export default function WaitlistManagement() {
                 <div>
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-bold tracking-tight">Waitlist Management</h1>
-                        <Badge variant="outline" className="border-[#3ABEF9]/20 text-[#3ABEF9] bg-[#3ABEF9]/5 flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
+                        <Badge variant="outline" className="border-brand-bright/20 text-brand-bright bg-brand-bright/5 flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
                             Premium
                         </Badge>
                     </div>
@@ -172,34 +172,34 @@ export default function WaitlistManagement() {
             </div>
 
             <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-                <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl mb-6">
+                <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl mb-6">
                     <TabsTrigger
                         value="all"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                     >
                         All Leads
                     </TabsTrigger>
                     <TabsTrigger
                         value="pending"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                     >
                         Pending
                     </TabsTrigger>
                     <TabsTrigger
                         value="contacted"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                     >
                         Contacted
                     </TabsTrigger>
                     <TabsTrigger
                         value="invited"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                     >
                         Invited
                     </TabsTrigger>
                     <TabsTrigger
                         value="converted"
-                        className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
                     >
                         Converted
                     </TabsTrigger>
@@ -208,7 +208,7 @@ export default function WaitlistManagement() {
                 <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                            <TableRow className="bg-brand hover:bg-brand border-none">
                                 <TableHead className="text-white font-semibold py-4">Contact</TableHead>
                                 <TableHead className="text-white font-semibold py-4">Company</TableHead>
                                 <TableHead className="text-white font-semibold py-4">Details</TableHead>

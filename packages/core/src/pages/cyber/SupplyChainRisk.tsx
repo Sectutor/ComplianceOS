@@ -53,7 +53,7 @@ export default function SupplyChainRisk() {
                         </Button>
                         <Button 
                             onClick={() => setLocation(`/clients/${selectedClientId}/vendors`)}
-                            className="h-14 px-8 rounded-2xl font-bold bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white transition-all flex items-center gap-3 active:scale-95 shadow-xl shadow-sky-200/50"
+                            className="h-14 px-8 rounded-2xl font-bold bg-brand-bright hover:bg-brand text-white transition-all flex items-center gap-3 active:scale-95 shadow-xl shadow-sky-200/50"
                         >
                             <Zap className="w-5 h-5 fill-white" />
                             Onboard New Provider

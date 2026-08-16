@@ -36,8 +36,8 @@ export default function DPIAManager() {
             {/* Templates Section */}
             <section className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-[#1C4D8D] flex items-center gap-3">
-                        <div className="h-10 w-10 bg-sky-50 rounded-xl flex items-center justify-center text-[#3ABEF9]">
+                    <h2 className="text-xl font-bold text-brand flex items-center gap-3">
+                        <div className="h-10 w-10 bg-sky-50 rounded-xl flex items-center justify-center text-brand-bright">
                             <FileText className="h-5 w-5" />
                         </div>
                         Available Templates
@@ -52,7 +52,7 @@ export default function DPIAManager() {
                 </div>
 
                 {templatesLoading ? (
-                    <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-[#3ABEF9]" /></div>
+                    <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-brand-bright" /></div>
                 ) : (
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {templates && templates.length > 0 ? (
@@ -60,7 +60,7 @@ export default function DPIAManager() {
                                 <Card key={t.id} className="group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-slate-200 bg-white rounded-2xl overflow-hidden ring-1 ring-slate-200/50">
                                     <CardHeader className="pb-4">
                                         <div className="flex justify-between items-start mb-2">
-                                            <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-[#3ABEF9] transition-colors">{t.name}</CardTitle>
+                                            <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-brand-bright transition-colors">{t.name}</CardTitle>
                                         </div>
                                         <CardDescription className="text-slate-500 text-sm leading-relaxed line-clamp-2">{t.description || 'No description provided.'}</CardDescription>
                                     </CardHeader>
@@ -70,7 +70,7 @@ export default function DPIAManager() {
                                             <span>Revision: {t.version || '1.0'}</span>
                                         </div>
                                         <Button
-                                            className="w-full bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                                            className="w-full bg-brand-bright hover:bg-brand text-white font-bold h-11 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                                             onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new?templateId=${t.id}`)}
                                         >
                                             <Play className="mr-2 h-4 w-4 fill-current" /> Initialize Assessment
@@ -119,7 +119,7 @@ export default function DPIAManager() {
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-32 text-center">
                                         <div className="flex flex-col items-center justify-center gap-2">
-                                            <Loader2 className="h-8 w-8 animate-spin text-[#3ABEF9]" />
+                                            <Loader2 className="h-8 w-8 animate-spin text-brand-bright" />
                                             <span className="text-sm font-medium text-slate-400">Loading history...</span>
                                         </div>
                                     </TableCell>
@@ -143,7 +143,7 @@ export default function DPIAManager() {
                                         <TableCell className="py-5">
                                             <Badge className={cn(
                                                 "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
-                                                a.status === 'completed' ? "bg-green-100 text-green-700" : "bg-[#1C4D8D]/10 text-[#1C4D8D]"
+                                                a.status === 'completed' ? "bg-green-100 text-green-700" : "bg-brand/10 text-brand"
                                             )}>
                                                 {a.status || 'Not Started'}
                                             </Badge>
@@ -153,7 +153,7 @@ export default function DPIAManager() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="text-[#3ABEF9] hover:text-[#1C4D8D] hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                                className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
                                                 onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/${a.id}/questionnaire`)}
                                             >
                                                 View Review

@@ -15,6 +15,7 @@ import { Shield, User, Calendar, Link as LinkIcon, Activity, Sparkles, Loader2 }
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { useAiConfigured } from "@/hooks/useAiConfigured";
 import Markdown from 'react-markdown';
 
 interface Control {
@@ -38,6 +39,7 @@ interface ControlDetailsSheetProps {
 export function ControlDetailsSheet({ open, onOpenChange, control: initialControl }: ControlDetailsSheetProps) {
     const utils = trpc.useUtils();
     const [, setLocation] = useLocation();
+    const aiConfigured = useAiConfigured();
 
     const { data: fetchedControl } = trpc.controls.get.useQuery(
         { id: initialControl?.id || 0 },
@@ -146,7 +148,12 @@ export function ControlDetailsSheet({ open, onOpenChange, control: initialContro
                                         size="sm"
                                         className="h-7 text-xs gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
                                         onClick={handleGenerateGuidance}
-                                        disabled={generateGuidanceMutation.isPending}
+                                        disabled={generateGuidanceMutation.isPending || (!aiConfigured.isLoading && !aiConfigured.configured)}
+                                        title={
+                                            aiConfigured.configured
+                                                ? undefined
+                                                : "Configure an AI provider first (Settings → AI)"
+                                        }
                                     >
                                         {generateGuidanceMutation.isPending ? (
                                             <Loader2 className="h-3 w-3 animate-spin" />

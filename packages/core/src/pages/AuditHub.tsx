@@ -464,12 +464,12 @@ export default function AuditHub() {
                 <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-8 shrink-0 z-40 relative shadow-sm">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3">
-                            <div className="bg-[#1C4D8D] h-9 w-9 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-slate-900/5">
+                            <div className="bg-brand h-9 w-9 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-slate-900/5">
                                 <Shield className="h-5 w-5 text-emerald-400" />
                             </div>
                             <div>
-                                <h1 className="font-bold text-[#1C4D8D] leading-tight tracking-tight">AuditWorkspace™</h1>
-                                <div className="text-[10px] font-bold text-[#1C4D8D]/60 uppercase tracking-wider">Secure Clean Room</div>
+                                <h1 className="font-bold text-brand leading-tight tracking-tight">AuditWorkspace™</h1>
+                                <div className="text-[10px] font-bold text-brand/60 uppercase tracking-wider">Secure Clean Room</div>
                             </div>
                         </div>
                         <div className="h-8 w-px bg-slate-200" />
@@ -1983,8 +1983,8 @@ function NavButton({ active, onClick, icon: Icon, label, count }: { active: bool
             className={cn(
                 "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold transition-all group",
                 active
-                    ? "bg-[#3ABEF9] text-white shadow-sm ring-1 ring-[#3ABEF9]/50"
-                    : "bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]"
+                    ? "bg-brand-bright text-white shadow-sm ring-1 ring-brand-bright/50"
+                    : "bg-brand text-white hover:bg-brand-bright"
             )}
         >
             <Icon className={cn("h-4.5 w-4.5 transition-colors", active ? "text-white" : "text-white/80 group-hover:text-white")} />

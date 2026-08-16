@@ -25,8 +25,8 @@ const FRAMEWORKS = {
         border: 'border-sky-200',
         badge: 'bg-sky-100 text-sky-800',
         accent: 'from-sky-500 to-indigo-600',
-        tabActive: 'bg-[#3ABEF9] text-white shadow-md',
-        tabInactive: 'text-[#1C4D8D] bg-slate-50 border border-slate-200 hover:bg-sky-50',
+        tabActive: 'bg-brand-bright text-white shadow-md',
+        tabInactive: 'text-brand bg-slate-50 border border-slate-200 hover:bg-sky-50',
         overview: `The NIS2 Directive (EU) 2022/2555 is the EU-wide legislation on cybersecurity. It provides legal measures to boost the overall level of cybersecurity in the EU. Essential and Important entities must implement comprehensive risk management, incident reporting, and supply chain security to avoid significant fines.`,
         highlightNote: `📌 Compliance is mandatory for entities operating in 18 critical sectors within the EU. Failure can result in fines up to €10M or 2% of global annual turnover, along with management liability.`,
         timeline: '3 – 9 months',
@@ -186,7 +186,7 @@ export default function CyberProgramGuide() {
 
                 <div className="p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
                     {/* Hero Header */}
-                    <div className="bg-gradient-to-br from-[#1C4D8D] via-sky-800 to-[#3ABEF9] rounded-[2.5rem] p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-brand via-sky-800 to-brand-bright rounded-[2.5rem] p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] -mb-20 -ml-20"></div>
                         <div className="relative z-10">
@@ -227,7 +227,7 @@ export default function CyberProgramGuide() {
                                 <p className="text-slate-700 leading-relaxed font-medium">{fw.overview}</p>
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold mt-4 uppercase">
                                     <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                                    Est. Cost: <span className="text-[#3ABEF9]">{fw.cost}</span>
+                                    Est. Cost: <span className="text-brand-bright">{fw.cost}</span>
                                 </div>
                             </div>
 
@@ -242,9 +242,9 @@ export default function CyberProgramGuide() {
                                         {progressPercentage === 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
                                         Implementation Progress
                                     </h3>
-                                    <span className="text-sm font-bold text-[#1C4D8D] bg-sky-50 px-3 py-1 rounded-full">{progressPercentage}% Complete</span>
+                                    <span className="text-sm font-bold text-brand bg-sky-50 px-3 py-1 rounded-full">{progressPercentage}% Complete</span>
                                 </div>
-                                <Progress value={progressPercentage} className="h-3 rounded-full bg-slate-100" indicatorClassName="bg-gradient-to-r from-[#3ABEF9] to-emerald-400" />
+                                <Progress value={progressPercentage} className="h-3 rounded-full bg-slate-100" indicatorClassName="bg-gradient-to-r from-brand-bright to-emerald-400" />
                                 <p className="text-xs text-slate-500 mt-4 font-medium">
                                     Completion based on real-time data from your Cyber Resilience modules.
                                 </p>

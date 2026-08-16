@@ -164,7 +164,7 @@ export default function RiskVulnerabilitiesPage() {
         const isSorted = sortConfig?.key === sortKey;
         return (
             <th
-                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-[#3ABEF9] transition-colors select-none group"
+                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-brand-bright transition-colors select-none group"
                 onClick={() => handleSort(sortKey)}
             >
                 <div className="flex items-center gap-2">
@@ -242,7 +242,7 @@ export default function RiskVulnerabilitiesPage() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full">
                             <thead>
-                                <tr className="bg-[#1C4D8D]">
+                                <tr className="bg-brand">
                                     <SortableHeader label="ID" sortKey="vulnerabilityId" />
                                     <SortableHeader label="Name" sortKey="name" />
                                     <SortableHeader label="Severity" sortKey="severity" />

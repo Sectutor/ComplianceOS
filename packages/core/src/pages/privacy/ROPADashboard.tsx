@@ -287,7 +287,7 @@ export default function ROPADashboard() {
                 </div>
                 <Button
                     onClick={() => setCreateOpen(true)}
-                    className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                    className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                 >
                     <Plus className="mr-2 h-5 w-5" /> Add Business Process
                 </Button>
@@ -296,17 +296,17 @@ export default function ROPADashboard() {
             {/* Process Table */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                    <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                     <p className="text-slate-400 font-medium animate-pulse">Loading ROPA registry...</p>
                 </div>
             ) : (
                 <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
-                    <div className="bg-[#1C4D8D] px-6 py-4">
+                    <div className="bg-brand px-6 py-4">
                         <h3 className="text-lg font-semibold text-white">Processing Activities</h3>
                         <p className="text-white/70 text-sm">Manage your ROPA registry (Article 30 GDPR)</p>
                     </div>
                     <Table>
-                        <TableHeader className="bg-[#1C4D8D]">
+                        <TableHeader className="bg-brand">
                             <TableRow className="hover:bg-transparent border-0">
                                 <TableHead className="font-bold text-white h-14">Process Name</TableHead>
                                 <TableHead className="font-bold text-white h-14">Department</TableHead>
@@ -325,7 +325,7 @@ export default function ROPADashboard() {
                                     >
                                         <TableCell className="py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center text-[#3ABEF9] font-bold">
+                                                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center text-brand-bright font-bold">
                                                     {proc.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
@@ -366,7 +366,7 @@ export default function ROPADashboard() {
                                                     className="h-8 w-8 p-0 hover:bg-sky-50"
                                                     onClick={() => handleOpenEdit(proc)}
                                                 >
-                                                    <Edit2 className="h-4 w-4 text-[#3ABEF9]" />
+                                                    <Edit2 className="h-4 w-4 text-brand-bright" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -379,7 +379,7 @@ export default function ROPADashboard() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-[#3ABEF9] hover:text-[#1C4D8D] hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                                    className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
                                                     onClick={() => handleOpenFlows(proc)}
                                                 >
                                                     Configure Flows <ArrowRight className="ml-2 h-4 w-4" />
@@ -441,7 +441,7 @@ export default function ROPADashboard() {
                         <Button
                             onClick={handleCreate}
                             disabled={createProcessMutation.isPending}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl"
                         >
                             {createProcessMutation.isPending ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
@@ -463,7 +463,7 @@ export default function ROPADashboard() {
                             value={form.name}
                             onChange={e => setField("name", e.target.value)}
                             placeholder="e.g. Employee Onboarding, Marketing Analytics"
-                            className="h-11 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            className="h-11 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
 
@@ -473,7 +473,7 @@ export default function ROPADashboard() {
                             Department
                         </Label>
                         <Select value={form.department} onValueChange={(v) => setField("department", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-[#3ABEF9]">
+                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
                                 <SelectValue placeholder="Select department..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -490,7 +490,7 @@ export default function ROPADashboard() {
                             Criticality Tier
                         </Label>
                         <Select value={form.criticalityTier} onValueChange={(v) => setField("criticalityTier", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-[#3ABEF9]">
+                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
                                 <SelectValue placeholder="Select criticality..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -510,7 +510,7 @@ export default function ROPADashboard() {
                             value={form.description}
                             onChange={e => setField("description", e.target.value)}
                             placeholder="Describe this processing activity, its purpose and legal basis under GDPR..."
-                            className="rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 resize-none min-h-[80px]"
+                            className="rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 resize-none min-h-[80px]"
                         />
                     </div>
 
@@ -518,7 +518,7 @@ export default function ROPADashboard() {
                     <button
                         type="button"
                         onClick={() => setShowAdvanced(prev => !prev)}
-                        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#3ABEF9] transition-colors w-fit"
+                        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-bright transition-colors w-fit"
                     >
                         {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         {showAdvanced ? "Hide" : "Show"} Recovery Objectives &amp; Advanced Settings
@@ -642,7 +642,7 @@ export default function ROPADashboard() {
                         <Button
                             onClick={handleUpdate}
                             disabled={updateProcessMutation.isPending}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl"
                         >
                             {updateProcessMutation.isPending ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
@@ -664,7 +664,7 @@ export default function ROPADashboard() {
                             value={form.name}
                             onChange={e => setField("name", e.target.value)}
                             placeholder="e.g. Employee Onboarding, Marketing Analytics"
-                            className="h-11 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            className="h-11 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
 
@@ -674,7 +674,7 @@ export default function ROPADashboard() {
                             Department
                         </Label>
                         <Select value={form.department} onValueChange={(v) => setField("department", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-[#3ABEF9]">
+                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
                                 <SelectValue placeholder="Select department..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -691,7 +691,7 @@ export default function ROPADashboard() {
                             Criticality Tier
                         </Label>
                         <Select value={form.criticalityTier} onValueChange={(v) => setField("criticalityTier", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-[#3ABEF9]">
+                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
                                 <SelectValue placeholder="Select criticality..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -711,7 +711,7 @@ export default function ROPADashboard() {
                             value={form.description}
                             onChange={e => setField("description", e.target.value)}
                             placeholder="Describe this processing activity, its purpose and legal basis under GDPR..."
-                            className="rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 resize-none min-h-[80px]"
+                            className="rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 resize-none min-h-[80px]"
                         />
                     </div>
 
@@ -719,7 +719,7 @@ export default function ROPADashboard() {
                     <button
                         type="button"
                         onClick={() => setShowAdvanced(prev => !prev)}
-                        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#3ABEF9] transition-colors w-fit"
+                        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-bright transition-colors w-fit"
                     >
                         {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         {showAdvanced ? "Hide" : "Show"} Recovery Objectives &amp; Advanced Settings
@@ -872,7 +872,7 @@ export default function ROPADashboard() {
                         <Button
                             onClick={handleAddFlow}
                             disabled={addFlowMutation.isPending || !flowAssetId}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] rounded-xl"
+                            className="bg-brand-bright hover:bg-brand rounded-xl"
                         >
                             {addFlowMutation.isPending ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...</>
@@ -1045,7 +1045,7 @@ export default function ROPADashboard() {
                                     id="crossBorder"
                                     checked={flowIsCrossBorder}
                                     onChange={(e) => setFlowIsCrossBorder(e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-300 text-[#3ABEF9] focus:ring-[#3ABEF9]"
+                                    className="h-4 w-4 rounded border-slate-300 text-brand-bright focus:ring-brand-bright"
                                 />
                                 <Label htmlFor="crossBorder" className="text-sm font-medium text-slate-700 cursor-pointer">
                                     Cross-border transfer outside EEA

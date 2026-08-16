@@ -194,6 +194,16 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
             <CardDescription>Generated assessment of public-facing security controls</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {trustData?.simulated && (
+              <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Simulated demo analysis.</strong> This report was generated from built-in
+                  heuristics, <em>not</em> from the vendor&rsquo;s actual trust center. Do not use it as
+                  compliance evidence. Configure a real AI provider (Settings &rarr; AI) for live analysis.
+                </span>
+              </div>
+            )}
             {trustData?.riskSummary ? (
               <div className="p-4 bg-muted/50 rounded-lg border border-border italic text-sm text-muted-foreground leading-relaxed">
                 {isPolling && <div className="flex items-center gap-2 mb-2 text-blue-600 text-xs font-semibold animate-pulse"><RefreshCw className="h-3 w-3 animate-spin" /> Updating Analysis...</div>}

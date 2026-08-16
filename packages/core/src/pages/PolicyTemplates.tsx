@@ -388,7 +388,7 @@ export default function PolicyTemplates() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
+            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-brand text-white hover:bg-brand-bright transition-all font-semibold">
               <Wand2 className="mr-2 h-4 w-4" />
               {selectedTemplates.length > 0 ? `Generate ${selectedTemplates.length} Policies` : "Bulk Generate Policies"}
             </Button>
@@ -669,10 +669,10 @@ export default function PolicyTemplates() {
             </Select>
             <div className="flex items-center gap-2 border rounded-md p-1 bg-muted/50 max-sm:ml-auto">
               <ToggleGroup type="single" value={viewMode} onValueChange={(val) => val && setViewMode(val as any)}>
-                <ToggleGroupItem value="grid" aria-label="Grid view" className="h-8 w-8 p-0 data-[state=on]:bg-[#3ABEF9] data-[state=on]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
+                <ToggleGroupItem value="grid" aria-label="Grid view" className="h-8 w-8 p-0 data-[state=on]:bg-brand-bright data-[state=on]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-semibold">
                   <LayoutGrid className="h-4 w-4 shrink-0" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0 data-[state=on]:bg-[#3ABEF9] data-[state=on]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0 data-[state=on]:bg-brand-bright data-[state=on]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-semibold">
                   <List className="h-4 w-4 shrink-0" />
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -702,7 +702,7 @@ export default function PolicyTemplates() {
                 const sections = Array.isArray(template.sections) ? template.sections : [];
                 return (
                   <Card key={template.id} className="group cursor-pointer border border-slate-200 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 bg-white overflow-hidden relative shadow-md" onClick={() => setViewingTemplate(template.id)}>
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#1C4D8D] to-[#3ABEF9]"></div>
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-brand to-brand-bright"></div>
                     <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
@@ -711,10 +711,10 @@ export default function PolicyTemplates() {
                           </Badge>
                           <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{template.frameworks?.join(' / ')}</span>
                         </div>
-                        <CardTitle className="text-lg font-extrabold text-slate-900 leading-tight group-hover:text-[#1C4D8D] transition-colors">{template.name}</CardTitle>
+                        <CardTitle className="text-lg font-extrabold text-slate-900 leading-tight group-hover:text-brand transition-colors">{template.name}</CardTitle>
                       </div>
-                      <div className="p-2 rounded-xl bg-white group-hover:bg-[#1C4D8D]/10 transition-colors">
-                        <FileText className="h-5 w-5 text-slate-400 group-hover:text-[#1C4D8D] transition-colors" />
+                      <div className="p-2 rounded-xl bg-white group-hover:bg-brand/10 transition-colors">
+                        <FileText className="h-5 w-5 text-slate-400 group-hover:text-brand transition-colors" />
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -1591,12 +1591,12 @@ function BulkDeployDialog({
       <div className="space-y-5 py-4">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white border-2 border-[#3ABEF9] shadow-md mb-1">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1C4D8D]" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white border-2 border-brand-bright shadow-md mb-1">
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
           <h3 className="text-xl font-bold text-slate-800">Generating Policies...</h3>
           <p className="text-sm text-slate-500">
-            {progress.current} of {progress.total} completed &bull; <span className="font-semibold text-[#1C4D8D]">{percent}%</span>
+            {progress.current} of {progress.total} completed &bull; <span className="font-semibold text-brand">{percent}%</span>
           </p>
         </div>
 
@@ -1618,8 +1618,8 @@ function BulkDeployDialog({
         </div>
 
         {/* Time estimate info */}
-        <div className="flex items-start gap-3 p-3.5 rounded-lg bg-[#1C4D8D]/5 border border-[#1C4D8D]/15">
-          <Clock className="h-5 w-5 text-[#1C4D8D] mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-3 p-3.5 rounded-lg bg-brand/5 border border-brand/15">
+          <Clock className="h-5 w-5 text-brand mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-semibold text-slate-700">
               {remaining > 0
@@ -1634,7 +1634,7 @@ function BulkDeployDialog({
 
         {/* Per-policy status list */}
         <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-          <div className="px-4 py-2.5 bg-[#1C4D8D] border-b">
+          <div className="px-4 py-2.5 bg-brand border-b">
             <p className="text-xs font-semibold text-white uppercase tracking-wider">Policy Generation Status</p>
           </div>
           <div className="max-h-[200px] overflow-y-auto bg-white">
@@ -1645,7 +1645,7 @@ function BulkDeployDialog({
               return (
                 <div
                   key={idx}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-100 last:border-b-0 ${isCurrent ? 'bg-[#3ABEF9]/8' : 'bg-white'
+                  className={`flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-100 last:border-b-0 ${isCurrent ? 'bg-brand-bright/8' : 'bg-white'
                     }`}
                 >
                   <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
@@ -1654,14 +1654,14 @@ function BulkDeployDialog({
                     ) : result?.status === 'error' ? (
                       <XCircle className="h-4.5 w-4.5 text-red-600" />
                     ) : isCurrent ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-[#1C4D8D]" />
+                      <Loader2 className="h-4 w-4 animate-spin text-brand" />
                     ) : (
                       <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
                     )}
                   </div>
                   <span className={`flex-1 truncate ${result?.status === 'success' ? 'text-slate-600' :
                     result?.status === 'error' ? 'text-red-700' :
-                      isCurrent ? 'font-semibold text-[#1C4D8D]' :
+                      isCurrent ? 'font-semibold text-brand' :
                         'text-slate-400'
                     }`}>
                     {name}
@@ -1672,7 +1672,7 @@ function BulkDeployDialog({
                     ) : result?.status === 'error' ? (
                       <span className="text-red-600">Failed</span>
                     ) : isCurrent ? (
-                      <span className="text-[#1C4D8D] animate-pulse">Generating...</span>
+                      <span className="text-brand animate-pulse">Generating...</span>
                     ) : (
                       <span className="text-slate-400">Queued</span>
                     )}
@@ -1791,8 +1791,8 @@ function BulkDeployDialog({
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#3ABEF9]/10 border-[#3ABEF9]/20">
-            <Sparkles className="h-5 w-5 text-[#3ABEF9] mt-0.5" />
+          <div className="flex items-start gap-3 p-4 border rounded-lg bg-brand-bright/10 border-brand-bright/20">
+            <Sparkles className="h-5 w-5 text-brand-bright mt-0.5" />
             <div className="grid gap-1.5">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -1800,11 +1800,11 @@ function BulkDeployDialog({
                   checked={tailor}
                   onCheckedChange={(c) => setTailor(!!c)}
                 />
-                <label htmlFor="tailor" className="font-semibold text-[#1C4D8D] cursor-pointer">
+                <label htmlFor="tailor" className="font-semibold text-brand cursor-pointer">
                   AI Professional Tailoring
                 </label>
               </div>
-              <p className="text-xs text-[#1C4D8D]/80 pl-6">
+              <p className="text-xs text-brand/80 pl-6">
                 When enabled, our AI will deeply analyze the client's industry ({clients.find(c => c.id === selectedClientId)?.industry || 'N/A'}) and customize the policy content to be professional, specific, and compliant.
               </p>
             </div>
@@ -1916,7 +1916,7 @@ function BulkDeployDialog({
               <Button
                 disabled={!selectedClientId || wizardSelectedIds.length === 0}
                 onClick={handleRun}
-                className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold min-w-[150px]"
+                className="bg-brand text-white hover:bg-brand-bright transition-all font-semibold min-w-[150px]"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Start Generating

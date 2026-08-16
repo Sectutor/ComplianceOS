@@ -109,8 +109,8 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                                     className={cn(
                                         "px-4 py-2 rounded-lg transition-all flex items-center whitespace-nowrap text-sm font-bold shadow-sm shrink-0 min-w-max",
                                         active
-                                            ? "bg-[#3ABEF9] text-white"
-                                            : "bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]"
+                                            ? "bg-brand-bright text-white"
+                                            : "bg-brand text-white hover:bg-brand-bright"
                                     )}
                                 >
                                     <item.icon className={cn(
@@ -123,7 +123,7 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                                             "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md shrink-0 whitespace-nowrap",
                                             active
                                                 ? "bg-white/20 text-white border-white/30"
-                                                : "bg-[#3ABEF9]/20 text-white border-[#3ABEF9]/30"
+                                                : "bg-brand-bright/20 text-white border-brand-bright/30"
                                         )}>
                                             {item.badge}
                                         </span>

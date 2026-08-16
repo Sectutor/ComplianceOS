@@ -207,14 +207,14 @@ export default function RiskTreatmentPlanPage() {
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
-                                <TableHead className="w-[30%] text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Risk & Strategy</TableHead>
-                                <TableHead className="text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Type</TableHead>
-                                <TableHead className="text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Owner</TableHead>
-                                <TableHead className="text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Due Date</TableHead>
-                                <TableHead className="text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Cost</TableHead>
-                                <TableHead className="text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Status</TableHead>
-                                <TableHead className="text-right text-white font-bold transition-colors hover:bg-[#3ABEF9] cursor-pointer h-12">Action</TableHead>
+                            <TableRow className="bg-brand hover:bg-brand border-none">
+                                <TableHead className="w-[30%] text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Risk & Strategy</TableHead>
+                                <TableHead className="text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Type</TableHead>
+                                <TableHead className="text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Owner</TableHead>
+                                <TableHead className="text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Due Date</TableHead>
+                                <TableHead className="text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Cost</TableHead>
+                                <TableHead className="text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Status</TableHead>
+                                <TableHead className="text-right text-white font-bold transition-colors hover:bg-brand-bright cursor-pointer h-12">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

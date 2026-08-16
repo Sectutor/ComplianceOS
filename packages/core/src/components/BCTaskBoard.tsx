@@ -212,7 +212,7 @@ export function BCTaskBoard() {
                     <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                <TableRow className="bg-brand hover:bg-brand border-none">
                                     <TableHead className="w-[300px] text-white font-semibold py-4">Task</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Assignee</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Status</TableHead>
@@ -268,7 +268,7 @@ export function BCTaskBoard() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                                    className="hover:bg-brand/10 hover:text-brand transition-colors duration-200"
                                                     onClick={() => handleStatusChange(task.id, task.status)}
                                                 >
                                                     {task.status === 'completed' ? 'Reopen' : task.status === 'pending' ? 'Start' : 'Complete'}

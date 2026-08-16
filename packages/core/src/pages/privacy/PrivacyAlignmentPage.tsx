@@ -169,7 +169,7 @@ export default function PrivacyAlignmentPage() {
                             </div>
                         </div>
                         <Select value={activeFramework} onValueChange={setActiveFramework}>
-                            <SelectTrigger className="w-full sm:w-[320px] h-12 text-sm font-bold bg-slate-50 border-slate-200 hover:bg-slate-100 transition-colors focus:ring-[#1C4D8D]">
+                            <SelectTrigger className="w-full sm:w-[320px] h-12 text-sm font-bold bg-slate-50 border-slate-200 hover:bg-slate-100 transition-colors focus:ring-brand">
                                 <SelectValue placeholder="Select Framework" />
                             </SelectTrigger>
                             <SelectContent>
@@ -232,7 +232,7 @@ export default function PrivacyAlignmentPage() {
                                                         <TabsTrigger
                                                             key={article.id}
                                                             value={article.id}
-                                                            className="h-auto py-5 px-4 flex flex-col items-center gap-3 border border-slate-200 bg-white data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:border-[#1C4D8D] rounded-2xl transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group/article"
+                                                            className="h-auto py-5 px-4 flex flex-col items-center gap-3 border border-slate-200 bg-white data-[state=active]:bg-brand data-[state=active]:text-white data-[state=active]:border-brand rounded-2xl transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group/article"
                                                         >
                                                             <div className={cn("p-2.5 rounded-xl group-data-[state=active]/article:bg-white/10 transition-colors", getClauseBgColor(fw.id, article.id))}>
                                                                 <ClauseIcon className={cn("h-6 w-6", getClauseColor(fw.id, article.id), "group-data-[state=active]/article:text-white")} />

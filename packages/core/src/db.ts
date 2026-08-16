@@ -789,7 +789,6 @@ export async function getUserClients(userId: number) {
 
 
 export async function getUserById(id: number) {
-  console.log('[DEBUG getUserById] id:', id, 'type:', typeof id);
   const db = await getDb();
   // Use raw SQL to select only columns that exist (avoids drizzle schema mismatches)
   const [raw] = await db.execute(
@@ -819,13 +818,10 @@ const ROLE_HIERARCHY = {
 
 export async function isUserAllowedForClient(userId: number, clientId: number, minRole?: 'owner' | 'admin' | 'editor' | 'viewer' | 'auditor') {
   const db = await getDb();
-  console.log(`[DEBUG isUserAllowedForClient] Checking userId=${userId}, clientId=${clientId}, minRole=${minRole}`);
 
   // 1. Check Global Role First
   const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
-  console.log(`[DEBUG isUserAllowedForClient] Found user global role: ${user?.role}`);
   if (user && (user.role === 'admin' || user.role === 'owner' || user.role === 'super_admin')) {
-    console.log('[DEBUG isUserAllowedForClient] Global admin access granted');
     return true; // Global admins have access to everything
   }
 
@@ -836,7 +832,6 @@ export async function isUserAllowedForClient(userId: number, clientId: number, m
       eq(userClients.clientId, clientId)
     ));
 
-  console.log(`[DEBUG isUserAllowedForClient] Membership search results: ${results.length}`);
   if (results.length === 0) return false;
 
   const userRole = results[0].role as keyof typeof ROLE_HIERARCHY;
@@ -846,7 +841,6 @@ export async function isUserAllowedForClient(userId: number, clientId: number, m
     const userLevel = ROLE_HIERARCHY[userRole] || 0;
     const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
     const result = userLevel >= requiredLevel;
-    console.log(`[DEBUG isUserAllowedForClient] Role level check: user=${userLevel}, required=${requiredLevel} -> ${result}`);
     return result;
   }
 
@@ -3049,7 +3043,6 @@ export async function onboardClient(data: {
       industry: data.industry,
       status: 'active'
     }).returning();
-    console.log('[DEBUG onboardClient] Created client:', client.id, 'for user:', data.userId);
 
     // 2. Assign User
     await tx.insert(userClients).values({
@@ -3057,7 +3050,6 @@ export async function onboardClient(data: {
       clientId: client.id,
       role: 'owner'
     });
-    console.log('[DEBUG onboardClient] Assigned user:', data.userId, 'to client:', client.id);
 
     // 3. Assign Frameworks (User selected + Native OWASP)
     const frameworksToAssign = [...NATIVE_OWASP_STANDARDS];
@@ -3404,7 +3396,6 @@ export async function seedSampleData(userId: number, options: { name: string, in
 
     // 2. Link User
     await assignUserToClient(userId, client.id, 'owner');
-    console.log('[DEBUG seedSampleData] Assigned user:', userId, 'to demo client:', client.id);
   }
 
   // 3. Bulk Assign ISO 27001 & SOC 2 Controls

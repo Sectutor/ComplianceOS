@@ -157,7 +157,7 @@ export default function ClientActivity() {
                             <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                        <TableRow className="bg-brand hover:bg-brand border-none">
                                             <TableHead className="text-white font-semibold py-4">Timestamp</TableHead>
                                             <TableHead className="text-white font-semibold py-4">User</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Action</TableHead>
@@ -198,7 +198,7 @@ export default function ClientActivity() {
                                                         <EnhancedDialog
                                                             title="Details"
                                                             trigger={
-                                                                <Button variant="ghost" size="sm" className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200">
+                                                                <Button variant="ghost" size="sm" className="hover:bg-brand/10 hover:text-brand transition-colors duration-200">
                                                                     <Eye className="h-4 w-4 mr-2" />
                                                                     View
                                                                 </Button>

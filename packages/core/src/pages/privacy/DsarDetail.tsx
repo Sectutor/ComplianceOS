@@ -12,7 +12,7 @@ export default function DsarDetail() {
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col gap-4">
                 <Link href={`/clients/${selectedClientId}/privacy/dsar`}>
-                    <Button variant="ghost" className="w-fit pl-0 text-slate-500 hover:text-[#3ABEF9] hover:bg-transparent font-bold transition-colors">
+                    <Button variant="ghost" className="w-fit pl-0 text-slate-500 hover:text-brand-bright hover:bg-transparent font-bold transition-colors">
                         <ArrowLeft className="mr-2 h-5 w-5" /> Back to DSAR Registry
                     </Button>
                 </Link>
@@ -23,7 +23,7 @@ export default function DsarDetail() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 p-12 bg-white shadow-xl shadow-slate-200/50 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="h-16 w-16 rounded-2xl bg-sky-50 flex items-center justify-center text-[#3ABEF9]">
+                <div className="h-16 w-16 rounded-2xl bg-sky-50 flex items-center justify-center text-brand-bright">
                     <Users className="h-8 w-8" />
                 </div>
                 <div className="space-y-2">

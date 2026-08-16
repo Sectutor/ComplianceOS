@@ -437,7 +437,7 @@ export default function CyberAssessment() {
                         <Button
                             onClick={handleSave}
                             disabled={saveMutation.isLoading}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                         >
                             {saveMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             <Save className="mr-2 h-4 w-4" /> Save Progress
@@ -454,7 +454,7 @@ export default function CyberAssessment() {
                             <svg className="h-full w-full" viewBox="0 0 100 100">
                                 <circle className="text-slate-100" strokeWidth="10" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
                                 <circle
-                                    className="text-[#3ABEF9] transition-all duration-1000 ease-out"
+                                    className="text-brand-bright transition-all duration-1000 ease-out"
                                     strokeWidth="10"
                                     strokeDasharray={2 * Math.PI * 40}
                                     strokeDashoffset={2 * Math.PI * 40 * (1 - score / 100)}
@@ -494,7 +494,7 @@ export default function CyberAssessment() {
                         <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
                             <CardTitle className="text-xl font-bold flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-lg bg-[#1C4D8D] text-white flex items-center justify-center text-sm">
+                                    <div className="h-8 w-8 rounded-lg bg-brand text-white flex items-center justify-center text-sm">
                                         {catIdx + 1}
                                     </div>
                                     {category.category}
@@ -542,7 +542,7 @@ export default function CyberAssessment() {
                                             <div className="flex-1">
                                                 <Textarea
                                                     placeholder="Add implementation notes or evidence links..."
-                                                    className="min-h-[2.5rem] h-10 text-sm py-2 px-4 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 transition-all font-medium"
+                                                    className="min-h-[2.5rem] h-10 text-sm py-2 px-4 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 transition-all font-medium"
                                                     value={(assessment?.responses?.[q.id] as any)?.notes || responses[q.id]?.notes || ""}
                                                     onChange={(e) => handleNotesChange(q.id, e.target.value)}
                                                 />

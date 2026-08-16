@@ -392,7 +392,7 @@ export default function RiskAssessmentEditor() {
                         </Button>
                         <div>
                             <h1 className="text-2xl font-bold flex items-center gap-2">
-                                <Shield className="w-6 h-6 text-[#1C4D8D]" />
+                                <Shield className="w-6 h-6 text-brand" />
                                 {assessmentId ? 'Edit Risk Assessment' : 'New Risk Assessment'}
                             </h1>
                             <p className="text-muted-foreground flex items-center gap-2">
@@ -448,10 +448,10 @@ export default function RiskAssessmentEditor() {
                             <TabsTrigger
                                 key={section.id}
                                 value={section.id}
-                                className="flex items-center gap-3 px-4 py-3 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#1C4D8D] border border-transparent data-[state=active]:border-slate-200 transition-all"
+                                className="flex items-center gap-3 px-4 py-3 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-brand border border-transparent data-[state=active]:border-slate-200 transition-all"
                             >
                                 <div className={`p-2 rounded-md transition-colors ${activeTab === section.id
-                                    ? 'bg-[#1C4D8D]/10 text-[#1C4D8D]'
+                                    ? 'bg-brand/10 text-brand'
                                     : 'bg-slate-200/50 text-slate-500'
                                     }`}>
                                     <section.icon className="w-4 h-4" />
@@ -547,7 +547,7 @@ export default function RiskAssessmentEditor() {
                                                             }`}
                                                         onClick={() => toggleProcess(proc.id)}
                                                     >
-                                                        <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected ? 'bg-[#1C4D8D] border-[#1C4D8D]' : 'border-gray-400'
+                                                        <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected ? 'bg-brand border-brand' : 'border-gray-400'
                                                             }`}>
                                                             {isSelected && <Check className="w-3 h-3 text-white" />}
                                                         </div>
@@ -690,7 +690,7 @@ export default function RiskAssessmentEditor() {
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex gap-3 text-sm text-blue-900">
-                                        <Shield className="w-5 h-5 text-[#1C4D8D] shrink-0" />
+                                        <Shield className="w-5 h-5 text-brand shrink-0" />
                                         <div>
                                             <span className="font-semibold block mb-1">Active Defenses (Current State)</span>
                                             Select controls that are <strong>currently active</strong>. These give you immediate credit and lower your <em>Residual Risk</em> score now.

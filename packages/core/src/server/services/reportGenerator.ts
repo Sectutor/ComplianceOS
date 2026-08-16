@@ -227,24 +227,18 @@ export class ReportGenerator {
      * Generate the complete DOCX document
      */
     async generate(): Promise<Buffer> {
-        console.log("DEBUG [ReportGenerator.generate]: Starting report generation");
-        console.log("DEBUG [ReportGenerator.generate]: Included sections:", this.config.includedSections);
 
         const sections: (Paragraph | Table)[] = [];
 
         // Always include cover page
-        console.log("DEBUG [ReportGenerator.generate]: Generating cover page");
         sections.push(...this.generateCoverPage());
 
         // Generate selected sections (now async)
         for (const sectionId of this.config.includedSections) {
-            console.log("DEBUG [ReportGenerator.generate]: Generating section:", sectionId);
             const sectionContent = await this.generateSection(sectionId);
-            console.log("DEBUG [ReportGenerator.generate]: Section", sectionId, "has", sectionContent.length, "paragraphs");
             sections.push(...sectionContent);
         }
 
-        console.log("DEBUG [ReportGenerator.generate]: Total paragraphs:", sections.length);
 
         // Create document
         const doc = new Document({
@@ -255,9 +249,7 @@ export class ReportGenerator {
         });
 
         // Convert to buffer
-        console.log("DEBUG [ReportGenerator.generate]: Creating DOCX buffer");
         const buffer = await Packer.toBuffer(doc);
-        console.log("DEBUG [ReportGenerator.generate]: Buffer created, size:", buffer.length, "bytes");
         return buffer;
     }
 
@@ -1322,18 +1314,13 @@ export async function generateRoadmapReport(
     data: ReportData
 ): Promise<{ reportId: number; buffer: Buffer }> {
     try {
-        console.log("DEBUG [generateRoadmapReport]: Creating ReportGenerator");
         const generator = new ReportGenerator(config, data);
 
-        console.log("DEBUG [generateRoadmapReport]: Generating report content");
         const buffer = await generator.generate();
 
-        console.log("DEBUG [generateRoadmapReport]: Report buffer size:", buffer.length, "bytes");
 
-        console.log("DEBUG [generateRoadmapReport]: Saving report to database");
         const reportId = await generator.saveReport(buffer);
 
-        console.log("DEBUG [generateRoadmapReport]: Report saved with ID:", reportId);
         return { reportId, buffer };
     } catch (error) {
         console.error("Error generating roadmap report:", error);

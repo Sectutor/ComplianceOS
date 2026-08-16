@@ -1026,35 +1026,35 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 <TabsTrigger
                                                     value="edit"
                                                     id="policy-tab-edit"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Edit
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="preview"
                                                     id="policy-tab-preview"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Preview
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="links"
                                                     id="policy-tab-links"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Links
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="employees"
                                                     id="policy-tab-employees"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Employees
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="history"
                                                     id="policy-tab-history"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     History
                                                 </TabsTrigger>
@@ -2495,7 +2495,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     </DialogContent>
                                 </Dialog>
                                 <Button
-                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold mb-2"
+                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold mb-2"
                                     onClick={() => setShowReviewDialog(true)}
                                     disabled={(policy as any).approvalStatus === 'requested' || (policy as any).approvalStatus === 'approved'}
                                 >
@@ -2504,7 +2504,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Button>
 
                                 <Button
-                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold"
                                     onClick={() => setShowDistributionDialog(true)}
                                 >
                                     <Users className="mr-2 h-4 w-4" />
@@ -2512,7 +2512,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Button>
 
                                 <Button
-                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold"
                                     onClick={handleAiFixPlaceholders}
                                 >
                                     <Sparkles className="mr-2 h-4 w-4" />
@@ -2520,7 +2520,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Button>
 
                                 <Button
-                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold"
                                     onClick={handleExportWord}
                                 >
                                     <FileText className="mr-2 h-4 w-4" />
@@ -2534,7 +2534,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         clientId,
                                         policyId,
                                         onRewrite: (html: string) => setContent(html),
-                                        className: "w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold",
+                                        className: "w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold",
                                         variant: "ghost"
                                     }}
                                 />
@@ -2545,7 +2545,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 )}
                                 <div className="space-y-1">
                                     <Button
-                                        className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={() => setShowPublishDialog(true)}
                                         disabled={policy.status !== 'approved' && (policy as any).approvalStatus !== 'approved'}
                                     >

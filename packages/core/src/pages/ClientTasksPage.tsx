@@ -258,7 +258,7 @@ export default function ClientTasksPage() {
 
                 {/* Task Board */}
                 <div id="tasks-table-board" className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
-                    <div className="bg-[#1C4D8D] px-6 py-4 flex items-center justify-between">
+                    <div className="bg-brand px-6 py-4 flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-semibold text-white">Active Tasks</h3>
                             <p className="text-white/70 text-sm">
@@ -269,7 +269,7 @@ export default function ClientTasksPage() {
                     <div className="overflow-x-auto">
                         <Table className="min-w-full">
                             <TableHeader>
-                                <TableRow className="bg-[#1C4D8D]">
+                                <TableRow className="bg-brand">
                                     <TableHead className="w-[400px] text-white font-semibold py-4">Task Details</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Source</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Assignee</TableHead>

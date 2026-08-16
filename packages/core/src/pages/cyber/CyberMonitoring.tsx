@@ -62,7 +62,7 @@ export default function CyberMonitoring() {
                         </Link>
                         <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-3">
                             Continuous Monitoring
-                            <Badge className="bg-[#3ABEF9] text-white border-none font-black text-[10px] tracking-widest px-3 py-1">
+                            <Badge className="bg-brand-bright text-white border-none font-black text-[10px] tracking-widest px-3 py-1">
                                 REAL-TIME KRI FEED
                             </Badge>
                         </h1>
@@ -83,8 +83,8 @@ export default function CyberMonitoring() {
                 {/* Status Overview Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="p-8 rounded-[2.5rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-[#3ABEF9]/20 rounded-full blur-2xl group-hover:scale-150 transition-all duration-700" />
-                        <ShieldCheck className="w-10 h-10 text-[#3ABEF9] mb-6" />
+                        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-brand-bright/20 rounded-full blur-2xl group-hover:scale-150 transition-all duration-700" />
+                        <ShieldCheck className="w-10 h-10 text-brand-bright mb-6" />
                         <div className="text-4xl font-black mb-2">84.2%</div>
                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">Overall Security Posture Score</div>
                     </div>

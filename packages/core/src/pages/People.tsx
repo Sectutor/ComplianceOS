@@ -542,7 +542,7 @@ export function PeoplePage() {
                   <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                        <TableRow className="bg-brand hover:bg-brand border-none">
                           <TableHead className="text-white font-semibold py-4">Name</TableHead>
                           <TableHead className="text-white font-semibold py-4">Email</TableHead>
                           <TableHead className="text-white font-semibold py-4">Role / Title</TableHead>
@@ -634,7 +634,7 @@ export function PeoplePage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleOpenEdit(employee)}
-                                  className="h-8 w-8 p-0 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                  className="h-8 w-8 p-0 hover:bg-brand/10 hover:text-brand transition-colors duration-200"
                                 >
                                   <Edit2 className="w-4 h-4" />
                                 </Button>
@@ -642,7 +642,7 @@ export function PeoplePage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleOpenAssetAssignment(employee)}
-                                  className="h-8 w-8 p-0 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                  className="h-8 w-8 p-0 hover:bg-brand/10 hover:text-brand transition-colors duration-200"
                                   title="Assign Assets"
                                 >
                                   <Laptop className="w-4 h-4" />
@@ -758,7 +758,7 @@ export function PeoplePage() {
                   <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                        <TableRow className="bg-brand hover:bg-brand border-none">
                           <TableHead className="text-white font-semibold py-4">Role Title</TableHead>
                           <TableHead className="text-white font-semibold py-4">Department</TableHead>
                           <TableHead className="text-white font-semibold py-4">Reporting To</TableHead>
@@ -789,7 +789,7 @@ export function PeoplePage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleOpenEditRole(role)}
-                                    className="h-8 w-8 p-0 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                                    className="h-8 w-8 p-0 hover:bg-brand/10 hover:text-brand transition-colors duration-200"
                                   >
                                     <Edit2 className="w-4 h-4" />
                                   </Button>

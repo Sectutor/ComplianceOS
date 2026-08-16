@@ -91,7 +91,7 @@ export default function GapAnalysisList() {
                             <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white" id="gap-assessments-list">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                        <TableRow className="bg-brand hover:bg-brand border-none">
                                             <TableHead className="text-white font-semibold py-4">Assessment Name</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Framework</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Status</TableHead>
@@ -118,7 +118,7 @@ export default function GapAnalysisList() {
                                                     {new Date(assessment.createdAt!).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell className="text-right py-4">
-                                                    <Button variant="ghost" size="sm" className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200" onClick={(e) => { e.stopPropagation(); setLocation(`/clients/${clientId}/gap-analysis/${assessment.id}`); }}>
+                                                    <Button variant="ghost" size="sm" className="hover:bg-brand/10 hover:text-brand transition-colors duration-200" onClick={(e) => { e.stopPropagation(); setLocation(`/clients/${clientId}/gap-analysis/${assessment.id}`); }}>
                                                         Open <ArrowRight className="w-4 h-4 ml-1" />
                                                     </Button>
                                                 </TableCell>

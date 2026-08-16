@@ -158,7 +158,7 @@ export function WorkItemList({ clientId }: WorkItemListProps) {
             <div className="rounded-md border bg-white overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                        <TableRow className="bg-brand hover:bg-brand border-none">
                             <TableHead className="w-[40%] text-white font-semibold py-4">Task Details</TableHead>
                             <TableHead className="text-white font-semibold py-4">Status</TableHead>
                             <TableHead className="text-white font-semibold py-4">Priority</TableHead>

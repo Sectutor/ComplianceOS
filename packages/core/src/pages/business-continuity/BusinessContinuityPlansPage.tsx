@@ -73,7 +73,7 @@ export default function BusinessContinuityPlansPage() {
                         <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                    <TableRow className="bg-brand hover:bg-brand border-none">
                                         <TableHead className="text-white font-semibold py-4">Plan Title</TableHead>
                                         <TableHead className="text-white font-semibold py-4">Version</TableHead>
                                         <TableHead className="text-white font-semibold py-4">Status</TableHead>
@@ -114,7 +114,7 @@ export default function BusinessContinuityPlansPage() {
                                                 {plan.updatedAt ? new Date(plan.updatedAt).toLocaleDateString() : '-'}
                                             </TableCell>
                                             <TableCell className="py-4">
-                                                <Button variant="ghost" size="sm" className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200" onClick={() => setLocation(`/clients/${clientId}/business-continuity/plans/${plan.id}`)}>
+                                                <Button variant="ghost" size="sm" className="hover:bg-brand/10 hover:text-brand transition-colors duration-200" onClick={() => setLocation(`/clients/${clientId}/business-continuity/plans/${plan.id}`)}>
                                                     Edit
                                                 </Button>
                                             </TableCell>

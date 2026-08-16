@@ -84,12 +84,12 @@ export default function QuestionnairesDashboard() {
 
   const statusTabs = (
     <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-      <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl">
+      <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl">
         {["all", "open", "in_progress", "completed"].map(s => (
           <TabsTrigger
             key={s}
             value={s}
-            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
           >
             {s === "all" ? "All" : s === "in_progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
           </TabsTrigger>
@@ -101,7 +101,7 @@ export default function QuestionnairesDashboard() {
   const createButton = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white font-bold shadow-md transition-all hover:scale-[1.02]">
+        <Button className="bg-brand hover:bg-brand/90 text-white font-bold shadow-md transition-all hover:scale-[1.02]">
           <Plus className="w-4 h-4 mr-2" />
           {direction === "inbound" ? "New Customer Security Questionnaire" : "New Vendor Security Questionnaire"}
         </Button>
@@ -127,7 +127,7 @@ export default function QuestionnairesDashboard() {
     <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white" id="quest-table-list">
       <Table>
         <TableHeader>
-          <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+          <TableRow className="bg-brand hover:bg-brand border-none">
             <TableHead className="text-white font-semibold py-4">Questionnaire</TableHead>
             <TableHead className="text-white font-semibold py-4">Progress</TableHead>
             <TableHead className="text-white font-semibold py-4">Status</TableHead>
@@ -160,11 +160,11 @@ export default function QuestionnairesDashboard() {
               <TableCell>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                   q.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                  q.status === "in_progress" ? "bg-[#3ABEF9]/10 text-[#1C4D8D]" :
+                  q.status === "in_progress" ? "bg-brand-bright/10 text-brand" :
                   "bg-slate-100 text-slate-600"
                 }`}>
                   {q.status === "completed" && <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />}
-                  {q.status === "in_progress" && <div className="w-2 h-2 rounded-full bg-[#3ABEF9] mr-2" />}
+                  {q.status === "in_progress" && <div className="w-2 h-2 rounded-full bg-brand-bright mr-2" />}
                   {q.status === "open" && <div className="w-2 h-2 rounded-full bg-slate-400 mr-2" />}
                   {q.status?.replace("_", " ").split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                 </span>
@@ -255,7 +255,7 @@ export default function QuestionnairesDashboard() {
             <TabsTrigger
               id="dir-tab-inbound"
               value="inbound"
-              className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
+              className="data-[state=active]:bg-brand data-[state=active]:text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
             >
               <Inbox className="h-4 w-4" />
               Customer Security Questionnaire
@@ -264,7 +264,7 @@ export default function QuestionnairesDashboard() {
             <TabsTrigger
               id="dir-tab-outbound"
               value="outbound"
-              className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
+              className="data-[state=active]:bg-brand data-[state=active]:text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
             >
               <Send className="h-4 w-4" />
               Vendor Security Questionnaire
@@ -278,7 +278,7 @@ export default function QuestionnairesDashboard() {
               <div className="flex gap-4 items-center">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search questionnaires..." className="pl-10 border-[#1C4D8D]/20 focus-visible:ring-[#3ABEF9]" />
+                  <Input placeholder="Search questionnaires..." className="pl-10 border-brand/20 focus-visible:ring-brand-bright" />
                 </div>
                 <div className="text-sm text-muted-foreground ml-auto">
                   {filteredQuestionnaires?.length || 0} assessment{filteredQuestionnaires?.length !== 1 ? "s" : ""}
@@ -294,7 +294,7 @@ export default function QuestionnairesDashboard() {
               <div className="flex gap-4 items-center">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search questionnaires..." className="pl-10 border-[#1C4D8D]/20 focus-visible:ring-[#3ABEF9]" />
+                  <Input placeholder="Search questionnaires..." className="pl-10 border-brand/20 focus-visible:ring-brand-bright" />
                 </div>
                 <div className="text-sm text-muted-foreground ml-auto">
                   {filteredQuestionnaires?.length || 0} assessment{filteredQuestionnaires?.length !== 1 ? "s" : ""}

@@ -86,11 +86,11 @@ export default function PersonnelComplianceHub() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="bg-[#1C4D8D] p-1 rounded-xl h-auto flex-wrap md:flex-nowrap">
+                    <TabsList className="bg-brand p-1 rounded-xl h-auto flex-wrap md:flex-nowrap">
                         <TabsTrigger
                             value="training"
                             id="personnel-tab-training"
-                            className="flex-1 gap-2 py-3 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                            className="flex-1 gap-2 py-3 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                         >
                             <GraduationCap className="h-4 w-4" />
                             Training
@@ -98,35 +98,35 @@ export default function PersonnelComplianceHub() {
                         <TabsTrigger
                             value="documents"
                             id="personnel-tab-documents"
-                            className="flex-1 gap-2 py-3 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                            className="flex-1 gap-2 py-3 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                         >
                             <ClipboardList className="h-4 w-4" />
                             Documents
                         </TabsTrigger>
                         <TabsTrigger
                             value="policies"
-                            className="flex-1 gap-2 py-3 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                            className="flex-1 gap-2 py-3 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                         >
                             <FileCheck className="h-4 w-4" />
                             Policies
                         </TabsTrigger>
                         <TabsTrigger
                             value="exceptions"
-                            className="flex-1 gap-2 py-3 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                            className="flex-1 gap-2 py-3 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                         >
                             <AlertOctagon className="h-4 w-4" />
                             Exceptions
                         </TabsTrigger>
                         <TabsTrigger
                             value="assets"
-                            className="flex-1 gap-2 py-3 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                            className="flex-1 gap-2 py-3 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                         >
                             <Package className="h-4 w-4" />
                             Assets
                         </TabsTrigger>
                         <TabsTrigger
                             value="tracking"
-                            className="flex-1 gap-2 py-3 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold border-none"
+                            className="flex-1 gap-2 py-3 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold border-none"
                         >
                             <Users className="h-4 w-4" />
                             Tracking
@@ -198,7 +198,7 @@ function ComplianceTrackingTab({ clientId }: { clientId: number }) {
                 <div className="border rounded-lg overflow-hidden">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                            <TableRow className="bg-brand hover:bg-brand border-none">
                                 <TableHead className="text-white font-bold h-12">Employee</TableHead>
                                 <TableHead className="text-white font-bold h-12">Training</TableHead>
                                 <TableHead className="text-white font-bold h-12">Documents</TableHead>

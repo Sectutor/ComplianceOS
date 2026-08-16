@@ -8,16 +8,15 @@ export default function GDPRBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Don't show in the main app (/clients, /dashboard, /admin, /settings, etc.)
-    const isMainApp = location.startsWith('/clients') || 
-                      location.startsWith('/dashboard') || 
-                      location.startsWith('/admin') || 
-                      location.startsWith('/settings') ||
-                      location.startsWith('/risks') ||
-                      location.startsWith('/compliance') ||
-                      location.startsWith('/tprm');
+    // ComplianceOS is an internal B2B application: cookie consent is only
+    // relevant on public, visitor-facing pages. Show the banner exclusively
+    // there instead of trying to enumerate every app route.
+    const isPublicPage =
+      location.startsWith('/marketing') ||
+      location.startsWith('/privacy-policy') ||
+      location.startsWith('/terms');
 
-    if (isMainApp) {
+    if (!isPublicPage) {
       setIsVisible(false);
       return;
     }

@@ -456,7 +456,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[1200px]">
                         <thead>
-                            <tr className="bg-[#1C4D8D]">
+                            <tr className="bg-brand">
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
                                 <SortableHeader field="assessmentId" className="text-left text-white">Risk ID</SortableHeader>
                                 <SortableHeader field="threatDescription" className="text-left max-w-[250px] text-white">Description</SortableHeader>
@@ -616,7 +616,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                             e.stopPropagation();
                                                             setSelectedRisk(risk);
                                                         }}
-                                                        className="h-8 w-8 p-0 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D]"
+                                                        className="h-8 w-8 p-0 hover:bg-brand/10 hover:text-brand"
                                                         title="View details"
                                                     >
                                                         <Eye className="w-4 h-4" />

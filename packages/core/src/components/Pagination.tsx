@@ -121,7 +121,7 @@ export function Pagination({
                                     variant={isActive ? 'default' : 'outline'}
                                     size="sm"
                                     onClick={() => onPageChange(pageNum)}
-                                    className={`h-8 w-8 p-0 ${isActive ? 'bg-[#1C4D8D] hover:bg-[#1C4D8D]/90' : ''}`}
+                                    className={`h-8 w-8 p-0 ${isActive ? 'bg-brand hover:bg-brand/90' : ''}`}
                                 >
                                     {pageNum}
                                 </Button>

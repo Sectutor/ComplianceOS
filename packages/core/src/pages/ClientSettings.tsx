@@ -186,52 +186,52 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                 </Card>
 
                 <Tabs defaultValue={initialTab} className="space-y-8">
-                    <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl">
+                    <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl">
                         <TabsTrigger
                             value="general"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Building2 className="mr-2 h-4 w-4" />
                             General
                         </TabsTrigger>
                         <TabsTrigger
                             value="policy"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <FileText className="mr-2 h-4 w-4" />
                             Policy Settings
                         </TabsTrigger>
                         <TabsTrigger
                             value="team"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Users className="mr-2 h-4 w-4" />
                             Team
                         </TabsTrigger>
                         <TabsTrigger
                             value="branding"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Image className="mr-2 h-4 w-4" />
                             Branding
                         </TabsTrigger>
                         <TabsTrigger
                             value="billing"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <CreditCard className="mr-2 h-4 w-4" />
                             Billing
                         </TabsTrigger>
                         <TabsTrigger
                             value="license"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Shield className="mr-2 h-4 w-4" />
                             License
                         </TabsTrigger>
                         <TabsTrigger
                             value="integrations"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Server className="mr-2 h-4 w-4" />
                             Integrations
@@ -239,7 +239,7 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                         {canAccessBackupRestore && (
                             <TabsTrigger
                                 value="backup-restore"
-                                className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                                className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                             >
                                 <History className="mr-2 h-4 w-4" />
                                 Backup / Restore
@@ -247,28 +247,28 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                         )}
                         <TabsTrigger
                             value="frameworks"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Shield className="mr-2 h-4 w-4" />
                             Frameworks
                         </TabsTrigger>
                         <TabsTrigger
                             value="data"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Database className="mr-2 h-4 w-4" />
                             Demo Data
                         </TabsTrigger>
                         <TabsTrigger
                             value="onboarding"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <ListTodo className="mr-2 h-4 w-4" />
                             Onboarding
                         </TabsTrigger>
                         <TabsTrigger
                             value="email-templates"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Mail className="mr-2 h-4 w-4" />
                             Emails

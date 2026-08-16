@@ -201,7 +201,6 @@ export class LLMService {
         const oldLocation = g.location;
         const oldDocument = g.document;
 
-        console.log(`[LLMService] Creating OpenAI client for ${provider.name}. Cloaking globals...`);
         console.log(`- window: ${typeof oldWindow}, location: ${typeof oldLocation}, document: ${typeof oldDocument}`);
 
         try {
@@ -222,14 +221,12 @@ export class LLMService {
             }
 
             const client = new OpenAI(config);
-            console.log(`[LLMService] OpenAI client instantiated successfully.`);
             return client;
         } finally {
             // RESTORE: Put polyfills back for PDF/Word generation libraries
             if (oldWindow) (global as any).window = oldWindow;
             if (oldLocation) (global as any).location = oldLocation;
             if (oldDocument) (global as any).document = oldDocument;
-            console.log(`[LLMService] Globals restored.`);
         }
     }
 

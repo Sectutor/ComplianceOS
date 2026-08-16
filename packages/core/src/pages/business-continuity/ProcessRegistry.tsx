@@ -121,7 +121,7 @@ export default function ProcessRegistry() {
                             <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                        <TableRow className="bg-brand hover:bg-brand border-none">
                                             <TableHead className="text-white font-semibold py-4">Process Name</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Department</TableHead>
                                             <TableHead className="text-white font-semibold py-4">Criticality</TableHead>
@@ -153,7 +153,7 @@ export default function ProcessRegistry() {
                                                     {process.rto ? `RTO: ${process.rto}` : "Pending BIA"}
                                                 </TableCell>
                                                 <TableCell className="text-right py-4">
-                                                    <Button variant="outline" size="sm" className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200" onClick={() => setLocation(`/clients/${selectedClientId}/business-continuity/processes/${process.id}`)}>
+                                                    <Button variant="outline" size="sm" className="hover:bg-brand/10 hover:text-brand transition-colors duration-200" onClick={() => setLocation(`/clients/${selectedClientId}/business-continuity/processes/${process.id}`)}>
                                                         Edit
                                                     </Button>
                                                 </TableCell>

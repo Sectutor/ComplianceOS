@@ -173,7 +173,7 @@ export default function ClientTeamManagement({ clientId }: ClientTeamManagementP
                     <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                <TableRow className="bg-brand hover:bg-brand border-none">
                                     <TableHead className="text-white font-semibold py-4">User</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Email</TableHead>
                                     <TableHead className="text-white font-semibold py-4">Role</TableHead>

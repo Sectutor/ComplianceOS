@@ -77,7 +77,7 @@ export default function DSARManager() {
                 </div>
                 <Button
                     onClick={() => setCreateOpen(true)}
-                    className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                    className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                 >
                     <Plus className="mr-2 h-5 w-5" /> Log Request
                 </Button>
@@ -85,18 +85,18 @@ export default function DSARManager() {
 
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                    <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                     <p className="text-slate-400 font-medium animate-pulse">Loading request registry...</p>
                 </div>
             ) : (
                 <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
-                    <div className="bg-[#1C4D8D] px-6 py-4 flex items-center justify-between">
+                    <div className="bg-brand px-6 py-4 flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-white">DSAR Requests</h3>
                         <span className="text-sm text-sky-200">{requests?.length || 0} requests</span>
                     </div>
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-0">
+                            <TableRow className="bg-brand hover:bg-brand border-0">
                                 <TableHead className="font-bold text-white h-12">Request ID</TableHead>
                                 <TableHead className="font-bold text-white h-12">Type</TableHead>
                                 <TableHead className="font-bold text-white h-12">Subject</TableHead>
@@ -116,7 +116,7 @@ export default function DSARManager() {
                                     >
                                         <TableCell className="py-5 font-bold text-slate-900">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center text-[#3ABEF9] font-bold group-hover:scale-110 transition-transform">
+                                                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center text-brand-bright font-bold group-hover:scale-110 transition-transform">
                                                     <Users className="h-5 w-5" />
                                                 </div>
                                                 {req.requestId}
@@ -155,7 +155,7 @@ export default function DSARManager() {
                                         </TableCell>
                                         <TableCell className="text-right py-5 px-6">
                                             <Link href={`/clients/${clientId}/privacy/dsar/${req.id}`}>
-                                                <Button variant="ghost" size="sm" className="text-[#3ABEF9] hover:text-[#1C4D8D] hover:bg-sky-50 font-bold rounded-lg transition-all">
+                                                <Button variant="ghost" size="sm" className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all">
                                                     Manage Case
                                                 </Button>
                                             </Link>
@@ -200,7 +200,7 @@ export default function DSARManager() {
                         <Button
                             onClick={handleCreate}
                             disabled={createMutation.isLoading}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl"
                         >
                             {createMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Log Request
@@ -251,7 +251,7 @@ export default function DSARManager() {
                             value={formData.subjectName}
                             onChange={e => setFormData({ ...formData, subjectName: e.target.value })}
                             placeholder="e.g. John Smith"
-                            className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
 
@@ -262,7 +262,7 @@ export default function DSARManager() {
                             value={formData.subjectEmail}
                             onChange={e => setFormData({ ...formData, subjectEmail: e.target.value })}
                             placeholder="john@example.com"
-                            className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
 
@@ -272,7 +272,7 @@ export default function DSARManager() {
                             type="date"
                             value={formData.dueDate}
                             onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
-                            className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
                 </div>

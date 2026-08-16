@@ -68,7 +68,7 @@ export default function DPIAQuestionnaire() {
     if (templatesLoading) {
         return (
             <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                 <p className="text-slate-400 font-medium animate-pulse">Loading assessment template...</p>
             </div>
         );
@@ -96,7 +96,7 @@ export default function DPIAQuestionnaire() {
 
                 {templatesLoading ? (
                     <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                        <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                        <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                         <p className="text-slate-400 font-medium animate-pulse">Loading templates...</p>
                     </div>
                 ) : templates && templates.length > 0 ? (
@@ -104,7 +104,7 @@ export default function DPIAQuestionnaire() {
                         {templates.map((template) => (
                             <Card
                                 key={template.id}
-                                className="cursor-pointer hover:shadow-lg hover:border-[#3ABEF9]/50 transition-all border-2 border-transparent"
+                                className="cursor-pointer hover:shadow-lg hover:border-brand-bright/50 transition-all border-2 border-transparent"
                                 onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new?templateId=${template.id}`)}
                             >
                                 <CardContent className="p-6 flex items-center justify-between">
@@ -112,7 +112,7 @@ export default function DPIAQuestionnaire() {
                                         <h3 className="text-lg font-bold text-slate-900">{template.name}</h3>
                                         <p className="text-slate-500 text-sm mt-1">{template.description || 'No description'}</p>
                                     </div>
-                                    <Button className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold">
+                                    <Button className="bg-brand-bright hover:bg-brand text-white font-bold">
                                         Select Template
                                     </Button>
                                 </CardContent>
@@ -150,7 +150,7 @@ export default function DPIAQuestionnaire() {
                 <Button
                     variant="link"
                     onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
-                    className="text-[#3ABEF9] font-bold"
+                    className="text-brand-bright font-bold"
                 >
                     Return to DPIA Dashboard
                 </Button>
@@ -181,7 +181,7 @@ export default function DPIAQuestionnaire() {
                     <Button
                         onClick={handleSave}
                         disabled={saveMutation.isLoading}
-                        className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                        className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                     >
                         {saveMutation.isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
                         Finalize & Save
@@ -202,14 +202,14 @@ export default function DPIAQuestionnaire() {
                                 value={projectTitle}
                                 onChange={e => setProjectTitle(e.target.value)}
                                 placeholder="e.g. Q4 2024 CRM Integration Impact Assessment"
-                                className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                             />
                             <p className="text-xs text-slate-400">Provide a descriptive name to distinguish this assessment from others using the same template.</p>
                         </div>
                         <div className="space-y-2.5">
                             <Label className="text-slate-700 font-bold">Scope & Processing Context</Label>
                             <Textarea
-                                className="min-h-[120px] rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 p-4"
+                                className="min-h-[120px] rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 p-4"
                                 placeholder="Describe the nature, scope, context and purposes of the data processing activity..."
                                 value={projectDesc}
                                 onChange={e => setProjectDesc(e.target.value)}
@@ -227,7 +227,7 @@ export default function DPIAQuestionnaire() {
                         {content?.screeningQuestions?.map((q: any) => (
                             <div key={q.id} className="space-y-4 group">
                                 <Label className="flex items-start gap-3 text-lg font-bold text-slate-800 leading-snug">
-                                    <div className="mt-1 h-5 w-5 rounded-full bg-sky-50 flex items-center justify-center text-[#3ABEF9] text-[10px] shrink-0 border border-sky-100">
+                                    <div className="mt-1 h-5 w-5 rounded-full bg-sky-50 flex items-center justify-center text-brand-bright text-[10px] shrink-0 border border-sky-100">
                                         ?
                                     </div>
                                     <span className="flex-1">
@@ -246,7 +246,7 @@ export default function DPIAQuestionnaire() {
                                         <Input
                                             value={responses[q.id] || ''}
                                             onChange={e => setResponses({ ...responses, [q.id]: e.target.value })}
-                                            className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                            className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                                             placeholder="Provide detailed response..."
                                         />
                                     )}
@@ -294,7 +294,7 @@ export default function DPIAQuestionnaire() {
                 </Card>
 
                 {content?.riskFactors && content.riskFactors.length > 0 && (
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-[#1C4D8D] text-white overflow-hidden overflow-hidden ring-1 ring-white/10">
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-brand text-white overflow-hidden overflow-hidden ring-1 ring-white/10">
                         <CardHeader className="pb-4">
                             <CardTitle className="text-xl font-bold flex items-center gap-2">
                                 <AlertTriangle className="h-6 w-6 text-amber-400" />

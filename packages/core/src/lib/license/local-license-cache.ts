@@ -44,6 +44,8 @@ const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CACHE_FILE_NAME = '.complianceos-license-cache';
 const CACHE_VERSION = 1;
 
+let cacheMissLogged = false;
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -260,7 +262,12 @@ export function enforceLicense(
   const cached = readCachedLicense();
 
   if (!cached) {
-    logger.warn('[LicenseCache] No cache available – forcing Community');
+    // This fires on every licensed request in an unconfigured install; a
+    // single line per process is enough to surface the condition.
+    if (!cacheMissLogged) {
+      cacheMissLogged = true;
+      logger.warn('[LicenseCache] No cache available – forcing Community (subsequent occurrences suppressed)');
+    }
     return {
       allowed: true,
       tier: 'community',

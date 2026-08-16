@@ -370,7 +370,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <Link href={`/clients/${clientId}/vendors/${vendor.id}`}>
-                                                            <span className="cursor-pointer hover:underline text-[#1C4D8D] font-bold">{vendor.name}</span>
+                                                            <span className="cursor-pointer hover:underline text-brand font-bold">{vendor.name}</span>
                                                         </Link>
                                                         <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                                                             {vendor.description || "No description"}

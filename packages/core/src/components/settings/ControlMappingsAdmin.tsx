@@ -345,7 +345,7 @@ export function ControlMappingsAdmin({ clientId }: { clientId?: number }) {
                         <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                    <TableRow className="bg-brand hover:bg-brand border-none">
                                         <TableHead className="text-white font-semibold py-4">Source Control</TableHead>
                                         <TableHead className="w-[100px] text-center text-white font-semibold py-4">Type</TableHead>
                                         <TableHead className="text-white font-semibold py-4">Target Control</TableHead>
@@ -412,7 +412,7 @@ export function ControlMappingsAdmin({ clientId }: { clientId?: number }) {
                     <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                <TableRow className="bg-brand hover:bg-brand border-none">
                                     <TableHead className="w-[50px] text-white font-semibold py-4">
                                         <Checkbox
                                             checked={selectedSuggestions.size === suggestedMappings.length && suggestedMappings.length > 0}

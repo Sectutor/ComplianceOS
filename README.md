@@ -140,9 +140,9 @@ curl -fsSL https://grcompliance.com/install.sh | bash
 
 This clones the repo, builds the image, and starts PostgreSQL + Redis + ComplianceOS on port 3002.
 
-**Visit http://localhost:3002** to log in. Default credentials for local auth:
-- Email: `admin@local`
-- Password: `admin`
+**Visit http://localhost:3002** to log in. Local auth is seeded on first boot:
+- Email: `admin@complianceos.local`
+- Password: the value of `COMPLIANCE_ADMIN_PASSWORD`, or a random password generated and **printed once in the server startup log** (look for the `🔑 Admin login:` box). Set `COMPLIANCE_ADMIN_EMAIL` to override the email.
 
 > Supabase is optional — local auth works out of the box for self-hosted deployments.
 
@@ -150,7 +150,7 @@ This clones the repo, builds the image, and starts PostgreSQL + Redis + Complian
 
 | Prerequisite  | Version   |
 |---------------|-----------|
-| Node.js       | 18+       |
+| Node.js       | 20+       |
 | PostgreSQL    | 15+       |
 
 ```bash
@@ -163,17 +163,32 @@ npm install
 
 # Configure
 cp .env.example .env
-# Edit .env with your database connection string
+# Edit .env: set DATABASE_URL and PORT (default 3002; this repo's dev setup uses 3005)
 
 # Initialize database schema
 npm run db:push
 
-# Start dev servers (frontend + backend)
-npm run dev
-npm run server
+# Start both servers (frontend on 5173, API on your PORT):
+npm run dev:full
+# ...or run them separately:
+npm run dev        # Vite frontend  -> http://localhost:5173
+npm run server     # API backend    -> http://localhost:<PORT>
 ```
 
-Visit `http://localhost:5173` to start using GRCompliance.
+Visit `http://localhost:5173` to start using GRCompliance. With local auth
+(`AUTH_MODE=local`), the first boot seeds `admin@complianceos.local` and prints
+the generated password in the server log — see the note above.
+
+> **Note:** the API server does **not** hot-reload. After editing backend files,
+> restart `npm run server`.
+
+### Production Deployment (canonical path)
+
+Docker is the supported deployment: use `install.sh` (or `docker-compose.yml`)
+as described above — it builds the image and runs PostgreSQL + Redis +
+ComplianceOS as a single stack. Other deployment artifacts in the repo
+(Netlify, Vercel, Helm, Tauri) are community contributions and not part of the
+tested release path.
 
 ## 📚 Documentation
 

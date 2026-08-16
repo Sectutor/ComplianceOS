@@ -400,7 +400,7 @@ export default function NIS2MappingHub() {
             <div className="grid md:grid-cols-2 gap-8">
                 <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] bg-white ring-1 ring-slate-200/50 p-8">
                     <div className="flex gap-4 items-start">
-                        <div className="h-12 w-12 bg-sky-50 rounded-xl flex items-center justify-center text-[#3ABEF9]">
+                        <div className="h-12 w-12 bg-sky-50 rounded-xl flex items-center justify-center text-brand-bright">
                             <Info className="w-6 h-6" />
                         </div>
                         <div>

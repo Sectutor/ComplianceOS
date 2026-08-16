@@ -372,7 +372,7 @@ export default function RiskThreatEditor() {
                         </Button>
                         <div>
                             <h1 className="text-2xl font-bold flex items-center gap-2">
-                                <AlertTriangle className="w-6 h-6 text-[#1C4D8D]" />
+                                <AlertTriangle className="w-6 h-6 text-brand" />
                                 {isNew ? 'Record Threat' : 'Edit Threat'}
                             </h1>
                             <p className="text-muted-foreground">{formData.threatId}</p>
@@ -426,7 +426,7 @@ export default function RiskThreatEditor() {
                                                     <span className="font-medium text-sm">{template.name}</span>
                                                     <Badge variant="outline" className="text-xs">{template.category}</Badge>
                                                     {(template as any).mitreId && (
-                                                        <Badge variant="secondary" className="text-xs font-mono bg-blue-50 text-[#1C4D8D] dark:bg-blue-900/30 dark:text-blue-300">
+                                                        <Badge variant="secondary" className="text-xs font-mono bg-blue-50 text-brand dark:bg-blue-900/30 dark:text-blue-300">
                                                             {(template as any).mitreId}
                                                         </Badge>
                                                     )}
@@ -449,7 +449,7 @@ export default function RiskThreatEditor() {
                         <Button variant="outline" onClick={() => setLocation(`/clients/${clientId}/risks/threats`)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSubmit} disabled={loading} className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90">
+                        <Button onClick={handleSubmit} disabled={loading} className="bg-brand hover:bg-brand/90">
                             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             <Save className="w-4 h-4 mr-2" />
                             {isNew ? 'Record Threat' : 'Save Changes'}
@@ -485,7 +485,7 @@ export default function RiskThreatEditor() {
                                     key={section.id}
                                     onClick={() => setActiveTab(section.id)}
                                     className={`group flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === section.id
-                                        ? 'bg-[#1C4D8D] text-white shadow-md ring-1 ring-[#1C4D8D]'
+                                        ? 'bg-brand text-white shadow-md ring-1 ring-brand'
                                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-transparent'
                                         }`}
                                 >

@@ -70,28 +70,28 @@ export default function PolicyExceptionsTab({ clientId }: PolicyExceptionsTabPro
                     </div>
                     <div className="mt-4">
                         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-                            <TabsList className="bg-[#1C4D8D] p-1 rounded-xl h-auto flex-wrap md:flex-nowrap">
+                            <TabsList className="bg-brand p-1 rounded-xl h-auto flex-wrap md:flex-nowrap">
                                 <TabsTrigger
                                     value="pending"
-                                    className="flex-1 py-2 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                                    className="flex-1 py-2 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                                 >
                                     Pending Review
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="approved"
-                                    className="flex-1 py-2 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                                    className="flex-1 py-2 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                                 >
                                     Approved
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="rejected"
-                                    className="flex-1 py-2 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                                    className="flex-1 py-2 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                                 >
                                     Rejected
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="all"
-                                    className="flex-1 py-2 data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9]/80 transition-all font-bold"
+                                    className="flex-1 py-2 data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright/80 transition-all font-bold"
                                 >
                                     All Requests
                                 </TabsTrigger>
@@ -114,7 +114,7 @@ export default function PolicyExceptionsTab({ clientId }: PolicyExceptionsTabPro
                     ) : (
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                <TableRow className="bg-brand hover:bg-brand border-none">
                                     <TableHead className="text-white font-bold h-12">Employee</TableHead>
                                     <TableHead className="text-white font-bold h-12">Policy</TableHead>
                                     <TableHead className="text-white font-bold h-12">Reason</TableHead>

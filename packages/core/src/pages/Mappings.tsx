@@ -295,7 +295,7 @@ export default function Mappings() {
             <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                  <TableRow className="bg-brand hover:bg-brand border-none">
                     <TableHead className="text-white font-semibold py-4">Control</TableHead>
                     <TableHead className="text-white font-semibold py-4">Policy</TableHead>
                     <TableHead className="text-white font-semibold py-4">Evidence Reference</TableHead>
@@ -341,7 +341,7 @@ export default function Mappings() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200"
+                            className="h-8 w-8 hover:bg-brand/10 hover:text-brand transition-colors duration-200"
                             onClick={() => setEditingMapping(item)}
                           >
                             <Edit2 className="h-4 w-4" />

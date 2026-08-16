@@ -36,8 +36,8 @@ export default function CyberDashboard() {
             headerTitle: "Article 21 Compliance",
             description: "Conduct a comprehensive gap analysis against the 10 key measures of the NIS2 Directive.",
             icon: ShieldCheck,
-            color: "from-[#3ABEF9] to-[#1C4D8D]",
-            textColor: "text-[#3ABEF9]",
+            color: "from-brand-bright to-brand",
+            textColor: "text-brand-bright",
             bgLight: "bg-sky-50",
             path: `/clients/${selectedClientId}/cyber/assessment`,
             benefits: [
@@ -317,19 +317,19 @@ export default function CyberDashboard() {
             )}
 
             {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-[#1C4D8D] p-8 md:p-12 text-white shadow-2xl shadow-sky-900/20">
-                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-[#3ABEF9]/20 rounded-full blur-[100px] animate-pulse" />
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-brand p-8 md:p-12 text-white shadow-2xl shadow-sky-900/20">
+                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-brand-bright/20 rounded-full blur-[100px] animate-pulse" />
                 <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]" />
 
                 <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
                     <div className="space-y-6">
                         <div className="inline-flex items-center space-x-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                            <Shield className="w-4 h-4 text-[#3ABEF9]" />
+                            <Shield className="w-4 h-4 text-brand-bright" />
                             <span className="text-xs font-black uppercase tracking-[0.2em] text-sky-100">Cyber Resilience OS</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1]">
                             NIS2 <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3ABEF9] via-[#3ABEF9] to-emerald-400">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-bright via-brand-bright to-emerald-400">
                                 Mastery.
                             </span>
                         </h1>
@@ -343,7 +343,7 @@ export default function CyberDashboard() {
                                 { label: "DORA Ready", icon: CheckCircle2 },
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center space-x-2 text-xs font-bold text-sky-100/60 uppercase tracking-wider">
-                                    <item.icon className="w-3.5 h-3.5 text-[#3ABEF9]" />
+                                    <item.icon className="w-3.5 h-3.5 text-brand-bright" />
                                     <span>{item.label}</span>
                                 </div>
                             ))}
@@ -353,22 +353,22 @@ export default function CyberDashboard() {
                         <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2.5rem] shadow-3xl rotate-3 hover:rotate-0 transition-all duration-700 group cursor-default">
                             <div className="grid grid-cols-2 gap-4 pb-6 border-b border-white/10">
                                 {[Server, Activity, Lock, Zap].map((Icon, i) => (
-                                    <div key={i} className="p-4 bg-white/10 rounded-2xl border border-white/10 flex items-center justify-center group-hover:bg-[#3ABEF9]/20 transition-colors">
-                                        <Icon className="w-8 h-8 text-[#3ABEF9]" />
+                                    <div key={i} className="p-4 bg-white/10 rounded-2xl border border-white/10 flex items-center justify-center group-hover:bg-brand-bright/20 transition-colors">
+                                        <Icon className="w-8 h-8 text-brand-bright" />
                                     </div>
                                 ))}
                             </div>
                             <div className="mt-6 p-5 bg-white/5 rounded-2xl border border-white/10">
                                 <div className="flex justify-between items-end mb-3">
                                     <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">Resilience Index</div>
-                                    <div className="text-xl font-black text-[#3ABEF9]">84%</div>
+                                    <div className="text-xl font-black text-brand-bright">84%</div>
                                 </div>
                                 <div className="h-2.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full w-[84%] bg-gradient-to-r from-[#3ABEF9] to-emerald-400 rounded-full shadow-[0_0_20px_rgba(58,190,249,0.5)]" />
+                                    <div className="h-full w-[84%] bg-gradient-to-r from-brand-bright to-emerald-400 rounded-full shadow-[0_0_20px_rgba(58,190,249,0.5)]" />
                                 </div>
                                 <div className="mt-3 flex gap-1.5 overflow-hidden">
                                     {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                                        <div key={i} className={cn("h-1 flex-1 rounded-full", i < 6 ? "bg-[#3ABEF9]" : "bg-white/10")} />
+                                        <div key={i} className={cn("h-1 flex-1 rounded-full", i < 6 ? "bg-brand-bright" : "bg-white/10")} />
                                     ))}
                                 </div>
                             </div>
@@ -382,7 +382,7 @@ export default function CyberDashboard() {
                 <Card className="md:col-span-3 border-none shadow-xl shadow-slate-200/50 rounded-[2rem] bg-white overflow-hidden ring-1 ring-slate-200/50">
                     <CardContent className="p-8 flex flex-col sm:flex-row items-center justify-between gap-8">
                         <div className="flex gap-6 items-center">
-                            <div className="h-16 w-16 bg-sky-50 rounded-2xl flex items-center justify-center text-[#3ABEF9]">
+                            <div className="h-16 w-16 bg-sky-50 rounded-2xl flex items-center justify-center text-brand-bright">
                                 <BookOpen className="w-8 h-8" />
                             </div>
                             <div>
@@ -394,13 +394,13 @@ export default function CyberDashboard() {
                         </div>
                         <Button
                             onClick={() => setLocation(`/clients/${selectedClientId}/cyber/workbook`)}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-14 px-8 rounded-2xl shadow-lg shadow-sky-100 transition-all active:scale-95 whitespace-nowrap"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-14 px-8 rounded-2xl shadow-lg shadow-sky-100 transition-all active:scale-95 whitespace-nowrap"
                         >
                             Open Workbook <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                     </CardContent>
                 </Card>
-                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] bg-[#1C4D8D] overflow-hidden flex flex-col items-center justify-center p-8 text-center">
+                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] bg-brand overflow-hidden flex flex-col items-center justify-center p-8 text-center">
                     <div className="text-xs font-black text-white/50 uppercase tracking-widest mb-2">Total Modules</div>
                     <div className="text-5xl font-black text-white">06</div>
                 </Card>
@@ -464,7 +464,7 @@ export default function CyberDashboard() {
                             { title: "Trust", desc: "Securing the supply chain is critical to preventing cascading attacks." }
                         ].map((item, i) => (
                             <div key={i} className="space-y-3">
-                                <div className="h-1 w-12 bg-[#3ABEF9] rounded-full" />
+                                <div className="h-1 w-12 bg-brand-bright rounded-full" />
                                 <h3 className="font-black text-xl">{item.title}</h3>
                                 <p className="text-slate-500 text-sm font-medium italic">"{item.desc}"</p>
                             </div>

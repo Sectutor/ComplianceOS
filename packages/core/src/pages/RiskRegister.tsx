@@ -89,7 +89,7 @@ export default function RiskRegister() {
                     {/* Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium">
                         <div className="flex items-center gap-4">
-                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#3ABEF9] to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-bright to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                                 <Shield className="h-7 w-7 text-white" />
                             </div>
                             <div>
@@ -101,7 +101,7 @@ export default function RiskRegister() {
                             {activeTab === 'assets' ? (
                                 <button
                                     onClick={() => setIsAddAssetOpen(true)}
-                                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#3ABEF9] text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2 transition-all hover:-translate-y-0.5"
+                                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-brand-bright text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2 transition-all hover:-translate-y-0.5"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Add to Inventory

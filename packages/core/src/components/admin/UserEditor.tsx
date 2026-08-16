@@ -142,19 +142,19 @@ export function UserEditor({ user }: UserEditorProps) {
                     <TabsList className="bg-transparent p-0 h-12 w-full justify-start gap-6">
                         <TabsTrigger
                             value="account"
-                            className="h-full rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:border-[#1C4D8D] data-[state=active]:text-[#1C4D8D] data-[state=active]:shadow-none px-0 pb-0"
+                            className="h-full rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:border-brand data-[state=active]:text-brand data-[state=active]:shadow-none px-0 pb-0"
                         >
                             Account Details
                         </TabsTrigger>
                         <TabsTrigger
                             value="permissions"
-                            className="h-full rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:border-[#1C4D8D] data-[state=active]:text-[#1C4D8D] data-[state=active]:shadow-none px-0 pb-0"
+                            className="h-full rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:border-brand data-[state=active]:text-brand data-[state=active]:shadow-none px-0 pb-0"
                         >
                             Global Permissions
                         </TabsTrigger>
                         <TabsTrigger
                             value="organizations"
-                            className="h-full rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:border-[#1C4D8D] data-[state=active]:text-[#1C4D8D] data-[state=active]:shadow-none px-0 pb-0"
+                            className="h-full rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:border-brand data-[state=active]:text-brand data-[state=active]:shadow-none px-0 pb-0"
                         >
                             Organization Access
                         </TabsTrigger>

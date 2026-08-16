@@ -359,7 +359,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
 
                             <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20 text-sm text-muted-foreground">
                                 <div className="flex items-start gap-2">
-                                    <Sparkles className="h-4 w-4 text-[#1C4D8D] mt-0.5 flex-shrink-0" />
+                                    <Sparkles className="h-4 w-4 text-brand mt-0.5 flex-shrink-0" />
                                     <p>Clicking <strong>Create Policy</strong> will use AI to generate the full policy content{selectedTemplateId ? ' based on the selected template' : ''}. You can review and edit it in the Policy Editor afterwards.</p>
                                 </div>
                             </div>
@@ -367,15 +367,15 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             {addPolicyMutation.isPending && (
                                 <div className="space-y-3 py-4 animate-in fade-in duration-300">
                                     <div className="flex items-center gap-3">
-                                        <Loader2 className="h-5 w-5 animate-spin text-[#1C4D8D]" />
+                                        <Loader2 className="h-5 w-5 animate-spin text-brand" />
                                         <div>
-                                            <p className="text-sm font-medium text-[#1C4D8D]">Generating your policy...</p>
+                                            <p className="text-sm font-medium text-brand">Generating your policy...</p>
                                             <p className="text-xs text-muted-foreground">AI is crafting a tailored policy. This may take a moment.</p>
                                         </div>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                                         <div
-                                            className="bg-gradient-to-r from-[#1C4D8D] to-[#3ABEF9] h-2 rounded-full"
+                                            className="bg-gradient-to-r from-brand to-brand-bright h-2 rounded-full"
                                             style={{
                                                 animation: 'progressPulse 2.5s ease-in-out infinite',
                                                 width: '100%',
@@ -459,7 +459,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                 <div className="rounded-xl border border-border shadow-sm overflow-hidden bg-card transition-all">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gradient-to-r from-[#1C4D8D] to-[#2B6CB0] hover:from-[#1C4D8D] hover:to-[#2B6CB0] border-none shadow-sm">
+                            <TableRow className="bg-gradient-to-r from-brand to-[#2B6CB0] hover:from-brand hover:to-[#2B6CB0] border-none shadow-sm">
                                 <TableHead className="w-[300px] text-white font-extrabold py-5 tracking-tight">Policy Name</TableHead>
                                 <TableHead className="w-[150px] text-white font-extrabold py-5 tracking-tight">Framework</TableHead>
                                 <TableHead className="w-[100px] text-white font-extrabold py-5 tracking-tight">Status</TableHead>

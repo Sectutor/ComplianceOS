@@ -27,8 +27,8 @@ export default function CyberOverview() {
             headerTitle: "EU Directive Compliance",
             description: "Evaluate your organization's compliance with the NIS2 Directive, including entity classification and cybersecurity requirements.",
             icon: ShieldCheck,
-            color: "from-[#3ABEF9] to-[#1C4D8D]",
-            textColor: "text-[#3ABEF9]",
+            color: "from-brand-bright to-brand",
+            textColor: "text-brand-bright",
             bgLight: "bg-sky-50",
             path: `/clients/${clientId}/cyber/assessment`,
             benefits: [
@@ -140,19 +140,19 @@ export default function CyberOverview() {
             </div>
 
             {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-[#1C4D8D] p-12 md:p-20 text-white shadow-2xl shadow-sky-900/20">
-                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-[#3ABEF9]/20 rounded-full blur-[100px] animate-pulse" />
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-brand p-12 md:p-20 text-white shadow-2xl shadow-sky-900/20">
+                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-brand-bright/20 rounded-full blur-[100px] animate-pulse" />
                 <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]" />
 
                 <div className="relative z-10 grid lg:grid-cols-2 gap-16 items-center">
                     <div className="space-y-8">
                         <div className="inline-flex items-center space-x-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                            <Globe className="w-4 h-4 text-[#3ABEF9]" />
+                            <Globe className="w-4 h-4 text-brand-bright" />
                             <span className="text-xs font-black uppercase tracking-[0.2em] text-sky-100">EU REGULATORY COMPLIANCE</span>
                         </div>
                         <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
                             The NIS2 <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3ABEF9] via-[#3ABEF9] to-emerald-400">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-bright via-brand-bright to-emerald-400">
                                 Directive.
                             </span>
                         </h1>
@@ -166,7 +166,7 @@ export default function CyberOverview() {
                                 { label: "18 Critical Sectors", icon: CheckCircle2 },
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center space-x-2 text-sm font-bold text-sky-100/60 uppercase tracking-wider">
-                                    <item.icon className="w-4 h-4 text-[#3ABEF9]" />
+                                    <item.icon className="w-4 h-4 text-brand-bright" />
                                     <span>{item.label}</span>
                                 </div>
                             ))}
@@ -181,8 +181,8 @@ export default function CyberOverview() {
                                     { title: "Supply Chain", desc: "Vendor Security", icon: Globe },
                                     { title: "Governance", desc: "Accountability", icon: ListTodo }
                                 ].map((item, i) => (
-                                    <div key={i} className="p-6 bg-white/10 rounded-2xl border border-white/10 text-center group-hover:bg-[#3ABEF9]/20 transition-colors">
-                                        <item.icon className="w-8 h-8 text-[#3ABEF9] mx-auto mb-3" />
+                                    <div key={i} className="p-6 bg-white/10 rounded-2xl border border-white/10 text-center group-hover:bg-brand-bright/20 transition-colors">
+                                        <item.icon className="w-8 h-8 text-brand-bright mx-auto mb-3" />
                                         <h3 className="font-black text-sm text-white mb-1">{item.title}</h3>
                                         <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">{item.desc}</p>
                                     </div>
@@ -240,11 +240,11 @@ export default function CyberOverview() {
                 <CardContent className="p-12 md:p-16">
                     <div className="grid lg:grid-cols-2 gap-16">
                         <div className="space-y-8">
-                            <div className="h-16 w-16 bg-[#3ABEF9] rounded-3xl flex items-center justify-center text-white shadow-lg shadow-sky-200">
+                            <div className="h-16 w-16 bg-brand-bright rounded-3xl flex items-center justify-center text-white shadow-lg shadow-sky-200">
                                 <Globe className="w-8 h-8" />
                             </div>
                             <div>
-                                <h3 className="text-3xl font-black text-[#1C4D8D] mb-4">New to NIS2?</h3>
+                                <h3 className="text-3xl font-black text-brand mb-4">New to NIS2?</h3>
                                 <p className="text-slate-600 text-lg font-medium leading-relaxed">
                                     If your organization is subject to NIS2, follow this standardized compliance trajectory to avoid sanctions and ensure business continuity.
                                 </p>
@@ -252,7 +252,7 @@ export default function CyberOverview() {
                             <Button
                                 id="nis2-journey-button"
                                 onClick={() => setLocation(`/clients/${clientId}/cyber/assessment`)}
-                                className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-14 px-10 rounded-2xl shadow-lg shadow-sky-200 transition-all active:scale-95"
+                                className="bg-brand-bright hover:bg-brand text-white font-bold h-14 px-10 rounded-2xl shadow-lg shadow-sky-200 transition-all active:scale-95"
                             >
                                 Start Implementation Journey <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
@@ -265,7 +265,7 @@ export default function CyberOverview() {
                                 { step: "04", title: "Formalize Reporting", desc: "Configure 24-hour notification workflows." }
                             ].map((item, i) => (
                                 <div key={i} className="flex gap-6 items-start">
-                                    <div className="text-2xl font-black text-[#3ABEF9] opacity-30 mt-1">{item.step}</div>
+                                    <div className="text-2xl font-black text-brand-bright opacity-30 mt-1">{item.step}</div>
                                     <div>
                                         <h4 className="font-black text-slate-900 uppercase tracking-wider">{item.title}</h4>
                                         <p className="text-slate-500 font-medium text-sm">{item.desc}</p>
@@ -281,7 +281,7 @@ export default function CyberOverview() {
             <div className="relative overflow-hidden rounded-[3rem] bg-slate-900 p-12 md:p-20 text-white mt-8 shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(58,190,249,0.1),transparent)]" />
                 <div className="relative z-10 text-center max-w-3xl mx-auto space-y-6">
-                    <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">Beyond Compliance: <br /><span className="text-[#3ABEF9]">Systemic Integrity.</span></h2>
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">Beyond Compliance: <br /><span className="text-brand-bright">Systemic Integrity.</span></h2>
                     <p className="text-slate-400 text-lg font-medium leading-relaxed">
                         Cyber resilience is not just a regulatory hurdle; it's the foundation of trust in the digital age. Compliance ensures your organization remains a strong link in the global supply chain.
                     </p>
@@ -293,7 +293,7 @@ export default function CyberOverview() {
                             { title: "Market", desc: "Meet the growing customer demand for compliance proof." }
                         ].map((item, i) => (
                             <div key={i} className="space-y-3">
-                                <div className="h-1 w-12 bg-[#3ABEF9] rounded-full" />
+                                <div className="h-1 w-12 bg-brand-bright rounded-full" />
                                 <h3 className="font-black text-xl">{item.title}</h3>
                                 <p className="text-slate-500 text-sm font-medium italic">"{item.desc}"</p>
                             </div>

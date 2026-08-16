@@ -61,7 +61,6 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         framework: z.string().optional()
       }))
       .query(async ({ input }: any) => {
-        console.log("DEBUG: clientControls.list called for clientId:", input.clientId, "framework:", input.framework);
         return await db.getClientControls(input.clientId, input.framework);
       }),
     get: clientProcedure
@@ -412,7 +411,6 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
           ));
 
         const targetControlCodes = [...new Set(baselineMappings.map((bm: any) => bm.controlId))] as string[];
-        console.log(`[DEBUG] Found ${targetControlCodes.length} codes for baseline ${input.baseline}. First 3: ${targetControlCodes.slice(0, 3)}`);
 
         if (targetControlCodes.length === 0) {
           return { success: true, appliedCount: 0, message: "No controls found for this baseline." };
@@ -426,7 +424,6 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         }).from(controls)
           .where(inArray(controls.controlId, targetControlCodes));
 
-        console.log(`[DEBUG] Resolved ${validControls.length} valid controls from controls table.`);
 
         // 4. Apply to Client
         let appliedCount = 0;
@@ -459,9 +456,7 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
             const batch = toInsert.slice(i, i + batchSize);
             await dbConn.insert(clientControls).values(batch);
           }
-          console.log(`[DEBUG] Successfully inserted ${toInsert.length} controls for Client ${input.clientId}`);
         } else {
-          console.log(`[DEBUG] No new controls to insert for Client ${input.clientId} (all valid controls already exist).`);
         }
 
         return { success: true, appliedCount, totalControls: validControls.length };

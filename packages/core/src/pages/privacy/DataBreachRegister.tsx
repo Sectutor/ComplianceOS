@@ -78,13 +78,13 @@ export default function DataBreachRegister() {
             </div>
 
             <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
-                <div className="bg-[#1C4D8D] px-6 py-4 flex items-center justify-between">
+                <div className="bg-brand px-6 py-4 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-white">Incident Register</h3>
                     <span className="text-sm text-sky-200">{breaches?.length || 0} incidents</span>
                 </div>
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-0">
+                        <TableRow className="bg-brand hover:bg-brand border-0">
                             <TableHead className="font-bold text-white h-12">Incident Title</TableHead>
                             <TableHead className="font-bold text-white h-12">Severity</TableHead>
                             <TableHead className="font-bold text-white h-12">Occurred On</TableHead>
@@ -97,7 +97,7 @@ export default function DataBreachRegister() {
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
                                     <div className="flex flex-col items-center justify-center gap-2">
-                                        <Loader2 className="h-10 w-10 animate-spin text-[#3ABEF9]" />
+                                        <Loader2 className="h-10 w-10 animate-spin text-brand-bright" />
                                         <span className="text-sm font-medium text-slate-400">Loading incident history...</span>
                                     </div>
                                 </TableCell>
@@ -122,7 +122,7 @@ export default function DataBreachRegister() {
                                             "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
                                             (b.responses as any)?.severity === 'critical' || (b.responses as any)?.severity === 'high'
                                                 ? "bg-rose-100 text-rose-700"
-                                                : "bg-[#1C4D8D]/10 text-[#1C4D8D]"
+                                                : "bg-brand/10 text-brand"
                                         )}>
                                             {(b.responses as any)?.severity?.toUpperCase() || 'UNKNOWN'}
                                         </Badge>
@@ -139,7 +139,7 @@ export default function DataBreachRegister() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-[#3ABEF9] hover:text-[#1C4D8D] hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                            className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
                                             onClick={() => {
                                                 toast.info("Incident detail view coming soon - ID: " + b.id);
                                                 setLocation(`/clients/${clientId}/privacy/breaches`);

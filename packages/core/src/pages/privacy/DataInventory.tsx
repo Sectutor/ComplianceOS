@@ -174,7 +174,7 @@ export default function DataInventory() {
                     <Search className="absolute left-3 top-3.5 h-5 w-5 text-slate-400" />
                     <Input
                         placeholder="Search assets by name or type..."
-                        className="pl-10 h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                        className="pl-10 h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -183,17 +183,17 @@ export default function DataInventory() {
 
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                    <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                     <p className="text-slate-400 font-medium animate-pulse">Scanning data inventory...</p>
                 </div>
             ) : (
                 <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
-                    <div className="bg-[#1C4D8D] px-6 py-4">
+                    <div className="bg-brand px-6 py-4">
                         <h3 className="text-lg font-semibold text-white">Data Assets</h3>
                         <p className="text-white/70 text-sm">Manage personal data assets for GDPR compliance</p>
                     </div>
                     <Table>
-                        <TableHeader className="bg-[#1C4D8D]">
+                        <TableHeader className="bg-brand">
                             <TableRow className="hover:bg-transparent border-0">
                                 <TableHead className="font-bold text-white h-14">Asset Name</TableHead>
                                 <TableHead className="font-bold text-white h-14">Type</TableHead>
@@ -212,7 +212,7 @@ export default function DataInventory() {
                                     >
                                         <TableCell className="py-5">
                                             <div className="flex items-center">
-                                                <div className="h-10 w-10 bg-sky-50 rounded-xl flex items-center justify-center text-[#3ABEF9] mr-4 shadow-sm">
+                                                <div className="h-10 w-10 bg-sky-50 rounded-xl flex items-center justify-center text-brand-bright mr-4 shadow-sm">
                                                     <Database className="h-5 w-5" />
                                                 </div>
                                                 <div>
@@ -255,7 +255,7 @@ export default function DataInventory() {
                                                     className="h-8 w-8 p-0 hover:bg-sky-50"
                                                     onClick={() => handleEdit(asset)}
                                                 >
-                                                    <Pencil className="h-4 w-4 text-[#3ABEF9]" />
+                                                    <Pencil className="h-4 w-4 text-brand-bright" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -398,7 +398,7 @@ export default function DataInventory() {
                         <Button
                             onClick={() => createMutation.mutate({ clientId, ...formData })}
                             disabled={!formData.name.trim() || createMutation.isPending}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white"
+                            className="bg-brand-bright hover:bg-brand text-white"
                         >
                             {createMutation.isPending ? 'Creating...' : 'Create Data Asset'}
                         </Button>
@@ -501,7 +501,7 @@ export default function DataInventory() {
                         <Button
                             onClick={() => selectedAsset && updateMutation.mutate({ assetId: selectedAsset.id, ...formData })}
                             disabled={!formData.name.trim() || updateMutation.isPending}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white"
+                            className="bg-brand-bright hover:bg-brand text-white"
                         >
                             {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                         </Button>

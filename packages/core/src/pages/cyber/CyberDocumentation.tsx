@@ -102,7 +102,7 @@ export default function CyberDocumentation() {
             <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
                     <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
-                        <Link2 className="h-5 w-5 text-[#3ABEF9]" />
+                        <Link2 className="h-5 w-5 text-brand-bright" />
                         Linked Evidence Sources
                     </CardTitle>
                     <CardDescription className="text-slate-500">
@@ -123,9 +123,9 @@ export default function CyberDocumentation() {
                                         <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${source.color} mb-4 group-hover:scale-110 transition-transform`}>
                                             <Icon className="h-6 w-6" />
                                         </div>
-                                        <h3 className="font-bold text-slate-900 group-hover:text-[#3ABEF9] transition-colors">{source.title}</h3>
+                                        <h3 className="font-bold text-slate-900 group-hover:text-brand-bright transition-colors">{source.title}</h3>
                                         <p className="text-sm text-slate-500 mt-2 line-clamp-2">{source.description}</p>
-                                        <div className="flex items-center gap-2 mt-4 text-xs font-bold text-[#3ABEF9] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-2 mt-4 text-xs font-bold text-brand-bright uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
                                             <ExternalLink className="h-3 w-3" />
                                             View Documents
                                         </div>
@@ -143,7 +143,7 @@ export default function CyberDocumentation() {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="space-y-1">
                             <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
-                                <FolderOpen className="h-5 w-5 text-[#3ABEF9]" />
+                                <FolderOpen className="h-5 w-5 text-brand-bright" />
                                 NIS2 Specific Documents
                             </CardTitle>
                             <CardDescription className="text-slate-500">
@@ -152,7 +152,7 @@ export default function CyberDocumentation() {
                         </div>
                         <Button
                             onClick={() => setIsCreateOpen(true)}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                         >
                             <Plus className="mr-2 h-5 w-5" /> Create Document
                         </Button>
@@ -164,7 +164,7 @@ export default function CyberDocumentation() {
                             <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                             <Input
                                 placeholder="Filter registry..."
-                                className="pl-10 h-10 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                className="pl-10 h-10 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                             />
                         </div>
                     </div>
@@ -195,7 +195,7 @@ export default function CyberDocumentation() {
                                         >
                                             <TableCell className="py-5 font-bold text-slate-900 pl-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-9 w-9 rounded-lg bg-sky-50 flex items-center justify-center text-[#3ABEF9] border border-sky-100">
+                                                    <div className="h-9 w-9 rounded-lg bg-sky-50 flex items-center justify-center text-brand-bright border border-sky-100">
                                                         <FileText className="h-5 w-5" />
                                                     </div>
                                                     {doc.name}
@@ -216,7 +216,7 @@ export default function CyberDocumentation() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-[#3ABEF9] hover:text-[#1C4D8D] hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                                    className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
                                                     onClick={() => setLocation(`/clients/${selectedClientId}/policies/${doc.id}`)}
                                                 >
                                                     Edit Content
@@ -238,7 +238,7 @@ export default function CyberDocumentation() {
                             </div>
                             <Button
                                 onClick={() => setIsCreateOpen(true)}
-                                className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 mt-4"
+                                className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 mt-4"
                             >
                                 <Plus className="mr-2 h-5 w-5" /> Initialize Repository
                             </Button>
@@ -260,7 +260,7 @@ export default function CyberDocumentation() {
                             name="name"
                             placeholder="e.g. Incident Response Policy v1.0"
                             required
-                            className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                            className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
@@ -275,7 +275,7 @@ export default function CyberDocumentation() {
                         <Button
                             type="submit"
                             disabled={createMutation.isLoading}
-                            className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-8 rounded-xl"
+                            className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-8 rounded-xl"
                         >
                             Create Document
                         </Button>

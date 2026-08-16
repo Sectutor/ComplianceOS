@@ -114,7 +114,7 @@ export default function FrameworkDetails() {
                                         )}
                                         <Table>
                                             <TableHeader>
-                                                <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                                <TableRow className="bg-brand hover:bg-brand border-none">
                                                     <TableHead className="w-[100px] text-white font-semibold py-4">ID</TableHead>
                                                     <TableHead className="text-white font-semibold py-4">Control Title</TableHead>
                                                     <TableHead className="text-white font-semibold py-4">Description</TableHead>
@@ -226,7 +226,7 @@ function ControlRow({ control, clientId }: { control: any; clientId: number }) {
                     )}
                 </TableCell>
                 <TableCell className="py-4">
-                    <Button variant="ghost" size="sm" className="hover:bg-[#1C4D8D]/10 hover:text-[#1C4D8D] transition-colors duration-200" onClick={() => setIsMappingOpen(true)}>
+                    <Button variant="ghost" size="sm" className="hover:bg-brand/10 hover:text-brand transition-colors duration-200" onClick={() => setIsMappingOpen(true)}>
                         {control.mappedControlCode ? "Edit" : "Map"}
                     </Button>
                 </TableCell>

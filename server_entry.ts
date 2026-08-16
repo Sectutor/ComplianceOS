@@ -33,6 +33,7 @@ import './env-loader';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
@@ -99,12 +100,24 @@ app.get(['/health', '/api/health'], async (req, res) => {
             timestamp: new Date().toISOString(),
             license,
             edition: process.env.VITE_ENABLE_PREMIUM === 'false' ? 'community' : 'premium',
-            version: '1.0.0',
+            version: APP_VERSION,
         });
     } catch (e: any) {
         console.error('[Health] Database connection check failed:', e);
         res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
     }
+});
+
+// Version endpoint for ops/monitoring and support diagnostics
+app.get(['/version', '/api/version'], (_req, res) => {
+    res.status(200).json({
+        name: 'compliance-os',
+        version: APP_VERSION,
+        node: process.version,
+        env: process.env.NODE_ENV || 'development',
+        buildType: process.env.BUILD_TYPE || 'AGPLv3',
+        uptimeSeconds: Math.floor(process.uptime()),
+    });
 });
 const port = process.env.PORT || 3002;
 // Force restart

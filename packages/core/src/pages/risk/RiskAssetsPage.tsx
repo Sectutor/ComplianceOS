@@ -419,7 +419,7 @@ function AssetInventoryTable({
             <div className="overflow-x-auto">
                 <table className="min-w-full">
                     <thead>
-                        <tr className="bg-[#1C4D8D]">
+                        <tr className="bg-brand">
                             <SortableHeader label="Asset ID" sortKey="id" />
                             <SortableHeader label="Asset Name" sortKey="name" />
                             <SortableHeader label="Type/Category" sortKey="type" />

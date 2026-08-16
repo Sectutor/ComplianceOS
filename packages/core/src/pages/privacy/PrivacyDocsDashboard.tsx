@@ -78,7 +78,7 @@ export default function PrivacyDocsDashboard() {
                     <Button
                         id="privacy-docs-add-btn"
                         onClick={() => setLocation(`/clients/${clientId}/policies/new?module=privacy`)}
-                        className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                        className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                     >
                         <Plus className="mr-2 h-5 w-5" /> Add Document
                     </Button>
@@ -87,7 +87,7 @@ export default function PrivacyDocsDashboard() {
 
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-[#3ABEF9]" />
+                    <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
                     <p className="text-slate-400 font-medium animate-pulse">Retrieving policy library...</p>
                 </div>
             ) : (
@@ -160,7 +160,7 @@ export default function PrivacyDocsDashboard() {
                                         >
                                             <TableCell className="py-5 font-bold text-slate-900">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-[#3ABEF9] transition-colors">
+                                                    <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-brand-bright transition-colors">
                                                         <FileText className="h-5 w-5" />
                                                     </div>
                                                     {policy.name}
@@ -180,7 +180,7 @@ export default function PrivacyDocsDashboard() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-[#3ABEF9] hover:text-[#1C4D8D] hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                                    className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
                                                     onClick={() => setLocation(`/clients/${clientId}/policies/${policy.id}`)}
                                                 >
                                                     View / Edit

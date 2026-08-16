@@ -84,7 +84,7 @@ export default function CyberIncidentDetail() {
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-[#3ABEF9]" />
+                <Loader2 className="h-10 w-10 animate-spin text-brand-bright" />
                 <p className="text-sm font-bold text-slate-500">Loading incident data...</p>
             </div>
         );
@@ -119,7 +119,7 @@ export default function CyberIncidentDetail() {
                         "font-bold px-4 py-2 rounded-xl uppercase tracking-widest text-xs",
                         severity === 'critical' ? "bg-red-500 text-white shadow-lg shadow-red-100" :
                             severity === 'high' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" :
-                                "bg-[#3ABEF9] text-white shadow-lg shadow-sky-100"
+                                "bg-brand-bright text-white shadow-lg shadow-sky-100"
                     )}>
                         {severity.toUpperCase()} PRIORITY
                     </Badge>
@@ -138,7 +138,7 @@ export default function CyberIncidentDetail() {
                             <div className="space-y-2">
                                 <Label className="text-sm font-bold text-slate-700">Incident Title / Summary</Label>
                                 <Input
-                                    className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20 font-bold"
+                                    className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 font-bold"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                 />
@@ -196,7 +196,7 @@ export default function CyberIncidentDetail() {
                             <div className="space-y-2">
                                 <Label className="text-sm font-bold text-slate-700">Detailed Description</Label>
                                 <Textarea
-                                    className="min-h-[150px] rounded-xl border-slate-200 p-4 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                    className="min-h-[150px] rounded-xl border-slate-200 p-4 focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
@@ -213,7 +213,7 @@ export default function CyberIncidentDetail() {
                             <Button
                                 onClick={handleSave}
                                 disabled={updateMutation.isLoading}
-                                className="bg-[#3ABEF9] hover:bg-[#1C4D8D] text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                                className="bg-brand-bright hover:bg-brand text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                             >
                                 {updateMutation.isLoading ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -232,12 +232,12 @@ export default function CyberIncidentDetail() {
                     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
                             <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <Send className="h-5 w-5 text-[#3ABEF9]" />
+                                <Send className="h-5 w-5 text-brand-bright" />
                                 Regulatory Status
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6 space-y-6">
-                            <div className="p-4 bg-[#1C4D8D]/5 rounded-2xl border border-[#1C4D8D]/10">
+                            <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10">
                                 <div className="flex justify-between items-center mb-1">
                                     <span className="text-xs font-bold text-slate-400 uppercase">CSIRT Notification</span>
                                     <Badge variant="outline" className={cn(
@@ -272,13 +272,13 @@ export default function CyberIncidentDetail() {
                     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
                         <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
                             <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <CheckCircle2 className="h-5 w-5 text-[#3ABEF9]" />
+                                <CheckCircle2 className="h-5 w-5 text-brand-bright" />
                                 Affected Systems
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                             <Textarea
-                                className="min-h-[120px] rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"
+                                className="min-h-[120px] rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
                                 value={affectedAssets}
                                 onChange={(e) => setAffectedAssets(e.target.value)}
                                 placeholder="List systems, databases, or cloud services affected..."
@@ -287,7 +287,7 @@ export default function CyberIncidentDetail() {
                     </Card>
 
                     {/* Timeline */}
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-[#1C4D8D] overflow-hidden text-white">
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-brand overflow-hidden text-white">
                         <CardHeader className="border-b border-white/10 p-6">
                             <CardTitle className="text-lg font-bold flex items-center gap-2">
                                 <Clock className="h-5 w-5" />

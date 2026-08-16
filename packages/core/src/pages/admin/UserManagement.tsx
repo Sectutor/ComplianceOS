@@ -170,7 +170,7 @@ export default function UserManagement() {
                         <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
+                                    <TableRow className="bg-brand hover:bg-brand border-none">
                                         <TableHead className="text-white font-semibold py-4">User</TableHead>
                                         <TableHead className="text-white font-semibold py-4">Email</TableHead>
                                         <TableHead className="text-white font-semibold py-4">Role</TableHead>
@@ -186,7 +186,7 @@ export default function UserManagement() {
                                         <TableRow key={user.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group">
                                             <TableCell className="font-medium py-4">
                                                 <div className="flex items-center gap-2 text-black">
-                                                    <div className="h-8 w-8 rounded-full bg-[#1C4D8D]/10 flex items-center justify-center text-[#1C4D8D] font-bold text-xs uppercase">
+                                                    <div className="h-8 w-8 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-xs uppercase">
                                                         {user.name ? user.name.substring(0, 2) : "U"}
                                                     </div>
                                                     {user.name || "Unknown"}

@@ -228,7 +228,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                                 </Button>
                             </Link>
                         </div>
-                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#3ABEF9] to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-bright to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                             <Shield className="h-7 w-7 text-white" />
                         </div>
                         <div>
