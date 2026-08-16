@@ -611,6 +611,24 @@ Each case study can generate:
 
 ---
 
+## Implementation Documentation
+
+Each case study has a corresponding implementation document that records the actual data created during testing:
+
+| # | Case Study | Implementation Doc | Client ID |
+|---|-----------|-------------------|-----------|
+| 3 | Healthcare ISO 27001 | `case-study-3-medcare-iso27001-implementation.md` | 9 |
+| 4 | E-Commerce BCP | `case-study-4-shopsphere-bcp-implementation.md` | 10 |
+| 5 | Logistics BIA | `case-study-5-fastroute-bia-implementation.md` | 11 |
+| 6 | Bank VRM | `case-study-6-metrobank-vrm-implementation.md` | 12 |
+| 7 | Tech Startup IR | `case-study-7-cybershield-ir-implementation.md` | 13 |
+| 8 | Manufacturer Policies | `case-study-8-industrialtech-policies-implementation.md` | 14 |
+| 9 | Federal FedRAMP | `case-study-9-fdsa-federal-implementation.md` | 15 |
+| 10 | EU GDPR & NIS2 | `case-study-10-eurocloud-eu-implementation.md` | 16 |
+| 11 | AI Governance | `case-study-11-nexgen-ai-implementation.md` | 17 |
+
+---
+
 ## Next Steps
 
 The documentation agent should create a tutorial for each case study:
@@ -622,3 +640,6 @@ The documentation agent should create a tutorial for each case study:
 6. `case-study-6-metrobank-vrm.md` — Bank Vendor Risk
 7. `case-study-7-cybershield-ir.md` — Tech Startup Incident Response
 8. `case-study-8-industrialtech-policies.md` — Manufacturer Policy Lifecycle
+9. `case-study-9-fdsa-federal.md` — Federal FedRAMP
+10. `case-study-10-eurocloud-eu.md` — EU GDPR & NIS2
+11. `case-study-11-nexgen-ai.md` — AI Governance
