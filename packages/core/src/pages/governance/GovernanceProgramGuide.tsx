@@ -97,7 +97,7 @@ export default function GovernanceProgramGuide() {
                 'Link identified risks to the mitigating controls established in Step 2.',
                 'Assign actionable treatment plans (Accept, Mitigate, Transfer, Avoid) for all high and critical risks.'
             ],
-            link: `/clients/${clientId}/risk-register`,
+            link: `/clients/${clientId}/risks/register`,
             cta: 'Open Risk Register',
             downloadText: 'Download Gap Assessment form'
         },

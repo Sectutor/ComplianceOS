@@ -335,12 +335,12 @@ export default function SecurityReviews() {
                                 {
                                     name: "Third-Party Risk Policy",
                                     description: "Master document outlining vendor criticality levels.",
-                                    href: "/policies/tprm-policy"
+                                    href: `/clients/${clientId}/policies`
                                 },
                                 {
                                     name: "Standard Assessment Guide",
                                     description: "Internal guide on how to grade SIG/CAIQ responses.",
-                                    href: "/resources/grading-rubric"
+                                    href: `/clients/${clientId}/questionnaires`
                                 }
                             ]}
                         />

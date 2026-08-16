@@ -178,7 +178,7 @@ export default function GovernanceDashboard() {
                                     step: "3. Risks",
                                     title: "Assess Risk",
                                     desc: "Identify & mitigate risks.",
-                                    link: `/clients/${clientId}/risk-register`,
+                                    link: `/clients/${clientId}/risks/register`,
                                     icon: AlertTriangle,
                                     color: "text-orange-400",
                                     bg: "bg-orange-900/50",
@@ -278,7 +278,7 @@ export default function GovernanceDashboard() {
                     </Card>
 
                     {/* Risk Profile Card (NEW) */}
-                    <Card className="card-enhanced border-l-4 border-l-orange-500 bg-orange-50/50 cursor-pointer hover:bg-orange-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/risk-register`}>
+                    <Card className="card-enhanced border-l-4 border-l-orange-500 bg-orange-50/50 cursor-pointer hover:bg-orange-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/risks/register`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-orange-900">Risk Profile</CardTitle>
                             <AlertTriangle className="h-4 w-4 text-orange-600" />
@@ -392,7 +392,7 @@ export default function GovernanceDashboard() {
                                     </div>
                                 </Button>
                             </Link>
-                            <Link href={`/clients/${clientId}/risk-register`}>
+                            <Link href={`/clients/${clientId}/risks/register`}>
                                 <Button variant="outline" className="w-full justify-start h-auto py-4 px-4 hover:bg-orange-50 hover:border-orange-200">
                                     <AlertTriangle className="mr-4 h-6 w-6 text-orange-500" />
                                     <div className="flex flex-col items-start">

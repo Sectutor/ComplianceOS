@@ -599,6 +599,12 @@ function GapAnalysisAlias() {
   return <Redirect to="/clients" />;
 }
 
+function AssetsAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/assets`} />;
+  return <Redirect to="/clients" />;
+}
+
 function ComplianceDashboardAlias() {
   const { selectedClientId } = useClientContext();
   if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/compliance`} />;
@@ -1142,6 +1148,9 @@ function Router() {
         {/* Friendly aliases for common nav typos / old links */}
         <Route path="/clients/:id/risk">
           {(_params) => <Redirect to={`/clients/${_params.id}/risks`} />}
+        </Route>
+        <Route path="/clients/:id/risk-register">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/register`} />}
         </Route>
         <Route path="/clients/new/msp">
           <ProtectedRoute component={MSPOnboarding} />
@@ -1869,6 +1878,12 @@ function Router() {
         </Route>
         <Route path="/client-policies">
           <ProtectedRoute component={ClientPoliciesAlias} />
+        </Route>
+        <Route path="/policies">
+          <ProtectedRoute component={ClientPoliciesAlias} />
+        </Route>
+        <Route path="/assets">
+          <ProtectedRoute component={AssetsAlias} />
         </Route>
         <Route path="/risks">
           <ProtectedRoute component={RiskManagementAlias} />
