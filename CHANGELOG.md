@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 8 - Webhook system (scorecard #15) + scorecard reconciliation (2026-08-18)
+- Webhook registry hardened: bounded retries with exponential backoff (default 2; 4xx never retried; injectable fetch for tests), updateWebhookSubscription / deleteWebhookSubscription / listWebhookEventCatalog, recursive secret scrubbing on dispatched + logged payloads, and dispatch that never throws (graceful DB degradation, per-write guards).
+- New lib/webhooks/webhookEvents.ts: single-source event catalog (test.ping, evidence.expired, control.autotest.failed, risk.created, policy.ack.overdue, "*") + safeDispatchWebhookEvent fire-and-forget dispatcher (setImmediate, never blocks callers).
+- Router: webhooks.updateSubscription / deleteSubscription / listEventCatalog added; subscribe/update events validated against the catalog; listDeliveries limit bounded (1-200); TRPCError-wrapped.
+- Real event wiring (non-blocking): evidence.expired (renewal loop x3), control.autotest.failed (auto-test engine), policy.ack.overdue (reminder sweep), risk.created (high/critical upsert).
+- UI: token-only Webhooks page (/clients/:id/webhooks + /webhooks alias + nav) - stat cards, subscriptions CRUD with enable/disable switch, test-ping trigger, deliveries table, create dialog with one-time secret reveal, per-procedure EmptyState degradation; webhooksApi.ts contract layer per UI-STANDARD sec 16.
+- Tests: 565 -> 623 (40 files), all green; coverage 100% on the 5 configured targets; tsc 2046 -> 2046 (0 new; 0 errors in all new files).
+- Scorecard reconciliation: TPRM (#5), questionnaires (#6), trust center (#8), audit management (#9), integrations/API (#13) rows updated to reflect existing implementations (previously "None").
+
 ### Cycle 7 — GRC cross-module integration, market-readiness hardening, CI (2026-08-17)
 
 **GRC cross-module integration (information now flows between modules):**
