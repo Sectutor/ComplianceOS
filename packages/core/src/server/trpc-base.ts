@@ -31,7 +31,7 @@ const customTransformer = {
                     return superjson.deserialize(data as Parameters<typeof superjson.deserialize>[0]);
                 } catch (e) {
                     // If superjson deserialization fails, fall through to return data as-is
-                    logger.warn('[TRPC Transformer] Superjson deserialization failed, treating as plain JSON:', e);
+                    logger.warn('[TRPC Transformer] Superjson deserialization failed, treating as plain JSON: ' + (e instanceof Error ? e.message : String(e)));
                 }
             }
             // Plain JSON format - return as-is

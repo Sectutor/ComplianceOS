@@ -16,7 +16,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { ThemeProvider as MUIThemeProvider } from "@mui/material/styles";
 import { getTheme } from "./theme/mui-theme";
-import type { Theme } from "./contexts/ThemeContext";
 import { ClientContextProvider, useClientContext } from "./contexts/ClientContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AdvisorProvider } from "./contexts/AdvisorContext";

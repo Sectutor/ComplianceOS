@@ -1,4 +1,4 @@
-import { createTheme, type ThemeOptions } from '@mui/material/styles';
+import { createTheme, type ThemeOptions, type Shadows } from '@mui/material/styles';
 
 /**
  * ComplianceOS MUI Theme
@@ -27,7 +27,7 @@ const baseShape = {
   borderRadius: 10, // Matches --radius: 0.625rem (0.625 × 16 = 10px)
 };
 
-const baseShadows = [
+const baseShadows: Shadows = [
   'none',
   '0 2px 4px rgba(0, 0, 0, 0.1)',
   '0 4px 8px rgba(0, 0, 0, 0.12)',
@@ -52,7 +52,7 @@ const baseShadows = [
   '0 42px 84px rgba(0, 0, 0, 0.52)',
   '0 44px 88px rgba(0, 0, 0, 0.54)',
   '0 46px 92px rgba(0, 0, 0, 0.56)',
-] as const;
+];
 
 const baseComponents = {
   MuiButton: {

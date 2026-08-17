@@ -24,6 +24,7 @@ import {
   FileText,
   ClipboardCheck,
   Building2,
+  AlertTriangle,
   Loader2,
   X,
   Filter,
@@ -46,7 +47,7 @@ type SearchType = 'control' | 'policy' | 'evidence' | 'client' | 'task' | 'perso
 type Framework = 'ISO 27001' | 'SOC 2' | 'GDPR' | 'HIPAA' | 'NIST' | undefined;
 
 // Type for the API - only includes supported types
-type ApiSearchType = 'control' | 'policy' | 'evidence' | 'client' | undefined;
+type ApiSearchType = 'control' | 'policy' | 'evidence' | 'client' | 'risk' | 'vendor' | 'task' | 'audit_finding' | undefined;
 
 // Extended search result type to include all supported types
 interface SearchResult {
@@ -248,6 +249,14 @@ export function GlobalSearch() {
         return <ClipboardCheck className="h-4 w-4 text-purple-500" />;
       case 'client':
         return <Building2 className="h-4 w-4 text-orange-500" />;
+      case 'risk':
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      case 'vendor':
+        return <Users className="h-4 w-4 text-cyan-500" />;
+      case 'task':
+        return <Target className="h-4 w-4 text-rose-500" />;
+      case 'audit_finding':
+        return <ClipboardCheck className="h-4 w-4 text-red-500" />;
       default:
         return <Search className="h-4 w-4" />;
     }
@@ -261,6 +270,14 @@ export function GlobalSearch() {
         return 'Policy';
       case 'evidence':
         return 'Evidence';
+      case 'risk':
+        return 'Risk';
+      case 'vendor':
+        return 'Vendor';
+      case 'task':
+        return 'Task';
+      case 'audit_finding':
+        return 'Audit Finding';
       case 'client':
         return 'Client';
       case 'task':
@@ -286,14 +303,18 @@ export function GlobalSearch() {
         return <ClipboardCheck className="h-4 w-4 text-purple-500" />;
       case 'client':
         return <Building2 className="h-4 w-4 text-orange-500" />;
+      case 'risk':
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      case 'vendor':
+        return <Users className="h-4 w-4 text-cyan-500" />;
       case 'task':
-        return <Target className="h-4 w-4 text-red-500" />;
+        return <Target className="h-4 w-4 text-rose-500" />;
+      case 'audit_finding':
+        return <ClipboardCheck className="h-4 w-4 text-red-500" />;
       case 'person':
         return <Users className="h-4 w-4 text-cyan-500" />;
       case 'framework':
         return <Scale className="h-4 w-4 text-indigo-500" />;
-      case 'risk':
-        return <TrendingUp className="h-4 w-4 text-amber-500" />;
       default:
         return <Search className="h-4 w-4" />;
     }
@@ -431,6 +452,10 @@ export function GlobalSearch() {
                     <SelectItem value="policy">Policies</SelectItem>
                     <SelectItem value="evidence">Evidence</SelectItem>
                     <SelectItem value="client">Clients</SelectItem>
+                    <SelectItem value="risk">Risks</SelectItem>
+                    <SelectItem value="vendor">Vendors</SelectItem>
+                    <SelectItem value="task">Tasks</SelectItem>
+                    <SelectItem value="audit_finding">Audit Findings</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

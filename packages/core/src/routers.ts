@@ -2195,7 +2195,7 @@ ONLY return the JSON. No Markdown formatting.
           clientId: z.number().optional(),
           framework: z.string().optional(),
           status: z.string().optional(),
-          type: z.enum(['control', 'policy', 'evidence', 'client']).optional()
+          type: z.enum(['control', 'policy', 'evidence', 'client', 'risk', 'vendor', 'task', 'audit_finding']).optional()
         }).optional()
       }))
       .query(async ({ input }) => {

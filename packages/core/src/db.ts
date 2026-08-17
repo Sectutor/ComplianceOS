@@ -4533,7 +4533,7 @@ export interface SearchResult {
 
   id: number;
 
-  type: 'control' | 'policy' | 'evidence' | 'client';
+  type: 'control' | 'policy' | 'evidence' | 'client' | 'risk' | 'vendor' | 'task' | 'audit_finding';
 
   title: string;
 
@@ -4561,7 +4561,7 @@ export interface SearchFilters {
 
   status?: string;
 
-  type?: 'control' | 'policy' | 'evidence' | 'client';
+  type?: 'control' | 'policy' | 'evidence' | 'client' | 'risk' | 'vendor' | 'task' | 'audit_finding';
 
 }
 
@@ -4853,7 +4853,133 @@ export async function globalSearch(
 
   }
 
+  // Search risk register (riskAssessments)
+  if (!filters?.type || filters.type === 'risk') {
+    const riskResults = await db.select({
+      risk: riskAssessments,
+      clientName: clients.name,
+    })
+      .from(riskAssessments)
+      .innerJoin(clients, eq(riskAssessments.clientId, clients.id))
+      .where(
+        or(
+          like(sql`LOWER(${riskAssessments.title})`, searchTerm),
+          like(sql`LOWER(${riskAssessments.threatDescription})`, searchTerm),
+          like(sql`LOWER(${riskAssessments.assessmentId})`, searchTerm)
+        )
+      )
+      .limit(limit);
 
+    for (const { risk, clientName } of riskResults) {
+      if (filters?.clientId && risk.clientId !== filters.clientId) continue;
+      if (filters?.status && risk.status !== filters.status) continue;
+      results.push({
+        id: risk.id,
+        type: 'risk',
+        title: risk.title,
+        description: `Risk (${risk.inherentRisk || 'unrated'}) for ${clientName}`,
+        clientId: risk.clientId,
+        clientName: clientName || undefined,
+        status: risk.status || undefined,
+        url: `/clients/${risk.clientId}/risks/register`,
+      });
+    }
+  }
+
+  // Search vendors
+  if (!filters?.type || filters.type === 'vendor') {
+    const vendorResults = await db.select({
+      vendor: vendors,
+      clientName: clients.name,
+    })
+      .from(vendors)
+      .innerJoin(clients, eq(vendors.clientId, clients.id))
+      .where(
+        or(
+          like(sql`LOWER(${vendors.name})`, searchTerm),
+          like(sql`LOWER(${vendors.description})`, searchTerm),
+          like(sql`LOWER(${vendors.website})`, searchTerm)
+        )
+      )
+      .limit(limit);
+
+    for (const { vendor, clientName } of vendorResults) {
+      if (filters?.clientId && vendor.clientId !== filters.clientId) continue;
+      results.push({
+        id: vendor.id,
+        type: 'vendor',
+        title: vendor.name,
+        description: vendor.description || vendor.website || `Vendor for ${clientName}`,
+        clientId: vendor.clientId,
+        clientName: clientName || undefined,
+        url: `/clients/${vendor.clientId}/vendors`,
+      });
+    }
+  }
+
+  // Search tasks
+  if (!filters?.type || filters.type === 'task') {
+    const taskResults = await db.select({
+      task: tasks,
+      clientName: clients.name,
+    })
+      .from(tasks)
+      .innerJoin(clients, eq(tasks.clientId, clients.id))
+      .where(
+        or(
+          like(sql`LOWER(${tasks.title})`, searchTerm),
+          like(sql`LOWER(${tasks.description})`, searchTerm)
+        )
+      )
+      .limit(limit);
+
+    for (const { task, clientName } of taskResults) {
+      if (filters?.clientId && task.clientId !== filters.clientId) continue;
+      if (filters?.status && task.status !== filters.status) continue;
+      results.push({
+        id: task.id,
+        type: 'task',
+        title: task.title,
+        description: task.description || `Task for ${clientName}`,
+        clientId: task.clientId,
+        clientName: clientName || undefined,
+        status: task.status || undefined,
+        url: `/clients/${task.clientId}/tasks`,
+      });
+    }
+  }
+
+  // Search audit findings
+  if (!filters?.type || filters.type === 'audit_finding') {
+    const findingResults = await db.select({
+      finding: auditFindings,
+      clientName: clients.name,
+    })
+      .from(auditFindings)
+      .innerJoin(clients, eq(auditFindings.clientId, clients.id))
+      .where(
+        or(
+          like(sql`LOWER(${auditFindings.title})`, searchTerm),
+          like(sql`LOWER(${auditFindings.description})`, searchTerm)
+        )
+      )
+      .limit(limit);
+
+    for (const { finding, clientName } of findingResults) {
+      if (filters?.clientId && finding.clientId !== filters.clientId) continue;
+      if (filters?.status && finding.status !== filters.status) continue;
+      results.push({
+        id: finding.id,
+        type: 'audit_finding',
+        title: finding.title,
+        description: `${finding.severity} finding for ${clientName}`,
+        clientId: finding.clientId,
+        clientName: clientName || undefined,
+        status: finding.status || undefined,
+        url: `/clients/${finding.clientId}/audit-hub`,
+      });
+    }
+  }
 
   // Sort by relevance (exact matches first, then partial)
 

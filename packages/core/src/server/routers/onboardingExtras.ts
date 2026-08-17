@@ -171,7 +171,7 @@ export const createOnboardingExtrasRouter = (t: any, clientProcedure: any, clien
                     .limit(1);
                 let nextOrder = (last[0]?.displayOrder || 0) + 1;
 
-                const results = [];
+                const results: any[] = [];
                 for (const req of input.requirements) {
                     const [created] = await db.insert(complianceRequirements)
                         .values({
