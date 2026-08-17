@@ -178,6 +178,7 @@ import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
 import { createAddonRouter } from "@complianceos/addons/router";
+import { createSsoRouter } from "./server/routers/sso";
 
 
 
@@ -4479,6 +4480,7 @@ ONLY return the JSON. No Markdown formatting.
   msspCockpit: createMsspCockpitRouter(t, premiumClientProcedure),
   auditorPortal: createAuditorPortalRouter(t, premiumClientProcedure, adminProcedure, publicProcedure),
   webhooks: createWebhooksRouter(t, clientProcedure),
+  sso: createSsoRouter(t, publicProcedure),
 });
 
 

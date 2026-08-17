@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { Loader2 } from 'lucide-react';
 import MFAChallengeModal from '@/components/auth/MFAChallengeModal';
+import { useSsoStatusQuery, useSsoStartQuery } from '../sso/ssoApi';
 
 export default function LoginPage() {
     const utils = trpc.useUtils();
@@ -22,6 +23,30 @@ export default function LoginPage() {
     const [factorId, setFactorId] = useState<string | undefined>(undefined);
     const [mfaRequired, setMfaRequired] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    // Enterprise SSO (cycle 9): OIDC entry point — hidden unless the backend reports it enabled.
+    const ssoStatus = useSsoStatusQuery();
+    const ssoStart = useSsoStartQuery();
+    const [ssoStarting, setSsoStarting] = useState(false);
+
+    const handleSsoStart = async () => {
+        if (ssoStarting) return;
+        setSsoStarting(true);
+        try {
+            const result = await ssoStart.refetch();
+            const url = result?.data?.authorizationUrl;
+            if (!url) {
+                console.warn('[SSO] sso.start returned no authorization URL');
+                toast.error('SSO is not available right now.');
+            } else {
+                window.location.assign(url);
+            }
+        } catch (err) {
+            console.error('[SSO] sso.start failed:', err);
+            toast.error('SSO sign-in could not be started.');
+        } finally {
+            setSsoStarting(false);
+        }
+    };
 
     // Pre-fill email from query params if available
     useEffect(() => {
@@ -274,6 +299,29 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium text-lg border-none" disabled={loading}>
                             {loading ? 'Signing in...' : 'Sign In'}
                         </Button>
+                        {ssoStatus.data?.mode === 'oidc' && (
+                            <>
+                                <div className="flex items-center gap-3 w-full">
+                                    <div className="h-px flex-1 bg-sidebar-border" />
+                                    <span className="text-xs uppercase tracking-wider text-sidebar-foreground/50">or</span>
+                                    <div className="h-px flex-1 bg-sidebar-border" />
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full h-11 border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-primary/60"
+                                    disabled={ssoStarting || ssoStatus.isLoading}
+                                    onClick={handleSsoStart}
+                                >
+                                    {ssoStarting ? 'Redirecting…' : 'Continue with SSO'}
+                                </Button>
+                                {ssoStatus.data?.providerName && (
+                                    <p className="text-center text-xs text-sidebar-foreground/50">
+                                        Sign in with {ssoStatus.data.providerName}
+                                    </p>
+                                )}
+                            </>
+                        )}
                         <div className="text-center text-sm text-sidebar-foreground/60">
                             Don't have an account?{' '}
                             <Button

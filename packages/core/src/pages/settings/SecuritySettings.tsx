@@ -15,6 +15,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useClientContext } from "@/contexts/ClientContext";
 import MFAChallengeModal from "@/components/auth/MFAChallengeModal";
 import { PATManagement } from "@/components/settings/PATManagement";
+import { useSsoStatusQuery } from "../sso/ssoApi";
 
 type Factor = {
   id: string;
@@ -303,6 +304,8 @@ export default function SecuritySettings() {
       />
 
       <div className="grid gap-6">
+        {/* Enterprise SSO (cycle 9, scorecard #13) — read-only status */}
+        <SsoStatusCard />
         <Card>
           <CardHeader className="flex items-center justify-between">
             <div>
@@ -503,3 +506,83 @@ export default function SecuritySettings() {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  SSO status card (cycle 9, scorecard #13)                          */
+/*  Read-only: configuration comes from environment variables on the  */
+/*  self-host server. Never shows secrets. Degrades gracefully when   */
+/*  the sso.status endpoint is not live (UI-STANDARD §16).            */
+/* ------------------------------------------------------------------ */
+
+function SsoStatusCard() {
+  const ssoStatus = useSsoStatusQuery();
+
+  if (ssoStatus.isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Single Sign-On (SSO)</CardTitle>
+          <CardDescription>Connect the sso.status API to view SSO configuration.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            The SSO status endpoint is unavailable. This feature is configured via
+            environment variables on the self-hosted server (SSO_OIDC_* / SSO_PROXY_*).
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const status = ssoStatus.data;
+
+  const modeLabel = !status ? 'Unknown' : status.mode === 'oidc' ? 'OIDC (built-in)' : status.mode === 'proxy' ? 'Reverse-proxy header' : 'Disabled';
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center justify-between">
+        <div>
+          <CardTitle>Single Sign-On (SSO)</CardTitle>
+          <CardDescription>Enterprise identity provider sign-in for self-host deployments.</CardDescription>
+        </div>
+        <Badge variant={status?.enabled ? "success" : "outline"}>
+          {status?.enabled ? "Enabled" : "Not configured"}
+        </Badge>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Mode</span>
+          <span className="font-medium">{modeLabel}</span>
+        </div>
+        {status?.providerName && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Provider</span>
+            <span className="font-medium">{status.providerName}</span>
+          </div>
+        )}
+        {status?.issuer && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Issuer</span>
+            <span className="font-medium break-all">{status.issuer}</span>
+          </div>
+        )}
+        {status?.roleClaim && status.mode === 'oidc' && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Role claim</span>
+            <span className="font-medium">{status.roleClaim}</span>
+          </div>
+        )}
+        {status?.proxyHeader && status.mode === 'proxy' && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Auth header</span>
+            <span className="font-medium">{status.proxyHeader}</span>
+          </div>
+        )}
+        <p className="pt-2 text-xs text-muted-foreground">
+          Configure SSO with environment variables on the server — see docs/self-hosted/sso.md.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+

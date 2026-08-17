@@ -15,6 +15,17 @@ export const ENV = {
     rateLimitWindowMs: Number(getEnv('RATE_LIMIT_WINDOW_MS', '60000')),
     rateLimitMax: Number(getEnv('RATE_LIMIT_MAX', '200')),
     corsOrigin: getEnv('CORS_ORIGIN'),
+    // Enterprise SSO (cycle 9, scorecard #13) — OIDC + reverse-proxy header auth
+    ssoOidcEnabled: getEnv('SSO_OIDC_ENABLED', 'false'),
+    ssoOidcIssuer: getEnv('SSO_OIDC_ISSUER'),
+    ssoOidcClientId: getEnv('SSO_OIDC_CLIENT_ID'),
+    ssoOidcClientSecret: getEnv('SSO_OIDC_CLIENT_SECRET'),
+    ssoOidcScopes: getEnv('SSO_OIDC_SCOPES', 'openid email profile'),
+    ssoOidcRedirectUri: getEnv('SSO_OIDC_REDIRECT_URI'),
+    ssoOidcRoleClaim: getEnv('SSO_OIDC_ROLE_CLAIM', 'groups'),
+    ssoProxyEnabled: getEnv('SSO_PROXY_ENABLED', 'false'),
+    ssoProxyAuthHeader: getEnv('SSO_PROXY_AUTH_HEADER', 'x-forwarded-user'),
+    ssoProxyEmailHeader: getEnv('SSO_PROXY_EMAIL_HEADER', 'x-forwarded-email'),
 };
 
 export function validateEnv() {

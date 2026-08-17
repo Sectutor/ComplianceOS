@@ -1,12 +1,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextFunction, Request, Response } from 'express';
-import { getDb } from './db';
+import { getDb, upsertUser, getUserByOpenId } from './db';
 import { users, personalAccessTokens } from './schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 import { localAuth } from './lib/auth/local-auth';
+import { resolveProxyUser } from './lib/sso/proxy-auth';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -33,6 +34,29 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
+            // Enterprise SSO (cycle 9, scorecard #13): reverse-proxy header auth.
+            // The edge proxy (Traefik/Nginx/Authentik) authenticates the user and
+            // forwards the principal via SSO_PROXY_AUTH_HEADER (default X-Forwarded-User).
+            const proxyUser = resolveProxyUser(req.headers as any);
+            if (proxyUser) {
+                try {
+                    await upsertUser({
+                        openId: proxyUser.openId,
+                        email: proxyUser.email,
+                        name: proxyUser.name,
+                        loginMethod: 'sso_proxy',
+                        lastSignedIn: new Date(),
+                    });
+                    const dbUser = await getUserByOpenId(proxyUser.openId);
+                    if (dbUser) {
+                        authInfo.dbUser = true;
+                        authInfo.proxySso = true;
+                        req.user = dbUser;
+                    }
+                } catch (err) {
+                    console.error('[AuthMiddleware] Proxy SSO upsert failed:', err instanceof Error ? err.message : String(err));
+                }
+            }
             return next();
         }
         authInfo.hasAuthHeader = true;
