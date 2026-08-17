@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 9 - Enterprise SSO (OIDC + reverse-proxy header auth) (scorecard #13) (2026-08-18)
+- Backend lib/sso/oidc.ts: OIDC discovery, authorization-code URL builder, token exchange, RS256 ID-token verification against the IdP JWKS (issuer/audience/exp/iat/nonce checks, node crypto), claim mapping with configurable role claim, single-flight 10-minute state store. All network access injectable-fetch for tests.
+- Backend lib/sso/proxy-auth.ts: reverse-proxy header SSO (Traefik/Nginx/Authentik style) - case-insensitive header lookup on configurable principal/email headers, namespaced openId (sso_proxy:<email>).
+- tRPC sso router (status/start/callback) wired into routers.ts: start generates state+nonce and returns the IdP authorization URL; callback consumes state single-flight, exchanges the code, verifies the ID token, upserts the user by openId (loginMethod 'sso') and issues a localAuth session JWT. status never echoes secrets.
+- authMiddleware: proxy-SSO support - when enabled and no Authorization header, resolves the principal from configured headers and upserts the user (loginMethod 'sso_proxy').
+- Config: SSO_OIDC_* / SSO_PROXY_* env vars added to _core/env.ts and documented in .env.example (no secrets).
+- UI: ssoApi.ts contract layer (UI-STANDARD sec 16), LoginPage "Continue with SSO" button shown only when sso.status reports OIDC mode, new /auth/sso/callback page (stores session token exactly like local auth, reloads into the app), read-only SSO status card on Security settings (token-only, dark-mode safe).
+- Tests: 43 new (30 oidc incl. real RS256/JWKS mocking + negative cases, 10 proxy-auth, 3 router) - 623 -> 666 (43 files), all green; coverage 100% on the 5 configured targets; tsc 2046 -> 2046 (0 new).
+
 ### Cycle 8 - Webhook system (scorecard #15) + scorecard reconciliation (2026-08-18)
 - Webhook registry hardened: bounded retries with exponential backoff (default 2; 4xx never retried; injectable fetch for tests), updateWebhookSubscription / deleteWebhookSubscription / listWebhookEventCatalog, recursive secret scrubbing on dispatched + logged payloads, and dispatch that never throws (graceful DB degradation, per-write guards).
 - New lib/webhooks/webhookEvents.ts: single-source event catalog (test.ping, evidence.expired, control.autotest.failed, risk.created, policy.ack.overdue, "*") + safeDispatchWebhookEvent fire-and-forget dispatcher (setImmediate, never blocks callers).
