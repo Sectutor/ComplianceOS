@@ -15,6 +15,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
+  // safeDispatchWebhookEvent is fired fire-and-forget on expired evidence;
+  // mocked so the real dispatch (extra getDb calls + console noise) never
+  // runs inside this suite.
+  safeDispatchWebhookEvent: vi.fn(),
   listCollectorConnections: vi.fn(),
   runCollectorConnection: vi.fn(),
   evidence: {
@@ -33,6 +37,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../db', () => ({ getDb: mocks.getDb }));
+vi.mock('../webhooks/webhookEvents', () => ({
+  safeDispatchWebhookEvent: mocks.safeDispatchWebhookEvent,
+}));
 vi.mock('../../schema', () => ({ evidence: mocks.evidence }));
 vi.mock('../evidenceCollectorConnections', () => ({
   listCollectorConnections: mocks.listCollectorConnections,

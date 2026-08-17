@@ -17,6 +17,7 @@ import { logActivity } from "../../lib/audit";
 import { llmService } from "../../lib/llm/service";
 import { generateRiskReportDocx } from "../../riskExportProfessional";
 import { recalculateRiskScore } from "../services/riskService";
+import { safeDispatchWebhookEvent } from "../../lib/webhooks/webhookEvents";
 
 
 export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
@@ -769,6 +770,10 @@ ${reportData.conclusion}
 
                         await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: data } }, tx);
 
+                        if (String(inherentRisk || '').toLowerCase() === 'high' || String(inherentRisk || '').toLowerCase() === 'critical') {
+                            void safeDispatchWebhookEvent(input.clientId, 'risk.created', { riskId: updated.id, clientId: input.clientId, severity: inherentRisk }); // webhook event
+                        }
+
                         // Index updated risk (Outside TX if needed? Indexing service usually handles its own or is silent fail. Keeping inside for simplicity as it was)
                         // Indexing removed for Core split
                         // try {
@@ -784,6 +789,10 @@ ${reportData.conclusion}
                             .returning();
 
                         await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: created.id, details: { title: created.title } }, tx);
+
+                        if (String(inherentRisk || '').toLowerCase() === 'high' || String(inherentRisk || '').toLowerCase() === 'critical') {
+                            void safeDispatchWebhookEvent(input.clientId, 'risk.created', { riskId: created.id, clientId: input.clientId, severity: inherentRisk }); // webhook event
+                        }
 
                         // Indexing removed for Core split
                         // try {

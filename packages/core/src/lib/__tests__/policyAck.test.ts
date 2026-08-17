@@ -10,6 +10,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
+  // The engine fires safeDispatchWebhookEvent fire-and-forget on overdue
+  // reminders; mocked so the real dispatch (extra getDb calls + console
+  // noise) never runs inside this suite.
+  safeDispatchWebhookEvent: vi.fn(),
   policyAcknowledgements: {
     id: "pa.id",
     policyId: "pa.policyId",
@@ -25,6 +29,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../db", () => ({ getDb: mocks.getDb }));
+vi.mock("../webhooks/webhookEvents", () => ({
+  safeDispatchWebhookEvent: mocks.safeDispatchWebhookEvent,
+}));
 vi.mock("../../schema", () => ({
   policyAcknowledgements: mocks.policyAcknowledgements,
   clientPolicies: mocks.clientPolicies,

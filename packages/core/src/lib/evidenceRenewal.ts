@@ -31,6 +31,7 @@ import {
   runCollectorConnection,
 } from './evidenceCollectorConnections';
 import type { CollectorConnection } from './evidenceCollectorConnections';
+import { safeDispatchWebhookEvent } from './webhooks/webhookEvents';
 
 /** Default horizon: rows expiring within N days are renewed proactively. */
 export const DEFAULT_RENEWAL_HORIZON_DAYS = 7;
@@ -285,6 +286,7 @@ export async function runEvidenceRenewal(options: {
         );
         await updateEvidenceRow(db, row.id, { status: 'expired', updatedAt: now });
         summary.expiredRows += 1;
+        void safeDispatchWebhookEvent(row.clientId, 'evidence.expired', { evidenceId: row.id, clientId: row.clientId }); // webhook event
         continue;
       }
 
@@ -309,6 +311,7 @@ export async function runEvidenceRenewal(options: {
         );
         await updateEvidenceRow(db, row.id, { status: 'expired', updatedAt: now });
         summary.expiredRows += 1;
+        void safeDispatchWebhookEvent(row.clientId, 'evidence.expired', { evidenceId: row.id, clientId: row.clientId }); // webhook event
       }
       continue;
     }
@@ -317,6 +320,7 @@ export async function runEvidenceRenewal(options: {
     summary.expiredRows += 1;
     if (decision.remediationNote) summary.remediationNotes.push(decision.remediationNote);
     await updateEvidenceRow(db, row.id, { status: 'expired', updatedAt: now });
+    void safeDispatchWebhookEvent(row.clientId, 'evidence.expired', { evidenceId: row.id, clientId: row.clientId }); // webhook event
   }
 
   return summary;

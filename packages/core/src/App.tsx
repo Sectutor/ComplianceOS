@@ -44,6 +44,7 @@ const Mappings = lazyLoad(() => import("./pages/Mappings"));
 const Evidence = lazyLoad(() => import("./pages/Evidence"));
 const EvidenceIntakeBox = lazyLoad(() => import("@/pages/EvidenceIntakeBox"));
 const AccessReviews = lazyLoad(() => import("./pages/AccessReviews"));
+const Webhooks = lazyLoad(() => import("./pages/Webhooks"));
 const AdvisorWorkbench = lazyLoad(() => import("@/pages/AdvisorWorkbench"));
 const ClientWorkspace = lazyLoad(() => import("@/pages/ClientWorkspace"));
 const Reports = lazyLoad(() => import("./pages/Reports"));
@@ -592,6 +593,12 @@ function AccessReviewsAlias() {
   return <Redirect to="/clients" />;
 }
 
+function WebhooksAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/webhooks`} />;
+  return <Redirect to="/clients" />;
+}
+
 function EvidenceAlias() {
   const { selectedClientId } = useClientContext();
   const search = window.location.search;
@@ -884,6 +891,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/access-reviews">
           {(params) => <ProtectedRoute component={AccessReviews} {...params} />}
+        </Route>
+        <Route path="/clients/:id/webhooks">
+          {(params) => <ProtectedRoute component={Webhooks} {...params} />}
         </Route>
         <Route path="/clients/:id/metrics">
           {(_params) => <ProtectedRoute component={MetricsPage} />}
@@ -1178,6 +1188,9 @@ function Router() {
         </Route>
         <Route path="/access-reviews">
           <AccessReviewsAlias />
+        </Route>
+        <Route path="/webhooks">
+          <WebhooksAlias />
         </Route>
         <Route path="/clients/:id/risks/critical">
           {(params) => <ProtectedRoute component={CriticalRisksPage} {...params} />}

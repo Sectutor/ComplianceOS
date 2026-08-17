@@ -13,6 +13,7 @@
 import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { clientPolicies, policyAcknowledgements, userClients, users } from "../schema";
+import { safeDispatchWebhookEvent } from "./webhooks/webhookEvents";
 
 export type AckStatus = "pending" | "acknowledged" | "declined";
 
@@ -578,6 +579,10 @@ export async function runPolicyAckReminders(options: {
 
   for (const ack of flagged) {
     if (options.onFlag) await options.onFlag(ack);
+    void safeDispatchWebhookEvent(ack.clientId, "policy.ack.overdue", {
+      acknowledgmentId: ack.id,
+      clientId: ack.clientId,
+    }); // webhook event
   }
 
   return {

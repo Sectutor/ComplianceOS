@@ -22,6 +22,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
  * `vi.resetModules()` + dynamic import in beforeEach gives every test a fresh
  * engine module, so the module-level `tableEnsured` flag is reset and the 7
  * DDL `execute` calls it triggers can be asserted in every test.
+ *
+ * `safeDispatchWebhookEvent` (from ./webhooks/webhookEvents) is mocked as a
+ * no-op spy: the engine fires it fire-and-forget on failed runs, and the real
+ * dispatcher would trigger extra async getDb() calls + console noise that are
+ * irrelevant to this engine's contract.
  */
 
 const engineMocks = vi.hoisted(() => ({
@@ -69,6 +74,10 @@ const engineMocks = vi.hoisted(() => ({
     severity: "cme.severity",
     details: "cme.details",
   },
+  // Fire-and-forget webhook dispatcher (the engine fires it on failed runs).
+  // Mocked as a no-op spy so this suite stays decoupled from webhook internals
+  // and the getDb call count remains exactly deterministic.
+  safeDispatchWebhookEvent: vi.fn(),
 }));
 
 vi.mock("../../db", () => ({ getDb: engineMocks.getDb }));
@@ -80,6 +89,13 @@ vi.mock("../../schema", () => ({
 vi.mock("../../schema_monitor", () => ({
   controlTestRuns: engineMocks.controlTestRuns,
   complianceMonitorEvents: engineMocks.complianceMonitorEvents,
+}));
+// The engine imports safeDispatchWebhookEvent from ./webhooks/webhookEvents
+// (resolves to ../webhooks/webhookEvents from this dir). Mocking it here keeps
+// the engine test from invoking the real webhook dispatch path (which would
+// call getDb() again asynchronously and destabilize the call-count assertions).
+vi.mock("../webhooks/webhookEvents", () => ({
+  safeDispatchWebhookEvent: engineMocks.safeDispatchWebhookEvent,
 }));
 
 type Engine = typeof import("../controlAutoTestEngine");
@@ -205,6 +221,7 @@ beforeEach(async () => {
   vi.resetModules();
   engine = await import("../controlAutoTestEngine");
   engineMocks.getDb.mockReset();
+  engineMocks.safeDispatchWebhookEvent.mockReset();
   consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -322,6 +339,12 @@ describe("runControlAutoTest", () => {
       severity: "critical",
     });
     expect(monitor.details).toMatchObject({ controlCode: "CC-1", score: 0 });
+    // Failures also fire the fire-and-forget webhook event (mocked dispatcher)
+    expect(engineMocks.safeDispatchWebhookEvent).toHaveBeenCalledWith(
+      CLIENT_ID,
+      "control.autotest.failed",
+      expect.objectContaining({ controlId: CC_ID })
+    );
   });
 
   it("fails when all evidence is expired", async () => {
@@ -562,7 +585,17 @@ describe("runAllControlAutoTestsForClient", () => {
     const { summary, results } =
       await engine.runAllControlAutoTestsForClient(CLIENT_ID);
 
+    // Baseline: 1 (list client controls) + 1 per control tested. The webhook
+    // dispatcher is mocked, so the failed control cannot leak extra getDb()
+    // calls (or async console noise) into this test — the count is exact.
     expect(engineMocks.getDb).toHaveBeenCalledTimes(4); // 1 + one per control
+    // The failed control fires exactly one fire-and-forget webhook event.
+    expect(engineMocks.safeDispatchWebhookEvent).toHaveBeenCalledTimes(1);
+    expect(engineMocks.safeDispatchWebhookEvent).toHaveBeenCalledWith(
+      CLIENT_ID,
+      "control.autotest.failed",
+      expect.objectContaining({ controlId: 3, clientId: CLIENT_ID })
+    );
     expect(results).toHaveLength(3);
     expect(results.map((r) => r.status)).toEqual(["pass", "warning", "fail"]);
     expect(summary).toMatchObject({

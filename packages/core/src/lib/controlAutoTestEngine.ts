@@ -2,6 +2,7 @@ import { getDb } from "../db";
 import * as schema from "../schema";
 import { controlTestRuns, complianceMonitorEvents, clientAutoTestSchedules } from "../schema_monitor";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { safeDispatchWebhookEvent } from "./webhooks/webhookEvents";
 
 export interface ControlTestResult {
   clientControlId: number;
@@ -444,6 +445,11 @@ export async function runControlAutoTest(
           findings,
         },
       });
+      void safeDispatchWebhookEvent(clientId, 'control.autotest.failed', {
+        controlId: clientControlId,
+        clientId,
+        reason: summaryMessage,
+      }); // webhook event
     }
 
     return {
