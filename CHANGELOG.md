@@ -50,6 +50,7 @@ All notable changes to this project are documented in this file.
 - Tests: 482 â†’ 524 (33 files), all green; typecheck clean.
 - Access review automation (scorecard P2 #7): access_review_cycles/tasks schema + migration 0022, `accessReviews` lib (idempotent per-user Ã— role provisioning, certify/revoke with notes + reviewer, overdue sweep with injected clock, summary/history; DB fallback), 9-procedure tRPC router, 12h overdue scheduler, and a token-only AccessReviews page (stat cards, expandable cycles, certify/revoke workflow, history feed, contract layer with graceful EmptyState degradation).
 - Verified final: tests 524 â†’ 565 (37 files) all green, coverage 100% on the 5 configured targets, tsc 2045 â†’ 2041 (0 new errors; 7 new errors the feature batch introduced were fixed â€” vendorAssessments duplicate import, msspGovernanceService clientSummaries typing); MsspPartnerPortal token-only pass; internal-links gate green.
+- Follow-up (same cycle): global search extended to risk / vendor / task / audit_finding (new db.globalSearch sections + routers type enum + GlobalSearch icons/labels, duplicate switch cases deduped); tsc fixes â€” mui-theme Shadows tuple completed (25th entry), App.tsx unused Theme import removed, tRPC transformer log message stringified. tsc unique signatures 1619 -> 1612 (0 new vs HEAD).
 
 ### Cycle 6 - Evidence renewal + policy ack assignment/reminders + framework library (2026-08-14)
 - Scorecard #14 (evidence expiration & renewal) completed: renewal loop with auto-remediation.

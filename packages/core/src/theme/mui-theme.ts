@@ -52,6 +52,7 @@ const baseShadows: Shadows = [
   '0 42px 84px rgba(0, 0, 0, 0.52)',
   '0 44px 88px rgba(0, 0, 0, 0.54)',
   '0 46px 92px rgba(0, 0, 0, 0.56)',
+  '0 48px 96px rgba(0, 0, 0, 0.58)',
 ];
 
 const baseComponents = {
