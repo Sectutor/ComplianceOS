@@ -1,4 +1,4 @@
-
+﻿
 // Remove the incorrect import
 import { z } from "zod";
 // import { router, clientProcedure, publicProcedure } from "../trpc"; // Deleted
@@ -15,14 +15,14 @@ import {
     vendorContacts,
     vendorContracts,
     vendorDpas,
-    dpaTemplates
+    dpaTemplates,
+    riskAssessments
 } from "../../schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import * as dbHelpers from "../../db";
 import * as threatIntel from "../../lib/threatIntelligence";
 import { EmailService } from "../../lib/email/service";
-import { riskAssessments } from "../../schema";
 
 export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any) => {
     return t.router({
@@ -518,6 +518,58 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                     ...data,
                     completedDate: completedDate ? new Date(completedDate) : undefined
                 }).where(eq(vendorAssessments.id, id)).returning();
+
+                // Cross-module propagation when an assessment is completed:
+                // the vendor's criticality reflects the assessed residual risk,
+                // and high/critical vendor risk becomes a register entry so
+                // supply-chain risk is managed alongside operational risk.
+                if (assessment && (assessment.status === 'completed' || assessment.completedDate)) {
+                    try {
+                        const residual = (assessment.residualRiskLevel || '').toLowerCase();
+                        if (['low', 'medium', 'high', 'critical'].includes(residual)) {
+                            // Capture business criticality before the update â€”
+                            // it feeds the register entry's impact score.
+                            const [vendorBefore] = await db.select().from(vendors).where(eq(vendors.id, assessment.vendorId));
+                            await db.update(vendors)
+                                .set({ criticality: residual === 'low' ? 'Low' : residual === 'medium' ? 'Medium' : 'High', updatedAt: new Date() })
+                                .where(eq(vendors.id, assessment.vendorId));
+
+                            if (residual === 'high' || residual === 'critical') {
+                                const vendor = vendorBefore;
+                                const likelihood = residual === 'critical' ? 4 : 3;
+                                const impact = vendor?.criticality === 'High' ? 4 : 3;
+                                const riskTitle = `Vendor risk: ${vendor?.name || `Vendor #${assessment.vendorId}`}`;
+                                const existing = await db.select().from(riskAssessments)
+                                    .where(and(eq(riskAssessments.clientId, assessment.clientId), eq(riskAssessments.title, riskTitle)))
+                                    .limit(1);
+
+                                const riskData: any = {
+                                    title: riskTitle,
+                                    threatDescription: `Derived from ${assessment.type || 'vendor'} assessment (residual risk: ${residual}, assessment #${assessment.id}).`,
+                                    likelihood: String(likelihood),
+                                    impact: String(impact),
+                                    inherentScore: likelihood * impact,
+                                    inherentRisk: likelihood * impact >= 15 ? 'critical' : 'high',
+                                    status: 'draft',
+                                    updatedAt: new Date(),
+                                };
+                                if (existing.length > 0) {
+                                    await db.update(riskAssessments).set(riskData).where(eq(riskAssessments.id, existing[0].id));
+                                } else {
+                                    await db.insert(riskAssessments).values({
+                                        ...riskData,
+                                        clientId: assessment.clientId,
+                                        assessmentId: `RA-${new Date().getFullYear()}-VRM-${assessment.vendorId}`,
+                                        createdAt: new Date(),
+                                    });
+                                }
+                            }
+                        }
+                    } catch (propagationError: any) {
+                        console.error('[VendorAssessments] Cross-module propagation failed:', propagationError?.message);
+                    }
+                }
+
                 return assessment;
             }),
 

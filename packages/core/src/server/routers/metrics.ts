@@ -26,10 +26,12 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                     trainingAssignments,
                     incidents,
                     breaches,
+                    privacyBreaches,
                     policies,
                     acknowledgments,
                     bcpProjects,
                     businessProcesses,
+                    bias,
                     audits,
                     evidence
                 ] = await Promise.all([
@@ -59,6 +61,12 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                     
                     db.query.incidents.findMany({ where: eq(schema.incidents.clientId, input.clientId) }),
                     db.query.dataBreaches.findMany({ where: eq(schema.dataBreaches.clientId, input.clientId) }),
+                    db.query.privacyAssessments.findMany({
+                        where: and(
+                            eq(schema.privacyAssessments.clientId, input.clientId),
+                            sql`${schema.privacyAssessments.type} LIKE 'BREACH:%'`
+                        )
+                    }),
                     db.query.clientPolicies.findMany({ where: eq(schema.clientPolicies.clientId, input.clientId) }),
                     db.select().from(schema.employeeAcknowledgments)
                         .leftJoin(schema.employees, eq(schema.employeeAcknowledgments.employeeId, schema.employees.id))
@@ -66,6 +74,7 @@ export const createMetricsRouter = (t: any, procedure: any) => {
 
                     db.query.bcpProjects.findMany({ where: eq(schema.bcpProjects.clientId, input.clientId) }),
                     db.query.businessProcesses.findMany({ where: eq(schema.businessProcesses.clientId, input.clientId) }),
+                    db.query.businessImpactAnalyses.findMany({ where: eq(schema.businessImpactAnalyses.clientId, input.clientId) }),
                     db.query.certificationAudits.findMany({ where: eq(schema.certificationAudits.clientId, input.clientId) }),
                     db.query.evidence.findMany({ where: eq(schema.evidence.clientId, input.clientId) })
                 ]);
@@ -135,14 +144,26 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                     : 100;
 
                 // Data Breach Velocity (Detection Delta)
-                const totalBreachDelta = breaches.reduce((acc: number, b: any) => {
+                // The breach register UI stores breaches as privacy assessments
+                // with a "BREACH:" type prefix; merge them with the canonical
+                // dataBreaches table so metrics reflect both entry paths.
+                const allBreaches: any[] = [
+                    ...breaches,
+                    ...(privacyBreaches || []).map((pb: any) => ({
+                        dateOccurred: pb.responses?.occurredAt ?? pb.createdAt ?? null,
+                        dateDetected: pb.responses?.loggedAt ?? pb.createdAt ?? null,
+                        isNotifiableToDpa: false,
+                        isNotifiableToSubjects: false,
+                    })),
+                ];
+                const totalBreachDelta = allBreaches.reduce((acc: number, b: any) => {
                     if (!b.dateOccurred || !b.dateDetected) return acc;
                     return acc + (new Date(b.dateDetected).getTime() - new Date(b.dateOccurred).getTime());
                 }, 0);
-                const avgBreachDetectionDays = breaches.length > 0 
-                    ? Math.round((totalBreachDelta / breaches.length) / (1000 * 60 * 60 * 24))
+                const avgBreachDetectionDays = allBreaches.length > 0
+                    ? Math.round((totalBreachDelta / allBreaches.length) / (1000 * 60 * 60 * 24))
                     : 0;
-                
+
                 const notifiableBreaches = breaches.filter((b: any) => b.isNotifiableToDpa || b.isNotifiableToSubjects).length;
 
                 // --- DOMAIN 3: Governance & Culture ---
@@ -163,11 +184,13 @@ export const createMetricsRouter = (t: any, procedure: any) => {
 
                 // --- DOMAIN 4: Third-Party Risk ---
                 const criticalVendors = vendors.filter((v: any) => v.criticality === 'high' || v.criticality === 'critical');
-                const criticalVendorHealth = criticalVendors.length > 0 
-                    ? Math.round(criticalVendors.reduce((acc: number, v: any) => acc + (v.riskScore || 0), 0) / criticalVendors.length)
-                    : 100; // 100 = Perfect health (inverted risk score usually? Assuming 0-100 risk score where 100 is safe? Or 0 safe? Let's assume 0 is safe, 100 is high risk).
-                    // Correction: Usually Risk Score is High = Bad. Let's assume High Risk Score = Bad Health.
-                    // Metric: "Average Risk Score"
+                // vendors has no riskScore column; trustScore (0-100, higher = better)
+                // is the only vendor-level health signal. Invert to a risk figure and
+                // average only over vendors that actually have a score.
+                const scoredCriticalVendors = criticalVendors.filter((v: any) => typeof v.trustScore === 'number');
+                const criticalVendorHealth = scoredCriticalVendors.length > 0
+                    ? Math.round(scoredCriticalVendors.reduce((acc: number, v: any) => acc + (100 - v.trustScore), 0) / scoredCriticalVendors.length)
+                    : 0;
 
                 const assessedVendors = new Set(vendorAssessments.map((va: any) => va.vendor_assessments.vendorId));
                 const vendorAssessmentCoverage = vendors.length > 0 ? Math.round((assessedVendors.size / vendors.length) * 100) : 0;
@@ -181,8 +204,15 @@ export const createMetricsRouter = (t: any, procedure: any) => {
                 const evidenceVerificationRate = evidence.length > 0 ? Math.round((verifiedEvidence / evidence.length) * 100) : 0;
 
                 // --- DOMAIN 6: Business Continuity ---
-                const criticalProcesses = businessProcesses.filter((bp: any) => bp.criticality === 'high'); // Assuming field exists or using proxy
-                const biaComplete = criticalProcesses.filter((bp: any) => bp.biaStatus === 'completed'); // Proxy
+                // criticalityTier holds values like "Tier 1 (Critical)".
+                const criticalProcesses = businessProcesses.filter((bp: any) =>
+                    /tier\s*1|critical/i.test(bp.criticalityTier || ''));
+                // A critical process counts as BIA-complete when a completed BIA
+                // references it (businessImpactAnalyses.processId).
+                const completedBiaProcessIds = new Set(
+                    (bias || []).filter((b: any) => b.status === 'completed' && b.processId != null).map((b: any) => b.processId)
+                );
+                const biaComplete = criticalProcesses.filter((bp: any) => completedBiaProcessIds.has(bp.id));
                 const biaCompletionRate = criticalProcesses.length > 0 ? Math.round((biaComplete.length / criticalProcesses.length) * 100) : 0;
 
 

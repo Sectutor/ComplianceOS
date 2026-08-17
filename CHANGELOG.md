@@ -4,6 +4,53 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 7 — GRC cross-module integration, market-readiness hardening, CI (2026-08-17)
+
+**GRC cross-module integration (information now flows between modules):**
+- New `lib/grc-integration.ts`: idempotent `findOrCreateTask` (dedupes on related entity + open status) and `notifyClientOnce` (≈daily notification dedupe) shared by all propagation flows.
+- Audit findings: high/critical findings auto-create a remediation task on the client task board and notify client users (`findings.create`).
+- Control auto-tests: failing scheduled runs emit one deduped summary notification per client per day (scheduler layer; engine stays pure).
+- Evidence expiration: each item flipped to `expired` creates a renewal task (deduped) in addition to existing warnings.
+- Incidents: high/critical incidents auto-create a draft risk-register entry; continuity-triggered incidents prompt a BC activation assessment; all incidents notify.
+- Vendors: completing an assessment with high/critical residual risk updates vendor criticality and upserts a "Vendor risk: <name>" register entry.
+- DSAR: new `dsarDeadlineScheduler` (daily) — 7-day warnings + overdue alerts as notifications, overdue DSARs as critical tasks; wired in `server_entry.ts`.
+- Unified action center: `actions.listAll` now aggregates risk treatments, open audit findings, and ≤7-day/overdue DSARs alongside POA&Ms/roadmap/project/generic tasks; `updateStatus` supports all types with allowed-value guards; previously-ignored `type`/`assigneeId` filters now applied.
+
+**Fixed broken integrations (schema drift / silent failures):**
+- `treatmentControls.updatedAt` written though the column doesn't exist — aborted the Evidence→Control→Treatment→Risk recalculation chain (`evidence.ts`, `risks.ts`).
+- Gap→risk lineage: `gapResponseId` sent by the gap UI was stripped by zod; now accepted and persisted (`risks.upsert`).
+- `getRiskTreatments` never returned linked controls (write-only linkage); now returns `linkedControls` per treatment.
+- Executive metrics always zero: BIA completion rate (wrong columns `criticality`/`biaStatus` → `criticalityTier` + BIA join) and critical-vendor risk (non-existent `vendors.riskScore` → trust-score based).
+- Breach split-brain: metrics read the unused `dataBreaches` table while the register UI writes `BREACH:` privacy assessments; metrics now merge both stores.
+- Task creation was broken app-wide: `actions.create` inserted non-existent `source_type` column; removed, and `relatedEntityType`/`relatedEntityId` inputs added for entity linking.
+- Dead `kris` router mount removed (inline router was the live one; duplicate key shadowed the module).
+- Deleted dead-and-broken `scalable-dashboard.ts` (unmounted, referenced non-existent columns).
+
+**Fabricated data eliminated (trust):**
+- `dashboard.complianceScores` returned a hardcoded fake improving trend (`20 + i*12 + random`); now real monthly averages from compliance snapshots with live-score fallback. Verified deterministic via API.
+- `complianceMonitor.getComplianceScore` layered `Math.random()` onto the score; now deterministic healthy/total ratio.
+- Autopilot `trigger` invented per-category stats (×0.3/×0.2/×0.5); now returns real engine outcomes.
+- VRM trust-center analysis (deterministic demo generator) is now explicitly labeled: `simulated: true` flag, prefix in stored risk summary, and a visible UI disclaimer.
+
+**Platform / UX:**
+- New weekly compliance snapshot scheduler so trend charts populate automatically (skips <6-day-old snapshots).
+- Compliance monitor cron (hourly health checks + drift events) — implemented but never scheduled since inception — now wired.
+- `/api/version` endpoint (package version, node, env, build type, uptime); `/api/health` reports the real package version.
+- AI first-run gating: `llm.status` procedure + `useAiConfigured` hook; Generate-with-AI disabled with a clear hint until a real provider key exists; AI errors surface actionable tRPC messages with an "AI Settings" toast action.
+- LLM service: fast-fails on demo placeholder API keys with an actionable message; Anthropic client gets the same browser-detection cloak as OpenAI.
+- Auto-test history rows are clickable: drill-in dialog shows per-check findings, "View control" opens the details sheet, "Add to task board" creates a linked remediation task.
+- Design tokens: `--color-brand`/`--color-brand-bright` added; 764 hardcoded `#1C4D8D`/`#3ABEF9` arbitrary values swept to tokens across 91 files; shared Tabs restyled to token-based segmented control (theme-aware, dark-mode safe).
+- Cookie consent now shows only on public marketing pages (was greet-blocking the app on unmatched routes).
+- License cache-miss warning logs once per process instead of every request.
+- Hot-path debug logging removed (db.ts, clients/controls routers, report generator, LLM client).
+- Link-integrity vitest gate added: every internal link literal is checked against registered routes (caught-class: governance dashboard → nonexistent `/clients/:id/risk-register` 404, fixed with link corrections + redirect aliases for `/policies`, `/assets`, `/clients/:id/risk-register`).
+- Production build fixed: three components imported non-existent `../utils/trpc` (escaped typecheck, failed vite build); build script now sets `--max-old-space-size=8192` via cross-env (default heap OOMs); `cross-env` installed as a real devDependency.
+- CI pipeline: typecheck + lint (hard gate, 5 `any` warnings fixed) + 524-test suite (env-independent, verified without `.env`) + production build; 30-min timeout, Node 24, npm cache, status badge in README.
+- README: correct first-boot credentials (`admin@complianceos.local` + startup-log password / `COMPLIANCE_ADMIN_PASSWORD`), dev quickstart (ports, no-hot-reload note), canonical Docker deploy path.
+- Tests: 482 â†’ 524 (33 files), all green; typecheck clean.
+- Access review automation (scorecard P2 #7): access_review_cycles/tasks schema + migration 0022, `accessReviews` lib (idempotent per-user Ã— role provisioning, certify/revoke with notes + reviewer, overdue sweep with injected clock, summary/history; DB fallback), 9-procedure tRPC router, 12h overdue scheduler, and a token-only AccessReviews page (stat cards, expandable cycles, certify/revoke workflow, history feed, contract layer with graceful EmptyState degradation).
+- Verified final: tests 524 â†’ 565 (37 files) all green, coverage 100% on the 5 configured targets, tsc 2045 â†’ 2041 (0 new errors; 7 new errors the feature batch introduced were fixed â€” vendorAssessments duplicate import, msspGovernanceService clientSummaries typing); MsspPartnerPortal token-only pass; internal-links gate green.
+
 ### Cycle 6 - Evidence renewal + policy ack assignment/reminders + framework library (2026-08-14)
 - Scorecard #14 (evidence expiration & renewal) completed: renewal loop with auto-remediation.
   - Backend: `evidenceRenewal` lib (due-for-renewal horizon via `buildDueForRenewalWhere`, `getRenewalStateSummary`, `runEvidenceRenewal` with renewed/expired/skipped/failed counts + remediation notes), tRPC router (`evidenceRenewal.getSummary`/`runNow`, zod-validated) wired into `routers.ts`, scheduler wired in `server_entry.ts` (guarded by `ENABLE_EVIDENCE_RENEWAL_SCHEDULER`).

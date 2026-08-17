@@ -1,8 +1,19 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
+import {
+  createCycle,
+  provisionCycle,
+  listCycles,
+  listTasks,
+  certifyTask,
+  revokeTask,
+  runOverdueCheck,
+  getSummary,
+  listHistory,
+} from "../../lib/accessReviews";
 import {
   createCampaign as createCampaignFn,
   getPendingReviews as getPendingReviewsFn,
@@ -22,7 +33,68 @@ export const createAccessReviewsRouter = (
   adminProcedure: any
 ) =>
   t.router({
-    // ── Campaign CRUD ──────────────────────────
+    // ── Cycles & certification (P2 #7) ──────────────
+
+    /** List review cycles for a client. */
+    list: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }: any) => listCycles(input.clientId)),
+
+    /** Roll up pending/overdue/certified/revoked task counts for a client. */
+    getSummary: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }: any) => getSummary(input.clientId)),
+
+    /** Create a new review cycle (draft). */
+    createCycle: clientProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          name: z.string().min(1, "Name is required"),
+          dueDate: z.date().optional(),
+          description: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }: any) =>
+        createCycle({
+          clientId: input.clientId,
+          name: input.name,
+          dueDate: input.dueDate ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          description: input.description,
+        })
+      ),
+
+    /** Auto-provision certification tasks for every client user x role (idempotent). */
+    provision: clientProcedure
+      .input(z.object({ clientId: z.number(), cycleId: z.number() }))
+      .mutation(async ({ input }: any) => provisionCycle(input.clientId, input.cycleId)),
+
+    /** List tasks of a cycle, optionally filtered by status. */
+    listTasks: clientProcedure
+      .input(z.object({ cycleId: z.number(), status: z.string().optional() }))
+      .query(async ({ input }: any) => listTasks(input.cycleId, input.status as any)),
+
+    /** Certify a review task (access verified). */
+    certify: clientProcedure
+      .input(z.object({ taskId: z.number(), note: z.string().optional() }))
+      .mutation(async ({ input }: any) => certifyTask(input.taskId, input.note)),
+
+    /** Revoke a review task (access removed). */
+    revoke: clientProcedure
+      .input(z.object({ taskId: z.number(), note: z.string().optional() }))
+      .mutation(async ({ input }: any) => revokeTask(input.taskId, input.note)),
+
+    /** Flag pending tasks past their (inherited) cycle due date as overdue. */
+    runOverdueCheck: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ input }: any) => runOverdueCheck(input.clientId)),
+
+    /** Certified/revoked decisions for a client (audit trail). */
+    listHistory: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }: any) => listHistory(input.clientId)),
+
+    // ── Legacy campaigns (W4) ─────────────────────
 
     /** List all campaigns for a client */
     listCampaigns: clientProcedure
@@ -65,7 +137,7 @@ export const createAccessReviewsRouter = (
         });
       }),
 
-    // ── Review Workflow ────────────────────────
+    // ── Review Workflow ────────────────────────────
 
     /** Get current user's pending reviews */
     getPendingReviews: clientProcedure
@@ -88,7 +160,7 @@ export const createAccessReviewsRouter = (
         return { success: true };
       }),
 
-    // ── Overdue & Reminders ────────────────────
+    // ── Overdue & Reminders ────────────────────────
 
     /** Get overdue campaigns */
     getOverdueCampaigns: adminProcedure
@@ -105,7 +177,7 @@ export const createAccessReviewsRouter = (
         return { sent: count };
       }),
 
-    // ── History ────────────────────────────────
+    // ── History ────────────────────────────────────
 
     /** Get review history */
     getHistory: clientProcedure
@@ -114,12 +186,12 @@ export const createAccessReviewsRouter = (
         return getHistoryFn(input.clientId, input.limit);
       }),
 
-    // ── Recurrence ─────────────────────────────
+    // ── Recurrence ─────────────────────────────────
 
     /** Schedule quarterly recurrences */
     scheduleRecurring: clientProcedure
       .input(z.object({ campaignId: z.number() }))
-      .mutation(async ({ input, ctx }: any) => {
+      .mutation(async ({ input }: any) => {
         // Need clientId from the campaign
         const db = await getDb();
         const [campaign] = await db

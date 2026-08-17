@@ -7,7 +7,8 @@ import {
     clientControls,
     controls,
     clients,
-    evidence
+    evidence,
+    riskAssessments
 } from "../../schema";
 import { getDb } from "../../db";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
@@ -488,6 +489,56 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
 
                     // In a real scenario, this might trigger emails to CSIRT
                     console.log(`[INCIDENT] New incident reported: ID ${incident.id} for Client ${input.clientId}`);
+
+                    // Cross-module propagation (best-effort, never blocks the report):
+                    // 1. High/critical incidents become draft risks in the register.
+                    // 2. Continuity-triggered incidents prompt a BC activation assessment.
+                    // 3. All incidents notify the client's users.
+                    try {
+                        const { notifyClientOnce } = await import("../../lib/grc-integration");
+
+                        if (input.severity === "high" || input.severity === "critical") {
+                            const likelihood = input.severity === "critical" ? 4 : 3;
+                            const impact = input.isSignificant ? 4 : 3;
+                            await db.insert(riskAssessments).values({
+                                clientId: input.clientId,
+                                assessmentId: `RA-${new Date().getFullYear()}-INC-${incident.id}`,
+                                title: `Incident-derived risk: ${input.title || incident.title}`,
+                                description: input.description,
+                                threatDescription: `Derived from incident #${incident.id} (severity ${input.severity}, cause: ${input.cause}).`,
+                                likelihood: String(likelihood),
+                                impact: String(impact),
+                                inherentScore: likelihood * impact,
+                                inherentRisk: likelihood * impact >= 15 ? 'critical' : likelihood * impact >= 10 ? 'high' : 'medium',
+                                status: 'draft',
+                                riskOwner: input.reporterName || 'Unassigned',
+                                createdAt: new Date(),
+                                updatedAt: new Date(),
+                            } as any);
+                        }
+
+                        if (input.isContinuityTriggered) {
+                            await notifyClientOnce(input.clientId, {
+                                type: 'incident_bc_trigger',
+                                title: 'Business continuity assessment required',
+                                message: `Incident #${incident.id} flagged continuity impact (${input.severity}). Assess whether a Business Continuity plan should be activated and document the decision.`,
+                                link: `/clients/${input.clientId}/business-continuity`,
+                                relatedEntityType: 'incident_bc_trigger',
+                                relatedEntityId: incident.id,
+                            });
+                        }
+
+                        await notifyClientOnce(input.clientId, {
+                            type: 'incident_reported',
+                            title: `New ${input.severity} incident reported`,
+                            message: `${input.title || incident.title} — reported by ${input.reporterName || ctx.user?.name || 'System'}.${input.severity === 'high' || input.severity === 'critical' ? ' A draft risk was added to the risk register.' : ''}`,
+                            link: `/clients/${input.clientId}/cyber/incidents`,
+                            relatedEntityType: 'incident',
+                            relatedEntityId: incident.id,
+                        });
+                    } catch (propagationError: any) {
+                        console.error("[INCIDENT] Cross-module propagation failed:", propagationError?.message);
+                    }
 
                     return { success: true, incidentId: incident.id };
                 } catch (e: any) {

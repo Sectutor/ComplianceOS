@@ -1,6 +1,15 @@
-import { getDb } from "../../db";
+﻿import { getDb } from "../../db";
 import { clients, clientControls, controls, riskAssessments } from "../../schema";
 import { eq, inArray, sql, and } from "drizzle-orm";
+
+export interface ClientSummary {
+  clientId: number;
+  clientName: string;
+  passRate: number;
+  totalControls: number;
+  implementedControls: number;
+  openRisksCount: number;
+}
 
 export interface MsspPartner {
   id: number;
@@ -85,6 +94,8 @@ export async function assignClientToPartner(partnerId: number, clientId: number)
  * Compute multi-tenant portfolio risk & compliance rollup across all partner clients
  */
 export async function getMsspPortfolioRollup(partnerId: number) {
+  const clientSummaries: ClientSummary[] = [];
+  
   await ensureMsspTablesExist();
   const db = await getDb();
 
@@ -108,12 +119,11 @@ export async function getMsspPortfolioRollup(partnerId: number) {
       averagePassRate: 100,
       totalControlsAssessed: 0,
       totalOpenRisks: 0,
-      clientSummaries: [],
+      clientSummaries,
     };
   }
 
   // 2. Fetch client details & controls stats per client
-  const clientSummaries = [];
   let aggregatePassRateSum = 0;
   let totalControlsAssessed = 0;
 

@@ -53,6 +53,7 @@ import * as evidenceRenewalScheduler from './packages/core/src/server/services/e
 import * as policyAckReminderScheduler from './packages/core/src/server/services/policyAckReminderScheduler';
 import * as evidenceExpirationScheduler from './packages/core/src/server/services/evidenceExpirationScheduler';
 import * as controlAutoTestScheduler from './packages/core/src/server/services/controlAutoTestScheduler';
+import * as accessReviewScheduler from './packages/core/src/server/services/accessReviewScheduler';
 import { startEvidenceScheduler } from './packages/core/src/lib/evidenceScheduler';
 
 import redis from './packages/core/src/lib/redis';
@@ -70,6 +71,16 @@ import { clients, riskAssessments, controls, clientControls, evidence, vendors, 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
 import helmet from 'helmet';
+
+// Sourced from package.json so health/version always report the real release.
+const APP_VERSION = (() => {
+    try {
+        const pkg = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'));
+        return pkg.version || '0.0.0';
+    } catch {
+        return '0.0.0';
+    }
+})();
 
 export const app = express();
 
@@ -752,10 +763,43 @@ if (process.env.ENABLE_POLICY_ACK_REMINDERS !== 'false') {
     console.log('[Server] Policy ACK reminder scheduler started');
 }
 
+// Access review overdue sweep scheduler (P2 #7)
+if (process.env.ENABLE_ACCESS_REVIEW_SCHEDULER !== 'false') {
+    accessReviewScheduler.start();
+    console.log('[Server] Access review scheduler started');
+}
+
 // Control auto-testing scheduler
 if (process.env.ENABLE_CONTROL_AUTO_TESTING_SCHEDULER !== 'false') {
     controlAutoTestScheduler.start();
     console.log('[Server] Control auto-testing scheduler started');
+}
+
+// DSAR statutory deadline scheduler (7-day warnings + overdue tasks)
+if (process.env.ENABLE_DSAR_DEADLINE_SCHEDULER !== 'false') {
+    import('./packages/core/src/server/services/dsarDeadlineScheduler').then((m) => {
+        m.start();
+        console.log('[Server] DSAR deadline scheduler started');
+    }).catch((err) => console.error('[Server] DSAR deadline scheduler failed to start:', err?.message));
+}
+
+// Weekly compliance snapshot capture (populates trend charts automatically)
+if (process.env.ENABLE_COMPLIANCE_SNAPSHOT_SCHEDULER !== 'false') {
+    import('./packages/core/src/server/services/complianceSnapshotScheduler').then((m) => {
+        m.start();
+        console.log('[Server] Compliance snapshot scheduler started');
+    }).catch((err) => console.error('[Server] Compliance snapshot scheduler failed to start:', err?.message));
+}
+
+// Compliance monitor hourly check (health checks + drift events)
+if (process.env.ENABLE_COMPLIANCE_MONITOR_CRON !== 'false') {
+    import('./packages/core/src/server/cron/compliance-monitor-cron').then((m) => {
+        const run = () => m.hourlyComplianceCheck().catch((err: any) =>
+            console.error('[Server] Compliance monitor cron run failed:', err?.message));
+        setTimeout(run, 90_000); // let boot-time work settle first
+        setInterval(run, 60 * 60 * 1000);
+        console.log('[Server] Compliance monitor cron started (hourly)');
+    }).catch((err) => console.error('[Server] Compliance monitor cron failed to start:', err?.message));
 }
 
 // Evidence collection scheduler (automated evidence collection, P0)

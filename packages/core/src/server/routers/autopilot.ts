@@ -107,11 +107,14 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
       .mutation(async ({ input }) => {
         // Run the autopilot orchestrator
         const run = await AutopilotEngine.run(input.clientId);
+        // Real engine outcomes only — the previous response invented
+        // per-category numbers with arbitrary multipliers.
         return {
           totalCreated: run.results?.tasksCreated || 0,
-          policies: Math.round((run.results?.tasksCreated || 0) * 0.3),
-          risks: Math.round((run.results?.tasksCreated || 0) * 0.2),
-          controls: Math.round((run.results?.tasksCreated || 0) * 0.5),
+          evidenceCollected: run.results?.evidenceCollected || 0,
+          healthIssuesFound: run.results?.healthIssuesFound || 0,
+          gapsDetected: run.results?.gapsDetected || 0,
+          notificationsSent: run.results?.notificationsSent || 0,
         };
       }),
   });

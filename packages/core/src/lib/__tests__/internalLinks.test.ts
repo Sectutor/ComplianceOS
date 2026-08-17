@@ -24,13 +24,33 @@ const RUNTIME_RESOLVED = new Set([
   '/governance/workbench', // same, plus WorkflowPlayer prefixes /clients/:id
 ]);
 
+// Directories that can never contain UI routes or UI link literals. Scanning
+// them (tRPC/express routers, DB + migration code, seed/mock/data payloads,
+// build output) is pure budget burn on this OneDrive-synced tree and can push
+// this walk past the 10s default timeout when the full suite runs in parallel.
+// Route definitions live in App.tsx + pages/components, which are never skipped.
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  'server',
+  'migrations',
+  'db',
+  'mocks',
+  'scripts',
+  '_core',
+  'data',
+]);
+
 function walk(dir: string, cb: (path: string, content: string) => void) {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
     try {
       const s = statSync(p);
       if (s.isDirectory()) {
-        if (!p.includes('node_modules')) walk(p, cb);
+        if (!SKIP_DIRS.has(entry) && !p.includes('node_modules')) walk(p, cb);
       } else if (/\.(tsx?|jsx?)$/.test(entry)) {
         cb(p, readFileSync(p, 'utf-8'));
       }
@@ -41,6 +61,9 @@ function walk(dir: string, cb: (path: string, content: string) => void) {
 }
 
 describe('internal link integrity', () => {
+  // 30s budget (vs 10s global): the walk still reads ~900 UI-ish source files
+  // and can stall on OneDrive sync during parallel full-suite runs; the
+  // SKIP_DIRS prune above keeps it well under 30s while scanning all UI code.
   it('every internal UI link targets a registered route', () => {
     const routePaths = new Set<string>();
     const links = new Map<string, string[]>();
@@ -88,5 +111,5 @@ describe('internal link integrity', () => {
         .map(([l, f]) => `  ${l}  <-  ${f.join(', ')}`)
         .join('\n')}`,
     ).toEqual([]);
-  });
+  }, 30_000);
 });

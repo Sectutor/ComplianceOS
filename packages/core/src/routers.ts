@@ -3,6 +3,7 @@ import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
 import { createEvidenceRouter } from "./server/routers/evidence";
+import { createAccessReviewsRouter } from "./server/routers/accessReviews";
 import { createEvidenceExpiryRouter } from "./server/routers/evidenceExpiry";
 import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
 import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
@@ -172,7 +173,6 @@ import { createRiskSettingsRouter } from "./server/routers/riskSettings";
 import { createSettingsRouter } from "./server/routers/settings";
 import { createRiskGameRouter } from "./server/routers/riskGame";
 import { pluginRouter } from "./server/routers/plugins";
-import { createKrisRouter } from "./server/routers/kris";
 import { createLlmRouter } from "./server/routers/llm";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
@@ -231,7 +231,6 @@ import { createRequirementsRouter } from "./server/routers/complianceRequirement
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
 import { createControlMeshRouter } from "./server/routers/controlMesh";
 import { createEvidenceReportRouter } from "./server/routers/evidenceReport";
-import { createAccessReviewsRouter } from "./server/routers/accessReviews";
 import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
 import { createActionCenterRouter } from "./server/routers/actionCenter";
 import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
@@ -295,6 +294,7 @@ export const appRouter = router({
   dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
   compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
   evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  accessReviews: createAccessReviewsRouter(t, clientProcedure, adminProcedure),
   evidenceExpiry: createEvidenceExpiryRouter(t, premiumClientProcedure),
   complianceDebt: createComplianceDebtRouter(t, premiumClientProcedure),
   notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
@@ -305,7 +305,6 @@ export const appRouter = router({
   settings: createSettingsRouter(t, clientProcedure),
   riskGame: createRiskGameRouter(t, clientProcedure),
   plugins: pluginRouter,
-  kris: createKrisRouter(t, premiumClientProcedure),
   metrics: createMetricsRouter(t, premiumClientProcedure),
   devProjects: createDevProjectsRouter(t, premiumClientProcedure),
   projects: createProjectsRouter(t, premiumClientProcedure),
@@ -4470,7 +4469,6 @@ ONLY return the JSON. No Markdown formatting.
   }),
 
   addons: createAddonRouter(t, clientProcedure, adminProcedure, publicProcedure, protectedProcedure),
-  accessReviews: createAccessReviewsRouter(t, premiumClientProcedure, adminProcedure),
   complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure, adminProcedure),
   controlMonitoring: createControlMonitoringRouter(t, protectedProcedure),
   evidenceCollectors: createEvidenceCollectorsRouter(t, protectedProcedure),

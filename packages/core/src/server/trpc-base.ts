@@ -25,9 +25,10 @@ const customTransformer = {
     input: {
         deserialize: (data: unknown): unknown => {
             // Check if data is in superjson format (has `json` property)
-            if (data !== null && typeof data === 'object' && 'json' in data && typeof (data as any).json === 'object') {
+            const maybePayload = data as { json?: unknown };
+            if (data !== null && typeof data === 'object' && 'json' in data && typeof maybePayload.json === 'object') {
                 try {
-                    return superjson.deserialize(data as any);
+                    return superjson.deserialize(data as Parameters<typeof superjson.deserialize>[0]);
                 } catch (e) {
                     // If superjson deserialization fails, fall through to return data as-is
                     logger.warn('[TRPC Transformer] Superjson deserialization failed, treating as plain JSON:', e);
@@ -47,7 +48,7 @@ const customTransformer = {
         deserialize: (data: unknown): unknown => {
             if (data !== null && typeof data === 'object' && 'json' in data) {
                 try {
-                    return superjson.deserialize(data as any);
+                    return superjson.deserialize(data as Parameters<typeof superjson.deserialize>[0]);
                 } catch (e) {
                     return data;
                 }

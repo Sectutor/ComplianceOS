@@ -34,10 +34,14 @@ export const createComplianceMonitorRouter = (t: any, clientProcedure: any, admi
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }) => {
         const result = await runComplianceHealthCheck(input.clientId);
+        // Deterministic score from the health-check counts. The previous
+        // implementation layered Math.random() on top of the band, so the
+        // same posture produced a different score on every refresh.
+        const total = result.totalControls ?? 0;
+        const healthy = result.healthyControls ?? 0;
+        const score = total > 0 ? Math.round((healthy / total) * 100) : 0;
         return {
-          score: result.overallHealth === 'good' ? 85 + Math.floor(Math.random() * 15) : 
-                 result.overallHealth === 'caution' ? 50 + Math.floor(Math.random() * 35) : 
-                 0 + Math.floor(Math.random() * 50),
+          score,
           totalControls: result.totalControls,
           healthyControls: result.healthyControls,
           atRiskControls: result.atRiskControls,

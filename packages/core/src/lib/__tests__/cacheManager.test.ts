@@ -13,7 +13,7 @@ vi.mock("../logger", () => ({
 
 class RedisMock {
   static lastInstance: RedisMock | null = null;
-  static lastOptions: any = null;
+  static lastOptions: Record<string, unknown> | null = null;
   store = new Map<string, string>();
   connected = false;
   shouldPingFail = false;

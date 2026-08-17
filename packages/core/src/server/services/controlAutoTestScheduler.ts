@@ -79,6 +79,24 @@ export async function syncControlAutoTestsForAllClients() {
           `tested=${summary.totalControlsTested}, passRate=${summary.overallPassRate}%, ` +
           `passed=${summary.passedCount}, warning=${summary.warningCount}, failed=${summary.failedCount}`
         );
+
+        // Cross-module: surface failing control health as one deduped (≈daily)
+        // notification per client instead of one per control.
+        if (summary.failedCount > 0) {
+          try {
+            const { notifyClientOnce } = await import("../../lib/grc-integration");
+            await notifyClientOnce(client.id, {
+              type: 'control_auto_test_failures',
+              title: `${summary.failedCount} control${summary.failedCount === 1 ? '' : 's'} failed auto-testing`,
+              message: `Continuous monitoring: ${summary.failedCount} of ${summary.totalControlsTested} controls failed automated verification (pass rate ${summary.overallPassRate}%). Open the Controls page to drill into failures and create remediation tasks.`,
+              link: `/controls`,
+              relatedEntityType: 'client_auto_test',
+              relatedEntityId: client.id,
+            });
+          } catch (notifyErr: any) {
+            console.error(`[ControlAutoTestScheduler] Failure summary notification failed for client #${client.id}:`, notifyErr?.message);
+          }
+        }
       } catch (err: any) {
         console.error(`[ControlAutoTestScheduler] Failed auto-testing for client #${client.id}:`, err);
       }

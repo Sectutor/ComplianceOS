@@ -8,7 +8,8 @@ import {
     riskAssessmentStatusEnum,
     threats, vulnerabilities,
     riskPolicyMappings,
-    riskAppetite
+    riskAppetite,
+    controls
 } from "../../schema";
 import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
 import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
@@ -704,6 +705,7 @@ ${reportData.conclusion}
                 controlIds: z.array(z.number()).optional(),
                 aiRmfCategory: z.string().optional(),
                 fismaSystemId: z.coerce.number().optional(),
+                gapResponseId: z.coerce.number().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 // MICRO-RBAC: Only Owners/Editors can edit
@@ -752,6 +754,7 @@ ${reportData.conclusion}
                         notes: input.notes,
                         controlIds: input.controlIds,
                         aiRmfCategory: input.aiRmfCategory,
+                        gapResponseId: input.gapResponseId,
                         assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : undefined,
                         reviewDueDate: input.reviewDueDate ? new Date(input.reviewDueDate) : undefined,
                         nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : undefined,
@@ -1366,10 +1369,40 @@ ${reportData.conclusion}
             .input(z.object({ riskAssessmentId: z.number() }))
             .query(async ({ input }: any) => {
                 const db = await getDb();
-                return await db.select()
+                const treatments = await db.select()
                     .from(riskTreatments)
                     .where(eq(riskTreatments.riskAssessmentId, input.riskAssessmentId))
                     .orderBy(desc(riskTreatments.createdAt));
+
+                if (treatments.length === 0) return treatments;
+
+                // Attach linked controls so the UI can show what treats the risk
+                // (previously write-only: links were saved but never returned).
+                const treatmentIds = treatments.map((t: any) => t.id);
+                const links = await db.select({
+                    link: treatmentControls,
+                    control: {
+                        id: controls.id,
+                        controlId: controls.controlId,
+                        name: controls.name,
+                        framework: controls.framework,
+                    },
+                })
+                    .from(treatmentControls)
+                    .leftJoin(controls, eq(treatmentControls.controlId, controls.id))
+                    .where(inArray(treatmentControls.treatmentId, treatmentIds));
+
+                const linksByTreatment = new Map<number, any[]>();
+                for (const l of links) {
+                    const arr = linksByTreatment.get(l.link.treatmentId) || [];
+                    arr.push(l.control || { id: l.link.controlId, controlId: `#${l.link.controlId}`, name: 'Control', framework: '' });
+                    linksByTreatment.set(l.link.treatmentId, arr);
+                }
+
+                return treatments.map((t: any) => ({
+                    ...t,
+                    linkedControls: linksByTreatment.get(t.id) || [],
+                }));
             }),
 
 
@@ -1530,11 +1563,12 @@ ${reportData.conclusion}
                     ));
 
                 if (existing.length > 0) {
+                    // treatment_controls has no updated_at column; including it
+                    // aborted the link+recalculate flow at runtime.
                     const [updated] = await db.update(treatmentControls)
                         .set({
                             effectiveness: input.effectiveness,
                             implementationNotes: input.implementationNotes,
-                            updatedAt: new Date()
                         })
                         .where(eq(treatmentControls.id, existing[0].id))
                         .returning();

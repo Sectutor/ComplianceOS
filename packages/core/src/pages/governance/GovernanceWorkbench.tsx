@@ -31,7 +31,7 @@ export default function GovernanceWorkbench() {
     const runAutopilot = trpc.autopilot.trigger.useMutation({
         onSuccess: (data) => {
             toast.success("Autopilot Analysis Complete", {
-                description: `Created ${data.totalCreated} new tasks: ${data.policies} policies, ${data.risks} risks, ${data.controls} controls.`
+                description: `Created ${data.totalCreated} task(s). Collected ${data.evidenceCollected} evidence item(s), found ${data.healthIssuesFound} control health issue(s) and ${data.gapsDetected} gap(s).`
             });
             utils.governance.list.invalidate();
             utils.governance.getStats.invalidate();

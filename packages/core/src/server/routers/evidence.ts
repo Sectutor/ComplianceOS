@@ -308,8 +308,11 @@ export const createEvidenceRouter = (
 
                             // Update them to 'effective'
                             if (linkedTreatments.length > 0) {
+                                // NOTE: treatment_controls has no updated_at column; setting one
+                                // here previously threw at runtime and aborted the
+                                // control→treatment→risk recalculation chain.
                                 await dbConn.update(schema.treatmentControls)
-                                    .set({ effectiveness: 'effective', updatedAt: new Date() })
+                                    .set({ effectiveness: 'effective' })
                                     .where(and(
                                         eq(schema.treatmentControls.controlId, controlId),
                                         eq(schema.treatmentControls.clientId, evidence.clientId)

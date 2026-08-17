@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
-import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
+import { eq, desc, count, and, sql, or, inArray, gte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { loadDashboardStats, toPostureStats } from "../../lib/dashboardStats";
 
@@ -445,15 +445,56 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
       }),
 
     complianceScores: isAuthed.query(async () => {
-      // Mock data for compliance trend over the last 6 months
-      const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-      const currentYear = new Date().getFullYear();
+      // Real trend data from compliance snapshots (written by the posture
+      // snapshot scheduler / postureTrending.createSnapshot). Previously this
+      // returned a fabricated improving trend — unacceptable for a compliance
+      // product. If no history exists we return the live current score as a
+      // single honest data point instead of inventing a trend.
+      const dbConn = await getDb();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      return months.map((month, i) => ({
-        date: month,
-        score: 20 + (i * 12) + Math.round(Math.random() * 5), // Improving trend
-        target: 80
-      }));
+      const snapshots = await dbConn
+        .select({
+          snapshotDate: schema.complianceSnapshots.snapshotDate,
+          complianceScore: schema.complianceSnapshots.complianceScore,
+        })
+        .from(schema.complianceSnapshots)
+        .where(gte(schema.complianceSnapshots.snapshotDate, sixMonthsAgo));
+
+      if (snapshots.length > 0) {
+        const byMonth = new Map<string, { sum: number; n: number }>();
+        for (const s of snapshots) {
+          const d = new Date(s.snapshotDate);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          const agg = byMonth.get(key) || { sum: 0, n: 0 };
+          agg.sum += Number((s.complianceScore as any) ?? 0);
+          agg.n += 1;
+          byMonth.set(key, agg);
+        }
+        return [...byMonth.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([k, v]) => ({
+            date: new Date(`${k}-01T00:00:00`).toLocaleString('en', { month: 'short' }),
+            score: Math.round(v.sum / v.n),
+            target: 80,
+          }));
+      }
+
+      // No snapshot history yet — report today's real cross-client score.
+      const [rows] = await dbConn
+        .select({
+          total: sql<number>`count(*)`,
+          implemented: sql<number>`count(*) filter (where ${schema.clientControls.status} = 'implemented')`,
+        })
+        .from(schema.clientControls);
+      const implemented = Number(rows?.implemented ?? 0);
+      const total = Number(rows?.total ?? 0);
+      return [{
+        date: new Date().toLocaleString('en', { month: 'short' }),
+        score: total > 0 ? Math.round((implemented / total) * 100) : 0,
+        target: 80,
+      }];
     }),
 
     getInsights: isAuthed

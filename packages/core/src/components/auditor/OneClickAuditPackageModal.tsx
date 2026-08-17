@@ -9,7 +9,7 @@ import {
 } from "@complianceos/ui";
 import { Button } from "@complianceos/ui";
 import { FileArchive, FileText, Download, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
-import { trpc } from "../../utils/trpc";
+import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 interface OneClickAuditPackageModalProps {

@@ -7,6 +7,7 @@
 **The Open Source Operating System for Governance, Risk, and Compliance.**
 
 [![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![CI](https://github.com/sectutor/ComplianceOS/actions/workflows/ci.yml/badge.svg)](https://github.com/sectutor/ComplianceOS/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.0-61DAFB.svg)](https://reactjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)

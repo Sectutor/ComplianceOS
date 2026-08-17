@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import * as schema from "../../schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getDb } from "../../db";
+import { findOrCreateTask, notifyClientOnce, severityToTaskPriority } from "../../lib/grc-integration";
 
 export const createFindingsRouter = (
     t: any,
@@ -52,6 +53,38 @@ export const createFindingsRouter = (
                     authorId: ctx.user.id,
                     status: "open"
                 }).returning();
+
+                // Cross-module propagation: high/critical findings become
+                // remediation tasks on the client task board; all findings
+                // notify the client's users.
+                try {
+                    if (input.severity === "high" || input.severity === "critical") {
+                        await findOrCreateTask({
+                            clientId: input.clientId,
+                            title: `Remediate audit finding: ${input.title}`,
+                            description: [
+                                input.description || "",
+                                `Severity: ${input.severity}`,
+                                `Finding #${finding.id} (created ${new Date().toISOString().split("T")[0]})`,
+                            ].filter(Boolean).join("\n"),
+                            priority: severityToTaskPriority(input.severity),
+                            relatedEntityType: "audit_finding",
+                            relatedEntityId: finding.id,
+                            createdBy: ctx.user.id,
+                        });
+                    }
+                    await notifyClientOnce(input.clientId, {
+                        type: "audit_finding_created",
+                        title: `New ${input.severity} audit finding`,
+                        message: `${input.title} — ${input.severity === "critical" || input.severity === "high" ? "a remediation task was created on the task board." : "review it in the Audit Hub."}`,
+                        link: `/clients/${input.clientId}/audit-hub`,
+                        relatedEntityType: "audit_finding",
+                        relatedEntityId: finding.id,
+                    });
+                } catch (propagationError: any) {
+                    // Propagation is best-effort: the finding itself was saved.
+                    console.error("[Findings] Cross-module propagation failed:", propagationError?.message);
+                }
 
                 return finding;
             }),

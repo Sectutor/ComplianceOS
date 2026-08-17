@@ -44,6 +44,7 @@ const PolicyEditor = lazyLoad(() => import("./pages/PolicyEditor"));
 const Mappings = lazyLoad(() => import("./pages/Mappings"));
 const Evidence = lazyLoad(() => import("./pages/Evidence"));
 const EvidenceIntakeBox = lazyLoad(() => import("@/pages/EvidenceIntakeBox"));
+const AccessReviews = lazyLoad(() => import("./pages/AccessReviews"));
 const AdvisorWorkbench = lazyLoad(() => import("@/pages/AdvisorWorkbench"));
 const ClientWorkspace = lazyLoad(() => import("@/pages/ClientWorkspace"));
 const Reports = lazyLoad(() => import("./pages/Reports"));
@@ -586,6 +587,12 @@ function OverdueAssessmentsAlias() {
   return <Redirect to="/clients" />;
 }
 
+function AccessReviewsAlias() {
+  const { selectedClientId } = useClientContext();
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/access-reviews`} />;
+  return <Redirect to="/clients" />;
+}
+
 function EvidenceAlias() {
   const { selectedClientId } = useClientContext();
   const search = window.location.search;
@@ -875,6 +882,9 @@ function Router() {
 
         <Route path="/clients/:id/controls">
           {(params) => <ProtectedRoute component={ClientControlsPage} {...params} />}
+        </Route>
+        <Route path="/clients/:id/access-reviews">
+          {(params) => <ProtectedRoute component={AccessReviews} {...params} />}
         </Route>
         <Route path="/clients/:id/metrics">
           {(_params) => <ProtectedRoute component={MetricsPage} />}
@@ -1166,6 +1176,9 @@ function Router() {
         </Route>
         <Route path="/evidence">
           <EvidenceAlias />
+        </Route>
+        <Route path="/access-reviews">
+          <AccessReviewsAlias />
         </Route>
         <Route path="/clients/:id/risks/critical">
           {(params) => <ProtectedRoute component={CriticalRisksPage} {...params} />}

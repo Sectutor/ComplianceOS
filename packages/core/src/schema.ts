@@ -15186,3 +15186,54 @@ export const policyAcknowledgements = pgTable("policy_acknowledgements", {
 
 export type PolicyAcknowledgement = typeof policyAcknowledgements.$inferSelect;
 export type InsertPolicyAcknowledgement = typeof policyAcknowledgements.$inferInsert;
+
+
+// ==========================================
+// Access Review Automation (scorecard P2 #7) — auto-provisioned reviews + certification.
+// access_review_cycles = review campaigns; access_review_tasks = per user × role
+// certification decisions (pending → certified | revoked | overdue).
+// ==========================================
+export const accessReviewCycleStatusEnum = pgEnum("access_review_cycle_status", ["draft", "active", "completed"]);
+
+export const accessReviewTaskStatusEnum = pgEnum("access_review_task_status", ["pending", "certified", "revoked", "overdue"]);
+
+export const accessReviewCycles = pgTable("access_review_cycles", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date").notNull(),
+  status: accessReviewCycleStatusEnum("status").default("draft"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    clientIdx: index("idx_arc_client").on(table.clientId),
+    dueIdx: index("idx_arc_due").on(table.dueDate),
+  };
+});
+
+export const accessReviewTasks = pgTable("access_review_tasks", {
+  id: serial("id").primaryKey(),
+  cycleId: integer("cycle_id").notNull(),
+  clientId: integer("client_id").notNull(),
+  userId: integer("user_id"),
+  role: varchar("role", { length: 100 }),
+  status: accessReviewTaskStatusEnum("status").default("pending"),
+  dueDate: timestamp("due_date"),
+  note: text("note"),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: integer("reviewed_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    cycleIdx: index("idx_art_cycle").on(table.cycleId),
+    clientIdx: index("idx_art_client").on(table.clientId),
+    statusIdx: index("idx_art_status").on(table.status),
+  };
+});
+
+export type AccessReviewCycle = typeof accessReviewCycles.$inferSelect;
+export type InsertAccessReviewCycle = typeof accessReviewCycles.$inferInsert;
+export type AccessReviewTask = typeof accessReviewTasks.$inferSelect;
+export type InsertAccessReviewTask = typeof accessReviewTasks.$inferInsert;

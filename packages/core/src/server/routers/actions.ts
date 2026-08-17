@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, ne, isNotNull } from "drizzle-orm";
 
 export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
     // Unified List
@@ -29,16 +29,31 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
                 .innerJoin(schema.federalPoams, eq(schema.poamItems.poamId, schema.federalPoams.id))
                 .where(eq(schema.federalPoams.clientId, clientId));
 
-            // 2. Fetch Risk Treatments
-            // Risk Treatments link to Risk Scenarios -> Risk Assessments -> Client
-            // This is a deep join. Let's try a simpler path if possible.
-            // riskTreatments -> riskScenarios -> (clientId is on riskScenarios? No, on Assessment)
-            // schema.riskTreatments has assessmentId? 
-            // Let's check schema.riskTreatments structure quickly or assume standard.
-            // I'll assume they are linked to an assessment for now. If this fails, I'll fix.
-            // Actually, in `risks.ts`, treatments are often fetched by assessmentId. 
-            // Unifying them requires joining up to Client.
-            // Let's defer complexity: generic "Project Tasks" are easier.
+            // 2. Risk Treatments (deferred historically — now included via the
+            // riskAssessments join so risk work appears on the unified board)
+            const riskTreatmentRows = await db.select({
+                item: schema.riskTreatments,
+                riskTitle: schema.riskAssessments.title,
+            })
+                .from(schema.riskTreatments)
+                .innerJoin(schema.riskAssessments, eq(schema.riskTreatments.riskAssessmentId, schema.riskAssessments.id))
+                .where(eq(schema.riskAssessments.clientId, clientId));
+
+            // 2b. Open audit findings (cross-module unification)
+            const openFindings = await db.select().from(schema.auditFindings)
+                .where(and(
+                    eq(schema.auditFindings.clientId, clientId),
+                    eq(schema.auditFindings.status, 'open'),
+                ));
+
+            // 2c. Active DSARs approaching or past their statutory deadline
+            const dsarRows = await db.select().from(schema.dsarRequests)
+                .where(and(
+                    eq(schema.dsarRequests.clientId, clientId),
+                    ne(schema.dsarRequests.status, 'Completed'),
+                    ne(schema.dsarRequests.status, 'Rejected'),
+                    isNotNull(schema.dsarRequests.dueDate),
+                ));
 
             // Let's genericize:
             const tasks = await db.select().from(schema.tasks)
@@ -120,7 +135,65 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
                     priority: task.priority,
                     dueDate: task.dueDate,
                     assigneeId: task.assigneeId,
-                    sourceLabel: 'General Task'
+                    sourceLabel: task.relatedEntityType === 'audit_finding'
+                        ? 'Audit Finding'
+                        : task.relatedEntityType === 'evidence_expired'
+                            ? 'Expired Evidence'
+                            : task.relatedEntityType === 'dsar_overdue'
+                                ? 'Overdue DSAR'
+                                : 'General Task'
+                });
+            });
+
+            // Map Risk Treatments (unified action center now includes risk work)
+            riskTreatmentRows.forEach(({ item, riskTitle }: any) => {
+                allActions.push({
+                    id: `risktreatment-${item.id}`,
+                    originalId: item.id,
+                    type: 'risk_treatment',
+                    title: item.title || item.strategy || `Treatment for ${riskTitle}`,
+                    description: item.description || item.implementationNotes,
+                    status: item.status || 'planned',
+                    priority: item.priority,
+                    dueDate: item.dueDate,
+                    assigneeId: null,
+                    sourceLabel: `Risk: ${riskTitle}`
+                });
+            });
+
+            // Map Open Audit Findings
+            openFindings.forEach((finding: any) => {
+                allActions.push({
+                    id: `finding-${finding.id}`,
+                    originalId: finding.id,
+                    type: 'audit_finding',
+                    title: finding.title,
+                    description: finding.description,
+                    status: finding.status,
+                    priority: finding.severity,
+                    dueDate: null,
+                    assigneeId: null,
+                    sourceLabel: 'Audit Finding'
+                });
+            });
+
+            // Map DSARs that are due within 7 days or overdue
+            const sevenDaysOut = Date.now() + 7 * 24 * 60 * 60 * 1000;
+            dsarRows.forEach((dsar: any) => {
+                const due = dsar.dueDate ? new Date(dsar.dueDate).getTime() : null;
+                if (due == null || due > sevenDaysOut) return;
+                const overdue = due < Date.now();
+                allActions.push({
+                    id: `dsar-${dsar.id}`,
+                    originalId: dsar.id,
+                    type: 'dsar',
+                    title: `DSAR ${dsar.requestId}: ${dsar.requestType}`,
+                    description: `Subject: ${dsar.subjectName || dsar.subjectEmail || 'unknown'} — status ${dsar.status}`,
+                    status: overdue ? 'overdue' : 'pending',
+                    priority: overdue ? 'critical' : dsar.priority || 'high',
+                    dueDate: dsar.dueDate,
+                    assigneeId: null,
+                    sourceLabel: 'Privacy / DSAR'
                 });
             });
 
@@ -135,6 +208,12 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
 
             if (input.filters?.status) {
                 result = result.filter(a => a.status === input.filters.status);
+            }
+            if (input.filters?.type) {
+                result = result.filter(a => a.type === input.filters.type);
+            }
+            if (input.filters?.assigneeId != null) {
+                result = result.filter(a => a.assigneeId === input.filters.assigneeId);
             }
 
             return result;
@@ -200,6 +279,20 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
             } else if (type === 'project') {
                  [item] = await db.select().from(schema.projectTasks).where(eq(schema.projectTasks.id, id));
                  if (!item || item.clientId !== input.clientId) throw new Error("Item not found or access denied");
+            } else if (type === 'risktreatment') {
+                 const [owned] = await db.select({ clientId: schema.riskAssessments.clientId })
+                    .from(schema.riskTreatments)
+                    .innerJoin(schema.riskAssessments, eq(schema.riskTreatments.riskAssessmentId, schema.riskAssessments.id))
+                    .where(eq(schema.riskTreatments.id, id));
+                 if (!owned || owned.clientId !== input.clientId) throw new Error("Item not found or access denied");
+            } else if (type === 'finding') {
+                 [item] = await db.select().from(schema.auditFindings).where(eq(schema.auditFindings.id, id));
+                 if (!item || item.clientId !== input.clientId) throw new Error("Item not found or access denied");
+            } else if (type === 'dsar') {
+                 [item] = await db.select().from(schema.dsarRequests).where(eq(schema.dsarRequests.id, id));
+                 if (!item || item.clientId !== input.clientId) throw new Error("Item not found or access denied");
+            } else {
+                 throw new Error(`Unknown action type: ${type}`);
             }
 
             if (type === 'poam') {
@@ -240,6 +333,29 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
                         updatedAt: new Date()
                     })
                     .where(eq(schema.projectTasks.id, id));
+            } else if (type === 'risktreatment') {
+                const updateData: any = { status: input.status };
+                if (input.priority) updateData.priority = input.priority;
+                if (input.dueDate) updateData.dueDate = new Date(input.dueDate);
+                await db.update(schema.riskTreatments)
+                    .set(updateData)
+                    .where(eq(schema.riskTreatments.id, id));
+            } else if (type === 'finding') {
+                // Map task-board statuses onto finding statuses; unknown statuses are ignored
+                const allowed = ['open', 'remediated', 'accepted', 'closed'];
+                if (allowed.includes(input.status)) {
+                    await db.update(schema.auditFindings)
+                        .set({ status: input.status, updatedAt: new Date() })
+                        .where(eq(schema.auditFindings.id, id));
+                }
+            } else if (type === 'dsar') {
+                // DSAR status is owned by the privacy module; only pass through known statuses
+                const allowed = ['New', 'Verifying Identity', 'In Progress', 'Review', 'Completed', 'Rejected'];
+                if (allowed.includes(input.status)) {
+                    await db.update(schema.dsarRequests)
+                        .set({ status: input.status })
+                        .where(eq(schema.dsarRequests.id, id));
+                }
             }
 
             return { success: true };

@@ -42,7 +42,7 @@ export const isAuthed = middleware(async ({ ctx, next, path }) => {
                 email: 'admin@complianceos.local',
                 name: 'Dev Admin',
                 role: 'owner' as const,
-            } as any;
+            } as unknown as NonNullable<typeof ctx.user>;
             debugLog(`[isAuthed Debug] Local dev auto-auth for path: ${path}`);
             return next({ ctx });
         }

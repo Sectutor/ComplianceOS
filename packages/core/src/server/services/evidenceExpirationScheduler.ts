@@ -38,9 +38,27 @@ export async function syncExpirationsForAllClients() {
                     updatedAt: now
                 } as any)
                 .where(inArray(schema.evidence.id, ids));
-            
+
             totalUpdated += ids.length;
             console.log(`[EvidenceExpirationScheduler] Client ${client.id}: Marked ${ids.length} evidence items as expired.`);
+
+            // Cross-module: an expired evidence item is open work — create a
+            // (deduped) renewal task per item so it lands on the task board.
+            try {
+                const { findOrCreateTask } = await import("../../lib/grc-integration");
+                for (const item of expiredItems) {
+                    await findOrCreateTask({
+                        clientId: client.id,
+                        title: `Renew expired evidence: ${item.description?.slice(0, 80) || `Evidence #${item.id}`}`,
+                        description: `Evidence item #${item.id} expired on ${item.expirationDate ? new Date(item.expirationDate).toISOString().split('T')[0] : 'unknown date'} and its linked control may no longer be compliant. Replace or re-verify the evidence.`,
+                        priority: 'high',
+                        relatedEntityType: 'evidence_expired',
+                        relatedEntityId: item.id,
+                    });
+                }
+            } catch (taskErr: any) {
+                console.error(`[EvidenceExpirationScheduler] Task creation for expired evidence failed: ${taskErr?.message}`);
+            }
         }
     }
 
