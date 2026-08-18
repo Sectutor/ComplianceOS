@@ -95,8 +95,8 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
 
     return (
         <DashboardLayout fullWidth={fullWidth}>
-            <div className="flex flex-col min-h-screen bg-slate-50/50">
-                <div className="bg-white border-b border-slate-200 py-3 sticky top-0 z-30 shadow-sm space-y-3 px-4 md:px-8">
+            <div className="flex flex-col min-h-screen bg-muted/50">
+                <div className="bg-card border-b border-border py-3 sticky top-0 z-30 shadow-sm space-y-3 px-4 md:px-8">
                     <Breadcrumb className="mb-0">
                         <BreadcrumbList>
                             {breadcrumbItems.map((item, idx) => {
@@ -119,7 +119,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                                         </BreadcrumbItem>
                                         {!isLast && (
                                             <BreadcrumbSeparator>
-                                                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                                             </BreadcrumbSeparator>
                                         )}
                                     </React.Fragment>
@@ -148,7 +148,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                                         <span className={cn(
                                             "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md",
                                             active
-                                                ? "bg-white/20 text-white border-white/30"
+                                                ? "bg-blue-500/20 text-white border-blue-500/30"
                                                 : "bg-brand-bright/20 text-white border-brand-bright/30"
                                         )}>
                                             {item.badge}

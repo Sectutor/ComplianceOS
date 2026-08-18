@@ -30,6 +30,36 @@ import { VendorTrustCenter } from "@/components/tprm/VendorTrustCenter";
 import { RequestItemsDialog } from "@/components/tprm/RequestItemsDialog";
 import VendorMitigationPlanViewer from "@complianceos/premium/components/advisor/VendorMitigationPlanViewer";
 import GenericFileUploader from "@/components/GenericFileUploader";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { Skeleton } from "@complianceos/ui/ui/skeleton";
+import { useVendorRiskQuery } from "./vendorRiskApi";
+
+/** Badge variant per TPRM tier (Tier 1 → error, Tier 2 → warning, Tier 3 → success). */
+function tierBadgeVariant(tier: string): "success" | "warning" | "error" | "info" {
+    if (tier === "Tier 1 (Critical)") return "error";
+    if (tier === "Tier 2 (High)") return "warning";
+    if (tier === "Tier 3 (Medium)") return "success";
+    return "info";
+}
+
+/** Data-viz score bar color (0–100 residual score, higher = safer). */
+function scoreBarColor(score: number): string {
+    if (score >= 70) return "bg-emerald-500";
+    if (score >= 40) return "bg-amber-500";
+    return "bg-red-500";
+}
+
+/** Short date + "due in N days" / "overdue by N days" for the next review. */
+function formatNextReview(iso: string): string {
+    const due = new Date(iso);
+    if (isNaN(due.getTime())) return "—";
+    const base = due.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+    if (days < 0) return `${base} (overdue ${Math.abs(days)}d)`;
+    if (days === 0) return `${base} (due today)`;
+    if (days <= 30) return `${base} (due in ${days}d)`;
+    return base;
+}
 
 export default function VendorDetails() {
     const { id, vendorId } = useParams<{ id: string, vendorId: string }>();
@@ -51,6 +81,9 @@ export default function VendorDetails() {
     const assessments = vendorData?.assessments || [];
     const scanResult = vendorData?.scanResult;
     const cveSuggestions = scanResult?.vulnerabilities || [];
+
+    // Per-vendor residual risk (vendorRisk.getVendorRisk) — degrades gracefully when unavailable
+    const { data: vendorRisk, isLoading: isRiskLoading, isError: isRiskError } = useVendorRiskQuery(clientId, vId);
 
     const runScanMutation = trpc.vendors.runRiskScan.useMutation({
         onSuccess: () => {
@@ -671,7 +704,7 @@ export default function VendorDetails() {
 
             {/* Vendor Header */}
             <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="h-24 w-24 rounded-lg bg-white border shadow-sm flex items-center justify-center text-3xl font-bold text-slate-500 uppercase shrink-0">
+                <div className="h-24 w-24 rounded-lg bg-card border shadow-sm flex items-center justify-center text-3xl font-bold text-muted-foreground uppercase shrink-0">
                     {vendor.name.substring(0, 2)}
                 </div>
                 <div className="flex-1 space-y-2">
@@ -679,7 +712,7 @@ export default function VendorDetails() {
                         <h1 className="text-3xl font-bold tracking-tight">{vendor.name}</h1>
                         <Badge className={
                             vendor.status === 'Active' ? 'bg-emerald-100 text-emerald-800' :
-                                vendor.status === 'Onboarding' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
+                                vendor.status === 'Onboarding' ? 'bg-blue-100 text-blue-800' : 'bg-muted text-foreground'
                         }>
                             {vendor.status}
                         </Badge>
@@ -689,7 +722,7 @@ export default function VendorDetails() {
                             </Badge>
                         )}
                         {vendor.category && (
-                            <Badge variant="outline" className="text-slate-600">
+                            <Badge variant="outline" className="text-muted-foreground">
                                 {vendor.category}
                             </Badge>
                         )}
@@ -700,7 +733,7 @@ export default function VendorDetails() {
                         )}
                     </div>
                     <p className="text-muted-foreground">{vendor.description}</p>
-                    <div className="flex gap-4 text-sm text-slate-500">
+                    <div className="flex gap-4 text-sm text-muted-foreground">
                         {vendor.website && (
                             <a href={vendor.website} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline">
                                 {vendor.website} <ExternalLink className="ml-1 h-3 w-3" />
@@ -718,6 +751,90 @@ export default function VendorDetails() {
                 {/* ... existing card ... */}
 
             </div>
+
+            {/* Vendor Risk Summary — residual risk from vendorRisk.getVendorRisk */}
+            {isRiskLoading ? (
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                            <Shield className="h-4 w-4 text-muted-foreground" /> Vendor Risk
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </CardContent>
+                </Card>
+            ) : isRiskError || !vendorRisk ? (
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                            <Shield className="h-4 w-4 text-muted-foreground" /> Vendor Risk
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <EmptyState
+                            icon={Shield}
+                            title="Vendor risk data unavailable"
+                            description="Connect the vendorRisk.getVendorRisk API to see residual risk scoring for this vendor."
+                        />
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card>
+                    <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+                        <div>
+                            <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                                <Shield className="h-4 w-4 text-muted-foreground" /> Vendor Risk
+                            </CardTitle>
+                            <CardDescription>Residual risk from the vendor risk engine.</CardDescription>
+                        </div>
+                        <Badge variant={tierBadgeVariant(vendorRisk.tier)}>{vendorRisk.tier}</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <div className="flex items-end justify-between gap-4">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Residual Score</span>
+                                <span className="text-2xl font-bold tabular-nums">
+                                    {vendorRisk.residualScore ?? 0}
+                                    <span className="text-sm font-medium text-muted-foreground">/100</span>
+                                </span>
+                            </div>
+                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                                <div
+                                    className={scoreBarColor(vendorRisk.residualScore ?? 0) + " h-full rounded-full"}
+                                    style={{ width: `${Math.min(100, Math.max(0, vendorRisk.residualScore ?? 0))}%` }}
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">Higher is safer — fully mitigated.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm">
+                            <div>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Review Frequency</span>
+                                <p className="mt-1 font-medium text-foreground">{vendorRisk.reviewFrequency || "—"}</p>
+                            </div>
+                            <div>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next Review</span>
+                                <p className="mt-1 font-medium text-foreground">{formatNextReview(vendorRisk.nextReviewDate)}</p>
+                            </div>
+                        </div>
+                        {vendorRisk.recommendedActions && vendorRisk.recommendedActions.length > 0 && (
+                            <div className="border-t border-border pt-4">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recommended Actions</span>
+                                <ul className="mt-2 space-y-1.5">
+                                    {vendorRisk.recommendedActions.slice(0, 4).map((action, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+                                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                            {action}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="flex flex-wrap h-auto bg-muted p-1 mb-4 gap-1 rounded-lg">
@@ -761,10 +878,10 @@ export default function VendorDetails() {
                         </CardHeader>
                         <CardContent>
                             {!dpas || dpas.length === 0 ? (
-                                <div className="text-center py-12 border border-dashed rounded-lg bg-slate-50">
-                                    <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium text-slate-900">No DPAs Found</h3>
-                                    <p className="text-slate-500 max-w-sm mx-auto mt-2">
+                                <div className="text-center py-12 border border-dashed rounded-lg bg-muted">
+                                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-foreground">No DPAs Found</h3>
+                                    <p className="text-muted-foreground max-w-sm mx-auto mt-2">
                                         No Data Processing Agreements have been generated or uploaded for this vendor.
                                     </p>
                                     <Button variant="outline" className="mt-4" onClick={() => setIsDpaOpen(true)}>
@@ -780,7 +897,7 @@ export default function VendorDetails() {
                                                     <Badge variant="secondary" className={
                                                         dpa.status === 'Signed' ? 'bg-green-100 text-green-700' :
                                                             dpa.status === 'Review' ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-slate-100 text-slate-700'
+                                                                'bg-muted text-foreground/70'
                                                     }>{dpa.status}</Badge>
                                                     <div className="flex gap-1">
                                                         <Button variant="ghost" size="icon" onClick={() => setLocation(`/clients/${clientId}/vendors/dpa-editor/${dpa.id}`)}>
@@ -793,8 +910,8 @@ export default function VendorDetails() {
                                                         </Button>
                                                     </div>
                                                 </div>
-                                                <h4 className="font-bold text-slate-900 truncate">{dpa.name}</h4>
-                                                <p className="text-xs text-slate-500 mt-1">Generated: {format(new Date(dpa.createdAt!), 'MMM d, yyyy')}</p>
+                                                <h4 className="font-bold text-foreground truncate">{dpa.name}</h4>
+                                                <p className="text-xs text-muted-foreground mt-1">Generated: {format(new Date(dpa.createdAt!), 'MMM d, yyyy')}</p>
                                                 {dpa.signedAt && (
                                                     <p className="text-xs text-green-600 mt-1 flex items-center">
                                                         <CheckCircle className="h-3 w-3 mr-1" /> Signed: {format(new Date(dpa.signedAt), 'MMM d, yyyy')}
@@ -820,7 +937,7 @@ export default function VendorDetails() {
                             </CardHeader>
                             <CardContent>
                                 {vendor.serviceDescription ? (
-                                    <div className="whitespace-pre-wrap text-sm text-slate-700">{vendor.serviceDescription}</div>
+                                    <div className="whitespace-pre-wrap text-sm text-foreground/70">{vendor.serviceDescription}</div>
                                 ) : (
                                     <div className="text-sm text-muted-foreground italic">No service description provided.</div>
                                 )}
@@ -832,13 +949,13 @@ export default function VendorDetails() {
                             </CardHeader>
                             <CardContent>
                                 {vendor.additionalNotes ? (
-                                    <div className="whitespace-pre-wrap text-sm text-slate-700">{vendor.additionalNotes}</div>
+                                    <div className="whitespace-pre-wrap text-sm text-foreground/70">{vendor.additionalNotes}</div>
                                 ) : (
                                     <div className="text-sm text-muted-foreground italic">No additional notes.</div>
                                 )}
                             </CardContent>
                         </Card>
-                        <Card className="bg-slate-50 border-slate-200">
+                        <Card className="bg-muted border-border">
                             <CardHeader className="py-3">
                                 <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Inherent Risk</CardTitle>
                             </CardHeader>
@@ -851,7 +968,7 @@ export default function VendorDetails() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium">Data Access</span>
-                                    <Badge variant="outline" className={vendor.dataAccess === 'Restricted' ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-slate-600 border-slate-200 bg-slate-50'}>
+                                    <Badge variant="outline" className={vendor.dataAccess === 'Restricted' ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-muted-foreground border-border bg-muted'}>
                                         {vendor.dataAccess}
                                     </Badge>
                                 </div>
@@ -861,7 +978,7 @@ export default function VendorDetails() {
                 </TabsContent>
 
                 <TabsContent value="documents" className="space-y-4 pt-4">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
                         <div>
                             <h3 className="font-semibold">Additional Documents</h3>
                             <p className="text-sm text-muted-foreground">Compliance certificates, reports, and other files.</p>
@@ -883,7 +1000,7 @@ export default function VendorDetails() {
                             {(vendor.additionalDocuments as any[])?.length > 0 ? (
                                 <div className="space-y-2">
                                     {(vendor.additionalDocuments as any[]).map((doc: any, i: number) => (
-                                        <div key={i} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded border border-transparent hover:border-slate-100 transition-colors">
+                                        <div key={i} className="flex justify-between items-center p-3 hover:bg-muted rounded border border-transparent hover:border-border transition-colors">
                                             <div className="flex items-center gap-3">
                                                 <FileText className="h-4 w-4 text-blue-500" />
                                                 <div>
@@ -912,7 +1029,7 @@ export default function VendorDetails() {
                 </TabsContent>
 
                 <TabsContent value="assessments" className="space-y-4">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
                         <div>
                             <h3 className="font-semibold">Assessment History</h3>
                             <p className="text-sm text-muted-foreground">Track security questionnaires, SOC2 reviews, and other due diligence.</p>
@@ -920,7 +1037,7 @@ export default function VendorDetails() {
 
                         <div className="flex gap-2">
                             <Button size="sm" variant="outline" onClick={() => setIsSendOpen(true)}>
-                                <Shield className="mr-2 h-4 w-4 text-indigo-500" /> Request Evidence
+                                <Shield className="mr-2 h-4 w-4 text-blue-500" /> Request Evidence
                             </Button>
                             <Button size="sm" onClick={() => setIsAssessmentOpen(true)}>
                                 <CalendarIcon className="mr-2 h-4 w-4" /> Schedule Manual
@@ -933,7 +1050,7 @@ export default function VendorDetails() {
                             <Card 
                                 key={assessment.id} 
                                 onDoubleClick={() => openConductDialog(assessment)}
-                                className="cursor-pointer hover:bg-slate-50 transition-colors"
+                                className="cursor-pointer hover:bg-muted transition-colors"
                             >
                                 <div className="flex items-center p-4 gap-4">
                                     <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
@@ -946,26 +1063,26 @@ export default function VendorDetails() {
                                                 <Badge variant="outline" className={
                                                     assessment.inherentRiskLevel === 'Critical' ? 'text-rose-600 border-rose-200 bg-rose-50' :
                                                         assessment.inherentRiskLevel === 'High' ? 'text-orange-600 border-orange-200 bg-orange-50' :
-                                                            assessment.inherentRiskLevel === 'Medium' ? 'text-amber-600 border-amber-200 bg-amber-50' :
+                                                            assessment.inherentRiskLevel === 'Medium' ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/10' :
                                                                 assessment.inherentRiskLevel === 'Low' ? 'text-emerald-600 border-emerald-200 bg-emerald-50' :
-                                                                    'text-slate-500 border-slate-200 bg-slate-50'
+                                                                    'text-muted-foreground border-border bg-muted'
                                                 }>
                                                     Inherent: {assessment.inherentRiskLevel || 'Not Rated'}
                                                 </Badge>
                                                 <Badge variant="outline" className={
                                                     assessment.residualRiskLevel === 'Critical' ? 'text-rose-600 border-rose-200 bg-rose-50' :
                                                         assessment.residualRiskLevel === 'High' ? 'text-orange-600 border-orange-200 bg-orange-50' :
-                                                            assessment.residualRiskLevel === 'Medium' ? 'text-amber-600 border-amber-200 bg-amber-50' :
+                                                            assessment.residualRiskLevel === 'Medium' ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/10' :
                                                                 assessment.residualRiskLevel === 'Low' ? 'text-emerald-600 border-emerald-200 bg-emerald-50' :
-                                                                    'text-slate-500 border-slate-200 bg-slate-50'
+                                                                    'text-muted-foreground border-border bg-muted'
                                                 }>
                                                     Residual: {assessment.residualRiskLevel || 'Not Rated'}
                                                 </Badge>
                                             </div>
                                         </h4>
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <span>Status: <strong className="text-slate-700">{assessment.status}</strong></span>
-                                            <span>•</span>
+                                            <span>Status: <strong className="text-foreground/70">{assessment.status}</strong></span>
+                                            <span>â€¢</span>
                                             <span>Due: {assessment.dueDate ? format(new Date(assessment.dueDate), 'MMM d, yyyy') : 'No date'}</span>
                                         </div>
                                     </div>
@@ -984,7 +1101,7 @@ export default function VendorDetails() {
                             </Card>
                         ))}
                         {assessments?.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-slate-50 rounded-lg border border-dashed gap-2">
+                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted rounded-lg border border-dashed gap-2">
                                 <p>No assessments recorded for this vendor.</p>
                                 <Button variant="outline" size="sm" onClick={() => setIsAssessmentOpen(true)}>
                                     <CalendarIcon className="mr-2 h-4 w-4" /> Schedule First Assessment
@@ -995,7 +1112,7 @@ export default function VendorDetails() {
                 </TabsContent>
 
                 <TabsContent value="risk-scan" className="space-y-4">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
                         <div>
                             <h3 className="font-semibold">Automated Risk Analysis</h3>
                             <p className="text-sm text-muted-foreground">Continuous monitoring of vulnerabilities (CVEs) and data breaches.</p>
@@ -1058,16 +1175,16 @@ export default function VendorDetails() {
                                     <CardContent>
                                         <div className="space-y-2">
                                             {cveSuggestions.map(vuln => (
-                                                <div key={vuln.cveId} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded border border-transparent hover:border-slate-100 transition-colors">
+                                                <div key={vuln.cveId} className="flex justify-between items-center p-2 hover:bg-muted rounded border border-transparent hover:border-border transition-colors">
                                                     <div className="flex items-center gap-3">
                                                         <Badge variant="outline">{vuln.cveId}</Badge>
                                                         <div>
-                                                            <div className="text-sm font-medium text-slate-900 line-clamp-1">{vuln.description}</div>
-                                                            <div className="text-xs text-slate-500 flex gap-2">
+                                                            <div className="text-sm font-medium text-foreground line-clamp-1">{vuln.description}</div>
+                                                            <div className="text-xs text-muted-foreground flex gap-2">
                                                                 <span>CVSS: {vuln.cvssScore}</span>
-                                                                <span className="text-slate-400">|</span>
+                                                                <span className="text-muted-foreground">|</span>
                                                                 <span className="truncate max-w-[300px]">{vuln.matchReason}</span>
-                                                                <span className="text-slate-400">|</span>
+                                                                <span className="text-muted-foreground">|</span>
                                                                 <span>{vuln.discoveredAt ? format(new Date(vuln.discoveredAt), 'MMM d, yyyy') : 'Recent'}</span>
                                                             </div>
                                                         </div>
@@ -1124,16 +1241,16 @@ export default function VendorDetails() {
                                     {vendorSuggestions && vendorSuggestions.length > 0 ? (
                                         <div className="space-y-2">
                                             {vendorSuggestions.map((s: any, idx: number) => (
-                                                <div key={idx} className="flex items-start justify-between p-2 rounded border hover:bg-slate-50 transition-colors">
+                                                <div key={idx} className="flex items-start justify-between p-2 rounded border hover:bg-muted transition-colors">
                                                     <div className="flex items-center gap-3">
                                                         <Badge variant="outline">{s.cveId}</Badge>
                                                         <div>
                                                             <div className="text-sm font-medium line-clamp-1">{s.description}</div>
                                                             <div className="text-xs text-muted-foreground flex gap-1 items-center">
                                                                 <span>CVSS: {s.cvssScore || 'N/A'}</span>
-                                                                <span>•</span>
+                                                                <span>â€¢</span>
                                                                 <span>{s.matchReason || 'Keyword match'}</span>
-                                                                <span>•</span>
+                                                                <span>â€¢</span>
                                                                 <span>{s.discoveredAt ? format(new Date(s.discoveredAt), 'MMM d, yyyy') : 'Recent'}</span>
                                                             </div>
                                                         </div>
@@ -1157,7 +1274,7 @@ export default function VendorDetails() {
                                 <Card>
                                     <CardHeader className="pb-3">
                                         <CardTitle className="text-md flex items-center gap-2">
-                                            <History className="h-4 w-4 text-slate-500" /> Scan History
+                                            <History className="h-4 w-4 text-muted-foreground" /> Scan History
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -1169,8 +1286,8 @@ export default function VendorDetails() {
                                                 return (
                                                     <div key={scan.id} className="space-y-2">
                                                         <div
-                                                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${index === 0 ? 'bg-indigo-50/50 border-indigo-200 hover:bg-indigo-100/50' :
-                                                                'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${index === 0 ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/10' :
+                                                                'bg-muted border-border hover:bg-muted'
                                                                 }`}
                                                             onClick={() => setExpandedScanId(isExpanded ? null : scan.id)}
                                                         >
@@ -1186,36 +1303,36 @@ export default function VendorDetails() {
                                                                         <span className="font-medium text-sm">
                                                                             {scan.scanDate ? format(new Date(scan.scanDate), 'PPP') : 'Unknown Date'}
                                                                         </span>
-                                                                        {index === 0 && <Badge className="bg-indigo-500 text-white text-[10px]">Latest</Badge>}
+                                                                        {index === 0 && <Badge className="bg-blue-500 text-white text-[10px]">Latest</Badge>}
                                                                     </div>
                                                                     <div className="text-xs text-muted-foreground">
-                                                                        {scan.scanDate ? format(new Date(scan.scanDate), 'p') : ''} •
-                                                                        {scan.vulnerabilityCount || 0} CVEs •
+                                                                        {scan.scanDate ? format(new Date(scan.scanDate), 'p') : ''} â€¢
+                                                                        {scan.vulnerabilityCount || 0} CVEs â€¢
                                                                         {scan.breachCount || 0} Breaches
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-xs text-muted-foreground">{scan.status}</span>
-                                                                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                                             </div>
                                                         </div>
 
                                                         {/* Expanded CVE List */}
                                                         {isExpanded && (
-                                                            <div className="ml-14 p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+                                                            <div className="ml-14 p-3 rounded-lg bg-card border border-border space-y-2">
                                                                 {isLoadingHistory ? (
                                                                     <div className="flex justify-center py-4">
-                                                                        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                                                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                                                                     </div>
                                                                 ) : scanCves.length > 0 ? (
                                                                     scanCves.map((vuln: any) => (
-                                                                        <div key={vuln.id} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded border border-transparent hover:border-slate-100 transition-colors">
+                                                                        <div key={vuln.id} className="flex justify-between items-center p-2 hover:bg-muted rounded border border-transparent hover:border-border transition-colors">
                                                                             <div className="flex items-center gap-3">
                                                                                 <Badge variant="outline">{vuln.cveId}</Badge>
                                                                                 <div>
-                                                                                    <div className="text-sm font-medium text-slate-900 line-clamp-1">{vuln.description}</div>
-                                                                                    <div className="text-xs text-slate-500 flex gap-2">
+                                                                                    <div className="text-sm font-medium text-foreground line-clamp-1">{vuln.description}</div>
+                                                                                    <div className="text-xs text-muted-foreground flex gap-2">
                                                                                         <span>CVSS: {vuln.cvssScore}</span>
                                                                                     </div>
                                                                                 </div>
@@ -1267,9 +1384,9 @@ export default function VendorDetails() {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-slate-50 rounded-lg border border-dashed gap-2">
-                            <ShieldAlert className="h-12 w-12 text-slate-300 mb-2" />
-                            <h3 className="font-semibold text-lg text-slate-700">No Scan Data Available</h3>
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-muted rounded-lg border border-dashed gap-2">
+                            <ShieldAlert className="h-12 w-12 text-muted-foreground mb-2" />
+                            <h3 className="font-semibold text-lg text-foreground/70">No Scan Data Available</h3>
                             <p className="max-w-md text-center">Run a risk scan to check for known vulnerabilities (CVEs) and data breaches associated with this vendor.</p>
                             <Button variant="outline" size="sm" className="mt-4" onClick={() => runScanMutation.mutate({ vendorId: vId, clientId })} disabled={runScanMutation.isPending}>
                                 {runScanMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
@@ -1280,7 +1397,7 @@ export default function VendorDetails() {
                 </TabsContent>
 
                 <TabsContent value="contacts" className="space-y-4">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
                         <div>
                             <h3 className="font-semibold">Vendor Contacts</h3>
                             <p className="text-sm text-muted-foreground">Key personnel for security, legal, and billing inquiries.</p>
@@ -1296,7 +1413,7 @@ export default function VendorDetails() {
                                 <CardContent className="pt-6">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
                                                 <User className="h-5 w-5" />
                                             </div>
                                             <div>
@@ -1309,7 +1426,7 @@ export default function VendorDetails() {
                                         </div>
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openContactDialog(contact)}>
-                                                <Edit2 className="h-4 w-4 text-slate-500" />
+                                                <Edit2 className="h-4 w-4 text-muted-foreground" />
                                             </Button>
                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600" onClick={() => {
                                                 setDeleteConfirmation({ type: 'contact', id: contact.id, name: contact.name });
@@ -1321,13 +1438,13 @@ export default function VendorDetails() {
 
                                     <div className="space-y-2 text-sm">
                                         {contact.email && (
-                                            <div className="flex items-center gap-2 text-slate-600">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
                                                 <Mail className="h-3.5 w-3.5" />
                                                 <a href={`mailto:${contact.email}`} className="hover:underline">{contact.email}</a>
                                             </div>
                                         )}
                                         {contact.phone && (
-                                            <div className="flex items-center gap-2 text-slate-600">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
                                                 <Phone className="h-3.5 w-3.5" />
                                                 <span>{contact.phone}</span>
                                             </div>
@@ -1337,7 +1454,7 @@ export default function VendorDetails() {
                             </Card>
                         ))}
                         {contacts?.length === 0 && (
-                            <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50 border border-dashed rounded-lg">
+                            <div className="col-span-full py-12 text-center text-muted-foreground bg-muted border border-dashed rounded-lg">
                                 No contacts added yet.
                             </div>
                         )}
@@ -1345,7 +1462,7 @@ export default function VendorDetails() {
                 </TabsContent>
 
                 <TabsContent value="contracts" className="space-y-4">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
                         <div>
                             <h3 className="font-semibold">Vendor Contracts</h3>
                             <p className="text-sm text-muted-foreground">Manage legal agreements, SLAs, and renewal terms.</p>
@@ -1361,13 +1478,13 @@ export default function VendorDetails() {
                                 <CardContent className="pt-6">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-start gap-4">
-                                            <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                            <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                                                 <ScrollText className="h-5 w-5" />
                                             </div>
                                             <div className="space-y-1">
                                                 <h4 className="font-semibold text-base flex items-center gap-2">
                                                     {contract.title}
-                                                    <Badge variant="outline" className={contract.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-500'}>
+                                                    <Badge variant="outline" className={contract.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-muted text-muted-foreground'}>
                                                         {contract.status}
                                                     </Badge>
                                                     {contract.autoRenew && (
@@ -1428,7 +1545,7 @@ export default function VendorDetails() {
                                                 });
                                                 setIsContractOpen(true);
                                             }}>
-                                                <Edit2 className="h-4 w-4 text-slate-500" />
+                                                <Edit2 className="h-4 w-4 text-muted-foreground" />
                                             </Button>
                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600" onClick={() => {
                                                 setDeleteConfirmation({ type: 'contract', id: contract.id, name: contract.title });
@@ -1441,9 +1558,9 @@ export default function VendorDetails() {
                             </Card>
                         ))}
                         {contracts?.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-slate-50 rounded-lg border border-dashed gap-2">
-                                <ScrollText className="h-12 w-12 text-slate-300 mb-2" />
-                                <h3 className="font-semibold text-lg text-slate-700">No Contracts on File</h3>
+                            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-muted rounded-lg border border-dashed gap-2">
+                                <ScrollText className="h-12 w-12 text-muted-foreground mb-2" />
+                                <h3 className="font-semibold text-lg text-foreground/70">No Contracts on File</h3>
                                 <Button variant="outline" size="sm" onClick={() => setIsContractOpen(true)}>
                                     Add Contract Details
                                 </Button>
@@ -1791,7 +1908,7 @@ export default function VendorDetails() {
                         />
                     </div>
 
-                    <div className="flex items-center space-x-2 border p-3 rounded-md bg-slate-50 mt-4">
+                    <div className="flex items-center space-x-2 border p-3 rounded-md bg-muted mt-4">
                         <input
                             type="checkbox"
                             id="isSubprocessor"
@@ -1828,7 +1945,7 @@ export default function VendorDetails() {
                     <div className="grid grid-cols-2 gap-8 mb-6">
                         {/* Inherent Risk Column */}
                         <div className="space-y-4 border-r pr-4">
-                            <h4 className="font-semibold text-sm text-slate-500 border-b pb-2">Inherent Risk (Before Controls)</h4>
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-2">Inherent Risk (Before Controls)</h4>
                             <div className="grid gap-2">
                                 <Label>Impact</Label>
                                 <Select
@@ -1881,12 +1998,12 @@ export default function VendorDetails() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-md flex justify-between items-center">
+                            <div className="bg-muted p-3 rounded-md flex justify-between items-center">
                                 <span className="text-xs font-medium">Inherent Risk:</span>
                                 <Badge variant="outline" className={
                                     conductForm.inherentRiskLevel === 'Critical' ? 'text-rose-600 bg-rose-50 border-rose-200' :
                                         conductForm.inherentRiskLevel === 'High' ? 'text-orange-600 bg-orange-50 border-orange-200' :
-                                            conductForm.inherentRiskLevel === 'Medium' ? 'text-amber-600 bg-amber-50 border-amber-200' :
+                                            conductForm.inherentRiskLevel === 'Medium' ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20' :
                                                 'text-emerald-600 bg-emerald-50 border-emerald-200'
                                 }>{conductForm.inherentRiskLevel || "Not Rated"}</Badge>
                             </div>
@@ -1894,7 +2011,7 @@ export default function VendorDetails() {
 
                         {/* Residual Risk Column */}
                         <div className="space-y-4">
-                            <h4 className="font-semibold text-sm text-slate-500 border-b pb-2">Residual Risk (After Controls)</h4>
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-2">Residual Risk (After Controls)</h4>
                             <div className="grid gap-2">
                                 <Label>Impact</Label>
                                 <Select
@@ -1947,7 +2064,7 @@ export default function VendorDetails() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-md flex justify-between items-center">
+                            <div className="bg-muted p-3 rounded-md flex justify-between items-center">
                                 <span className="text-xs font-medium">Residual Risk:</span>
                                 <Badge className={
                                     conductForm.residualRiskLevel === 'Critical' ? 'bg-rose-600' :
@@ -2048,7 +2165,7 @@ export default function VendorDetails() {
                                     <Badge
                                         key={c.id}
                                         variant="outline"
-                                        className="cursor-pointer hover:bg-slate-100"
+                                        className="cursor-pointer hover:bg-muted"
                                         onClick={() => c.email && setEmailForm(prev => ({ ...prev, to: c.email || '' }))}
                                     >
                                         {c.name} ({c.email})
@@ -2324,7 +2441,7 @@ export default function VendorDetails() {
             >
                 {selectedCveForMitigation && (
                     <div className="space-y-4">
-                        <div className="p-4 bg-slate-50 rounded-lg border">
+                        <div className="p-4 bg-muted rounded-lg border">
                             <div className="flex items-center justify-between mb-2">
                                 <Badge variant="outline" className="text-sm">{selectedCveForMitigation.cveId}</Badge>
                                 <Badge className={`${parseFloat(selectedCveForMitigation.cvssScore || "0") >= 9 ? 'bg-rose-500' :
@@ -2334,7 +2451,7 @@ export default function VendorDetails() {
                                     CVSS: {selectedCveForMitigation.cvssScore}
                                 </Badge>
                             </div>
-                            <p className="text-sm text-slate-700">{selectedCveForMitigation.description}</p>
+                            <p className="text-sm text-foreground/70">{selectedCveForMitigation.description}</p>
                         </div>
 
                         <div className="grid gap-3">

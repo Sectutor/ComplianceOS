@@ -12,6 +12,9 @@ import { Button } from "@complianceos/ui/ui/button";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
 import { Textarea } from "@complianceos/ui/ui/textarea";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { Skeleton } from "@complianceos/ui/ui/skeleton";
+import { useVendorRiskOverviewQuery } from "./vendorRiskApi";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ProgressIndicator } from "@complianceos/ui/ui/ProgressIndicator";
 import { StatusBadge } from "@complianceos/ui/ui/StatusBadge";
@@ -23,6 +26,33 @@ export interface AuditFinding {
     infrastructure: string;
     severity: "critical" | "high";
     cve: string;
+}
+
+/** Badge variant per TPRM tier (Tier 3 â†’ success, Tier 2 â†’ warning, Tier 1 â†’ error). */
+function tierBadgeVariant(tier: string): "success" | "warning" | "error" | "info" {
+    if (tier === "Tier 1 (Critical)") return "error";
+    if (tier === "Tier 2 (High)") return "warning";
+    if (tier === "Tier 3 (Medium)") return "success";
+    return "info";
+}
+
+/** Data-viz severity bar color (Â§18): 0â€“100, higher = safer. */
+function scoreBarColor(score: number): string {
+    if (score >= 70) return "bg-emerald-500";
+    if (score >= 40) return "bg-amber-500";
+    return "bg-red-500";
+}
+
+/** Short date + relative "due in N days" / "overdue by N days" for the next review. */
+function formatNextReview(iso: string): string {
+    const due = new Date(iso);
+    if (isNaN(due.getTime())) return "â€”";
+    const base = due.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+    if (days < 0) return `${base} (overdue ${Math.abs(days)}d)`;
+    if (days === 0) return `${base} (due today)`;
+    if (days <= 30) return `${base} (due in ${days}d)`;
+    return base;
 }
 
 export default function VendorDashboard() {
@@ -42,6 +72,7 @@ export default function VendorDashboard() {
 
     const utils = trpc.useUtils();
     const { data: riskAssessments } = trpc.risks.getRiskAssessments.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: vendorRiskOverview, isLoading: riskLoading, isError: riskError } = useVendorRiskOverviewQuery(clientId);
 
     if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
 
@@ -204,7 +235,7 @@ export default function VendorDashboard() {
 
                 {/* AI Supply Chain Intelligence Banner */}
                 <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 p-1 rounded-2xl shadow-xl mb-6" id="vendor-intel-banner">
-                    <div className="bg-slate-900/40 backdrop-blur-xl rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 border border-white/10">
+                    <div className="bg-slate-900/40 backdrop-blur-xl rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 border border-sidebar-foreground/10">
                         <div className="flex items-center gap-4">
                             <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400">
                                 <Radar className="w-6 h-6 animate-[spin_4s_linear_infinite]" />
@@ -215,11 +246,11 @@ export default function VendorDashboard() {
                                     <h3 className="text-white font-bold text-sm tracking-wide">AI SUPPLY CHAIN INTELLIGENCE</h3>
                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">MONITORING</span>
                                 </div>
-                                <p className="text-slate-300 text-sm mt-0.5">Scanning Dark Web & OSINT sources. <span className="text-white font-semibold flex items-center gap-1">2 potential breaches</span> detected in your 4th-party ecosystem.</p>
+                                <p className="text-sidebar-foreground/80 text-sm mt-0.5">Scanning Dark Web & OSINT sources. <span className="text-white font-semibold flex items-center gap-1">2 potential breaches</span> detected in your 4th-party ecosystem.</p>
                             </div>
                         </div>
                         <button
-                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-colors border border-white/10 flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+                            className="px-4 py-2 bg-sidebar-foreground/10 hover:bg-sidebar-foreground/20 text-white rounded-lg text-sm font-bold transition-colors border border-sidebar-foreground/10 flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
                             onClick={handleTargetAudit}
                             disabled={isAuditing}
                         >
@@ -231,57 +262,57 @@ export default function VendorDashboard() {
 
                 {/* Audit Results Panel (Visible after scanning) */}
                 {auditResults && auditResults.length > 0 && (
-                    <div className="animate-slide-down bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mb-6">
-                        <div className="bg-red-50 p-4 border-b border-red-100 flex items-center justify-between">
+                    <div className="animate-slide-down bg-card rounded-2xl border border-destructive/20 shadow-sm overflow-hidden mb-6">
+                        <div className="bg-destructive/5 p-4 border-b border-destructive/10 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                                <div className="p-2 bg-destructive/10 text-destructive rounded-lg">
                                     <AlertCircle className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-red-900">Target Audit Findings</h4>
-                                    <p className="text-xs text-red-700 font-medium">Supply Chain Vulnerabilities Detected ({auditResults.length} Affected Vendors)</p>
+                                    <h4 className="font-bold text-destructive">Target Audit Findings</h4>
+                                    <p className="text-xs text-destructive/80 font-medium">Supply Chain Vulnerabilities Detected ({auditResults.length} Affected Vendors)</p>
                                 </div>
                             </div>
-                            <span className="text-xs font-bold px-2.5 py-1 bg-red-100 text-red-700 rounded-full border border-red-200">
+                            <span className="text-xs font-bold px-2.5 py-1 bg-destructive/10 text-destructive rounded-full border border-destructive/20">
                                 ACTION REQUIRED
                             </span>
                         </div>
-                        <div className="divide-y divide-red-100">
+                        <div className="divide-y divide-destructive/10">
                             {auditResults.map((finding) => (
                                 <div key={finding.id} className="p-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <div className="flex items-center gap-2 mb-3">
-                                                <h5 className="text-sm font-black text-slate-800 uppercase tracking-wider">Compromised Asset Path</h5>
+                                                <h5 className="text-sm font-black text-foreground uppercase tracking-wider">Compromised Asset Path</h5>
                                                 {finding.severity === 'critical' ? (
-                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded border border-red-200 uppercase">Critical</span>
+                                                    <span className="px-2 py-0.5 bg-destructive/10 text-destructive text-[10px] font-bold rounded border border-destructive/20 uppercase">Critical</span>
                                                 ) : (
-                                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded border border-amber-200 uppercase">High</span>
+                                                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 dark:text-amber-400 text-[10px] font-bold rounded border border-amber-500/20 uppercase">High</span>
                                                 )}
                                             </div>
-                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                                            <div className="bg-muted p-4 rounded-xl border border-border space-y-3">
                                                 <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-slate-500 font-medium">3rd Party Vendor</span>
-                                                    <span className="font-bold text-slate-900">{finding.vendor}</span>
+                                                    <span className="text-muted-foreground font-medium">3rd Party Vendor</span>
+                                                    <span className="font-bold text-foreground">{finding.vendor}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-slate-500 font-medium">Affected Service</span>
-                                                    <span className="font-bold text-red-600 font-mono text-xs bg-red-50 px-2 py-0.5 rounded">{finding.infrastructure}</span>
+                                                    <span className="text-muted-foreground font-medium">Affected Service</span>
+                                                    <span className="font-bold text-destructive font-mono text-xs bg-destructive/10 px-2 py-0.5 rounded">{finding.infrastructure}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-slate-500 font-medium">4th Party Threat</span>
-                                                    <span className="font-bold text-slate-900">{finding.cve}</span>
+                                                    <span className="text-muted-foreground font-medium">4th Party Threat</span>
+                                                    <span className="font-bold text-foreground">{finding.cve}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex flex-col justify-between">
                                             <div>
-                                                <h5 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-2">Recommended Action</h5>
-                                                <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                                                <h5 className="text-sm font-black text-foreground uppercase tracking-wider mb-2">Recommended Action</h5>
+                                                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                                                     To maintain compliance, you must formally contact <span className="font-bold">{finding.vendor}</span> and log an incident risk.
                                                 </p>
                                             </div>
-                                            <Button onClick={() => handleOpenOutreach(finding)} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold group">
+                                            <Button onClick={() => handleOpenOutreach(finding)} className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold group">
                                                 Outreach & Log Risk
                                                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                             </Button>
@@ -298,10 +329,10 @@ export default function VendorDashboard() {
 
                 {/* Vendor Program Overview Callout */}
                 <Card className="relative overflow-hidden border-none shadow-premium bg-gradient-to-r from-emerald-600 to-teal-700 text-white mb-6 animate-fade-in hover-lift">
-                    <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 p-32 bg-sidebar-foreground/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <CardContent className="p-8 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
                         <div className="flex gap-5 items-center">
-                            <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl shadow-inner border border-white/20 hidden sm:block">
+                            <div className="p-4 bg-sidebar-foreground/10 backdrop-blur-md rounded-2xl shadow-inner border border-sidebar-foreground/20 hidden sm:block">
                                 <BookOpen className="w-8 h-8 text-emerald-50" />
                             </div>
                             <div>
@@ -312,7 +343,7 @@ export default function VendorDashboard() {
                             </div>
                         </div>
                         <Link href={`/clients/${clientId}/vendors/program-guide`}>
-                            <Button className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold whitespace-nowrap shadow-lg h-11 px-6 rounded-xl transition-all hover:scale-105 active:scale-95">
+                            <Button className="bg-sidebar-foreground text-emerald-900 hover:bg-emerald-50 font-bold whitespace-nowrap shadow-lg h-11 px-6 rounded-xl transition-all hover:scale-105 active:scale-95">
                                 View Program Guide <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
                         </Link>
@@ -328,7 +359,7 @@ export default function VendorDashboard() {
                             <Globe className="w-7 h-7 text-purple-400" />
                             Getting Started with Vendor Risks
                         </CardTitle>
-                        <CardDescription className="text-slate-300 font-medium text-base">
+                        <CardDescription className="text-sidebar-foreground/80 font-medium text-base">
                             Manage vendor lifecycle from discovery to termination.
                         </CardDescription>
                     </CardHeader>
@@ -390,13 +421,13 @@ export default function VendorDashboard() {
                                 }
                             ].map((item, i) => (
                                 <Link key={i} href={item.link}>
-                                    <div className="group relative flex flex-col items-center text-center p-5 rounded-2xl hover:bg-white/5 transition-all duration-300 cursor-pointer h-full border border-transparent hover:border-white/10 hover:shadow-xl backdrop-blur-sm">
+                                    <div className="group relative flex flex-col items-center text-center p-5 rounded-2xl hover:bg-sidebar-foreground/5 transition-all duration-300 cursor-pointer h-full border border-transparent hover:border-sidebar-foreground/10 hover:shadow-xl backdrop-blur-sm">
                                         <div className={`w-14 h-14 rounded-2xl border ${item.bg} flex items-center justify-center mb-4 shadow-lg ${item.shadow} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
                                             <item.icon className={`w-7 h-7 ${item.color}`} />
                                         </div>
                                         <div className="text-[10px] font-bold uppercase tracking-widest text-brand-bright mb-1.5">{item.step}</div>
                                         <div className="font-bold text-lg mb-1.5 text-white">{item.title}</div>
-                                        <div className="text-sm text-slate-400 leading-snug font-medium group-hover:text-slate-300 transition-colors">{item.desc}</div>
+                                        <div className="text-sm text-sidebar-foreground/70 leading-snug font-medium group-hover:text-sidebar-foreground transition-colors">{item.desc}</div>
                                     </div>
                                 </Link>
                             ))}
@@ -406,58 +437,183 @@ export default function VendorDashboard() {
 
                 {/* Key Performance Indicators */}
                 <div className="grid gap-6 md:grid-cols-4" id="vendor-stats-summary">
-                    <Card className="hover-lift border-none shadow-premium bg-white/60 backdrop-blur-xl group">
+                    <Card className="hover-lift border-none shadow-premium bg-card/60 backdrop-blur-xl group">
                         <CardContent className="pt-6">
                             <div className="flex items-center gap-5">
                                 <div className="p-3 bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg shadow-indigo-500/20 text-white rounded-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                                     <CheckCircle className="w-7 h-7" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Total Vendors</p>
-                                    <h3 className="text-4xl font-black text-slate-900">{stats?.totalVendors || 0}</h3>
+                                    <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Total Vendors</p>
+                                    <h3 className="text-4xl font-black text-foreground">{stats?.totalVendors || 0}</h3>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="hover-lift border-none shadow-premium bg-white/60 backdrop-blur-xl group">
+                    <Card className="hover-lift border-none shadow-premium bg-card/60 backdrop-blur-xl group">
                         <CardContent className="pt-6">
                             <div className="flex items-center gap-5">
                                 <div className="p-3 bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/20 text-white rounded-2xl group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300">
                                     <AlertCircle className="w-7 h-7" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Critical Risk</p>
-                                    <h3 className="text-4xl font-black text-slate-900">{stats?.riskBreakdown?.['High'] || 0}</h3>
+                                    <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Critical Risk</p>
+                                    <h3 className="text-4xl font-black text-foreground">{stats?.riskBreakdown?.['High'] || 0}</h3>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Compliance Guide Card */}
-                    <div className="md:col-span-2 p-5 rounded-3xl border-2 border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white shadow-premium flex flex-col justify-center cursor-pointer hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group" onClick={() => window.location.href = `/clients/${clientId}/vendors/program-guide`}>
+                    <div className="md:col-span-2 p-5 rounded-3xl border-2 border-blue-500/20 bg-gradient-to-br from-indigo-50/80 to-white shadow-premium flex flex-col justify-center cursor-pointer hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group" onClick={() => window.location.href = `/clients/${clientId}/vendors/program-guide`}>
                         <div className="flex justify-between items-center">
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <span className="text-lg font-black text-slate-900 tracking-tight">ISO 27001 Alignment</span>
-                                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 pointer-events-none font-bold shadow-inner">GUIDE</Badge>
+                                    <span className="text-lg font-black text-foreground tracking-tight">ISO 27001 Alignment</span>
+                                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 pointer-events-none font-bold shadow-inner">GUIDE</Badge>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-sm text-slate-600 font-medium group-hover:text-indigo-600 transition-colors">
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                     <span>Master your vendor risk program</span>
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform duration-300" />
                                 </div>
                             </div>
-                            <div className="p-4 rounded-2xl bg-white shadow-md text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                            <div className="p-4 rounded-2xl bg-card shadow-md text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
                                 <BookOpen className="w-7 h-7" />
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Vendor Risk Overview */}
+                <section className="space-y-4" id="vendor-risk-overview" aria-label="Vendor risk overview">
+                    <div>
+                        <h2 className="text-lg font-semibold tracking-tight">Vendor risk overview</h2>
+                        <p className="text-sm text-muted-foreground">TPRM posture across the vendor portfolio â€” tiers, residual scores and upcoming reviews.</p>
+                    </div>
+
+                    {riskLoading ? (
+                        <div className="space-y-6">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                                {[0, 1, 2, 3].map((i) => (
+                                    <Skeleton key={i} className="h-[104px] w-full" />
+                                ))}
+                            </div>
+                            <Skeleton className="h-[300px] w-full" />
+                        </div>
+                    ) : riskError || !vendorRiskOverview ? (
+                        <EmptyState
+                            icon={ShieldAlert}
+                            title="Connect the vendorRisk.getOverview API"
+                            description="The backend procedure lands with the next deploy. Tier counts, residual scores and review dates will appear here automatically."
+                        />
+                    ) : (
+                        <>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                                <Card className="bg-card/60 backdrop-blur-xl">
+                                    <CardContent className="pt-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                <Building2 className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Total vendors</p>
+                                                <h3 className="text-2xl font-bold tabular-nums text-foreground">{vendorRiskOverview.summary.totalVendors ?? 0}</h3>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-card/60 backdrop-blur-xl">
+                                    <CardContent className="pt-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+                                                <ShieldAlert className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Tier 1 (Critical)</p>
+                                                <h3 className="text-2xl font-bold tabular-nums text-foreground">{vendorRiskOverview.summary.tierCounts?.tier1 ?? 0}</h3>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-card/60 backdrop-blur-xl">
+                                    <CardContent className="pt-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                <Activity className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Avg residual score</p>
+                                                <h3 className="text-2xl font-bold tabular-nums text-foreground">{Math.round(vendorRiskOverview.summary.avgResidualScore ?? 0)}<span className="text-sm font-semibold text-muted-foreground"> / 100</span></h3>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-card/60 backdrop-blur-xl">
+                                    <CardContent className="pt-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                                <Clock className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Reviews due</p>
+                                                <h3 className="text-2xl font-bold tabular-nums text-foreground">{(vendorRiskOverview.summary.vendorsDueForReview ?? []).length}</h3>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <Card className="bg-card/60 backdrop-blur-xl">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-lg font-semibold tracking-tight">Vendor risk register</CardTitle>
+                                    <CardDescription className="text-sm text-muted-foreground">Residual score is 0â€“100 â€” higher is safer.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-border">
+                                                <th className="h-12 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vendor</th>
+                                                <th className="h-12 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">TPRM tier</th>
+                                                <th className="h-12 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Residual score</th>
+                                                <th className="h-12 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Review frequency</th>
+                                                <th className="h-12 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next review</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(vendorRiskOverview.vendors ?? []).map((vendor) => (
+                                                <tr key={vendor.vendorId} className="border-b border-border hover:bg-muted/50">
+                                                    <td className="p-4 font-medium text-foreground whitespace-nowrap">{vendor.vendorName}</td>
+                                                    <td className="p-4">
+                                                        <Badge variant={tierBadgeVariant(vendor.tier)}>{vendor.tier}</Badge>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full ${scoreBarColor(vendor.residualScore)}`}
+                                                                    style={{ width: `${Math.min(100, Math.max(0, vendor.residualScore))}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs font-semibold tabular-nums text-muted-foreground">{vendor.residualScore}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4 text-muted-foreground whitespace-nowrap">{vendor.reviewFrequency}</td>
+                                                    <td className="p-4 text-muted-foreground whitespace-nowrap">{formatNextReview(vendor.nextReviewDate)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+                </section>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <Card className="h-[420px] border-none shadow-premium bg-white/60 backdrop-blur-xl hover-lift" id="vendor-risk-distribution">
-                        <CardHeader className="pb-0 border-b border-slate-100/50">
+                    <Card className="h-[420px] border-none shadow-premium bg-card/60 backdrop-blur-xl hover-lift" id="vendor-risk-distribution">
+                        <CardHeader className="pb-0 border-b border-border/50">
                             <CardTitle className="text-xl font-bold tracking-tight">Distribution by Criticality</CardTitle>
-                            <CardDescription className="font-medium text-slate-500">Breakdown of vendors by assigned risk level</CardDescription>
+                            <CardDescription className="font-medium text-muted-foreground">Breakdown of vendors by assigned risk level</CardDescription>
                         </CardHeader>
                         <CardContent className="h-[340px] pt-4">
                             <ResponsiveContainer width="100%" height="100%">
@@ -488,25 +644,25 @@ export default function VendorDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="h-[420px] border-none shadow-premium bg-white/60 backdrop-blur-xl hover-lift">
-                        <CardHeader className="pb-0 border-b border-slate-100/50">
+                    <Card className="h-[420px] border-none shadow-premium bg-card/60 backdrop-blur-xl hover-lift">
+                        <CardHeader className="pb-0 border-b border-border/50">
                             <CardTitle className="text-xl font-bold tracking-tight">Vendor Ecosystem</CardTitle>
-                            <CardDescription className="font-medium text-slate-500">Geographic distribution (Visualizer)</CardDescription>
+                            <CardDescription className="font-medium text-muted-foreground">Geographic distribution (Visualizer)</CardDescription>
                         </CardHeader>
                         <CardContent className="h-[340px] pt-4 flex items-center justify-center">
-                            <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group">
+                            <div className="w-full h-full bg-gradient-to-br from-muted to-muted/50 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-map-pattern opacity-5 group-hover:opacity-10 transition-opacity duration-1000"></div>
 
                                 <div className="z-10 text-center flex flex-col items-center">
-                                    <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                                        <Globe className="w-10 h-10 text-slate-300 group-hover:text-brand-bright transition-colors duration-500" />
+                                    <div className="w-20 h-20 bg-card rounded-full shadow-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+                                        <Globe className="w-10 h-10 text-muted-foreground group-hover:text-brand-bright transition-colors duration-500" />
                                     </div>
-                                    <h4 className="text-lg font-bold text-slate-700 mb-1">Global Visualization</h4>
-                                    <p className="text-sm font-medium text-slate-500">Connecting interactive map modules...</p>
+                                    <h4 className="text-lg font-bold text-foreground/70 mb-1">Global Visualization</h4>
+                                    <p className="text-sm font-medium text-muted-foreground">Connecting interactive map modules...</p>
                                     <div className="flex gap-2 mt-4">
-                                        <Badge variant="outline" className="bg-white/50 backdrop-blur-sm text-slate-600 font-bold">US</Badge>
-                                        <Badge variant="outline" className="bg-white/50 backdrop-blur-sm text-slate-600 font-bold">EU</Badge>
-                                        <Badge variant="outline" className="bg-white/50 backdrop-blur-sm text-slate-600 font-bold">APAC</Badge>
+                                        <Badge variant="outline" className="bg-card/50 backdrop-blur-sm text-muted-foreground font-bold">US</Badge>
+                                        <Badge variant="outline" className="bg-card/50 backdrop-blur-sm text-muted-foreground font-bold">EU</Badge>
+                                        <Badge variant="outline" className="bg-card/50 backdrop-blur-sm text-muted-foreground font-bold">APAC</Badge>
                                     </div>
                                 </div>
                             </div>
@@ -523,7 +679,7 @@ export default function VendorDashboard() {
                 footer={
                     <div className="flex justify-end gap-2 w-full">
                         <Button variant="outline" onClick={() => setIsOutreachOpen(false)} disabled={isSending}>Cancel</Button>
-                        <Button onClick={handleSendOutreach} disabled={isSending} className="bg-red-600 hover:bg-red-700 text-white">
+                        <Button onClick={handleSendOutreach} disabled={isSending} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                             {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isSending ? "Processing..." : "Communicate & Log Risk"}
                         </Button>
@@ -531,39 +687,39 @@ export default function VendorDashboard() {
                 }
             >
                 <div className="grid gap-6 py-4">
-                    <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg space-y-4 shadow-inner">
+                    <div className="bg-muted p-4 border border-border rounded-lg space-y-4 shadow-inner">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase">To Address</label>
+                            <label className="text-xs font-bold text-muted-foreground uppercase">To Address</label>
                             <Input
                                 value={emailTo}
                                 onChange={(e) => setEmailTo(e.target.value)}
-                                className="font-mono text-sm bg-white"
+                                className="font-mono text-sm bg-background"
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Subject</label>
+                            <label className="text-xs font-bold text-muted-foreground uppercase">Subject</label>
                             <Input
                                 value={emailSubject}
                                 onChange={(e) => setEmailSubject(e.target.value)}
-                                className="bg-white font-medium shadow-sm border-slate-300"
+                                className="bg-background font-medium shadow-sm border-input"
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Body</label>
+                            <label className="text-xs font-bold text-muted-foreground uppercase">Body</label>
                             <Textarea
                                 value={emailContent}
                                 onChange={(e) => setEmailContent(e.target.value)}
-                                className="h-44 text-sm font-mono leading-relaxed bg-white shadow-sm border-slate-300 resize-none"
+                                className="h-44 text-sm font-mono leading-relaxed bg-background shadow-sm border-input resize-none"
                             />
                         </div>
                     </div>
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-start gap-4 shadow-sm">
-                        <div className="p-2 bg-amber-100 rounded-full">
-                            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                    <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20 flex items-start gap-4 shadow-sm">
+                        <div className="p-2 bg-amber-500/10 rounded-full">
+                            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                         </div>
                         <div>
-                            <h4 className="text-amber-900 font-black text-sm uppercase tracking-wide">Risk Automation Context</h4>
-                            <p className="text-amber-700 text-xs mt-1.5 leading-relaxed font-medium">This action will automatically generate a new record in your Risk Register categorized as <span className="font-bold underline">Supply Chain Security Incident</span>. The risk will block closure until the vendor confirms remediation via this communication thread.</p>
+                            <h4 className="text-amber-600 dark:text-amber-400 dark:text-amber-400 font-black text-sm uppercase tracking-wide">Risk Automation Context</h4>
+                            <p className="text-amber-600 dark:text-amber-400 dark:text-amber-400 text-xs mt-1.5 leading-relaxed font-medium">This action will automatically generate a new record in your Risk Register categorized as <span className="font-bold underline">Supply Chain Security Incident</span>. The risk will block closure until the vendor confirms remediation via this communication thread.</p>
                         </div>
                     </div>
                 </div>

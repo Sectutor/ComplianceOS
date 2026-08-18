@@ -49,9 +49,9 @@ export default function SubprocessorRegister() {
     const SubprocessorTreeItem = ({ item, level = 0 }: { item: any, level?: number }) => {
         const hasChildren = item.children && item.children.length > 0;
         return (
-            <div className="border-l border-slate-200 ml-4 pl-4 py-2">
+            <div className="border-l border-border ml-4 pl-4 py-2">
                 <div className="flex items-center gap-2">
-                    <Layers className={cn("w-4 h-4 text-slate-400", level === 0 ? "text-indigo-500" : "")} />
+                    <Layers className={cn("w-4 h-4 text-muted-foreground", level === 0 ? "text-blue-500" : "")} />
                     <span className="font-medium text-sm">{item.name}</span>
                     {item.dataLocation && <Badge variant="outline" className="text-[10px] h-5">{item.dataLocation}</Badge>}
                 </div>
@@ -120,7 +120,7 @@ export default function SubprocessorRegister() {
                                     {isLoading ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center py-8">
-                                                <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-500" />
+                                                <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" />
                                             </TableCell>
                                         </TableRow>
                                     ) : subprocessors?.length === 0 ? (
@@ -133,7 +133,7 @@ export default function SubprocessorRegister() {
                                         subprocessors?.map((sub: any) => (
                                             <TableRow key={sub.id}>
                                                 <TableCell>
-                                                    <div className="font-medium text-slate-900">{sub.name}</div>
+                                                    <div className="font-medium text-foreground">{sub.name}</div>
                                                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                                                         {sub.website ? <Globe className="w-3 h-3" /> : null}
                                                         {sub.website || "No website"}
@@ -174,7 +174,7 @@ export default function SubprocessorRegister() {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-500/10"
                                                         onClick={() => handleAnalyze(sub.id, sub.website)}
                                                         disabled={analyzingId === sub.id}
                                                     >
@@ -204,15 +204,15 @@ export default function SubprocessorRegister() {
                         <CardContent>
                             {isTreeLoading ? (
                                 <div className="flex justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                                 </div>
                             ) : (
                                 <div className="pl-2">
                                     {treeData?.length === 0 && <div className="text-muted-foreground p-4">No data available for mapping.</div>}
                                     {treeData?.map((node: any) => (
                                         <div key={node.id} className="mb-4">
-                                            <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border border-slate-100 table w-full">
-                                                <div className="h-8 w-8 bg-indigo-100 text-indigo-600 rounded flex items-center justify-center font-bold text-xs shrink-0">
+                                            <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded border border-border table w-full">
+                                                <div className="h-8 w-8 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded flex items-center justify-center font-bold text-xs shrink-0">
                                                     {node.name.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <div>
@@ -222,9 +222,9 @@ export default function SubprocessorRegister() {
                                             </div>
                                             {/* Render Children */}
                                             {(node.children && node.children.length > 0) ? (
-                                                <div className="ml-4 border-l-2 border-indigo-100 pl-4 py-2 space-y-2">
+                                                <div className="ml-4 border-l-2 border-blue-500/20 pl-4 py-2 space-y-2">
                                                     {node.children.map((child: string | any, i: number) => (
-                                                        <div key={i} className="flex items-center gap-2 text-sm text-slate-600 bg-white p-2 rounded border border-slate-100 shadow-sm">
+                                                        <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground bg-card p-2 rounded border border-border shadow-sm">
                                                             <span className="w-2 h-2 rounded-full bg-slate-300" />
                                                             {typeof child === 'string' ? child : child.name}
                                                         </div>

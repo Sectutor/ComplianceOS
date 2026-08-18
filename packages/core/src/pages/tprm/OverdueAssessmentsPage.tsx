@@ -35,7 +35,7 @@ export default function OverdueAssessmentsPage() {
     const getRiskColor = (criticality: string | null) => {
         switch (criticality) {
             case 'High': return 'text-rose-600 bg-rose-50 border-rose-200';
-            case 'Medium': return 'text-amber-600 bg-amber-50 border-amber-200';
+            case 'Medium': return 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20';
             default: return 'text-emerald-600 bg-emerald-50 border-emerald-200';
         }
     };
@@ -44,7 +44,7 @@ export default function OverdueAssessmentsPage() {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+                    <Loader2 className="h-10 w-10 animate-spin text-blue-600 dark:text-blue-400" />
                     <p className="text-muted-foreground">Loading overdue assessments...</p>
                 </div>
             </div>
@@ -99,12 +99,12 @@ export default function OverdueAssessmentsPage() {
                                     <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                                         <div className="space-y-2 flex-1">
                                             <div className="flex items-center gap-2">
-                                                <h3 className="text-lg font-semibold text-slate-900">{assessment.vendorName}</h3>
+                                                <h3 className="text-lg font-semibold text-foreground">{assessment.vendorName}</h3>
                                                 <Badge variant="outline" className={cn("text-xs", getRiskColor(assessment.vendorCriticality))}>
                                                     {assessment.vendorCriticality} Risk
                                                 </Badge>
                                             </div>
-                                            <p className="text-sm font-medium text-slate-700">{assessment.type}</p>
+                                            <p className="text-sm font-medium text-foreground/70">{assessment.type}</p>
                                             <div className="flex items-center gap-2 text-sm text-red-600 font-semibold bg-red-50 w-fit px-2 py-1 rounded">
                                                 <AlertCircle className="w-4 h-4" />
                                                 Overdue by {Math.abs(daysLeft)} days (Due: {format(new Date(assessment.dueDate), 'MMM d, yyyy')})
@@ -112,7 +112,7 @@ export default function OverdueAssessmentsPage() {
                                         </div>
 
                                         <div className="flex flex-col items-end gap-3 min-w-[150px]">
-                                            <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                                            <Badge variant="secondary" className="bg-muted text-muted-foreground">
                                                 Status: {assessment.status}
                                             </Badge>
                                             <Link href={`/clients/${clientId}/vendors/${assessment.vendorId}?tab=assessments`}>

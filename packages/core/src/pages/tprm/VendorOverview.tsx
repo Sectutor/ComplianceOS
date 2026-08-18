@@ -106,8 +106,8 @@ export default function VendorOverview() {
             description: "Manage Data Processing Agreements (DPAs) with vendors processing personal data, ensuring GDPR Article 28 compliance.",
             icon: FileText,
             color: "from-indigo-500 to-blue-400",
-            textColor: "text-indigo-600",
-            bgLight: "bg-indigo-50",
+            textColor: "text-blue-600 dark:text-blue-400",
+            bgLight: "bg-blue-500/10",
             path: `/clients/${clientId}/vendors/dpa-templates`,
             benefits: [
                 "DPA template library",
@@ -123,11 +123,11 @@ export default function VendorOverview() {
             {/* Hero Section */}
             <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-8 md:p-16 text-white shadow-2xl">
                 <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl" />
 
                 <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-6">
-                        <div className="inline-flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full border border-white/20">
+                        <div className="inline-flex items-center space-x-2 bg-sidebar-foreground/10 px-3 py-1 rounded-full border border-sidebar-foreground/20">
                             <Globe className="w-4 h-4 text-purple-400" />
                             <span className="text-xs font-bold uppercase tracking-wider text-purple-100">Third-Party Risk</span>
                         </div>
@@ -137,35 +137,35 @@ export default function VendorOverview() {
                                 Management
                             </span>
                         </h1>
-                        <p className="text-lg text-slate-300 leading-relaxed">
+                        <p className="text-lg text-sidebar-foreground/80 leading-relaxed">
                             Manage your entire vendor ecosystem from discovery to termination. Our TPRM platform helps you assess, monitor, and mitigate third-party risks at scale.
                         </p>
                         <div className="flex flex-wrap gap-4 pt-4">
-                            <div className="flex items-center space-x-2 text-sm text-slate-400">
+                            <div className="flex items-center space-x-2 text-sm text-sidebar-foreground/70">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                 <span>ISO 27001 A.15 Aligned</span>
                             </div>
-                            <div className="flex items-center space-x-2 text-sm text-slate-400">
+                            <div className="flex items-center space-x-2 text-sm text-sidebar-foreground/70">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                 <span>SOC 2 CC9.2 Ready</span>
                             </div>
-                            <div className="flex items-center space-x-2 text-sm text-slate-400">
+                            <div className="flex items-center space-x-2 text-sm text-sidebar-foreground/70">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                 <span>GDPR Article 28</span>
                             </div>
                         </div>
                     </div>
                     <div className="hidden md:flex justify-center relative">
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-3xl rotate-3 hover:rotate-0 transition-transform duration-500">
+                        <div className="bg-sidebar-foreground/5 backdrop-blur-xl border border-sidebar-foreground/10 p-8 rounded-3xl shadow-3xl rotate-3 hover:rotate-0 transition-transform duration-500">
                             <div className="grid grid-cols-2 gap-4">
                                 {[Search, Building2, ShieldAlert, Activity].map((Icon, i) => (
-                                    <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center">
+                                    <div key={i} className="p-4 bg-sidebar-foreground/5 rounded-2xl border border-sidebar-foreground/10 flex items-center justify-center">
                                         <Icon className="w-8 h-8 text-purple-400" />
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl border border-white/10">
-                                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                            <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl border border-sidebar-foreground/10">
+                                <div className="h-2 w-full bg-sidebar-foreground/10 rounded-full overflow-hidden">
                                     <div className="h-full w-3/4 bg-purple-400 rounded-full" />
                                 </div>
                                 <p className="text-[10px] mt-2 text-purple-200 font-mono">VENDOR COVERAGE: 75%</p>
@@ -216,7 +216,7 @@ export default function VendorOverview() {
             </div>
 
             {/* TPRM Lifecycle */}
-            <div className="bg-gradient-to-br from-slate-50 to-purple-50 rounded-3xl p-12 border border-slate-200">
+            <div className="bg-gradient-to-br from-muted to-purple-50 rounded-3xl p-12 border border-border">
                 <div className="text-center space-y-4 mb-12">
                     <h2 className="text-3xl font-extrabold tracking-tight">The Vendor Lifecycle</h2>
                     <p className="text-muted-foreground mx-auto">
@@ -241,15 +241,15 @@ export default function VendorOverview() {
                             <div className={`text-xs font-bold uppercase tracking-wider ${item.color} mb-2`}>
                                 Step {item.step}
                             </div>
-                            <div className="font-bold mb-1 text-slate-900">{item.title}</div>
-                            <div className="text-xs text-slate-600 leading-snug">{item.desc}</div>
+                            <div className="font-bold mb-1 text-foreground">{item.title}</div>
+                            <div className="text-xs text-muted-foreground leading-snug">{item.desc}</div>
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* Why it Matters Section */}
-            <div className="bg-slate-50 rounded-3xl p-12 mt-12 border border-slate-200 border-dashed">
+            <div className="bg-muted rounded-3xl p-12 mt-12 border border-border border-dashed">
                 <div className="text-center space-y-4">
                     <h2 className="text-3xl font-extrabold tracking-tight">Why Vendor Risk Management Matters</h2>
                     <p className="text-muted-foreground">
@@ -258,16 +258,16 @@ export default function VendorOverview() {
                 </div>
                 <div className="grid md:grid-cols-3 gap-8 mt-12 text-center italic">
                     <div className="p-6">
-                        <h3 className="font-bold text-slate-900 not-italic mb-2 text-lg">Prevent Supply Chain Attacks</h3>
-                        <p className="text-slate-500 text-sm">"Our vendor assessment program caught a critical vulnerability before it became the next SolarWinds-scale incident."</p>
+                        <h3 className="font-bold text-foreground not-italic mb-2 text-lg">Prevent Supply Chain Attacks</h3>
+                        <p className="text-muted-foreground text-sm">"Our vendor assessment program caught a critical vulnerability before it became the next SolarWinds-scale incident."</p>
                     </div>
-                    <div className="p-6 border-x border-slate-200">
-                        <h3 className="font-bold text-slate-900 not-italic mb-2 text-lg">Meet Compliance</h3>
-                        <p className="text-slate-500 text-sm">"ISO 27001 Annex A.15 and SOC 2 CC9.2 both require vendor risk management. Our TPRM program satisfied both."</p>
+                    <div className="p-6 border-x border-border">
+                        <h3 className="font-bold text-foreground not-italic mb-2 text-lg">Meet Compliance</h3>
+                        <p className="text-muted-foreground text-sm">"ISO 27001 Annex A.15 and SOC 2 CC9.2 both require vendor risk management. Our TPRM program satisfied both."</p>
                     </div>
                     <div className="p-6">
-                        <h3 className="font-bold text-slate-900 not-italic mb-2 text-lg">Build Trust</h3>
-                        <p className="text-slate-500 text-sm">"Enterprise customers now ask for our vendor risk reports during procurement. It's a competitive differentiator."</p>
+                        <h3 className="font-bold text-foreground not-italic mb-2 text-lg">Build Trust</h3>
+                        <p className="text-muted-foreground text-sm">"Enterprise customers now ask for our vendor risk reports during procurement. It's a competitive differentiator."</p>
                     </div>
                 </div>
             </div>

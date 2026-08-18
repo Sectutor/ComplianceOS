@@ -30,6 +30,28 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import { PageGuide } from "@/components/PageGuide";
+import { useVendorRiskOverviewQuery } from "./vendorRiskApi";
+import type { VendorRiskResult } from "./vendorRiskApi";
+
+/** Badge variant per TPRM tier (Tier 1 → error, Tier 2 → warning, Tier 3 → success). */
+function tierBadgeVariant(tier: string): "success" | "warning" | "error" | "info" {
+    if (tier === "Tier 1 (Critical)") return "error";
+    if (tier === "Tier 2 (High)") return "warning";
+    if (tier === "Tier 3 (Medium)") return "success";
+    return "info";
+}
+
+/** Short date + "due in N days" / "overdue by N days" for the next review. */
+function formatNextReview(iso: string): string {
+    const due = new Date(iso);
+    if (isNaN(due.getTime())) return "—";
+    const base = due.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+    if (days < 0) return `${base} (overdue ${Math.abs(days)}d)`;
+    if (days === 0) return `${base} (due today)`;
+    if (days <= 30) return `${base} (due in ${days}d)`;
+    return base;
+}
 
 interface VendorListProps {
     mode?: 'all' | 'discovery' | 'reviews';
@@ -83,6 +105,9 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
     }, { enabled: !!clientId });
 
     const { data: requests, refetch: refetchRequests } = trpc.vendorRequests.list.useQuery({ clientId }, { enabled: !!clientId });
+
+    // Per-vendor risk register (vendorRisk.getOverview) — degrades to dash when unavailable
+    const { data: riskOverview, isLoading: isRiskLoading, isError: isRiskError } = useVendorRiskOverviewQuery(clientId);
 
     // --- Mutations ---
     const createMutation = trpc.vendors.createVendor.useMutation({
@@ -180,6 +205,35 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
             (v.description && v.description.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     });
+
+    // Map vendorId → risk record (single overview query, no per-row queries)
+    const riskByVendor = useMemo(() => {
+        const map = new Map<number, VendorRiskResult>();
+        riskOverview?.vendors?.forEach((r) => map.set(r.vendorId, r));
+        return map;
+    }, [riskOverview]);
+
+    /** Compact RISK TIER cell: Skeleton while loading, dash on error/empty, badge + next review otherwise. */
+    const renderRiskTierCell = (vendorId: number) => {
+        if (isRiskLoading) {
+            return (
+                <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                </div>
+            );
+        }
+        const risk = isRiskError ? undefined : riskByVendor.get(vendorId);
+        if (!risk) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+        }
+        return (
+            <div className="flex flex-col gap-1">
+                <StatusBadge status={tierBadgeVariant(risk.tier)} label={risk.tier} size="sm" />
+                <span className="text-xs text-muted-foreground">{formatNextReview(risk.nextReviewDate)}</span>
+            </div>
+        );
+    };
 
     const getPageTitle = () => {
         switch (mode) {
@@ -345,6 +399,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                         <TableHead className="text-white font-bold h-12">Trust Score</TableHead>
                                         <TableHead className="text-white font-bold h-12">Risk Level</TableHead>
                                         <TableHead className="text-white font-bold h-12">Status</TableHead>
+                                        <TableHead className="text-white font-bold h-12">Risk Tier</TableHead>
                                         <TableHead className="text-white font-bold h-12">Source</TableHead>
                                         <TableHead className="text-right text-white font-bold h-12">Actions</TableHead>
                                     </TableRow>
@@ -352,7 +407,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                 <TableBody>
                                     {filteredVendors?.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center">
+                                            <TableCell colSpan={8} className="h-24 text-center">
                                                 No vendors found matching criteria.
                                             </TableCell>
                                         </TableRow>
@@ -410,6 +465,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                     {vendor.reviewStatus === 'needs_review' ? 'Review Needed' : vendor.status}
                                                 </div>
                                             </TableCell>
+                                            <TableCell>{renderRiskTierCell(vendor.id)}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                                     {vendor.source === 'SSO' ? <ShieldAlert className="w-3.5 h-3.5 text-blue-500" /> : <FileText className="w-3.5 h-3.5" />}
@@ -477,7 +533,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-lg">{req.name}</h3>
                                                 <Badge variant="outline" className={
-                                                    req.status === 'pending' ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                                    req.status === 'pending' ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
                                                         req.status === 'approved' ? "bg-green-50 text-green-700 border-green-200" :
                                                             "bg-destructive/10 text-destructive border-destructive/20"
                                                 }>
@@ -516,7 +572,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                             }}>
                                                 Reject
                                             </Button>
-                                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => {
+                                            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => {
                                                 if (confirm(`Approve request for ${req.name}? This will create a new Vendor record.`)) {
                                                     approveRequestMutation.mutate({ id: req.id, clientId });
                                                 }

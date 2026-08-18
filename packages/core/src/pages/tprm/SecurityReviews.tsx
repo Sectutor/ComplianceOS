@@ -22,10 +22,10 @@ const COLUMN_COLORS = {
     'Planned': {
         headerBg: 'bg-slate-600',
         headerText: 'text-white',
-        columnBg: 'bg-slate-50',
-        border: 'border-slate-200',
-        dot: 'bg-slate-500',
-        badge: 'bg-slate-100 text-slate-700',
+        columnBg: 'bg-muted',
+        border: 'border-border',
+        dot: 'bg-muted0',
+        badge: 'bg-muted text-foreground/70',
         accent: '#64748b',
     },
     'Sent': {
@@ -41,7 +41,7 @@ const COLUMN_COLORS = {
         headerBg: 'bg-amber-500',
         headerText: 'text-white',
         columnBg: 'bg-amber-50/70',
-        border: 'border-amber-200',
+        border: 'border-amber-500/20',
         dot: 'bg-amber-500',
         badge: 'bg-amber-100 text-amber-700',
         accent: '#d97706',
@@ -68,19 +68,19 @@ const COLUMN_COLORS = {
 
 const getStatusColor = (status: string) => {
     switch (status) {
-        case 'Planned': return 'bg-slate-100 text-slate-600';
+        case 'Planned': return 'bg-muted text-muted-foreground';
         case 'Sent': return 'bg-blue-50 text-blue-600';
         case 'In Progress': return 'bg-amber-50 text-amber-600';
         case 'In Review': return 'bg-purple-50 text-purple-600';
         case 'Completed': return 'bg-emerald-50 text-emerald-600';
-        default: return 'bg-slate-100 text-slate-600';
+        default: return 'bg-muted text-muted-foreground';
     }
 };
 
 const getRiskColor = (criticality: string | null) => {
     switch (criticality) {
         case 'High': return 'text-rose-600 bg-rose-50 border-rose-200';
-        case 'Medium': return 'text-amber-600 bg-amber-50 border-amber-200';
+        case 'Medium': return 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20';
         default: return 'text-emerald-600 bg-emerald-50 border-emerald-200';
     }
 };
@@ -187,13 +187,13 @@ export default function SecurityReviews() {
                     isDragging && "opacity-50"
                 )}
             >
-                <Card className="hover:shadow-md border-l-4 bg-white" style={{
+                <Card className="hover:shadow-md border-l-4 bg-card" style={{
                     borderLeftColor: assessment.vendorCriticality === 'High' ? '#e11d48' : assessment.vendorCriticality === 'Medium' ? '#d97706' : (COLUMN_COLORS[columnStatus as AssessmentStatus]?.accent || '#10b981')
                 }}>
                     <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-start">
                             <div className="flex items-start gap-2">
-                                <GripVertical className="w-4 h-4 text-slate-300 mt-1 flex-shrink-0" />
+                                <GripVertical className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
                                 <div>
                                     <div className="font-semibold text-sm line-clamp-1" title={assessment.vendorName}>
                                         {assessment.vendorName}
@@ -232,7 +232,7 @@ export default function SecurityReviews() {
                         </div>
 
                         {assessment.dueDate && (
-                            <div className={cn("flex items-center gap-1.5 text-xs", isOverdue ? "text-rose-600 font-medium" : "text-slate-500")}>
+                            <div className={cn("flex items-center gap-1.5 text-xs", isOverdue ? "text-rose-600 font-medium" : "text-muted-foreground")}>
                                 {isOverdue ? <AlertCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                                 {isOverdue ? `${Math.abs(daysLeft!)} days overdue` : `${daysLeft} days left`}
                             </div>
@@ -244,7 +244,7 @@ export default function SecurityReviews() {
                                 <div className="w-5 h-5 rounded-full bg-purple-100 border border-white flex items-center justify-center text-[8px] text-purple-700 font-bold">ME</div>
                             </div>
                             <Link href={`/clients/${clientId}/vendors/${assessment.vendorId}?tab=assessments`}>
-                                <ArrowRight className="w-3.5 h-3.5 hover:text-indigo-600 cursor-pointer" />
+                                <ArrowRight className="w-3.5 h-3.5 hover:text-blue-600 dark:text-blue-400 cursor-pointer" />
                             </Link>
                         </div>
                     </CardContent>
@@ -287,8 +287,8 @@ export default function SecurityReviews() {
     };
 
     return (
-        <div className="h-[calc(100vh-64px)] flex flex-col animate-in fade-in duration-500 bg-slate-50">
-            <div className="bg-white border-b px-6 py-4 shadow-sm">
+        <div className="h-[calc(100vh-64px)] flex flex-col animate-in fade-in duration-500 bg-muted">
+            <div className="bg-card border-b px-6 py-4 shadow-sm">
                 <div className="flex justify-between items-center">
                     <div>
                         <PageGuide
@@ -323,7 +323,7 @@ export default function SecurityReviews() {
                                 {
                                     title: "Annual Vendor Re-assessment",
                                     example: "A high-criticality vendor's SOC2 report has expired. You need to schedule a new SIG questionnaire.",
-                                    auditTip: "Auditors look for 'Review Closure'—ensure that any 'In Review' items have detailed notes before moving to 'Completed'."
+                                    auditTip: "Auditors look for 'Review Closure'â€”ensure that any 'In Review' items have detailed notes before moving to 'Completed'."
                                 },
                                 {
                                     title: "Handling Obstructed Reviews",
@@ -361,18 +361,18 @@ export default function SecurityReviews() {
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search assessments by vendor or type..."
-                            className="pl-9 bg-slate-50 border-slate-200"
+                            className="pl-9 bg-muted border-border"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Button variant="outline" className="border-slate-200"><Filter className="w-4 h-4 mr-2" /> Filter</Button>
+                    <Button variant="outline" className="border-border"><Filter className="w-4 h-4 mr-2" /> Filter</Button>
                 </div>
             </div>
 
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
-                    <Loader2 className="animate-spin h-8 w-8 text-indigo-600" />
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
             ) : (
                 <div className="flex-1 overflow-x-auto overflow-y-hidden">
@@ -381,8 +381,8 @@ export default function SecurityReviews() {
                             <div
                                 key={status}
                                 id={`column-${status}`}
-                                className={`flex-1 min-w-[280px] flex flex-col rounded-lg border ${COLUMN_COLORS[status].border} shadow-sm transition-all ${dragOverColumn === status ? 'ring-2 ring-indigo-400 ring-offset-2 bg-indigo-50' : ''}`}
-                                style={{ backgroundColor: status === 'Planned' ? '#f8fafc' : status === 'Sent' ? '#eff6ff' : status === 'In Progress' ? '#fffbeb' : status === 'In Review' ? '#f5f3ff' : '#ecfdf5' }}
+                                className={`flex-1 min-w-[280px] flex flex-col rounded-lg border ${COLUMN_COLORS[status].border} shadow-sm transition-all ${dragOverColumn === status ? 'ring-2 ring-blue-400 ring-offset-2 bg-blue-500/10' : ''}`}
+                                style={{ backgroundColor: `color-mix(in oklab, ${COLUMN_COLORS[status].accent} 6%, transparent)` }}
                                 onDragOver={(e) => handleDragOver(e, status)}
                                 onDragLeave={() => setDragOverColumn(null)}
                                 onDrop={(e) => handleDrop(e, status)}
@@ -399,10 +399,10 @@ export default function SecurityReviews() {
                                 <div className="p-3 overflow-y-auto flex-1 custom-scrollbar">
                                     {getColumnAssessments(status).map((assessment: any) => renderAssessmentCard(assessment, status))}
                                     {getColumnAssessments(status).length === 0 && (
-                                        <div className="text-center py-8 text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-white/50">
+                                        <div className="text-center py-8 text-xs text-muted-foreground border-2 border-dashed border-border rounded-lg bg-card/50">
                                             <div className="flex flex-col items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                                                    <CheckCircle2 className="w-4 h-4 text-slate-300" />
+                                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                                                 </div>
                                                 Drop here
                                             </div>

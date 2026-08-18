@@ -107,7 +107,7 @@ import { accessReviewRouter } from "./server/routers/accessReview";
 import { policyGeneratorRouter } from "./server/routers/policyGenerator";
 import { gapAnalysisEngineRouter } from "./server/routers/gapAnalysisEngine";
 import { privacySovereigntyRouter } from "./server/routers/privacySovereignty";
-import { vendorRiskRouter } from "./server/routers/vendorRisk";
+import { createVendorRiskRouter } from "./server/routers/vendorRisk";
 import { evidenceSentinelRouter } from "./server/routers/evidenceSentinel";
 import { auditorFindingRouter } from "./server/routers/auditorFinding";
 import { peerBenchmarkRouter } from "./server/routers/peerBenchmark";
@@ -285,7 +285,7 @@ export const appRouter = router({
   policyGenerator: policyGeneratorRouter,
   gapAnalysisEngine: gapAnalysisEngineRouter,
   privacySovereignty: privacySovereigntyRouter,
-  vendorRisk: vendorRiskRouter,
+  vendorRisk: createVendorRiskRouter(t, clientProcedure),
   evidenceSentinel: evidenceSentinelRouter,
   auditorFinding: auditorFindingRouter,
   peerBenchmark: peerBenchmarkRouter,
