@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 11 - TPRM per-vendor risk tiering (scorecard #5 done) (2026-08-18)
+- Backend lib/vendor/vendorRisk.ts: pure, deterministic per-vendor risk engine - inherent risk by data-access class (PII/ePHI/Infrastructure -> critical), residual score 0-100 (higher = safer) from SOC2 attestation / latest threat-intel scan / open high-critical assessments / contract / DPA / subprocessor signals, Tier 1 (Critical) / Tier 2 (High) / Tier 3 (Medium) mapping at <50/<75, quarterly/semi-annual/annual review cadence + next-review date (injectable clock), 3-5 recommended actions, portfolio overview (tier counts, avg residual score, due-for-review list).
+- tRPC vendorRisk router (getOverview / getVendorRisk): client-scoped queries over vendors, scans, assessments, contracts, DPAs (schema-verified); latest-scan selection ignores rows without a risk score (no broken-scan shadowing); Draft contracts no longer count as active; NEVER throws on read - DB failure returns an empty overview; unknown vendor -> NOT_FOUND.
+- UI: vendorRiskApi.ts contract layer (UI-STANDARD sec 16); VendorDashboard risk overview (tier stat cards, residual score bars, next-review due list); VendorList per-vendor "Risk Tier" column (tier badge + next-review date, Skeleton while loading, dash on error/empty); VendorDetails "Vendor Risk" card (residual score bar, tier badge, review frequency, next review, recommended actions, EmptyState degradation); token-only dark-mode polish across TPRM pages (VendorOverview/GlobalVendorCatalog/SecurityReviews/SubprocessorRegister/TPRMLayout/DPA empty states).
+- Tests: 87 new (54 engine boundaries/signals/overview + 24 lib + 9 router contract w/ mocked db) - 666 -> 753 (46 files), all green; tsc 0 new errors in touched files (0 in all new files).
+
 ### Cycle 9 - Enterprise SSO (OIDC + reverse-proxy header auth) (scorecard #13) (2026-08-18)
 - Backend lib/sso/oidc.ts: OIDC discovery, authorization-code URL builder, token exchange, RS256 ID-token verification against the IdP JWKS (issuer/audience/exp/iat/nonce checks, node crypto), claim mapping with configurable role claim, single-flight 10-minute state store. All network access injectable-fetch for tests.
 - Backend lib/sso/proxy-auth.ts: reverse-proxy header SSO (Traefik/Nginx/Authentik style) - case-insensitive header lookup on configurable principal/email headers, namespaced openId (sso_proxy:<email>).
