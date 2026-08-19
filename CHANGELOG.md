@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Cycle 14 - AI compliance copilot productized (scorecard #10 done) (2026-08-19)
+- Backend lib/ai/copilot.ts: pure deterministic copilot engine (zero deps, never throws) - draftPolicyDraft (10 topic templates + generic fallback, framework-specific controls, orgName surfaced in title + scope), suggestEvidenceForControl (evidence catalog with freshness hints, stable fallback), autoMapRequirement (0-100 keyword scoring, ranked matches + bestMatch) over a built-in control KB for SOC 2 / ISO 27001 / NIS2 / GDPR / HIPAA / PCI DSS. Tiered keyword matching (verbatim phrase 1.0 > all-token 0.7 > single-token 0.35) fixes 'access control' -> remote-work template mis-selection.
+- Backend server/routers/aiCopilot.ts: createAiCopilotRouter(t, protectedProcedure, publicProcedure) factory - protected draftPolicy / suggestEvidence / autoMap mutations (zod BAD_REQUEST only throw, no DB access) + public deterministic status probe; wired as `aiCopilot:` in routers.ts.
+- UI: pages/aiCopilotApi.ts typed contract layer (UI-STANDARD sec.16 cast pattern, retry:false hooks, EMPTY_AI_COPILOT_STATUS); AgentPage "Compliance copilot" quick-actions (draft policy / suggest evidence / auto-map cards, token-only, Skeleton loading + EmptyState degradation when endpoint not live).
+- QA: +33 tests (22 engine unit incl. framework-distinct controls, determinism, no-throw; 11 router contract incl. zod BAD_REQUEST + no-DB status) - suite 859 -> 892 (54 files), all green; tsc 0 new errors in touched files (routers.ts 55 = 55 vs HEAD); smoke green.
+- Cycle-13 follow-up committed: AuditManager converted to auditApi contract layer; trustCenter registered with publicProcedure (public posture page semantics, matches createTrustCenterRouter signature).
+
 ### Cycle 13 - Trust center + audit management parity (scorecard #8/#9 done) (2026-08-19)
 - Backend server/routers/trustCenter.ts: hardened all public procedures with graceful DB degradation (never throw on DB failure - neutral/empty shapes); new public `getPosture` procedure (client profile + latest complianceSnapshot score/status Strong/Developing/At Risk/No Data + implemented/total controls + trust documents; empty neutral shape on DB failure/unknown client); competitor block preserved.
 - Backend lib/reporting/auditPackageGenerator.ts: extracted pure helpers (computePassRate, buildControlsCsv, buildAuditManifestJson) + structured AuditPackageError (DB_UNAVAILABLE/CLIENT_NOT_FOUND/GENERATION_FAILED); server/routers/auditPackage.ts translates to TRPCError (NOT_FOUND/INTERNAL_SERVER_ERROR).
