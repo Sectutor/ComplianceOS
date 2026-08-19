@@ -8,6 +8,7 @@ import { Activity, ShieldCheck, AlertCircle, Clock, Search, Bell, Zap, ArrowUpRi
 import { trpc } from "@/lib/trpc";
 import { useClientContext } from "@/contexts/ClientContext";
 import { Link } from "wouter";
+import { SecurityMetricsPanels } from "@/pages/cyber/SecurityMetricsPanels";
 
 export default function CyberMonitoring() {
     const { selectedClientId } = useClientContext();
@@ -231,6 +232,11 @@ export default function CyberMonitoring() {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* NIS2 Security Metrics & Reporting - Phase 4 Task 4.2 / ENISA Measure 7.1 */}
+                <div className="pt-8">
+                    <SecurityMetricsPanels clientId={selectedClientId ?? 0} />
+                </div>
             </div>
         </DashboardLayout>
     );

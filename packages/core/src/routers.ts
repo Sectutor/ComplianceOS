@@ -180,6 +180,7 @@ import { createIncidentTimelineRouter } from "./server/routers/incidentTimeline"
 import { createSupplyChainRouter } from "./server/routers/supplyChain";
 import { createThirdPartyRiskRouter } from "./server/routers/thirdPartyRisk";
 import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgmt";
+import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
@@ -369,6 +370,7 @@ export const appRouter = router({
   aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure),
   incidentClassifier: createIncidentClassifierRouter(t, protectedProcedure),
   incidentTimeline: createIncidentTimelineRouter(t, protectedProcedure),
+  securityMetrics: createSecurityMetricsRouter(t, protectedProcedure),
   supplyChain: createSupplyChainRouter(t, protectedProcedure),
   thirdPartyRisk: createThirdPartyRiskRouter(t, protectedProcedure),
   vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
