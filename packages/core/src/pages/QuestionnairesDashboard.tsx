@@ -44,8 +44,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
+import {
+  useQuestionnaireScore,
+  getReadinessMeta,
+  ScoreBadge,
+  ScoreProgress,
+  type QuestionnaireScoreResponse,
+} from "./questionnaires/questionnaireApi.tsx";
 
 type Direction = "inbound" | "outbound";
+
+/** Per-row readiness score cell (isolated so hooks stay out of the map loop). */
+function QuestionnaireScoreCell({ questionnaireId }: { questionnaireId: number }) {
+  const { data, isLoading, isError } = useQuestionnaireScore(questionnaireId);
+  if (isLoading) {
+    return <div className="h-5 w-20 bg-muted animate-pulse rounded-full" aria-label="Loading score" />;
+  }
+  const scoreResult = data as QuestionnaireScoreResponse | null | undefined;
+  if (isError || !scoreResult?.score) {
+    return <span className="text-muted-foreground text-sm">—</span>;
+  }
+  const meta = getReadinessMeta(scoreResult.score.readiness);
+  return (
+    <div className="flex flex-col gap-1.5 min-w-[120px]">
+      <ScoreBadge score={scoreResult.score.complianceScore} readiness={scoreResult.score.readiness} tone={meta.tone} />
+      <ScoreProgress value={scoreResult.score.complianceScore} tone={meta.tone} className="max-w-[110px]" />
+    </div>
+  );
+}
 
 export default function QuestionnairesDashboard() {
   const { id } = useParams<{ id: string }>();
@@ -124,12 +150,13 @@ export default function QuestionnairesDashboard() {
   );
 
   const questionnaireTable = (
-    <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white" id="quest-table-list">
+    <div className="rounded-xl border border-border shadow-sm overflow-hidden bg-card" id="quest-table-list">
       <Table>
         <TableHeader>
           <TableRow className="bg-brand hover:bg-brand border-none">
             <TableHead className="text-white font-semibold py-4">Questionnaire</TableHead>
             <TableHead className="text-white font-semibold py-4">Progress</TableHead>
+            <TableHead className="text-white font-semibold py-4">Score</TableHead>
             <TableHead className="text-white font-semibold py-4">Status</TableHead>
             <TableHead className="text-white font-semibold py-4">
               {direction === "inbound" ? "Sender" : "Vendor / Recipient"}
@@ -144,28 +171,31 @@ export default function QuestionnairesDashboard() {
             <TableRow
               key={q.id}
               onClick={() => setLocation(`/clients/${clientId}/questionnaires/${q.id}`)}
-              className="cursor-pointer hover:bg-muted/30 transition-colors border-slate-100"
+              className="cursor-pointer hover:bg-muted/30 transition-colors border-border"
             >
               <TableCell className="font-medium">
                 <div className="font-semibold">{q.name}</div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <div className="w-full max-w-[100px] bg-slate-100 rounded-full h-2.5">
+                  <div className="w-full max-w-[100px] bg-muted rounded-full h-2.5">
                     <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${q.progress}%` }} />
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{q.progress ?? 0}%</span>
                 </div>
               </TableCell>
               <TableCell>
+                <QuestionnaireScoreCell questionnaireId={q.id} />
+              </TableCell>
+              <TableCell>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                  q.status === "completed" ? "bg-emerald-100 text-emerald-700" :
+                  q.status === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400" :
                   q.status === "in_progress" ? "bg-brand-bright/10 text-brand" :
-                  "bg-slate-100 text-slate-600"
+                  "bg-muted text-muted-foreground"
                 }`}>
                   {q.status === "completed" && <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />}
                   {q.status === "in_progress" && <div className="w-2 h-2 rounded-full bg-brand-bright mr-2" />}
-                  {q.status === "open" && <div className="w-2 h-2 rounded-full bg-slate-400 mr-2" />}
+                  {q.status === "open" && <div className="w-2 h-2 rounded-full bg-muted-foreground/60 mr-2" />}
                   {q.status?.replace("_", " ").split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                 </span>
               </TableCell>
@@ -184,7 +214,7 @@ export default function QuestionnairesDashboard() {
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Open
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete(q); }}>
+                    <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(q); }}>
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </DropdownMenuItem>
@@ -195,13 +225,13 @@ export default function QuestionnairesDashboard() {
           ))}
           {filteredQuestionnaires?.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="py-16">
+              <TableCell colSpan={8} className="py-16">
                 <div className="flex flex-col items-center justify-center gap-4 text-center">
-                  <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center">
-                    <FileText className="h-8 w-8 text-slate-400" />
+                  <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-700">No questionnaires yet</p>
+                    <p className="font-semibold text-foreground">No questionnaires yet</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {direction === "inbound"
                         ? "Add a security questionnaire you've received to get started."
@@ -251,7 +281,7 @@ export default function QuestionnairesDashboard() {
 
         {/* Direction tabs */}
         <Tabs value={direction} onValueChange={(v) => setDirection(v as Direction)} className="w-full">
-          <TabsList className="mb-6 bg-slate-100 p-1 rounded-xl h-auto gap-1">
+          <TabsList className="mb-6 bg-muted p-1 rounded-xl h-auto gap-1">
             <TabsTrigger
               id="dir-tab-inbound"
               value="inbound"
@@ -317,7 +347,7 @@ export default function QuestionnairesDashboard() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
               onClick={(e) => { e.preventDefault(); confirmDelete(); }}
             >
               Delete Questionnaire

@@ -33,7 +33,118 @@ import {
 import { Label } from "@complianceos/ui/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 
+import {
+  useQuestionnaireAnswersScore,
+  getReadinessMeta,
+  ScoreBadge,
+  ScoreProgress,
+  type QuestionnaireAnswer,
+} from "./questionnaires/questionnaireApi.tsx";
+
 type Step = "upload" | "preview" | "generating" | "review";
+
+/** Live auto-score panel for the review step (per-focus-area breakdown). */
+function AutoScorePanel({ answers }: { answers: any[] }) {
+  const { data, isLoading, isError } = useQuestionnaireAnswersScore(answers as QuestionnaireAnswer[]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" /> Auto-score
+          </CardTitle>
+          <CardDescription>Computing readiness from the answers below…</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-3 w-2/3 bg-muted animate-pulse rounded-full" />
+          <div className="mt-4 space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-4 w-full bg-muted animate-pulse rounded-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const score = data?.score;
+  const summary = data?.summary;
+
+  if (isError || !score || score.total === 0 || score.answered === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" /> Auto-score
+          </CardTitle>
+          <CardDescription>Answer the questions below to see your readiness score.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
+            <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center">
+              <AlertCircle className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              No answers yet — fill in responses and this panel will show an overall readiness score
+              plus a per-control-area breakdown.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const meta = getReadinessMeta(score.readiness);
+  const shownAreas = (score.focusAreas || []).slice(0, 8);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4" /> Auto-score
+        </CardTitle>
+        <CardDescription>
+          {summary?.description || "Readiness computed from the current answers."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col md:flex-row md:items-center gap-6">
+          <div className="flex items-center gap-4">
+            <div className="text-4xl font-bold tabular-nums">{score.complianceScore}%</div>
+            <ScoreBadge score={score.complianceScore} readiness={score.readiness} tone={meta.tone} />
+          </div>
+          <div className="flex-1 min-w-[220px]">
+            <ScoreProgress value={score.complianceScore} tone={meta.tone} className="h-3" />
+            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+              <span>{score.answered} of {score.total} answered</span>
+              <span>{score.completionRate}% complete</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {shownAreas.map((area) => (
+            <div key={area.focusArea} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium w-44 truncate">{area.focusArea}</span>
+                <ScoreProgress value={area.score} tone={meta.tone} className="max-w-[260px]" />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                {area.score}% · {area.answered}/{area.total}
+              </span>
+            </div>
+          ))}
+          {score.focusAreas.length > shownAreas.length && (
+            <p className="text-xs text-muted-foreground">
+              +{score.focusAreas.length - shownAreas.length} more control areas
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function QuestionnaireWorkspace() {
   const params = useParams();
@@ -501,14 +612,14 @@ export default function QuestionnaireWorkspace() {
 
         {/* Step 1: Upload */}
         {currentStep === "upload" && (
-          <Card className="max-w-xl mx-auto border-dashed border-2 hover:border-primary/50 hover:bg-slate-50/50 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+          <Card className="max-w-xl mx-auto border-dashed border-2 hover:border-primary/50 hover:bg-muted/50 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
             <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[300px] space-y-4">
               {isParseComplete ? (
                 <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
-                  <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                  <div className="h-16 w-16 bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
                     <CheckCircle className="h-8 w-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-green-700">Import Completed!</h3>
+                  <h3 className="text-xl font-bold text-green-700 dark:text-green-400">Import Completed!</h3>
                   <p className="text-muted-foreground mt-2">Preparing workspace...</p>
                 </div>
               ) : (
@@ -626,7 +737,9 @@ export default function QuestionnaireWorkspace() {
 
         {/* Step 4: Review Answers */}
         {currentStep === "review" && (
-          <Card>
+          <div className="space-y-6">
+            <AutoScorePanel answers={answers} />
+            <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Review Generated Answers</CardTitle>
@@ -641,24 +754,24 @@ export default function QuestionnaireWorkspace() {
                 )}
                 {/* Show "Send to Vendor" for open/in_progress status */}
                 {(projectData?.status === 'open' || projectData?.status === 'in_progress') && (
-                  <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50" onClick={() => setShowVendorDialog(true)}>
+                  <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50 dark:border-green-500/40 dark:text-green-400 dark:hover:bg-green-500/10" onClick={() => setShowVendorDialog(true)}>
                     <Mail className="mr-2 h-4 w-4" /> Send to Vendor
                   </Button>
                 )}
                 {/* Show "Submit for Review" for vendor_pending status */}
                 {projectData?.status === 'vendor_pending' && (
-                  <Button variant="outline" className="border-amber-600 text-amber-600 hover:bg-amber-50" onClick={handleSubmitForReview} disabled={submitForReviewMutation.isPending}>
+                  <Button variant="outline" className="border-amber-600 text-amber-600 hover:bg-amber-50 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10" onClick={handleSubmitForReview} disabled={submitForReviewMutation.isPending}>
                     {submitForReviewMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
                     Submit for Review
                   </Button>
                 )}
                 {/* Show vendor info if already sent */}
                 {projectData?.status === 'vendor_pending' && projectData?.vendorName && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-                    <Mail className="h-4 w-4 text-amber-600" />
-                    <span className="text-amber-800">Sent to: <strong>{projectData.vendorName}</strong></span>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-500/10 dark:border-amber-500/30 text-sm">
+                    <Mail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <span className="text-amber-800 dark:text-amber-300">Sent to: <strong>{projectData.vendorName}</strong></span>
                     {projectData.vendorLinkExpiresAt && (
-                      <span className="text-amber-600 text-xs">
+                      <span className="text-amber-600 text-xs dark:text-amber-400">
                         (expires {new Date(projectData.vendorLinkExpiresAt).toLocaleDateString()})
                       </span>
                     )}
@@ -741,9 +854,9 @@ export default function QuestionnaireWorkspace() {
                       </TableCell>
                       <TableCell className="align-top">
                         {item.confidence > 0 && (
-                          <Badge className={`${item.confidence > 0.7 ? 'bg-green-100 text-green-700 hover:bg-green-100' :
-                            item.confidence > 0.4 ? 'bg-amber-100 text-amber-700 hover:bg-amber-100' :
-                              'bg-red-100 text-red-700 hover:bg-red-100'
+                          <Badge className={`${item.confidence > 0.7 ? 'bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-500/15 dark:text-green-400' :
+                            item.confidence > 0.4 ? 'bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400' :
+                              'bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400'
                             }`}>
                             {Math.round(item.confidence * 100)}%
                           </Badge>
@@ -755,9 +868,9 @@ export default function QuestionnaireWorkspace() {
                             <Badge variant="outline" className="max-w-[120px] truncate">
                               {s.title || `Source ${idx + 1}`}
                             </Badge>
-                            <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-slate-800 text-white rounded shadow-lg z-50 text-xs pointer-events-none">
+                            <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-popover text-popover-foreground border border-border rounded shadow-lg z-50 text-xs pointer-events-none">
                               <p className="font-semibold mb-1">{s.title}</p>
-                              {s.excerpt && <p className="text-slate-300 line-clamp-3">{s.excerpt}</p>}
+                              {s.excerpt && <p className="text-muted-foreground line-clamp-3">{s.excerpt}</p>}
                             </div>
                           </div>
                         ))}
@@ -793,7 +906,8 @@ export default function QuestionnaireWorkspace() {
                 </TableBody>
               </Table>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         )}
 
         {/* Template Selection Dialog */}
@@ -833,7 +947,7 @@ export default function QuestionnaireWorkspace() {
                         relative p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md
                         ${selectedTemplateId === template.id
                           ? 'border-brand-bright bg-brand-bright/10'
-                          : 'border-gray-200 hover:border-gray-300'
+                          : 'border-border hover:border-foreground/30'
                         }
                       `}
                     >
@@ -847,13 +961,13 @@ export default function QuestionnaireWorkspace() {
                           <FileText className="h-5 w-5 text-brand" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                          <p className="text-sm text-gray-500 mt-1">{template.description}</p>
+                          <h3 className="font-semibold text-foreground">{template.name}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
                           <div className="flex items-center gap-3 mt-2">
                             <Badge variant="outline" className="text-xs">
                               {template.framework}
                             </Badge>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-muted-foreground">
                               {template.questionCount} questions
                             </span>
                             <Badge variant="secondary" className="text-xs">
@@ -1020,9 +1134,9 @@ export default function QuestionnaireWorkspace() {
                 />
               </div>
               {projectData?.vendorLinkExpiresAt && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-                  <p className="font-medium text-amber-800">Link already sent</p>
-                  <p className="text-amber-600">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-500/10 dark:border-amber-500/30 text-sm">
+                  <p className="font-medium text-amber-800 dark:text-amber-300">Link already sent</p>
+                  <p className="text-amber-600 dark:text-amber-400">
                     Expires: {new Date(projectData.vendorLinkExpiresAt).toLocaleDateString()}
                   </p>
                 </div>
