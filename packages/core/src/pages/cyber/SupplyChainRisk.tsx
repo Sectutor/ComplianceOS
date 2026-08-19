@@ -7,6 +7,7 @@ import { ArrowLeft, Shield, Network, Zap } from "lucide-react";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { SupplyChainRiskMapper } from "@/components/cyber/SupplyChainRiskMapper";
 import { SupplierSecurityLifecycleSection } from "@/pages/cyber/SupplyChainLifecyclePanels";
+import { ThirdPartyRiskSection } from "@/pages/cyber/ThirdPartyRiskPanels";
 
 export default function SupplyChainRisk() {
     const { selectedClientId } = useClientContext();
@@ -108,6 +109,11 @@ export default function SupplyChainRisk() {
                 {/* NIS2 Supplier Security Lifecycle */}
                 <div className="pt-8">
                     <SupplierSecurityLifecycleSection clientId={selectedClientId ?? 0} />
+                </div>
+
+                {/* NIS2 Third-Party Risk Scoring (Phase 3 Task 3.2) */}
+                <div className="pt-8">
+                    <ThirdPartyRiskSection clientId={selectedClientId ?? 0} />
                 </div>
             </div>
         </DashboardLayout>
