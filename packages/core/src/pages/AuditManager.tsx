@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
-import { trpc } from "@/lib/trpc";
+import { useAuditList, useAuditSchedule, type AuditRecord } from "./auditApi";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Loader2, Calendar, CalendarDays, CheckCircle2, Clock, AlertCircle, FileText, Plus, MoreHorizontal, Search, BarChart3, ClipboardCheck, ShieldCheck, X, UserPlus, Mail, Trash2 } from "lucide-react";
 import { Input } from "@complianceos/ui/ui/input";
@@ -92,32 +92,26 @@ export default function AuditManager() {
     const [newParticipant, setNewParticipant] = useState({ name: "", email: "" });
 
     // Fetch audits from API - falls back to empty array if not implemented yet
-    const { data: auditsData, isLoading, refetch } = trpc.audit.list.useQuery(
-        { clientId },
-        { enabled: !!clientId && clientId > 0 }
-    );
+    const { data: auditsData, isLoading, refetch } = useAuditList(clientId);
 
     // Use API data or empty array (API may not be implemented yet)
-    const audits: Audit[] = auditsData || [];
+    const audits: Audit[] = (auditsData || []).map((a) => ({
+        id: String(a.id),
+        title: a.title || a.framework || "Audit",
+        type: "Internal",
+        scope: a.framework || "",
+        auditor: a.auditorName || a.auditorEmail || "",
+        plannedDate: a.dueDate || "",
+        status: (["planned", "in_progress", "completed", "delayed"] as const).includes(
+            (a.status || "") as Audit["status"]
+        )
+            ? (a.status as Audit["status"])
+            : "planned",
+        findings: 0,
+    }));
 
     // Schedule audit mutation
-    const scheduleAuditMutation = trpc.audit.scheduleAudit.useMutation({
-        onSuccess: (data) => {
-            toast.success("Audit scheduled successfully!");
-            if (data.calendarEvent) {
-                toast.info("Calendar event created");
-            }
-            if (data.invitations.length > 0) {
-                toast.info(`${data.invitations.length} invitation(s) sent`);
-            }
-            setIsScheduleDialogOpen(false);
-            resetForm();
-            refetch();
-        },
-        onError: (error) => {
-            toast.error(`Failed to schedule audit: ${error.message}`);
-        }
-    });
+    const scheduleAuditMutation = useAuditSchedule();
 
     const resetForm = () => {
         setAuditForm({
@@ -139,17 +133,37 @@ export default function AuditManager() {
             return;
         }
 
-        scheduleAuditMutation.mutate({
-            clientId,
-            title: auditForm.title,
-            type: auditForm.type,
-            scope: auditForm.scope || undefined,
-            plannedDate: auditForm.plannedDate,
-            auditorName: auditForm.auditorName || undefined,
-            auditorEmail: auditForm.auditorEmail || undefined,
-            inviteParticipants: participants.length > 0 ? participants : undefined,
-            createCalendarEvent: auditForm.createCalendarEvent
-        });
+        scheduleAuditMutation.mutate(
+            {
+                clientId,
+                title: auditForm.title,
+                type: auditForm.type,
+                scope: auditForm.scope || undefined,
+                plannedDate: auditForm.plannedDate,
+                auditorName: auditForm.auditorName || undefined,
+                auditorEmail: auditForm.auditorEmail || undefined,
+                inviteParticipants: participants.length > 0 ? participants : undefined,
+                createCalendarEvent: auditForm.createCalendarEvent,
+            } as Parameters<typeof scheduleAuditMutation.mutate>[0],
+            {
+                onSuccess: (data) => {
+                    toast.success("Audit scheduled successfully!");
+                    const result = data as AuditRecord & { calendarEvent?: unknown; invitations?: unknown[] };
+                    if (result.calendarEvent) {
+                        toast.info("Calendar event created");
+                    }
+                    if ((result.invitations || []).length > 0) {
+                        toast.info(`${(result.invitations as unknown[]).length} invitation(s) sent`);
+                    }
+                    setIsScheduleDialogOpen(false);
+                    resetForm();
+                    refetch();
+                },
+                onError: (error) => {
+                    toast.error(`Failed to schedule audit: ${error instanceof Error ? error.message : String(error)}`);
+                },
+            }
+        );
     };
 
     const addParticipant = () => {

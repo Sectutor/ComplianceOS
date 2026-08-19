@@ -25,8 +25,29 @@ import {
   ShieldCheck,
   Cpu,
   Settings,
-  Pencil
+  Pencil,
+  Sparkles,
+  FileText,
+  FileSearch,
+  Map,
+  X
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Badge } from "@complianceos/ui/ui/badge";
+import { Button } from "@complianceos/ui/ui/button";
+import { Input } from "@complianceos/ui/ui/input";
+import { Label } from "@complianceos/ui/ui/label";
+import { Skeleton } from "@complianceos/ui/ui/skeleton";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import {
+  useAiCopilotDraftPolicy,
+  useAiCopilotSuggestEvidence,
+  useAiCopilotAutoMap,
+  useAiCopilotStatus,
+  type AiCopilotDraftPolicy,
+  type AiCopilotEvidenceSuggestion,
+  type AiCopilotAutoMapResult,
+} from "../aiCopilotApi";
 import { useAgentChat, ChatMessage } from '../../hooks/useAgentChat';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -851,6 +872,9 @@ export function AgentPage() {
           <div ref={endRef} />
         </div>
 
+
+        {/* Compliance copilot quick actions */}
+        <ComplianceCopilotSection />
         {/* Input */}
         <div className="border-t px-6 py-4 bg-background">
           <div className="flex items-end gap-3 max-w-4xl mx-auto">
@@ -932,4 +956,348 @@ function formatInline(text: string): React.ReactNode {
       return cp;
     });
   });
+}
+// -----------------------------------------------------------------------------
+// Compliance Copilot (cycle 14 - scorecard #10: auto-map / suggest evidence /
+// draft policies). Token-only, UI-STANDARD sec.16 graceful EmptyState pattern.
+// -----------------------------------------------------------------------------
+
+function ComplianceCopilotSection() {
+  const [open, setOpen] = useState(true);
+  const status = useAiCopilotStatus();
+  const live = status.data?.available === true;
+
+  return (
+    <div className="border-t px-6 py-3 bg-background">
+      <div className="flex items-center gap-2 max-w-4xl mx-auto">
+        <button
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-2 text-left"
+        >
+          <Sparkles size={14} className="text-primary" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Compliance copilot
+          </span>
+          {live ? (
+            <Badge variant="info">builtin</Badge>
+          ) : status.isLoading ? (
+            <Badge variant="outline">checking...</Badge>
+          ) : (
+            <Badge variant="outline">awaiting API</Badge>
+          )}
+          {open ? <ChevronDown size={13} className="text-muted-foreground/60" /> : <ChevronRight size={13} className="text-muted-foreground/60" />}
+        </button>
+        <span className="text-[10px] text-muted-foreground/60">
+          Auto-map, evidence suggestions &amp; policy drafts - generated in-app (builtin)
+        </span>
+      </div>
+
+      {open && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 max-w-4xl mx-auto">
+          <DraftPolicyCard />
+          <SuggestEvidenceCard />
+          <AutoMapCard />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CopilotCard({
+  icon: Icon,
+  title,
+  description,
+  expanded,
+  onToggle,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-3.5 flex flex-col gap-2.5">
+      <button onClick={onToggle} className="flex items-start gap-2.5 text-left group">
+        <span className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-muted text-muted-foreground">
+          <Icon size={15} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-semibold text-foreground">{title}</span>
+          <span className="block text-[10px] text-muted-foreground leading-snug">{description}</span>
+        </span>
+        {expanded ? (
+          <ChevronDown size={13} className="shrink-0 mt-0.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+        ) : (
+          <ChevronRight size={13} className="shrink-0 mt-0.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+        )}
+      </button>
+      {expanded && <div className="space-y-2.5">{children}</div>}
+    </div>
+  );
+}
+
+function DraftPolicyCard() {
+  const [expanded, setExpanded] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [framework, setFramework] = useState('');
+  const [result, setResult] = useState<AiCopilotDraftPolicy | null>(null);
+  const mutation = useAiCopilotDraftPolicy();
+
+  const submit = () => {
+    if (!topic.trim() || mutation.isPending) return;
+    setResult(null);
+    mutation.mutate(
+      { topic: topic.trim(), framework: framework.trim() || undefined },
+      { onSuccess: (data) => setResult(data) }
+    );
+  };
+
+  const notLive = mutation.isError && !mutation.isPending;
+
+  return (
+    <CopilotCard
+      icon={FileText}
+      title="Draft policy"
+      description="Generate a policy skeleton from a topic."
+      expanded={expanded}
+      onToggle={() => setExpanded(!expanded)}
+    >
+      {result ? (
+        <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground leading-snug">{result.title}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Review cadence: {result.reviewCadence || '-'}</p>
+            </div>
+            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="shrink-0 text-muted-foreground/60 hover:text-foreground transition-colors">
+              <X size={13} />
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">{result.purpose}</p>
+          {(result.sections ?? []).slice(0, 3).map((s, i) => (
+            <div key={i} className="space-y-0.5">
+              <p className="text-[11px] font-semibold text-foreground">{s.heading}</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">{s.body}</p>
+            </div>
+          ))}
+          {(result.controls ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {(result.controls ?? []).slice(0, 6).map((c) => (
+                <Badge key={c.code} variant="outline" className="text-[9px] px-1.5 py-0">{c.code}</Badge>
+              ))}
+              {(result.controls ?? []).length > 6 && (
+                <span className="text-[9px] text-muted-foreground/70 self-center">+{(result.controls ?? []).length - 6} more</span>
+              )}
+            </div>
+          )}
+          {result.disclaimer && <p className="text-[9px] text-muted-foreground/70 italic">{result.disclaimer}</p>}
+        </div>
+      ) : notLive ? (
+        <EmptyState
+          icon={Sparkles}
+          title="Connect the aiCopilot.draftPolicy API"
+          description="This quick action becomes live once the tRPC procedure is wired into the router."
+          className="p-4"
+        />
+      ) : mutation.isPending ? (
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label htmlFor="copilot-draft-topic" className="text-[10px] font-medium text-muted-foreground">Topic</Label>
+            <Input id="copilot-draft-topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Access control" className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="copilot-draft-framework" className="text-[10px] font-medium text-muted-foreground">Framework (optional)</Label>
+            <Input id="copilot-draft-framework" value={framework} onChange={(e) => setFramework(e.target.value)} placeholder="e.g. SOC 2, ISO 27001" className="h-8 text-xs" />
+          </div>
+          <Button variant="default" size="sm" onClick={submit} disabled={!topic.trim() || mutation.isPending} className="w-full">
+            {mutation.isPending && <Loader size={12} className="animate-spin" />}
+            Draft policy
+          </Button>
+        </div>
+      )}
+    </CopilotCard>
+  );
+}
+
+function SuggestEvidenceCard() {
+  const [expanded, setExpanded] = useState(false);
+  const [controlTitle, setControlTitle] = useState('');
+  const [framework, setFramework] = useState('');
+  const [result, setResult] = useState<AiCopilotEvidenceSuggestion | null>(null);
+  const mutation = useAiCopilotSuggestEvidence();
+
+  const submit = () => {
+    if (!controlTitle.trim() || mutation.isPending) return;
+    setResult(null);
+    mutation.mutate(
+      { controlTitle: controlTitle.trim(), framework: framework.trim() || undefined },
+      { onSuccess: (data) => setResult(data) }
+    );
+  };
+
+  const notLive = mutation.isError && !mutation.isPending;
+
+  return (
+    <CopilotCard
+      icon={FileSearch}
+      title="Suggest evidence"
+      description="Find evidence types for a control."
+      expanded={expanded}
+      onToggle={() => setExpanded(!expanded)}
+    >
+      {result ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {(result.source ?? 'builtin')} suggestions
+            </p>
+            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="text-muted-foreground/60 hover:text-foreground transition-colors">
+              <X size={13} />
+            </button>
+          </div>
+          {(result.evidence ?? []).slice(0, 4).map((item) => (
+            <div key={item.title} className="rounded-lg border border-border bg-muted/40 p-2.5 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-foreground leading-snug">{item.title}</p>
+                <Badge variant="info" className="shrink-0 text-[9px] px-1.5 py-0">{item.type || 'evidence'}</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">{item.description}</p>
+              <p className="text-[9px] text-muted-foreground/70">Freshness: {item.freshness || '-'}</p>
+            </div>
+          ))}
+        </div>
+      ) : notLive ? (
+        <EmptyState
+          icon={Sparkles}
+          title="Connect the aiCopilot.suggestEvidence API"
+          description="This quick action becomes live once the tRPC procedure is wired into the router."
+          className="p-4"
+        />
+      ) : mutation.isPending ? (
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label htmlFor="copilot-evidence-control" className="text-[10px] font-medium text-muted-foreground">Control title</Label>
+            <Input id="copilot-evidence-control" value={controlTitle} onChange={(e) => setControlTitle(e.target.value)} placeholder="e.g. CC6.1 Logical access" className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="copilot-evidence-framework" className="text-[10px] font-medium text-muted-foreground">Framework (optional)</Label>
+            <Input id="copilot-evidence-framework" value={framework} onChange={(e) => setFramework(e.target.value)} placeholder="e.g. SOC 2" className="h-8 text-xs" />
+          </div>
+          <Button variant="default" size="sm" onClick={submit} disabled={!controlTitle.trim() || mutation.isPending} className="w-full">
+            {mutation.isPending && <Loader size={12} className="animate-spin" />}
+            Suggest evidence
+          </Button>
+        </div>
+      )}
+    </CopilotCard>
+  );
+}
+
+function AutoMapCard() {
+  const [expanded, setExpanded] = useState(false);
+  const [requirement, setRequirement] = useState('');
+  const [frameworks, setFrameworks] = useState('');
+  const [result, setResult] = useState<AiCopilotAutoMapResult | null>(null);
+  const mutation = useAiCopilotAutoMap();
+
+  const submit = () => {
+    if (!requirement.trim() || mutation.isPending) return;
+    const list = frameworks.split(',').map((s) => s.trim()).filter(Boolean);
+    setResult(null);
+    mutation.mutate(
+      { requirement: requirement.trim(), frameworks: list.length > 0 ? list : undefined },
+      { onSuccess: (data) => setResult(data) }
+    );
+  };
+
+  const notLive = mutation.isError && !mutation.isPending;
+  const matches = result?.matches ?? [];
+
+  return (
+    <CopilotCard
+      icon={Map}
+      title="Auto-map requirement"
+      description="Map a requirement to framework controls."
+      expanded={expanded}
+      onToggle={() => setExpanded(!expanded)}
+    >
+      {result ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {matches.length} match{matches.length === 1 ? '' : 'es'}
+            </p>
+            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="text-muted-foreground/60 hover:text-foreground transition-colors">
+              <X size={13} />
+            </button>
+          </div>
+          {result.bestMatch && (
+            <div className="rounded-lg border border-border bg-muted/40 p-2.5 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-foreground leading-snug">{result.bestMatch.framework} | {result.bestMatch.controlId}</p>
+                <Badge variant="success" className="shrink-0 text-[9px] px-1.5 py-0">{formatCopilotScore(result.bestMatch.score)}</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">{result.bestMatch.controlTitle}</p>
+              <p className="text-[9px] text-muted-foreground/70">{result.bestMatch.rationale}</p>
+            </div>
+          )}
+          {matches.slice(0, 3).map((m) => (
+            <div key={`${m.framework}-${m.controlId}`} className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-2.5 py-1.5">
+              <p className="text-[10px] text-foreground truncate">{m.framework} | {m.controlId} | {m.controlTitle}</p>
+              <Badge variant="outline" className="shrink-0 text-[9px] px-1.5 py-0">{formatCopilotScore(m.score)}</Badge>
+            </div>
+          ))}
+        </div>
+      ) : notLive ? (
+        <EmptyState
+          icon={Sparkles}
+          title="Connect the aiCopilot.autoMap API"
+          description="This quick action becomes live once the tRPC procedure is wired into the router."
+          className="p-4"
+        />
+      ) : mutation.isPending ? (
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label htmlFor="copilot-map-requirement" className="text-[10px] font-medium text-muted-foreground">Requirement</Label>
+            <Input id="copilot-map-requirement" value={requirement} onChange={(e) => setRequirement(e.target.value)} placeholder="e.g. Encrypt data at rest" className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="copilot-map-frameworks" className="text-[10px] font-medium text-muted-foreground">Frameworks (optional, comma-separated)</Label>
+            <Input id="copilot-map-frameworks" value={frameworks} onChange={(e) => setFrameworks(e.target.value)} placeholder="e.g. SOC 2, ISO 27001" className="h-8 text-xs" />
+          </div>
+          <Button variant="default" size="sm" onClick={submit} disabled={!requirement.trim() || mutation.isPending} className="w-full">
+            {mutation.isPending && <Loader size={12} className="animate-spin" />}
+            Auto-map
+          </Button>
+        </div>
+      )}
+    </CopilotCard>
+  );
+}
+
+function formatCopilotScore(score?: number): string {
+  if (typeof score !== 'number' || Number.isNaN(score)) return '-';
+  if (score <= 1) return `${Math.round(score * 100)}%`;
+  return `${Math.round(score)}%`;
 }

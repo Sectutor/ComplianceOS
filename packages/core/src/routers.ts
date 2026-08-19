@@ -174,6 +174,7 @@ import { createSettingsRouter } from "./server/routers/settings";
 import { createRiskGameRouter } from "./server/routers/riskGame";
 import { pluginRouter } from "./server/routers/plugins";
 import { createLlmRouter } from "./server/routers/llm";
+import { createAiCopilotRouter } from "./server/routers/aiCopilot";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
@@ -358,8 +359,9 @@ export const appRouter = router({
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed, adminProcedure),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
-  trustCenter: createTrustCenterRouter(t, premiumClientProcedure, protectedProcedure),
+  trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
   llm: createLlmRouter(t, premiumClientProcedure, isAuthed, adminProcedure),
+  aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 
