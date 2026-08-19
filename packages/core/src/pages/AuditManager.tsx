@@ -66,8 +66,8 @@ export default function AuditManager() {
             <DashboardLayout>
                 <div className="flex items-center justify-center h-96">
                     <div className="text-center">
-                        <p className="text-red-500 text-lg font-medium">Invalid client ID</p>
-                        <p className="text-slate-500 mt-2">Please select a valid client from the dashboard.</p>
+                        <p className="text-red-500 dark:text-red-400 dark:text-red-300 text-lg font-medium">Invalid client ID</p>
+                        <p className="text-muted-foreground mt-2">Please select a valid client from the dashboard.</p>
                     </div>
                 </div>
             </DashboardLayout>
@@ -175,7 +175,7 @@ export default function AuditManager() {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-96">
-                    <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary-cta" />
                 </div>
             </DashboardLayout>
         );
@@ -184,11 +184,11 @@ export default function AuditManager() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "completed":
-                return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">Completed</Badge>;
+                return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 dark:text-emerald-300 border-emerald-200">Completed</Badge>;
             case "in_progress":
-                return <Badge className="bg-blue-50 text-blue-700 border-blue-200 animate-pulse">In Progress</Badge>;
+                return <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 animate-pulse">In Progress</Badge>;
             case "planned":
-                return <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50">Planned</Badge>;
+                return <Badge variant="outline" className="text-muted-foreground border-border bg-muted">Planned</Badge>;
             case "delayed":
                 return <Badge className="bg-rose-50 text-rose-700 border-rose-200">Delayed</Badge>;
             default:
@@ -199,11 +199,11 @@ export default function AuditManager() {
     const getTypeBadge = (type: string) => {
         switch (type) {
             case "Internal":
-                return <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-indigo-50">Internal</Badge>;
+                return <Badge variant="outline" className="text-primary-cta border-indigo-200 bg-muted">Internal</Badge>;
             case "External":
-                return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">External</Badge>;
+                return <Badge variant="outline" className="text-amber-600 dark:text-amber-400 dark:text-amber-300 border-amber-200 bg-amber-500/10">External</Badge>;
             case "Supplier":
-                return <Badge variant="outline" className="text-slate-600 border-slate-200 bg-slate-50">Supplier</Badge>;
+                return <Badge variant="outline" className="text-muted-foreground border-border bg-muted">Supplier</Badge>;
             default:
                 return null;
         }
@@ -220,21 +220,21 @@ export default function AuditManager() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-                            <ShieldCheck className="h-8 w-8 text-indigo-600" />
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                            <ShieldCheck className="h-8 w-8 text-primary-cta" />
                             Audit Manager
                         </h1>
-                        <p className="text-lg text-slate-500 max-w-3xl">
+                        <p className="text-lg text-muted-foreground max-w-3xl">
                             Plan, establish, implement, and maintain an audit program (ISO 27001 Clause 9.2).
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="border-slate-200">
+                        <Button variant="outline" className="border-border">
                             <BarChart3 className="mr-2 h-4 w-4" /> Audit Report
                         </Button>
                         <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                                <Button className="bg-primary-cta hover:bg-primary-cta shadow-sm">
                                     <Plus className="mr-2 h-4 w-4" /> Schedule Audit
                                 </Button>
                             </DialogTrigger>
@@ -298,7 +298,7 @@ export default function AuditManager() {
 
                                     {/* Auditor Info */}
                                     <div className="border-t pt-4">
-                                        <h4 className="font-medium text-sm text-slate-900 mb-3 flex items-center gap-2">
+                                        <h4 className="font-medium text-sm text-foreground mb-3 flex items-center gap-2">
                                             <UserPlus className="h-4 w-4" /> Auditor / Lead
                                         </h4>
                                         <div className="grid grid-cols-2 gap-4">
@@ -326,7 +326,7 @@ export default function AuditManager() {
 
                                     {/* Additional Participants */}
                                     <div className="border-t pt-4">
-                                        <h4 className="font-medium text-sm text-slate-900 mb-3 flex items-center gap-2">
+                                        <h4 className="font-medium text-sm text-foreground mb-3 flex items-center gap-2">
                                             <Mail className="h-4 w-4" /> Invite Additional Participants
                                         </h4>
                                         <div className="grid grid-cols-2 gap-2 mb-2">
@@ -355,7 +355,7 @@ export default function AuditManager() {
                                         {participants.length > 0 && (
                                             <div className="space-y-2">
                                                 {participants.map((p, index) => (
-                                                    <div key={index} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-md">
+                                                    <div key={index} className="flex items-center justify-between bg-muted px-3 py-2 rounded-md">
                                                         <span className="text-sm">
                                                             <strong>{p.name}</strong> - {p.email}
                                                         </span>
@@ -363,7 +363,7 @@ export default function AuditManager() {
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => removeParticipant(index)}
-                                                            className="h-6 w-6 p-0 text-slate-400 hover:text-red-500"
+                                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 dark:text-red-400 dark:text-red-300"
                                                         >
                                                             <Trash2 className="h-3 w-3" />
                                                         </Button>
@@ -380,9 +380,9 @@ export default function AuditManager() {
                                                 type="checkbox"
                                                 checked={auditForm.createCalendarEvent}
                                                 onChange={(e) => setAuditForm({ ...auditForm, createCalendarEvent: e.target.checked })}
-                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                className="rounded border-border text-primary-cta focus:ring-indigo-500"
                                             />
-                                            <span className="text-sm text-slate-700">
+                                            <span className="text-sm text-foreground">
                                                 Create calendar event (appears in Tasks/Calendar)
                                             </span>
                                         </label>
@@ -395,7 +395,7 @@ export default function AuditManager() {
                                     <Button
                                         onClick={handleScheduleAudit}
                                         disabled={!auditForm.title || !auditForm.plannedDate || scheduleAuditMutation.isPending}
-                                        className="bg-indigo-600 hover:bg-indigo-700"
+                                        className="bg-primary-cta hover:bg-primary-cta"
                                     >
                                         {scheduleAuditMutation.isPending ? (
                                             <>
@@ -415,42 +415,42 @@ export default function AuditManager() {
 
                 {/* KPI Cards - Now using computed values from API data */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <Card className="border-none shadow-sm bg-indigo-600 text-white">
+                    <Card className="border-none shadow-sm bg-primary-cta text-primary-foreground">
                         <CardContent className="p-6">
-                            <p className="text-indigo-100 font-medium text-sm uppercase tracking-wider">Upcoming Audits</p>
+                            <p className="text-foreground/70 font-medium text-sm uppercase tracking-wider">Upcoming Audits</p>
                             <div className="mt-2 flex items-baseline gap-2">
                                 <span className="text-4xl font-bold">{upcomingAudits}</span>
-                                <span className="text-sm text-indigo-200">planned</span>
+                                <span className="text-sm text-foreground/70">planned</span>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-none shadow-sm bg-white">
+                    <Card className="border-none shadow-sm bg-card">
                         <CardContent className="p-6">
-                            <p className="text-slate-500 font-medium text-sm uppercase tracking-wider">Open Findings</p>
+                            <p className="text-muted-foreground font-medium text-sm uppercase tracking-wider">Open Findings</p>
                             <div className="mt-2 flex items-baseline gap-2">
-                                <span className="text-4xl font-bold text-slate-900">{openFindings}</span>
+                                <span className="text-4xl font-bold text-foreground">{openFindings}</span>
                                 <span className="text-sm text-rose-600 font-medium flex items-center">
                                     <AlertCircle className="h-3 w-3 mr-1" /> Needs Action
                                 </span>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-none shadow-sm bg-white">
+                    <Card className="border-none shadow-sm bg-card">
                         <CardContent className="p-6">
-                            <p className="text-slate-500 font-medium text-sm uppercase tracking-wider">Total Audits</p>
+                            <p className="text-muted-foreground font-medium text-sm uppercase tracking-wider">Total Audits</p>
                             <div className="mt-2 flex items-baseline gap-2">
-                                <span className="text-4xl font-bold text-slate-900">{totalAudits}</span>
-                                <span className="text-sm text-slate-400">recorded</span>
+                                <span className="text-4xl font-bold text-foreground">{totalAudits}</span>
+                                <span className="text-sm text-muted-foreground">recorded</span>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-none shadow-sm bg-white">
+                    <Card className="border-none shadow-sm bg-card">
                         <CardContent className="p-6">
-                            <p className="text-slate-500 font-medium text-sm uppercase tracking-wider">Audit Coverage</p>
+                            <p className="text-muted-foreground font-medium text-sm uppercase tracking-wider">Audit Coverage</p>
                             <div className="mt-2 flex flex-col gap-2">
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-4xl font-bold text-slate-900">{auditCoverage}%</span>
-                                    <span className="text-sm text-slate-400">of audits completed</span>
+                                    <span className="text-4xl font-bold text-foreground">{auditCoverage}%</span>
+                                    <span className="text-sm text-muted-foreground">of audits completed</span>
                                 </div>
                                 <Progress value={auditCoverage} className="h-1.5" />
                             </div>
@@ -459,18 +459,18 @@ export default function AuditManager() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="bg-white border p-1 h-12 w-full md:w-auto justify-start mb-6">
-                        <TabsTrigger value="schedule" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 h-10 px-6">
+                    <TabsList className="bg-card border p-1 h-12 w-full md:w-auto justify-start mb-6">
+                        <TabsTrigger value="schedule" className="data-[state=active]:bg-muted data-[state=active]:text-primary-cta h-10 px-6">
                             <CalendarDays className="mr-2 h-4 w-4" /> Audit Schedule
                         </TabsTrigger>
-                        <TabsTrigger value="findings" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 h-10 px-6">
+                        <TabsTrigger value="findings" className="data-[state=active]:bg-muted data-[state=active]:text-primary-cta h-10 px-6">
                             <AlertCircle className="mr-2 h-4 w-4" /> Non-Conformities
                         </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="schedule" className="space-y-6">
-                        <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
-                            <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
+                        <Card className="bg-card border-border shadow-sm overflow-hidden">
+                            <CardHeader className="border-b border-border bg-muted/50 p-6">
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <CardTitle className="text-lg">Audit Program 2024-2025</CardTitle>
@@ -479,10 +479,10 @@ export default function AuditManager() {
                                         </CardDescription>
                                     </div>
                                     <div className="relative max-w-sm w-full">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             placeholder="Search audits..."
-                                            className="pl-10 bg-white"
+                                            className="pl-10 bg-card"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                         />
@@ -492,7 +492,7 @@ export default function AuditManager() {
                             <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-slate-50/50">
+                                        <TableRow className="bg-muted/50">
                                             <TableHead className="w-[120px]">Audit ID</TableHead>
                                             <TableHead>Audit Title & Scope</TableHead>
                                             <TableHead>Type</TableHead>
@@ -505,28 +505,28 @@ export default function AuditManager() {
                                     <TableBody>
                                         {filteredAudits.length > 0 ? (
                                             filteredAudits.map((audit) => (
-                                                <TableRow key={audit.id} className="group hover:bg-slate-50/50 cursor-pointer">
-                                                    <TableCell className="font-mono text-xs font-medium text-slate-500">
+                                                <TableRow key={audit.id} className="group hover:bg-muted/50 cursor-pointer">
+                                                    <TableCell className="font-mono text-xs font-medium text-muted-foreground">
                                                         {audit.id}
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="space-y-1">
-                                                            <p className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                                            <p className="font-semibold text-foreground group-hover:text-primary-cta transition-colors">
                                                                 {audit.title}
                                                             </p>
-                                                            <p className="text-xs text-slate-500 line-clamp-1">{audit.scope}</p>
+                                                            <p className="text-xs text-muted-foreground line-clamp-1">{audit.scope}</p>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>{getTypeBadge(audit.type)}</TableCell>
-                                                    <TableCell className="text-sm text-slate-600">
+                                                    <TableCell className="text-sm text-muted-foreground">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                                                                 {audit.auditor.charAt(0)}
                                                             </div>
                                                             {audit.auditor}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-sm text-slate-600">
+                                                    <TableCell className="text-sm text-muted-foreground">
                                                         {new Date(audit.plannedDate).toLocaleDateString()}
                                                     </TableCell>
                                                     <TableCell>{getStatusBadge(audit.status)}</TableCell>
@@ -534,7 +534,7 @@ export default function AuditManager() {
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                                    <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
@@ -551,7 +551,7 @@ export default function AuditManager() {
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                                     {searchQuery ? 'No audits match your search' : 'No audits scheduled yet. Click "Schedule Audit" to create one.'}
                                                 </TableCell>
                                             </TableRow>
@@ -563,13 +563,13 @@ export default function AuditManager() {
                     </TabsContent>
 
                     <TabsContent value="findings">
-                        <Card className="bg-white border-slate-200">
+                        <Card className="bg-card border-border">
                             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                                <div className="p-4 bg-slate-50 rounded-full mb-4">
-                                    <CheckCircle2 className="h-12 w-12 text-slate-300" />
+                                <div className="p-4 bg-muted rounded-full mb-4">
+                                    <CheckCircle2 className="h-12 w-12 text-foreground/70" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-slate-900">No Open Non-Conformities</h3>
-                                <p className="text-slate-500 max-w-sm mt-2">
+                                <h3 className="text-lg font-semibold text-foreground">No Open Non-Conformities</h3>
+                                <p className="text-muted-foreground max-w-sm mt-2">
                                     Great job! All audit findings and non-conformities have been addressed or none have been raised yet.
                                 </p>
                             </CardContent>

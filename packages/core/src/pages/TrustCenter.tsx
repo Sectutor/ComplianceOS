@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTrustPosture } from "./trustCenterApi";
+import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -99,6 +102,9 @@ export default function TrustCenter() {
         { enabled: !!clientId && !isNaN(clientId) && clientId > 0 }
     );
 
+    // Public posture (trustCenter.getPosture, cycle 13) — graceful degradation
+    const { data: posture, isLoading: postureLoading, isError: postureError } = useTrustPosture(clientId);
+
     // Derived State
     const liveDocs = trustDocsData?.documents || [];
     const displayDocs = liveDocs.length > 0 ? liveDocs : mockDocs;
@@ -195,19 +201,19 @@ export default function TrustCenter() {
 
     if (!clientId || isNaN(clientId) || clientId <= 0 || isError) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-10">
+            <div className="min-h-screen bg-muted flex items-center justify-center p-10">
                 <Card className="max-w-md w-full border-0 shadow-2xl p-10 text-center rounded-3xl">
-                    <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Shield className="h-10 w-10 text-red-400" />
+                    <div className="h-20 w-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Shield className="h-10 w-10 text-red-400 dark:text-red-300" />
                     </div>
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tighter">Trust Center Not Found</h2>
-                    <p className="text-slate-500 mt-4 leading-relaxed font-medium">
+                    <h2 className="text-3xl font-black text-foreground tracking-tighter">Trust Center Not Found</h2>
+                    <p className="text-muted-foreground mt-4 leading-relaxed font-medium">
                         The Trust Center you are looking for does not exist or has been moved.
                         Please contact the organization's security team for a valid link.
                     </p>
                     <Button
                         variant="outline"
-                        className="mt-8 w-full h-12 rounded-xl font-bold border-slate-200"
+                        className="mt-8 w-full h-12 rounded-xl font-bold border-border"
                         onClick={() => window.location.href = "/"}
                     >
                         Return Home
@@ -219,34 +225,34 @@ export default function TrustCenter() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="min-h-screen bg-muted flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold animate-pulse">Establishing Secure Connection...</p>
+                    <p className="text-muted-foreground font-bold animate-pulse">Establishing Secure Connection...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans pb-20">
+        <div className="min-h-screen bg-muted font-sans pb-20">
             {/* Hero Section */}
-            <div className="bg-slate-900 text-white pt-20 pb-32 relative overflow-hidden">
+            <div className="bg-sidebar text-sidebar-foreground pt-20 pb-32 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                    <div className="absolute right-0 top-0 w-[800px] h-[800px] bg-indigo-500 rounded-full blur-[120px] mix-blend-screen opacity-30 animate-pulse" />
+                    <div className="absolute right-0 top-0 w-[800px] h-[800px] bg-primary-cta rounded-full blur-[120px] mix-blend-screen opacity-30 animate-pulse" />
                     <div className="absolute left-0 bottom-0 w-[600px] h-[600px] bg-primary rounded-full blur-[100px] mix-blend-screen opacity-20" />
                 </div>
 
                 <div className="container mx-auto px-6 relative z-10 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-sm font-medium mb-6 border border-white/10 backdrop-blur-sm">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-card/10 text-blue-300 text-sm font-medium mb-6 border border-white/10 backdrop-blur-sm">
                         <Shield className="h-4 w-4" />
                         <span>Official ComplianceOS Trust Center</span>
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                    <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sidebar-foreground to-sidebar-foreground/40">
                         {client?.name || "Company"} Security
                     </h1>
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
                         Transparency is at the core of our security program. Access our real-time
                         compliance metrics, certifications, and security documentation.
                     </p>
@@ -255,7 +261,7 @@ export default function TrustCenter() {
                         <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg shadow-primary/20 font-bold h-14 px-8">
                             <Download className="mr-2 h-5 w-5" /> Request Audit Bundle
                         </Button>
-                        <Button size="lg" variant="outline" className="text-white border-white/20 hover:bg-white/10 h-14 px-8">
+                        <Button size="lg" variant="outline" className="text-primary-foreground border-white/20 hover:bg-card/10 h-14 px-8">
                             <Globe className="mr-2 h-5 w-5" /> Main Website
                         </Button>
                     </div>
@@ -267,39 +273,68 @@ export default function TrustCenter() {
 
                 {/* Status Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl ring-1 ring-slate-900/5">
+                    <Card className="bg-card/95 backdrop-blur-md border-0 shadow-2xl ring-1 ring-foreground/5">
                         <CardHeader className="pb-2">
-                            <CardTitle className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" /> Infrastructure Status
+                            <CardTitle className="flex items-center gap-2 text-foreground text-sm uppercase tracking-wider font-bold">
+                                <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400" /> Infrastructure Status
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-slate-900">All Systems Normal</div>
-                            <p className="text-slate-500 text-xs mt-1 font-medium">99.99% Uptime (Last 90 days)</p>
+                            <div className="text-3xl font-black text-foreground">All Systems Normal</div>
+                            <p className="text-muted-foreground text-xs mt-1 font-medium">99.99% Uptime (Last 90 days)</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl ring-1 ring-slate-900/5">
+                    <Card className="bg-card/95 backdrop-blur-md border-0 shadow-2xl ring-1 ring-foreground/5">
                         <CardHeader className="pb-2">
-                            <CardTitle className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
-                                <Lock className="h-4 w-4 text-indigo-500" /> Data Sovereignty
+                            <CardTitle className="flex items-center gap-2 text-foreground text-sm uppercase tracking-wider font-bold">
+                                <Lock className="h-4 w-4 text-primary-cta" /> Data Sovereignty
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-slate-900">EU & US Regions</div>
-                            <p className="text-slate-500 text-xs mt-1 font-medium">AES-256 Encryption at Rest</p>
+                            <div className="text-3xl font-black text-foreground">EU & US Regions</div>
+                            <p className="text-muted-foreground text-xs mt-1 font-medium">AES-256 Encryption at Rest</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl ring-1 ring-slate-900/5">
+                    <Card className="bg-card/95 backdrop-blur-md border-0 shadow-2xl ring-1 ring-foreground/5">
                         <CardHeader className="pb-2">
-                            <CardTitle className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
-                                <Globe className="h-4 w-4 text-blue-500" /> Compliance Posture
+                            <CardTitle className="flex items-center gap-2 text-foreground text-sm uppercase tracking-wider font-bold">
+                                <Globe className="h-4 w-4 text-blue-500 dark:text-blue-400" /> Compliance Posture
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-slate-900">{readinessData?.complianceScore || 0}% Score</div>
-                            <p className="text-slate-500 text-xs mt-1 font-medium">Continuously Audited via ComplianceOS</p>
+                            {postureError ? (
+                                <EmptyState
+                                    icon={Globe}
+                                    title="Connect the trustCenter.getPosture API"
+                                    description="Posture data will appear here once the public posture endpoint is live."
+                                />
+                            ) : postureLoading ? (
+                                <Skeleton className="h-12 w-40 rounded-xl" />
+                            ) : (
+                                <>
+                                    <div className="text-3xl font-black text-foreground">
+                                        {(posture?.complianceScore ?? readinessData?.complianceScore ?? 0)}% Score
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <Badge className={cn(
+                                            "px-2.5 py-0.5 text-[10px] font-bold uppercase border-none",
+                                            posture?.status === "Strong" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" :
+                                                posture?.status === "Developing" ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" :
+                                                posture?.status === "At Risk" ? "bg-red-500/10 text-red-700 dark:text-red-400" :
+                                                "bg-muted text-muted-foreground"
+                                        )}>
+                                            {posture?.status ?? "No Data"}
+                                        </Badge>
+                                        <span className="text-muted-foreground text-xs font-medium">
+                                            {posture?.totalControls
+                                                ? `${posture.implementedControls} / ${posture.totalControls} controls implemented`
+                                                : "Continuously audited via ComplianceOS"}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -308,8 +343,8 @@ export default function TrustCenter() {
                 <div className="mb-12">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Security Artifacts</h2>
-                            <p className="text-slate-500">
+                            <h2 className="text-3xl font-black text-foreground tracking-tight">Security Artifacts</h2>
+                            <p className="text-muted-foreground">
                                 {liveDocs.length > 0
                                     ? `Showing ${liveDocs.length} live security artifacts for ${client?.name || 'this client'}.`
                                     : 'Access our latest certifications and security audit reports.'}
@@ -322,15 +357,15 @@ export default function TrustCenter() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {displayDocs.map((doc: any) => (
-                            <Card key={doc.id} className="group hover:scale-105 transition-all duration-300 border-0 shadow-lg overflow-hidden bg-white cursor-pointer" onClick={() => openGatekeeper(doc)}>
+                            <Card key={doc.id} className="group hover:scale-105 transition-all duration-300 border-0 shadow-lg overflow-hidden bg-card cursor-pointer" onClick={() => openGatekeeper(doc)}>
                                 <CardHeader className="pb-1">
                                     <div className="flex justify-between items-start mb-2">
-                                        <Badge variant="outline" className="bg-slate-50 border-slate-200 text-slate-500 text-[10px] font-bold px-2">
+                                        <Badge variant="outline" className="bg-muted border-border text-muted-foreground text-[10px] font-bold px-2">
                                             {doc.category}
                                         </Badge>
                                         {(doc.isLocked || doc.is_locked) ?
-                                            <div className="p-1.5 bg-amber-50 rounded-lg"><Lock className="h-4 w-4 text-amber-500" /></div> :
-                                            <div className="p-1.5 bg-green-50 rounded-lg"><Globe className="h-4 w-4 text-green-500" /></div>
+                                            <div className="p-1.5 bg-amber-500/10 rounded-lg"><Lock className="h-4 w-4 text-amber-500 dark:text-amber-400 dark:text-amber-300" /></div> :
+                                            <div className="p-1.5 bg-green-500/10 rounded-lg"><Globe className="h-4 w-4 text-green-500 dark:text-green-400" /></div>
                                         }
                                     </div>
                                     <CardTitle className="text-lg font-black leading-tight group-hover:text-primary transition-colors">
@@ -339,7 +374,7 @@ export default function TrustCenter() {
                                 </CardHeader>
                                 <CardContent className="pt-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs text-slate-400 font-bold">{doc.date || (doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'Active')}</span>
+                                        <span className="text-xs text-muted-foreground font-bold">{doc.date || (doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'Active')}</span>
                                         <div className="text-primary font-black text-xs flex items-center gap-1 group-hover:gap-2 transition-all">
                                             {(doc.isLocked || doc.is_locked) ? 'Request Access' : 'Download Now'}
                                             <ArrowRight className="h-4 w-4" />
@@ -356,29 +391,29 @@ export default function TrustCenter() {
 
                 {/* Audit History & Trend */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                    <Card className="border-0 shadow-xl bg-white overflow-hidden">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                    <Card className="border-0 shadow-xl bg-card overflow-hidden">
+                        <CardHeader className="bg-muted/50 border-b border-border">
                             <CardTitle className="text-xl font-black">Active Frameworks</CardTitle>
                             <CardDescription>Live status of our current compliance standards.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="divide-y divide-slate-50">
+                            <div className="divide-y divide-border">
                                 {displayFrameworks.map((item: any) => (
-                                    <div key={item.framework || item.name} className="flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors">
+                                    <div key={item.framework || item.name} className="flex items-center justify-between p-6 hover:bg-muted/50 transition-colors">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-white shadow-sm border border-slate-100 font-black text-primary text-sm">
+                                            <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-card shadow-sm border border-border font-black text-primary text-sm">
                                                 {(item.framework || item.name).split(' ').map((w: string) => w[0]).join('')}
                                             </div>
                                             <div>
-                                                <div className="font-black text-slate-900">{item.framework || item.name}</div>
-                                                <div className="text-xs text-slate-400 font-bold">
+                                                <div className="font-black text-foreground">{item.framework || item.name}</div>
+                                                <div className="text-xs text-muted-foreground font-bold">
                                                     {item.percentage !== undefined ? `${item.implemented} / ${item.total} Controls Implemented` : item.date}
                                                 </div>
                                             </div>
                                         </div>
                                         <Badge className={cn("px-3 py-1 font-bold text-[10px] uppercase",
-                                            (item.percentage >= 100 || item.status === 'Compliant') ? 'bg-green-100 text-green-700 border-none' :
-                                                (item.percentage > 0 || item.status === 'In Progress') ? 'bg-amber-100 text-amber-700 border-none' : 'bg-slate-100 text-slate-600'
+                                            (item.percentage >= 100 || item.status === 'Compliant') ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-none' :
+                                                (item.percentage > 0 || item.status === 'In Progress') ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 dark:text-amber-300 border-none' : 'bg-muted text-muted-foreground'
                                         )}>
                                             {item.percentage !== undefined ? `${item.percentage}%` : item.status}
                                         </Badge>
@@ -388,8 +423,8 @@ export default function TrustCenter() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-xl bg-white overflow-hidden">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                    <Card className="border-0 shadow-xl bg-card overflow-hidden">
+                        <CardHeader className="bg-muted/50 border-b border-border">
                             <CardTitle className="text-xl font-black">Compliance Maturity</CardTitle>
                             <CardDescription>Rolling 6-month security posture trend.</CardDescription>
                         </CardHeader>
@@ -414,14 +449,14 @@ export default function TrustCenter() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="mt-6 flex items-center justify-between pt-6 border-t border-slate-50">
+                            <div className="mt-6 flex items-center justify-between pt-6 border-t border-border">
                                 <div>
-                                    <div className="text-3xl font-black text-slate-900">+15%</div>
-                                    <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Growth in 2025</div>
+                                    <div className="text-3xl font-black text-foreground">+15%</div>
+                                    <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Growth in 2025</div>
                                 </div>
                                 <div className="text-right">
                                     <Badge className="bg-green-500 text-white border-0 font-bold mb-1">Health: Optimal</Badge>
-                                    <div className="text-xs text-slate-400 font-medium italic">Verified by AI Audit Agent</div>
+                                    <div className="text-xs text-muted-foreground font-medium italic">Verified by AI Audit Agent</div>
                                 </div>
                             </div>
                         </CardContent>
@@ -429,10 +464,10 @@ export default function TrustCenter() {
                 </div>
 
                 {/* Footer */}
-                <div className="text-center text-slate-400 text-sm mt-20 pt-10 border-t border-slate-100">
+                <div className="text-center text-muted-foreground text-sm mt-20 pt-10 border-t border-border">
                     <div className="flex items-center justify-center gap-2 mb-4">
                         <Shield className="h-5 w-5 text-primary" />
-                        <span className="font-black text-slate-600 tracking-tighter uppercase text-xs">Secured & Monitored by ComplianceOS v4.0</span>
+                        <span className="font-black text-muted-foreground tracking-tighter uppercase text-xs">Secured & Monitored by ComplianceOS v4.0</span>
                     </div>
                     <p className="font-medium">&copy; {new Date().getFullYear()} {client?.name || "Company"}. Internal Use Only. NDA Restricted.</p>
                 </div>
@@ -440,12 +475,12 @@ export default function TrustCenter() {
 
             {/* NDA Gatekeeper Modal */}
             <Dialog open={isNDAModalOpen} onOpenChange={setIsNDAModalOpen}>
-                <DialogContent className="sm:max-w-[550px] border-0 shadow-2xl p-0 overflow-hidden bg-white rounded-3xl">
-                    <div className="bg-slate-900 p-10 text-white relative">
+                <DialogContent className="sm:max-w-[550px] border-0 shadow-2xl p-0 overflow-hidden bg-card rounded-3xl">
+                    <div className="bg-sidebar p-10 text-sidebar-foreground relative">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/30 rounded-full blur-3xl -mr-16 -mt-16" />
-                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl -ml-12 -mb-12" />
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-cta/20 rounded-full blur-2xl -ml-12 -mb-12" />
 
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-primary text-[10px] font-black uppercase mb-4 border border-white/10 backdrop-blur-sm relative z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-card/10 text-primary text-[10px] font-black uppercase mb-4 border border-white/10 backdrop-blur-sm relative z-10">
                             <Lock className="h-3 w-3" />
                             <span>Security Clearance Required</span>
                         </div>
@@ -453,8 +488,8 @@ export default function TrustCenter() {
                         <DialogTitle className="text-3xl font-black tracking-tighter relative z-10 leading-tight">
                             Access Restricted Artifact
                         </DialogTitle>
-                        <DialogDescription className="text-slate-400 mt-2 font-medium relative z-10">
-                            You are requesting sensitive documentation: <span className="text-white font-black">{selectedDoc?.name}</span>
+                        <DialogDescription className="text-muted-foreground mt-2 font-medium relative z-10">
+                            You are requesting sensitive documentation: <span className="text-primary-foreground font-black">{selectedDoc?.name}</span>
                         </DialogDescription>
                     </div>
 
@@ -464,22 +499,22 @@ export default function TrustCenter() {
                                 <div className="space-y-5">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="name" className="text-xs font-black text-slate-500 uppercase tracking-widest">Full Name</Label>
+                                            <Label htmlFor="name" className="text-xs font-black text-muted-foreground uppercase tracking-widest">Full Name</Label>
                                             <Input
                                                 id="name"
                                                 placeholder="Alice Auditor"
-                                                className="h-14 bg-slate-50 border-slate-200 font-bold focus:ring-primary rounded-xl"
+                                                className="h-14 bg-muted border-border font-bold focus:ring-primary rounded-xl"
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
                                                 required
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="company" className="text-xs font-black text-slate-500 uppercase tracking-widest">Company</Label>
+                                            <Label htmlFor="company" className="text-xs font-black text-muted-foreground uppercase tracking-widest">Company</Label>
                                             <Input
                                                 id="company"
                                                 placeholder="HSBC Bank"
-                                                className="h-14 bg-slate-50 border-slate-200 font-bold rounded-xl"
+                                                className="h-14 bg-muted border-border font-bold rounded-xl"
                                                 value={company}
                                                 onChange={(e) => setCompany(e.target.value)}
                                                 required
@@ -487,25 +522,25 @@ export default function TrustCenter() {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="email" className="text-xs font-black text-slate-500 uppercase tracking-widest">Work Email</Label>
+                                        <Label htmlFor="email" className="text-xs font-black text-muted-foreground uppercase tracking-widest">Work Email</Label>
                                         <div className="relative">
                                             <Input
                                                 id="email"
                                                 type="email"
                                                 placeholder="alice@hsbc.co.uk"
-                                                className="h-14 bg-slate-50 border-slate-200 font-bold pl-12 rounded-xl"
+                                                className="h-14 bg-muted border-border font-bold pl-12 rounded-xl"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 required
                                             />
-                                            <Mail className="absolute left-4 top-4.5 h-5 w-5 text-slate-400" />
+                                            <Mail className="absolute left-4 top-4.5 h-5 w-5 text-muted-foreground" />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-medium italic">Competition filter enabled. Personal emails (Gmail/Outlook) will be flagged.</p>
+                                        <p className="text-[10px] text-muted-foreground font-medium italic">Competition filter enabled. Personal emails (Gmail/Outlook) will be flagged.</p>
                                     </div>
                                 </div>
                                 <Button
                                     type="submit"
-                                    className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-xl shadow-slate-200 rounded-xl"
+                                    className="w-full h-14 bg-primary-cta hover:bg-primary-cta-hover text-primary-foreground font-black text-lg shadow-xl shadow-slate-200 rounded-xl"
                                     disabled={requestAccessMutation.isPending}
                                 >
                                     {requestAccessMutation.isPending ? <Loader2 className="animate-spin" /> : 'Request Authorization'}
@@ -516,9 +551,9 @@ export default function TrustCenter() {
 
                         {ndaStep === 2 && (
                             <div className="space-y-8">
-                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 h-[220px] overflow-y-auto text-[11px] text-slate-600 leading-relaxed font-mono shadow-inner">
-                                    <h4 className="font-black text-slate-900 mb-4 uppercase text-xs tracking-tighter">Mutual Non-Disclosure Agreement (Short Form)</h4>
-                                    This Mutual Non-Disclosure Agreement (the "Agreement") is made and entered into as of today by and between <span className="text-primary font-bold">{client?.name || "The Company"}</span> and <span className="text-black font-bold">{name} ({company})</span>.
+                                <div className="bg-muted border border-border rounded-2xl p-6 h-[220px] overflow-y-auto text-[11px] text-muted-foreground leading-relaxed font-mono shadow-inner">
+                                    <h4 className="font-black text-foreground mb-4 uppercase text-xs tracking-tighter">Mutual Non-Disclosure Agreement (Short Form)</h4>
+                                    This Mutual Non-Disclosure Agreement (the "Agreement") is made and entered into as of today by and between <span className="text-primary font-bold">{client?.name || "The Company"}</span> and <span className="text-foreground font-bold">{name} ({company})</span>.
                                     <br /><br />
                                     <span className="font-bold">1. Confidentiality:</span> The Recipient agrees to hold and maintain the Confidential Information in strict confidence and use it solely for evaluating the Disclosing Party's security controls.
                                     <br /><br />
@@ -528,19 +563,19 @@ export default function TrustCenter() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label className="text-xs font-black text-slate-500 uppercase tracking-widest">Type Full Name to Sign</Label>
+                                    <Label className="text-xs font-black text-muted-foreground uppercase tracking-widest">Type Full Name to Sign</Label>
                                     <Input
                                         placeholder="ALICE AUDITOR"
-                                        className="h-16 bg-white border-slate-200 font-serif italic text-2xl text-slate-900 tracking-tighter px-6 rounded-xl border-2 focus:border-green-500 transition-all"
+                                        className="h-16 bg-card border-border font-serif italic text-2xl text-foreground tracking-tighter px-6 rounded-xl border-2 focus:border-green-500 transition-all"
                                         value={signature}
                                         onChange={(e) => setSignature(e.target.value)}
                                     />
-                                    <p className="text-[10px] text-slate-400 font-medium">This signature carries the same legal weight as a physical signature.</p>
+                                    <p className="text-[10px] text-muted-foreground font-medium">This signature carries the same legal weight as a physical signature.</p>
                                 </div>
 
                                 <Button
                                     onClick={handleSignNDA}
-                                    className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black text-xl shadow-2xl shadow-green-100 rounded-xl"
+                                    className="w-full h-16 bg-green-600 hover:bg-green-700 text-primary-foreground font-black text-xl shadow-2xl shadow-green-100 rounded-xl"
                                     disabled={!signature || signNdaMutation.isPending}
                                 >
                                     {signNdaMutation.isPending ? <Loader2 className="animate-spin h-6 w-6" /> : 'Confirm & Generate Access'}
@@ -550,16 +585,16 @@ export default function TrustCenter() {
 
                         {ndaStep === 3 && (
                             <div className="text-center py-6">
-                                <div className="h-24 w-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-                                    <CheckCircle2 className="h-12 w-12 text-green-500" />
+                                <div className="h-24 w-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+                                    <CheckCircle2 className="h-12 w-12 text-green-500 dark:text-green-400" />
                                 </div>
-                                <h3 className="text-3xl font-black text-slate-900 tracking-tighter">Security Pass Issued</h3>
-                                <p className="text-slate-500 mt-2 mb-10 font-medium">
+                                <h3 className="text-3xl font-black text-foreground tracking-tighter">Security Pass Issued</h3>
+                                <p className="text-muted-foreground mt-2 mb-10 font-medium">
                                     Verification complete. A unique download token has been generated for your session.
                                 </p>
                                 <div className="space-y-3">
                                     <Button
-                                        className="w-full h-16 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-xl shadow-xl"
+                                        className="w-full h-16 bg-primary-cta hover:bg-primary-cta-hover text-primary-foreground font-black text-lg rounded-xl shadow-xl"
                                         onClick={() => {
                                             setIsNDAModalOpen(false);
                                             toast.success("Initializing Secure Stream...");
@@ -567,7 +602,7 @@ export default function TrustCenter() {
                                     >
                                         <Download className="mr-2 h-6 w-6" /> Download SOC 2 Report
                                     </Button>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Token Expires in 48 Hours</p>
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Token Expires in 48 Hours</p>
                                 </div>
                             </div>
                         )}

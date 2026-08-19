@@ -24,6 +24,79 @@ export interface GeneratedAuditPackage {
     generatedAt: string;
   };
 }
+/** Structured error for audit-package generation failures (cycle 13 hardening). */
+export class AuditPackageError extends Error {
+  code: "DB_UNAVAILABLE" | "CLIENT_NOT_FOUND" | "GENERATION_FAILED";
+  constructor(code: AuditPackageError["code"], message: string) {
+    super(message);
+    this.name = "AuditPackageError";
+    this.code = code;
+  }
+}
+
+/** Pure: compute a 0-100 pass rate from implemented/total counts (never NaN). */
+export function computePassRate(implemented: number, total: number): number {
+  if (!total || total <= 0) return 100;
+  const rate = Math.round((implemented / total) * 100);
+  return Number.isFinite(rate) ? rate : 100;
+}
+
+/** Pure: build the controls CSV manifest (header + quoted rows). */
+export function buildControlsCsv(
+  clientControlsList: Array<{
+    controlId?: string | null;
+    id: number;
+    name?: string | null;
+    category?: string | null;
+    status?: string | null;
+    applicability?: string | null;
+    justification?: string | null;
+    owner?: string | null;
+  }>
+): string {
+  const csvHeader = "Control ID,Control Name,Category,Status,Applicability,Justification,Owner\n";
+  const quote = (v: string) => '"' + v.replace(/"/g, '""') + '"';
+  const csvRows = clientControlsList.map((c) =>
+    [
+      c.controlId || String(c.id),
+      quote(c.name || ""),
+      c.category || "",
+      c.status || "",
+      c.applicability || "",
+      quote(c.justification || ""),
+      c.owner || "",
+    ].join(",")
+  );
+  return csvHeader + csvRows.join("\n");
+}
+
+/** Pure: build the machine-readable JSON audit manifest payload. */
+export function buildAuditManifestJson(params: {
+  client: { id: number; name?: string | null };
+  framework: string;
+  controls: unknown[];
+  evidence: unknown[];
+  generatedAt?: string;
+}): string {
+  const generatedAt = params.generatedAt ?? new Date().toISOString();
+  return JSON.stringify(
+    {
+      client: { id: params.client.id, name: params.client.name },
+      framework: params.framework,
+      generatedAt,
+      summary: {
+        totalControls: params.controls.length,
+        implementedCount: params.controls.filter((c: any) => c.status === "implemented").length,
+        evidenceCount: params.evidence.length,
+      },
+      controls: params.controls,
+      evidence: params.evidence,
+    },
+    null,
+    2
+  );
+}
+
 
 /**
  * Generate a professional PDF Compliance Summary Report using PDFKit.
@@ -154,99 +227,95 @@ export async function generatePdfSummaryReport(
 export async function generateFullAuditPackage(
   options: AuditPackageOptions
 ): Promise<GeneratedAuditPackage> {
-  const db = await getDb();
-
-  // 1. Fetch client details
-  const [client] = await db
-    .select()
-    .from(schema.clients)
-    .where(eq(schema.clients.id, options.clientId));
-
-  if (!client) {
-    throw new Error(`Client #${options.clientId} not found.`);
+  let db;
+  try {
+    db = await getDb();
+  } catch {
+    throw new AuditPackageError("DB_UNAVAILABLE", "Database unavailable while generating audit package.");
   }
 
-  // 2. Fetch controls & evidence
-  const clientControlsList = await db
-    .select({
-      id: schema.clientControls.id,
-      controlId: schema.controls.controlId,
-      name: schema.controls.name,
-      category: schema.controls.category,
-      status: schema.clientControls.status,
-      owner: schema.clientControls.owner,
-      applicability: schema.clientControls.applicability,
-      justification: schema.clientControls.justification,
-    })
-    .from(schema.clientControls)
-    .leftJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
-    .where(eq(schema.clientControls.clientId, options.clientId));
+  let client;
+  try {
+    // 1. Fetch client details
+    const rows = await db
+      .select()
+      .from(schema.clients)
+      .where(eq(schema.clients.id, options.clientId))
+      .limit(1);
+    client = rows[0];
+  } catch {
+    throw new AuditPackageError("DB_UNAVAILABLE", "Database unavailable while fetching client for audit package.");
+  }
 
-  const evidenceList = await db
-    .select()
-    .from(schema.evidence)
-    .where(eq(schema.evidence.clientId, options.clientId));
+  if (!client) {
+    throw new AuditPackageError("CLIENT_NOT_FOUND", `Client #${options.clientId} not found.`);
+  }
 
-  // 3. Generate PDF Report
-  const pdfBuffer = await generatePdfSummaryReport(
-    client,
-    options.framework,
-    clientControlsList,
-    evidenceList,
-    options.auditorNotes
-  );
+  try {
+    // 2. Fetch controls & evidence
+    const clientControlsList = await db
+      .select({
+        id: schema.clientControls.id,
+        controlId: schema.controls.controlId,
+        name: schema.controls.name,
+        category: schema.controls.category,
+        status: schema.clientControls.status,
+        owner: schema.clientControls.owner,
+        applicability: schema.clientControls.applicability,
+        justification: schema.clientControls.justification,
+      })
+      .from(schema.clientControls)
+      .leftJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
+      .where(eq(schema.clientControls.clientId, options.clientId));
 
-  // 4. Build CSV & JSON Manifests
-  const csvHeader = "Control ID,Control Name,Category,Status,Applicability,Justification,Owner\n";
-  const csvRows = clientControlsList
-    .map((c) =>
-      `"${c.controlId || c.id}","${(c.name || "").replace(/"/g, '""')}","${c.category || ""}","${c.status || ""}","${c.applicability || ""}","${(c.justification || "").replace(/"/g, '""')}","${c.owner || ""}"`
-    )
-    .join("\n");
-  const csvContent = csvHeader + csvRows;
+    const evidenceList = await db
+      .select()
+      .from(schema.evidence)
+      .where(eq(schema.evidence.clientId, options.clientId));
 
-  const jsonManifest = JSON.stringify(
-    {
+    // 3. Generate PDF Report
+    const pdfBuffer = await generatePdfSummaryReport(
+      client,
+      options.framework,
+      clientControlsList,
+      evidenceList,
+      options.auditorNotes
+    );
+
+    // 4. Build CSV & JSON Manifests (pure helpers)
+    const csvContent = buildControlsCsv(clientControlsList);
+    const jsonManifest = buildAuditManifestJson({
       client: { id: client.id, name: client.name },
       framework: options.framework,
-      generatedAt: new Date().toISOString(),
-      summary: {
-        totalControls: clientControlsList.length,
-        implementedCount: clientControlsList.filter((c) => c.status === "implemented").length,
-        evidenceCount: evidenceList.length,
-      },
       controls: clientControlsList,
       evidence: evidenceList,
-    },
-    null,
-    2
-  );
-
-  // 5. Create ZIP Archive
-  const archive = archiver("zip", { zlib: { level: 9 } });
-  const zipBuffers: Buffer[] = [];
-
-  const zipPromise = new Promise<Buffer>((resolve, reject) => {
-    const writable = new Writable({
-      write(chunk, encoding, callback) {
-        zipBuffers.push(chunk);
-        callback();
-      },
     });
 
-    writable.on("finish", () => resolve(Buffer.concat(zipBuffers)));
-    archive.on("error", (err) => reject(err));
-    archive.pipe(writable);
-  });
+    // 5. Create ZIP Archive
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    const zipBuffers: Buffer[] = [];
 
-  // Append PDF report & manifests to ZIP
-  const frameworkSlug = options.framework.toLowerCase().replace(/[^a-z0-9]/g, "_");
-  archive.append(pdfBuffer, { name: `${frameworkSlug}_audit_report.pdf` });
-  archive.append(csvContent, { name: `controls_manifest.csv` });
-  archive.append(jsonManifest, { name: `audit_manifest.json` });
+    const zipPromise = new Promise<Buffer>((resolve, reject) => {
+      const writable = new Writable({
+        write(chunk, encoding, callback) {
+          zipBuffers.push(chunk);
+          callback();
+        },
+      });
 
-  // Append Readme / Auditor Instructions
-  const readmeText = `# ComplianceOS Audit Evidence Package
+      writable.on("finish", () => resolve(Buffer.concat(zipBuffers)));
+      archive.on("error", (err) => reject(err));
+      archive.pipe(writable);
+    });
+
+    // Append PDF report & manifests to ZIP
+    const frameworkSlug = options.framework.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    archive.append(pdfBuffer, { name: `${frameworkSlug}_audit_report.pdf` });
+    archive.append(csvContent, { name: `controls_manifest.csv` });
+    archive.append(jsonManifest, { name: `audit_manifest.json` });
+
+    // Append Readme / Auditor Instructions
+    const readmeText = `# ComplianceOS Audit Evidence Package
 Framework: ${options.framework}
 Client: ${client.name || "Client #" + client.id}
 Generated: ${new Date().toISOString()}
@@ -258,26 +327,27 @@ Contents:
 
 For auditor inquiries or verification proof, contact audit@complianceos.local.
 `;
-  archive.append(readmeText, { name: `README_AUDITOR_INSTRUCTIONS.txt` });
+    archive.append(readmeText, { name: `README_AUDITOR_INSTRUCTIONS.txt` });
 
-  await archive.finalize();
-  const zipBuffer = await zipPromise;
+    await archive.finalize();
+    const zipBuffer = await zipPromise;
 
-  const implementedCount = clientControlsList.filter((c) => c.status === "implemented").length;
-  const passRate =
-    clientControlsList.length > 0
-      ? Math.round((implementedCount / clientControlsList.length) * 100)
-      : 100;
+    const implementedCount = clientControlsList.filter((c) => c.status === "implemented").length;
+    const passRate = computePassRate(implementedCount, clientControlsList.length);
 
-  return {
-    zipBuffer,
-    pdfBuffer,
-    manifest: {
-      framework: options.framework,
-      totalControls: clientControlsList.length,
-      implementedControls: implementedCount,
-      passRate,
-      generatedAt: new Date().toISOString(),
-    },
-  };
+    return {
+      zipBuffer,
+      pdfBuffer,
+      manifest: {
+        framework: options.framework,
+        totalControls: clientControlsList.length,
+        implementedControls: implementedCount,
+        passRate,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  } catch (err) {
+    if (err instanceof AuditPackageError) throw err;
+    throw new AuditPackageError("GENERATION_FAILED", `Failed to generate audit package: ${(err as Error).message}`);
+  }
 }
