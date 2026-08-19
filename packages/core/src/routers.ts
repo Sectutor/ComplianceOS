@@ -177,6 +177,7 @@ import { createLlmRouter } from "./server/routers/llm";
 import { createAiCopilotRouter } from "./server/routers/aiCopilot";
 import { createIncidentClassifierRouter } from "./server/routers/incidentClassifier";
 import { createIncidentTimelineRouter } from "./server/routers/incidentTimeline";
+import { createSupplyChainRouter } from "./server/routers/supplyChain";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
@@ -366,6 +367,7 @@ export const appRouter = router({
   aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure),
   incidentClassifier: createIncidentClassifierRouter(t, protectedProcedure),
   incidentTimeline: createIncidentTimelineRouter(t, protectedProcedure),
+  supplyChain: createSupplyChainRouter(t, protectedProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 
