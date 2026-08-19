@@ -175,6 +175,7 @@ import { createRiskGameRouter } from "./server/routers/riskGame";
 import { pluginRouter } from "./server/routers/plugins";
 import { createLlmRouter } from "./server/routers/llm";
 import { createAiCopilotRouter } from "./server/routers/aiCopilot";
+import { createIncidentClassifierRouter } from "./server/routers/incidentClassifier";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
@@ -362,6 +363,7 @@ export const appRouter = router({
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
   llm: createLlmRouter(t, premiumClientProcedure, isAuthed, adminProcedure),
   aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure),
+  incidentClassifier: createIncidentClassifierRouter(t, protectedProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState, useMemo } from "react";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@complianceos/ui/ui/card";
 import { Input } from "@complianceos/ui/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Progress } from "@complianceos/ui/ui/progress";
 import { Badge } from "@complianceos/ui/ui/badge";
+import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Switch } from "@complianceos/ui/ui/switch";
 import { AlertTriangle, ShieldAlert, ArrowLeft, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -15,6 +16,11 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { PageGuide } from "@/components/PageGuide";
 import { cn } from "@/lib/utils";
+import {
+    useIncidentClassification,
+    getSeverityMeta,
+    getNextDeadlineLabel,
+} from "@/pages/incidentClassifierApi";
 
 type Severity = "low" | "medium" | "high" | "critical";
 
@@ -54,6 +60,28 @@ export default function CyberIncidentReporting() {
         estimatedFinancialLoss: 0,
         isContinuityTriggered: false
     });
+
+    // NIS2 Art. 23 quick classification (incidentClassifier.* â€” UI-STANDARD Â§16)
+    const classificationInput = useMemo(() => {
+        if (!formData.cause || !formData.detectedAt) return null;
+        return {
+            cause: formData.cause,
+            affectedUsers: formData.affectedUsersCount,
+            durationMinutes: formData.serviceDisruptionDuration,
+            financialLossCents: formData.estimatedFinancialLoss,
+            criticalInfrastructureAffected: formData.isContinuityTriggered,
+            crossBorderImpact: formData.crossBorderImpact,
+            detectedAt: new Date(formData.detectedAt),
+        };
+    }, [formData]);
+
+    const {
+        data: classification,
+        isLoading: classificationLoading,
+        isError: classificationError,
+    } = useIncidentClassification(classificationInput);
+
+    const classificationMeta = classification ? getSeverityMeta(classification.severity) : null;
 
     const reportMutation = trpc.cyber.reportIncident.useMutation({
         onSuccess: () => {
@@ -143,6 +171,29 @@ export default function CyberIncidentReporting() {
                 </div>
                 <Progress value={(step / 3) * 100} className="h-2 rounded-full bg-slate-100" />
             </div>
+
+            {classificationInput ? (
+                <Card className="rounded-xl shadow-sm border-border">
+                    <CardContent className="flex flex-wrap items-center gap-3 p-4">
+                        <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                        {classificationLoading && !classification ? (
+                            <Skeleton className="h-5 w-56" />
+                        ) : classificationError || !classification ? (
+                            <span className="text-sm text-muted-foreground">NIS2 classification unavailable.</span>
+                        ) : (
+                            <>
+                                <Badge variant={classificationMeta?.badgeVariant}>{classificationMeta?.label}</Badge>
+                                <Badge variant={classification.isSignificant ? "error" : "secondary"}>
+                                    {classification.isSignificant ? "Significant" : "Not significant"}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                    {getNextDeadlineLabel(classification.nextDeadline)}
+                                </span>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            ) : null}
 
             <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
@@ -271,7 +322,7 @@ export default function CyberIncidentReporting() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-slate-700">Financial Loss (€ estimate)</Label>
+                                        <Label className="text-sm font-bold text-foreground">Financial Loss (€ estimate)</Label>
                                         <Input
                                             type="number"
                                             className="h-12 rounded-xl border-slate-200"
