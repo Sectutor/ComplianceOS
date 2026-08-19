@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EmptyState } from "@complianceos/ui/ui/EmptyState";
-import { ArrowLeft, Save, Loader2, Clock, CheckCircle2, Send, ShieldAlert, FileText, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Clock, CheckCircle2, Send, ShieldAlert, FileText, AlertTriangle, Milestone, BellRing } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import {
     useIncidentClassification,
@@ -18,6 +18,16 @@ import {
     getDeadlineMeta,
     getNextDeadlineLabel,
 } from "@/pages/incidentClassifierApi";
+import {
+    useIncidentTimeline,
+    useIncidentEscalations,
+    getPhaseMeta,
+    getEscalationMeta,
+    INCIDENT_PHASE_STATUS_LABEL,
+    sortEscalations,
+    isEscalationOverdue,
+    type IncidentTimelineInput,
+} from "@/pages/incidentTimelineApi";
 import { EU_COUNTRIES } from "@/lib/nis2/competent-authorities";
 import { useClientContext } from "@/contexts/ClientContext";
 import { toast } from "sonner";
@@ -149,6 +159,37 @@ export default function CyberIncidentDetail() {
         isLoading: templateLoading,
         isError: templateError,
     } = useCsirtTemplate(templateInput);
+
+    // NIS2 Art. 23 timeline + escalations (consumes incidentTimeline.* — UI-STANDARD §16)
+    const timelineInput = useMemo<IncidentTimelineInput | null>(() => {
+        if (!incident?.detectedAt) return null;
+        return {
+            detectedAt: new Date(incident.detectedAt),
+            severity: (incident.severity as IncidentTimelineInput["severity"]) || "low",
+            isSignificant: incident.isSignificant ?? classification?.isSignificant ?? false,
+            earlyWarningSentAt: incident.earlyWarningSentAt ? new Date(incident.earlyWarningSentAt) : undefined,
+            notificationSentAt: incident.intermediateReportSentAt ? new Date(incident.intermediateReportSentAt) : undefined,
+            finalReportSentAt: incident.finalReportSentAt ? new Date(incident.finalReportSentAt) : undefined,
+            now: new Date(),
+        };
+    }, [incident, classification]);
+
+    const {
+        data: timeline,
+        isLoading: timelineLoading,
+        isError: timelineError,
+    } = useIncidentTimeline(timelineInput);
+
+    const {
+        data: escalations,
+        isLoading: escalationsLoading,
+        isError: escalationsError,
+    } = useIncidentEscalations(timelineInput);
+
+    const orderedEscalations = useMemo(
+        () => (escalations ? sortEscalations(escalations) : []),
+        [escalations]
+    );
 
     const handleSave = () => {
         if (!selectedClientId) return;
@@ -488,6 +529,129 @@ export default function CyberIncidentDetail() {
                                     </div>
                                 ) : null}
                             </div>
+                        </CardContent>
+                    </Card>
+{/* NIS2 Incident Timeline */}
+                    <Card className="rounded-xl shadow-sm border-border">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                                <Milestone className="h-5 w-5 text-muted-foreground" />
+                                NIS2 Incident Timeline
+                            </CardTitle>
+                            <CardDescription className="text-sm text-muted-foreground">
+                                Article 23 reporting milestones and escalation triggers computed from saved incident fields.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {!timelineInput ? (
+                                <EmptyState
+                                    icon={Milestone}
+                                    title="Detection date required"
+                                    description="Save the incident with a detection date to unlock the Article 23 reporting timeline."
+                                />
+                            ) : timelineLoading && !timeline ? (
+                                <div className="space-y-3">
+                                    <Skeleton className="h-14 w-full" />
+                                    <Skeleton className="h-14 w-full" />
+                                    <Skeleton className="h-14 w-full" />
+                                    <Skeleton className="h-14 w-full" />
+                                </div>
+                            ) : timelineError || !timeline || timeline.phases.length === 0 ? (
+                                <EmptyState
+                                    icon={Milestone}
+                                    title="Connect the incidentTimeline.timeline API"
+                                    description="The reporting timeline endpoint is not live yet. It appears once the incidentTimeline router is deployed."
+                                />
+                            ) : (
+                                <>
+                                    {/* 4-step vertical timeline */}
+                                    <ol className="space-y-1">
+                                        {[...timeline.phases]
+                                            .sort((a, b) => getPhaseMeta(a.phase).order - getPhaseMeta(b.phase).order)
+                                            .map((phase, index, arr) => {
+                                                const meta = getPhaseMeta(phase.phase);
+                                                const isCurrent = phase.status === "current";
+                                                return (
+                                                    <li
+                                                        key={phase.id || phase.phase}
+                                                        className={cn(
+                                                            "flex gap-3 rounded-lg px-3 py-2.5",
+                                                            isCurrent && "bg-muted/40 ring-1 ring-border"
+                                                        )}
+                                                    >
+                                                        <div className="flex flex-col items-center">
+                                                            <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", meta.dotClass[phase.status])} />
+                                                            {index < arr.length - 1 ? <span className="mt-1 w-px flex-1 bg-border" /> : null}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span className="text-sm font-semibold text-foreground">{meta.label}</span>
+                                                                <Badge variant={meta.badgeVariant[phase.status]}>
+                                                                    {INCIDENT_PHASE_STATUS_LABEL[phase.status]}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground tabular-nums">
+                                                                {phase.at ? format(new Date(phase.at), "MMM d, yyyy HH:mm") : "Not sent yet"}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                    </ol>
+
+                                    {/* Escalations */}
+                                    <div className="space-y-3 border-t border-border pt-4">
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <BellRing className="h-3.5 w-3.5" />
+                                            Escalations
+                                        </div>
+                                        {escalationsLoading && !escalations ? (
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-12 w-full" />
+                                                <Skeleton className="h-12 w-full" />
+                                            </div>
+                                        ) : escalationsError ? (
+                                            <EmptyState
+                                                icon={BellRing}
+                                                title="Connect the incidentTimeline.escalations API"
+                                                description="Escalation triggers need the incidentTimeline router. They appear once the endpoint is live."
+                                            />
+                                        ) : orderedEscalations.length > 0 ? (
+                                            <ul className="space-y-2">
+                                                {orderedEscalations.map((escalation) => {
+                                                    const meta = getEscalationMeta(escalation.level);
+                                                    const overdue = isEscalationOverdue(escalation);
+                                                    return (
+                                                        <li key={escalation.id} className={cn("flex items-start gap-3 rounded-lg border px-3 py-2.5", meta.tintClass)}>
+                                                            <AlertTriangle className={cn("mt-0.5 h-4 w-4 shrink-0", meta.iconClass)} />
+                                                            <div className="min-w-0 flex-1 space-y-0.5">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="text-sm font-semibold text-foreground">{escalation.title}</span>
+                                                                    <Badge variant={meta.badgeVariant}>{meta.label}</Badge>
+                                                                    {overdue ? <Badge variant="error">Overdue</Badge> : null}
+                                                                </div>
+                                                                {escalation.detail ? (
+                                                                    <p className="text-sm text-muted-foreground">{escalation.detail}</p>
+                                                                ) : null}
+                                                                {escalation.dueBy ? (
+                                                                    <p className="text-xs text-muted-foreground tabular-nums">
+                                                                        Due {format(new Date(escalation.dueBy), "MMM d, yyyy HH:mm")}
+                                                                    </p>
+                                                                ) : null}
+                                                            </div>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        ) : (
+                                            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                                                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">No active escalations.</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

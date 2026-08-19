@@ -21,6 +21,13 @@ import {
     getSeverityMeta,
     getNextDeadlineLabel,
 } from "@/pages/incidentClassifierApi";
+import {
+    useIncidentEscalations,
+    getEscalationMeta,
+    sortEscalations,
+    isEscalationOverdue,
+    type IncidentTimelineInput,
+} from "@/pages/incidentTimelineApi";
 
 type Severity = "low" | "medium" | "high" | "critical";
 
@@ -82,6 +89,24 @@ export default function CyberIncidentReporting() {
     } = useIncidentClassification(classificationInput);
 
     const classificationMeta = classification ? getSeverityMeta(classification.severity) : null;
+
+    // NIS2 Art. 23 escalation triggers (incidentTimeline.escalations — UI-STANDARD §16)
+    const escalationInput = useMemo<IncidentTimelineInput | null>(() => {
+        if (!formData.detectedAt) return null;
+        return {
+            detectedAt: new Date(formData.detectedAt),
+            severity: formData.severity,
+            isSignificant: formData.isSignificant,
+            now: new Date(),
+        };
+    }, [formData]);
+
+    const { data: escalations } = useIncidentEscalations(escalationInput);
+
+    const criticalEscalations = useMemo(
+        () => (escalations ? sortEscalations(escalations).filter((e) => e.level === "critical") : []),
+        [escalations]
+    );
 
     const reportMutation = trpc.cyber.reportIncident.useMutation({
         onSuccess: () => {
@@ -191,6 +216,46 @@ export default function CyberIncidentReporting() {
                                 </span>
                             </>
                         )}
+                    </CardContent>
+                </Card>
+            ) : null}
+
+            {escalationInput && criticalEscalations.length > 0 ? (
+                <Card className="rounded-xl shadow-sm border-border">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                            Escalation Required
+                        </CardTitle>
+                        <CardDescription className="text-sm text-muted-foreground">
+                            NIS2 Article 23 reporting deadlines require immediate action.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-3">
+                        {criticalEscalations.map((escalation) => {
+                            const meta = getEscalationMeta(escalation.level);
+                            const overdue = isEscalationOverdue(escalation);
+                            return (
+                                <div key={escalation.id} className={cn("flex items-start gap-3 rounded-lg border px-3 py-2.5", meta.tintClass)}>
+                                    <AlertTriangle className={cn("mt-0.5 h-4 w-4 shrink-0", meta.iconClass)} />
+                                    <div className="min-w-0 flex-1 space-y-0.5">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-sm font-semibold text-foreground">{escalation.title}</span>
+                                            <Badge variant={meta.badgeVariant}>{meta.label}</Badge>
+                                            {overdue ? <Badge variant="error">Overdue</Badge> : null}
+                                        </div>
+                                        {escalation.detail ? (
+                                            <p className="text-sm text-muted-foreground">{escalation.detail}</p>
+                                        ) : null}
+                                        {escalation.dueBy ? (
+                                            <p className="text-xs text-muted-foreground tabular-nums">
+                                                Due {new Date(escalation.dueBy).toLocaleString()}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </CardContent>
                 </Card>
             ) : null}
