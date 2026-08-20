@@ -13,19 +13,10 @@ interface MSSPRevenueWidgetProps {
 const DEFAULT_MONTHLY_RATE = 500;
 
 export function MSSPRevenueWidget({ defaultMonthlyRate = DEFAULT_MONTHLY_RATE }: MSSPRevenueWidgetProps) {
-  const { data: clientHealths, isLoading, error } = trpc.complianceMonitor.getMonitorSummary.useQuery(
-    { clientId: 0, hours: 8760 },
-    { enabled: false }
-  );
-
-  // Use MSSP cockpit query for aggregated data
-  const { data: allClientHealths, isLoading: loadingHealths } =
-    trpc.complianceMonitor.getAllClientHealths.useQuery(undefined, {
-      enabled: false,
-    });
-
-  // We'll just use a simple clients count query and compute from there
-  const clientsQuery = trpc.admin.listAllClients.useQuery(undefined, {
+  // Cycle 22: revenue is computed from the client list (active / at-risk
+  // counts). The DB-backed complianceMonitor procedures were removed when
+  // the router migrated to the pure NIS2 posture engine.
+  const clientsQuery = trpc.clients.list.useQuery(undefined, {
     enabled: true,
   });
 

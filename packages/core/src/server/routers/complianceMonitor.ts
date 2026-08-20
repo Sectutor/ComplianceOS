@@ -1,75 +1,113 @@
+/**
+ * Compliance Monitor Router — tRPC facade over the pure NIS2 continuous
+ * compliance monitoring engine (lib/nis2/complianceMonitor.ts).
+ *
+ * Cycle 22 (NIS2 Implementation Plan Phase 5 Task 5.2 — ENISA Measure 7.1
+ * "Effectiveness Assessment", NIS2 Article 21(2)(f)): exposes compliance
+ * posture computation, evidence-coverage tracking and NIS2 audit report
+ * generation as protected query procedures.
+ *
+ * The engine is pure — no database access, no side effects, no LLM calls.
+ * Handlers never throw for valid input; the only intentional errors are zod
+ * BAD_REQUEST failures from input validation (zod rejects malformed input
+ * automatically). No secrets are ever echoed or logged.
+ */
+
 import { z } from "zod";
-import { runComplianceHealthCheck, getMonitorSummary, detectDrift } from "../../lib/compliance-monitor";
-import { getDb } from "../../db";
-import { complianceMonitorEvents } from "../../schema_monitor";
-import { eq, desc, and, gte } from "drizzle-orm";
+import {
+  computeCompliancePosture,
+  trackEvidenceCoverage,
+  generateAuditReport,
+} from "../../lib/nis2/complianceMonitor";
 
-export const createComplianceMonitorRouter = (t: any, clientProcedure: any, adminProcedure: any) => {
-  return t.router({
-    runHealthCheck: clientProcedure
-      .input(z.object({ clientId: z.number() }))
-      .mutation(async ({ input }) => runComplianceHealthCheck(input.clientId)),
-
-    getMonitorSummary: clientProcedure
-      .input(z.object({ clientId: z.number(), hours: z.number().default(24) }))
-      .query(async ({ input }) => getMonitorSummary(input.clientId, input.hours)),
-
-    getDriftEvents: clientProcedure
-      .input(z.object({ clientId: z.number(), sinceMinutes: z.number().default(60), severity: z.string().optional() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        const since = new Date(Date.now() - input.sinceMinutes * 60 * 1000);
-        let query = db.select().from(complianceMonitorEvents)
-          .where(and(
-            eq(complianceMonitorEvents.clientId, input.clientId),
-            gte(complianceMonitorEvents.createdAt, since)
-          ));
-        if (input.severity) {
-          query = query.where(eq(complianceMonitorEvents.severity, input.severity));
-        }
-        return query.orderBy(desc(complianceMonitorEvents.createdAt)).limit(50);
-      }),
-
-    getComplianceScore: clientProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        const result = await runComplianceHealthCheck(input.clientId);
-        // Deterministic score from the health-check counts. The previous
-        // implementation layered Math.random() on top of the band, so the
-        // same posture produced a different score on every refresh.
-        const total = result.totalControls ?? 0;
-        const healthy = result.healthyControls ?? 0;
-        const score = total > 0 ? Math.round((healthy / total) * 100) : 0;
-        return {
-          score,
-          totalControls: result.totalControls,
-          healthyControls: result.healthyControls,
-          atRiskControls: result.atRiskControls,
-          timestamp: new Date().toISOString(),
-        };
-      }),
-
-    // ─── Control Auto-Testing Engine Endpoints ───
-    runAutoTestForControl: clientProcedure
-      .input(z.object({ clientId: z.number(), clientControlId: z.number() }))
-      .mutation(async ({ input }) => {
-        const { runControlAutoTest } = await import("../../lib/controlAutoTestEngine");
-        return runControlAutoTest(input.clientId, input.clientControlId);
-      }),
-
-    runAllAutoTests: clientProcedure
-      .input(z.object({ clientId: z.number() }))
-      .mutation(async ({ input }) => {
-        const { runAllControlAutoTestsForClient } = await import("../../lib/controlAutoTestEngine");
-        return runAllControlAutoTestsForClient(input.clientId);
-      }),
-
-    getAutoTestHistory: clientProcedure
-      .input(z.object({ clientId: z.number(), limit: z.number().default(50) }))
-      .query(async ({ input }) => {
-        const { getClientTestRunHistory } = await import("../../lib/controlAutoTestEngine");
-        return getClientTestRunHistory(input.clientId, input.limit);
-      }),
-  });
+/** Injectable clock pin fields (spreadable into input schemas). */
+export const clockOptionFields = {
+  now: z.union([z.string(), z.number()]).nullish(),
+  clock: z.function().returns(z.date()).nullish(),
 };
 
+/** Injectable clock pin schema (parseable standalone). */
+export const clockOptionSchema = z.object(clockOptionFields);
+
+/** One compliance measure for posture computation. */
+export const complianceMonitorMeasureSchema = z.object({
+  measureId: z.union([z.string(), z.number()]).nullish(),
+  name: z.string().nullish(),
+  score: z.number().nullish(),
+  baselineScore: z.number().nullish(),
+  status: z.string().nullish(),
+});
+
+/** Input schema for `posture` (exported for tests / UI / QA). */
+export const complianceMonitorPostureInputSchema = z.object({
+  measures: z.array(complianceMonitorMeasureSchema).nullish(),
+  ...clockOptionFields,
+});
+
+/** One evidence item for coverage tracking. */
+export const complianceMonitorEvidenceItemSchema = z.object({
+  controlId: z.union([z.string(), z.number()]).nullish(),
+  measureId: z.union([z.string(), z.number()]).nullish(),
+  name: z.string().nullish(),
+  evidenceCount: z.number().nullish(),
+  lastCollectedAt: z.union([z.string(), z.number()]).nullish(),
+  expiresAt: z.union([z.string(), z.number()]).nullish(),
+});
+
+/** Input schema for `evidenceCoverage` (exported for tests / UI / QA). */
+export const complianceMonitorEvidenceCoverageInputSchema = z.object({
+  items: z.array(complianceMonitorEvidenceItemSchema).nullish(),
+  ...clockOptionFields,
+});
+
+/** Evidence summary for the audit report. */
+export const complianceMonitorAuditEvidenceSummarySchema = z.object({
+  total: z.number().nullish(),
+  covered: z.number().nullish(),
+  coverageRate: z.number().nullish(),
+});
+
+/** Input schema for `auditReport` (exported for tests / UI / QA). */
+export const complianceMonitorAuditReportInputSchema = z.object({
+  entityName: z.string().nullish(),
+  entitySector: z.string().nullish(),
+  postureScore: z.number().nullish(),
+  measures: z.array(complianceMonitorMeasureSchema).nullish(),
+  evidenceSummary: complianceMonitorAuditEvidenceSummarySchema.nullish(),
+  ...clockOptionFields,
+});
+
+export const createComplianceMonitorRouter = (t: any, protectedProcedure: any) => {
+  return t.router({
+    /**
+     * Compute the overall compliance posture from per-measure scores:
+     * equal-weight average with status bands (Strong / Developing / At Risk /
+     * Critical / No Data), coverage rate, drift vs baselines with trend,
+     * status counts, top gaps and a short deterministic verdict. Pure engine
+     * output; safe shape on any input.
+     */
+    posture: protectedProcedure
+      .input(complianceMonitorPostureInputSchema)
+      .query(async ({ input }) => computeCompliancePosture(input)),
+
+    /**
+     * Track evidence coverage per control item: covered / missing status,
+     * expiry (expired / expiring / current / n-a) against the injected
+     * clock, coverage rate, per-measure rollups and enriched items. Pure
+     * engine output; safe shape on any input.
+     */
+    evidenceCoverage: protectedProcedure
+      .input(complianceMonitorEvidenceCoverageInputSchema)
+      .query(async ({ input }) => trackEvidenceCoverage(input)),
+
+    /**
+     * Generate a deterministic plain-text NIS2 audit report (posture,
+     * evidence coverage, measure scores, top gaps, recommendations and
+     * pass / warn / fail sections). Pure engine output; safe shape on any
+     * input.
+     */
+    auditReport: protectedProcedure
+      .input(complianceMonitorAuditReportInputSchema)
+      .query(async ({ input }) => generateAuditReport(input)),
+  });
+};

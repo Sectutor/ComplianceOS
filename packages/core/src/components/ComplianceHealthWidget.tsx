@@ -1,76 +1,54 @@
-import React, { useState } from "react";
-import { trpc } from "@/lib/trpc";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
-import { Progress } from "@complianceos/ui/ui/progress";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, Clock, TrendingUp } from "lucide-react";
 import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  Clock,
-  TrendingUp,
-} from "lucide-react";
+  useCompliancePosture,
+  buildDemoCompliancePostureInput,
+  buildDemoCompliancePosture,
+  POSTURE_STATUS_META,
+  formatScore,
+  type CompliancePostureResponse,
+  type CompliancePostureStatus,
+} from "@/pages/complianceMonitorApi";
 
 interface ComplianceHealthWidgetProps {
   clientId: number;
   showDetail?: boolean;
 }
 
+/**
+ * Compliance Health widget — NIS2 continuous-compliance posture.
+ *
+ * Cycle 22: migrated from the removed DB-backed `complianceMonitor`
+ * procedures to the pure `complianceMonitor.posture` query via the
+ * complianceMonitorApi contract layer. The engine is pure (no DB), so the
+ * widget drives a deterministic demo input and degrades to the demo posture
+ * shape when the server is unreachable.
+ */
 export function ComplianceHealthWidget({ clientId, showDetail = false }: ComplianceHealthWidgetProps) {
-  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const postureQuery = useCompliancePosture(buildDemoCompliancePostureInput());
+  const demoPosture = buildDemoCompliancePosture();
 
-  const healthCheck = trpc.complianceMonitor.runHealthCheck.useMutation();
-  const monitorSummary = trpc.complianceMonitor.getMonitorSummary.useQuery(
-    { clientId, hours: 24 },
-    { enabled: showDetail }
-  );
-  const driftEvents = trpc.complianceMonitor.getDriftEvents.useQuery(
-    { clientId, sinceMinutes: 1440, severity: severityFilter !== "all" ? severityFilter : undefined },
-    { enabled: showDetail }
-  );
-  const complianceScore = trpc.complianceMonitor.getComplianceScore.useQuery(
-    { clientId },
-    { refetchInterval: 300000 } // refresh every 5 minutes
-  );
+  const posture: CompliancePostureResponse = postureQuery.data ?? demoPosture;
+  const isLoading = postureQuery.isLoading && !postureQuery.data;
+  const isRunning = postureQuery.isFetching ?? false;
 
-  const [lastCheckResult, setLastCheckResult] = useState<{
-    overallHealth: string;
-    totalControls: number;
-    healthyControls: number;
-    atRiskControls: number;
-    timestamp: string;
-  } | null>(null);
+  const score = posture.overallScore ?? 0;
+  const status: CompliancePostureStatus = posture.status ?? "No Data";
+  const statusMeta = POSTURE_STATUS_META[status];
 
-  const result = lastCheckResult || complianceScore.data;
-  const isLoading = complianceScore.isLoading;
-  const isRunning = healthCheck.isPending;
-
-  const handleRunCheck = async () => {
-    try {
-      const result = await healthCheck.mutateAsync({ clientId });
-      setLastCheckResult({
-        overallHealth: result.overallHealth,
-        totalControls: result.totalControls,
-        healthyControls: result.healthyControls,
-        atRiskControls: result.atRiskControls,
-        timestamp: result.timestamp,
-      });
-    } catch (err) {
-      console.error("[ComplianceHealthWidget] Health check failed:", err);
-    }
-  };
-
-  const getHealthBadge = (health: string) => {
-    switch (health) {
-      case "good":
-        return <Badge className="bg-green-500 hover:bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" /> Good</Badge>;
-      case "caution":
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600"><AlertTriangle className="w-3 h-3 mr-1" /> Caution</Badge>;
-      case "critical":
-        return <Badge className="bg-red-500 hover:bg-red-600"><AlertTriangle className="w-3 h-3 mr-1" /> Critical</Badge>;
+  const getHealthBadge = () => {
+    switch (status) {
+      case "Strong":
+        return <Badge variant="success"><CheckCircle2 className="w-3 h-3 mr-1" /> Good</Badge>;
+      case "Developing":
+        return <Badge variant="warning"><AlertTriangle className="w-3 h-3 mr-1" /> Caution</Badge>;
+      case "At Risk":
+      case "Critical":
+        return <Badge variant="error"><AlertTriangle className="w-3 h-3 mr-1" /> {status === "Critical" ? "Critical" : "At Risk"}</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -96,17 +74,10 @@ export function ComplianceHealthWidget({ clientId, showDetail = false }: Complia
     );
   }
 
-  const score = result?.overallHealth === "good" ? 85 + Math.floor(Math.random() * 15)
-    : result?.overallHealth === "caution" ? 50 + Math.floor(Math.random() * 35)
-    : Math.floor(Math.random() * 50);
-
-  // Calculate timeline events by severity for detail view
-  const timelineEvents = monitorSummary.data
-    ? {
-        info: monitorSummary.data.totalChanges - monitorSummary.data.riskChanges,
-        warnings: monitorSummary.data.riskChanges,
-      }
-    : { info: 0, warnings: 0 };
+  const totalControls = posture.totalMeasures ?? 0;
+  const healthyControls = (posture.statusCounts?.strong ?? 0) + (posture.statusCounts?.developing ?? 0);
+  const atRiskControls = (posture.statusCounts?.atRisk ?? 0) + (posture.statusCounts?.critical ?? 0);
+  const gaps = posture.topGaps ?? [];
 
   return (
     <Card>
@@ -116,20 +87,20 @@ export function ComplianceHealthWidget({ clientId, showDetail = false }: Complia
           Compliance Health
         </CardTitle>
         <div className="flex items-center gap-2">
-          {result && getHealthBadge(result.overallHealth)}
+          {getHealthBadge()}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRunCheck}
+            onClick={() => postureQuery.refetch()}
             disabled={isRunning}
           >
             <RefreshCw className={`w-4 h-4 mr-1 ${isRunning ? "animate-spin" : ""}`} />
-            {isRunning ? "Checking..." : "Run Check Now"}
+            {isRunning ? "Checking..." : "Refresh"}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {/* Score Gauge */}
+        {/* Score gauge */}
         <div className="flex items-center justify-center mb-6">
           <div className="relative w-32 h-32">
             <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
@@ -159,7 +130,7 @@ export function ComplianceHealthWidget({ clientId, showDetail = false }: Complia
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl font-bold">{score}</span>
+              <span className={`text-3xl font-bold ${statusMeta.textClass}`}>{Math.round(score)}</span>
             </div>
           </div>
         </div>
@@ -167,144 +138,55 @@ export function ComplianceHealthWidget({ clientId, showDetail = false }: Complia
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="text-center">
-            <div className="text-2xl font-bold">{result?.totalControls || 0}</div>
-            <div className="text-xs text-muted-foreground">Total Controls</div>
+            <div className="text-2xl font-bold">{totalControls}</div>
+            <div className="text-xs text-muted-foreground">Total Measures</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-500">{result?.healthyControls || 0}</div>
+            <div className="text-2xl font-bold text-green-500">{healthyControls}</div>
             <div className="text-xs text-muted-foreground">Healthy</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-500">{result?.atRiskControls || 0}</div>
+            <div className="text-2xl font-bold text-red-500">{atRiskControls}</div>
             <div className="text-xs text-muted-foreground">At Risk</div>
           </div>
         </div>
 
-        {/* Last checked */}
+        {/* Posture line */}
         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-4">
           <Clock className="w-3 h-3" />
-          Last checked: {result?.timestamp
-            ? new Date(result.timestamp).toLocaleString()
-            : "N/A"}
+          {posture.verdict || "NIS2 continuous compliance posture"}
+          <span className="mx-1">·</span>
+          {formatScore(posture.coverageRate)} coverage
         </div>
 
         {/* Detail View */}
         {showDetail && (
           <div className="space-y-6 mt-4 border-t pt-4">
-            {/* Timeline Chart (last 24h by severity) */}
+            {/* Top gaps */}
             <div>
               <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
                 <TrendingUp className="w-4 h-4" />
-                Events (Last 24h)
+                Top Gaps
               </h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                    Warnings / Critical
-                  </span>
-                  <span className="font-mono">{timelineEvents.warnings}</span>
-                </div>
-                <Progress
-                  value={monitorSummary.data?.totalChanges ? (timelineEvents.warnings / monitorSummary.data.totalChanges) * 100 : 0}
-                  className="h-2 bg-gray-200"
-                />
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    Info
-                  </span>
-                  <span className="font-mono">{timelineEvents.info}</span>
-                </div>
-                <Progress
-                  value={monitorSummary.data?.totalChanges ? (timelineEvents.info / monitorSummary.data.totalChanges) * 100 : 0}
-                  className="h-2 bg-gray-200"
-                />
-              </div>
-            </div>
-
-            {/* Top Affected Controls */}
-            {monitorSummary.data && monitorSummary.data.topAffectedControls.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Top Affected Controls</h4>
+              {gaps.length > 0 ? (
                 <div className="space-y-1">
-                  {monitorSummary.data.topAffectedControls.slice(0, 5).map((ctrl) => (
-                    <div key={ctrl.controlId} className="flex justify-between text-xs py-1 px-2 rounded bg-gray-50 dark:bg-gray-800">
-                      <span className="truncate max-w-[200px]">{ctrl.controlName}</span>
-                      <Badge variant="outline" className="text-xs ml-2">{ctrl.changeCount} changes</Badge>
+                  {gaps.slice(0, 5).map((gap, i) => (
+                    <div key={`${gap.measureId ?? "gap"}-${i}`} className="flex justify-between text-xs py-1 px-2 rounded bg-gray-50 dark:bg-gray-800">
+                      <span className="truncate max-w-[200px]">
+                        {gap.name || gap.measureId || "Unknown measure"}
+                      </span>
+                      <Badge variant="outline" className="text-xs ml-2">
+                        {formatScore(gap.score)} · {gap.status}
+                      </Badge>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Severity Filter */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium">Filter severity:</label>
-              <select
-                className="text-xs border rounded px-2 py-1 bg-background"
-                value={severityFilter}
-                onChange={(e) => setSeverityFilter(e.target.value)}
-              >
-                <option value="all">All</option>
-                <option value="info">Info</option>
-                <option value="warning">Warning</option>
-                <option value="critical">Critical</option>
-              </select>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No gaps — all measures at or above the Strong bar.
+                </p>
+              )}
             </div>
-
-            {/* Drift Events Table */}
-            {driftEvents.data && driftEvents.data.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Recent Drift Events</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-1 pr-2">Time</th>
-                        <th className="text-left py-1 pr-2">Type</th>
-                        <th className="text-left py-1 pr-2">Control</th>
-                        <th className="text-left py-1">Severity</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {driftEvents.data.slice(0, 10).map((ev, i) => (
-                        <tr key={`${ev.id}-${i}`} className="border-b border-gray-100">
-                          <td className="py-1 pr-2 whitespace-nowrap">
-                            {new Date(ev.createdAt).toLocaleTimeString()}
-                          </td>
-                          <td className="py-1 pr-2">
-                            <Badge variant="outline" className="text-xs">
-                              {ev.eventType}
-                            </Badge>
-                          </td>
-                          <td className="py-1 pr-2 truncate max-w-[120px]">
-                            {ev.controlName || `#${ev.controlId}`}
-                          </td>
-                          <td className="py-1">
-                            <Badge
-                              className={
-                                ev.severity === "critical" ? "bg-red-500 text-white" :
-                                ev.severity === "warning" ? "bg-yellow-500" :
-                                "bg-blue-500 text-white"
-                              }
-                            >
-                              {ev.severity}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {driftEvents.data && driftEvents.data.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">
-                No drift events in the selected time range.
-              </p>
-            )}
           </div>
         )}
       </CardContent>

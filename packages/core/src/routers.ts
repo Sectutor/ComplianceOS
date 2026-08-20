@@ -183,6 +183,7 @@ import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgm
 import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createSecurityTestingNis2Router } from "./server/routers/securityTestingNis2";
+import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
 import { createAddonRouter } from "@complianceos/addons/router";
@@ -240,7 +241,6 @@ import { createRequirementsRouter } from "./server/routers/complianceRequirement
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
 import { createControlMeshRouter } from "./server/routers/controlMesh";
 import { createEvidenceReportRouter } from "./server/routers/evidenceReport";
-import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
 import { createActionCenterRouter } from "./server/routers/actionCenter";
 import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
 import { createAuditorPortalRouter } from "./server/routers/auditorPortal";
@@ -376,6 +376,7 @@ export const appRouter = router({
   thirdPartyRisk: createThirdPartyRiskRouter(t, protectedProcedure),
   vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
   securityTestingNis2: createSecurityTestingNis2Router(t, protectedProcedure),
+  complianceMonitor: createComplianceMonitorRouter(t, protectedProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 
@@ -4486,7 +4487,6 @@ ONLY return the JSON. No Markdown formatting.
   }),
 
   addons: createAddonRouter(t, clientProcedure, adminProcedure, publicProcedure, protectedProcedure),
-  complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure, adminProcedure),
   controlMonitoring: createControlMonitoringRouter(t, protectedProcedure),
   evidenceCollectors: createEvidenceCollectorsRouter(t, protectedProcedure),
   evidenceRenewal: createEvidenceRenewalRouter(t, protectedProcedure),

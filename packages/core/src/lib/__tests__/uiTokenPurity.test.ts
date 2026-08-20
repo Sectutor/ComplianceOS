@@ -15,6 +15,9 @@ const PAGES = [
   'packages/core/src/pages/AuditHub.tsx',
   'packages/core/src/pages/AuditManager.tsx',
   'packages/core/src/pages/cyber/SecurityTestingPanels.tsx',
+  // NIS2 Phase 5 Task 5.2 Continuous Compliance Monitoring (QA cycle 22)
+  'packages/core/src/pages/complianceMonitorApi.ts',
+  'packages/core/src/pages/cyber/ComplianceMonitorPanels.tsx',
 ];
 
 // Hard-coded surface/text classes that violate UI-STANDARD §2.

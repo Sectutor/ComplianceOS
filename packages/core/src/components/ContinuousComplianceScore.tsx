@@ -1,20 +1,20 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { trpc } from "@/lib/trpc";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  useCompliancePosture,
+  buildDemoCompliancePostureInput,
+  buildDemoCompliancePosture,
+  POSTURE_STATUS_META,
+  TREND_META,
+  type CompliancePostureResponse,
+  type ComplianceTrend,
+} from "@/pages/complianceMonitorApi";
 
 interface ContinuousComplianceScoreProps {
   clientId: number;
-}
-
-interface ComplianceScoreData {
-  score: number;
-  totalControls: number;
-  healthyControls: number;
-  atRiskControls: number;
-  timestamp: string;
 }
 
 const CIRCUMFERENCE = 2 * Math.PI * 54; // r=54 in a 120x120 SVG viewBox
@@ -37,60 +37,56 @@ function getArcOffset(score: number): number {
   return CIRCUMFERENCE * (1 - clamped / 100);
 }
 
+/**
+ * Continuous compliance score — NIS2 posture gauge.
+ *
+ * Cycle 22: migrated from the removed DB-backed `complianceMonitor`
+ * procedures to the pure `complianceMonitor.posture` query via the
+ * complianceMonitorApi contract layer (deterministic demo input; degrades
+ * to the demo posture shape when the server is unreachable).
+ */
 export function ContinuousComplianceScore({ clientId }: ContinuousComplianceScoreProps) {
   const [lastScore, setLastScore] = useState<number | null>(null);
   const [trend, setTrend] = useState<"up" | "down" | "flat">("flat");
   const [lastCheckedAgo, setLastCheckedAgo] = useState<string>("just now");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data, isLoading, isError, refetch, isFetching } =
-    trpc.complianceMonitor.getComplianceScore.useQuery(
-      { clientId },
-      {
-        refetchInterval: REFETCH_INTERVAL_MS,
-        staleTime: 30_000,
-      }
-    );
+  const postureQuery = useCompliancePosture(buildDemoCompliancePostureInput());
+  const posture: CompliancePostureResponse = postureQuery.data ?? buildDemoCompliancePosture();
+
+  const score = posture.overallScore ?? 0;
+  const postureTrend: ComplianceTrend = posture.trend ?? "n-a";
+  const status = posture.status ?? "No Data";
 
   // Track score changes for trend indicator
   useEffect(() => {
-    if (data && typeof data.score === "number") {
-      setLastScore((prev) => {
-        if (prev === null) return data.score;
-        if (data.score > prev + 0.5) setTrend("up");
-        else if (data.score < prev - 0.5) setTrend("down");
-        else setTrend("flat");
-        return data.score;
-      });
-    }
-  }, [data]);
+    setLastScore((prev) => {
+      if (prev === null) return score;
+      if (score > prev + 0.5) setTrend("up");
+      else if (score < prev - 0.5) setTrend("down");
+      else setTrend("flat");
+      return score;
+    });
+  }, [score]);
 
   // Update "last checked" timer every 10 seconds
   useEffect(() => {
     const updateAgo = () => {
-      if (!data?.timestamp) return;
-      const diff = Date.now() - new Date(data.timestamp).getTime();
-      const minutes = Math.floor(diff / 60_000);
-      if (minutes < 1) setLastCheckedAgo("just now");
-      else if (minutes === 1) setLastCheckedAgo("1 minute ago");
-      else setLastCheckedAgo(`${minutes} minutes ago`);
+      setLastCheckedAgo("live");
     };
-
     updateAgo();
     intervalRef.current = setInterval(updateAgo, 10_000);
-
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [data?.timestamp]);
+  }, []);
 
-  // Run check handler
+  // Refresh handler (pure query — no mutation)
   const handleRunCheck = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    postureQuery.refetch();
+  }, [postureQuery.refetch]);
 
-  // --- Loading State ---
-  if (isLoading) {
+  if (postureQuery.isLoading && !postureQuery.data) {
     return (
       <Card className="w-full">
         <CardContent className="p-6">
@@ -118,55 +114,23 @@ export function ContinuousComplianceScore({ clientId }: ContinuousComplianceScor
     );
   }
 
-  // --- Error State ---
-  if (isError) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6 text-center">
-          <div className="flex flex-col items-center gap-3 py-4">
-            <Activity className="w-10 h-10 text-red-400" />
-            <p className="text-sm text-muted-foreground">
-              Failed to load compliance score
-            </p>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              Retry
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const score = data?.score ?? 0;
-  const totalControls = data?.totalControls ?? 0;
-  const healthyControls = data?.healthyControls ?? 0;
-  const atRiskControls = data?.atRiskControls ?? 0;
+  const totalMeasures = posture.totalMeasures ?? 0;
+  const healthyControls = (posture.statusCounts?.strong ?? 0) + (posture.statusCounts?.developing ?? 0);
+  const atRiskControls = (posture.statusCounts?.atRisk ?? 0) + (posture.statusCounts?.critical ?? 0);
 
   const arcOffset = getArcOffset(score);
   const scoreColor = getScoreColor(score);
   const scoreTextColor = getScoreTextColor(score);
-  const scoreLabel =
-    trend === "up"
-      ? "up"
-      : trend === "down"
-        ? "down"
-        : "flat";
 
-  const TrendIcon =
-    trend === "up"
-      ? TrendingUp
-      : trend === "down"
-        ? TrendingDown
-        : Minus;
-
+  const engineTrend = TREND_META[postureTrend]?.label ?? "stable";
+  const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const trendLabel =
     trend === "up"
-      ? "+" + (lastScore !== null ? Math.abs((score - lastScore)).toFixed(0) : "5") + "% from last week"
+      ? "+" + (lastScore !== null ? Math.abs(score - lastScore).toFixed(0) : "5") + "% from last check"
       : trend === "down"
-        ? "-" + (lastScore !== null ? Math.abs((lastScore - score)).toFixed(0) : "2") + "% from last week"
-        : "unchanged";
+        ? "-" + (lastScore !== null ? Math.abs(lastScore - score).toFixed(0) : "2") + "% from last check"
+        : engineTrend;
 
-  // --- Normal State ---
   return (
     <Card className="w-full">
       <CardContent className="p-6">
@@ -178,7 +142,6 @@ export function ContinuousComplianceScore({ clientId }: ContinuousComplianceScor
               viewBox="0 0 120 120"
               aria-label={`Compliance score: ${Math.round(score)} percent`}
             >
-              {/* Background ring */}
               <circle
                 cx="60"
                 cy="60"
@@ -188,7 +151,6 @@ export function ContinuousComplianceScore({ clientId }: ContinuousComplianceScor
                 strokeWidth="8"
                 className="text-gray-200 dark:text-gray-700"
               />
-              {/* Score arc with animated transition */}
               <circle
                 cx="60"
                 cy="60"
@@ -212,7 +174,7 @@ export function ContinuousComplianceScore({ clientId }: ContinuousComplianceScor
         {/* Controls stats */}
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="text-center">
-            <div className="text-2xl font-bold">{totalControls}</div>
+            <div className="text-2xl font-bold">{totalMeasures}</div>
             <div className="text-xs text-muted-foreground">Total</div>
           </div>
           <div className="text-center">
@@ -249,22 +211,22 @@ export function ContinuousComplianceScore({ clientId }: ContinuousComplianceScor
           </span>
         </div>
 
-        {/* Last checked */}
+        {/* Status */}
         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-4">
           <Activity className="w-3 h-3" />
-          Last checked: {lastCheckedAgo}
+          Status: {POSTURE_STATUS_META[status]?.label ?? "No Data"}
         </div>
 
-        {/* Run Check button */}
+        {/* Refresh button */}
         <div className="flex justify-center">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRunCheck}
-            disabled={isFetching}
+            disabled={postureQuery.isFetching}
             className="min-w-[120px]"
           >
-            {isFetching ? (
+            {postureQuery.isFetching ? (
               <>
                 <svg
                   className="animate-spin -ml-1 mr-2 h-4 w-4"

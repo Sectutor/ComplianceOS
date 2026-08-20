@@ -24,6 +24,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { cn } from "@/lib/utils";
 import { PageGuide } from "@/components/PageGuide";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { ComplianceMonitorPanels } from "@/pages/cyber/ComplianceMonitorPanels";
 
 export default function CyberDashboard() {
     const { selectedClientId } = useClientContext();
@@ -472,6 +473,9 @@ export default function CyberDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Continuous Compliance Monitoring - NIS2 Phase 5 Task 5.2 (additive section) */}
+            <ComplianceMonitorPanels />
         </div>
     );
 }
