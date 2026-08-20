@@ -15,8 +15,10 @@ const DEFAULT_MONTHLY_RATE = 500;
 export function MSSPRevenueWidget({ defaultMonthlyRate = DEFAULT_MONTHLY_RATE }: MSSPRevenueWidgetProps) {
   // Cycle 22: revenue is computed from the client list (active / at-risk
   // counts). The DB-backed complianceMonitor procedures were removed when
-  // the router migrated to the pure NIS2 posture engine.
-  const clientsQuery = trpc.clients.list.useQuery(undefined, {
+  // the router migrated to the pure NIS2 posture engine. `as any` cast
+  // follows the established tRPC client-type workaround (DecoratedQuery
+  // backlog - see NIST80037Assess.tsx).
+  const clientsQuery = (trpc as any).clients.list.useQuery(undefined, {
     enabled: true,
   });
 
