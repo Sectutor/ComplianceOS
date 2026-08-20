@@ -1,4 +1,4 @@
-// Router index - updated at 2026-02-11 17:15
+﻿// Router index - updated at 2026-02-11 17:15
 import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
@@ -184,6 +184,7 @@ import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createSecurityTestingNis2Router } from "./server/routers/securityTestingNis2";
 import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
+import { createPolicyTemplatesNis2Router } from "./server/routers/policyTemplatesNis2";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
 import { createAddonRouter } from "@complianceos/addons/router";
@@ -377,6 +378,7 @@ export const appRouter = router({
   vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
   securityTestingNis2: createSecurityTestingNis2Router(t, protectedProcedure),
   complianceMonitor: createComplianceMonitorRouter(t, protectedProcedure),
+  policyTemplatesNis2: createPolicyTemplatesNis2Router(t, protectedProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 

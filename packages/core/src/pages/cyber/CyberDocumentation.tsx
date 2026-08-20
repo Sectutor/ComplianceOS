@@ -13,6 +13,8 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { useLocation } from "wouter";
 import { PageGuide } from "@/components/PageGuide";
+// Cycle 23 - NIS2 Policy Center (Phase 6 Task 6.1) - additive embed
+import PolicyCenterPanels from "./PolicyCenterPanels";
 
 // Define the linked evidence sources
 const linkedEvidenceSources = [
@@ -282,6 +284,9 @@ export default function CyberDocumentation() {
                     </div>
                 </form>
             </EnhancedDialog>
+
+            {/* Cycle 23 - NIS2 Policy Center (Phase 6 Task 6.1) */}
+            <PolicyCenterPanels />
         </div>
     );
 }
