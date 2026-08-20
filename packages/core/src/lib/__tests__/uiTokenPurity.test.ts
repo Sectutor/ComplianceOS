@@ -14,6 +14,7 @@ const PAGES = [
   'packages/core/src/pages/TrustCenter.tsx',
   'packages/core/src/pages/AuditHub.tsx',
   'packages/core/src/pages/AuditManager.tsx',
+  'packages/core/src/pages/cyber/SecurityTestingPanels.tsx',
 ];
 
 // Hard-coded surface/text classes that violate UI-STANDARD §2.

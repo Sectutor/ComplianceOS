@@ -182,6 +182,7 @@ import { createThirdPartyRiskRouter } from "./server/routers/thirdPartyRisk";
 import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgmt";
 import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
+import { createSecurityTestingNis2Router } from "./server/routers/securityTestingNis2";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
 import { createAddonRouter } from "@complianceos/addons/router";
@@ -374,6 +375,7 @@ export const appRouter = router({
   supplyChain: createSupplyChainRouter(t, protectedProcedure),
   thirdPartyRisk: createThirdPartyRiskRouter(t, protectedProcedure),
   vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
+  securityTestingNis2: createSecurityTestingNis2Router(t, protectedProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 
