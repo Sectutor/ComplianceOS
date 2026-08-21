@@ -16,6 +16,7 @@ import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
 import CollectorConnectionsPanel from "@/components/evidence/CollectorConnectionsPanel";
 import EvidenceRenewalPanel from "@/pages/EvidenceRenewalPanel";
+import EvidenceRepositoryPanels from "@/pages/EvidenceRepositoryPanels";
 import { GoogleDriveFileBrowser } from "@/components/integrations/GoogleDriveFileBrowser";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useState, useMemo } from "react";
@@ -760,6 +761,9 @@ export default function Evidence() {
         </div>
         {/* Expiring & Renewal (evidenceRenewal.* endpoints; graceful fallback) */}
         <EvidenceRenewalPanel clientId={clientId} />
+
+        {/* NIS2 Evidence Repository (evidenceRepository.* endpoints; graceful fallback) */}
+        <EvidenceRepositoryPanels clientId={clientId} />
 
 {/* Main Content - Categories */}
         {
