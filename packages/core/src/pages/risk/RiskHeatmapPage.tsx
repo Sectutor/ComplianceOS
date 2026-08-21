@@ -41,6 +41,7 @@ import {
   type RiskHeatmapData,
   type TreatmentPlan,
 } from "./riskHeatmapApi";
+import RiskQuantificationPanels from "@/pages/cyber/RiskQuantificationPanels";
 
 /* ------------------------------------------------------------------ */
 /* Severity color scale (documented exception to token-only colors:    */
@@ -323,6 +324,9 @@ export default function RiskHeatmapPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* NIS2 Risk Quantification (Cycle 26 - additive embed, no host logic changes) */}
+        <RiskQuantificationPanels clientId={clientId} />
 
         {/* Treatment plan drawer */}
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>

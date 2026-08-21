@@ -10,6 +10,7 @@ import { RiskTreatmentDialog } from '../components/risk/RiskTreatmentDialog';
 import { AddAssetDialog } from '../components/risk/AddAssetDialog';
 import { Radar, Zap, ShieldAlert, ArrowUpRight, TrendingUp } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import RiskQuantificationPanels from './cyber/RiskQuantificationPanels';
 
 // ... imports
 
@@ -185,7 +186,10 @@ export default function RiskRegister() {
                             <AssetInventoryTable assets={assets || []} loading={loadingAssets} />
                         )}
                         {activeTab === 'overview' && (
-                            <RiskOverviewTab scenarios={scenarios || []} assets={assets || []} />
+                            <>
+                                <RiskOverviewTab scenarios={scenarios || []} assets={assets || []} />
+                                <RiskQuantificationPanels clientId={clientId} />
+                            </>
                         )}
                     </div>
 

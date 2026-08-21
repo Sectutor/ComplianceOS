@@ -187,6 +187,7 @@ import { createComplianceMonitorRouter } from "./server/routers/complianceMonito
 import { createPolicyTemplatesNis2Router } from "./server/routers/policyTemplatesNis2";
 import { createEvidenceRepositoryRouter } from "./server/routers/evidenceRepository";
 import { createThreatLandscapeRouter } from "./server/routers/threatLandscape";
+import { createRiskQuantificationRouter } from "./server/routers/riskQuantification";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
 import { createAddonRouter } from "@complianceos/addons/router";
@@ -383,6 +384,7 @@ export const appRouter = router({
   policyTemplatesNis2: createPolicyTemplatesNis2Router(t, protectedProcedure),
   evidenceRepository: createEvidenceRepositoryRouter(t, protectedProcedure),
   threatLandscape: createThreatLandscapeRouter(t, protectedProcedure),
+  riskQuantification: createRiskQuantificationRouter(t, protectedProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 
