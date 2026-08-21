@@ -20,7 +20,7 @@ services:
       - VITE_ENABLE_PREMIUM=${VITE_ENABLE_PREMIUM:-false}
       - NO_TELEMETRY=${NO_TELEMETRY:-true}
       - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
-      - HERMES_DASHBOARD_URL=http://host.docker.internal:9119  # For /agent-full iframe
+      - AGENT_API_URL=http://hermes-agent:9090/api/chat
     depends_on:
       db:
         condition: service_healthy

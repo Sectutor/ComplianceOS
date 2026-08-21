@@ -38,3 +38,5 @@ export { setExecutor, getExecutor, hasExecutor } from './runtime/executor-instan
 export { FindingsPusher } from './runtime/pusher.js';
 export { WebhookHandler } from './runtime/webhook-handler.js';
 export type { ToolNormalizer } from './runtime/webhook-handler.js';
+export { createAddonRouter } from './router.js';
+

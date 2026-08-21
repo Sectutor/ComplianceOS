@@ -423,7 +423,7 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 
   try {
     if (!_sql) {
-      const useSsl = !databaseUrl.includes('@db:') && !databaseUrl.includes('@localhost:');
+      const useSsl = !databaseUrl.includes('@db:') && !databaseUrl.includes('@localhost:') && !databaseUrl.includes('@127.0.0.1:');
       _sql = postgres(databaseUrl, {
         ssl: useSsl ? { rejectUnauthorized: false } : false,
         prepare: false,

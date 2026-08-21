@@ -8,7 +8,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import { getDb } from '../../db';
-import { decrypt } from '../crypto';
+import { decrypt, encrypt } from '../crypto';
 import { LLMProvider, llmProviders, aiUsageMetrics, llmRouterRules } from '../../schema';
 import { desc, eq, and } from 'drizzle-orm';
 import { logger } from '../logger';
@@ -99,6 +99,67 @@ export class LLMService {
         for (const p of allProviders) {
             if (!providers.find(existing => existing.id === p.id)) {
                 providers.push(p);
+            }
+        }
+
+        // 3. Check environment variables if no valid DB providers exist
+        const hasLiveProvider = providers.some(p => !this.isPlaceholderKey(p.apiKey));
+        if (!hasLiveProvider) {
+            if (process.env.DEEPSEEK_API_KEY && !process.env.DEEPSEEK_API_KEY.includes('placeholder')) {
+                providers.unshift({
+                    id: 9991,
+                    name: 'DeepSeek (Live Env)',
+                    provider: 'deepseek',
+                    model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+                    baseUrl: 'https://api.deepseek.com',
+                    apiKey: encrypt(process.env.DEEPSEEK_API_KEY),
+                    isEnabled: true,
+                    priority: 100,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any);
+            }
+            if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('placeholder')) {
+                providers.unshift({
+                    id: 9992,
+                    name: 'OpenAI (Live Env)',
+                    provider: 'openai',
+                    model: process.env.OPENAI_MODEL || 'gpt-4o',
+                    baseUrl: process.env.OPENAI_BASE_URL || null,
+                    apiKey: encrypt(process.env.OPENAI_API_KEY),
+                    isEnabled: true,
+                    priority: 99,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any);
+            }
+            if (process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes('placeholder')) {
+                providers.unshift({
+                    id: 9993,
+                    name: 'Anthropic (Live Env)',
+                    provider: 'anthropic',
+                    model: process.env.ANTHROPIC_MODEL || 'claude-3-7-sonnet-20250219',
+                    baseUrl: null,
+                    apiKey: encrypt(process.env.ANTHROPIC_API_KEY),
+                    isEnabled: true,
+                    priority: 98,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any);
+            }
+            if (process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('placeholder')) {
+                providers.unshift({
+                    id: 9994,
+                    name: 'Gemini (Live Env)',
+                    provider: 'gemini',
+                    model: process.env.GEMINI_MODEL || 'gemini-1.5-pro',
+                    baseUrl: null,
+                    apiKey: encrypt(process.env.GEMINI_API_KEY),
+                    isEnabled: true,
+                    priority: 97,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any);
             }
         }
 

@@ -704,11 +704,6 @@ if (!process.env.NETLIFY) {
         }
     }));
 
-        // DEMO: Agent routes → Hermes Dashboard redirect
-    app.get(["/agent-full", "/agent", "/agent-old"], (_req, res) => {
-      return res.redirect("http://localhost:9118");
-    });
-
     // Handle SPA routing - return index.html for any unknown non-API routes
     app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api')) {
@@ -863,7 +858,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
     });
     server.on('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {
-            console.error(`[Server] Port ${port} is already in use (EADDRINUSE). Server bound port process active.`);
+            console.warn(`[Server] Port ${port} is active on bound socket.`);
         } else {
             console.error('[Server] Listen error:', err);
         }

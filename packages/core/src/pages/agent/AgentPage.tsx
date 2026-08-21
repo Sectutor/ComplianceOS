@@ -39,6 +39,11 @@ import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EmptyState } from "@complianceos/ui/ui/EmptyState";
+import { Inbox, Users, ShieldAlert } from "lucide-react";
+import { TeammatesFleetView } from '@/components/agent/TeammatesFleetView';
+import { ApprovalInboxView } from '@/components/agent/ApprovalInboxView';
+import { ScheduledRoutinesView } from '@/components/agent/ScheduledRoutinesView';
+import { MultiAgentChatCockpit } from '@/components/agent/MultiAgentChatCockpit';
 import {
   useAiCopilotDraftPolicy,
   useAiCopilotSuggestEvidence,
@@ -523,6 +528,8 @@ export function AgentPage() {
     ? groupedRecent.map(g => ({ ...g, items: g.items.filter(c => c.title.toLowerCase().includes(searchQ.toLowerCase())) })).filter(g => g.items.length > 0)
     : groupedRecent;
 
+  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'teammates' | 'approvals' | 'routines' | 'chat'>('cockpit');
+
   const filteredCronJobs = searchQ
     ? cronJobs.filter(c => c.name.toLowerCase().includes(searchQ.toLowerCase()))
     : cronJobs;
@@ -530,15 +537,120 @@ export function AgentPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] bg-background">
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      <div className={`${sidebarOpen ? 'w-72 border-r' : 'w-0'} transition-all duration-200 bg-muted/20 flex flex-col overflow-hidden shrink-0`}>
-        <div className="flex flex-col h-full">
-          {/* Search */}
-          <div className="p-3 border-b">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-              <input
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] bg-background">
+      {/* ── Top Level Agent Navigation Tabs ──────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-2 border-b bg-card shrink-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+          <button
+            onClick={() => setActiveMainTab('cockpit')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'cockpit'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <Sparkles size={14} className={activeMainTab === 'cockpit' ? "text-primary-foreground" : "text-primary"} />
+            Multi-Agent Cockpit
+            <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
+              activeMainTab === 'cockpit' ? "border-primary-foreground/40 text-primary-foreground" : "border-primary/40 text-primary bg-primary/10"
+            }`}>
+              Hermes 3-Col
+            </Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('teammates')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'teammates'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <Bot size={14} />
+            Fleet Directory
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('approvals')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'approvals'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <Inbox size={14} />
+            Approval Inbox
+            <Badge variant="outline" className="text-[10px] py-0 px-1 border-amber-500/40 text-amber-600 bg-amber-500/10">1</Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('routines')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'routines'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <Calendar size={14} />
+            Scheduled Routines
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('chat')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'chat'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <MessageSquare size={14} />
+            Knowledge Copilot
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Sandboxes Connected
+          </span>
+        </div>
+      </div>
+
+      {activeMainTab === 'cockpit' && (
+        <div className="flex-1 overflow-y-auto p-4 bg-background">
+          <MultiAgentChatCockpit />
+        </div>
+      )}
+
+      {activeMainTab === 'teammates' && (
+        <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <TeammatesFleetView />
+        </div>
+      )}
+
+      {activeMainTab === 'approvals' && (
+        <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <ApprovalInboxView />
+        </div>
+      )}
+
+      {activeMainTab === 'routines' && (
+        <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <ScheduledRoutinesView />
+        </div>
+      )}
+
+      {activeMainTab === 'chat' && (
+        <div className="flex flex-1 min-h-0 bg-background">
+          {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+          <div className={`${sidebarOpen ? 'w-72 border-r' : 'w-0'} transition-all duration-200 bg-muted/20 flex flex-col overflow-hidden shrink-0`}>
+            <div className="flex flex-col h-full">
+              {/* Search */}
+              <div className="p-3 border-b">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+                  <input
                 value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
                 placeholder="Search sessions…"
@@ -895,6 +1007,8 @@ export function AgentPage() {
         </div>
       </div>
     </div>
+  )}
+</div>
   );
 }
 

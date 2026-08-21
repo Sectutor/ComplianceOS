@@ -123,7 +123,13 @@ queryClient.getQueryCache().subscribe((event: any) => {
       window.dispatchEvent(new CustomEvent('require-mfa'));
     }
 
-    if (error instanceof TRPCClientError && error.message === "NOT_FOUND") return;
+    if (error instanceof TRPCClientError && (
+      error.message === "NOT_FOUND" ||
+      error.message?.includes("aborted") ||
+      error.name === "AbortError" ||
+      (error.cause as any)?.name === "AbortError" ||
+      (error.cause as any)?.name === "DOMException"
+    )) return;
 
     console.error("[API Query Error]", error);
   }

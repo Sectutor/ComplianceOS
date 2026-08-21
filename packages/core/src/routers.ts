@@ -1,4 +1,4 @@
-﻿// Router index - updated at 2026-02-11 17:15
+// Router index - updated at 2026-02-11 17:15
 import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
@@ -181,126 +181,215 @@ import { createSupplyChainRouter } from "./server/routers/supplyChain";
 import { createThirdPartyRiskRouter } from "./server/routers/thirdPartyRisk";
 import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgmt";
 import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
+// Router index - updated at 2026-02-11 17:15
+import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
+import { createClientControlsRouter } from "./server/routers/clientControls";
+import { createComplianceRouter } from "./server/routers/compliance";
+import { createEvidenceRouter } from "./server/routers/evidence";
+import { createAccessReviewsRouter } from "./server/routers/accessReviews";
+import { createEvidenceExpiryRouter } from "./server/routers/evidenceExpiry";
+import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
+import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
+import { createAdvisorRouter } from "./server/routers/advisor";
+import { TRPCError } from "@trpc/server";
+import crypto from "crypto";
+import { z } from "zod";
+import * as db from "./db";
+import { getDb } from "./db";
+import superjson from "superjson";
+import { policyGenerator } from './lib/policy/policy-generation';
+import { createVendorAssessmentsRouter } from "./server/routers/vendorAssessments";
+import { createRoadmapRouter } from "./server/routers/roadmap";
+import { createVendorContractsRouter } from "./server/routers/vendorContracts";
+import { createVendorDpasRouter } from "./server/routers/vendorDpas";
+import { createVendorRequestsRouter } from "./server/routers/vendorRequests";
+import { createThreatIntelRouter } from "./server/routers/threatIntel";
+import { createAsvsRouter } from "./server/routers/asvs";
+// Premium import placeholders
+import { createSubprocessorsRouter } from "./server/routers/subprocessors";
+import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
+// import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
+import { createControlMonitoringRouter } from "./routers/controlMonitoring";
+import { createEvidenceCollectorsRouter } from "./routers/evidenceCollectors";
+import { createEvidenceRenewalRouter } from "./routers/evidenceRenewal";
+import { createRiskHeatmapRouter } from "./routers/riskHeatmap";
+import { createPolicyAckRouter } from "./routers/policyAck";
+import * as schema from "./schema";
+import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrategies, bcPlans, disruptiveScenarios } from "./schema";
+import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
+import { logActivity } from "./lib/audit";
+import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
+import { createSammRouter } from "./server/routers/samm";
+import { createEmployeesRouter } from "./server/routers/employees";
+import {
+  sendOverdueNotification,
+  sendUpcomingNotification,
+  sendDailyDigest,
+  sendWeeklyDigest
+} from "./emailNotification";
+import { llmService } from "./lib/llm/service";
+import { generateGapAnalysisReport } from "./lib/reporting";
+import { suggestControlsForTreatment } from "./lib/ai/controlSuggestions";
+// cleaned up unused imports
+import * as adversaryIntelService from "./lib/adversaryService";
+// threatIntel related schema tables removed
+
+// Initialize tRPC imports
+import {
+  t,
+  router,
+  publicProcedure,
+  protectedProcedure,
+  adminProcedure,
+  clientProcedure,
+  clientEditorProcedure,
+  premiumClientProcedure,
+  checkClientAccess,
+  checkPremiumAccess,
+  isAuthed,
+  isAdmin,
+  requiresMFA
+} from "./server/trpc";
+import { createCrmRouter } from './lib/modules/crm/router';
+import { createSalesRouter } from './lib/modules/crm/sales-router';
+import { createFrameworkImportRouter } from './server/routers/frameworkImport';
+import { createFrameworkPluginsRouter } from './server/routers/frameworkPlugins';
+import { createReadinessRouter } from './server/routers/readiness';
+// Roadmap & Implementation
+import { createImplementationRouter } from './server/routers/implementation';
+import { createDevProjectsRouter } from './server/routers/devProjects';
+import { createThreatModelsRouter } from './server/routers/threatModels';
+import { createProjectsRouter } from './server/routers/projects';
+
+// Add missing imports
+import { createChecklistRouter } from './server/routers/checklist';
+import { businessContinuitySubRouter } from "./server/routers/businessContinuity";
+import { createRisksRouter } from "./server/routers/risks";
+import { createMetricsRouter } from "./server/routers/metrics";
+import { createGovernanceRouter } from "./server/routers/governance";
+import { createAutopilotRouter } from "./server/routers/autopilot";
+import { createGapAnalysisRouter } from "./server/routers/gapAnalysis";
+import { createFederalRouter } from "./server/routers/federal";
+import { createNist80030Router } from "./server/routers/nist80030";
+import { createActionsRouter } from "./server/routers/actions";
+import { createCalendarRouter } from "./server/routers/calendar";
+import { createClientsRouter } from "./server/routers/clients";
+import { usersSubRouter } from "./server/routers/users";
+import { createIntakeRouter } from "./server/routers/intake";
+import { createBillingRouter } from "./server/routers/billing";
+import { auditPackageRouter } from "./server/routers/auditPackage";
+import { connectorsRouter } from "./server/routers/connectors";
+import { trustBadgeRouter } from "./server/routers/trustBadge";
+import { cisaKevRouter } from "./server/routers/cisaKev";
+import { msspRouter } from "./server/routers/mssp";
+import { remediationRouter } from "./server/routers/remediation";
+import { questionnaireRouter } from "./server/routers/questionnaire";
+import { cloudAssetsRouter } from "./server/routers/cloudAssets";
+import { vendorSoc2Router } from "./server/routers/vendorSoc2";
+import { accessReviewRouter } from "./server/routers/accessReview";
+import { policyGeneratorRouter } from "./server/routers/policyGenerator";
+import { gapAnalysisEngineRouter } from "./server/routers/gapAnalysisEngine";
+import { privacySovereigntyRouter } from "./server/routers/privacySovereignty";
+import { createVendorRiskRouter } from "./server/routers/vendorRisk";
+import { evidenceSentinelRouter } from "./server/routers/evidenceSentinel";
+import { auditorFindingRouter } from "./server/routers/auditorFinding";
+import { peerBenchmarkRouter } from "./server/routers/peerBenchmark";
+import { controlHealthRouter } from "./server/routers/controlHealth";
+import { createFrameworksRouter } from "./server/routers/frameworks";
+import { createCompliancePlanningRouter } from "./server/routers/compliancePlanning";
+import { createHarmonizationRouter } from "./server/routers/harmonization";
+import { createFrameworkHarmonizationRouter } from "./server/routers/frameworkHarmonization";
+import { createControlMeshRouter } from "./server/routers/controlMesh";
+import { createEvidenceReportRouter } from "./server/routers/evidenceReport";
+import { createAuditRouter } from "./server/routers/audit";
+// notifications handled by modular router
+import { createNotificationsRouter } from "./server/routers/notifications";
+import { createDashboardRouter } from "./server/routers/dashboard";
+import { createWaitlistRouter } from "./server/routers/waitlist";
+import { createGlobalCrmRouter } from "./server/routers/globalCrm";
+import { createPrivacyRouter } from "./server/routers/privacy";
+import { createCyberRouter } from "./server/routers/cyber";
+import { createAssetsRouter } from "./server/routers/assets";
+import { createPolicyManagementRouter } from "./lib/routers/policy-management";
+import { createGlobalVendorsRouter } from "./server/routers/globalVendors";
+import { integrationsRouter } from "./server/routers/integrations";
+import { createKnowledgeBaseRouter } from "./server/routers/knowledgeBase";
+import { createLearningRouter } from "./server/routers/learning";
+import { createTaskAssignmentsRouter } from "./server/routers/taskAssignments";
+import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
+import { createReportsRouter } from "./server/routers/reports";
+// import { createStrategicReportsRouter } from "./server/routers/strategicReports";
+import { createFindingsRouter } from "./server/routers/findings";
+import { createTrustCenterRouter } from "./server/routers/trustCenter";
+import { createIso27001Router } from "./server/routers/iso27001";
+import { createComplianceDebtRouter } from "./server/routers/complianceDebt";
+import { createAiSystemsRouter } from "./server/routers/aiSystems";
+import { createCommentsRouter } from "./server/routers/comments";
+import { createOnboardingRouter } from "./server/routers/onboarding";
+import { createOnboardingExtrasRouter } from "./server/routers/onboardingExtras";
+import { createComplianceJourneyRouter } from "./server/routers/complianceJourney";
+import { trainingRouter } from "./modules/training";
+import { complianceRouter } from "./modules/compliance";
+
+// Modular routers
+import { riskRouter } from "./modules/risk";
+import { policyRouter } from "./modules/policy";
+import { evidenceRouter } from "./modules/evidence";
+import { auditRouter } from "./modules/audit";
+import { employeesRouter } from "./modules/employees";
+import { frameworksRouter } from "./modules/frameworks";
+import { notificationsRouter } from "./modules/notifications";
+import { dashboardRouter as modularDashboardRouter } from "./modules/dashboard";
+import { vendorsRouter } from "./modules/vendors";
+import { onboardingRouter as modularOnboardingRouter } from "./modules/onboarding";
+import { integrationsRouter as modularIntegrationsRouter } from "./modules/integrations";
+import { magicLinksRouter } from "./server/routers/magicLinks";
+import { createSammV2Router } from "./server/routers/samm-v2";
+import { emailTemplatesRouter } from "./server/routers/emailTemplates";
+import { emailTriggersRouter } from "./server/routers/emailTriggers";
+import { createAdversaryIntelRouter } from "./server/routers/adversaryIntel";
+import { createEssentialEightRouter } from "./server/routers/essentialEight";
+import { createStudioRouter } from "./server/routers/studio";
+import { createMaturityRouter } from "./server/routers/maturity";
+import { createGumroadRouter } from "./server/routers/gumroad";
+import { feedbackRouter } from "./server/routers/feedback";
+import { createBackupRestoreRouter } from "./server/routers/backupRestore";
+import { createRiskSettingsRouter } from "./server/routers/riskSettings";
+import { createSettingsRouter } from "./server/routers/settings";
+import { createRiskGameRouter } from "./server/routers/riskGame";
+import { pluginRouter } from "./server/routers/plugins";
+import { createLlmRouter } from "./server/routers/llm";
+import { createAiCopilotRouter } from "./server/routers/aiCopilot";
+import { createIncidentClassifierRouter } from "./server/routers/incidentClassifier";
+import { createIncidentTimelineRouter } from "./server/routers/incidentTimeline";
+import { createSupplyChainRouter } from "./server/routers/supplyChain";
+import { createThirdPartyRiskRouter } from "./server/routers/thirdPartyRisk";
+import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgmt";
+import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
 import { createSecurityTestingRouter } from "./server/routers/securityTesting";
 import { createSecurityTestingNis2Router } from "./server/routers/securityTestingNis2";
 import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
-import { createPolicyTemplatesNis2Router } from "./server/routers/policyTemplatesNis2";
 import { createEvidenceRepositoryRouter } from "./server/routers/evidenceRepository";
 import { createThreatLandscapeRouter } from "./server/routers/threatLandscape";
+import { createPolicyTemplatesNis2Router } from "./server/routers/policyTemplatesNis2";
 import { createRiskQuantificationRouter } from "./server/routers/riskQuantification";
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
-import { createAddonRouter } from "@complianceos/addons/router";
-import { createSsoRouter } from "./server/routers/sso";
-
-
-
-// Procedures and Middleware are now imported from ./server/trpc
-
-
-const STANDARD_CONTROLS_CONTEXT = `
-AC-1: Access Control Policy and Procedures
-AC-2: Account Management
-AC-3: Access Enforcement
-AC-4: Information Flow Enforcement
-AC-5: Separation of Duties
-AC-6: Least Privilege
-AT-1: Security Awareness and Training Policy
-AT-2: Security Awareness Training
-AT-3: Role-Based Security Training
-AU-1: Audit and Accountability Policy
-AU-2: Audit Events
-AU-3: Content of Audit Records
-AU-6: Audit Review, Analysis, and Reporting
-CM-1: Configuration Management Policy
-CM-2: Baseline Configuration
-CM-3: Configuration Change Control
-CP-1: Contingency Planning Policy
-CP-2: Contingency Plan
-IA-1: Identification and Authentication Policy
-IA-2: Identification and Authentication (Organizational Users)
-IA-5: Authenticator Management
-IR-1: Incident Response Policy
-IR-4: Incident Handling
-IR-6: Incident Reporting
-PE-1: Physical and Environmental Protection Policy
-PE-2: Physical Access Authorizations
-PE-3: Physical Access Control
-RA-1: Risk Assessment Policy
-RA-3: Risk Assessment
-SA-1: System and Services Acquisition Policy
-SC-1: System and Communications Protection Policy
-SC-7: Boundary Protection
-SC-8: Transmission Confidentiality and Integrity
-SI-1: System and Information Integrity Policy
-SI-2: Flaw Remediation
-SI-3: Malicious Code Protection
-SI-4: Information System Monitoring
-`;
-
-
-
-import { createAuditorsRouter } from "./server/routers/auditors";
-import { createRequirementsRouter } from "./server/routers/complianceRequirements";
-import { createProgramGuidesRouter } from "./server/routers/programGuides";
-import { createControlMeshRouter } from "./server/routers/controlMesh";
-import { createEvidenceReportRouter } from "./server/routers/evidenceReport";
+import { createTeammatesRouter } from "./server/routers/teammatesRouter";
+import { createAddonRouter } from "@complianceos/addons";
 import { createActionCenterRouter } from "./server/routers/actionCenter";
 import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
 import { createAuditorPortalRouter } from "./server/routers/auditorPortal";
 import { createWebhooksRouter } from "./server/routers/webhooks";
-
+import { createSsoRouter } from "./server/routers/sso";
 
 export const appRouter = router({
-  programGuides: createProgramGuidesRouter(t, clientProcedure),
-  evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
-  actions: createActionsRouter(t, clientProcedure),
-  auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
-  controls: createControlsRouter(t, adminProcedure, publicProcedure), // Restore missing router mapping
+  users: usersSubRouter,
+  controls: createControlsRouter(t, adminProcedure, publicProcedure),
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
-  users: usersSubRouter,
-  employees: employeesRouter,
-  crm: createCrmRouter(t, premiumClientProcedure),
-  sales: createSalesRouter(t, premiumClientProcedure),
-  businessContinuity: businessContinuitySubRouter,
-  billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
-  gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
-  frameworks: frameworksRouter,
-  frameworkImport: createFrameworkImportRouter(t, clientProcedure),
-  frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
-  requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
-  autopilot: createAutopilotRouter(t, premiumClientProcedure, adminProcedure),
-  checklist: createChecklistRouter(t, clientProcedure),
-  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
-  federal: createFederalRouter(t, premiumClientProcedure),
-  nist80030: createNist80030Router(t, premiumClientProcedure),
-  readiness: createReadinessRouter(t, premiumClientProcedure),
-  samm: createSammRouter(t, clientProcedure),
-  sammV2: createSammV2Router(t, premiumClientProcedure),
-  essentialEight: createEssentialEightRouter(t, premiumClientProcedure),
-  asvs: createAsvsRouter(t, clientProcedure),
-  calendar: createCalendarRouter(t, clientProcedure),
-  intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
-  iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
-  auditPackage: auditPackageRouter,
-  connectors: connectorsRouter,
-  trustBadge: trustBadgeRouter,
-  cisaKev: cisaKevRouter,
-  mssp: msspRouter,
-  remediation: remediationRouter,
-  questionnaire: questionnaireRouter,
-  cloudAssets: cloudAssetsRouter,
-  vendorSoc2: vendorSoc2Router,
-  accessReview: accessReviewRouter,
-  policyGenerator: policyGeneratorRouter,
-  gapAnalysisEngine: gapAnalysisEngineRouter,
-  privacySovereignty: privacySovereigntyRouter,
-  vendorRisk: createVendorRiskRouter(t, clientProcedure),
-  evidenceSentinel: evidenceSentinelRouter,
-  auditorFinding: auditorFindingRouter,
-  peerBenchmark: peerBenchmarkRouter,
+  teammates: createTeammatesRouter(t, publicProcedure),
   controlHealth: controlHealthRouter,
 
 
