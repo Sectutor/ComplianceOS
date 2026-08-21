@@ -23,6 +23,10 @@ const PAGES = [
   // and is enforced in full once the files land.
   'packages/core/src/pages/policyTemplatesNis2Api.ts',
   'packages/core/src/pages/cyber/PolicyCenterPanels.tsx',
+  // NIS2 Phase 1 Task 1.2 Risk Quantification Engine (QA cycle 27) — landed
+  // in parallel by the cycle-26 conductor; enforced strictly from landing.
+  'packages/core/src/pages/riskQuantificationApi.ts',
+  'packages/core/src/pages/cyber/RiskQuantificationPanels.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing
