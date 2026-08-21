@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { PageGuide } from "@/components/PageGuide";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { ComplianceMonitorPanels } from "@/pages/cyber/ComplianceMonitorPanels";
+import ThreatLandscapePanels from "@/pages/cyber/ThreatLandscapePanels";
 
 export default function CyberDashboard() {
     const { selectedClientId } = useClientContext();
@@ -476,6 +477,9 @@ export default function CyberDashboard() {
 
             {/* Continuous Compliance Monitoring - NIS2 Phase 5 Task 5.2 (additive section) */}
             <ComplianceMonitorPanels />
+
+            {/* NIS2 Threat Landscape Integration - Phase 1 Task 1.1 (additive section, Cycle 25) */}
+            <ThreatLandscapePanels clientId={selectedClientId ?? 0} />
         </div>
     );
 }
