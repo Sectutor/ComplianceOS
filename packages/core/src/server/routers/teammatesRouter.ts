@@ -348,24 +348,62 @@ Comprehensive data protection compliance under GDPR (EU), CCPA/CPRA (US), and IS
 * **DPIA Triggers:** Automated impact assessments for new AI processing, high-volume tracking, or biometric systems.`;
   }
 
-  // Quantitative Risk Management & Threat Modeling (Marcus)
-  if (p.includes("risk") || p.includes("threat model") || p.includes("fair") || p.includes("heatmap") || p.includes("erm") || p.includes("inherent") || p.includes("residual")) {
-    return `### 🎯 **Quantitative Enterprise Risk Management (ERM) & Threat Modeling**
+  // 🎯 Master Risk Management Engine (Marcus — Chief Risk Officer & ERM Architect)
+  if (p.includes("risk") || p.includes("threat model") || p.includes("fair") || p.includes("heatmap") || p.includes("erm") || p.includes("inherent") || p.includes("residual") || p.includes("iso 31000") || p.includes("iso 27005") || p.includes("nist sp 800-30") || p.includes("ebios") || p.includes("octave") || p.includes("coso") || p.includes("stride") || p.includes("pasta") || p.includes("treatment") || p.includes("ale")) {
+    return `### 🎯 **Enterprise Risk Management (ERM) & Multi-Methodology Risk Architecture**
+**Lead Strategist:** **Marcus** *(Chief Risk Officer & Master Risk Architect)*
 
-Continuous risk assessment aligned with **ISO 27005**, **NIST SP 800-30**, and the **FAIR (Factor Analysis of Information Risk)** framework:
-
----
-
-#### 1. **Inherent vs. Residual Risk Scoring**
-* **Inherent Risk = Likelihood × Impact (before controls).**
-* **Residual Risk = Inherent Risk − Control Effectiveness Factor.**
-* **FAIR Quantitative Analysis:** Computes Annualized Loss Expectancy ($ALE = SLE \times ARO$) to translate technical risks into financial exposure for executive leadership.
+ComplianceOS supports and synthesizes all major international risk assessment, quantification, and governance standards:
 
 ---
 
-#### 2. **Continuous Risk Recalculation (Managed by @Marcus)**
-* Ingests real-time security events (unpatched CVEs, cloud drift, vendor cert expirations) to dynamically adjust Risk Register scores.
-* Generates Board-ready 5x5 Risk Heatmaps and prioritizes remediation budget by ROI.`;
+#### 1. 📊 **FAIR (Factor Analysis of Information Risk - Open Group Standard)**
+* **Loss Event Frequency (LEF):** $\\text{LEF} = \\text{Threat Event Frequency (TEF)} \\times \\text{Vulnerability (V)}$, where $V = \\text{Threat Capability (TCap)} \\text{ vs. } \\text{Control Resistance (CS)}$.
+* **Loss Magnitude (LM):** Computed across **Primary Loss** (Asset replacement, productivity outage, direct incident response) + **Secondary Loss** (Regulatory fines, legal damages, customer churn, secondary reputation impacts).
+* **Quantitative Monte Carlo Engine:** Runs 10,000 iterations to derive **Annualized Loss Expectancy ($ALE = SLE \\times ARO$)** and **Value at Risk (90% VaR)** to justify security ROI to the Board.
+
+---
+
+#### 2. 🌐 **ISO 31000:2018 & ISO/IEC 27005:2022 (ISRM)**
+* **ISO 31000 ERM Principles:** Integrated, structured, dynamic, human & cultural factors, continual improvement.
+* **ISO 27005 Asset-Threat-Vulnerability (ATV) Approach:** Systematic mapping of essential business assets $\\rightarrow$ threatening agents $\\rightarrow$ technical predisposing vulnerabilities $\\rightarrow$ business impact consequences.
+* **Statement of Applicability (SoA) Integration:** Directly connects risk assessment outcomes (ISO 27001 Clause 6.1.2) to selected Annex A controls (Clause 6.1.3).
+
+---
+
+#### 3. 🛡️ **NIST SP 800-30 Rev. 1 & NIST CSF 2.0 (Govern & Identify)**
+* **4-Phase Process:** Prepare $\\rightarrow$ Conduct $\\rightarrow$ Communicate $\\rightarrow$ Maintain.
+* **Threat Source Taxonomy:** Evaluates **Adversarial** (Nation-state, Cybercriminals, Insiders) and **Non-Adversarial** (Cloud outages, human error, environmental disasters).
+* **5x5 Semi-Quantitative Likelihood $\\times$ Impact Matrix:** Standardized 1–25 scoring with predisposing conditions and compensating control adjustments.
+
+---
+
+#### 4. 🇫🇷 **EBIOS RM (ANSSI Cyber Risk Methodology)**
+* **Workshop 1 — Scope & Security Baseline:** Asset valuation and cyber hygiene foundation.
+* **Workshop 2 — Risk Sources:** Threat actor capability, motivation, and strategic objectives.
+* **Workshop 3 — Strategic Scenarios:** Ecosystem, supply chain, and sub-processor attack vectors.
+* **Workshop 4 — Operational Scenarios:** Granular technical kill-chains mapped to **MITRE ATT&CK**.
+* **Workshop 5 — Risk Treatment & Residual Synthesis:** Multi-year mitigation roadmap and governance review.
+
+---
+
+#### 5. 🏗️ **OCTAVE Allegro & COSO ERM 2017**
+* **OCTAVE Allegro (CMU SEI):** Information-centric asset profiling, container vulnerability analysis, and consequence evaluation.
+* **COSO ERM:** Enterprise governance, risk appetite alignment, strategic performance, and internal control assurance.
+
+---
+
+#### 6. ⚔️ **Threat Modeling (STRIDE, PASTA & DREAD)**
+* **STRIDE:** Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege.
+* **PASTA (Process for Attack Simulation and Threat Analysis):** 7-stage attacker-centric risk simulation.
+
+---
+
+#### 7. ⚖️ **The 4T Risk Treatment Framework**
+* **Treat (Mitigate):** Implement technical/organizational controls (e.g. MFA, Encryption, Zero-Trust).
+* **Tolerate (Accept):** Formally document risk acceptance within approved Board appetite ($ALE < \\text{Threshold}$).
+* **Transfer (Share):** Purchase cyber insurance policies ($5M+ limit) or contractual vendor indemnification.
+* **Terminate (Avoid):** Decommission high-risk legacy systems or discontinue vulnerable operational activities.`;
   }
 
   // Mock Auditor & Audit Defense (Sam)
@@ -713,7 +751,7 @@ let messagesStore: ChatMessage[] = [
     senderId: "user",
     senderName: "You",
     senderAvatar: "👤",
-    content: "Marcus, give me the executive summary of our Residual Risk Heatmap.",
+    content: "Marcus, give me the multi-methodology executive risk summary (FAIR ALE, ISO 27005 ATV, and 4T Treatment Plan).",
     timestamp: "Today, 2:00 PM"
   },
   {
@@ -722,8 +760,8 @@ let messagesStore: ChatMessage[] = [
     senderId: "marcus_risk",
     senderName: "Marcus",
     senderAvatar: "🎯",
-    senderRole: "Enterprise Risk & Threat Modeler",
-    content: "Enterprise Risk Assessment:\n\n* **Overall Residual Risk Score:** **Low (18/100)**\n* **High Inherent Risks Controlled:** Ransomware exposure mitigated by immutable backups (Control CC7.4) and MFA enforcement.\n* **Top Focus Area:** Vendor concentration in AWS us-east-1.",
+    senderRole: "Enterprise Risk Manager & Chief Risk Officer (CRO)",
+    content: "Enterprise Risk Assessment & Multi-Methodology Synthesis:\n\n* **1. FAIR Quantitative Loss Expectancy:** Estimated Annualized Loss Expectancy ($ALE$) is **$14,280 USD** (90% VaR: $120k). Current exposure is well within the Board-approved $50k risk tolerance.\n* **2. ISO 27005 / ISO 31000 Inherent vs. Residual:** Inherent Risk: **68/100 (High)** → Residual Risk: **18/100 (Low)** after applying ISO 27001 Annex A controls (MFA, Immutable Backups, CI/CD vulnerability SLAs).\n* **3. EBIOS RM & NIST SP 800-30 Matrix:** 5x5 Likelihood × Impact composite score is **4/25 (Low)** with multi-region failover and zero single points of failure.\n* **4. 4T Treatment Allocation:** 18 Risks **Treated** (420% security ROI), 3 **Tolerated**, 4 **Transferred** via $5M Cyber Insurance, 1 **Terminated** (legacy server decommissioned).",
     timestamp: "Today, 2:01 PM"
   },
   // Direct Sam Messages
@@ -855,13 +893,24 @@ let teammatesStore: Teammate[] = [
   {
     id: "marcus_risk",
     name: "Marcus",
-    role: "Enterprise Risk & Threat Modeler",
+    role: "Enterprise Risk Manager & Chief Risk Officer (CRO)",
     avatar: "🎯",
-    description: "Performs quantitative risk assessments using FAIR and ISO 27005 methodologies, correlates real-time security telemetry, and updates the Executive Risk Heatmap.",
+    description: "Master Risk Architect specializing in all risk methodologies: FAIR Quantitative Modeling (Monte Carlo ALE), ISO 31000/27005, NIST SP 800-30, EBIOS RM (5 Workshops), OCTAVE Allegro, COSO ERM, and STRIDE/PASTA threat modeling. Identifies, evaluates, scores, and manages risk treatment across the enterprise.",
     status: "idle",
     sandboxType: "cli",
     model: "claude-3-7-sonnet / deepseek-r1",
-    capabilities: ["FAIR Quantitative Risk Scoring", "Live Telemetry Risk Correlation", "Threat Modeling", "Board Risk Heatmap"],
+    capabilities: [
+      "FAIR Quantitative Loss Modeling",
+      "ISO 31000 / ISO 27005 Assessment",
+      "NIST SP 800-30 Matrix",
+      "EBIOS RM 5-Workshop Engine",
+      "OCTAVE Allegro Asset Profiling",
+      "COSO ERM Governance",
+      "STRIDE / PASTA Threat Modeling",
+      "Inherent vs Residual Heatmaps",
+      "4T Risk Treatment Optimization",
+      "DORA & NIS2 All-Hazards Risk Analysis"
+    ],
     tasksCompleted: 53,
     lastActive: "1 hour ago"
   },

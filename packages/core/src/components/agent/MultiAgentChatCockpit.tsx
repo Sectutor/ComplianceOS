@@ -9,6 +9,7 @@ import {
   useToggleRoutineMutation,
   useTakeControlSandboxMutation,
 } from "../../pages/agent/agentCockpitApi";
+import { RichMarkdownMessage } from "./RichMarkdownMessage";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -371,9 +372,7 @@ export function MultiAgentChatCockpit() {
                         : "bg-card border border-border text-foreground rounded-tl-xs"
                     }`}
                   >
-                    <div className="whitespace-pre-wrap font-sans">
-                      {msg.content}
-                    </div>
+                    <RichMarkdownMessage content={msg.content} isUser={isUser} />
 
                     {/* Headless Browser Session Preview (if present) */}
                     {msg.browserPreview && (
@@ -496,10 +495,31 @@ export function MultiAgentChatCockpit() {
             </button>
             <button
               type="button"
-              onClick={() => handleInsertPromptChip("@Marcus Recalculate FAIR quantitative residual risk heatmap")}
+              onClick={() => handleInsertPromptChip("@Marcus Calculate FAIR Annualized Loss Expectancy (ALE) and 90% VaR for ransomware threat scenario")}
               className="shrink-0 bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-md transition-all"
             >
-              @Marcus FAIR Risk Heatmap
+              @Marcus FAIR Loss Model
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInsertPromptChip("@Marcus Map ISO 27005:2022 Asset-Threat-Vulnerability scenario to ISO 27001 Statement of Applicability")}
+              className="shrink-0 bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-md transition-all"
+            >
+              @Marcus ISO 27005 / NIST Matrix
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInsertPromptChip("@Marcus Generate ANSSI EBIOS RM 5-Workshop cyber attack scenario with MITRE ATT&CK kill-chain")}
+              className="shrink-0 bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-md transition-all"
+            >
+              @Marcus EBIOS RM 5-Workshops
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInsertPromptChip("@Marcus Build a 4T Enterprise Risk Treatment Plan (Treat, Tolerate, Transfer, Terminate)")}
+              className="shrink-0 bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-md transition-all"
+            >
+              @Marcus 4T Treatment Plan
             </button>
             <button
               type="button"

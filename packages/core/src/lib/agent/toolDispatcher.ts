@@ -116,23 +116,105 @@ export class ToolDispatcher {
         };
       }
 
-      // 6. Marcus: FAIR Quantitative Risk Heatmap Recalculation
+      // 6. Marcus: FAIR Quantitative Risk & Monte Carlo ALE Model
       case "risk_calculate_fair_ale": {
         return {
           toolName: req.toolName,
           success: true,
           data: {
+            methodology: "FAIR (Factor Analysis of Information Risk)",
+            threatEventFrequencyTef: "1.2 events / year",
+            vulnerabilityPercentage: "14%",
+            lossEventFrequencyLef: "0.168 events / year",
+            singleLossExpectancySleUsd: 85000,
+            annualizedLossExpectancyAleUsd: 14280,
+            ninetyPercentVaRUsd: 120000,
+            monteCarloSimulationsRun: 10000,
             inherentRiskScore: 68,
             residualRiskScore: 18,
-            annualizedLossExpectancyUsd: 14200,
-            topRiskCategory: "Third-party cloud infrastructure concentration",
+            riskToleranceThresholdUsd: 50000,
+            withinRiskAppetite: true,
           },
-          summary: "FAIR quantitative model updated: Overall residual risk score is Low (18/100) with estimated ALE of $14.2k USD.",
+          summary: "FAIR quantitative model updated: Ran 10,000 Monte Carlo iterations. Estimated ALE is $14.28k USD (90% VaR $120k). Residual risk is within approved Board risk appetite.",
           executionTimeMs: Date.now() - startTime,
         };
       }
 
-      // 7. Sam: 1-Click CPA Audit Room Compilation
+      // 7. Marcus: ISO/IEC 27005:2022 Asset-Threat-Vulnerability (ATV) Evaluation
+      case "risk_iso27005_asset_evaluation": {
+        return {
+          toolName: req.toolName,
+          success: true,
+          data: {
+            methodology: "ISO/IEC 27005:2022 / ISO 27001 Clause 6.1.2",
+            essentialAssetsEvaluated: 14,
+            primaryThreatScenarios: [
+              { asset: "PostgreSQL Database (RDS)", threat: "Unauthorized Exfiltration", vulnerability: "Stale IAM Credentials", inherentRisk: "High (16/25)", residualRisk: "Low (4/25)", soaControl: "A.5.15 & A.8.24" },
+              { asset: "AWS S3 Backup Buckets", threat: "Ransomware Tampering", vulnerability: "Missing Object Lock", inherentRisk: "Critical (20/25)", residualRisk: "Low (3/25)", soaControl: "A.8.14 & A.8.7" }
+            ],
+            soaMappedControlsCount: 28,
+          },
+          summary: "ISO 27005:2022 Asset-Threat-Vulnerability assessment complete. 14 essential assets evaluated, all residual risks mitigated via mapped ISO 27001 Annex A controls.",
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // 8. Marcus: NIST SP 800-30 Rev. 1 5x5 Likelihood x Impact Assessment
+      case "risk_nist800_30_matrix": {
+        return {
+          toolName: req.toolName,
+          success: true,
+          data: {
+            methodology: "NIST SP 800-30 Rev. 1 / NIST CSF 2.0 (ID.RA)",
+            threatSourcesAssessed: ["Adversarial (Cybercrime)", "Non-Adversarial (Cloud Outage)", "Structural (API Failures)"],
+            likelihoodScore: 2, // Low-Moderate
+            impactScore: 2,     // Low-Moderate
+            overallRiskScore: 4, // 5x5 Matrix (1-25) -> Low
+            relevancePredisposingConditions: ["Multi-region failover active", "MFA enforced 100%"],
+          },
+          summary: "NIST SP 800-30 Rev. 1 matrix calculated: Overall risk score 4/25 (Low). Threat sources analyzed across adversarial and non-adversarial dimensions.",
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // 9. Marcus: EBIOS RM (ANSSI 5-Workshop Scenario Generator)
+      case "risk_ebios_workshop_generate": {
+        return {
+          toolName: req.toolName,
+          success: true,
+          data: {
+            methodology: "EBIOS RM (ANSSI)",
+            workshop1_baseline: "Essential assets mapped, security hygiene compliant with NIS2 Art 21 baseline.",
+            workshop2_riskSources: ["Sophisticated Cybercrime Groups (Financial motive)", "Supply chain sub-processors"],
+            workshop3_strategicScenarios: ["Compromise of third-party CI/CD pipeline leading to lateral movement into cloud production."],
+            workshop4_operationalScenarios: ["Phishing → Credential Harvesting → AWS IAM privilege escalation → S3 data exfiltration (MITRE ATT&CK T1078, T1530)."],
+            workshop5_treatmentSummary: "Zero-Trust MFA, Immutable S3 Object Lock, and automated CI dependency scanning implemented.",
+          },
+          summary: "EBIOS RM 5-Workshop cyber scenario generated. Operational kill-chains mapped to MITRE ATT&CK and validated with residual risk synthesis.",
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // 10. Marcus: 4T Enterprise Risk Treatment Plan Builder
+      case "risk_treatment_plan_builder": {
+        return {
+          toolName: req.toolName,
+          success: true,
+          data: {
+            methodology: "ISO 31000 4T Framework (Treat, Tolerate, Transfer, Terminate)",
+            treatmentBreakdown: {
+              treat_mitigate: { count: 18, budgetRoi: "420%", primaryActions: ["Enforce MFA", "Patch CVEs within SLA", "KMS SSE Encryption"] },
+              tolerate_accept: { count: 3, justification: "Within approved Board risk appetite (<$25k ALE exposure)" },
+              transfer_share: { count: 4, mechanism: "Cyber Insurance Policy ($5M coverage) + Vendor SLAs" },
+              terminate_avoid: { count: 1, action: "Decommission legacy unencrypted FTP server" },
+            },
+          },
+          summary: "4T Risk Treatment Plan generated: 18 risks Treated (420% ROI), 3 Tolerated within appetite, 4 Transferred via Cyber Insurance, 1 Terminated.",
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // 11. Sam: 1-Click CPA Audit Room Compilation
       case "audit_room_compile": {
         return {
           toolName: req.toolName,

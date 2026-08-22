@@ -6,7 +6,7 @@
 
 export interface PolicyDocument {
   id: string;
-  framework: "SOC 2" | "ISO 27001" | "NIS2" | "GDPR" | "Internal ISMS" | "DORA";
+  framework: "SOC 2" | "ISO 27001" | "NIS2" | "GDPR" | "Internal ISMS" | "DORA" | "ISO 31000" | "FAIR" | "NIST SP 800-30" | "EBIOS RM" | "COSO ERM";
   controlId: string;
   title: string;
   content: string;
@@ -21,6 +21,72 @@ export interface RagSearchResult {
 
 export class PolicyVectorRag {
   private documents: PolicyDocument[] = [
+    // ── Global Risk Management Methodologies (Marcus Master Engine) ───────────
+    {
+      id: "fair_risk_taxonomy",
+      framework: "FAIR",
+      controlId: "FAIR-O-RT",
+      title: "FAIR (Factor Analysis of Information Risk) Quantitative Standard",
+      content: "Quantitative cyber risk quantification modeling: Loss Event Frequency (LEF = TEF × Vulnerability) and Loss Magnitude (Primary Loss + Secondary Loss). Uses Monte Carlo distributions (90% Confidence Interval) to calculate Annualized Loss Expectancy ($ALE = SLE \\times ARO$) and Value at Risk (VaR).",
+      tags: ["fair", "quantitative", "risk", "monte carlo", "ale", "var", "loss event frequency", "financial risk"],
+    },
+    {
+      id: "iso_31000_erm",
+      framework: "ISO 31000",
+      controlId: "Clause 5 & 6",
+      title: "ISO 31000:2018 Enterprise Risk Management (ERM) Framework",
+      content: "Global ERM standard: Scope, Context & Criteria → Risk Assessment (Identification, Analysis, Evaluation) → Risk Treatment (4Ts: Treat/Mitigate, Tolerate/Accept, Transfer/Share, Terminate/Avoid). Governed by Continual Improvement and Leadership commitment.",
+      tags: ["iso 31000", "erm", "enterprise risk", "risk criteria", "risk treatment", "4t", "mitigate", "accept", "transfer", "avoid"],
+    },
+    {
+      id: "iso_27005_isrm",
+      framework: "ISO 27001",
+      controlId: "ISO/IEC 27005:2022",
+      title: "Information Security Risk Management (ISRM) & SoA Alignment",
+      content: "Asset-Threat-Vulnerability (ATV) and Event-Consequence modeling. Integrates with ISO/IEC 27001:2022 Clause 6.1.2 (Information Security Risk Assessment) and Clause 6.1.3 (Risk Treatment & Statement of Applicability SoA over Annex A 93 controls).",
+      tags: ["iso 27005", "isrm", "atv", "asset", "threat", "vulnerability", "soa", "statement of applicability", "clause 6.1.2"],
+    },
+    {
+      id: "nist_sp_800_30",
+      framework: "NIST SP 800-30",
+      controlId: "SP 800-30 Rev. 1",
+      title: "NIST Guide for Conducting Risk Assessments & 5x5 Matrix",
+      content: "4-Step Process: Prepare, Conduct, Communicate, Maintain. Identifies Adversarial and Non-Adversarial Threat Sources, Threat Events, Predisposing Conditions, Vulnerabilities, Likelihood, and Impact across Confidentiality, Integrity, and Availability.",
+      tags: ["nist", "nist sp 800-30", "800-30", "threat sources", "predisposing conditions", "likelihood", "impact", "5x5 matrix"],
+    },
+    {
+      id: "ebios_rm_anssi",
+      framework: "EBIOS RM",
+      controlId: "ANSSI EBIOS-RM",
+      title: "EBIOS Risk Manager (ANSSI 5-Workshop Methodology)",
+      content: "French/European cyber risk standard covering 5 Workshops: 1. Scope, Values & Baseline, 2. Risk Sources & Objectives, 3. Strategic Scenarios (Ecosystem & Supply Chain), 4. Operational Scenarios (MITRE ATT&CK Kill-Chain), 5. Risk Treatment & Residual Risk Synthesis.",
+      tags: ["ebios", "ebios rm", "anssi", "workshops", "strategic scenarios", "operational scenarios", "kill chain", "ecosystem"],
+    },
+    {
+      id: "coso_erm_2017",
+      framework: "COSO ERM",
+      controlId: "COSO 2017",
+      title: "COSO Enterprise Risk Management — Integrating with Strategy & Performance",
+      content: "5 Interrelated Components & 20 Principles: Governance & Culture, Strategy & Objective-Setting, Performance (identifies, assesses, prioritizes risks, implements risk responses), Review & Revision, Information, Communication & Reporting.",
+      tags: ["coso", "coso erm", "governance", "risk appetite", "strategy", "performance", "internal controls"],
+    },
+    {
+      id: "threat_modeling_stride_pasta",
+      framework: "Internal ISMS",
+      controlId: "SEC-THREAT-01",
+      title: "Threat Modeling Methodologies: STRIDE, PASTA & DREAD",
+      content: "STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) combined with 7-step PASTA (Process for Attack Simulation and Threat Analysis) and DREAD risk scoring.",
+      tags: ["stride", "pasta", "dread", "threat modeling", "spoofing", "tampering", "elevation of privilege"],
+    },
+    {
+      id: "dora_ict_risk_art6",
+      framework: "DORA",
+      controlId: "Article 6",
+      title: "DORA ICT Risk Management Framework",
+      content: "Financial entities must maintain a sound, comprehensive and well-documented ICT Risk Management Framework covering ICT asset mapping, threat monitoring, continuous vulnerability management, and digital operational resilience testing.",
+      tags: ["dora", "ict risk", "article 6", "resilience", "financial risk", "concentration risk"],
+    },
+
     {
       id: "soc2_cc6_1",
       framework: "SOC 2",

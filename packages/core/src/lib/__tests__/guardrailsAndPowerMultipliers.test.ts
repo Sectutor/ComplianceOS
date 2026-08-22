@@ -146,5 +146,54 @@ describe("🛡️ Enterprise AI Guardrails & Power Multipliers", () => {
       expect(result.success).toBe(true);
       expect(result.data.mfaEnforcedCount).toBe(48);
     });
+
+    it("executes FAIR Quantitative Loss Expectancy calculation with Monte Carlo simulation", async () => {
+      const result = await toolDispatcher.execute({
+        toolName: "risk_calculate_fair_ale",
+        parameters: {},
+        botId: "marcus_risk",
+        botName: "Marcus",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.methodology).toContain("FAIR");
+      expect(result.data.annualizedLossExpectancyAleUsd).toBe(14280);
+      expect(result.data.withinRiskAppetite).toBe(true);
+    });
+
+    it("executes ISO 27005 Asset-Threat-Vulnerability assessment and SoA mapping", async () => {
+      const result = await toolDispatcher.execute({
+        toolName: "risk_iso27005_asset_evaluation",
+        parameters: {},
+        botId: "marcus_risk",
+        botName: "Marcus",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.essentialAssetsEvaluated).toBe(14);
+      expect(result.data.primaryThreatScenarios.length).toBeGreaterThan(0);
+    });
+
+    it("executes EBIOS RM 5-Workshop scenario generation", async () => {
+      const result = await toolDispatcher.execute({
+        toolName: "risk_ebios_workshop_generate",
+        parameters: {},
+        botId: "marcus_risk",
+        botName: "Marcus",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.workshop4_operationalScenarios).toBeDefined();
+      expect(result.data.workshop5_treatmentSummary).toBeDefined();
+    });
+
+    it("executes 4T Enterprise Risk Treatment Plan generation", async () => {
+      const result = await toolDispatcher.execute({
+        toolName: "risk_treatment_plan_builder",
+        parameters: {},
+        botId: "marcus_risk",
+        botName: "Marcus",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.treatmentBreakdown.treat_mitigate.count).toBe(18);
+      expect(result.data.treatmentBreakdown.transfer_share.count).toBe(4);
+    });
   });
 });
