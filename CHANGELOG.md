@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 28 - Multi-agent guardrails & provenance hardening landed; interrupted cycle-28 WIP repaired and stabilized (2026-08-22)
+- Backend: 7 new lib/agent guardrail engines (promptInjectionGuard, dlpSanitizer, actionGatekeeper, toolDispatcher, rateLimiterCircuitBreaker, policyVectorRag, provenanceLedger with SHA-256 hash-chained ledger + audit certificates); teammatesRouter extended (guardrails status, approvals-in-loop tool execution, audit certificate, sandbox control, provenance ledger) and mounted behind protectedProcedure; ApprovalItem.type union gained terraform_apply.
+- UI: new pages/agent/agentCockpitApi.ts typed contract layer (UI-STANDARD sec.16) rewiring MultiAgentChatCockpit + ApprovalInboxView off raw trpc calls; new CredentialVaultPanels read-only section on Security Settings with EmptyState degradation until credentialVault.* lands; AgentReportsPage exported from AgentPage, repairing the /agent/reports lazy route broken since the Hermes cockpit commit.
+- QA/housekeeping: +guardrails/power-multiplier + teammatesRouter contract tests; internalLinks OneDrive budget 30s -> 180s; uiTokenPurity gate extended to the four agent surfaces; SecuritySettings MFA listFactors cast + invalid breadcrumb prop removed.
+- Verify: vitest 1944/1944 green (80 files); tsc touched-files clean, total backlog 2626 -> 2610; smoke exit 0; committed to dev (6d68558), pushed origin/dev + github/dev.
 ### Cycle 27 - QA hardening: uiTokenPurity gate extended to risk-quantification files; independent re-verification of parallel cycle 26 (2026-08-21)
 - QA: packages/core/src/lib/__tests__/uiTokenPurity.test.ts PAGES list now strictly covers pages/riskQuantificationApi.ts + pages/cyber/RiskQuantificationPanels.tsx (zero forbidden surface tokens found). Suite 1891 -> 1893 (78 files), all green; tsc backlog unchanged (2033 total, 0 errors in any riskQuantification.* file); smoke green.
 - Conductor note: cycle 26 landed from a parallel conductor mid-session (96285ae/f77fe5c/da63d04, already pushed). This cycle independently re-verified it (vitest + tsc + smoke) and ran BACKEND/UI/QA review passes over the new engine/router/panels - no defects found, no source changes required.
