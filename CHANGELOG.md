@@ -3,6 +3,12 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 30 - Local LLM air-gapped mode (auto-discovery, sovereign execution modes, model catalog); registerSummary injectable-clock fix; AddonScheduler guard (2026-08-22)
+- feat(llm): local LLM support landed — lib/llm/localLLMDiscovery.ts (Ollama/LM Studio/vLLM/LocalAI probes with hard timeouts, >=10-model recommended catalog across 3 hardware tiers, <think>-block output cleaner), execution modes hybrid/local_only/cloud_only persisted on LLMService, llm router procedures detectLocalRuntimes/getRecommendedLocalModels/getExecutionMode/setExecutionMode/listAvailableModels, admin LLMSettings UI.
+- fix(addons): AddonScheduler guards incompatible DB clients — warn-once + safe no-op tick instead of per-tick "db.select is not a function" error spam.
+- fix(vulnerabilityMgmt): registerSummary input schema accepts optional `now` and forwards it to the engine's injectable clock; time-bombed router test fixture pinned to NOW repaired (overdueCount drift).
+- Verify: targeted suites green (localLLMSupport + vulnerabilityMgmtRouter 30/30), smoke green; two parallel-conductor collisions handled (b1942c0 mid-cycle tree sweep; foreign memory/knowledge WIP active at close, left untouched).
+
 ### Cycle 29 - routers.ts collision-damage repair: deduplicated import block, -441 tsc backlog errors (2026-08-22)
 - fix(routers): packages/core/src/routers.ts shipped in 6dc6923 with two overlapping import generations (parallel-cycle collision) - 132 duplicate import statements + duplicated "// Router index" banner causing 436 TS2300 duplicate-identifier errors and ~582 total cascade errors. Repaired with a statement-aware dedupe (scratch/cycle29-dedupe-routers.cjs) that parses multi-line imports atomically, keeps the first occurrence of each of the 167 unique statements, removes exactly 172 lines, preserves CRLF and brace balance. tsc -p packages/core/tsconfig.json --noEmit: 2615 -> 2174 error lines (-441); routers.ts itself 491 -> 55 (chronic pre-collision backlog unchanged).
 - Verify: npx vitest run 80 files / 1944 tests all green on HEAD+repair; npm run smoke green ("Phase 2 ready"). No runtime code changed beyond import de-duplication (git diff = pure deletions).
