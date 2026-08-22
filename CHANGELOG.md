@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 29 - routers.ts collision-damage repair: deduplicated import block, -441 tsc backlog errors (2026-08-22)
+- fix(routers): packages/core/src/routers.ts shipped in 6dc6923 with two overlapping import generations (parallel-cycle collision) - 132 duplicate import statements + duplicated "// Router index" banner causing 436 TS2300 duplicate-identifier errors and ~582 total cascade errors. Repaired with a statement-aware dedupe (scratch/cycle29-dedupe-routers.cjs) that parses multi-line imports atomically, keeps the first occurrence of each of the 167 unique statements, removes exactly 172 lines, preserves CRLF and brace balance. tsc -p packages/core/tsconfig.json --noEmit: 2615 -> 2174 error lines (-441); routers.ts itself 491 -> 55 (chronic pre-collision backlog unchanged).
+- Verify: npx vitest run 80 files / 1944 tests all green on HEAD+repair; npm run smoke green ("Phase 2 ready"). No runtime code changed beyond import de-duplication (git diff = pure deletions).
+
 ### Cycle 28 - Multi-agent guardrails & provenance hardening landed; interrupted cycle-28 WIP repaired and stabilized (2026-08-22)
 - Backend: 7 new lib/agent guardrail engines (promptInjectionGuard, dlpSanitizer, actionGatekeeper, toolDispatcher, rateLimiterCircuitBreaker, policyVectorRag, provenanceLedger with SHA-256 hash-chained ledger + audit certificates); teammatesRouter extended (guardrails status, approvals-in-loop tool execution, audit certificate, sandbox control, provenance ledger) and mounted behind protectedProcedure; ApprovalItem.type union gained terraform_apply.
 - UI: new pages/agent/agentCockpitApi.ts typed contract layer (UI-STANDARD sec.16) rewiring MultiAgentChatCockpit + ApprovalInboxView off raw trpc calls; new CredentialVaultPanels read-only section on Security Settings with EmptyState degradation until credentialVault.* lands; AgentReportsPage exported from AgentPage, repairing the /agent/reports lazy route broken since the Hermes cockpit commit.
