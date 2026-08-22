@@ -16,6 +16,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import MFAChallengeModal from "@/components/auth/MFAChallengeModal";
 import { PATManagement } from "@/components/settings/PATManagement";
 import { useSsoStatusQuery } from "../sso/ssoApi";
+import { CredentialVaultSecuritySection } from "../security/CredentialVaultPanels";
 
 type Factor = {
   id: string;
@@ -296,7 +297,7 @@ export default function SecuritySettings() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'Security', active: true }]} />
+      <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'Security' }]} />
       <PageHeader
         title="Security"
         subtitle="Manage multi-factor authentication and enforcement for your workspace."
@@ -306,6 +307,10 @@ export default function SecuritySettings() {
       <div className="grid gap-6">
         {/* Enterprise SSO (cycle 9, scorecard #13) — read-only status */}
         <SsoStatusCard />
+
+        {/* Credential Vault Security (cycle 28): read-only section, degrades
+            gracefully until the credentialVault.* router is live. */}
+        <CredentialVaultSecuritySection clientId={selectedClientId ?? 0} />
         <Card>
           <CardHeader className="flex items-center justify-between">
             <div>
@@ -337,7 +342,7 @@ export default function SecuritySettings() {
                       onClick={async () => {
                         const { data: aalInfo } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
                         if (aalInfo?.currentLevel !== 'aal2') {
-                          const { data: lf } = await supabase.auth.mfa.listFactors();
+                          const lf: any = (await supabase.auth.mfa.listFactors()).data;
                           const totp = lf?.factors?.find((f: any) => f.factor_type === 'totp' && f.status === 'verified') || lf?.factors?.find((f: any) => f.factor_type === 'totp');
                           setVerifyFactorId(totp?.id || undefined);
                           setShowVerifyModal(!!totp?.id);

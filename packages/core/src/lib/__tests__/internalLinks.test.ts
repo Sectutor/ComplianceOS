@@ -61,9 +61,9 @@ function walk(dir: string, cb: (path: string, content: string) => void) {
 }
 
 describe('internal link integrity', () => {
-  // 30s budget (vs 10s global): the walk still reads ~900 UI-ish source files
-  // and can stall on OneDrive sync during parallel full-suite runs; the
-  // SKIP_DIRS prune above keeps it well under 30s while scanning all UI code.
+  // 180s budget (vs the runner default): the walk still reads ~900 UI-ish
+  // source files and can stall for ~1 min on OneDrive sync when the full suite
+  // runs in parallel (57s wall-clock observed in cycle 28 vs the old 30s cap).
   it('every internal UI link targets a registered route', () => {
     const routePaths = new Set<string>();
     const links = new Map<string, string[]>();
@@ -111,5 +111,5 @@ describe('internal link integrity', () => {
         .map(([l, f]) => `  ${l}  <-  ${f.join(', ')}`)
         .join('\n')}`,
     ).toEqual([]);
-  }, 30_000);
+  }, 180_000);
 });

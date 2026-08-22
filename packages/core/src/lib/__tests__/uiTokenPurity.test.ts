@@ -27,6 +27,13 @@ const PAGES = [
   // in parallel by the cycle-26 conductor; enforced strictly from landing.
   'packages/core/src/pages/riskQuantificationApi.ts',
   'packages/core/src/pages/cyber/RiskQuantificationPanels.tsx',
+  // Multi-agent cockpit surfaces (QA cycle 28) — enforced strictly from
+  // landing; the UI agent tokenizes these in parallel within the same cycle.
+  // Deliberately NOT listed in PARALLEL_BUILD_FILES: absence is a failure.
+  'packages/core/src/components/agent/MultiAgentChatCockpit.tsx',
+  'packages/core/src/components/agent/TeammatesFleetView.tsx',
+  'packages/core/src/components/agent/ApprovalInboxView.tsx',
+  'packages/core/src/components/agent/ScheduledRoutinesView.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing

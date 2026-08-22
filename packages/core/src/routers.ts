@@ -389,7 +389,7 @@ export const appRouter = router({
   controls: createControlsRouter(t, adminProcedure, publicProcedure),
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
-  teammates: createTeammatesRouter(t, publicProcedure),
+  teammates: createTeammatesRouter(t, protectedProcedure),
   controlHealth: controlHealthRouter,
 
 

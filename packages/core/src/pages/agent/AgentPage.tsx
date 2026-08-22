@@ -54,6 +54,11 @@ import {
   type AiCopilotAutoMapResult,
 } from "../aiCopilotApi";
 import { useAgentChat, ChatMessage } from '../../hooks/useAgentChat';
+import {
+  useTeammatesQuery,
+  useRoutinesQuery,
+  useGuardrailsStatusQuery,
+} from '../../pages/agent/agentCockpitApi';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -767,7 +772,7 @@ export function AgentPage() {
                           <div className="flex items-center gap-2">
                             {cron.id === 'cron_vuln' && <ShieldCheck size={13} className="text-emerald-500 shrink-0" />}
                             {cron.id === 'cron_aws' && <Activity size={13} className="text-sky-500 shrink-0" />}
-                            {cron.id === 'cron_soc2' && <Cpu size={13} className="text-indigo-500 shrink-0" />}
+                            {cron.id === 'cron_soc2' && <Cpu size={13} className="text-violet-500 shrink-0" />}
                             
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-semibold truncate text-foreground/80">{cron.name}</p>
@@ -1414,4 +1419,119 @@ function formatCopilotScore(score?: number): string {
   if (typeof score !== 'number' || Number.isNaN(score)) return '-';
   if (score <= 1) return `${Math.round(score * 100)}%`;
   return `${Math.round(score)}%`;
+}
+
+
+/**
+ * Agent Reports (route /agent/reports) — read-only fleet activity report.
+ * Consumes the same `teammates.*` contract as the cockpit via
+ * pages/agent/agentCockpitApi.ts (UI-STANDARD sec.16); degrades to an
+ * EmptyState when the endpoints are unreachable. Token-only, dark-mode safe.
+ */
+export function AgentReportsPage() {
+  const { data: teammates, isLoading: loadingTeammates, isError: errorTeammates } = useTeammatesQuery();
+  const { data: routines, isLoading: loadingRoutines } = useRoutinesQuery();
+  const { data: guardrails, isLoading: loadingGuardrails } = useGuardrailsStatusQuery();
+
+  const activeRoutines = (routines || []).filter(
+    (r) => r.status === "active" || r.status === "running"
+  ).length;
+  const totalTasks = (teammates || []).reduce((sum, tm) => sum + (tm.tasksCompleted || 0), 0);
+  const ledgerBlocks = guardrails?.cryptographicProvenance?.ledgerBlockCount ?? null;
+
+  const stats = [
+    { icon: Users, label: "Fleet members", value: teammates ? String(teammates.length) : "—" },
+    { icon: Clock, label: "Active routines", value: loadingRoutines ? "…" : String(activeRoutines) },
+    { icon: Activity, label: "Tasks completed", value: teammates ? String(totalTasks) : "—" },
+    { icon: ShieldCheck, label: "Provenance blocks", value: loadingGuardrails ? "…" : ledgerBlocks === null ? "—" : String(ledgerBlocks) },
+  ];
+
+  return (
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+          <FileText className="h-6 w-6 text-primary" />
+          Agent Reports
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Fleet activity, routine coverage and provenance posture across the multi-agent workforce.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map(({ icon: Icon, label, value }) => (
+          <div key={label} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
+              {label}
+            </div>
+            <p className="text-2xl font-bold text-foreground mt-2 tabular-nums">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-muted/20">
+          <h2 className="text-sm font-semibold text-foreground">Fleet roster</h2>
+        </div>
+        {loadingTeammates ? (
+          <div className="p-4 space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : errorTeammates || !teammates || teammates.length === 0 ? (
+          <div className="p-4">
+            <EmptyState
+              icon={Users}
+              title="Connect the teammates.listTeammates API"
+              description="Fleet roster data appears here once the teammates router is reachable."
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                  <th className="px-4 py-2 font-medium">Teammate</th>
+                  <th className="px-4 py-2 font-medium">Role</th>
+                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium text-right">Tasks</th>
+                  <th className="px-4 py-2 font-medium">Last active</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teammates.map((tm) => (
+                  <tr key={tm.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="truncate font-medium text-foreground">{tm.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground truncate max-w-[220px]">{tm.role}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge
+                        variant="outline"
+                        className={
+                          tm.status === "running"
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : tm.status === "waiting_approval"
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "border-border bg-muted/30 text-muted-foreground"
+                        }
+                      >
+                        {tm.status.replace(/_/g, " ")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{tm.tasksCompleted}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{tm.lastActive}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
