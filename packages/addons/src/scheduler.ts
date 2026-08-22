@@ -23,6 +23,9 @@ const BATCH_SIZE = 5;
 let isRunning = false;
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
+/** Warn-once flag: logged the first time the DB client lacks a query API */
+let warnedIncompatibleDbClient = false;
+
 /**
  * Start the addon scheduler.
  * Called once during server initialization.
@@ -74,6 +77,20 @@ export async function processDueScans(): Promise<void> {
   const now = new Date();
 
   try {
+    // Guard: the scheduler requires a Drizzle-style client exposing `.select()`.
+    // Some environments hand back a raw pool/proxy without one, which used to
+    // spam "db.select is not a function" on every tick. Warn once, then make
+    // each tick a safe no-op until a compatible client is available.
+    if (typeof (db as any)?.select !== 'function') {
+      if (!warnedIncompatibleDbClient) {
+        warnedIncompatibleDbClient = true;
+        console.warn(
+          '[AddonScheduler] Incompatible database client (missing db.select) - scheduled addon scans are disabled until a Drizzle-compatible client is available',
+        );
+      }
+      return; // Safe no-op tick
+    }
+
     // Find subscriptions due for a run
     const dueSubscriptions = await db
       .select()

@@ -51,9 +51,26 @@ export class LLMService {
     private static providerCache: { providers: LLMProvider[]; timestamp: number } | null = null;
     private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-    /**
-     * Get the highest priority enabled provider
-     */
+    // Execution Mode: 'hybrid' (default) | 'local_only' (air-gapped) | 'cloud_only'
+    private static executionMode: 'hybrid' | 'local_only' | 'cloud_only' = 'hybrid';
+
+    public static setExecutionMode(mode: 'hybrid' | 'local_only' | 'cloud_only'): void {
+        LLMService.executionMode = mode;
+        LLMService.clearCache();
+        console.log(`[LLMService] Execution mode set to: ${mode}`);
+    }
+
+    public static getExecutionMode(): 'hybrid' | 'local_only' | 'cloud_only' {
+        return LLMService.executionMode;
+    }
+
+    public static isLocalProvider(provider: LLMProvider | { provider: string; baseUrl?: string | null }): boolean {
+        const pType = (provider.provider || '').toLowerCase();
+        if (['ollama', 'lmstudio', 'vllm', 'localai'].includes(pType)) return true;
+        const url = (provider.baseUrl || '').toLowerCase();
+        return url.includes('localhost') || url.includes('127.0.0.1') || url.includes(':11434') || url.includes(':1234') || url.includes(':8000') || url.includes(':8080') || url.includes('.internal') || url.includes('.local');
+    }
+
     /**
      * Get the configured provider for a feature, or fallback to highest priority
      */
@@ -63,7 +80,7 @@ export class LLMService {
         if (LLMService.providerCache &&
             (now - LLMService.providerCache.timestamp) < LLMService.CACHE_TTL_MS) {
             console.log('[LLMService] Using cached providers');
-            return LLMService.providerCache.providers;
+            return LLMService.filterByExecutionMode(LLMService.providerCache.providers);
         }
 
         const db = await getDb();
@@ -166,6 +183,23 @@ export class LLMService {
         // Update cache
         LLMService.providerCache = { providers, timestamp: now };
 
+        return LLMService.filterByExecutionMode(providers);
+    }
+
+    private static filterByExecutionMode(providers: LLMProvider[]): LLMProvider[] {
+        if (LLMService.executionMode === 'local_only') {
+            const localOnly = providers.filter(p => LLMService.isLocalProvider(p));
+            if (localOnly.length === 0) {
+                console.warn('[LLMService] Air-Gapped Sovereign Mode is active, but no local LLM providers are configured.');
+            }
+            return localOnly;
+        }
+
+        if (LLMService.executionMode === 'cloud_only') {
+            return providers.filter(p => !LLMService.isLocalProvider(p));
+        }
+
+        // Hybrid mode (default): use prioritized order (local or cloud)
         return providers;
     }
 
@@ -279,6 +313,20 @@ export class LLMService {
 
             if (provider.baseUrl) {
                 config.baseURL = provider.baseUrl;
+            } else if (provider.provider === 'ollama') {
+                config.baseURL = 'http://127.0.0.1:11434/v1';
+            } else if (provider.provider === 'lmstudio') {
+                config.baseURL = 'http://127.0.0.1:1234/v1';
+            } else if (provider.provider === 'vllm') {
+                config.baseURL = 'http://127.0.0.1:8000/v1';
+            } else if (provider.provider === 'localai') {
+                config.baseURL = 'http://127.0.0.1:8080/v1';
+            } else if (provider.provider === 'deepseek') {
+                config.baseURL = 'https://api.deepseek.com';
+            } else if (provider.provider === 'openrouter') {
+                config.baseURL = 'https://openrouter.ai/api/v1';
+            } else if (provider.provider === 'qwen') {
+                config.baseURL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
             }
 
             const client = new OpenAI(config);
@@ -819,13 +867,8 @@ export class LLMService {
     /**
      * Test a provider connection
      */
-    async testConnection(provider: Partial<LLMProvider> & { apiKey: string }): Promise<boolean> {
+    async testConnection(provider: Partial<LLMProvider> & { apiKey: string }): Promise<{ success: boolean; message: string; isBalanceWarning?: boolean }> {
         try {
-            const testRequest: CompletionRequest = {
-                userPrompt: 'Test',
-                maxTokens: 5,
-            };
-
             switch (provider.provider) {
                 case 'anthropic': {
                     const client = new Anthropic({ apiKey: provider.apiKey });
@@ -845,15 +888,41 @@ export class LLMService {
                 }
 
                 default: {
+                    const isLocal = ['ollama', 'lmstudio', 'vllm', 'localai'].includes(provider.provider || '');
                     const config: any = {
-                        apiKey: provider.apiKey,
-                        dangerouslyAllowBrowser: true
+                        apiKey: provider.apiKey || (isLocal ? 'local' : 'sk-local'),
+                        dangerouslyAllowBrowser: true,
+                        timeout: 15000,
                     };
-                    if (provider.baseUrl) config.baseURL = provider.baseUrl;
+                    if (provider.baseUrl) {
+                        config.baseURL = provider.baseUrl;
+                    } else if (provider.provider === 'ollama') {
+                        config.baseURL = 'http://127.0.0.1:11434/v1';
+                    } else if (provider.provider === 'lmstudio') {
+                        config.baseURL = 'http://127.0.0.1:1234/v1';
+                    } else if (provider.provider === 'vllm') {
+                        config.baseURL = 'http://127.0.0.1:8000/v1';
+                    } else if (provider.provider === 'localai') {
+                        config.baseURL = 'http://127.0.0.1:8080/v1';
+                    } else if (provider.provider === 'deepseek') {
+                        config.baseURL = 'https://api.deepseek.com';
+                    } else if (provider.provider === 'openrouter') {
+                        config.baseURL = 'https://openrouter.ai/api/v1';
+                    } else if (provider.provider === 'qwen') {
+                        config.baseURL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
+                    }
 
                     const client = new OpenAI(config);
+                    let testModel = provider.model;
+                    if (!testModel) {
+                        if (provider.provider === 'ollama') testModel = 'llama3.2:3b';
+                        else if (provider.provider === 'deepseek') testModel = 'deepseek-chat';
+                        else if (provider.provider === 'openrouter') testModel = 'deepseek/deepseek-chat';
+                        else testModel = 'gpt-4o';
+                    }
+
                     await client.chat.completions.create({
-                        model: provider.model || 'gpt-3.5-turbo',
+                        model: testModel,
                         messages: [{ role: 'user', content: 'Test' }],
                         max_tokens: 5,
                     });
@@ -861,10 +930,42 @@ export class LLMService {
                 }
             }
 
-            return true;
+            return { success: true, message: 'Connection successful!' };
         } catch (e: any) {
             logger.error({ message: "Test connection failed", error: e.message });
-            return false;
+
+            const errMsg = e.message || '';
+            const status = e.status || e.statusCode;
+
+            // Detect 402 / Insufficient Balance (Key is authentic and valid, but credits needed)
+            if (status === 402 || /insufficient|balance|credit/i.test(errMsg)) {
+                return {
+                    success: true,
+                    isBalanceWarning: true,
+                    message: `API Key authenticated successfully! Note: Upstream provider returned 402 (Insufficient Balance / credits). The provider has been saved and will activate once credits are refilled.`
+                };
+            }
+
+            // 401 Unauthorized / Invalid Key
+            if (status === 401 || /unauthorized|invalid api key|incorrect api key/i.test(errMsg)) {
+                return {
+                    success: false,
+                    message: `Authentication failed: The provided API key was rejected by ${provider.provider || 'provider'}.`
+                };
+            }
+
+            // 404 Model Not Found
+            if (status === 404 || /model.*not.*found/i.test(errMsg)) {
+                return {
+                    success: false,
+                    message: `Model "${provider.model}" was not found on ${provider.provider}. Please verify the model name.`
+                };
+            }
+
+            return {
+                success: false,
+                message: errMsg || 'Connection failed. Please check your credentials and endpoint.'
+            };
         }
     }
 }

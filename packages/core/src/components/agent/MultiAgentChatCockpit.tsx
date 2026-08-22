@@ -87,9 +87,40 @@ export function MultiAgentChatCockpit() {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [reasoningSeconds, setReasoningSeconds] = useState(0);
+  const [thinkingPhaseIndex, setThinkingPhaseIndex] = useState(0);
+
+  const THINKING_PHASES = [
+    "Analyzing prompt & enforcing zero-trust DLP guardrails...",
+    "Retrieving compliance framework vectors & policy mappings...",
+    "Orchestrating agent synthesis & technical solutioning...",
+    "Verifying evidence standards & formatting actionable response..."
+  ];
+
+  useEffect(() => {
+    let timer: any;
+    let phaseTimer: any;
+    if (sendMessageMutation.isPending || sendMessageMutation.isLoading) {
+      setReasoningSeconds(0);
+      setThinkingPhaseIndex(0);
+      timer = setInterval(() => {
+        setReasoningSeconds(s => s + 0.5);
+      }, 500);
+      phaseTimer = setInterval(() => {
+        setThinkingPhaseIndex(idx => (idx + 1) % THINKING_PHASES.length);
+      }, 2000);
+    } else {
+      setReasoningSeconds(0);
+    }
+    return () => {
+      clearInterval(timer);
+      clearInterval(phaseTimer);
+    };
+  }, [sendMessageMutation.isPending, sendMessageMutation.isLoading]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, reasoningSeconds]);
 
   // Determine active target info
   const isWarRoom = activeChannelId === "war_room";
@@ -429,6 +460,56 @@ export function MultiAgentChatCockpit() {
               </div>
             );
           })}
+          {/* Active Agent Working / Reasoning Animation Card */}
+          {(sendMessageMutation.isPending || sendMessageMutation.isLoading) && (
+            <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="w-8 h-8 rounded-lg bg-card border-2 border-primary/40 flex items-center justify-center text-lg shrink-0 shadow-xs relative">
+                <span className="animate-pulse">{isWarRoom ? "🧠" : (activeBot?.avatar || "🤖")}</span>
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                </span>
+              </div>
+
+              <div className="w-full max-w-[85%] rounded-2xl p-4 bg-card border-2 border-primary/30 shadow-md space-y-3 relative overflow-hidden">
+                {/* Top Animated Shimmer Bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-sky-400 to-primary animate-pulse" />
+
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-foreground">
+                      {isWarRoom ? "Hermes & AI Fleet" : activeBot?.name}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/30 text-primary bg-primary/10 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 animate-spin" /> Reasoning & Synthesizing
+                    </Badge>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/80 px-1.5 py-0.5 rounded border border-border/50">
+                    {reasoningSeconds.toFixed(1)}s
+                  </span>
+                </div>
+
+                {/* Animated Working Dots & Dynamic Phase Ticker */}
+                <div className="flex items-center gap-3 pt-0.5">
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-2 h-2 rounded-full bg-primary animate-bounce"></div>
+                  </div>
+                  <span className="text-xs text-foreground/90 font-medium tracking-wide animate-pulse">
+                    {THINKING_PHASES[thinkingPhaseIndex]}
+                  </span>
+                </div>
+
+                {/* Micro Skeleton Preview Lines */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="h-2 bg-primary/15 rounded w-5/6 animate-pulse"></div>
+                  <div className="h-2 bg-muted rounded w-2/3 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -594,16 +675,37 @@ export function MultiAgentChatCockpit() {
                 <div className="font-semibold text-foreground flex items-center gap-1.5 mb-1">
                   {activeBot?.sandboxType === "browser" ? <Globe className="w-3.5 h-3.5 text-sky-500" /> : <Terminal className="w-3.5 h-3.5 text-emerald-500" />}
                   <span>{activeBot?.name} Active Workspace</span>
+                  {(sendMessageMutation.isPending || sendMessageMutation.isLoading) && (
+                    <span className="flex h-2 w-2 relative ml-auto">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Executing headless browser & container automation in an isolated virtual sandbox.
+                  {(sendMessageMutation.isPending || sendMessageMutation.isLoading)
+                    ? "Active multi-agent pipeline executing prompt synthesis and vector retrieval."
+                    : "Executing headless browser & container automation in an isolated virtual sandbox."}
                 </p>
               </div>
 
               <div className="bg-background/80 border border-border/80 rounded-lg p-2 font-mono text-[9px] space-y-0.5">
-                <div className="text-emerald-600 dark:text-emerald-400">✓ Auth Token: Active (AES-256)</div>
-                <div className="text-muted-foreground">→ DOM Resolution: 1920x1080 Headless</div>
-                <div className="text-muted-foreground">→ Network Stream: Encrypted VPC</div>
+                {(sendMessageMutation.isPending || sendMessageMutation.isLoading) ? (
+                  <>
+                    <div className="text-emerald-500 flex items-center gap-1">
+                      <RotateCw className="w-2.5 h-2.5 animate-spin" />
+                      <span>Pipeline: Active ({reasoningSeconds.toFixed(1)}s)</span>
+                    </div>
+                    <div className="text-sky-400">→ Phase: {THINKING_PHASES[thinkingPhaseIndex]}</div>
+                    <div className="text-muted-foreground animate-pulse">_</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-emerald-600 dark:text-emerald-400">✓ Auth Token: Active (AES-256)</div>
+                    <div className="text-muted-foreground">→ DOM Resolution: 1920x1080 Headless</div>
+                    <div className="text-muted-foreground">→ Network Stream: Encrypted VPC</div>
+                  </>
+                )}
               </div>
             </div>
 

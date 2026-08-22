@@ -236,7 +236,9 @@ interface TeammatesTrpc {
   };
 }
 
-const cockpitApi = trpc as unknown as TeammatesTrpc;
+function getCockpitApi(): TeammatesTrpc {
+  return (trpc as unknown as TeammatesTrpc);
+}
 
 /* ------------------------------------------------------------------ */
 /* Hooks                                                               */
@@ -244,18 +246,18 @@ const cockpitApi = trpc as unknown as TeammatesTrpc;
 
 /** Fleet roster for the cockpit sidebar. */
 export function useTeammatesQuery() {
-  return cockpitApi.teammates.listTeammates.useQuery({ retry: false });
+  return getCockpitApi().teammates.listTeammates.useQuery({ retry: false });
 }
 
 /** Scheduled routines for the cockpit right rail. */
 export function useRoutinesQuery() {
-  return cockpitApi.teammates.listRoutines.useQuery({ retry: false });
+  return getCockpitApi().teammates.listRoutines.useQuery({ retry: false });
 }
 
 /** Channel messages ("war_room" or a teammate id); light polling keeps the
  *  war-room feel without hammering the API. */
 export function useMessagesQuery(channelId: string) {
-  return cockpitApi.teammates.listMessages.useQuery(
+  return getCockpitApi().teammates.listMessages.useQuery(
     { channelId },
     { retry: false, refetchInterval: 3000 },
   );
@@ -263,7 +265,7 @@ export function useMessagesQuery(channelId: string) {
 
 /** DLP / zero-trust / provenance / circuit-breaker posture strip. */
 export function useGuardrailsStatusQuery() {
-  return cockpitApi.teammates.getGuardrailsStatus.useQuery({
+  return getCockpitApi().teammates.getGuardrailsStatus.useQuery({
     retry: false,
     refetchInterval: 5000,
   });
@@ -271,12 +273,12 @@ export function useGuardrailsStatusQuery() {
 
 /** Cryptographic audit certificate for the compliance modal. */
 export function useAuditCertificateQuery(scope: string) {
-  return cockpitApi.teammates.getAuditCertificate.useQuery({ scope }, { retry: false });
+  return getCockpitApi().teammates.getAuditCertificate.useQuery({ scope }, { retry: false });
 }
 
 /** Zero-trust approval inbox. */
 export function useApprovalsQuery() {
-  return cockpitApi.teammates.listApprovals.useQuery({ retry: false });
+  return getCockpitApi().teammates.listApprovals.useQuery({ retry: false });
 }
 
 export function useSendMessageMutation(
@@ -285,13 +287,13 @@ export function useSendMessageMutation(
     { success: boolean }
   >,
 ) {
-  return cockpitApi.teammates.sendMessage.useMutation(opts);
+  return getCockpitApi().teammates.sendMessage.useMutation(opts);
 }
 
 export function useToggleRoutineMutation(
   opts?: MutationOptions<{ routineId: string; active: boolean }, TeammateRoutine>,
 ) {
-  return cockpitApi.teammates.toggleRoutine.useMutation(opts);
+  return getCockpitApi().teammates.toggleRoutine.useMutation(opts);
 }
 
 export function useTakeControlSandboxMutation(
@@ -300,7 +302,7 @@ export function useTakeControlSandboxMutation(
     { success: boolean; message: string; sessionUrl: string }
   >,
 ) {
-  return cockpitApi.teammates.takeControlSandbox.useMutation(opts);
+  return getCockpitApi().teammates.takeControlSandbox.useMutation(opts);
 }
 
 export function useResolveApprovalMutation(
@@ -309,5 +311,5 @@ export function useResolveApprovalMutation(
     { success: boolean; item: ApprovalItem }
   >,
 ) {
-  return cockpitApi.teammates.resolveApproval.useMutation(opts);
+  return getCockpitApi().teammates.resolveApproval.useMutation(opts);
 }
