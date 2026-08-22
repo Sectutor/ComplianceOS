@@ -55,6 +55,7 @@ import * as evidenceExpirationScheduler from './packages/core/src/server/service
 import * as controlAutoTestScheduler from './packages/core/src/server/services/controlAutoTestScheduler';
 import * as accessReviewScheduler from './packages/core/src/server/services/accessReviewScheduler';
 import { startEvidenceScheduler } from './packages/core/src/lib/evidenceScheduler';
+import { startVfsAutoSyncScheduler } from './packages/core/src/lib/memory/vfsAutoSyncScheduler';
 
 import redis from './packages/core/src/lib/redis';
 import * as crypto from 'crypto';
@@ -801,6 +802,11 @@ if (process.env.ENABLE_COMPLIANCE_MONITOR_CRON !== 'false') {
 if (process.env.ENABLE_EVIDENCE_SCHEDULER !== 'false') {
     startEvidenceScheduler();
     console.log('[Server] Evidence collection scheduler started');
+}
+
+// VFS Memory Cortex continuous background synchronization
+if (process.env.ENABLE_VFS_AUTO_SYNC !== 'false') {
+    startVfsAutoSyncScheduler(300_000); // sync every 5 minutes automatically
 }
 
 // Addon system initialization

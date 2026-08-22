@@ -7,7 +7,7 @@ import { getDb } from "../../db";
 import { policyGenerator } from "../../lib/policy/policy-generation";
 import { PLATFORM_ADMIN_ROLES } from "../trpc";
 import * as schema from "../../schema";
-import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, like, or, isNull } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
 
@@ -27,11 +27,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         if (input.module) {
           conditions.push(eq(clientPolicies.module, input.module));
         } else {
-          // Default to general if not specified, OR return all? 
-          // For backward compatibility, existing calls won't have module. 
-          // If we want to hide privacy docs from main list, we should maybe filter reasonable defaults or return all.
-          // Let's filter by 'general' by default to hide Privacy docs from main view unless requested.
-          conditions.push(eq(clientPolicies.module, 'general'));
+          conditions.push(or(eq(clientPolicies.module, 'general'), isNull(clientPolicies.module))!);
         }
 
         const results = await dbConn.select({

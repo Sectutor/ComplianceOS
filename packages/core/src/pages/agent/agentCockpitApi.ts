@@ -305,6 +305,16 @@ export function useTakeControlSandboxMutation(
   return getCockpitApi().teammates.takeControlSandbox.useMutation(opts);
 }
 
+export function useClearMessagesMutation(
+  opts?: MutationOptions<{ channelId: string }, { success: boolean }>,
+) {
+  return getCockpitApi().teammates.clearMessages.useMutation(opts);
+}
+
+export function useListThreadsQuery() {
+  return getCockpitApi().teammates.listThreads.useQuery(undefined, { retry: false });
+}
+
 export function useResolveApprovalMutation(
   opts?: MutationOptions<
     { approvalId: string; action: "approved" | "rejected"; comment?: string },

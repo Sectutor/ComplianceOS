@@ -80,8 +80,11 @@ export default function RiskRegister() {
                                     <p className="text-slate-300 text-sm mt-0.5">Monitoring global CISA alerts. <span className="text-white font-semibold flex items-center gap-1">2 new critical CVEs</span> identified matching your tech stack.</p>
                                 </div>
                             </div>
-                            <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-colors border border-white/10 flex items-center gap-2 whitespace-nowrap">
-                                <Zap className="w-4 h-4 text-amber-400" />
+                            <button 
+                                onClick={() => setActiveTab('assets')}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white rounded-lg text-sm font-bold transition-all border border-white/10 flex items-center gap-2 whitespace-nowrap shadow-sm hover:border-amber-400/40"
+                            >
+                                <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
                                 Analyze Assets
                             </button>
                         </div>

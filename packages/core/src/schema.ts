@@ -15237,3 +15237,58 @@ export type AccessReviewCycle = typeof accessReviewCycles.$inferSelect;
 export type InsertAccessReviewCycle = typeof accessReviewCycles.$inferInsert;
 export type AccessReviewTask = typeof accessReviewTasks.$inferSelect;
 export type InsertAccessReviewTask = typeof accessReviewTasks.$inferInsert;
+
+// ==========================================
+// Native VFS + Vector Unified Memory Engine ("Compliance Cortex")
+// ==========================================
+export const companyMemoryNodes = pgTable("company_memory_nodes", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  path: varchar("path", { length: 500 }).notNull(), // e.g. "/infrastructure/aws_prod", "/policies/access_control"
+  parentPath: varchar("parent_path", { length: 500 }).notNull().default("/"),
+  nodeType: varchar("node_type", { length: 50 }).notNull().default("document"), // folder, document, fact, web_intel, asset_profile
+  title: varchar("title", { length: 255 }).notNull(),
+  summaryL0: text("summary_l0"), // Compact directory/L0 summary for token-efficient prompt context
+  contentL2: text("content_l2"), // Full document content / raw markdown / specs
+  metadata: jsonb("metadata").$type<{
+    tags?: string[];
+    source?: string;
+    url?: string;
+    author?: string;
+    confidence?: number;
+    frameworks?: string[];
+    extractedFactsCount?: number;
+    lastVerified?: string;
+  }>().default({}),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    clientPathIdx: uniqueIndex("idx_cmn_client_path").on(table.clientId, table.path),
+    clientParentIdx: index("idx_cmn_client_parent").on(table.clientId, table.parentPath),
+    nodeTypeIdx: index("idx_cmn_type").on(table.nodeType),
+  };
+});
+
+export const companyMemoryRelations = pgTable("company_memory_relations", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  sourceNodeId: integer("source_node_id").notNull(),
+  targetNodeId: integer("target_node_id").notNull(),
+  relationType: varchar("relation_type", { length: 100 }).notNull(), // depends_on, stores_data, mitigates, subject_to, subprocessor_of, monitored_by
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    sourceIdx: index("idx_cmr_source").on(table.sourceNodeId),
+    targetIdx: index("idx_cmr_target").on(table.targetNodeId),
+    clientRelIdx: index("idx_cmr_client").on(table.clientId),
+  };
+});
+
+export type CompanyMemoryNode = typeof companyMemoryNodes.$inferSelect;
+export type InsertCompanyMemoryNode = typeof companyMemoryNodes.$inferInsert;
+export type CompanyMemoryRelation = typeof companyMemoryRelations.$inferSelect;
+export type InsertCompanyMemoryRelation = typeof companyMemoryRelations.$inferInsert;
+

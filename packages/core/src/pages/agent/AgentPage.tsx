@@ -30,7 +30,11 @@ import {
   FileText,
   FileSearch,
   Map,
-  X
+  X,
+  Inbox,
+  Users,
+  ShieldAlert,
+  Brain
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -39,11 +43,11 @@ import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EmptyState } from "@complianceos/ui/ui/EmptyState";
-import { Inbox, Users, ShieldAlert } from "lucide-react";
 import { TeammatesFleetView } from '@/components/agent/TeammatesFleetView';
 import { ApprovalInboxView } from '@/components/agent/ApprovalInboxView';
 import { ScheduledRoutinesView } from '@/components/agent/ScheduledRoutinesView';
 import { MultiAgentChatCockpit } from '@/components/agent/MultiAgentChatCockpit';
+import { CompanyMemoryCenter } from '../knowledge/CompanyMemoryCenter';
 import {
   useAiCopilotDraftPolicy,
   useAiCopilotSuggestEvidence,
@@ -533,7 +537,7 @@ export function AgentPage() {
     ? groupedRecent.map(g => ({ ...g, items: g.items.filter(c => c.title.toLowerCase().includes(searchQ.toLowerCase())) })).filter(g => g.items.length > 0)
     : groupedRecent;
 
-  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'teammates' | 'approvals' | 'routines' | 'chat'>('cockpit');
+  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'memory' | 'teammates' | 'approvals' | 'routines' | 'chat'>('cockpit');
 
   const filteredCronJobs = searchQ
     ? cronJobs.filter(c => c.name.toLowerCase().includes(searchQ.toLowerCase()))
@@ -560,6 +564,23 @@ export function AgentPage() {
               activeMainTab === 'cockpit' ? "border-primary-foreground/40 text-primary-foreground" : "border-primary/40 text-primary bg-primary/10"
             }`}>
               Hermes 3-Col
+            </Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('memory')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'memory'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <Brain size={14} />
+            Memory Cortex (VFS)
+            <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
+              activeMainTab === 'memory' ? "border-primary-foreground/40 text-primary-foreground" : "border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/10"
+            }`}>
+              OpenViking
             </Badge>
           </button>
 
@@ -625,6 +646,12 @@ export function AgentPage() {
       {activeMainTab === 'cockpit' && (
         <div className="flex-1 overflow-y-auto p-4 bg-background">
           <MultiAgentChatCockpit />
+        </div>
+      )}
+
+      {activeMainTab === 'memory' && (
+        <div className="flex-1 overflow-hidden bg-background">
+          <CompanyMemoryCenter />
         </div>
       )}
 

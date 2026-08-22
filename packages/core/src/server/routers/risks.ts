@@ -1250,14 +1250,11 @@ ${reportData.conclusion}
                 const results = await db
                     .select({
                         ...getTableColumns(riskAssessments),
-                        treatmentCount: sql<number>`count(distinct ${riskTreatments.id})::int`.as('treatment_count'),
-                        policyCount: sql<number>`count(distinct ${riskPolicyMappings.id})::int`.as('policy_count'),
+                        treatmentCount: sql<number>`(SELECT count(*)::int FROM risk_treatments WHERE risk_treatments.risk_assessment_id = ${riskAssessments.id})`.as('treatment_count'),
+                        policyCount: sql<number>`(SELECT count(*)::int FROM risk_policy_mappings WHERE risk_policy_mappings.risk_assessment_id = ${riskAssessments.id})`.as('policy_count'),
                     })
                     .from(riskAssessments)
-                    .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
-                    .leftJoin(riskPolicyMappings, eq(riskPolicyMappings.riskAssessmentId, riskAssessments.id))
                     .where(and(...conditions))
-                    .groupBy(riskAssessments.id)
                     .orderBy(desc(riskAssessments.createdAt));
 
                 return results;

@@ -8,6 +8,8 @@ import {
   useSendMessageMutation,
   useToggleRoutineMutation,
   useTakeControlSandboxMutation,
+  useClearMessagesMutation,
+  useListThreadsQuery,
 } from "../../pages/agent/agentCockpitApi";
 import { RichMarkdownMessage } from "./RichMarkdownMessage";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -42,7 +44,9 @@ import {
   Lock,
   Zap,
   User,
-  Power
+  Power,
+  MessageSquarePlus,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,6 +89,20 @@ export function MultiAgentChatCockpit() {
       toast.success(data.message);
     }
   });
+
+  const clearMessagesMutation = useClearMessagesMutation({
+    onSuccess: () => {
+      toast.success("Thread reset. Started fresh conversation.");
+      refetchMessages();
+    },
+    onError: (err) => {
+      toast.error(`Failed to reset thread: ${err.message}`);
+    }
+  });
+
+  const handleNewThread = () => {
+    clearMessagesMutation.mutate({ channelId: activeChannelId });
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [reasoningSeconds, setReasoningSeconds] = useState(0);
@@ -318,11 +336,22 @@ export function MultiAgentChatCockpit() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleNewThread}
+              disabled={clearMessagesMutation.isLoading || clearMessagesMutation.isPending}
+              className="h-8 text-xs border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 font-semibold"
+              title="Start a new clean thread with this agent"
+            >
+              <MessageSquarePlus className="w-3.5 h-3.5 mr-1" />
+              + New Thread
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowCertModal(true)}
-              className="h-8 text-xs border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+              className="h-8 text-xs border-border text-muted-foreground hover:bg-accent"
             >
               <ShieldCheck className="w-3.5 h-3.5 mr-1" />
-              CPA Audit Cert
+              CPA Cert
             </Button>
             <Button
               variant="outline"

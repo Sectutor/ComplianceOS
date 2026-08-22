@@ -204,6 +204,7 @@ import { createRiskQuantificationRouter } from "./server/routers/riskQuantificat
 import { createMcpRouter } from "./server/routers/mcp";
 import { createTokensRouter } from "./server/routers/tokens";
 import { createTeammatesRouter } from "./server/routers/teammatesRouter";
+import { createMemoryRouter } from "./server/routers/memoryRouter";
 import { createAddonRouter } from "@complianceos/addons";
 import { createActionCenterRouter } from "./server/routers/actionCenter";
 import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
@@ -218,6 +219,7 @@ export const appRouter = router({
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   teammates: createTeammatesRouter(t, protectedProcedure),
+  memory: createMemoryRouter(t, protectedProcedure),
   controlHealth: controlHealthRouter,
 
 
