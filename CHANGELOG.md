@@ -3,6 +3,12 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 33 - Hermes orchestration WIP verified & landed; +41 dedicated engine tests; 18 tsc errors cleared (2026-08-23)
+- test(agent): first dedicated unit suites for agentDelegationEngine (19 tests: severity gate before any side effect, dispatch/reply shape, honest no-LLM fallback carrying real context, VFS memory record, malformed-input never-throws) and agentRoutineScheduler (22 tests) - previously only mocked indirect coverage existed.
+- fix(qa-harness): conductor repaired mock-state leak in agentDelegationEngine.test.ts (missing saveMessageMock.mockClear() in beforeEach caused 14/19 false failures from cross-test call accumulation); suite green after one-line fix.
+- verify(ai-agent): scoped tsc - 18 -> 0 errors across toolDispatcher/agentDelegationEngine/agentRoutineScheduler/teammatesRouter; repo backlog 2205 -> 2187 (-18, nothing new); full vitest 88 files / 2113 tests green (+4 files / +106 vs baseline incl. cycle-32 vault tests); smoke green.
+- process: second live parallel-conductor detected mid-cycle (credential-vault crew writing 09:35-09:54); file-partitioned agents kept zero overlap; parallel conductor swept this cycle's finished work into b301d7a at 10:08 (all 8 partition files verified present) - no duplicate commit needed.
+
 ### Cycle 32 - Credential Vault backend (AES-256-GCM cosv1 vault, audit hash-chain, rate limiter, 2FA policy) + guardrails power-multiplier increment landed & repaired (2026-08-23)
 - feat(security): credentialVault tRPC router + lib/security/credentialCrypto.ts per the cycle-31 UI contract — closes the API-FIRST plan's P0 credential-security block (encryption at rest, decrypt-on-request, audit logging, rotation/expiration/2FA posture checklist).
 - feat(ai-agent): cycle-31 WIP landed — toolDispatcher real-data FAIR Monte Carlo contract, delegation/routine-scheduler expansion; teammatesRouter repaired to the new engine signatures (-18 tsc errors in touched files).
