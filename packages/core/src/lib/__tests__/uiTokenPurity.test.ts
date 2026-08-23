@@ -34,6 +34,10 @@ const PAGES = [
   'packages/core/src/components/agent/TeammatesFleetView.tsx',
   'packages/core/src/components/agent/ApprovalInboxView.tsx',
   'packages/core/src/components/agent/ScheduledRoutinesView.tsx',
+  // Credential Vault Security panels (QA cycle 32) — Settings → Security
+  // live panels over the credentialVault.* tRPC procedures; enforced
+  // strictly from landing.
+  'packages/core/src/pages/security/CredentialVaultPanels.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing
