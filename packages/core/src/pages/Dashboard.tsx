@@ -593,35 +593,29 @@ export default function Dashboard() {
                     title={t("dashboard.complianceScore", "Overall Compliance")}
                     value={`${overallComplianceRate}%`}
                     icon={<Shield className="w-5 h-5" />}
-                    trend="+5%"
-                    trendLabel="vs last quarter"
-                    gradient="blue"
+                    trend="up"
+                    trendLabel="12%"
+                    variant="success"
                   />
                   <AnimatedMetricCard
-                    title={t("dashboard.activeRisks", "Active Risks")}
-                    value={overview.activeRisks}
+                    title={t("dashboard.riskProfile", "Risk Profile")}
+                    value={overview?.highRisks || 0}
                     icon={<AlertTriangle className="w-5 h-5" />}
-                    trend={overview.highRisks > 0 ? `${overview.highRisks} Critical` : undefined}
-                    trendLabel={overview.highRisks > 0 ? "requires attention" : undefined}
-                    gradient={overview.highRisks > 0 ? "rose" : "amber"}
+                    variant="error"
                   />
                   <AnimatedMetricCard
-                    title={t("dashboard.evidenceStatus", "Evidence Collection")}
-                    value={`${evidenceRate}%`}
-                    icon={<FileCheck className="w-5 h-5" />}
-                    trend={overview.pendingEvidence > 0 ? `${overview.pendingEvidence} Pending` : undefined}
-                    trendLabel={overview.pendingEvidence > 0 ? "awaiting review" : undefined}
-                    gradient="emerald"
+                    title={t("dashboard.portfolioReach", "Portfolio Reach")}
+                    value={overview?.totalClients || 0}
+                    icon={<Users className="w-5 h-5" />}
+                    variant="info"
                   />
                 </div>
 
-                {/* Main Visuals Grid */}
+                {/* Vanta-style Posture Summary (dashboard.getStats w/ enhanced fallback) */}
                 <PostureSummary
-                  complianceRate={overallComplianceRate}
-                  frameworkCoverage={frameworkStats}
-                  evidenceCollectionRate={evidenceRate}
-                  criticalRisksCount={overview.highRisks}
-                  policiesCount={overview.totalPolicies}
+                  clientId={effectiveClientId}
+                  framework={framework}
+                  enhancedStats={enhancedStats}
                   complianceScores={complianceScores as Array<{ date?: string; score?: number }> | undefined}
                 />
 
