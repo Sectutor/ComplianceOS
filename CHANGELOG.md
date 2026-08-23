@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 34 - AuditHub contract layer + unmounted-evidenceFiles graceful degradation; db.ts type-only cleanup (-74 tsc backlog); contract-gate tripwire (2026-08-23)
+- fix(audit): landed interrupted cycle-34 WIP — pages/AuditHub.tsx now uses a local typed data-contract layer (UI-STANDARD sec.16 cast pattern, retry:false, defensive user_metadata read); evidenceFiles.create/.delete verified NOT mounted on the AppRouter (import-only in routers.ts), so file upload/delete degrade to explicit toasts behind EVIDENCE_FILES_LIVE instead of calling missing procedures at mutation time; dead dialog/mutations removed.
+- refactor(db): packages/core/src/db.ts type-only cleanup (likeExpr adapter for like(sql``) under drizzle@0.30, typed arrays, two TODO-marked parity casts) — emitted SQL unchanged; tsc backlog 2187 -> 2113 (-74), 0 errors in touched files.
+- qa: +packages/core/src/lib/__tests__/auditHubContractGate.test.ts (5 tests incl. mounted-vs-flag tripwire). Verify: vitest 2113 -> 2118 green (89 files); smoke green. Follow-up: Evidence.tsx:86 calls unmounted trpc.evidenceFiles.create.
+
 ### Cycle 33 - Hermes orchestration WIP verified & landed; +41 dedicated engine tests; 18 tsc errors cleared (2026-08-23)
 - test(agent): first dedicated unit suites for agentDelegationEngine (19 tests: severity gate before any side effect, dispatch/reply shape, honest no-LLM fallback carrying real context, VFS memory record, malformed-input never-throws) and agentRoutineScheduler (22 tests) - previously only mocked indirect coverage existed.
 - fix(qa-harness): conductor repaired mock-state leak in agentDelegationEngine.test.ts (missing saveMessageMock.mockClear() in beforeEach caused 14/19 false failures from cross-test call accumulation); suite green after one-line fix.

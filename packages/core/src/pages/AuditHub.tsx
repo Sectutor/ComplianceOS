@@ -88,6 +88,123 @@ import { PageGuide } from "@/components/PageGuide";
 
 const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
 
+/* ============================================================================
+ * LOCAL DATA-CONTRACT LAYER - UI-STANDARD.md 16 (coordination by convention)
+ * ---------------------------------------------------------------------------
+ * The AppRouter type does not surface these procedure names to the compiler
+ * (several server router factories are loosely typed upstream), so this page
+ * casts the shared tRPC client ONCE to the contract below. Every entry mirrors
+ * a real procedure implemented under packages/core/src/server/routers/:
+ *
+ *   audit.inviteAuditor              audit.ts:11
+ *   audit.list                       audit.ts:82
+ *   evidence.getFrameworks           evidence.ts:114
+ *   evidence.list                    evidence.ts:121
+ *   evidence.linkIntegration         evidence.ts:337
+ *   evidence.getFiles                evidence.ts:364
+ *   evidence.seed                    evidence.ts:486
+ *   evidence.create / delete / updateStatus / addComment / getComments /
+ *     getAllComments                 evidence.ts
+ *   findings.list / findings.create  findings.ts:13 / findings.ts:36
+ *   clientControls.list              registered in routers.ts
+ *
+ * DEGRADED (16.2 graceful degradation): the evidenceFiles router exists at
+ * server/routers/evidenceFiles.ts but is NOT mounted on the AppRouter as of
+ * cycle 34, so evidenceFiles.create/.delete have no live endpoint. The file
+ * upload/delete affordances below degrade to a toast + tooltip ("not available
+ * in this deployment") instead of calling a missing procedure. Flip
+ * EVIDENCE_FILES_LIVE to true once the router is mounted on the AppRouter.
+ * ============================================================================
+ */
+
+type HubQueryOpts = {
+    enabled?: boolean;
+    retry?: boolean | number;
+    refetchInterval?: number;
+};
+
+interface HubQueryResult<T> {
+    data?: T;
+    isLoading?: boolean;
+    isError?: boolean;
+    error?: unknown;
+    refetch: () => void;
+}
+
+interface HubMutationResult<TInput, TResult> {
+    mutate: (input: TInput) => void;
+    mutateAsync: (input: TInput) => Promise<TResult>;
+    isLoading?: boolean;
+}
+
+interface HubQuery<TInput, TResult> {
+    useQuery: (input: TInput, opts?: HubQueryOpts) => HubQueryResult<TResult>;
+}
+
+interface HubQueryNoInput<TResult> {
+    useQuery: (opts?: HubQueryOpts) => HubQueryResult<TResult>;
+}
+
+// NOTE: react-query v5 ignores per-mutation callbacks passed to useMutation;
+// the signature keeps accepting them because the existing page code passes
+// them and they are inert no-ops at runtime (behaviour preserved).
+interface HubMutation<TInput, TResult> {
+    useMutation: (opts?: {
+        onSuccess?: (data: TResult) => void;
+        onError?: (error: { message: string }) => void;
+    }) => HubMutationResult<TInput, TResult>;
+}
+
+interface AuditHubApi {
+    audit: {
+        inviteAuditor: HubMutation<{ clientId: number; email: string }, { success: boolean; message?: string }>;
+        list: HubQuery<{ clientId: number }, any[]>;
+    };
+    evidence: {
+        getFrameworks: HubQueryNoInput<any>;
+        list: HubQuery<{ clientId: number }, any[]>;
+        getFiles: HubQuery<{ evidenceId: number }, any[]>;
+        getAllComments: HubQuery<{ clientId: number }, any[]>;
+        getComments: HubQuery<{ evidenceId: number }, any[]>;
+        seed: HubMutation<{ clientId: number; framework: string }, unknown>;
+        create: HubMutation<{ clientId: number; clientControlId: number; evidenceId: string; description: string; owner: string }, unknown>;
+        updateStatus: HubMutation<{ evidenceId: number; status: string }, unknown>;
+        delete: HubMutation<{ id: number }, unknown>;
+        linkIntegration: HubMutation<{ evidenceId: number; provider: string; resourceId: string }, unknown>;
+        addComment: HubMutation<{ evidenceId: number; content: string }, unknown>;
+    };
+    findings: {
+        list: HubQuery<{ clientId: number }, any[]>;
+        create: HubMutation<{ clientId: number; title: string; description: string; severity: string }, unknown>;
+    };
+    clientControls: {
+        list: HubQuery<{ clientId: number }, any[]>;
+    };
+}
+
+const hubApi = trpc as unknown as AuditHubApi;
+
+/** Query-cache invalidation surface actually used by this page (16 typed api). */
+interface HubUtils {
+    evidence: {
+        list: { invalidate: (input?: unknown) => void };
+        getComments: { invalidate: (input?: unknown) => void };
+    };
+    findings: {
+        list: { invalidate: (input?: unknown) => void };
+    };
+}
+
+/** Capability flag: evidenceFiles router is not mounted on the AppRouter yet. */
+const EVIDENCE_FILES_LIVE = false;
+
+/**
+ * Supabase-style auth metadata arrives on AuthUser untyped at runtime; read it
+ * defensively here instead of weakening the shared AuthUser contract.
+ */
+const getUserMetadata = (u: unknown): Record<string, unknown> =>
+    (u as { user_metadata?: Record<string, unknown> } | null)?.user_metadata ?? {};
+
 export default function AuditHub() {
     const [match, params] = useRoute("/clients/:clientId/audit-hub");
     const { t } = useTranslation('dashboard');
@@ -100,12 +217,16 @@ export default function AuditHub() {
     const { user } = useAuth();
     // Determine if we should show the Auditor View (Restricted Clean Room)
     // Check for 'auditor' role or explicit 'view=auditor' query param for testing/admin preview
-    const isAuditorView = user?.user_metadata?.role === 'auditor' || (typeof window !== 'undefined' ? window.location.search.includes('view=auditor') : false);
+    // user_metadata arrives untyped on AuthUser at runtime (Supabase-style); read it
+    // through the defensive local accessor instead of weakening the shared type.
+    const userMetadata = getUserMetadata(user);
+    const userRole = typeof userMetadata.role === 'string' ? userMetadata.role : '';
+    const isAuditorView = userRole === 'auditor' || (typeof window !== 'undefined' ? window.location.search.includes('view=auditor') : false);
     const Layout = isAuditorView ? AuditorLayout : DashboardLayout;
 
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
-    const inviteMutation = trpc.audit.inviteAuditor.useMutation({
+    const inviteMutation = hubApi.audit.inviteAuditor.useMutation({
         onSuccess: () => {
             toast.success("Invitation sent successfully");
             setInviteOpen(false);
@@ -124,29 +245,29 @@ export default function AuditHub() {
         });
     };
 
-    const isAdmin = user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'owner' || user?.user_metadata?.role === 'super_admin';
+    const isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin';
 
     // Live Data Fetching
-    const { data: frameworksData } = trpc.evidence.getFrameworks.useQuery();
+    const { data: frameworksData } = hubApi.evidence.getFrameworks.useQuery();
     console.log('[AuditHub] Frameworks Data:', frameworksData);
 
-    const { data: evidenceData, isLoading: isEvidenceLoading, refetch: refetchList } = trpc.evidence.list.useQuery(
+    const { data: evidenceData, isLoading: isEvidenceLoading, refetch: refetchList } = hubApi.evidence.list.useQuery(
         { clientId },
-        { enabled: !!clientId }
+        { enabled: !!clientId, retry: false }
     );
 
     // Fetch files for selected request
-    const { data: evidenceFiles, isLoading: isFilesLoading, refetch: refetchFiles } = trpc.evidence.getFiles.useQuery(
+    const { data: evidenceFiles, isLoading: isFilesLoading, refetch: refetchFiles } = hubApi.evidence.getFiles.useQuery(
         { evidenceId: (selectedRequest as any)?.original?.id || 0 },
-        { enabled: !!(selectedRequest as any)?.original?.id }
+        { enabled: !!(selectedRequest as any)?.original?.id, retry: false }
     );
 
     // Fetch counts for sidebar
-    const { data: findings } = trpc.findings.list.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: comments } = trpc.evidence.getAllComments.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: findings } = hubApi.findings.list.useQuery({ clientId }, { enabled: !!clientId, retry: false });
+    const { data: comments } = hubApi.evidence.getAllComments.useQuery({ clientId }, { enabled: !!clientId, retry: false });
 
-    const utils = trpc.useContext();
-    const initializeMutation = trpc.evidence.seed.useMutation({
+    const utils = trpc.useContext() as unknown as HubUtils;
+    const initializeMutation = hubApi.evidence.seed.useMutation({
         onSuccess: () => {
             toast.success("Audit workspace initialized with request list.");
             utils.evidence.list.invalidate();
@@ -169,8 +290,6 @@ export default function AuditHub() {
         dueDate: ''
     });
 
-    const [fileToDelete, setFileToDelete] = useState<any>(null);
-
     // Link Integration State
     const [libraryOpen, setLibraryOpen] = useState(false);
 
@@ -191,7 +310,7 @@ export default function AuditHub() {
         }, 1500);
     };
 
-    const linkMutation = trpc.evidence.linkIntegration.useMutation({
+    const linkMutation = hubApi.evidence.linkIntegration.useMutation({
         onSuccess: () => {
             toast.success("Integration Linked Successfully");
             setLinkOpen(false);
@@ -204,26 +323,16 @@ export default function AuditHub() {
         }
     });
 
-    const fileDeleteMutation = trpc.evidenceFiles.delete.useMutation({
-        onSuccess: () => {
-            toast.success("File removed successfully");
-            refetchFiles();
-            utils.evidence.list.invalidate();
-        },
-        onError: (err) => {
-            toast.error(err.message);
-        }
-    });
-
-    const createFileMutation = trpc.evidenceFiles.create.useMutation({
-        onSuccess: () => {
-            refetchFiles();
-            utils.evidence.list.invalidate();
-        },
-        onError: (error) => toast.error(error.message),
-    });
+    // 16.2 graceful degradation: evidenceFiles.create/.delete are not mounted on
+    // the AppRouter in this deployment (see EVIDENCE_FILES_LIVE above), so the
+    // file delete/create mutations are intentionally absent; the affordances
+    // below degrade to a toast instead of calling a missing endpoint.
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!EVIDENCE_FILES_LIVE) {
+            toast.error("Evidence file uploads aren't available in this deployment.");
+            return;
+        }
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
 
@@ -256,15 +365,9 @@ export default function AuditHub() {
                             if (!response.ok) throw new Error('Upload failed');
                             const { key, url } = await response.json();
 
-                            await createFileMutation.mutateAsync({
-                                evidenceId,
-                                filename,
-                                originalFilename: file.name,
-                                mimeType: file.type,
-                                size: file.size,
-                                fileKey: key,
-                                url,
-                            });
+                            // evidenceFiles.create is not mounted on the AppRouter in
+                            // this deployment (see EVIDENCE_FILES_LIVE); the guard at the
+                            // top of handleFileSelect makes this path unreachable.
                             resolve();
                         } catch (err) { reject(err); }
                     };
@@ -292,7 +395,7 @@ export default function AuditHub() {
     };
 
     // Fetch latest audit for auditor details
-    const { data: audits } = trpc.audit.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: audits } = hubApi.audit.list.useQuery({ clientId }, { enabled: !!clientId, retry: false });
     const activeAudit = audits?.[0]; // Get the latest one
 
     const getInitials = (name: string) => {
@@ -301,7 +404,7 @@ export default function AuditHub() {
             : '??';
     };
 
-    const createEvidenceMutation = trpc.evidence.create.useMutation({
+    const createEvidenceMutation = hubApi.evidence.create.useMutation({
         onSuccess: () => {
             toast.success("Evidence request created successfully");
             setCreateRequestOpen(false);
@@ -319,7 +422,7 @@ export default function AuditHub() {
         }
     });
 
-    const { data: clientControlsList } = trpc.clientControls.list.useQuery({ clientId }, { enabled: createRequestOpen && !!clientId });
+    const { data: clientControlsList } = hubApi.clientControls.list.useQuery({ clientId }, { enabled: createRequestOpen && !!clientId, retry: false });
 
     const handleCreateRequest = () => {
         if (!newRequestData.description || !newRequestData.clientControlId) {
@@ -343,7 +446,7 @@ export default function AuditHub() {
         });
     };
 
-    const updateStatusMutation = trpc.evidence.updateStatus.useMutation({
+    const updateStatusMutation = hubApi.evidence.updateStatus.useMutation({
         onSuccess: () => {
             toast.success("Audit status updated");
             refetchList();
@@ -359,7 +462,7 @@ export default function AuditHub() {
     const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState<any>(null);
 
-    const deleteMutation = trpc.evidence.delete.useMutation({
+    const deleteMutation = hubApi.evidence.delete.useMutation({
         onSuccess: () => {
             toast.success("Evidence request deleted");
             refetchList();
@@ -836,7 +939,7 @@ export default function AuditHub() {
                                                     </div>
 
                                                     <div className="text-xs text-muted-foreground line-clamp-1 mb-2.5 pr-4">
-                                                        <span className="text-muted-foreground mr-1">{req.control || req.framework || "General"} ·</span>
+                                                        <span className="text-muted-foreground mr-1">{req.control || (req as { framework?: string }).framework || "General"} ·</span>
                                                         {req.description
                                                             ? <span>{req.description}</span>
                                                             : <span className="italic text-foreground/70">No description</span>}
@@ -967,7 +1070,7 @@ export default function AuditHub() {
                                                             <DropdownMenuContent align="end" className="w-52">
                                                                 <DropdownMenuItem
                                                                     className="gap-2 cursor-pointer"
-                                                                    onClick={() => document.getElementById('audit-hub-upload-input')?.click()}
+                                                                    onClick={() => EVIDENCE_FILES_LIVE ? document.getElementById('audit-hub-upload-input')?.click() : toast.info("Evidence file uploads aren't available in this deployment.")}
                                                                 >
                                                                     <Upload className="h-4 w-4 text-muted-foreground" />
                                                                     Upload File
@@ -1059,10 +1162,10 @@ export default function AuditHub() {
                                                                                     variant="ghost"
                                                                                     size="sm"
                                                                                     className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 dark:text-red-400 dark:text-red-300 hover:bg-red-500/10"
-                                                                                    onClick={() => setFileToDelete(file)}
-                                                                                    disabled={fileDeleteMutation.isLoading}
+                                                                                    title={EVIDENCE_FILES_LIVE ? "Delete file" : "File management isn't available in this deployment"}
+                                                                                    onClick={() => toast.info("Evidence file management isn't available in this deployment.")}
                                                                                 >
-                                                                                    {fileDeleteMutation.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                                                    <Trash2 className="h-4 w-4" />
                                                                                 </Button>
                                                                             </TableCell>
                                                                         </TableRow>
@@ -1408,33 +1511,6 @@ export default function AuditHub() {
                 }}
             />
 
-            {/* Delete Confirmation Dialog */}
-            <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will permanently remove the evidence file "{fileToDelete?.filename}".
-                            This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-                            onClick={() => {
-                                if (fileToDelete) {
-                                    fileDeleteMutation.mutate({ id: fileToDelete.id });
-                                    setFileToDelete(null);
-                                }
-                            }}
-                        >
-                            {fileDeleteMutation.isLoading ? "Deleting..." : "Delete"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
 
         </Layout>
     );
@@ -1443,18 +1519,18 @@ export default function AuditHub() {
 function ChatSection({ request }: { request: any }) {
     const [commentText, setCommentText] = useState("");
     const { user } = useAuth();
-    const utils = trpc.useContext();
+    const utils = trpc.useContext() as unknown as HubUtils;
 
     // We need the numeric ID from the backend, assuming request.original.id is it.
     const evidenceId = request.original.id;
 
     // Only fetch if we have a valid ID
-    const { data: comments, isLoading } = trpc.evidence.getComments.useQuery(
+    const { data: comments, isLoading } = hubApi.evidence.getComments.useQuery(
         { evidenceId },
         { enabled: !!evidenceId, refetchInterval: 5000 }
     );
 
-    const addCommentMutation = trpc.evidence.addComment.useMutation({
+    const addCommentMutation = hubApi.evidence.addComment.useMutation({
         onSuccess: () => {
             setCommentText("");
             utils.evidence.getComments.invalidate({ evidenceId });
@@ -1541,8 +1617,8 @@ function ChatSection({ request }: { request: any }) {
 }
 
 function AuditOverview({ clientId, onNavigate }: { clientId: number, onNavigate: (section: string, filter?: string) => void }) {
-    const { data: evidenceList } = trpc.evidence.list.useQuery({ clientId });
-    const { data: findings } = trpc.findings.list.useQuery({ clientId });
+    const { data: evidenceList } = hubApi.evidence.list.useQuery({ clientId }, { retry: false });
+    const { data: findings } = hubApi.findings.list.useQuery({ clientId }, { retry: false });
 
     // Calculate stats
     const openRequests = evidenceList?.filter(e => e.status === 'open' || e.status === 'collected').length || 0;
@@ -1737,15 +1813,15 @@ function AuditOverview({ clientId, onNavigate }: { clientId: number, onNavigate:
 
 function AuditFindings({ clientId }: { clientId: number }) {
     const [createOpen, setCreateOpen] = useState(false);
-    const utils = trpc.useContext();
-    const { data: findings, isLoading } = trpc.findings.list.useQuery({ clientId });
+    const utils = trpc.useContext() as unknown as HubUtils;
+    const { data: findings, isLoading } = hubApi.findings.list.useQuery({ clientId }, { retry: false });
 
     // State for new finding
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [severity, setSeverity] = useState<"low" | "medium" | "high" | "critical">("medium");
 
-    const createMutation = trpc.findings.create.useMutation({
+    const createMutation = hubApi.findings.create.useMutation({
         onSuccess: () => {
             toast.success("Finding created");
             setCreateOpen(false);
@@ -1899,7 +1975,7 @@ function AuditFindings({ clientId }: { clientId: number }) {
 }
 
 function AuditDiscussions({ clientId, onNavigateToEvidence }: { clientId: number, onNavigateToEvidence: (id: string | number) => void }) {
-    const { data: comments, isLoading } = trpc.evidence.getAllComments.useQuery({ clientId });
+    const { data: comments, isLoading } = hubApi.evidence.getAllComments.useQuery({ clientId }, { retry: false });
 
     return (
         <div className="p-8 h-full flex flex-col space-y-6 text-left">
