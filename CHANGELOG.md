@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 32 - Credential Vault backend (AES-256-GCM cosv1 vault, audit hash-chain, rate limiter, 2FA policy) + guardrails power-multiplier increment landed & repaired (2026-08-23)
+- feat(security): credentialVault tRPC router + lib/security/credentialCrypto.ts per the cycle-31 UI contract — closes the API-FIRST plan's P0 credential-security block (encryption at rest, decrypt-on-request, audit logging, rotation/expiration/2FA posture checklist).
+- feat(ai-agent): cycle-31 WIP landed — toolDispatcher real-data FAIR Monte Carlo contract, delegation/routine-scheduler expansion; teammatesRouter repaired to the new engine signatures (-18 tsc errors in touched files).
+- Verify: vitest 2007 -> 2113 green (88 files), tsc backlog 2205 -> 2187 (0 new), smoke green; commits b301d7a + c23e7a7 pushed to origin/dev.
+
 ### Cycle 30 - Local LLM air-gapped mode (auto-discovery, sovereign execution modes, model catalog); registerSummary injectable-clock fix; AddonScheduler guard (2026-08-22)
 - feat(llm): local LLM support landed — lib/llm/localLLMDiscovery.ts (Ollama/LM Studio/vLLM/LocalAI probes with hard timeouts, >=10-model recommended catalog across 3 hardware tiers, <think>-block output cleaner), execution modes hybrid/local_only/cloud_only persisted on LLMService, llm router procedures detectLocalRuntimes/getRecommendedLocalModels/getExecutionMode/setExecutionMode/listAvailableModels, admin LLMSettings UI.
 - fix(addons): AddonScheduler guards incompatible DB clients — warn-once + safe no-op tick instead of per-tick "db.select is not a function" error spam.
