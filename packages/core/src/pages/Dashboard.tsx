@@ -34,49 +34,28 @@ import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
 import { useTranslation } from "react-i18next";
 
-// Helper to determine compliance status based on rate - Plain Language Version
-function getComplianceStatus(rate: number) {
-  if (rate >= 80) {
-    return {
-      label: 'COMPLIANT',
-      pingColor: 'bg-emerald-400',
-      dotColor: 'bg-emerald-500',
-      textColor: 'text-emerald-600',
-      description: 'Your compliance posture is strong'
-    };
-  }
-  if (rate >= 50) {
-    return {
-      label: 'NEEDS ATTENTION',
-      pingColor: 'bg-amber-400',
-      dotColor: 'bg-amber-500',
-      textColor: 'text-amber-600',
-      description: 'Some controls require immediate action'
-    };
-  }
-  return {
-    label: 'CRITICAL',
+// Status indicator component with clear, readable logic
+function StatusIndicator({ rate }: { rate: number }) {
+  const { t } = useTranslation(['common', 'dashboard']);
+  const status = rate >= 80 ? {
+    label: t('common.compliant', 'COMPLIANT'),
+    pingColor: 'bg-emerald-400',
+    dotColor: 'bg-emerald-500',
+    textColor: 'text-emerald-600',
+    description: t('dashboard.postureStrong', 'Your compliance posture is strong')
+  } : rate >= 50 ? {
+    label: t('common.needsAttention', 'NEEDS ATTENTION'),
+    pingColor: 'bg-amber-400',
+    dotColor: 'bg-amber-500',
+    textColor: 'text-amber-600',
+    description: t('dashboard.someControlsAction', 'Some controls require immediate action')
+  } : {
+    label: t('common.critical', 'CRITICAL'),
     pingColor: 'bg-rose-400',
     dotColor: 'bg-rose-500',
     textColor: 'text-rose-600',
-    description: 'Urgent compliance gaps need fixing'
+    description: t('dashboard.urgentGaps', 'Urgent compliance gaps need fixing')
   };
-}
-
-// Legacy function for backward compatibility
-function getComplianceStatusLegacy(rate: number) {
-  if (rate >= 80) {
-    return { label: 'SYSTEM OPTIMAL', pingColor: 'bg-emerald-400', dotColor: 'bg-emerald-500', textColor: 'text-emerald-500' };
-  }
-  if (rate >= 50) {
-    return { label: 'SYSTEM ACCEPTABLE', pingColor: 'bg-amber-400', dotColor: 'bg-amber-500', textColor: 'text-amber-500' };
-  }
-  return { label: 'CRITICAL POSTURE', pingColor: 'bg-rose-400', dotColor: 'bg-rose-500', textColor: 'text-rose-500' };
-}
-
-// Status indicator component with clear, readable logic
-function StatusIndicator({ rate }: { rate: number }) {
-  const status = getComplianceStatus(rate);
 
   return (
     <>
@@ -385,12 +364,12 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <Breadcrumb
               items={[
-                { label: "Dashboard" },
+                { label: t("dashboard.overview", "Dashboard") },
               ]}
             />
             <PageGuide
-              title="Command Center"
-              description="Your strategic hub for organizational compliance and risk posture."
+              title={t("dashboard.commandCenter", "Command Center")}
+              description={t("dashboard.commandCenterDesc", "Your strategic hub for organizational compliance and risk posture.")}
               rationale="The dashboard aggregates data across all contexts to give you high-level visibility into compliance trends and critical gaps."
               howToUse={[
                 { step: "Analyze Posture", description: "View the 'Live Posture Score' for real-time compliance readiness.", targetId: "dash-posture-score" },
@@ -492,7 +471,7 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-duration-500 pointer-events-none" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-[80px] pointer-events-none" />
 
-                <h3 className="text-sm font-extrabold text-muted-foreground uppercase tracking-widest mb-6 relative z-10">Live Posture Score</h3>
+                <h3 className="text-sm font-extrabold text-muted-foreground uppercase tracking-widest mb-6 relative z-10">{t("dashboard.livePostureScore", "Live Posture Score")}</h3>
 
                 <div className="relative z-10">
                   <CircularProgress
@@ -513,7 +492,7 @@ export default function Dashboard() {
           {/* Filters & Actions Header */}
           <div className="flex items-center flex-wrap justify-between mt-8 relative z-10 pb-4 border-b border-border" id="dash-filters-bar">
             <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold text-foreground tracking-tight mb-4 md:mb-0">Command Interface</h2>
+              <h2 className="text-xl font-bold text-foreground tracking-tight mb-4 md:mb-0">{t("dashboard.commandInterface", "Command Interface")}</h2>
               {/* View Mode Toggle */}
               <div className="flex items-center bg-muted rounded-lg p-1">
                 <button
@@ -525,7 +504,7 @@ export default function Dashboard() {
                 >
                   <span className="flex items-center gap-1.5">
                     <BarChart3 className="w-4 h-4" />
-                    Executive
+                    {t("dashboard.executive", "Executive")}
                   </span>
                 </button>
                 <button
@@ -537,7 +516,7 @@ export default function Dashboard() {
                 >
                   <span className="flex items-center gap-1.5">
                     <Settings2 className="w-4 h-4" />
-                    Full
+                    {t("dashboard.full", "Full")}
                   </span>
                 </button>
               </div>
@@ -546,13 +525,13 @@ export default function Dashboard() {
               {/* Light Client Selector */}
               {clients && clients.length > 0 && (
                 <div className="flex items-center gap-3 bg-card/70 backdrop-blur-md border border-border rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-muted/60 focus-within:ring-2 focus-within:ring-blue-500/50 group">
-                  <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">Context:</span>
+                  <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">{t("dashboard.context", "Context:")}</span>
                   <select
                     className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-foreground focus:text-blue-600 max-w-[150px] truncate outline-none appearance-none transition-colors"
                     value={clientId || ""}
                     onChange={(e) => setClientId(e.target.value || undefined)}
                   >
-                    <option value="" className="bg-card">Global Fleet</option>
+                    <option value="" className="bg-card">{t("dashboard.globalFleet", "Global Fleet")}</option>
                     {clients.map((client, idx) => (
                       <option key={`client-select-${client.id}-${idx}`} value={client.id} className="bg-card text-foreground">
                         {client.name}
@@ -567,13 +546,13 @@ export default function Dashboard() {
 
               {/* Light Standard Selector */}
               <div className="flex items-center gap-3 bg-card/70 backdrop-blur-md border border-border rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-muted/60 focus-within:ring-2 focus-within:ring-purple-500/50 group">
-                <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">Protocol:</span>
+                <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">{t("dashboard.protocol", "Protocol:")}</span>
                 <select
                   className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-foreground focus:text-purple-600 outline-none appearance-none transition-colors"
                   value={framework || ""}
                   onChange={(e) => setFramework(e.target.value || undefined)}
                 >
-                  <option value="" className="bg-card">All Protocols</option>
+                  <option value="" className="bg-card">{t("dashboard.allProtocols", "All Protocols")}</option>
                   <option value="ISO 27001" className="bg-card text-foreground">ISO 27001</option>
                   <option value="SOC 2" className="bg-card text-foreground">SOC 2</option>
                 </select>
@@ -585,7 +564,7 @@ export default function Dashboard() {
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (
                 <Button onClick={() => setLocation('/clients')} className="bg-[#0F2C59] hover:bg-[#3B82F6] text-white shadow-xl h-10 px-5 rounded-xl font-bold transition-all hover:scale-105 active:scale-95">
                   <Plus className="mr-2 h-4 w-4" />
-                  Deploy Node
+                  {t("dashboard.deployNode", "Deploy Node")}
                 </Button>
               )}
             </div>
@@ -614,29 +593,35 @@ export default function Dashboard() {
                     title={t("dashboard.complianceScore", "Overall Compliance")}
                     value={`${overallComplianceRate}%`}
                     icon={<Shield className="w-5 h-5" />}
-                    trend="up"
-                    trendLabel="12%"
-                    variant="success"
+                    trend="+5%"
+                    trendLabel="vs last quarter"
+                    gradient="blue"
                   />
                   <AnimatedMetricCard
-                    title={t("dashboard.riskProfile", "Risk Profile")}
-                    value={overview?.highRisks || 0}
+                    title={t("dashboard.activeRisks", "Active Risks")}
+                    value={overview.activeRisks}
                     icon={<AlertTriangle className="w-5 h-5" />}
-                    variant="error"
+                    trend={overview.highRisks > 0 ? `${overview.highRisks} Critical` : undefined}
+                    trendLabel={overview.highRisks > 0 ? "requires attention" : undefined}
+                    gradient={overview.highRisks > 0 ? "rose" : "amber"}
                   />
                   <AnimatedMetricCard
-                    title={t("dashboard.portfolioReach", "Portfolio Reach")}
-                    value={overview?.totalClients || 0}
-                    icon={<Users className="w-5 h-5" />}
-                    variant="info"
+                    title={t("dashboard.evidenceStatus", "Evidence Collection")}
+                    value={`${evidenceRate}%`}
+                    icon={<FileCheck className="w-5 h-5" />}
+                    trend={overview.pendingEvidence > 0 ? `${overview.pendingEvidence} Pending` : undefined}
+                    trendLabel={overview.pendingEvidence > 0 ? "awaiting review" : undefined}
+                    gradient="emerald"
                   />
                 </div>
 
-                {/* Vanta-style Posture Summary (dashboard.getStats w/ enhanced fallback) */}
+                {/* Main Visuals Grid */}
                 <PostureSummary
-                  clientId={effectiveClientId}
-                  framework={framework}
-                  enhancedStats={enhancedStats}
+                  complianceRate={overallComplianceRate}
+                  frameworkCoverage={frameworkStats}
+                  evidenceCollectionRate={evidenceRate}
+                  criticalRisksCount={overview.highRisks}
+                  policiesCount={overview.totalPolicies}
                   complianceScores={complianceScores as Array<{ date?: string; score?: number }> | undefined}
                 />
 
@@ -648,9 +633,9 @@ export default function Dashboard() {
                       <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm shadow-blue-500/20">
                         <TrendingUp className="h-5 w-5" />
                       </div>
-                      Compliance Performance Trend
+                      {t("dashboard.complianceTrend", "Compliance Performance Trend")}
                     </CardTitle>
-                    <CardDescription className="font-medium text-muted-foreground">Overall compliance improvement over the last 6 months</CardDescription>
+                    <CardDescription className="font-medium text-muted-foreground">{t("dashboard.complianceTrendDesc", "Overall compliance improvement over the last 6 months")}</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 relative z-10">
                     {scoresLoading ? (
@@ -689,7 +674,7 @@ export default function Dashboard() {
                             <Line
                               type="monotone"
                               dataKey="score"
-                              name="Compliance Score"
+                              name={t("dashboard.complianceScore", "Compliance Score")}
                               stroke="#3b82f6"
                               strokeWidth={4}
                               dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
@@ -730,7 +715,7 @@ export default function Dashboard() {
                         <div className="p-2 rounded-xl bg-red-500/10 text-red-600">
                           <AlertCircle className="h-5 w-5" />
                         </div>
-                        Overdue Assessments
+                        {t("dashboard.overdueAssessments", "Overdue Assessments")}
                         {overdueAssessments && overdueAssessments.length > 0 && (
                           <span className="bg-red-500 text-white shadow-sm shadow-red-500/20 text-[10px] font-bold px-2.5 py-1 rounded-full">{overdueAssessments.length}</span>
                         )}
@@ -761,7 +746,7 @@ export default function Dashboard() {
                       ) : (
                         <div className="text-center py-6 text-muted-foreground">
                           <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-green-500 opacity-50" />
-                          <p className="text-sm">All assessments on track</p>
+                          <p className="text-sm">{t("dashboard.allAssessmentsOnTrack", "All assessments on track")}</p>
                         </div>
                       )}
                     </CardContent>
@@ -775,7 +760,7 @@ export default function Dashboard() {
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
                           <Users className="h-5 w-5" />
                         </div>
-                        Context Performance
+                        {t("dashboard.contextPerformance", "Context Performance")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
@@ -794,7 +779,7 @@ export default function Dashboard() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground text-center py-6">No active contexts monitored</p>
+                        <p className="text-sm text-muted-foreground text-center py-6">{t("dashboard.noActiveContexts", "No active contexts monitored")}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -807,7 +792,7 @@ export default function Dashboard() {
                         <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
                           <Activity className="h-5 w-5" />
                         </div>
-                        Recent Signals
+                        {t("dashboard.recentSignals", "Recent Signals")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
@@ -818,7 +803,7 @@ export default function Dashboard() {
                             <span className="truncate">{activity.name}</span>
                           </div>
                         )) : (
-                          <p className="text-sm text-muted-foreground text-center py-6">No recent signals detected</p>
+                          <p className="text-sm text-muted-foreground text-center py-6">{t("dashboard.noRecentSignals", "No recent signals detected")}</p>
                         )}
                       </div>
                     </CardContent>
@@ -1096,7 +1081,7 @@ export default function Dashboard() {
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
                     <CardHeader className="pb-4 border-b border-border">
-                      <CardTitle className="text-lg font-bold">Client Overview</CardTitle>
+                      <CardTitle className="text-lg font-bold">{t("dashboard.totalClients", "Client Overview")}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                       {clientsOverview.length > 0 ? (
@@ -1111,13 +1096,13 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                      ) : <p className="text-center py-4 text-muted-foreground text-sm">No organizations</p>}
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">{t("dashboard.noActiveContexts", "No organizations")}</p>}
                     </CardContent>
                   </Card>
 
                   <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
                     <CardHeader className="pb-4 border-b border-border">
-                      <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
+                      <CardTitle className="text-lg font-bold">{t("dashboard.recentActivity", "Recent Activity")}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                       {recentActivity.length > 0 ? (
@@ -1129,13 +1114,13 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                      ) : <p className="text-center py-4 text-muted-foreground text-sm">No activity</p>}
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">{t("dashboard.noRecentSignals", "No activity")}</p>}
                     </CardContent>
                   </Card>
 
                   <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
                     <CardHeader className="pb-4 border-b border-border">
-                      <CardTitle className="text-lg font-bold">Controls by Framework</CardTitle>
+                      <CardTitle className="text-lg font-bold">{t("dashboard.controlsByFramework", "Controls by Framework")}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                       {frameworkData.length > 0 ? (
@@ -1148,7 +1133,7 @@ export default function Dashboard() {
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
-                      ) : <p className="text-center py-4 text-muted-foreground text-sm">No frameworks</p>}
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">{t("dashboard.noInsights", "No frameworks")}</p>}
                     </CardContent>
                   </Card>
                 </div>
@@ -1172,8 +1157,8 @@ export default function Dashboard() {
           <Card className="bg-card/70 backdrop-blur-xl rounded-2xl overflow-hidden relative group/qa border-border">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-50 pointer-events-none group-hover/qa:opacity-100 transition-opacity duration-500" />
             <CardHeader className="pb-4 relative z-10 border-b border-border">
-              <CardTitle className="text-2xl font-black text-foreground tracking-tight">Quick Actions</CardTitle>
-              <CardDescription className="text-muted-foreground font-medium">Common tasks to manage compliance</CardDescription>
+              <CardTitle className="text-2xl font-black text-foreground tracking-tight">{t("dashboard.quickActions", "Quick Actions")}</CardTitle>
+              <CardDescription className="text-muted-foreground font-medium">{t("dashboard.quickActionsDesc", "Common tasks to manage compliance")}</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 relative z-10">
               <div className="grid gap-4 md:grid-cols-4">
@@ -1185,9 +1170,9 @@ export default function Dashboard() {
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
                             <Plus className="h-4 w-4" />
                           </div>
-                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">Add Client</span>
+                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">{t("dashboard.deployNode", "Add Client")}</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Create new workspace</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">{t("dashboard.context", "Create new workspace")}</span>
                       </div>
                     </Button>
                     <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/controls')}>
@@ -1196,9 +1181,9 @@ export default function Dashboard() {
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
                             <Shield className="h-4 w-4" />
                           </div>
-                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">Control Library</span>
+                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">{t("dashboard.securityControls", "Control Library")}</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Manage master controls</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">{t("dashboard.controls", "Manage master controls")}</span>
                       </div>
                     </Button>
                     <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/policy-templates')}>
@@ -1207,9 +1192,9 @@ export default function Dashboard() {
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
                             <FileText className="h-4 w-4" />
                           </div>
-                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">Policy Templates</span>
+                          <span className="font-extrabold text-foreground group-hover:text-[#0284c7] transition-colors">{t("dashboard.totalPolicies", "Policy Templates")}</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Create templates</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">{t("dashboard.policies", "Create templates")}</span>
                       </div>
                     </Button>
                   </>
@@ -1224,9 +1209,9 @@ export default function Dashboard() {
                       <div className="p-1.5 rounded-lg bg-blue-600/10 text-emerald-600 group-hover:scale-110 transition-transform">
                         <CheckCircle2 className="h-4 w-4" />
                       </div>
-                      <span className="font-extrabold text-foreground group-hover:text-emerald-600 transition-colors">Evidence Tracking</span>
+                      <span className="font-extrabold text-foreground group-hover:text-emerald-600 transition-colors">{t("dashboard.evidenceStatus", "Evidence Tracking")}</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">Track compliance evidence</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">{t("dashboard.totalEvidence", "Track compliance evidence")}</span>
                   </div>
                 </Button>
               </div>
