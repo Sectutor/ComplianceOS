@@ -197,6 +197,7 @@ export const agentPortalTokens = pgTable("agent_portal_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
   lastAccessedAt: timestamp("last_accessed_at"),
   accessCount: integer("access_count").default(0),
+  createdBy: integer("created_by"),
 }, (table) => {
   return {
     tokenIdx: index("idx_apt_token").on(table.token),

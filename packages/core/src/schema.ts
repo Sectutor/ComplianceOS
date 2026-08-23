@@ -816,6 +816,7 @@ export const auditFindings = pgTable("audit_findings", {
   authorId: integer("author_id").notNull(), // Auditor who created it
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  fismaSystemId: integer("fisma_system_id"),
 }, (table) => {
   return {
     clientIdx: index("idx_findings_client").on(table.clientId),
@@ -11666,6 +11667,7 @@ export const federalSspSections = pgTable("federal_ssp_sections", {
 
   updatedAt: timestamp("updated_at").defaultNow(),
 
+  fismaSystemId: integer("fisma_system_id"),
 });
 
 
@@ -11701,6 +11703,7 @@ export const federalSspControls = pgTable("federal_ssp_controls", {
 
   updatedAt: timestamp("updated_at").defaultNow(),
 
+  fismaSystemId: integer("fisma_system_id"),
 });
 
 
@@ -11735,6 +11738,7 @@ export const federalFipsCategorizations = pgTable("federal_fips_categorizations"
   }[]>().default([]),
 
   updatedAt: timestamp("updated_at").defaultNow(),
+  fismaSystemId: integer("fisma_system_id"),
 });
 
 export type FederalFipsCategorization = typeof federalFipsCategorizations.$inferSelect;
@@ -11777,6 +11781,7 @@ export const federalSarFindings = pgTable("federal_sar_findings", {
 
   updatedAt: timestamp("updated_at").defaultNow(),
 
+  fismaSystemId: integer("fisma_system_id"),
 });
 
 
@@ -11847,6 +11852,7 @@ export const federalRmfWorkflows = pgTable("federal_rmf_workflows", {
   currentStep: integer("current_step").default(1), // 1: Prepare, 2: Categorize, 3: Select, 4: Implement, 5: Assess, 6: Authorize, 7: Monitor
   stepStatus: json("step_status"), // { 1: 'completed', 2: 'in_progress', ... }
   updatedAt: timestamp("updated_at").defaultNow(),
+  fismaSystemId: integer("fisma_system_id"),
 });
 
 export type FederalRmfWorkflow = typeof federalRmfWorkflows.$inferSelect;
@@ -11875,6 +11881,7 @@ export const federalFismaReports = pgTable("federal_fisma_reports", {
   systemImpact: varchar("system_impact", { length: 20 }), // Low, Moderate, High
   overallStatus: varchar("overall_status", { length: 50 }),
   metrics: json("metrics"),
+  fismaSystemId: integer("fisma_system_id"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -11970,7 +11977,7 @@ export const intakeItems = pgTable("intake_items", {
   createdAt: timestamp("created_at").defaultNow(),
 
   updatedAt: timestamp("updated_at").defaultNow(),
-
+  fismaSystemId: integer("fisma_system_id"),
 }, (table) => {
 
   return {
@@ -14899,6 +14906,7 @@ export const federalInheritances = pgTable("federal_inheritances", {
   status: varchar("status", { length: 50 }).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  fismaSystemId: integer("fisma_system_id"),
 }, (table) => {
   return {
     clientPkgIdx: index("idx_fed_inh_client_pkg").on(table.clientId, table.packageId),
