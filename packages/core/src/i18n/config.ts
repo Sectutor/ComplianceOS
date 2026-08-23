@@ -264,12 +264,23 @@ export const getAvailableLanguages = () => {
     return supportedLanguages;
 };
 
+// Initial language from localStorage if available in browser
+export const getInitialLanguage = (): string => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('language');
+        if (saved && supportedLanguages.some(l => l.code === saved)) {
+            return saved;
+        }
+    }
+    return defaultLanguage;
+};
+
 // Initialize i18next
 i18n
     .use(initReactI18next)
     .init({
         resources,
-        lng: defaultLanguage,
+        lng: getInitialLanguage(),
         fallbackLng: defaultLanguage,
         debug: process.env.NODE_ENV === 'development',
 

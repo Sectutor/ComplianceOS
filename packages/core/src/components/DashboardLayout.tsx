@@ -61,6 +61,97 @@ import { Slider } from "@complianceos/ui/ui/slider";
 import { toast } from "sonner";
 import { NotificationCenter } from "./notifications/NotificationCenter";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
+import { useTranslation } from "react-i18next";
+
+export function translateNavLabel(label: string, t: (key: string, options?: any) => string): string {
+  if (!label) return "";
+
+  const labelMap: Record<string, string> = {
+    // Groups
+    "Platform & Overview": "navigation:platformOverview",
+    "Libraries & Knowledge": "navigation:librariesKnowledge",
+    "Compliance Journey": "navigation:complianceJourney",
+    "ISO 27001 ISMS": "navigation:iso27001isms",
+    "Governance": "navigation:governance",
+    "Risk Management": "navigation:risks",
+    "Continuous Assurance & Telemetry": "navigation:continuousAssurance",
+    "Continuous Assurance": "navigation:continuousAssurance",
+    "Evidence & Audit Repository": "navigation:evidenceRepository",
+    "Vendors & Third Parties": "navigation:vendors",
+    "Reports & Intelligence": "navigation:reportsIntelligence",
+    "Tools & Automation": "navigation:toolsAutomation",
+    "Learning & Training": "navigation:training",
+    "Settings & Administration": "navigation:settingsAdmin",
+
+    // Items & Menus
+    "Start Here": "navigation:startHere",
+    "Dashboard": "navigation:dashboard",
+    "Agent": "navigation:agent",
+    "Clients": "navigation:clients",
+    "Settings": "navigation:settings",
+    "Branding": "navigation:branding",
+    "Employee Onboarding": "navigation:employeeOnboarding",
+    "Global Control Library": "navigation:globalControlLibrary",
+    "Harmonization": "navigation:harmonization",
+    "Compliance Obligations": "navigation:complianceObligations",
+    "Frameworks Library": "navigation:frameworksLibrary",
+    "Learning Zone": "navigation:learningZone",
+    "Workflows": "navigation:workflows",
+    "Overview": "navigation:overview",
+    "Discovery & Scoping": "navigation:discoveryScoping",
+    "Evidence Collection": "navigation:evidence",
+    "Audit Preparation": "navigation:audit",
+    "Controls": "navigation:controls",
+    "Access Reviews": "navigation:accessReviews",
+    "Webhooks": "navigation:webhooks",
+    "Workbench": "navigation:workbench",
+    "Strategic Roadmaps": "navigation:strategicRoadmaps",
+    "Roadmap Dashboard": "navigation:roadmapDashboard",
+    "Implementation Plans": "navigation:implementationPlans",
+    "Roadmap Templates": "navigation:roadmapTemplates",
+    "Policies": "navigation:policies",
+    "View All Policies": "navigation:viewAllPolicies",
+    "Policy Templates": "navigation:policyTemplates",
+    "People & Org": "navigation:peopleOrg",
+    "RACI Matrix": "navigation:raciMatrix",
+    "Client Branding": "navigation:clientBranding",
+    "Risk Framework": "navigation:riskFramework",
+    "Risk Assessments": "navigation:riskAssessments",
+    "Guided Assessment": "navigation:guidedAssessment",
+    "Risk Register": "navigation:riskRegister",
+    "Assets": "navigation:assets",
+    "Threats": "navigation:threats",
+    "Vulnerabilities": "navigation:vulnerabilities",
+    "Treatment Plan": "navigation:treatmentPlan",
+    "Alignment Guide": "navigation:alignmentGuide",
+    "Risk Reports": "navigation:riskReports",
+    "Audit Hub": "navigation:audit",
+    "Vendors": "navigation:vendors",
+    "Vendor Directory": "navigation:vendorDirectory",
+    "Questionnaires": "navigation:questionnaires",
+    "Evidence": "navigation:evidence",
+    "Training": "navigation:training",
+    "Reports": "navigation:reports",
+    "Profile": "navigation:profile",
+    "Sign out": "navigation:logout",
+    "Logout": "navigation:logout",
+  };
+
+  const mappedKey = labelMap[label];
+  if (mappedKey) {
+    const translated = t(mappedKey, { defaultValue: label });
+    if (translated && translated !== mappedKey) return translated;
+  }
+
+  const slugKey = label.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const directNav = t(`navigation:${slugKey}`, { defaultValue: '' });
+  if (directNav && directNav !== `navigation:${slugKey}`) return directNav;
+
+  const directCommon = t(`common:common.${slugKey}`, { defaultValue: '' });
+  if (directCommon && directCommon !== `common:common.${slugKey}`) return directCommon;
+
+  return label;
+}
 
 // ... (existing imports)
 
@@ -1394,6 +1485,9 @@ function CollapsibleGroup({
   menuSearch: string,
   highlightMatch: any
 }) {
+  const { t } = useTranslation(['navigation', 'common', 'compliance', 'risk', 'policy', 'vendors', 'settings', 'evidence']);
+  const translatedGroupLabel = translateNavLabel(group.label, t);
+
   // Check if the current group contains the active menu item
   const containsActiveItem = group.items.some((item: any) => {
     if (item === bestMatchItem) return true;
@@ -1419,7 +1513,7 @@ function CollapsibleGroup({
       <SidebarGroup className="py-1">
         <SidebarGroupLabel asChild>
           <CollapsibleTrigger className="flex w-full justify-start items-center text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors px-4 py-2 mt-4 overflow-hidden">
-            <span className="truncate whitespace-nowrap flex-1">{highlightMatch(group.label, menuSearch)}</span>
+            <span className="truncate whitespace-nowrap flex-1">{highlightMatch(translatedGroupLabel, menuSearch)}</span>
             <ChevronRight className="ml-1 h-3 w-3 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90 opacity-40" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
@@ -1429,6 +1523,7 @@ function CollapsibleGroup({
               {group.items.map((item: any, idx: number) => {
                 const navigationPath = resolveNavigationPath(item.path, persistentClientId);
                 const isActive = item === bestMatchItem;
+                const translatedItemLabel = translateNavLabel(item.label, t);
 
                 return (
                   <SidebarMenuItem key={`${item.path ?? item.label ?? 'item'}-${idx}`}>
@@ -1436,7 +1531,7 @@ function CollapsibleGroup({
                       <SidebarMenuButton
                         isActive={isActive}
                         onClick={() => setLocation(navigationPath)}
-                        tooltip={item.label}
+                        tooltip={translatedItemLabel}
                         className={`h-11 px-3 transition-all font-medium rounded-lg mb-1 mx-2 w-[calc(100%-16px)] ${isActive
                           ? "bg-[var(--sidebar-primary)] text-white hover:bg-[var(--sidebar-primary)] hover:text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
                           : "text-slate-300 hover:text-white hover:bg-white/5"
@@ -1445,7 +1540,7 @@ function CollapsibleGroup({
                         <item.icon
                           className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
                         />
-                        <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(item.label, menuSearch)}</span>
+                        <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(translatedItemLabel, menuSearch)}</span>
                         {item.isPremium && (
                           <Badge className="ml-auto bg-indigo-500/20 text-indigo-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
                             Pro
@@ -1494,6 +1589,8 @@ function CollapsibleMenuItem({
   bestMatchItem: any,
   highlightMatch: any
 }) {
+  const { t } = useTranslation(['navigation', 'common', 'compliance', 'risk', 'policy', 'vendors', 'settings', 'evidence']);
+  const translatedItemLabel = translateNavLabel(item.label, t);
   const resolvedPath = resolveNavigationPath(item.path, cid);
   const isVisuallyActive = item === bestMatchItem;
   const isChildActive = item.submenu?.some((sub: any) => {
@@ -1511,7 +1608,7 @@ function CollapsibleMenuItem({
     <div className="space-y-1">
       <SidebarMenuButton
         onClick={() => setIsOpen(!isOpen)}
-        tooltip={item.label}
+        tooltip={translatedItemLabel}
         isActive={isVisuallyActive}
         className={`h-11 px-3 transition-all font-medium rounded-lg mb-1 mx-2 w-[calc(100%-16px)] ${isVisuallyActive
           ? "bg-[var(--sidebar-primary)] text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
@@ -1520,7 +1617,7 @@ function CollapsibleMenuItem({
       >
         <div className="flex items-center gap-2 overflow-hidden">
           <item.icon className={`h-4.5 w-4.5 min-w-[1.125rem] shrink-0 ${isVisuallyActive ? "text-white" : "text-slate-400"}`} />
-          <span className="ml-2 uppercase text-[11px] tracking-wide truncate flex-1">{highlightMatch(item.label, currentSearch)}</span>
+          <span className="ml-2 uppercase text-[11px] tracking-wide truncate flex-1">{highlightMatch(translatedItemLabel, currentSearch)}</span>
         </div>
         {!isCollapsed && (
           <div className="ml-auto opacity-60">
@@ -1534,6 +1631,7 @@ function CollapsibleMenuItem({
           {item.submenu.map((subItem: any) => {
             const resolvedSubPath = resolveNavigationPath(subItem.path, cid);
             const isSubActive = subItem === bestMatchItem;
+            const translatedSubLabel = translateNavLabel(subItem.label, t);
 
             return (
               <SidebarMenuButton
@@ -1545,7 +1643,7 @@ function CollapsibleMenuItem({
                   : "text-slate-400 hover:text-white hover:bg-white/5"
                   }`}
               >
-                <span className="ml-1 truncate text-[11px] uppercase tracking-wide">{highlightMatch(subItem.label, currentSearch)}</span>
+                <span className="ml-1 truncate text-[11px] uppercase tracking-wide">{highlightMatch(translatedSubLabel, currentSearch)}</span>
               </SidebarMenuButton>
             );
           })}

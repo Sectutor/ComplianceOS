@@ -42,7 +42,7 @@ export function LanguageSwitcher({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const currentLangCode = getCurrentLanguage();
+    const currentLangCode = i18n.language || getCurrentLanguage() || 'en';
     const currentLang = getLanguageByCode(currentLangCode);
 
     // Close dropdown when clicking outside
