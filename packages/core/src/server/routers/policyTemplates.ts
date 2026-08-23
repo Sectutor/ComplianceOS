@@ -78,26 +78,38 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
             .use(isAuthed)
             .input(z.object({
                 name: z.string(),
+                templateId: z.string().optional(),
                 content: z.string().optional(),
                 sections: z.any().optional(),
                 isPublic: z.boolean().default(false),
                 clientId: z.number().optional(),
-                tailoringQuestions: z.any().optional()
+                tailoringQuestions: z.any().optional(),
+                // The DB column is `frameworks` (json string[]) — it was migrated
+                // from a single string. The UI still posts the singular
+                // `framework`, so accept both and normalise to the array.
+                frameworks: z.array(z.string()).optional(),
+                framework: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
-                const templateId = `tpl_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                // Honour a caller-supplied templateId; generate one when absent
+                const templateId = input.templateId
+                    || `tpl_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                const frameworks = input.frameworks
+                    ?? (input.framework ? [input.framework] : undefined);
 
                 const [template] = await db.insert(policyTemplates).values({
                     templateId,
                     name: input.name,
                     content: input.content || "",
                     sections: input.sections,
+                    frameworks,
                     ownerId: ctx.user.id,
                     isPublic: input.isPublic,
                     clientId: input.clientId,
                     tailoringQuestions: input.tailoringQuestions
-                }).returning();
+                } as any).returning();
 
                 return template;
             }),
@@ -110,7 +122,13 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 content: z.string().optional(),
                 isPublic: z.boolean().optional(),
                 sections: z.any().optional(),
-                tailoringQuestions: z.any().optional()
+                tailoringQuestions: z.any().optional(),
+                // See `create`: DB column is the `frameworks` array; the UI still
+                // posts singular `framework`. `templateId` is accepted so an edit
+                // can correct it (it is the human-facing identifier).
+                frameworks: z.array(z.string()).optional(),
+                framework: z.string().optional(),
+                templateId: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
@@ -123,7 +141,13 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     throw new TRPCError({ code: "FORBIDDEN", message: "Not your template" });
                 }
 
-                const { id, ...data } = input;
+                const { id, framework, ...rest } = input;
+                const data: any = { ...rest };
+                // Normalise singular -> array; never write an unknown `framework` key
+                if (data.frameworks === undefined && framework) {
+                    data.frameworks = [framework];
+                }
+
                 const [updated] = await db.update(policyTemplates)
                     .set(data)
                     .where(eq(policyTemplates.id, id))

@@ -58,6 +58,7 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
                 currentStatus: z.string().optional(),
                 targetStatus: z.string().optional(),
                 notes: z.string().optional(),
+                evidenceLinks: z.string().optional(),
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
@@ -75,16 +76,20 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
                         controlId: input.controlId,
                         currentStatus: input.currentStatus,
                         targetStatus: input.targetStatus,
-                        notes: input.notes
-                    });
+                        notes: input.notes,
+                        evidenceLinks: input.evidenceLinks,
+                    } as any);
                 } else {
+                    // Only write fields the caller actually supplied — a partial
+                    // save (e.g. just evidenceLinks) must not blank the others.
+                    const patch: any = { updatedAt: new Date() };
+                    if (input.currentStatus !== undefined) patch.currentStatus = input.currentStatus;
+                    if (input.targetStatus !== undefined) patch.targetStatus = input.targetStatus;
+                    if (input.notes !== undefined) patch.notes = input.notes;
+                    if (input.evidenceLinks !== undefined) patch.evidenceLinks = input.evidenceLinks;
+
                     await dbConn.update(schema.gapResponses)
-                        .set({
-                            currentStatus: input.currentStatus,
-                            targetStatus: input.targetStatus,
-                            notes: input.notes,
-                            updatedAt: new Date()
-                        })
+                        .set(patch)
                         .where(and(
                             eq(schema.gapResponses.assessmentId, input.assessmentId),
                             eq(schema.gapResponses.controlId, input.controlId)

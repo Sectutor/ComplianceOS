@@ -69,6 +69,8 @@ export const createEmployeesRouter = (t: any, clientProcedure: any) => {
         department: z.string().optional(),
         employmentType: z.string().optional(),
         status: z.string().optional(),
+        orgRoleId: z.number().optional(),
+        managerId: z.number().optional(),
       }))
       .mutation(async ({ input }: any) => {
         const db = await getDb();
@@ -94,10 +96,91 @@ export const createEmployeesRouter = (t: any, clientProcedure: any) => {
           department: input.department || 'General',
           employmentType: input.employmentType || 'Full-time',
           status: input.status || 'active',
+          orgRoleId: input.orgRoleId ?? null,
+          managerId: input.managerId ?? null,
           startDate: new Date(),
         }).returning();
 
         return newEmployee;
+      }),
+
+    /**
+     * Update an employee. The People page posts the whole edit form, so every
+     * editable column is accepted; only supplied fields are written so a partial
+     * save cannot blank the others.
+     */
+    update: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().email().optional(),
+        jobTitle: z.string().optional(),
+        department: z.string().optional(),
+        role: z.string().optional(),
+        employmentStatus: z.string().optional(),
+        employmentType: z.string().optional(),
+        orgRoleId: z.number().nullable().optional(),
+        managerId: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const db = await getDb();
+        const { id, clientId, employmentType, ...rest } = input;
+
+        const patch: any = { updatedAt: new Date() };
+        for (const [k, v] of Object.entries(rest)) {
+          if (v !== undefined) patch[k] = v;
+        }
+        // `create` calls this field employmentType; the column is employment_status
+        if (employmentType !== undefined && patch.employmentStatus === undefined) {
+          patch.employmentStatus = employmentType;
+        }
+
+        // An employee must not be their own manager
+        if (patch.managerId !== undefined && patch.managerId === id) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'An employee cannot be their own manager' });
+        }
+
+        const conditions: any[] = [eq(employees.id, id)];
+        if (clientId) conditions.push(eq(employees.clientId, clientId));
+
+        const [updated] = await db.update(employees)
+          .set(patch)
+          .where(and(...conditions))
+          .returning();
+
+        if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Employee not found' });
+        return updated;
+      }),
+
+    /**
+     * Delete an employee. Clears manager references first so no row is left
+     * pointing at a deleted manager.
+     */
+    delete: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number().optional(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const db = await getDb();
+        const { id, clientId } = input;
+
+        const conditions: any[] = [eq(employees.id, id)];
+        if (clientId) conditions.push(eq(employees.clientId, clientId));
+
+        const [existing] = await db.select().from(employees).where(and(...conditions));
+        if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Employee not found' });
+
+        // Detach direct reports before removing the manager
+        await db.update(employees)
+          .set({ managerId: null, updatedAt: new Date() } as any)
+          .where(eq(employees.managerId, id));
+
+        await db.delete(employees).where(and(...conditions));
+
+        return { success: true, id };
       }),
 
     getByEmail: clientProcedure

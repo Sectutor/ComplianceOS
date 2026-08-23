@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, t, publicProcedure, clientProcedure } from "../trpc";
 import { autoAnswerQuestionnaire } from "../../lib/ai/questionnaireAutoResponder";
 import { getDb } from "../../db";
@@ -93,17 +94,29 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 name: z.string().min(1),
                 description: z.string().optional(),
                 targetVendorId: z.number().optional(),
+                direction: z.enum(["inbound", "outbound"]).optional(),
+                senderName: z.string().optional(),
+                productName: z.string().optional(),
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
                 const db = await getDb();
+                // Resolve tenant from input, else the request context — never a
+                // hardcoded id (that leaked questionnaires into client 7).
+                const clientId = input.clientId ?? ctx?.clientId;
+                if (!clientId) {
+                    throw new TRPCError({ code: 'BAD_REQUEST', message: 'clientId is required' });
+                }
                 const [newQ] = await db.insert(questionnaires).values({
-                    clientId: input.clientId || 7,
+                    clientId,
                     name: input.name,
                     description: input.description || "",
+                    direction: input.direction ?? "inbound",
+                    senderName: input.senderName,
+                    productName: input.productName,
                     status: "in_progress",
                     createdAt: new Date(),
                     updatedAt: new Date(),
-                }).returning();
+                } as any).returning();
                 return newQ;
             }),
 
@@ -127,12 +140,19 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
             }),
 
         /**
-         * Parse raw document / text into structured questions
+         * Parse raw document / text into structured questions.
+         *
+         * NOT IMPLEMENTED: real document parsing (PDF/XLSX/CSV extraction) is not
+         * wired up yet. The input contract accepts what the UI sends so uploads
+         * are not silently discarded by validation, but the response is clearly
+         * flagged as sample data — callers must not present it as parsed content.
          */
         parse: clientProcedure
             .input(z.object({
                 text: z.string().optional(),
                 filename: z.string().optional(),
+                fileBase64: z.string().optional(),
+                fileType: z.enum(["pdf", "xlsx", "csv", "docx", "txt"]).optional(),
             }))
             .mutation(async ({ input }: { input: any }) => {
                 const sampleQuestions = [
@@ -142,7 +162,17 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     { questionId: "Q4", question: "Do you undergo annual independent SOC 2 Type II audits?", focusArea: "Audit & Compliance" },
                     { questionId: "Q5", question: "Is multi-factor authentication enforced across all administrative accounts?", focusArea: "Access Control" },
                 ];
-                return { success: true, questions: sampleQuestions };
+                return {
+                    success: true,
+                    parsed: false,
+                    source: "sample",
+                    notice: input.fileBase64
+                        ? "Document parsing is not implemented; returning sample questions. The uploaded file was not analysed."
+                        : "Document parsing is not implemented; returning sample questions.",
+                    receivedFilename: input.filename ?? null,
+                    receivedFileType: input.fileType ?? null,
+                    questions: sampleQuestions,
+                };
             }),
 
         /**
@@ -284,15 +314,54 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
          */
         sendVendorInvite: clientProcedure
             .input(z.object({
-                questionnaireId: z.number(),
+                // Callers use either `questionnaireId` or `id` — accept both so the
+                // invite is not generated against an undefined questionnaire.
+                questionnaireId: z.number().optional(),
+                id: z.number().optional(),
+                clientId: z.number().optional(),
                 vendorEmail: z.string(),
                 vendorName: z.string().optional(),
                 message: z.string().optional(),
+                expiresInDays: z.number().min(1).max(365).optional(),
             }))
             .mutation(async ({ input }: { input: any }) => {
+                const questionnaireId = input.questionnaireId ?? input.id;
+                if (!questionnaireId) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'questionnaireId (or id) is required',
+                    });
+                }
+
                 const token = `VST-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-                const portalUrl = `http://127.0.0.1:5173/questionnaire/${token}`;
-                return { success: true, token, portalUrl, recipient: input.vendorEmail };
+                const expiresInDays = input.expiresInDays ?? 30;
+                const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+
+                // Persist the token so the vendor portal link actually resolves.
+                const db = await getDb();
+                await db.update(questionnaires)
+                    .set({
+                        vendorToken: token,
+                        vendorEmail: input.vendorEmail,
+                        vendorName: input.vendorName,
+                        vendorLinkExpiresAt: expiresAt,
+                        updatedAt: new Date(),
+                    } as any)
+                    .where(eq(questionnaires.id, questionnaireId));
+
+                const baseUrl = process.env.APP_BASE_URL
+                    || process.env.VITE_APP_URL
+                    || 'http://127.0.0.1:5173';
+                const portalUrl = `${baseUrl.replace(/\/+$/, '')}/questionnaire/${token}`;
+
+                return {
+                    success: true,
+                    token,
+                    portalUrl,
+                    recipient: input.vendorEmail,
+                    questionnaireId,
+                    expiresAt,
+                };
             }),
 
         /**

@@ -59,6 +59,7 @@ export const autopilotActions = pgTable("autopilot_actions", {
   status: varchar("status", { length: 20 }).default("pending"),
   targetEntity: jsonb("target_entity"),
   metadata: jsonb("metadata"),
+  aiRationale: text("ai_rationale"),
   createdAt: timestamp("created_at").defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
   reviewedBy: integer("reviewed_by"),

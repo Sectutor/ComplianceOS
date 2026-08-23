@@ -49,6 +49,12 @@ export async function ensureAutopilotTablesExist(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS "idx_ap_run_client" ON "autopilot_runs" ("client_id");
       CREATE INDEX IF NOT EXISTS "idx_ap_run_status" ON "autopilot_runs" ("status");
+      -- Drizzle (schema_autopilot.ts) declares a metadata jsonb column that the
+      -- original DDL above never created. Any select/insert through Drizzle then
+      -- failed with: column "metadata" does not exist. Add it idempotently so
+      -- existing installs are repaired on boot.
+      ALTER TABLE "autopilot_actions" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
+      ALTER TABLE "autopilot_actions" ADD COLUMN IF NOT EXISTS "ai_rationale" TEXT;
     `);
     _autopilotTablesEnsured = true;
   } catch (err) {

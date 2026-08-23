@@ -412,7 +412,11 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
         updatePoamItem: clientProcedure
             .input(z.object({
                 clientId: z.number(),
-                id: z.number(),
+                id: z.number().optional(),
+                // The POAM edit dialog sends the row id as `itemId`; accept the
+                // alias so edits are not applied to an undefined item.
+                itemId: z.number().optional(),
+                poamId: z.number().optional(),
                 controlId: z.string().optional(),
                 weaknessName: z.string().optional(),
                 weaknessDescription: z.string().optional(),
@@ -442,7 +446,12 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
-                const { id, ...rest } = input;
+                const { id, itemId, poamId, clientId, ...rest } = input;
+                // Accept either `id` or the dialog's `itemId`
+                const targetId = id ?? itemId;
+                if (!targetId) {
+                    throw new TRPCError({ code: 'BAD_REQUEST', message: 'id (or itemId) is required' });
+                }
                 const updateData: any = { ...rest };
 
                 // Helper to parse dates robustly
@@ -463,7 +472,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
 
                 const [item] = await dbConn.update(schema.poamItems)
                     .set(updateData)
-                    .where(eq(schema.poamItems.id, id))
+                    .where(eq(schema.poamItems.id, targetId))
                     .returning();
 
                 if (!item) throw new Error("POA&M item not found");

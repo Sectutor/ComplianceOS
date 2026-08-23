@@ -27,9 +27,21 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
           sendNotifications: z.boolean().optional(),
         }).optional(),
         approvalMode: z.enum(['auto', 'review']).optional(),
+        // The dashboard sends this as `mode`; accept the alias so the
+        // approval setting is not silently discarded.
+        mode: z.enum(['auto', 'review']).optional(),
       }))
       .mutation(async ({ input }) => {
-        await AutopilotEngine.updateConfig(input.clientId, input);
+        // Normalise the `mode` alias onto the real `approvalMode` column and
+        // drop it, so it is never spread into the DB update as an unknown key.
+        const { mode, ...rest } = input as any;
+        const updates = {
+          ...rest,
+          ...(mode !== undefined && rest.approvalMode === undefined
+            ? { approvalMode: mode }
+            : {}),
+        };
+        await AutopilotEngine.updateConfig(input.clientId, updates);
         return { success: true };
       }),
 
@@ -57,6 +69,33 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
       .mutation(async ({ input, ctx }) => {
         await AutopilotEngine.reviewAction(input.actionId, ctx.user?.id || 0, input.status);
         return { success: true };
+      }),
+
+    /**
+     * approveAction / rejectAction
+     *
+     * The Autopilot dashboard calls these two names with { clientId, actionId }.
+     * They are thin wrappers over reviewAction so the review logic lives in one
+     * place. actionId is coerced because the UI passes it as a string.
+     */
+    approveAction: clientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        actionId: z.coerce.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await AutopilotEngine.reviewAction(input.actionId, ctx.user?.id || 0, 'approved');
+        return { success: true, actionId: input.actionId, status: 'approved' as const };
+      }),
+
+    rejectAction: clientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        actionId: z.coerce.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await AutopilotEngine.reviewAction(input.actionId, ctx.user?.id || 0, 'rejected');
+        return { success: true, actionId: input.actionId, status: 'rejected' as const };
       }),
 
     /** Admin: run autopilot for all enabled clients */

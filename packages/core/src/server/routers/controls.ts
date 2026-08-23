@@ -120,9 +120,17 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
 
         create: adminProcedure
             .input(z.object({
+                controlId: z.string(),
+                name: z.string(),
+                description: z.string().optional(),
                 framework: z.string(),
                 owner: z.string().optional(),
+                frequency: z.string().optional(),
+                evidenceType: z.string().optional(),
                 status: z.enum(["active", "inactive", "draft"]).optional(),
+                category: z.string().optional(),
+                grouping: z.string().optional(),
+                implementationGuidance: z.string().optional(),
                 requirementText: z.string().optional(),
                 officialGuidance: z.string().optional(),
                 evidenceBlueprint: z.array(z.object({
@@ -143,6 +151,8 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 description: z.string().optional(),
                 framework: z.string(),
                 owner: z.string().optional(),
+                frequency: z.string().optional(),
+                evidenceType: z.string().optional(),
                 status: z.enum(["active", "inactive", "draft"]).optional(),
                 implementationGuidance: z.string().optional(),
                 requirementText: z.string().optional(),

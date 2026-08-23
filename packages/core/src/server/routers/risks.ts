@@ -1077,7 +1077,14 @@ ${reportData.conclusion}
                 intent: z.string().optional(),
                 likelihood: z.string().optional(),
                 potentialImpact: z.string().optional(),
-                status: z.enum(["active", "mitigated", "archived"]).optional().default("active"),
+                affectedAssets: z.any().optional(),
+                relatedVulnerabilities: z.any().optional(),
+                associatedRisks: z.any().optional(),
+                scenario: z.string().optional(),
+                detectionMethod: z.string().optional(),
+                status: z.enum(["active", "dormant", "monitored"]).optional().default("active"),
+                owner: z.string().optional(),
+                lastReviewDate: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
@@ -1085,11 +1092,15 @@ ${reportData.conclusion}
                 }
                 const db = await getDb();
 
+                const { lastReviewDate, ...rest } = input;
                 // If no threatId is provided, generate one
-                const data = {
-                    ...input,
+                const data: any = {
+                    ...rest,
                     threatId: input.threatId || `THREAT-${Date.now()}`
                 };
+                if (lastReviewDate !== undefined) {
+                    data.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+                }
 
                 const [threat] = await db.insert(threats)
                     .values(data)
@@ -1107,13 +1118,28 @@ ${reportData.conclusion}
                 description: z.string().optional(),
                 category: z.string().optional(),
                 source: z.string().optional(),
+                intent: z.string().optional(),
+                likelihood: z.string().optional(),
+                potentialImpact: z.string().optional(),
+                affectedAssets: z.array(z.string()).optional(),
+                relatedVulnerabilities: z.array(z.string()).optional(),
+                associatedRisks: z.array(z.string()).optional(),
+                scenario: z.string().optional(),
+                detectionMethod: z.string().optional(),
+                status: z.enum(["active", "dormant", "monitored"]).optional(),
+                owner: z.string().optional(),
+                lastReviewDate: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
                     throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update threats' });
                 }
                 const db = await getDb();
-                const { id, clientId, ...data } = input;
+                const { id, clientId, lastReviewDate, ...rest } = input;
+                const data: any = { ...rest };
+                if (lastReviewDate !== undefined) {
+                    data.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+                }
                 const [threat] = await db.update(threats)
                     .set({ ...data, updatedAt: new Date() })
                     .where(and(eq(threats.id, id), eq(threats.clientId, clientId)))
@@ -1162,18 +1188,40 @@ ${reportData.conclusion}
         createVulnerability: procedure
             .input(z.object({
                 clientId: z.number(),
+                vulnerabilityId: z.string().optional(),
                 name: z.string(),
                 description: z.string().optional(),
-                category: z.string().optional(),
-                affectedAssets: z.string().optional(),
+                cveId: z.string().optional(),
+                cvssScore: z.number().optional(),
+                severity: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                discoveryDate: z.string().optional(),
+                source: z.string().optional(),
+                exploitability: z.string().optional(),
+                impact: z.string().optional(),
+                status: z.enum(["open", "mitigated", "accepted", "remediated"]).optional().default("open"),
+                owner: z.string().optional(),
+                remediationPlan: z.string().optional(),
+                dueDate: z.string().optional(),
+                lastReviewDate: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
                     throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create vulnerabilities' });
                 }
                 const db = await getDb();
+                const { discoveryDate, dueDate, lastReviewDate, vulnerabilityId, ...rest } = input;
+                const values: any = {
+                    ...rest,
+                    // vulnerability_id is NOT NULL in the DB — generate when absent
+                    vulnerabilityId: vulnerabilityId || `VULN-${Date.now()}`,
+                };
+                if (discoveryDate !== undefined) values.discoveryDate = discoveryDate ? new Date(discoveryDate) : null;
+                if (dueDate !== undefined) values.dueDate = dueDate ? new Date(dueDate) : null;
+                if (lastReviewDate !== undefined) values.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+
                 const [vulnerability] = await db.insert(vulnerabilities)
-                    .values(input)
+                    .values(values)
                     .returning();
 
                 await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "vulnerability", entityId: vulnerability.id, details: { name: vulnerability.name } });
@@ -1186,15 +1234,32 @@ ${reportData.conclusion}
                 clientId: z.number(),
                 name: z.string().optional(),
                 description: z.string().optional(),
-                category: z.string().optional(),
-                affectedAssets: z.string().optional(),
+                cveId: z.string().optional(),
+                cvssScore: z.number().optional(),
+                severity: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                discoveryDate: z.string().optional(),
+                source: z.string().optional(),
+                exploitability: z.string().optional(),
+                impact: z.string().optional(),
+                status: z.enum(["open", "mitigated", "accepted", "remediated"]).optional(),
+                owner: z.string().optional(),
+                remediationPlan: z.string().optional(),
+                dueDate: z.string().optional(),
+                lastReviewDate: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
                     throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update vulnerabilities' });
                 }
                 const db = await getDb();
-                const { id, clientId, ...data } = input;
+                const { id, clientId, discoveryDate, dueDate, lastReviewDate, ...rest } = input;
+                const data: any = { ...rest };
+                // Timestamp columns need real Date objects (or null to clear)
+                if (discoveryDate !== undefined) data.discoveryDate = discoveryDate ? new Date(discoveryDate) : null;
+                if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
+                if (lastReviewDate !== undefined) data.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+
                 const [vulnerability] = await db.update(vulnerabilities)
                     .set({ ...data, updatedAt: new Date() })
                     .where(and(eq(vulnerabilities.id, id), eq(vulnerabilities.clientId, clientId)))
@@ -1276,6 +1341,13 @@ ${reportData.conclusion}
                 }),
                 status: z.enum(["draft", "approved", "reviewed"]).default("draft"),
                 contextSnapshot: z.any().optional(),
+                assessmentId: z.string().optional(),
+                threatDescription: z.string().optional(),
+                vulnerabilityDescription: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                existingControls: z.string().optional(),
+                gapResponseId: z.coerce.number().optional(),
+                category: z.string().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') {
@@ -1296,14 +1368,22 @@ ${reportData.conclusion}
                         title: input.title,
                         threatId: input.threatId,
                         vulnerabilityId: input.vulnerabilityId,
-                        assessmentId: `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
+                        // Honour a caller-supplied id (e.g. "Raise Risk" from Gap Analysis)
+                        assessmentId: input.assessmentId
+                            || `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
                         likelihood: String(likelihood),
                         impact: String(impact),
                         inherentScore,
                         inherentRisk,
                         status: input.status,
                         contextSnapshot: input.contextSnapshot,
-                    })
+                        threatDescription: input.threatDescription,
+                        vulnerabilityDescription: input.vulnerabilityDescription,
+                        affectedAssets: input.affectedAssets,
+                        existingControls: input.existingControls,
+                        gapResponseId: input.gapResponseId,
+                        category: input.category,
+                    } as any)
                     .returning();
 
                 await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: assessment.id, details: { title: assessment.title } });
