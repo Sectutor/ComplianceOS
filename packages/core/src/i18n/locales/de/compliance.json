@@ -1,0 +1,71 @@
+{
+    "title": "Compliance & Kontrollrahmen",
+    "requirements": "Requirements",
+    "controls": "Sicherheitskontrollen",
+    "frameworks": "Regelwerke (ISO 27001, NIS2, DSGVO, SOC 2)",
+    "frameworksOverview": "Frameworks Overview",
+    "frameworksList": "All Frameworks",
+    "frameworksCustom": "Custom Frameworks",
+    "frameworksAdd": "Add Framework",
+    "status": {
+        "title": "Status",
+        "compliant": "Compliant",
+        "nonCompliant": "Non-Compliant",
+        "inProgress": "In Progress",
+        "notApplicable": "Nicht anwendbar",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "underReview": "Under Review"
+    },
+    "categories": {
+        "title": "Categories",
+        "technical": "Technical",
+        "operational": "Operational",
+        "management": "Management",
+        "physical": "Physical"
+    },
+    "requirementsManagement": "Requirements Management",
+    "requirementsList": "Requirements List",
+    "requirementsAdd": "Add Requirement",
+    "requirementsImport": "Import Requirements",
+    "requirementsExport": "Export Requirements",
+    "controlsManagement": "Controls Management",
+    "controlsList": "Controls List",
+    "controlsAdd": "Add Control",
+    "controlsMapping": "Control Mappings",
+    "complianceScore": "Compliance Score",
+    "complianceRate": "Compliance Rate",
+    "overallCompliance": "Overall Compliance",
+    "complianceByFramework": "Compliance by Framework",
+    "complianceTrend": "Compliance Trend",
+    "lastAssessment": "Last Assessment",
+    "nextReview": "Next Review",
+    "evidenceRequired": "Evidence Required",
+    "evidenceProvided": "Evidence Provided",
+    "missingEvidence": "Missing Evidence",
+    "auditReady": "Audit Ready",
+    "auditHistory": "Audit History",
+    "auditTrail": "Audit Trail",
+    "assessment": {
+        "title": "Assessment",
+        "conductAssessment": "Conduct Assessment",
+        "assessmentHistory": "Assessment History",
+        "assessmentResults": "Assessment Results",
+        "lastAssessment": "Last Assessment"
+    },
+    "gaps": {
+        "title": "Gaps",
+        "identifiedGaps": "Identified Gaps",
+        "gapAnalysis": "Gap Analysis",
+        "remediation": "Remediation",
+        "remediationPlan": "Remediation Plan",
+        "remediationStatus": "Remediation Status"
+    },
+    "maturity": {
+        "title": "Maturity",
+        "level": "Maturity Level",
+        "assessMaturity": "Assess Maturity",
+        "targetLevel": "Target Level"
+    }
+}

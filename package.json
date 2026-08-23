@@ -32,6 +32,7 @@
     "validate-env": "tsx scripts/setup/validate-env.ts",
     "index-embeddings": "tsx scripts/seed/index-embeddings.ts",
     "seed:risk": "tsx scripts/seed/seedRiskData.ts",
+    "i18n:sync": "tsx scripts/i18n-sync.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",

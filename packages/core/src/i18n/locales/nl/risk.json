@@ -1,0 +1,79 @@
+{
+    "title": "Operationeel & Informatiebeveiligingsrisicobeheer",
+    "overview": "Risk Overview",
+    "dashboard": "Risk Dashboard",
+    "scenarios": "Risk Scenarios",
+    "treatments": "Risk Treatments",
+    "assessments": "Risk Assessments",
+    "register": "Risicoregister",
+    "status": {
+        "title": "Status",
+        "identified": "Identified",
+        "analyzing": "Analyzing",
+        "mitigating": "Mitigating",
+        "monitoring": "Monitoring",
+        "closed": "Closed",
+        "accepted": "Accepted",
+        "transferred": "Transferred"
+    },
+    "levels": {
+        "title": "Risk Levels",
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "minimal": "Minimal"
+    },
+    "likelihood": {
+        "title": "Likelihood",
+        "almostCertain": "Almost Certain",
+        "likely": "Likely",
+        "possible": "Possible",
+        "unlikely": "Unlikely",
+        "rare": "Rare"
+    },
+    "impact": {
+        "title": "Impact",
+        "severe": "Severe",
+        "major": "Major",
+        "moderate": "Moderate",
+        "minor": "Minor",
+        "negligible": "Negligible"
+    },
+    "categories": {
+        "title": "Categories",
+        "operational": "Operational",
+        "financial": "Financial",
+        "strategic": "Strategic",
+        "compliance": "Compliance",
+        "reputational": "Reputational",
+        "technical": "Technical",
+        "cybersecurity": "Cybersecurity"
+    },
+    "addScenario": "Add Risk Scenario",
+    "editScenario": "Edit Risk Scenario",
+    "deleteScenario": "Delete Risk Scenario",
+    "scenarioDetails": "Scenario Details",
+    "riskRating": "Risk Rating",
+    "residualRisk": "Restrisico",
+    "inherentRisk": "Inherent Risico",
+    "treatmentPlan": "Treatment Plan",
+    "treatmentStatus": "Treatment Status",
+    "owner": "Risk Owner",
+    "dueDate": "Due Date",
+    "reviewDate": "Review Date",
+    "riskAppetite": "Risk Appetite",
+    "riskTolerance": "Risk Tolerance",
+    "heatmap": "Risk Heatmap",
+    "trends": "Risk Trends",
+    "analysis": "Risk Analysis",
+    "export": "Export Risk Report",
+    "import": "Import Risks",
+    "treatment": {
+        "title": "Treatment Options",
+        "mitigate": "Mitigate",
+        "accept": "Accept",
+        "avoid": "Avoid",
+        "transfer": "Overdragen (Verzekering)"
+    }
+}

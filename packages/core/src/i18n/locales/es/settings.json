@@ -1,0 +1,68 @@
+{
+    "title": "Configuración",
+    "overview": "Resumen de configuración",
+    "general": "Configuración General",
+    "account": "Account Settings",
+    "security": "Seguridad y MFA",
+    "notifications": "Notification Settings",
+    "preferences": "Preferences",
+    "profile": {
+        "title": "Profile Settings",
+        "personalInfo": "Personal Information",
+        "changePassword": "Change Password",
+        "changeEmail": "Change Email",
+        "twoFactor": "Two-Factor Authentication",
+        "avatar": "Avatar"
+    },
+    "organization": {
+        "title": "Organization Settings",
+        "companyInfo": "Company Information",
+        "branding": "Branding",
+        "logo": "Logo",
+        "colors": "Colors",
+        "theme": "Theme"
+    },
+    "users": {
+        "title": "User Management",
+        "addUser": "Add User",
+        "editUser": "Edit User",
+        "userList": "User List",
+        "roles": "Roles",
+        "permissions": "Permissions",
+        "inviteUser": "Invite User"
+    },
+    "billing": {
+        "title": "Billing & Subscription",
+        "subscription": "Subscription",
+        "paymentMethod": "Payment Method",
+        "invoices": "Invoices",
+        "usage": "Usage"
+    },
+    "integrations": {
+        "title": "Integrations",
+        "available": "Available Integrations",
+        "connected": "Connected",
+        "configure": "Configure"
+    },
+    "api": {
+        "title": "API Settings",
+        "apiKeys": "API Keys",
+        "webhooks": "Webhooks",
+        "oauth": "OAuth Apps"
+    },
+    "audit": {
+        "title": "Audit Logs",
+        "viewLogs": "View Audit Logs",
+        "exportLogs": "Export Logs"
+    },
+    "language": {
+        "title": "Language & Region",
+        "language": "Language",
+        "timezone": "Timezone",
+        "dateFormat": "Date Format",
+        "currency": "Currency"
+    },
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "reset": "Reset to Default"
+}

@@ -1,7 +1,7 @@
 {
     "app": {
         "name": "ComplianceOS",
-        "tagline": "Governance, Risk & Compliance Platform"
+        "tagline": "Platform voor Governance, Risicobeheer & Compliance"
     },
     "common": {
         "save": "Opslaan",
@@ -25,14 +25,14 @@
         "back": "Terug",
         "next": "Volgende",
         "previous": "Vorige",
-        "submit": "Verzenden",
-        "reset": "Resetten",
+        "submit": "Versturen",
+        "reset": "Herstellen",
         "yes": "Ja",
         "no": "Nee",
         "all": "Alle",
         "none": "Geen",
         "select": "Selecteren",
-        "selectOption": "Selecteer een optie",
+        "selectOption": "Kies een optie",
         "required": "Verplicht",
         "optional": "Optioneel",
         "enabled": "Ingeschakeld",
@@ -43,7 +43,7 @@
         "completed": "Voltooid",
         "inProgress": "In uitvoering",
         "notStarted": "Niet gestart",
-        "seeAll": "Alles bekijken",
+        "seeAll": "Alles weergeven",
         "viewDetails": "Details bekijken",
         "viewMore": "Meer bekijken",
         "less": "Minder",
@@ -59,8 +59,8 @@
         "notes": "Notities",
         "comments": "Opmerkingen",
         "attachments": "Bijlagen",
-        "createdAt": "Aangemaakt",
-        "updatedAt": "Bijgewerkt",
+        "createdAt": "Aangemaakt op",
+        "updatedAt": "Bijgewerkt op",
         "createdBy": "Aangemaakt door",
         "modifiedBy": "Gewijzigd door"
     },
@@ -69,15 +69,15 @@
         "invalidEmail": "Voer een geldig e-mailadres in",
         "minLength": "Moet minimaal {{min}} tekens bevatten",
         "maxLength": "Mag maximaal {{max}} tekens bevatten",
-        "invalidNumber": "Voer een geldig nummer in",
+        "invalidNumber": "Voer een geldig getal in",
         "invalidDate": "Voer een geldige datum in",
         "invalidUrl": "Voer een geldige URL in"
     },
     "errors": {
         "generic": "Er is een fout opgetreden. Probeer het opnieuw.",
         "networkError": "Netwerkfout. Controleer uw verbinding.",
-        "notFound": "De opgevraagde bron is niet gevonden.",
-        "unauthorized": "U bent niet gemachtigd om deze actie uit te voeren.",
+        "notFound": "De gevraagde bron is niet gevonden.",
+        "unauthorized": "U bent niet bevoegd om deze actie uit te voeren.",
         "forbidden": "Toegang geweigerd.",
         "serverError": "Serverfout. Probeer het later opnieuw.",
         "validationError": "Controleer het formulier op fouten."
@@ -85,7 +85,7 @@
     "pagination": {
         "page": "Pagina",
         "of": "van",
-        "showing": "Toon",
+        "showing": "Weergave van",
         "to": "tot",
         "items": "items",
         "perPage": "Per pagina",
@@ -98,11 +98,10 @@
         "select": "Taal selecteren",
         "current": "Huidige taal",
         "change": "Taal wijzigen",
-        "english": "Engels",
-        "spanish": "Spaans",
-        "french": "Frans",
-        "german": "Duits",
-        "japanese": "Japans",
-        "dutch": "Nederlands"
+        "english": "English",
+        "spanish": "Spanish",
+        "french": "French",
+        "german": "German",
+        "japanese": "Japanese"
     }
 }

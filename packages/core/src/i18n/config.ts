@@ -21,8 +21,70 @@ import enEmployees from './locales/en/employees.json';
 import enSettings from './locales/en/settings.json';
 import enEvidence from './locales/en/evidence.json';
 
-// Dutch translations
+// German translations (DE)
+import deCommon from './locales/de/common.json';
+import deDashboard from './locales/de/dashboard.json';
+import deNavigation from './locales/de/navigation.json';
+import deCompliance from './locales/de/compliance.json';
+import deRisk from './locales/de/risk.json';
+import dePolicy from './locales/de/policy.json';
+import deTraining from './locales/de/training.json';
+import deVendors from './locales/de/vendors.json';
+import deEmployees from './locales/de/employees.json';
+import deSettings from './locales/de/settings.json';
+import deEvidence from './locales/de/evidence.json';
+
+// French translations (FR)
+import frCommon from './locales/fr/common.json';
+import frDashboard from './locales/fr/dashboard.json';
+import frNavigation from './locales/fr/navigation.json';
+import frCompliance from './locales/fr/compliance.json';
+import frRisk from './locales/fr/risk.json';
+import frPolicy from './locales/fr/policy.json';
+import frTraining from './locales/fr/training.json';
+import frVendors from './locales/fr/vendors.json';
+import frEmployees from './locales/fr/employees.json';
+import frSettings from './locales/fr/settings.json';
+import frEvidence from './locales/fr/evidence.json';
+
+// Dutch translations (NL)
 import nlCommon from './locales/nl/common.json';
+import nlDashboard from './locales/nl/dashboard.json';
+import nlNavigation from './locales/nl/navigation.json';
+import nlCompliance from './locales/nl/compliance.json';
+import nlRisk from './locales/nl/risk.json';
+import nlPolicy from './locales/nl/policy.json';
+import nlTraining from './locales/nl/training.json';
+import nlVendors from './locales/nl/vendors.json';
+import nlEmployees from './locales/nl/employees.json';
+import nlSettings from './locales/nl/settings.json';
+import nlEvidence from './locales/nl/evidence.json';
+
+// Spanish translations (ES)
+import esCommon from './locales/es/common.json';
+import esDashboard from './locales/es/dashboard.json';
+import esNavigation from './locales/es/navigation.json';
+import esCompliance from './locales/es/compliance.json';
+import esRisk from './locales/es/risk.json';
+import esPolicy from './locales/es/policy.json';
+import esTraining from './locales/es/training.json';
+import esVendors from './locales/es/vendors.json';
+import esEmployees from './locales/es/employees.json';
+import esSettings from './locales/es/settings.json';
+import esEvidence from './locales/es/evidence.json';
+
+// Italian translations (IT)
+import itCommon from './locales/it/common.json';
+import itDashboard from './locales/it/dashboard.json';
+import itNavigation from './locales/it/navigation.json';
+import itCompliance from './locales/it/compliance.json';
+import itRisk from './locales/it/risk.json';
+import itPolicy from './locales/it/policy.json';
+import itTraining from './locales/it/training.json';
+import itVendors from './locales/it/vendors.json';
+import itEmployees from './locales/it/employees.json';
+import itSettings from './locales/it/settings.json';
+import itEvidence from './locales/it/evidence.json';
 
 // Language resources
 const resources = {
@@ -39,16 +101,71 @@ const resources = {
         settings: enSettings,
         evidence: enEvidence,
     },
+    de: {
+        common: deCommon,
+        dashboard: deDashboard,
+        navigation: deNavigation,
+        compliance: deCompliance,
+        risk: deRisk,
+        policy: dePolicy,
+        training: deTraining,
+        vendors: deVendors,
+        employees: deEmployees,
+        settings: deSettings,
+        evidence: deEvidence,
+    },
+    fr: {
+        common: frCommon,
+        dashboard: frDashboard,
+        navigation: frNavigation,
+        compliance: frCompliance,
+        risk: frRisk,
+        policy: frPolicy,
+        training: frTraining,
+        vendors: frVendors,
+        employees: frEmployees,
+        settings: frSettings,
+        evidence: frEvidence,
+    },
     nl: {
         common: nlCommon,
+        dashboard: nlDashboard,
+        navigation: nlNavigation,
+        compliance: nlCompliance,
+        risk: nlRisk,
+        policy: nlPolicy,
+        training: nlTraining,
+        vendors: nlVendors,
+        employees: nlEmployees,
+        settings: nlSettings,
+        evidence: nlEvidence,
     },
-    // Additional languages can be added as locale files are created
-    // Example structure for adding new languages:
-    // es: {
-    //     common: esCommon,
-    //     dashboard: esDashboard,
-    //     // ...
-    // },
+    es: {
+        common: esCommon,
+        dashboard: esDashboard,
+        navigation: esNavigation,
+        compliance: esCompliance,
+        risk: esRisk,
+        policy: esPolicy,
+        training: esTraining,
+        vendors: esVendors,
+        employees: esEmployees,
+        settings: esSettings,
+        evidence: esEvidence,
+    },
+    it: {
+        common: itCommon,
+        dashboard: itDashboard,
+        navigation: itNavigation,
+        compliance: itCompliance,
+        risk: itRisk,
+        policy: itPolicy,
+        training: itTraining,
+        vendors: itVendors,
+        employees: itEmployees,
+        settings: itSettings,
+        evidence: itEvidence,
+    },
 };
 
 // Default language
