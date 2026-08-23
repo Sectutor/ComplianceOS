@@ -32,6 +32,7 @@ import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
 import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
 import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
+import { useTranslation } from "react-i18next";
 
 // Helper to determine compliance status based on rate - Plain Language Version
 function getComplianceStatus(rate: number) {
@@ -127,6 +128,7 @@ const FRAMEWORK_COLORS = [
 ];
 
 export default function Dashboard() {
+  const { t } = useTranslation(['dashboard', 'common', 'navigation', 'compliance', 'risk', 'policy', 'evidence']);
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [framework, setFramework] = useState<string | undefined>();
@@ -230,25 +232,25 @@ export default function Dashboard() {
   const recentActivity = enhancedStats?.recentActivity || [];
 
   const controlStatusData = [
-    { name: "Implemented", value: Number(status.implemented), color: COLORS.implemented },
-    { name: "In Progress", value: Number(status.inProgress), color: COLORS.inProgress },
-    { name: "Not Started", value: Number(status.notStarted), color: COLORS.notStarted },
-    { name: "N/A", value: Number(status.notApplicable), color: COLORS.notApplicable },
+    { name: t("dashboard.implemented", "Implemented"), value: Number(status.implemented), color: COLORS.implemented },
+    { name: t("dashboard.inProgress", "In Progress"), value: Number(status.inProgress), color: COLORS.inProgress },
+    { name: t("dashboard.notStarted", "Not Started"), value: Number(status.notStarted), color: COLORS.notStarted },
+    { name: t("dashboard.notApplicable", "N/A"), value: Number(status.notApplicable), color: COLORS.notApplicable },
   ].filter(d => d.value > 0);
 
   const policyStatusData = [
-    { name: "Approved", value: Number(pStatus.approved), color: COLORS.approved },
-    { name: "In Review", value: Number(pStatus.review), color: COLORS.review },
-    { name: "Draft", value: Number(pStatus.draft), color: COLORS.draft },
-    { name: "Archived", value: Number(pStatus.archived), color: COLORS.archived },
+    { name: t("dashboard.approved", "Approved"), value: Number(pStatus.approved), color: COLORS.approved },
+    { name: t("dashboard.review", "In Review"), value: Number(pStatus.review), color: COLORS.review },
+    { name: t("dashboard.draft", "Draft"), value: Number(pStatus.draft), color: COLORS.draft },
+    { name: t("dashboard.archived", "Archived"), value: Number(pStatus.archived), color: COLORS.archived },
   ].filter(d => d.value > 0);
 
   const evidenceStatusData = [
-    { name: "Verified", value: Number(eStatus.verified), color: COLORS.verified },
-    { name: "Collected", value: Number(eStatus.collected), color: COLORS.collected },
-    { name: "Pending", value: Number(eStatus.pending), color: COLORS.pending },
-    { name: "Expired", value: Number(eStatus.expired), color: COLORS.expired },
-    { name: "N/A", value: Number(eStatus.notApplicable), color: COLORS.notApplicable },
+    { name: t("dashboard.verified", "Verified"), value: Number(eStatus.verified), color: COLORS.verified },
+    { name: t("dashboard.collected", "Collected"), value: Number(eStatus.collected), color: COLORS.collected },
+    { name: t("dashboard.pending", "Pending"), value: Number(eStatus.pending), color: COLORS.pending },
+    { name: t("dashboard.expired", "Expired"), value: Number(eStatus.expired), color: COLORS.expired },
+    { name: t("dashboard.notApplicable", "N/A"), value: Number(eStatus.notApplicable), color: COLORS.notApplicable },
   ].filter(d => d.value > 0);
 
   const frameworkData = Object.entries(frameworkByName).map(([name, count]) => ({
@@ -425,10 +427,10 @@ export default function Dashboard() {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl lg:text-5xl font-black text-foreground tracking-tight">
-                  Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Commander'}.
+                  {new Date().getHours() < 12 ? t("dashboard.goodMorning", "Good Morning") : new Date().getHours() < 18 ? t("dashboard.goodAfternoon", "Good Afternoon") : t("dashboard.goodEvening", "Good Evening")}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || t("dashboard.commander", "Commander")}.
                 </h1>
                 <p className="text-muted-foreground font-medium mt-2 text-lg">
-                  Your compliance posture is active and scanning. Here is your daily briefing.
+                  {t("dashboard.briefingSubtitle", "Your compliance posture is active and scanning. Here is your daily briefing.")}
                 </p>
               </motion.div>
 
@@ -446,9 +448,9 @@ export default function Dashboard() {
                     <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                       <BrainCircuit className="h-5 w-5" />
                     </div>
-                    <h3 className="text-xl font-extrabold text-foreground tracking-tight">AI Posture Insights</h3>
+                    <h3 className="text-xl font-extrabold text-foreground tracking-tight">{t("dashboard.aiInsights", "AI Posture Insights")}</h3>
                   </div>
-                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Scanning Live</Badge>
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">{t("dashboard.scanningLive", "Scanning Live")}</Badge>
                 </div>
 
                 <div className="space-y-4 relative z-10 mt-6">
@@ -609,7 +611,7 @@ export default function Dashboard() {
                 {/* Executive Metrics Row */}
                 <div className="grid gap-6 md:grid-cols-3">
                   <AnimatedMetricCard
-                    title="Overall Compliance"
+                    title={t("dashboard.complianceScore", "Overall Compliance")}
                     value={`${overallComplianceRate}%`}
                     icon={<Shield className="w-5 h-5" />}
                     trend="up"
@@ -617,13 +619,13 @@ export default function Dashboard() {
                     variant="success"
                   />
                   <AnimatedMetricCard
-                    title="Risk Profile"
+                    title={t("dashboard.riskProfile", "Risk Profile")}
                     value={overview?.highRisks || 0}
                     icon={<AlertTriangle className="w-5 h-5" />}
                     variant="error"
                   />
                   <AnimatedMetricCard
-                    title="Portfolio Reach"
+                    title={t("dashboard.portfolioReach", "Portfolio Reach")}
                     value={overview?.totalClients || 0}
                     icon={<Users className="w-5 h-5" />}
                     variant="info"
@@ -839,7 +841,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Total Clients</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">{t("dashboard.totalClients", "Total Clients")}</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -860,7 +862,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Master Controls</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">{t("dashboard.totalControls", "Master Controls")}</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -881,7 +883,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Policy Templates</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">{t("dashboard.totalPolicies", "Policy Templates")}</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -902,7 +904,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Flagged Risks</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">{t("dashboard.highRisks", "Flagged Risks")}</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -923,7 +925,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">Compliance</p>
+                          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest leading-loose">{t("dashboard.complianceScore", "Compliance")}</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -950,9 +952,9 @@ export default function Dashboard() {
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
                           <PieChart className="h-5 w-5" />
                         </div>
-                        Control Status
+                        {t("dashboard.controls", "Control Status")}
                       </CardTitle>
-                      <CardDescription className="font-medium text-muted-foreground">Implementation status across all clients</CardDescription>
+                      <CardDescription className="font-medium text-muted-foreground">{t("dashboard.controlsDesc", "Implementation status across all clients")}</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (
@@ -983,8 +985,8 @@ export default function Dashboard() {
                       ) : (
                         <EmptyState
                           icon={Shield}
-                          title="No Controls Found"
-                          description="Start by adding your first compliance control to track progress."
+                          title={t("dashboard.noControlsFound", "No Controls Found")}
+                          description={t("dashboard.noControlsDesc", "Start by adding your first compliance control to track progress.")}
                           className="h-48"
                         />
                       )}
@@ -999,9 +1001,9 @@ export default function Dashboard() {
                         <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
                           <FileText className="h-5 w-5" />
                         </div>
-                        Policy Status
+                        {t("dashboard.policiesByStatus", "Policy Status")}
                       </CardTitle>
-                      <CardDescription className="font-medium text-muted-foreground">Policy approval status</CardDescription>
+                      <CardDescription className="font-medium text-muted-foreground">{t("dashboard.policyStatusDesc", "Policy approval status")}</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (
@@ -1032,8 +1034,8 @@ export default function Dashboard() {
                       ) : (
                         <EmptyState
                           icon={FileText}
-                          title="No Policies Found"
-                          description="Generate or upload policies to manage your compliance framework."
+                          title={t("dashboard.noPoliciesFound", "No Policies Found")}
+                          description={t("dashboard.noPoliciesDesc", "Generate or upload policies to manage your compliance framework.")}
                           className="h-48"
                         />
                       )}
@@ -1048,9 +1050,9 @@ export default function Dashboard() {
                         <div className="p-2 rounded-xl bg-blue-600/10 text-emerald-600">
                           <CheckCircle2 className="h-5 w-5" />
                         </div>
-                        Evidence Status
+                        {t("dashboard.evidenceStatus", "Evidence Status")}
                       </CardTitle>
-                      <CardDescription className="font-medium text-muted-foreground">Evidence verification status</CardDescription>
+                      <CardDescription className="font-medium text-muted-foreground">{t("dashboard.evidenceStatusDesc", "Evidence verification status")}</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (

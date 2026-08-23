@@ -8,6 +8,7 @@ import { EmptyState } from "@complianceos/ui/ui/EmptyState";
 import { ShieldCheck, Database, TrendingUp, Loader2, AlertTriangle } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import {
   useDashboardStats,
   derivePostureStats,
@@ -37,6 +38,7 @@ interface PostureSummaryProps {
  * numbers from the existing `dashboard.enhanced` payload.
  */
 export function PostureSummary({ clientId, framework, enhancedStats, complianceScores }: PostureSummaryProps) {
+  const { t } = useTranslation(['dashboard', 'common', 'compliance']);
   const statsQuery = useDashboardStats(clientId, framework, true);
   const isLive = !!statsQuery.data && !statsQuery.isError;
 
@@ -49,6 +51,7 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
   }, [isLive, statsQuery.data, statsQuery.isLoading, enhancedStats, complianceScores]);
 
   const status = STATUS_CONFIG[summary.status] ?? STATUS_CONFIG.attention;
+  const statusLabel = summary.status === 'strong' ? t('common.strong', 'Strong') : summary.status === 'critical' ? t('common.critical', 'Critical') : t('common.needsAttention', 'Needs Attention');
   const sortedFrameworks = useMemo(
     () => [...(summary.frameworks ?? [])].sort((a, b) => b.passRate - a.passRate).slice(0, 6),
     [summary.frameworks]
@@ -73,7 +76,7 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
   return (
     <section className="space-y-4" aria-label="Posture summary">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-tight text-foreground">Posture Summary</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">{t('dashboard.postureSummary', 'Posture Summary')}</h2>
         <div className="flex items-center gap-2">
           {isLive ? (
             <Badge variant="info" className="gap-1.5">
@@ -93,16 +96,16 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              Compliance Score
+              {t('dashboard.complianceScore', 'Compliance Score')}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pt-4 pb-6">
             <CircularProgress value={summary.postureScore} size={150} strokeWidth={12} color={status.ring} />
             <Badge variant={status.variant} className="mt-4">
-              {status.label}
+              {statusLabel}
             </Badge>
             <p className="text-xs text-muted-foreground mt-2">
-              {summary.controls.implemented} of {summary.controls.total} controls implemented
+              {summary.controls.implemented} {t('common.of', 'of')} {summary.controls.total} {t('dashboard.controlsImplemented', 'controls implemented')}
             </p>
           </CardContent>
         </Card>
@@ -112,9 +115,9 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Framework Pass Rate
+              {t('dashboard.frameworkPassRate', 'Framework Pass Rate')}
             </CardTitle>
-            <CardDescription>Share of controls passing per framework</CardDescription>
+            <CardDescription>{t('dashboard.frameworkPassRateDesc', 'Share of controls passing per framework')}</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
             {sortedFrameworks.length === 0 ? (
@@ -151,16 +154,16 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight">
               <Database className="h-4 w-4 text-muted-foreground" />
-              Evidence Coverage
+              {t('dashboard.evidenceCoverage', 'Evidence Coverage')}
             </CardTitle>
-            <CardDescription>Verified evidence across the workspace</CardDescription>
+            <CardDescription>{t('dashboard.evidenceCoverageDesc', 'Verified evidence across the workspace')}</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">{summary.evidence.coverage}%</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {summary.evidence.verified} verified of {summary.evidence.total} total
+                  {summary.evidence.verified} {t('dashboard.verifiedOf', 'verified of')} {summary.evidence.total} {t('common.total', 'total')}
                 </p>
               </div>
               <CircularProgress value={summary.evidence.coverage} size={64} strokeWidth={7} color={status.ring} />
@@ -175,10 +178,10 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
               <p className={cn("text-[11px] mt-2 flex items-center gap-1", summary.evidence.expiringSoon > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
                 {summary.evidence.expiringSoon > 0 ? (
                   <>
-                    <AlertTriangle className="h-3 w-3" /> {summary.evidence.expiringSoon} expiring soon
+                    <AlertTriangle className="h-3 w-3" /> {summary.evidence.expiringSoon} {t('dashboard.expiringSoon', 'expiring soon')}
                   </>
                 ) : (
-                  "No evidence expiring soon"
+                  t('dashboard.noExpiringEvidence', 'No evidence expiring soon')
                 )}
               </p>
             </div>
@@ -190,9 +193,9 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Score Trend
+              {t('dashboard.scoreTrend', 'Score Trend')}
             </CardTitle>
-            <CardDescription>Compliance score over time</CardDescription>
+            <CardDescription>{t('dashboard.scoreTrendDesc', 'Compliance score over time')}</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
             {hasTrend ? (

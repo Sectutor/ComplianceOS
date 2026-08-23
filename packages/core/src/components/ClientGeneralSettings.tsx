@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import { Building2, Save, Loader2, Globe2, Coins, Calendar, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { 
   SUPPORTED_CURRENCIES, 
   SUPPORTED_LOCALES, 
@@ -35,6 +36,7 @@ interface ClientGeneralSettingsProps {
 }
 
 export default function ClientGeneralSettings({ clientId, initialData }: ClientGeneralSettingsProps) {
+    const { t } = useTranslation(['settings', 'common']);
     const [name, setName] = useState(initialData.name);
     const [description, setDescription] = useState(initialData.description || "");
     const [industry, setIndustry] = useState(initialData.industry || "");
@@ -331,7 +333,7 @@ export default function ClientGeneralSettings({ clientId, initialData }: ClientG
                         ) : (
                             <>
                                 <Save className="mr-2 h-4 w-4" />
-                                Save Changes
+                                {t('settings.save', 'Save Changes')}
                             </>
                         )}
                     </Button>
