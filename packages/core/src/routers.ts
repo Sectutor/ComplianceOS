@@ -244,7 +244,10 @@ export const appRouter = router({
   projects: createProjectsRouter(t, premiumClientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
-  adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
+  // NOTE: `adversaryIntel` is defined later in this file as an inline router
+  // with a superset of procedures (premium-gated). Mounting the factory here as
+  // well was dead code — the later key silently shadowed it. Kept unmounted on
+  // purpose; see KNOWN_UNMOUNTED in routerMountCoverage.test.ts.
   vendors: vendorsRouter,
   roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
@@ -277,6 +280,44 @@ export const appRouter = router({
   policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
 
   governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
+
+  // Questionnaire workspace / vendor questionnaire portal.
+  // Was imported but never mounted — every trpc.questionnaire.* call 404'd.
+  questionnaire: questionnaireRouter,
+
+  // Same story: imported but never registered, so the Autopilot dashboard and
+  // Gap Analysis pages were calling endpoints that did not exist.
+  autopilot: createAutopilotRouter(t, clientProcedure, adminProcedure),
+  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
+
+  // ---------------------------------------------------------------------------
+  // Previously-unmounted routers. Each of these was imported at the top of this
+  // file but never added to the AppRouter, so every trpc.<key>.* call from the
+  // UI returned "No procedure found on path". Guarded by
+  // src/lib/__tests__/routerMountCoverage.test.ts.
+  // ---------------------------------------------------------------------------
+  employees: createEmployeesRouter(t, clientProcedure),
+  federal: createFederalRouter(t, clientProcedure),
+  nist80030: createNist80030Router(t, clientProcedure),
+  actions: createActionsRouter(t, clientProcedure),
+  calendar: createCalendarRouter(t, clientProcedure),
+  intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
+  billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
+  checklist: createChecklistRouter(t, clientProcedure),
+  readiness: createReadinessRouter(t, clientProcedure),
+  asvs: createAsvsRouter(t, clientProcedure),
+  samm: createSammRouter(t, clientProcedure),
+  frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
+  businessContinuity: businessContinuitySubRouter,
+  auditPackage: auditPackageRouter,
+  connectors: connectorsRouter,
+  trustBadge: trustBadgeRouter,
+  mssp: msspRouter,
+  frameworks: createFrameworksRouter(t, protectedProcedure),
+  iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
+  sammV2: createSammV2Router(t, clientProcedure),
+  essentialEight: createEssentialEightRouter(t, clientProcedure),
+  gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
 
   learning: createLearningRouter(t, premiumClientProcedure, adminProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
