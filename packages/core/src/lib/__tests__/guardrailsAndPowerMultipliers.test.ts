@@ -5,7 +5,16 @@ import { actionGatekeeper } from "../agent/actionGatekeeper";
 import { provenanceLedger } from "../agent/provenanceLedger";
 import { circuitBreaker } from "../agent/rateLimiterCircuitBreaker";
 import { policyVectorRag } from "../agent/policyVectorRag";
-import { toolDispatcher } from "../agent/toolDispatcher";
+import { toolDispatcher, runFairMonteCarlo } from "../agent/toolDispatcher";
+import { vi } from "vitest";
+
+// Unit tests run without PostgreSQL: force the DB layer to fail fast so we
+// verify tools degrade HONESTLY (error surfaced) rather than fabricating data.
+vi.mock("../../db", () => ({
+  getDb: async () => {
+    throw new Error("No database configured in unit tests");
+  },
+}));
 
 describe("🛡️ Enterprise AI Guardrails & Power Multipliers", () => {
   describe("1. Pre-Prompt DLP Sanitizer", () => {
@@ -123,77 +132,56 @@ describe("🛡️ Enterprise AI Guardrails & Power Multipliers", () => {
     });
   });
 
-  describe("6. Native Tool Dispatcher", () => {
-    it("executes AWS Storage drift scan and stages Terraform remediation", async () => {
+  describe("6. Native Tool Dispatcher (real-data contract)", () => {
+    it("refuses to fabricate cloud posture when the data source is unavailable", async () => {
       const result = await toolDispatcher.execute({
         toolName: "aws_scan_storage",
-        parameters: {},
+        parameters: { clientId: 1 },
         botId: "morgan_iac",
         botName: "Morgan",
       });
-      expect(result.success).toBe(true);
-      expect(result.isStagedForApproval).toBe(true);
-      expect(result.approvalPayload).toContain("aws_s3_bucket_server_side_encryption_configuration");
+      // DB layer is mocked to throw: the tool must surface the failure,
+      // never return invented scan results.
+      expect(result.success).toBe(false);
+      expect(result.summary).toMatch(/failed/i);
+      expect(result.data.error).toBeDefined();
     });
 
-    it("executes Identity Directory UAR audit", async () => {
+    it("requires clientId instead of silently succeeding", async () => {
       const result = await toolDispatcher.execute({
         toolName: "identity_audit_directory",
         parameters: {},
         botId: "riley_evidence",
         botName: "Riley",
       });
-      expect(result.success).toBe(true);
-      expect(result.data.mfaEnforcedCount).toBe(48);
+      expect(result.success).toBe(false); // missing clientId must fail, not fake data
     });
 
-    it("executes FAIR Quantitative Loss Expectancy calculation with Monte Carlo simulation", async () => {
-      const result = await toolDispatcher.execute({
-        toolName: "risk_calculate_fair_ale",
-        parameters: {},
-        botId: "marcus_risk",
-        botName: "Marcus",
+    it("FAIR Monte Carlo is a genuine simulation with statistically sane output", () => {
+      const out = runFairMonteCarlo({
+        tefPerYear: 1.0,
+        lossMean: 85000,
+        lossSigma: 0.9,
+        iterations: 10000,
       });
-      expect(result.success).toBe(true);
-      expect(result.data.methodology).toContain("FAIR");
-      expect(result.data.annualizedLossExpectancyAleUsd).toBe(14280);
-      expect(result.data.withinRiskAppetite).toBe(true);
+      expect(out.iterationsRun).toBe(10000);
+      // With TEF=1 and mean loss $85k, ALE should land in a wide but finite band
+      expect(out.annualizedLossExpectancyUsd).toBeGreaterThan(30000);
+      expect(out.annualizedLossExpectancyUsd).toBeLessThan(250000);
+      // VaR ordering invariant
+      expect(out.valueAtRisk99Usd).toBeGreaterThanOrEqual(out.valueAtRisk90Usd);
+      expect(out.valueAtRisk90Usd).toBeGreaterThanOrEqual(out.singleLossExpectancyUsd * 0.5);
     });
 
-    it("executes ISO 27005 Asset-Threat-Vulnerability assessment and SoA mapping", async () => {
+    it("unknown tools fail loudly instead of returning success", async () => {
       const result = await toolDispatcher.execute({
-        toolName: "risk_iso27005_asset_evaluation",
-        parameters: {},
-        botId: "marcus_risk",
-        botName: "Marcus",
+        toolName: "definitely_not_a_tool",
+        parameters: { clientId: 1 },
+        botId: "x",
+        botName: "X",
       });
-      expect(result.success).toBe(true);
-      expect(result.data.essentialAssetsEvaluated).toBe(14);
-      expect(result.data.primaryThreatScenarios.length).toBeGreaterThan(0);
-    });
-
-    it("executes EBIOS RM 5-Workshop scenario generation", async () => {
-      const result = await toolDispatcher.execute({
-        toolName: "risk_ebios_workshop_generate",
-        parameters: {},
-        botId: "marcus_risk",
-        botName: "Marcus",
-      });
-      expect(result.success).toBe(true);
-      expect(result.data.workshop4_operationalScenarios).toBeDefined();
-      expect(result.data.workshop5_treatmentSummary).toBeDefined();
-    });
-
-    it("executes 4T Enterprise Risk Treatment Plan generation", async () => {
-      const result = await toolDispatcher.execute({
-        toolName: "risk_treatment_plan_builder",
-        parameters: {},
-        botId: "marcus_risk",
-        botName: "Marcus",
-      });
-      expect(result.success).toBe(true);
-      expect(result.data.treatmentBreakdown.treat_mitigate.count).toBe(18);
-      expect(result.data.treatmentBreakdown.transfer_share.count).toBe(4);
+      expect(result.success).toBe(false);
+      expect(result.summary).toContain("not registered");
     });
   });
 });

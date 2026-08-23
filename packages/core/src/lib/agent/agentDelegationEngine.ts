@@ -1,9 +1,20 @@
 /**
- * Autonomous Inter-Agent Delegation Engine
- * Orchestrates event-driven cascading workflows across specialized compliance bots.
- * When Marcus identifies a risk, Hermes triggers Morgan (IaC), Riley (Evidence), and Tara (Policy).
+ * Autonomous Inter-Agent Delegation Engine — REAL implementations.
+ *
+ * On a trigger event, Hermes gathers the client's actual context from the
+ * database (vendors, risks, policies, evidence), asks each specialist bot to
+ * produce its response via the configured LLM provider, and posts those
+ * responses to the war room. Every message states what data it is based on.
+ * If no LLM provider is configured, delegation posts an honest orchestration
+ * notice with the real context instead of fabricated bot replies.
+ *
+ * HARD RULE (user directive): never fabricate PR numbers, scan results,
+ * or compliance claims.
  */
 
+import { getDb } from "../../db";
+import { vendors, riskScenarios, clientPolicies, evidence } from "../../schema";
+import { eq } from "drizzle-orm";
 import { agentChatStorage, ChatMessage } from "./agentChatStorage";
 import { vfsMemoryEngine } from "../memory/vfsMemoryEngine";
 
@@ -18,71 +29,188 @@ export interface DelegationTriggerEvent {
   relatedFrameworks?: string[];
 }
 
+interface ClientContext {
+  clientName: string;
+  vendorCount: number;
+  highCriticalityVendors: string[];
+  openHighRisks: Array<{ title: string; score: number | null }>;
+  policyCount: number;
+  evidenceCount: number;
+}
+
+async function gatherContext(clientId: number): Promise<ClientContext> {
+  const db = await getDb();
+  const [vendorRows, riskRows, policyRows, evidenceRows] = await Promise.all([
+    db.select().from(vendors).where(eq(vendors.clientId, clientId)),
+    db.select().from(riskScenarios).where(eq(riskScenarios.clientId, clientId)),
+    db.select().from(clientPolicies).where(eq(clientPolicies.clientId, clientId)),
+    db.select().from(evidence).where(eq(evidence.clientId, clientId)),
+  ]);
+  return {
+    clientName: `Client #${clientId}`,
+    vendorCount: vendorRows.length,
+    highCriticalityVendors: vendorRows.filter((v) => v.criticality === "High").map((v) => v.name),
+    openHighRisks: riskRows
+      .filter((r) => (r.inherentScore ?? 0) >= 12)
+      .slice(0, 5)
+      .map((r) => ({ title: r.title, score: r.inherentScore })),
+    policyCount: policyRows.length,
+    evidenceCount: evidenceRows.length,
+  };
+}
+
+function contextDigest(ctx: ClientContext, event: DelegationTriggerEvent): string {
+  return [
+    `Trigger: ${event.triggerType} — "${event.title}" (severity: ${event.severity}) reported by ${event.sourceBotName}.`,
+    `Details: ${event.details || "(none supplied)"}`,
+    `Client state from live registers: ${ctx.vendorCount} vendors (${ctx.highCriticalityVendors.length} High criticality), ` +
+      `${ctx.openHighRisks.length} risks scored ≥12/25, ${ctx.policyCount} policies, ${ctx.evidenceCount} evidence records.`,
+    ctx.openHighRisks.length ? `Top existing risks: ${ctx.openHighRisks.map((r) => `"${r.title}" [${r.score ?? "?"}]`).join("; ")}.` : "",
+    event.relatedFrameworks?.length ? `Related frameworks: ${event.relatedFrameworks.join(", ")}.` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+const SPECIALISTS = [
+  {
+    id: "morgan_iac",
+    name: "Morgan",
+    avatar: "🛠️",
+    role: "Autonomous Cloud & IaC Remediation",
+    instruction:
+      "You are Morgan, cloud/IaC remediation specialist. Based ONLY on the provided context, outline the concrete remediation you WOULD prepare (controls, infrastructure changes, verification steps). Do NOT invent PR numbers, resource names, or claim anything was executed — say 'proposed for approval'. Keep under 180 words.",
+  },
+  {
+    id: "riley_evidence",
+    name: "Riley",
+    avatar: "📋",
+    role: "Evidence Harvester & UAR Auditor",
+    instruction:
+      "You are Riley, evidence specialist. Based ONLY on the provided context, list which compliance controls this event plausibly touches and what NEW evidence should be collected. Reference the actual evidence record count in the context. Do NOT claim evidence was generated. Keep under 150 words.",
+  },
+  {
+    id: "tara_governance",
+    name: "Tara",
+    avatar: "📜",
+    role: "Policy Lifecycle Lead",
+    instruction:
+      "You are Tara, governance lead. Based ONLY on the provided context, state whether existing policy coverage appears sufficient (cite the actual policy count given) and what policy updates might be required. Do NOT claim policies were created or updated. Keep under 120 words.",
+  },
+] as const;
+
 export class AgentDelegationEngine {
   public async handleTriggerEvent(event: DelegationTriggerEvent): Promise<void> {
-    const { clientId, triggerType, title, severity, details, sourceBotId, sourceBotName } = event;
+    const { clientId, title, severity, sourceBotName } = event;
+    console.log(
+      `[Delegation Engine] Trigger '${event.triggerType}' from ${sourceBotName} (severity: ${severity}) for client #${clientId}`
+    );
 
-    console.log(`[Delegation Engine] Received trigger '${triggerType}' from ${sourceBotName} (Severity: ${severity})`);
+    // Only cascade for meaningful severities
+    if (!["critical", "high", "medium"].includes(severity)) return;
 
-    // 1. If high or critical risk created -> Trigger Morgan & Riley delegation
-    if (triggerType === "risk_created" && (severity === "critical" || severity === "high" || severity === "medium")) {
-      const hermesDispatchMsg: ChatMessage = {
-        id: `msg_hermes_delegation_${Date.now()}`,
+    const ctx = await gatherContext(clientId);
+    const digest = contextDigest(ctx, event);
+
+    // 1. Orchestrator dispatch (real context, no fabrication)
+    const dispatchMsg: ChatMessage = {
+      id: `msg_hermes_delegation_${Date.now()}`,
+      channelId: "war_room",
+      senderId: "hermes_orchestrator",
+      senderName: "Hermes",
+      senderAvatar: "🧠",
+      senderRole: "Chief Compliance Orchestrator",
+      content:
+        `🚨 **Multi-agent delegation triggered by ${sourceBotName}**\n\n` +
+        `* **Event:** ${event.triggerType} — "${title}" (${severity.toUpperCase()})\n\n` +
+        `Coordinating specialists against live client context ` +
+        `(${ctx.vendorCount} vendors, ${ctx.openHighRisks.length} high-scored risks, ${ctx.policyCount} policies, ${ctx.evidenceCount} evidence records):\n` +
+        `1. 🛠️ **@Morgan:** remediation proposal → staged for human approval\n` +
+        `2. 📋 **@Riley:** control impact & evidence plan\n` +
+        `3. 📜 **@Tara:** policy coverage assessment`,
+      timestamp: "Just now",
+      mentions: SPECIALISTS.map((s) => s.id),
+      delegatedTo: SPECIALISTS[0].id,
+    };
+    await agentChatStorage.saveMessage(clientId, dispatchMsg);
+
+    // 2. Ask each specialist via LLM (falls back honestly when unavailable)
+    let llmAvailable = true;
+    const replies: ChatMessage[] = [];
+
+    for (const spec of SPECIALISTS) {
+      let content: string | null = null;
+      try {
+        const { llmService } = await import("../llm/service");
+        const resp = await llmService.generate(
+          {
+            feature: "risk_analysis",
+            systemPrompt: spec.instruction + `\n\nClient context:\n${digest}`,
+            userPrompt: `Produce your specialist response to this ${event.triggerType} event.`,
+            temperature: 0.4,
+            maxTokens: 500,
+          },
+          { endpoint: "agent_delegation", clientId }
+        );
+        content = resp.text;
+      } catch (err: any) {
+        console.warn(`[Delegation Engine] LLM unavailable for ${spec.name}:`, err?.message);
+        llmAvailable = false;
+        break;
+      }
+      if (!content) break;
+
+      replies.push({
+        id: `msg_${spec.id}_delegation_${Date.now() + replies.length + 1}`,
         channelId: "war_room",
-        senderId: "hermes_orchestrator",
-        senderName: "Hermes",
-        senderAvatar: "🧠",
-        senderRole: "Chief Compliance Orchestrator",
-        content: `🚨 **Autonomous Multi-Agent Workflow Triggered by ${sourceBotName}**\n\n* **Identified Gap:** ${title}\n* **Severity Level:** ${severity.toUpperCase()}\n\nI am coordinating multi-domain remediation:\n1. 🛠️ **@Morgan:** Sandboxing Terraform & Cloud Security remediation.\n2. 📋 **@Riley:** Mapping ISO 27001 / SOC 2 controls and staging evidence collection.\n3. 📜 **@Tara:** Verifying Information Security Policy alignment.`,
+        senderId: spec.id,
+        senderName: spec.name,
+        senderAvatar: spec.avatar,
+        senderRole: spec.role,
+        content,
         timestamp: "Just now",
-        mentions: ["morgan_iac", "riley_evidence", "tara_governance"],
-        delegatedTo: "morgan_iac"
-      };
-      await agentChatStorage.saveMessage(clientId, hermesDispatchMsg);
+      });
+    }
 
-      // 2. Morgan Remediation Reply
-      const morganPatchMsg: ChatMessage = {
-        id: `msg_morgan_delegation_${Date.now() + 1}`,
+    if (replies.length > 0) {
+      for (const m of replies) await agentChatStorage.saveMessage(clientId, m);
+    } else if (!llmAvailable) {
+      // Honest fallback: post the real context so the team still gets value.
+      await agentChatStorage.saveMessage(clientId, {
+        id: `msg_system_delegation_${Date.now()}`,
         channelId: "war_room",
-        senderId: "morgan_iac",
-        senderName: "Morgan",
-        senderAvatar: "🛠️",
-        senderRole: "Autonomous Cloud & IaC Fixer",
-        content: `Remediation sandbox launched for **${title}**.\n\nI generated the declarative IaC patch to enforce compliance baseline:\n\`\`\`hcl\n# Remediation for ${title}\nresource "aws_security_baseline" "enforce_hardening" {\n  target_scope        = "Production"\n  encryption_at_rest  = "aws:kms"\n  mfa_required        = true\n  session_duration_max = "43200" # 12h\n}\n\`\`\`\nPull Request **#44** staged for human approval in the Approval Inbox.`,
+        senderId: "system",
+        senderName: "Delegation System",
+        senderAvatar: "⚙️",
+        senderRole: "Automation",
+        content:
+          `⚠️ Specialist replies unavailable: no LLM provider is configured (Settings → AI Providers).\n\n` +
+          `Real client context gathered for this event:\n\`\`\`\n${digest}\n\`\`\`\n` +
+          `No specialist actions have been taken. Configure a provider to enable full delegation.`,
         timestamp: "Just now",
-        attachments: [
-          { title: "PR #44: cloud-security-remediation.tf", type: "patch", size: "2.4 KB", status: "pending_approval" }
-        ]
-      };
-      await agentChatStorage.saveMessage(clientId, morganPatchMsg);
+      });
+    }
 
-      // 3. Riley Evidence Mapping Reply
-      const rileyEvidenceMsg: ChatMessage = {
-        id: `msg_riley_delegation_${Date.now() + 2}`,
-        channelId: "war_room",
-        senderId: "riley_evidence",
-        senderName: "Riley",
-        senderAvatar: "📋",
-        senderRole: "Evidence Harvester & UAR Auditor",
-        content: `Audit Hub controls updated:\n\n* **Mapped Controls:** ISO 27001 (A.5.15, A.8.24) & SOC 2 (CC6.1, CC6.8)\n* **Status:** Actionable remediation queued. SHA-256 evidence checkpoint generated.`,
-        timestamp: "Just now"
-      };
-      await agentChatStorage.saveMessage(clientId, rileyEvidenceMsg);
-
-      // 4. Save to Memory Cortex
+    // 3. Memory cortex record of what actually happened
+    try {
       await vfsMemoryEngine.writeNode(clientId, {
         path: `/facts/delegation_${Date.now()}_${title.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 30)}`,
-        title: `Remediation: ${title}`,
+        title: `Delegation: ${title}`,
         nodeType: "fact",
-        contentL2: `Hermes orchestrated multi-agent remediation across Morgan & Riley for ${title}. PR #44 staged.`,
-        summaryL0: `Multi-agent remediation executed for ${title} (Morgan IaC PR #44 + Riley CC6.1 audit control mapping).`,
+        contentL2:
+          `${replies.length > 0 ? `LLM-generated specialist responses posted (${replies.map((r) => r.senderName).join(", ")})` : `Honest fallback posted (no LLM provider)`} for ${event.triggerType} "${title}". Context was gathered live from vendors/risks/policies/evidence registers.`,
+        summaryL0: `Delegation for "${title}": ${replies.length}/3 specialist responses generated.`,
         metadata: {
           severity,
           sourceBot: sourceBotName,
           orchestrator: "Hermes",
-          timestamp: new Date().toISOString()
-        }
+          specialistReplies: replies.length,
+          llmAvailable,
+          timestamp: new Date().toISOString(),
+        },
       });
+    } catch (e: any) {
+      console.warn("[Delegation Engine] VFS write failed:", e?.message);
     }
   }
 }
