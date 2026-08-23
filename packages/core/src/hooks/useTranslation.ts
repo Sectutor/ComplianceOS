@@ -43,7 +43,7 @@ const DEFAULT_NS = 'common';
 export function useTranslation(namespace?: TranslationNamespace) {
     const { t: tOriginal, i18n } = useI18nextTranslation(namespace || DEFAULT_NS);
 
-    const currentLang = getCurrentLanguage();
+    const currentLang = i18n.language || getCurrentLanguage() || 'en';
     const langConfig = getLanguageByCode(currentLang);
     const isRtl = langConfig?.dir === 'rtl';
 
@@ -93,7 +93,8 @@ export function useTranslation(namespace?: TranslationNamespace) {
  * Use this when you only need language switching without translations
  */
 export function useLanguage() {
-    const currentLang = getCurrentLanguage();
+    const { i18n } = useI18nextTranslation();
+    const currentLang = i18n.language || getCurrentLanguage() || 'en';
     const langConfig = getLanguageByCode(currentLang);
 
     return {

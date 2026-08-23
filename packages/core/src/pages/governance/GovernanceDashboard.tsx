@@ -65,18 +65,18 @@ export default function GovernanceDashboard() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-                            Governance Dashboard
+                            {t("dashboard.governanceTitle", "Governance Dashboard")}
                             <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-none px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg shadow-indigo-200 uppercase">
                                 Premium
                             </Badge>
                         </h1>
                         <p className="text-muted-foreground mt-2">
-                            Establish robust governance, manage policies, and orchestrate compliance workflows.
+                            {t("dashboard.governanceSubtitle", "Establish robust governance, manage policies, and orchestrate compliance workflows.")}
                         </p>
                     </div>
                     <PageGuide
-                        title="Governance Dashboard"
-                        description="Establish robust governance, manage policies, and orchestrate compliance workflows."
+                        title={t("dashboard.governanceTitle", "Governance Dashboard")}
+                        description={t("dashboard.governanceSubtitle", "Establish robust governance, manage policies, and orchestrate compliance workflows.")}
                         rationale="A strong governance framework ensures that security activities are aligned with business goals and compliance requirements. This dashboard provides a 'Single Pane of Glass' for your entire GRC program."
                         howToUse={[
                             {
@@ -123,15 +123,15 @@ export default function GovernanceDashboard() {
                                 <BookOpen className="w-8 h-8 text-indigo-600" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-indigo-900 text-lg">Governance Program Guide</h3>
+                                <h3 className="font-bold text-indigo-900 text-lg">{t("dashboard.governanceGuide", "Governance Program Guide")}</h3>
                                 <p className="text-indigo-700/80 max-w-2xl">
-                                    Learn how to build a strategic GRC program, from defining roles (RACI) to automating controls.
+                                    {t("dashboard.governanceGuideDesc", "Learn how to build a strategic GRC program, from defining roles (RACI) to automating controls.")}
                                 </p>
                             </div>
                         </div>
                         <Link href={`/clients/${clientId}/governance/program-guide`}>
                             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold whitespace-nowrap">
-                                View Guide <ArrowRight className="w-4 h-4 ml-2" />
+                                {t("common.viewGuide", "View Guide")} <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
                         </Link>
                     </CardContent>
@@ -143,10 +143,10 @@ export default function GovernanceDashboard() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Shield className="w-6 h-6 text-indigo-400" />
-                            Getting Started with Governance
+                            {t("dashboard.gettingStartedGov", "Getting Started with Governance")}
                         </CardTitle>
                         <CardDescription className="text-slate-300">
-                            Follow this linear workflow to establish your compliance baseline.
+                            {t("dashboard.gettingStartedGovDesc", "Follow this linear workflow to establish your compliance baseline.")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -241,25 +241,25 @@ export default function GovernanceDashboard() {
                     {/* Governance Health Score */}
                     <Card className="card-enhanced border-l-4 border-l-indigo-600 bg-indigo-50/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-indigo-900">Governance Health</CardTitle>
+                            <CardTitle className="text-sm font-medium text-indigo-900">{t("dashboard.governanceHealth", "Governance Health")}</CardTitle>
                             <Activity className="h-4 w-4 text-indigo-600" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-indigo-700">{govStats?.healthScore || 0}%</div>
-                            <p className="text-xs text-indigo-600 mt-1">Overall System Health</p>
+                            <p className="text-xs text-indigo-600 mt-1">{t("dashboard.overallSystemHealth", "Overall System Health")}</p>
                         </CardContent>
                     </Card>
 
                     {/* Policy Status */}
                     <Card className="card-enhanced border-l-4 border-l-amber-500 bg-amber-50/50 cursor-pointer hover:bg-amber-100/50 transition-colors" onClick={() => setLocation(`/clients/${clientId}/policies`)}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-amber-900">Policy Coverage</CardTitle>
+                            <CardTitle className="text-sm font-medium text-amber-900">{t("dashboard.policyCoverage", "Policy Coverage")}</CardTitle>
                             <FileText className="h-4 w-4 text-amber-600" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-amber-700">{policyPercentage}%</div>
                             <p className="text-xs text-amber-600 mt-1">
-                                {readinessData?.coverage?.policyStats?.approved || 0} / {readinessData?.coverage?.policyStats?.total || 0} Approved
+                                {readinessData?.coverage?.policyStats?.approved || 0} / {readinessData?.coverage?.policyStats?.total || 0} {t("dashboard.approved", "Approved")}
                             </p>
                         </CardContent>
                     </Card>
@@ -267,13 +267,13 @@ export default function GovernanceDashboard() {
                     {/* Control Readiness */}
                     <Card className="card-enhanced border-l-4 border-l-emerald-600 bg-emerald-50/50 cursor-pointer hover:bg-emerald-100/50 transition-colors" onClick={() => setLocation(`/clients/${clientId}/controls`)}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-emerald-900">Control Readiness</CardTitle>
+                            <CardTitle className="text-sm font-medium text-emerald-900">{t("dashboard.controlReadiness", "Control Readiness")}</CardTitle>
                             <Shield className="h-4 w-4 text-emerald-600" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-emerald-700">{controlPercentage}%</div>
                             <p className="text-xs text-emerald-600 mt-1">
-                                {readinessData?.coverage?.controlStats?.implemented || 0} / {readinessData?.coverage?.controlStats?.total || 0} Implemented
+                                {readinessData?.coverage?.controlStats?.implemented || 0} / {readinessData?.coverage?.controlStats?.total || 0} {t("dashboard.implemented", "Implemented")}
                             </p>
                         </CardContent>
                     </Card>
@@ -281,13 +281,13 @@ export default function GovernanceDashboard() {
                     {/* Risk Profile Card (NEW) */}
                     <Card className="card-enhanced border-l-4 border-l-orange-500 bg-orange-50/50 cursor-pointer hover:bg-orange-100/50 transition-colors" onClick={() => setLocation(`/clients/${clientId}/risks/register`)}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-orange-900">Risk Profile</CardTitle>
+                            <CardTitle className="text-sm font-medium text-orange-900">{t("dashboard.riskProfile", "Risk Profile")}</CardTitle>
                             <AlertTriangle className="h-4 w-4 text-orange-600" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-orange-700">{riskStats?.unmitigatedCriticalRisks || 0}</div>
                             <p className="text-xs text-orange-600 mt-1">
-                                Critical Unmitigated Risks
+                                {t("dashboard.criticalUnmitigated", "Critical Unmitigated Risks")}
                             </p>
                         </CardContent>
                     </Card>
@@ -299,9 +299,9 @@ export default function GovernanceDashboard() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-base font-semibold flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-indigo-500" />
-                                Governance Activity
+                                {t("dashboard.governanceActivity", "Governance Activity")}
                             </CardTitle>
-                            <CardDescription>Created vs Completed tasks (Last 30 days)</CardDescription>
+                            <CardDescription>{t("dashboard.governanceActivityDesc", "Created vs Completed tasks (Last 30 days)")}</CardDescription>
                         </CardHeader>
                         <CardContent className="h-[300px] mt-4">
                             {!activityTrend || activityTrend.length === 0 || isLoadingTrend ? (

@@ -15,7 +15,8 @@ import { registerPremium } from "@/registry/premium";
 import "./index.css";
 
 // Import i18n configuration - must be before App renders
-import "@/i18n/config";
+import i18n from "@/i18n/config";
+import { I18nextProvider } from "react-i18next";
 
 // Initialize the Slot Registry
 // 1. Register Core Defaults (Clean Slate)
@@ -340,11 +341,13 @@ function AppWithMFA() {
 
 createRoot(document.getElementById("root")!).render(
   <GlobalErrorBoundary>
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <AppWithMFA />
-      </QueryClientProvider>
-    </trpc.Provider>
+    <I18nextProvider i18n={i18n}>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <AppWithMFA />
+        </QueryClientProvider>
+      </trpc.Provider>
+    </I18nextProvider>
   </GlobalErrorBoundary>
 );
 
