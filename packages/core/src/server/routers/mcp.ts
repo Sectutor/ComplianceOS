@@ -10,7 +10,8 @@ import {
     userClients,
     workItems,
     programGuideAssignments,
-    users
+    users,
+    riskTreatments
 } from "../../schema";
 import { AutopilotEngine } from "../../lib/autopilot/engine";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -368,6 +369,143 @@ export const createMcpRouter = (t: any, premiumClientProcedure: any, protectedPr
                     evidenceCollected: run.results?.evidenceCollected || 0,
                     healthIssuesFound: run.results?.healthIssuesFound || 0,
                     gapsDetected: run.results?.gapsDetected || 0,
+                };
+            }),
+
+        /**
+         * listRisks
+         * Read the risk register for AI consumption, with optional level filter.
+         */
+        listRisks: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                inherentRisk: z.enum(['low', 'medium', 'high', 'critical', 'extreme']).optional(),
+                status: z.enum(['draft', 'approved', 'reviewed']).optional(),
+                limit: z.number().min(1).max(200).default(50),
+            }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const conditions: any[] = [eq(riskAssessments.clientId, input.clientId)];
+                if (input.inherentRisk) conditions.push(eq(riskAssessments.inherentRisk, input.inherentRisk));
+                if (input.status) conditions.push(eq(riskAssessments.status, input.status));
+
+                const rows = await dbConn.select({
+                    id: riskAssessments.id,
+                    assessmentId: riskAssessments.assessmentId,
+                    title: riskAssessments.title,
+                    category: riskAssessments.category,
+                    likelihood: riskAssessments.likelihood,
+                    impact: riskAssessments.impact,
+                    inherentScore: riskAssessments.inherentScore,
+                    inherentRisk: riskAssessments.inherentRisk,
+                    status: riskAssessments.status,
+                    threatDescription: riskAssessments.threatDescription,
+                    createdAt: riskAssessments.createdAt,
+                })
+                    .from(riskAssessments)
+                    .where(and(...conditions))
+                    .orderBy(desc(riskAssessments.inherentScore))
+                    .limit(input.limit);
+
+                return { risks: rows, total: rows.length };
+            }),
+
+        /**
+         * getRiskSummary
+         * Aggregated risk posture: counts by level plus unmitigated critical risks.
+         */
+        getRiskSummary: premiumClientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const rows = await dbConn.select({
+                    id: riskAssessments.id,
+                    inherentRisk: riskAssessments.inherentRisk,
+                    inherentScore: riskAssessments.inherentScore,
+                    status: riskAssessments.status,
+                })
+                    .from(riskAssessments)
+                    .where(eq(riskAssessments.clientId, input.clientId));
+
+                const byLevel: Record<string, number> = {};
+                let highOrAbove = 0;
+                for (const r of rows) {
+                    const lvl = String(r.inherentRisk || 'unrated');
+                    byLevel[lvl] = (byLevel[lvl] || 0) + 1;
+                    if ((r.inherentScore || 0) >= 15) highOrAbove++;
+                }
+
+                // Risks scoring >= 15 with zero treatments attached
+                const unmitigated = await dbConn.select({ id: riskAssessments.id })
+                    .from(riskAssessments)
+                    .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(and(
+                        eq(riskAssessments.clientId, input.clientId),
+                        sql`${riskAssessments.inherentScore} >= 15`
+                    ))
+                    .groupBy(riskAssessments.id)
+                    .having(sql`count(${riskTreatments.id}) = 0`);
+
+                return {
+                    totalRisks: rows.length,
+                    byLevel,
+                    highOrAbove,
+                    unmitigatedCriticalRisks: unmitigated.length,
+                };
+            }),
+
+        /**
+         * addRiskTreatment
+         * Attach a treatment (mitigate/transfer/accept/avoid) to an existing risk.
+         */
+        addRiskTreatment: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                riskAssessmentId: z.number(),
+                strategy: z.enum(['mitigate', 'transfer', 'accept', 'avoid']),
+                justification: z.string(),
+                owner: z.string().optional(),
+                dueDate: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const dbConn = await getDb();
+
+                const [risk] = await dbConn.select()
+                    .from(riskAssessments)
+                    .where(and(
+                        eq(riskAssessments.id, input.riskAssessmentId),
+                        eq(riskAssessments.clientId, input.clientId)
+                    ))
+                    .limit(1);
+                if (!risk) throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+
+                const [created] = await dbConn.insert(riskTreatments)
+                    .values({
+                        clientId: input.clientId,
+                        riskAssessmentId: input.riskAssessmentId,
+                        strategy: input.strategy,
+                        treatmentType: input.strategy,
+                        justification: input.justification,
+                        owner: input.owner,
+                        dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                        status: 'planned',
+                    } as any)
+                    .returning();
+
+                await logActivity({
+                    userId: ctx.user.id,
+                    clientId: input.clientId,
+                    action: 'create',
+                    entityType: 'treatment',
+                    entityId: created.id,
+                    details: { strategy: created.strategy, risk: input.riskAssessmentId, source: 'MCP' }
+                });
+
+                return {
+                    success: true,
+                    treatmentId: created.id,
+                    strategy: created.strategy,
+                    riskAssessmentId: input.riskAssessmentId,
                 };
             }),
 

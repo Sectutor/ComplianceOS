@@ -374,6 +374,87 @@ server.tool(
 );
 
 /**
+ * Tool: list_risks
+ */
+server.tool(
+  "list_risks",
+  "List the risk register for a workspace, highest inherent score first. Filter by risk level or approval status.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+    inherentRisk: z.enum(["low", "medium", "high", "critical", "extreme"]).optional().describe("Filter by inherent risk level"),
+    status: z.enum(["draft", "approved", "reviewed"]).optional().describe("Filter by assessment status"),
+    limit: z.number().min(1).max(200).default(50).describe("Max risks to return"),
+  },
+  async (input: any) => {
+    try {
+      const result = await callComplianceApi('mcp.listRisks', 'query', input);
+      const risks = result?.risks || [];
+      return {
+        content: [{
+          type: "text",
+          text: `Found ${result?.total ?? risks.length} risks in workspace ${input.clientId}:\n${JSON.stringify(risks, null, 2)}`,
+        }],
+      };
+    } catch (error: any) {
+      return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+    }
+  }
+);
+
+/**
+ * Tool: get_risk_summary
+ */
+server.tool(
+  "get_risk_summary",
+  "Get aggregated risk posture for a workspace: totals by risk level, count scoring high-or-above, and how many critical risks have no treatment attached.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+  },
+  async (input: { clientId: number }) => {
+    try {
+      const r = await callComplianceApi('mcp.getRiskSummary', 'query', input);
+      return {
+        content: [{
+          type: "text",
+          text: `Risk posture for workspace ${input.clientId}:\n- Total risks: ${r.totalRisks}\n- High or above: ${r.highOrAbove}\n- Unmitigated critical: ${r.unmitigatedCriticalRisks}\n- By level: ${JSON.stringify(r.byLevel)}`,
+        }],
+      };
+    } catch (error: any) {
+      return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+    }
+  }
+);
+
+/**
+ * Tool: add_risk_treatment
+ */
+server.tool(
+  "add_risk_treatment",
+  "Attach a treatment plan to an existing risk: mitigate, transfer, accept or avoid, with a justification and optional owner/due date.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+    riskAssessmentId: z.number().describe("ID of the risk to treat (from list_risks)"),
+    strategy: z.enum(["mitigate", "transfer", "accept", "avoid"]).describe("Treatment strategy"),
+    justification: z.string().describe("Why this strategy was chosen / what will be done"),
+    owner: z.string().optional().describe("Person accountable for the treatment"),
+    dueDate: z.string().optional().describe("Target completion date, ISO e.g. 2026-09-30"),
+  },
+  async (input: any) => {
+    try {
+      const r = await callComplianceApi('mcp.addRiskTreatment', 'mutation', input);
+      return {
+        content: [{
+          type: "text",
+          text: `Treatment ${r.treatmentId} (${r.strategy}) attached to risk ${r.riskAssessmentId}.`,
+        }],
+      };
+    } catch (error: any) {
+      return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+    }
+  }
+);
+
+/**
  * Start the server using stdio transport
  */
 async function main() {

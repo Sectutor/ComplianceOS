@@ -22,7 +22,12 @@ import {
   auditFindings,
   employees,
   employeeAcknowledgments,
+  workItems,
+  programGuideAssignments,
+  users as usersTable,
 } from '../../schema';
+import { AutopilotEngine } from '../../lib/autopilot/engine';
+import { and, desc } from 'drizzle-orm';
 
 // ── API Key Auth Middleware ──────────────────────────────────────────────────
 
@@ -252,6 +257,24 @@ apiV1Router.get('/risks', async (_req: Request, res: Response) => {
       .select()
       .from(riskScenarios)
       .orderBy(riskScenarios.createdAt);
+
+    res.json({ data: rows, total: rows.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── GET /api/v1/risks/:id ────────────────────────────────────────────────────
+// ── GET /api/v1/risks/appetite ─────────────────────────────────────────────
+// NOTE: registered here (before '/risks/:id') so the literal path is not
+// shadowed by the parameterized route — Express matches in definition order.
+apiV1Router.get('/risks/appetite', async (_req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const rows = await db
+      .select()
+      .from(riskAppetite)
+      .orderBy(riskAppetite.id);
 
     res.json({ data: rows, total: rows.length });
   } catch (err: any) {
@@ -1017,21 +1040,6 @@ apiV1Router.post('/evidence/:id/files', async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/v1/risks/appetite ─────────────────────────────────────────────
-apiV1Router.get('/risks/appetite', async (req: Request, res: Response) => {
-  try {
-    const db = await getDb();
-    const rows = await db
-      .select()
-      .from(riskAppetite)
-      .orderBy(riskAppetite.id);
-
-    res.json({ data: rows, total: rows.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
-  }
-});
-
 // ── POST /api/v1/risks/assessments ─────────────────────────────────────────
 apiV1Router.post('/risks/assessments', async (req: Request, res: Response) => {
   try {
@@ -1240,6 +1248,229 @@ apiV1Router.get('/auditor-questions', async (req: Request, res: Response) => {
     query = sql`${query} ORDER BY id`;
     const rows = await db.execute(query);
     res.json({ data: rows, total: rows.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── GET /api/v1/governance/tasks ────────────────────────────────────────────
+// Governance workbench tasks (work_items table) — read with optional filters
+apiV1Router.get('/governance/tasks', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const clientId = parseInt(req.query.clientId as string, 10);
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: 'Missing required query param: clientId', code: 'BAD_REQUEST' });
+    }
+
+    const conditions: any[] = [eq(workItems.clientId, clientId)];
+    const status = req.query.status as string | undefined;
+    const priority = req.query.priority as string | undefined;
+    if (status) conditions.push(eq(workItems.status, status as any));
+    if (priority) conditions.push(eq(workItems.priority, priority as any));
+
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 200);
+    const rows = await db
+      .select()
+      .from(workItems)
+      .where(and(...conditions))
+      .orderBy(desc(workItems.createdAt))
+      .limit(limit);
+
+    res.json({ data: rows, total: rows.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── POST /api/v1/governance/tasks ───────────────────────────────────────────
+// Create a governance work item
+const WORK_ITEM_TYPES = ['review', 'approval', 'evidence_collection', 'raci_assignment', 'risk_treatment', 'vendor_assessment', 'bcp_approval', 'policy_review', 'control_implementation', 'risk_review', 'control_assessment'];
+const WORK_ITEM_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+
+apiV1Router.post('/governance/tasks', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const { clientId, title, description, type, priority, dueDate } = req.body;
+
+    if (!clientId || !title) {
+      return res.status(400).json({ error: 'Missing required fields: clientId, title', code: 'BAD_REQUEST' });
+    }
+    const taskType = type ?? 'review';
+    if (!WORK_ITEM_TYPES.includes(taskType)) {
+      return res.status(400).json({ error: `Invalid type '${taskType}'. Valid: ${WORK_ITEM_TYPES.join(', ')}`, code: 'BAD_REQUEST' });
+    }
+    const taskPriority = priority ?? 'medium';
+    if (!WORK_ITEM_PRIORITIES.includes(taskPriority)) {
+      return res.status(400).json({ error: `Invalid priority '${taskPriority}'. Valid: ${WORK_ITEM_PRIORITIES.join(', ')}`, code: 'BAD_REQUEST' });
+    }
+
+    const [created] = await db
+      .insert(workItems)
+      .values({
+        clientId,
+        title,
+        description: description ?? null,
+        type: taskType,
+        priority: taskPriority,
+        status: 'pending',
+        dueDate: dueDate ? new Date(dueDate) : null,
+        metadata: { source: 'api-v1' },
+      } as any)
+      .returning();
+
+    res.status(201).json({ data: created });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── PATCH /api/v1/governance/tasks/:id ─────────────────────────────────────
+// Update status/priority/assignment of a governance work item
+apiV1Router.patch('/governance/tasks/:id', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid task id', code: 'BAD_REQUEST' });
+    }
+    const clientId = parseInt(req.body.clientId, 10);
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: 'Missing required body field: clientId', code: 'BAD_REQUEST' });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(workItems)
+      .where(and(eq(workItems.id, id), eq(workItems.clientId, clientId)))
+      .limit(1);
+    if (!existing) {
+      return res.status(404).json({ error: 'Governance task not found', code: 'NOT_FOUND' });
+    }
+
+    const updates: any = { updatedAt: new Date() };
+    const { status, priority, assignedToUserId } = req.body;
+    if (status !== undefined) {
+      if (!['pending', 'in_progress', 'completed', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: `Invalid status '${status}'`, code: 'BAD_REQUEST' });
+      }
+      updates.status = status;
+      if (status === 'completed') updates.completedAt = new Date();
+    }
+    if (priority !== undefined) {
+      if (!WORK_ITEM_PRIORITIES.includes(priority)) {
+        return res.status(400).json({ error: `Invalid priority '${priority}'`, code: 'BAD_REQUEST' });
+      }
+      updates.priority = priority;
+    }
+    if (assignedToUserId !== undefined) updates.assignedToUserId = assignedToUserId;
+
+    const [updated] = await db.update(workItems).set(updates).where(eq(workItems.id, id)).returning();
+    res.json({ data: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── GET /api/v1/governance/summary ─────────────────────────────────────────
+// Workbench stats for external dashboards / bots
+apiV1Router.get('/governance/summary', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const clientId = parseInt(req.query.clientId as string, 10);
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: 'Missing required query param: clientId', code: 'BAD_REQUEST' });
+    }
+
+    const items = await db
+      .select({
+        status: workItems.status,
+        isEscalated: workItems.isEscalated,
+        dueDate: workItems.dueDate,
+      })
+      .from(workItems)
+      .where(eq(workItems.clientId, clientId));
+
+    const now = new Date();
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const byStatus: Record<string, number> = {};
+    let overdue = 0, escalated = 0;
+
+    for (const item of items) {
+      byStatus[item.status || 'pending'] = (byStatus[item.status || 'pending'] || 0) + 1;
+      if (item.isEscalated) escalated++;
+      if (item.dueDate && item.status !== 'completed' && new Date(item.dueDate) < now) overdue++;
+    }
+
+    res.json({
+      data: {
+        total: items.length,
+        byStatus,
+        overdue,
+        escalated,
+        healthScore: Math.max(0, 100 - overdue * 5 - escalated * 2),
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ── POST /api/v1/governance/autopilot ──────────────────────────────────────
+// Trigger the Autopilot engine for a workspace
+apiV1Router.post('/governance/autopilot', async (req: Request, res: Response) => {
+  try {
+    const clientId = req.body?.clientId ? parseInt(req.body.clientId, 10) : NaN;
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: 'Missing required body field: clientId', code: 'BAD_REQUEST' });
+    }
+
+    const run = await AutopilotEngine.run(clientId);
+    res.json({
+      data: {
+        runId: run.id,
+        status: run.status,
+        results: run.results,
+        durationSeconds: run.duration,
+      },
+    });
+  } catch (err: any) {
+    // Engine throws a clear error when autopilot is not enabled for the client
+    res.status(err?.message?.includes('not enabled') ? 409 : 500).json({
+      error: err.message,
+      code: err?.message?.includes('not enabled') ? 'AUTOPILOT_DISABLED' : 'INTERNAL_ERROR',
+    });
+  }
+});
+
+// ── GET /api/v1/governance/program-guide/:clientId ─────────────────────────
+// Program guide step assignments for a client
+apiV1Router.get('/governance/program-guide/:clientId', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const clientId = parseInt(req.params.clientId, 10);
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: 'Invalid client id', code: 'BAD_REQUEST' });
+    }
+    const guideType = (req.query.guideType as string) || 'governance';
+
+    const assignments = await db
+      .select({
+        stepId: programGuideAssignments.stepId,
+        ownerId: programGuideAssignments.userId,
+        ownerName: usersTable.name,
+        targetDate: programGuideAssignments.targetDate,
+      })
+      .from(programGuideAssignments)
+      .innerJoin(usersTable, eq(programGuideAssignments.userId, usersTable.id))
+      .where(and(
+        eq(programGuideAssignments.clientId, clientId),
+        eq(programGuideAssignments.guideType, guideType)
+      ));
+
+    res.json({
+      data: { guideType, assignedSteps: assignments.length, assignments },
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
   }

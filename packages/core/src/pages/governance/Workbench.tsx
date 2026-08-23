@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card } from '@complianceos/ui/ui/card';
 import { Button } from '@complianceos/ui/ui/button';
 import { Badge } from '@complianceos/ui/ui/badge';
@@ -137,7 +138,8 @@ export default function GovernanceWorkbench() {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <DashboardLayout>
+            <div className="p-6 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -425,6 +427,7 @@ export default function GovernanceWorkbench() {
                     )}
                 </TabsContent>
             </Tabs>
-        </div>
+            </div>
+        </DashboardLayout>
     );
 }

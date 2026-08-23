@@ -4,11 +4,114 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
-import { CheckCircle2, Shield, Users, Target, FileText, Zap, AlertTriangle, ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Calendar } from 'lucide-react';
+import { CheckCircle2, Shield, Users, Target, FileText, Zap, AlertTriangle, ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Calendar, Download } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { format } from 'date-fns';
 import { AssignProgramTaskModal } from '@/components/AssignProgramTaskModal';
+import { toast } from 'sonner';
+
+/* ------------------------------------------------------------------ */
+/* Step downloads — generate real artifacts client-side               */
+/* ------------------------------------------------------------------ */
+
+function downloadFile(filename: string, content: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+const RACI_TEMPLATE_CSV = `Role / Activity,Responsible,Accountable,Consulted,Informed
+Information Security Policy,CISO,CEO,IT Manager,All Staff
+Risk Assessment,Risk Owner,CISO,Control Owners,Executive Team
+Access Reviews,IT Manager,CISO,HR,Compliance
+Incident Response,SOC Lead,CISO,Legal,Executive Team
+Vendor Risk Management,Procurement,CISO,Vendor Owner,Finance
+Evidence Collection,Control Owners,Compliance Lead,,Internal Audit
+Policy Annual Review,Policy Owner,CISO,Legal,All Staff
+`;
+
+function buildControlsMatrixCsv(controls: any[]): string {
+    const header = 'Control ID,Title,Framework,Status,Owner\n';
+    const rows = controls.map(c =>
+        [c.controlId ?? c.id, `"${(c.title || '').replace(/"/g, '""')}"`, c.framework ?? '', c.status ?? '', c.owner ?? '']
+            .join(',')
+    );
+    return header + rows.join('\n') + '\n';
+}
+
+const GAP_ASSESSMENT_CSV = `#,Requirement Clause,Requirement Description,Implemented (Y/N),Partial?,Evidence Reference,Gaps / Notes,Owner,Target Date
+1,A.5.1,Policies for information security defined & approved,,,,,,
+2,A.5.9,Inventory of information and associated assets,,,,,,
+3,A.5.15,Access control policy exists and is enforced,,,,,,
+4,A.6.3,Information security awareness training,,,,,,
+5,A.8.2,Privileged access rights restricted & managed,,,,,,
+6,A.8.7,Protection against malware,,,,,,
+7,A.8.16,Monitoring activities for anomalous behaviour,,,,,,
+8,A.8.24,Use of cryptography / crypto asset inventory,,,,,,
+`;
+
+const AUTOMATION_PLAYBOOKS_MD = `# Evidence Automation Playbooks
+
+## 1. Cloud Configuration Checks (AWS / Azure / GCP)
+- Trigger: nightly schedule
+- Check: storage encryption at rest enabled on all buckets/accounts
+- On failure: create corrective-action task assigned to cloud owner; notify #security
+
+## 2. Quarterly Access Review
+- Trigger: calendar (quarterly)
+- Action: generate access review campaign per system; assign to system owners
+- Escalation: overdue after 14 days -> escalate to CISO
+
+## 3. Policy Acknowledgment Chase
+- Trigger: policy published OR annual review cycle
+- Action: track acknowledgments; remind non-compliant staff weekly
+- Escalation: overdue after 30 days -> notify line manager
+
+## 4. Vulnerability Scan Ingestion
+- Trigger: scanner webhook
+- Action: ingest findings; map to assets; open remediation tasks above risk threshold
+`;
+
+const GAP_ANALYSIS_GUIDE_MD = `# Gap Analysis Guide
+
+## Purpose
+A gap analysis compares your current compliance state against a target framework
+(e.g. ISO 27001, SOC 2) and produces a prioritized list of what's missing.
+
+## Method
+1. **Scope** - define systems, teams and locations in scope.
+2. **Baseline** - export current control implementation status.
+3. **Map** - match each framework requirement to an existing control (or mark as gap).
+4. **Score** - rate each gap: Critical / High / Medium / Low.
+5. **Plan** - convert gaps into roadmap items with owners and target dates.
+6. **Review** - repeat quarterly; track closure velocity.
+
+## Outputs
+- Gap register (this assessment form)
+- Remediation roadmap items
+- Executive summary for management review
+`;
+
+const POLICY_TEMPLATES_LIST = `Template Name,Category,Typical Review Cycle
+Information Security Policy,Governance,Annual
+Acceptable Use Policy,People,Annual
+Access Control Policy,Technical,Annual
+Incident Response Policy,Operations,Annual
+Business Continuity Policy,Operations,Annual
+Supplier Security Policy,Vendor,Annual
+Data Protection / Privacy Policy,Privacy,Annual
+Remote Working Policy,People,Annual
+Cryptography Policy,Technical,Annual
+Logging & Monitoring Policy,Technical,Annual
+`;
+
 
 export default function GovernanceProgramGuide() {
     const params = useParams();
@@ -25,6 +128,36 @@ export default function GovernanceProgramGuide() {
 
     const { data: readinessData } = trpc.compliance.getReadinessData.useQuery({ clientId }, { enabled: !!clientId });
     const { data: riskAssessments } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: controlsData } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
+
+    const handleDownload = (stepId: string) => {
+        switch (stepId) {
+            case 'roles':
+                downloadFile('raci-template.csv', RACI_TEMPLATE_CSV, 'text/csv;charset=utf-8');
+                break;
+            case 'controls':
+                if (controlsData && controlsData.length > 0) {
+                    downloadFile(`controls-matrix-client-${clientId}.csv`, buildControlsMatrixCsv(controlsData), 'text/csv;charset=utf-8');
+                } else {
+                    toast.info('No controls configured yet — showing blank matrix template');
+                    downloadFile('controls-matrix-template.csv', 'Control ID,Title,Framework,Status,Owner\n', 'text/csv;charset=utf-8');
+                }
+                break;
+            case 'risks':
+                downloadFile('gap-assessment-form.csv', GAP_ASSESSMENT_CSV, 'text/csv;charset=utf-8');
+                break;
+            case 'policies':
+                downloadFile('policy-templates-catalog.csv', POLICY_TEMPLATES_LIST, 'text/csv;charset=utf-8');
+                break;
+            case 'automate':
+                downloadFile('automation-playbooks.md', AUTOMATION_PLAYBOOKS_MD, 'text/markdown;charset=utf-8');
+                break;
+            case 'plan':
+                downloadFile('gap-analysis-guide.md', GAP_ANALYSIS_GUIDE_MD, 'text/markdown;charset=utf-8');
+                break;
+        }
+        toast.success('Download started');
+    };
 
     // Determine completion logic per step
     const policyCount = readinessData?.coverage?.policyStats?.total || 0;
@@ -300,6 +433,15 @@ export default function GovernanceProgramGuide() {
                                                         {step.cta} <ArrowRight className="w-4 h-4 ml-2" />
                                                     </Button>
                                                 </Link>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2"
+                                                    onClick={() => handleDownload(step.id)}
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    {step.downloadText}
+                                                </Button>
                                             </div>
                                         </CardContent>
                                     </Card>
