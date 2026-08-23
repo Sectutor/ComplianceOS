@@ -18,6 +18,7 @@ import { roadmapReports } from "../../schema";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { generateAIContent, generateSectionIntro, AIReportContext } from "./reportAI";
+import { formatCurrency, getCurrencySymbol } from "../../lib/currency";
 
 // Section identifiers
 export type ReportSection =
@@ -920,7 +921,17 @@ The organization should maintain a moderate risk appetite, focusing on mitigatin
 
         // Generate HTML
         let kpisHtml = "";
+        const clientCurrency = this.data.client?.currency || "USD";
+        const clientLocale = this.data.client?.locale || "en-US";
+        const currSymbol = getCurrencySymbol(clientCurrency, clientLocale);
+
         kpis.forEach((kpi: any) => {
+            const rawUnit = kpi.unit || "";
+            const displayUnit = rawUnit === "$" || rawUnit.toLowerCase() === "currency" ? currSymbol : rawUnit;
+            const displayText = rawUnit === "$" || rawUnit.toLowerCase() === "currency"
+                ? formatCurrency(kpi.target, clientCurrency, clientLocale)
+                : `${kpi.name}: ${kpi.target}${displayUnit}`;
+
             paragraphs.push(
                 new Paragraph({
                     children: [
@@ -930,7 +941,7 @@ The organization should maintain a moderate risk appetite, focusing on mitigatin
                             size: 24
                         }),
                         new TextRun({
-                            text: `${kpi.name}: ${kpi.target}${kpi.unit}`,
+                            text: displayText,
                             size: 24
                         })
                     ],
@@ -938,7 +949,7 @@ The organization should maintain a moderate risk appetite, focusing on mitigatin
                     indent: { left: 720, hanging: 360 }
                 })
             );
-            kpisHtml += `<li style="margin-bottom: 8px;"><strong>${kpi.name}</strong>: ${kpi.target}${kpi.unit}</li>`;
+            kpisHtml += `<li style="margin-bottom: 8px;"><strong>${kpi.name}</strong>: ${rawUnit === "$" || rawUnit.toLowerCase() === "currency" ? formatCurrency(kpi.target, clientCurrency, clientLocale) : `${kpi.target}${displayUnit}`}</li>`;
         });
 
         this.htmlContent += `

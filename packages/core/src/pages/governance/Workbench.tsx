@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Card } from '@complianceos/ui/ui/card';
 import { Button } from '@complianceos/ui/ui/button';
@@ -14,24 +14,26 @@ import {
     Shield,
     TrendingUp,
     Users,
-    ArrowRight,
     Filter,
-    Calendar
+    Calendar,
+    Loader2
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@complianceos/ui/ui/select';
+import { toast } from 'sonner';
+import { CreateWorkItemDialog } from '@/components/governance/CreateWorkItemDialog';
 
 type WorkItemType = 'review' | 'approval' | 'evidence_collection' | 'raci_assignment' | 'risk_treatment' | 'vendor_assessment' | 'bcp_approval' | 'policy_review' | 'control_implementation';
 type WorkItemStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'escalated';
 type WorkItemPriority = 'low' | 'medium' | 'high' | 'critical';
 
-const priorityColors = {
+const priorityColors: Record<string, string> = {
     low: 'bg-blue-100 text-blue-800',
     medium: 'bg-yellow-100 text-yellow-800',
     high: 'bg-orange-100 text-orange-800',
     critical: 'bg-red-100 text-red-800',
 };
 
-const statusColors = {
+const statusColors: Record<string, string> = {
     pending: 'bg-gray-100 text-gray-800',
     in_progress: 'bg-blue-100 text-blue-800',
     completed: 'bg-green-100 text-green-800',
@@ -61,8 +63,11 @@ export default function GovernanceWorkbench() {
     const [priorityFilter, setPriorityFilter] = useState<WorkItemPriority | 'all'>('all');
     const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
 
+    const clientIdReady = Number.isFinite(clientId) && clientId > 0;
+    const utils = trpc.useUtils();
+
     // Fetch queue data
-    const { data: queueData, refetch: refetchQueue } = trpc.governance.queue.list.useQuery({
+    const { data: queueData, isLoading: queueLoading, refetch: refetchQueue } = trpc.governance.queue.list.useQuery({
         clientId,
         filters: {
             status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -70,26 +75,30 @@ export default function GovernanceWorkbench() {
             priority: priorityFilter !== 'all' ? priorityFilter : undefined,
             assignedToMe: assignedToMeOnly,
         },
-    });
+    }, { enabled: clientIdReady });
 
     // Fetch queue stats
-    const { data: stats } = trpc.governance.queue.stats.useQuery({ clientId });
+    const { data: stats } = trpc.governance.queue.stats.useQuery({ clientId }, { enabled: clientIdReady });
 
     // Fetch escalations
-    const { data: escalations, refetch: refetchEscalations } = trpc.governance.escalations.list.useQuery({ clientId });
+    const { data: escalations, refetch: refetchEscalations } = trpc.governance.escalations.list.useQuery({ clientId }, { enabled: clientIdReady });
 
     // Fetch activity timeline
     const { data: timelineData } = trpc.governance.events.list.useQuery({
         clientId,
         pagination: { limit: 50, offset: 0 },
-    });
+    }, { enabled: clientIdReady });
 
     // Mutations
     const respondToEscalation = trpc.governance.escalations.respond.useMutation({
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
+            toast.success(variables.action === 'resolve' ? 'Escalation resolved' : 'Escalation acknowledged');
             refetchEscalations();
             refetchQueue();
+            utils.governance.queue.stats.invalidate();
+            utils.governance.events.list.invalidate();
         },
+        onError: (err) => toast.error(`Failed: ${err.message}`),
     });
 
     const formatDate = (date: Date | string | null) => {
@@ -97,7 +106,6 @@ export default function GovernanceWorkbench() {
         const d = new Date(date);
         const now = new Date();
         const diffDays = Math.floor((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
         if (diffDays < 0) return `Overdue by ${Math.abs(diffDays)} days`;
         if (diffDays === 0) return 'Due today';
         if (diffDays === 1) return 'Due tomorrow';
@@ -120,12 +128,23 @@ export default function GovernanceWorkbench() {
         });
     };
 
+    if (!clientIdReady) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p className="text-muted-foreground">Please select a client to view the workbench.</p>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900">Governance Workbench</h1>
-                <p className="text-gray-600 mt-1">Centralized queue for all governance actions</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Governance Workbench</h1>
+                    <p className="text-gray-600 mt-1">Centralized queue for all governance actions</p>
+                </div>
+                <CreateWorkItemDialog clientId={clientId} />
             </div>
 
             {/* Stats Cards */}
@@ -217,6 +236,22 @@ export default function GovernanceWorkbench() {
                                 </SelectContent>
                             </Select>
 
+                            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+                                <SelectTrigger className="w-[200px]">
+                                    <SelectValue placeholder="Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    <SelectItem value="policy_review">Policy Review</SelectItem>
+                                    <SelectItem value="control_assessment">Control Assessment</SelectItem>
+                                    <SelectItem value="risk_review">Risk Review</SelectItem>
+                                    <SelectItem value="vendor_assessment">Vendor Assessment</SelectItem>
+                                    <SelectItem value="review">Review</SelectItem>
+                                    <SelectItem value="approval">Approval</SelectItem>
+                                    <SelectItem value="evidence_collection">Evidence Collection</SelectItem>
+                                </SelectContent>
+                            </Select>
+
                             <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as any)}>
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Priority" />
@@ -242,13 +277,18 @@ export default function GovernanceWorkbench() {
 
                     {/* Work Items List */}
                     <div className="space-y-3">
-                        {queueData?.items && queueData.items.length > 0 ? (
+                        {queueLoading ? (
+                            <Card className="p-8 text-center">
+                                <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+                                <p className="text-gray-600 mt-2">Loading work queue…</p>
+                            </Card>
+                        ) : queueData?.items && queueData.items.length > 0 ? (
                             queueData.items.map((item: any) => (
                                 <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start gap-3 flex-1">
                                             <div className="mt-1">
-                                                {typeIcons[item.type as WorkItemType]}
+                                                {typeIcons[item.type as WorkItemType] || <FileText className="h-4 w-4" />}
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
@@ -264,11 +304,11 @@ export default function GovernanceWorkbench() {
                                                     <p className="text-sm text-gray-600 mb-2">{item.description}</p>
                                                 )}
                                                 <div className="flex items-center gap-3 text-xs text-gray-500">
-                                                    <Badge className={statusColors[item.status as WorkItemStatus]}>
-                                                        {item.status.replace('_', ' ')}
+                                                    <Badge className={statusColors[item.status as WorkItemStatus] || ''}>
+                                                        {(item.status || 'pending').replace('_', ' ')}
                                                     </Badge>
-                                                    <Badge className={priorityColors[item.priority as WorkItemPriority]}>
-                                                        {item.priority}
+                                                    <Badge className={priorityColors[item.priority as WorkItemPriority] || ''}>
+                                                        {item.priority || 'medium'}
                                                     </Badge>
                                                     {item.entityType && (
                                                         <span className="flex items-center gap-1">
@@ -277,7 +317,7 @@ export default function GovernanceWorkbench() {
                                                         </span>
                                                     )}
                                                     {item.dueDate && (
-                                                        <span className={`flex items-center gap-1 ${new Date(item.dueDate) < new Date() ? 'text-red-600 font-medium' : ''
+                                                        <span className={`flex items-center gap-1 ${new Date(item.dueDate) < new Date() && item.status !== 'completed' ? 'text-red-600 font-medium' : ''
                                                             }`}>
                                                             <Clock className="h-3 w-3" />
                                                             {formatDate(item.dueDate)}
@@ -285,12 +325,6 @@ export default function GovernanceWorkbench() {
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button size="sm" variant="outline">
-                                                View
-                                                <ArrowRight className="h-3 w-3 ml-1" />
-                                            </Button>
                                         </div>
                                     </div>
                                 </Card>
@@ -318,7 +352,7 @@ export default function GovernanceWorkbench() {
                                                 <p className="text-sm text-gray-600 mb-2">{item.description}</p>
                                             )}
                                             <div className="flex items-center gap-3 text-xs text-gray-500">
-                                                <Badge className={priorityColors[item.priority as WorkItemPriority]}>
+                                                <Badge className={priorityColors[item.priority as WorkItemPriority] || ''}>
                                                     {item.priority}
                                                 </Badge>
                                                 {item.escalatedAt && (
@@ -331,12 +365,14 @@ export default function GovernanceWorkbench() {
                                         <Button
                                             size="sm"
                                             variant="outline"
+                                            disabled={respondToEscalation.isPending}
                                             onClick={() => handleAcknowledgeEscalation(item.id)}
                                         >
                                             Acknowledge
                                         </Button>
                                         <Button
                                             size="sm"
+                                            disabled={respondToEscalation.isPending}
                                             onClick={() => handleResolveEscalation(item.id)}
                                         >
                                             Resolve
@@ -365,14 +401,14 @@ export default function GovernanceWorkbench() {
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-1">
-                                                <h4 className="font-medium text-gray-900">{event.entityName}</h4>
+                                                <h4 className="font-medium text-gray-900">{event.entityName || `${event.entityType} #${event.entityId}`}</h4>
                                                 <span className="text-xs text-gray-500">
                                                     {new Date(event.createdAt).toLocaleString()}
                                                 </span>
                                             </div>
                                             <p className="text-sm text-gray-600">
-                                                <span className="font-medium">{event.actorName || 'System'}</span>
-                                                {' '}{event.eventType.replace('_', ' ')}
+                                <span className="font-medium">{event.actorName || 'System'}</span>
+                                                {' '}{String(event.eventType || '').replace(/_/g, ' ')}
                                                 {event.fromState && event.toState && (
                                                     <span> from <Badge variant="outline">{event.fromState}</Badge> to <Badge variant="outline">{event.toState}</Badge></span>
                                                 )}

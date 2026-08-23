@@ -27,6 +27,7 @@ import { vfsMemoryEngine } from "../../lib/memory/vfsMemoryEngine";
 import { agentDelegationEngine } from "../../lib/agent/agentDelegationEngine";
 import { agentRoutineScheduler } from "../../lib/agent/agentRoutineScheduler";
 import { agentChatStorage } from "../../lib/agent/agentChatStorage";
+import { formatCurrency, getCurrencySymbol } from "../../lib/currency";
 
 // ── Defensive bounds & error helpers ─────────────────────────────────────────
 
@@ -154,6 +155,8 @@ export const auditCertInputSchema = z.object({
 
 export interface ClientComplianceStats {
   clientName: string;
+  currency?: string;
+  locale?: string;
   totalRisks: number;
   criticalRisks: number;
   highRisks: number;
@@ -172,6 +175,8 @@ export async function getClientComplianceStats(clientId: number): Promise<Client
     const db = await getDb();
     const clientRecord = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
     const clientName = clientRecord[0]?.name || `Client #${clientId}`;
+    const clientCurrency = (clientRecord[0] as any)?.currency || "USD";
+    const clientLocale = (clientRecord[0] as any)?.locale || "en-US";
 
     const allRisks = await db.select().from(riskAssessments).where(eq(riskAssessments.clientId, clientId)).orderBy(desc(riskAssessments.id));
     const allVendors = await db.select().from(vendors).where(eq(vendors.clientId, clientId)).limit(20);
@@ -193,6 +198,8 @@ export async function getClientComplianceStats(clientId: number): Promise<Client
 
     return {
       clientName,
+      currency: clientCurrency,
+      locale: clientLocale,
       totalRisks: allRisks.length,
       criticalRisks: criticalCount,
       highRisks: highCount,
@@ -202,7 +209,9 @@ export async function getClientComplianceStats(clientId: number): Promise<Client
         id: r.id,
         title: r.title,
         inherentRisk: r.inherentRisk || "Medium",
-        ale: (r.contextSnapshot as any)?.aleUsd ? `$${(r.contextSnapshot as any).aleUsd}` : "$0",
+        ale: (r.contextSnapshot as any)?.aleUsd 
+          ? formatCurrency((r.contextSnapshot as any).aleUsd, clientCurrency, clientLocale) 
+          : formatCurrency(0, clientCurrency, clientLocale),
       })),
       totalVendors: allVendors.length,
       vendorNames: allVendors.map((v) => v.name),
@@ -214,6 +223,8 @@ export async function getClientComplianceStats(clientId: number): Promise<Client
     console.error("[getClientComplianceStats error]:", err);
     return {
       clientName: `Client #${clientId}`,
+      currency: "USD",
+      locale: "en-US",
       totalRisks: 0,
       criticalRisks: 0,
       highRisks: 0,
@@ -230,8 +241,8 @@ export async function getClientComplianceStats(clientId: number): Promise<Client
 }
 
 // ── Currency formatting for agent narratives ─────────────────────────────────
-function fmtUsd(n: number): string {
-  return `$${Number(n || 0).toLocaleString("en-US")}`;
+function fmtUsd(n: number, currency: string = "USD", locale: string = "en-US"): string {
+  return formatCurrency(n, currency, locale);
 }
 
 // ── Comprehensive Policy Drafting Engine ──────────────────────────────────────
@@ -2427,7 +2438,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
               logs: [
                 { timestamp: new Date().toISOString(), level: "info", message: `Methodology: ${d.methodology || "FAIR-style Monte Carlo"}.` },
                 { timestamp: new Date().toISOString(), level: "action", message: `Executed ${iterations.toLocaleString()} Poisson/lognormal loss simulations.` },
-                { timestamp: new Date().toISOString(), level: "info", message: `Simulated ALE ${fmtUsd(ale)}, 90% VaR ${fmtUsd(var90)}. Saved as Risk #${riskId}.` }
+                { timestamp: new Date().toISOString(), level: "info", message: `Simulated ALE ${fmtUsd(ale, stats.currency, stats.locale)}, 90% VaR ${fmtUsd(var90, stats.currency, stats.locale)}. Saved as Risk #${riskId}.` }
               ],
               createdAt: new Date().toISOString(),
               completedAt: new Date().toISOString()
@@ -2440,7 +2451,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
               senderName: "Hermes",
               senderAvatar: "🧠",
               senderRole: "Chief Compliance Orchestrator",
-              content: `Risk assessment dispatched to **@Marcus** for quantitative FAIR modeling.\n\n* **Risk ID:** [Risk #${riskId}](/clients/${targetClientId}/risks/register)\n* **Simulated ALE:** ${toolResult.success ? fmtUsd(ale) : "unavailable"} (${iterations.toLocaleString()} iterations, genuine simulation)\n* **Status:** Draft — requires human review before it enters reporting\n* **Background Worker:** [Task #${newTaskId} Completed](/agent)`,
+              content: `Risk assessment dispatched to **@Marcus** for quantitative FAIR modeling.\n\n* **Risk ID:** [Risk #${riskId}](/clients/${targetClientId}/risks/register)\n* **Simulated ALE:** ${toolResult.success ? fmtUsd(ale, stats.currency, stats.locale) : "unavailable"} (${iterations.toLocaleString()} iterations, genuine simulation)\n* **Status:** Draft — requires human review before it enters reporting\n* **Background Worker:** [Task #${newTaskId} Completed](/agent)`,
               timestamp: "Just now",
               delegatedTo: "marcus_risk"
             };
@@ -2454,7 +2465,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
               senderAvatar: "🎯",
               senderRole: "Enterprise Risk & Threat Modeler",
               content: toolResult.success
-                ? `### 🎯 Quantitative FAIR Risk Assessment Complete\n\n* **Assessed Scenario:** ${d.title ?? "Supplied scenario"}\n* **Target Organization:** Client #${targetClientId} (${stats.clientName})\n* **Inherent Risk Score:** **${d.inherentRiskScore ?? "?"}/25 (${d.inherentRiskBand ?? "unrated"})**\n* **Monte Carlo Simulation (${Number(iterations).toLocaleString()} iterations, Poisson × lognormal):**\n  * **Single Loss Expectancy:** ${fmtUsd(Number(d.singleLossExpectancyUsd ?? 0))}\n  * **Annualized Loss Expectancy:** **${fmtUsd(ale)} / year**\n  * **90% Value-at-Risk:** ${fmtUsd(var90)}\n  * **99% Value-at-Risk:** ${fmtUsd(Number(d.valueAtRisk99Usd ?? 0))}\n\n---\n\n✅ **Persistence:**\n1. **Risk Register Record Created:** ID #${riskId} saved to PostgreSQL for Client #${targetClientId}.\n2. All figures above are outputs of the actual simulation run this session — no canned values.\n\n🔗 [Open Risk Register](/clients/${targetClientId}/risks/register)`
+                ? `### 🎯 Quantitative FAIR Risk Assessment Complete\n\n* **Assessed Scenario:** ${d.title ?? "Supplied scenario"}\n* **Target Organization:** Client #${targetClientId} (${stats.clientName})\n* **Inherent Risk Score:** **${d.inherentRiskScore ?? "?"}/25 (${d.inherentRiskBand ?? "unrated"})**\n* **Monte Carlo Simulation (${Number(iterations).toLocaleString()} iterations, Poisson × lognormal):**\n  * **Single Loss Expectancy:** ${fmtUsd(Number(d.singleLossExpectancyUsd ?? 0), stats.currency, stats.locale)}\n  * **Annualized Loss Expectancy:** **${fmtUsd(ale, stats.currency, stats.locale)} / year**\n  * **90% Value-at-Risk:** ${fmtUsd(var90, stats.currency, stats.locale)}\n  * **99% Value-at-Risk:** ${fmtUsd(Number(d.valueAtRisk99Usd ?? 0), stats.currency, stats.locale)}\n\n---\n\n✅ **Persistence:**\n1. **Risk Register Record Created:** ID #${riskId} saved to PostgreSQL for Client #${targetClientId}.\n2. All figures above are outputs of the actual simulation run this session — no canned values.\n\n🔗 [Open Risk Register](/clients/${targetClientId}/risks/register)`
                 : `### ⚠️ Risk assessment could not be persisted\n\n${toolResult.summary}\n\nNo numbers were fabricated in place of the failed run.`,
               timestamp: "Just now",
               attachments: [

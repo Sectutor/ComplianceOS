@@ -7,8 +7,12 @@ import {
     riskAssessments, 
     projectComplianceMappings, 
     riskScenarios,
-    userClients
+    userClients,
+    workItems,
+    programGuideAssignments,
+    users
 } from "../../schema";
+import { AutopilotEngine } from "../../lib/autopilot/engine";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
 import { getMatrixScoreLevel } from "../../lib/riskCalculations";
@@ -196,6 +200,209 @@ export const createMcpRouter = (t: any, premiumClientProcedure: any, protectedPr
                 return {
                     success: true,
                     mappedCount: results.length
+                };
+            }),
+
+        /**
+         * listGovernanceTasks
+         * Read the governance workbench task feed for AI consumption.
+         * Supports optional status/priority filters.
+         */
+        listGovernanceTasks: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
+                priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+                limit: z.number().min(1).max(200).default(50),
+            }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const conditions: any[] = [eq(workItems.clientId, input.clientId)];
+                if (input.status) conditions.push(eq(workItems.status, input.status));
+                if (input.priority) conditions.push(eq(workItems.priority, input.priority));
+
+                const tasks = await dbConn.select({
+                    id: workItems.id,
+                    title: workItems.title,
+                    description: workItems.description,
+                    status: workItems.status,
+                    priority: workItems.priority,
+                    type: workItems.type,
+                    dueDate: workItems.dueDate,
+                    assignedToUserId: workItems.assignedToUserId,
+                    entityType: workItems.entityType,
+                    entityId: workItems.entityId,
+                    createdAt: workItems.createdAt,
+                    completedAt: workItems.completedAt,
+                })
+                    .from(workItems)
+                    .where(and(...conditions))
+                    .orderBy(desc(workItems.createdAt))
+                    .limit(input.limit);
+
+                return { tasks, total: tasks.length };
+            }),
+
+        /**
+         * createGovernanceTask
+         * Allows AI agents to create work items in the governance workbench.
+         */
+        createGovernanceTask: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                title: z.string().min(1),
+                description: z.string().optional(),
+                priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+                type: z.enum(['policy_review', 'control_assessment', 'risk_review', 'vendor_assessment', 'review', 'approval', 'evidence_collection']).default('review'),
+                dueDate: z.string().optional(),
+                entityType: z.enum(["policy", "control", "risk", "bcp_plan", "vendor", "evidence", "task"]).optional(),
+                entityId: z.number().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const dbConn = await getDb();
+                const [created] = await dbConn.insert(workItems)
+                    .values({
+                        clientId: input.clientId,
+                        title: input.title,
+                        description: input.description,
+                        priority: input.priority,
+                        type: input.type,
+                        entityType: input.entityType,
+                        entityId: input.entityId,
+                        status: 'pending',
+                        dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                        createdBy: ctx.user?.id || 1,
+                        metadata: { source: 'MCP' },
+                    } as any)
+                    .returning();
+
+                await logActivity({
+                    userId: ctx.user.id,
+                    clientId: input.clientId,
+                    action: "create",
+                    entityType: "work_item",
+                    entityId: created.id,
+                    details: { title: created.title, source: 'MCP' }
+                });
+
+                return {
+                    success: true,
+                    taskId: created.id,
+                    title: created.title,
+                    status: created.status,
+                    priority: created.priority
+                };
+            }),
+
+        /**
+         * updateGovernanceTask
+         * Allows AI agents to update task status, priority, or assignment.
+         */
+        updateGovernanceTask: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                taskId: z.number(),
+                status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
+                priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+                assignedToUserId: z.number().nullable().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const dbConn = await getDb();
+                const [existing] = await dbConn.select()
+                    .from(workItems)
+                    .where(and(eq(workItems.id, input.taskId), eq(workItems.clientId, input.clientId)))
+                    .limit(1);
+                if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Governance task not found" });
+
+                const updates: any = { updatedAt: new Date() };
+                if (input.status) {
+                    updates.status = input.status;
+                    if (input.status === 'completed') updates.completedAt = new Date();
+                }
+                if (input.priority) updates.priority = input.priority;
+                if (input.assignedToUserId !== undefined) updates.assignedToUserId = input.assignedToUserId;
+
+                const [updated] = await dbConn.update(workItems)
+                    .set(updates)
+                    .where(eq(workItems.id, input.taskId))
+                    .returning();
+
+                await logActivity({
+                    userId: ctx.user.id,
+                    clientId: input.clientId,
+                    action: "update",
+                    entityType: "work_item",
+                    entityId: input.taskId,
+                    details: { status: updated.status, priority: updated.priority, source: 'MCP' }
+                });
+
+                return {
+                    success: true,
+                    taskId: updated.id,
+                    status: updated.status,
+                    priority: updated.priority
+                };
+            }),
+
+        /**
+         * runAutopilot
+         * Triggers the AI Autopilot engine for a workspace. Returns real engine
+         * outcomes (tasks created, evidence collected, gaps detected).
+         */
+        runAutopilot: premiumClientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input, ctx }: any) => {
+                const run = await AutopilotEngine.run(input.clientId);
+                await logActivity({
+                    userId: ctx.user.id,
+                    clientId: input.clientId,
+                    action: "trigger",
+                    entityType: "autopilot_run",
+                    entityId: run.id,
+                    details: { source: 'MCP', results: run.results }
+                });
+                return {
+                    success: true,
+                    runId: run.id,
+                    totalCreated: run.results?.tasksCreated || 0,
+                    evidenceCollected: run.results?.evidenceCollected || 0,
+                    healthIssuesFound: run.results?.healthIssuesFound || 0,
+                    gapsDetected: run.results?.gapsDetected || 0,
+                };
+            }),
+
+        /**
+         * getProgramGuideProgress
+         * Reads program-guide step assignments and completion for AI reporting.
+         */
+        getProgramGuideProgress: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                guideType: z.string().default('governance'),
+            }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+                const assignments = await dbConn.select({
+                    stepId: programGuideAssignments.stepId,
+                    ownerName: users.name,
+                    ownerId: programGuideAssignments.userId,
+                    targetDate: programGuideAssignments.targetDate,
+                })
+                    .from(programGuideAssignments)
+                    .innerJoin(users, eq(programGuideAssignments.userId, users.id))
+                    .where(and(
+                        eq(programGuideAssignments.clientId, input.clientId),
+                        eq(programGuideAssignments.guideType, input.guideType)
+                    ));
+
+                return {
+                    guideType: input.guideType,
+                    assignedSteps: assignments.length,
+                    assignments: assignments.map(a => ({
+                        stepId: a.stepId,
+                        owner: a.ownerName,
+                        targetDate: a.targetDate,
+                    }))
                 };
             })
     });

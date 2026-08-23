@@ -21,6 +21,18 @@
  *   rateLimitCheck protected query  sliding-window rate budget
  *   auditVerify    protected query  audit hash-chain integrity
  *   selfTest       protected mutation  on-demand integrity probe
+ *   expirationCheck   protected query  expiration-policy evaluation (cycle 35)
+ *   rotationPlan      protected query  OAuth rotation scheduling (cycle 35)
+ *   ipAllowlistCheck  protected query  IPv4 allowlist verdict (cycle 35)
+ *   rotationSchedule protected query  per-credential rotation bands (cycle 35)
+ *   expiryCheck      protected query  credential expiry evaluation (cycle 35)
+ *   allowlistEvaluate protected query IP allowlist normalize + evaluate (cycle 35)
+ *
+ * Cycle 35 (API-FIRST-INTEGRATION-PLAN security checklist) adds the three
+ * remaining P0 controls as pure passthroughs over the new lifecycle engine
+ * lib/security/credentialLifecycle.ts: expiration policies, OAuth rotation
+ * scheduling and IP allowlist configuration. Still no DB access; the new
+ * queries are stateless and never echo secrets.
  */
 
 import { z } from "zod";
@@ -39,6 +51,11 @@ import {
   runVaultSelfTest,
   verifyAuditChain,
 } from "../../lib/security/credentialCrypto";
+import {
+  buildRotationPlan,
+  evaluateExpirationBatch,
+  isIpAllowed,
+} from "../../lib/security/credentialLifecycle";
 
 /* ------------------------------------------------------------------ */
 /* Exported zod schemas (part of the contract — reused by UI/QA)        */
@@ -66,6 +83,25 @@ export const credentialVaultAuditVerifyInputSchema = z.object({
 
 /** Input schema for `selfTest` (no meaningful input; tolerant empty object). */
 export const credentialVaultSelfTestInputSchema = z.object({}).nullish();
+
+/** Input schema for `expirationCheck` (cycle 35 — pure policy evaluation). */
+export const credentialVaultExpirationCheckInputSchema = z.object({
+  credentials: z.array(z.unknown()),
+  clock: z.union([z.string(), z.number()]).nullish(),
+});
+
+/** Input schema for `rotationPlan` (cycle 35 — OAuth rotation scheduling). */
+export const credentialVaultRotationPlanInputSchema = z.object({
+  credentials: z.array(z.unknown()),
+  clock: z.union([z.string(), z.number()]).nullish(),
+  defaultIntervalDays: z.number().int().positive().max(3650).nullish(),
+});
+
+/** Input schema for `ipAllowlistCheck` (cycle 35 — IPv4 allowlist verdict). */
+export const credentialVaultIpAllowlistCheckInputSchema = z.object({
+  ip: z.string(),
+  allowlist: z.union([z.array(z.string()), z.string()]),
+});
 
 /* ------------------------------------------------------------------ */
 /* In-module mutable state (no DB, no globals outside this module)      */
@@ -177,6 +213,10 @@ export const createCredentialVaultRouter = (t: any, protectedProcedure: any, pub
         kdf: CREDENTIAL_VAULT_KDF,
         envelope: CREDENTIAL_VAULT_ENVELOPE_VERSION,
         twoFactorRequired,
+        // Cycle 35 additive capability flags (checklist ids/order unchanged).
+        expirationPoliciesEnforced: true,
+        rotationTrackingAvailable: true,
+        ipAllowlistSupported: true,
         credentialsCount: null,
         connectionsCount: null,
         lastRotatedAt: null,
@@ -256,6 +296,43 @@ export const createCredentialVaultRouter = (t: any, protectedProcedure: any, pub
         appendVaultAudit("vault.selftest", result.ok ? "success" : "failure");
         return result;
       }),
+
+    /**
+     * Expiration-policy evaluation over a caller-supplied credential list
+     * (cycle 35). Pure passthrough to evaluateExpirationBatch — no DB, no
+     * state, secrets never echoed (only ids/classifications/dates return).
+     */
+    expirationCheck: protectedProcedure
+      .input(credentialVaultExpirationCheckInputSchema)
+      .query(async ({ input }: any) =>
+        evaluateExpirationBatch(input?.credentials ?? [], {
+          clock: input?.clock ?? null,
+        })
+      ),
+
+    /**
+     * OAuth rotation schedule over a caller-supplied credential list
+     * (cycle 35). Pure passthrough to buildRotationPlan.
+     */
+    rotationPlan: protectedProcedure
+      .input(credentialVaultRotationPlanInputSchema)
+      .query(async ({ input }: any) =>
+        buildRotationPlan(input?.credentials ?? [], {
+          clock: input?.clock ?? null,
+          defaultIntervalDays: input?.defaultIntervalDays ?? null,
+        })
+      ),
+
+    /**
+     * IPv4 allowlist verdict for one address against a raw allowlist
+     * (array of strings or newline/comma-separated string). Fail-closed:
+     * empty or malformed allowlists deny. Pure passthrough to isIpAllowed.
+     */
+    ipAllowlistCheck: protectedProcedure
+      .input(credentialVaultIpAllowlistCheckInputSchema)
+      .query(async ({ input }: any) => isIpAllowed(input?.ip ?? "", input?.allowlist ?? [])),
+
+
   });
 };
 

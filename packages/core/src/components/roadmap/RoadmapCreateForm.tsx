@@ -18,6 +18,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@c
 import { Slider } from "@complianceos/ui/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@complianceos/ui/ui/dialog";
+import { getCurrencySymbol } from "@/lib/currency";
 
 interface RoadmapCreateProps {
     clientId: number;
@@ -400,7 +401,7 @@ MATURITY: ${posture.maturityLevel}
             kpiTargets: metrics.filter(m => m.name && m.targetValue !== undefined).map(m => ({
                 name: m.name || '',
                 target: m.targetValue || 0,
-                unit: m.type === 'Percentage' ? '%' : m.type === 'Currency' ? '$' : (m.type ? m.type.toLowerCase() : 'count')
+                unit: m.type === 'Percentage' ? '%' : m.type === 'Currency' ? getCurrencySymbol(client?.currency) : (m.type ? m.type.toLowerCase() : 'count')
             }))
         });
     };
@@ -1054,7 +1055,7 @@ MATURITY: ${posture.maturityLevel}
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="Percentage">Percentage (%)</SelectItem>
-                                                            <SelectItem value="Currency">Currency ($)</SelectItem>
+                                                            <SelectItem value="Currency">Currency ({getCurrencySymbol(client?.currency)})</SelectItem>
                                                             <SelectItem value="Count">Count (#)</SelectItem>
                                                             <SelectItem value="Boolean">Yes/No</SelectItem>
                                                         </SelectContent>

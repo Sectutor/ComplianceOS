@@ -227,6 +227,7 @@ export const appRouter = router({
   dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
   compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
   evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
   accessReviews: createAccessReviewsRouter(t, clientProcedure, adminProcedure),
   evidenceExpiry: createEvidenceExpiryRouter(t, premiumClientProcedure),
   complianceDebt: createComplianceDebtRouter(t, premiumClientProcedure),

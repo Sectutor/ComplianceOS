@@ -1419,13 +1419,20 @@ export async function getPolicyTemplateById(id: number) {
 // ==================== DEFAULT SEEDING ====================
 
 export async function ensureDefaultDataSeeded() {
-
   const db = await getDb();
 
-
+  try {
+    // Ensure clients table has currency, locale, and date_format columns
+    await db.execute(sql`
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS currency varchar(10) DEFAULT 'USD';
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS locale varchar(20) DEFAULT 'en-US';
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS date_format varchar(20) DEFAULT 'YYYY-MM-DD';
+    `);
+  } catch (migErr) {
+    console.warn('[DB Migration Warning] Column auto-migration for clients failed or skipped:', migErr);
+  }
 
   // Seed Controls if empty
-
   const [controlCount] = await db.select({ count: sql<number>`count(*)` }).from(controls);
 
   if (parseInt(String(controlCount?.count || '0')) === 0) {

@@ -296,6 +296,9 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                                                 dpoName: client.dpoName,
                                                 headquarters: client.headquarters,
                                                 mainServiceRegion: client.mainServiceRegion,
+                                                currency: (client as any).currency,
+                                                locale: (client as any).locale,
+                                                dateFormat: (client as any).dateFormat,
                                             }}
                                         />
                                     </CardContent>

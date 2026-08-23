@@ -368,3 +368,186 @@ describe("credentialVault router — no-db guarantee & checklist witness", () =>
     expect(status.checklist).toHaveLength(8);
   });
 });
+
+/* ==========================================================================
+ * Cycle 35 — credential-lifecycle queries (ADDITIVE EXTENSION; every suite
+ * above is untouched). Three NEW protected queries forward to the pure
+ * engine in lib/security/credentialLifecycle.ts:
+ *   expirationCheck   protected query { credentials: unknown[], clock? }
+ *   rotationPlan      protected query { credentials, clock?, defaultIntervalDays? }
+ *   ipAllowlistCheck  protected query { ip: string, allowlist: string[] | string }
+ * Same fake-tRPC harness as above: UNAUTHORIZED without a user, zod
+ * BAD_REQUEST on malformed input, no DB anywhere and no secret material
+ * ever echoed back.
+ * ========================================================================== */
+
+const LIFE_CLOCK = new Date("2026-09-01T12:00:00.000Z");
+const lifeIso = (d: Date): string => d.toISOString();
+const lifeShift = (days: number, extraMs = 0): Date =>
+  new Date(LIFE_CLOCK.getTime() + days * 86_400_000 + extraMs);
+
+describe("credentialVault router — lifecycle route shape (cycle 35)", () => {
+  it("exposes expirationCheck/rotationPlan/ipAllowlistCheck as schema-bearing queries", () => {
+    const { router } = buildFakeTRPC();
+    for (const name of ["expirationCheck", "rotationPlan", "ipAllowlistCheck"]) {
+      expect(router[name], `route "${name}"`).toBeDefined();
+      expect(router[name].type, `route "${name}" type`).toBe("query");
+      expect(router[name].schema, `route "${name}" schema`).toBeDefined();
+    }
+  });
+});
+
+describe("credentialVault router — lifecycle auth gates (cycle 35)", () => {
+  it("rejects a missing user with TRPCError UNAUTHORIZED on all three lifecycle queries", async () => {
+    const { router } = buildFakeTRPC();
+    const calls = [
+      router.expirationCheck.handler({ input: { credentials: [] }, ctx: {} }),
+      router.rotationPlan.handler({ input: { credentials: [] }, ctx: {} }),
+      router.ipAllowlistCheck.handler({
+        input: { ip: "10.0.0.1", allowlist: ["10.0.0.1"] },
+        ctx: {},
+      }),
+    ];
+    for (const call of calls) {
+      await expect(call).rejects.toBeInstanceOf(TRPCError);
+      await expect(call).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    }
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+});
+
+describe("credentialVault router — expirationCheck (cycle 35)", () => {
+  it("forwards the batch to the engine and returns id-ascending results with a summary", async () => {
+    const { router } = buildFakeTRPC();
+    const result = await router.expirationCheck.handler({
+      input: {
+        credentials: [
+          { id: "b-valid", classification: "api_key", expiresAt: lifeIso(lifeShift(400)) },
+          { id: "a-expired", classification: "password", expiresAt: lifeIso(lifeShift(-3)) },
+        ],
+        clock: lifeIso(LIFE_CLOCK),
+      },
+      ctx: { user: USER },
+    });
+    expect(result.summary.total).toBe(2);
+    expect(result.summary.valid).toBe(1);
+    expect(result.summary.expired).toBe(1);
+    expect(result.results.map((r: { id: string }) => r.id)).toEqual(["a-expired", "b-valid"]);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing or non-array credentials payload with BAD_REQUEST", async () => {
+    const { router } = buildFakeTRPC();
+    await expect(
+      router.expirationCheck.handler({ input: {}, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      router.expirationCheck.handler({ input: { credentials: "nope" }, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+describe("credentialVault router — rotationPlan (cycle 35)", () => {
+  it("returns a rotation plan with items, summary and a tracking flag", async () => {
+    const { router } = buildFakeTRPC();
+    const result = await router.rotationPlan.handler({
+      input: {
+        credentials: [
+          { id: "r-current", kind: "oauth", refreshable: true, lastRotatedAt: lifeIso(lifeShift(-10)) },
+          { id: "s-static", kind: "api_key", lastRotatedAt: lifeIso(lifeShift(-1)) },
+        ],
+        clock: lifeIso(LIFE_CLOCK),
+      },
+      ctx: { user: USER },
+    });
+    expect(Array.isArray(result.items)).toBe(true);
+    expect(result.items).toHaveLength(2);
+    expect(result.summary.total).toBe(2);
+    expect(result.summary.rotatable).toBe(1);
+    expect(result.trackingEnabled).toBe(true);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("rejects out-of-range defaultIntervalDays values with BAD_REQUEST", async () => {
+    const { router } = buildFakeTRPC();
+    for (const bad of [-5, 0, 1.5, 3651]) {
+      await expect(
+        router.rotationPlan.handler({
+          input: { credentials: [], defaultIntervalDays: bad },
+          ctx: { user: USER },
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" }, `defaultIntervalDays ${bad}`);
+    }
+  });
+});
+
+describe("credentialVault router — ipAllowlistCheck (cycle 35)", () => {
+  it("passes allow/deny decisions through with the matched rule", async () => {
+    const { router } = buildFakeTRPC();
+    const inside = await router.ipAllowlistCheck.handler({
+      input: { ip: "10.1.2.3", allowlist: ["10.0.0.0/8"] },
+      ctx: { user: USER },
+    });
+    expect(inside.allowed).toBe(true);
+    expect(inside.reason).toBe("cidr_match");
+
+    const outside = await router.ipAllowlistCheck.handler({
+      input: { ip: "203.0.113.9", allowlist: ["10.0.0.0/8"] },
+      ctx: { user: USER },
+    });
+    expect(outside.allowed).toBe(false);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("also accepts a delimited-string allowlist", async () => {
+    const { router } = buildFakeTRPC();
+    const decision = await router.ipAllowlistCheck.handler({
+      input: { ip: "10.0.0.1", allowlist: "10.0.0.1\n192.168.0.0/16" },
+      ctx: { user: USER },
+    });
+    expect(decision.allowed).toBe(true);
+  });
+
+  it("rejects a non-string or missing ip with BAD_REQUEST", async () => {
+    const { router } = buildFakeTRPC();
+    for (const ip of [42, null, undefined]) {
+      await expect(
+        router.ipAllowlistCheck.handler({
+          input: { ip, allowlist: ["10.0.0.1"] },
+          ctx: { user: USER },
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" }, `ip ${String(JSON.stringify(ip))}`);
+    }
+  });
+});
+
+describe("credentialVault router — lifecycle no-secret-echo guarantee (cycle 35)", () => {
+  it("never leaks key-material-shaped fields in lifecycle responses", async () => {
+    const { router } = buildFakeTRPC();
+    const SECRET_PATTERN =
+      /(private[_-]?key|secret[_-]?value|ciphertext|plaintext|master[_-]?key|passphrase|envelope)/i;
+    const responses = [
+      await router.expirationCheck.handler({
+        input: {
+          credentials: [{ id: "c1", classification: "oauth_token", expiresAt: lifeIso(lifeShift(80)) }],
+          clock: lifeIso(LIFE_CLOCK),
+        },
+        ctx: { user: USER },
+      }),
+      await router.rotationPlan.handler({
+        input: {
+          credentials: [{ id: "c2", kind: "oauth", refreshable: true, lastRotatedAt: lifeIso(lifeShift(-5)) }],
+          clock: lifeIso(LIFE_CLOCK),
+        },
+        ctx: { user: USER },
+      }),
+      await router.ipAllowlistCheck.handler({
+        input: { ip: "10.0.0.1", allowlist: ["10.0.0.1"] },
+        ctx: { user: USER },
+      }),
+    ];
+    for (const response of responses) {
+      expect(JSON.stringify(response) ?? "").not.toMatch(SECRET_PATTERN);
+    }
+  });
+});

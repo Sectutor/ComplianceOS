@@ -284,7 +284,7 @@ const RoadmapPage = lazyLoad(() => import("./pages/readiness/RoadmapPage"));
 const RoadmapDetailsPage = lazyLoad(() => import("./pages/readiness/RoadmapDetailsPage"));
 const AuditReadinessAlignmentPage = lazyLoad(() => import("./pages/readiness/AuditReadinessAlignmentPage"));
 const ComplianceJourneyDashboard = lazyLoad(() => import("./pages/ComplianceJourneyDashboard"));
-const GovernanceWorkbench = lazyLoad(() => import("./pages/governance/GovernanceWorkbench"));
+const GovernanceWorkbench = lazyLoad(() => import("./pages/governance/Workbench"));
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 const GovernanceAlignmentPage = lazyLoad(() => import("./pages/governance/GovernanceAlignmentPage"));

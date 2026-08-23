@@ -375,7 +375,7 @@ export default function GovernanceDashboard() {
                             <CardDescription>Common governance tasks</CardDescription>
                         </CardHeader>
                         <CardContent className="grid gap-4">
-                            <Link href={`/clients/${clientId}/policies/new`}>
+                            <Link href={`/clients/${clientId}/policies?create=true`}>
                                 <Button variant="outline" className="w-full justify-start h-auto py-4 px-4 hover:bg-amber-50 hover:border-amber-200">
                                     <FileText className="mr-4 h-6 w-6 text-amber-500" />
                                     <div className="flex flex-col items-start">

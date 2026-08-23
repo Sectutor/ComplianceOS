@@ -941,8 +941,9 @@ export const clients = pgTable("clients", {
 
 
   policyLanguage: varchar("policy_language", { length: 50 }).default("en"), // Language code: en, de, fr, es, etc.
-
-
+  currency: varchar("currency", { length: 10 }).default("USD"), // ISO 4217 code: USD, EUR, GBP, CAD, AUD, CHF, JPY, etc.
+  locale: varchar("locale", { length: 20 }).default("en-US"), // Locale tag: en-US, en-GB, de-DE, fr-FR, nl-NL, es-ES, etc.
+  dateFormat: varchar("date_format", { length: 20 }).default("YYYY-MM-DD"), // e.g. YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY
 
   legalEntityName: varchar("legal_entity_name", { length: 500 }), // For policy headers
 

@@ -107,13 +107,14 @@ const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'))
  *     getAllComments                 evidence.ts
  *   findings.list / findings.create  findings.ts:13 / findings.ts:36
  *   clientControls.list              registered in routers.ts
+ *   evidenceFiles.create / .delete   evidenceFiles.ts:23 / evidenceFiles.ts:133
  *
- * DEGRADED (16.2 graceful degradation): the evidenceFiles router exists at
- * server/routers/evidenceFiles.ts but is NOT mounted on the AppRouter as of
- * cycle 34, so evidenceFiles.create/.delete have no live endpoint. The file
- * upload/delete affordances below degrade to a toast + tooltip ("not available
- * in this deployment") instead of calling a missing procedure. Flip
- * EVIDENCE_FILES_LIVE to true once the router is mounted on the AppRouter.
+ * LIVE (cycle 35): the evidenceFiles router is mounted on the AppRouter as of
+ * cycle 35, so evidenceFiles.create/.delete hit live endpoints again. The
+ * EVIDENCE_FILES_LIVE capability flag below is kept as a dead-man switch:
+ * flipping it back to false degrades the upload/delete affordances to a
+ * toast + tooltip ("not available in this deployment") without touching the
+ * call sites.
  * ============================================================================
  */
 
@@ -180,6 +181,22 @@ interface AuditHubApi {
     clientControls: {
         list: HubQuery<{ clientId: number }, any[]>;
     };
+    // Mirrors server/routers/evidenceFiles.ts create/delete inputs exactly:
+    // create takes { evidenceId, filename, fileKey, url, originalFilename?,
+    // mimeType?, size? } (url/mimeType/size map onto the fileUrl/contentType/
+    // fileSize columns server-side).
+    evidenceFiles: {
+        create: HubMutation<{
+            evidenceId: number;
+            filename: string;
+            fileKey: string;
+            url: string;
+            originalFilename?: string;
+            mimeType?: string;
+            size?: number;
+        }, unknown>;
+        delete: HubMutation<{ id: number }, unknown>;
+    };
 }
 
 const hubApi = trpc as unknown as AuditHubApi;
@@ -195,8 +212,8 @@ interface HubUtils {
     };
 }
 
-/** Capability flag: evidenceFiles router is not mounted on the AppRouter yet. */
-const EVIDENCE_FILES_LIVE = false;
+/** Capability flag: evidenceFiles router is mounted on the AppRouter as of cycle 35. */
+const EVIDENCE_FILES_LIVE = true;
 
 /**
  * Supabase-style auth metadata arrives on AuthUser untyped at runtime; read it
@@ -323,10 +340,26 @@ export default function AuditHub() {
         }
     });
 
-    // 16.2 graceful degradation: evidenceFiles.create/.delete are not mounted on
-    // the AppRouter in this deployment (see EVIDENCE_FILES_LIVE above), so the
-    // file delete/create mutations are intentionally absent; the affordances
-    // below degrade to a toast instead of calling a missing endpoint.
+    // Cycle 35: the evidenceFiles router is mounted on the AppRouter, so the
+    // file create/delete mutations below are live (EVIDENCE_FILES_LIVE remains
+    // as a dead-man switch that still degrades them if flipped back to false).
+    const attachEvidenceFileMutation = hubApi.evidenceFiles.create.useMutation();
+    const removeEvidenceFileMutation = hubApi.evidenceFiles.delete.useMutation();
+
+    const handleDeleteEvidenceFile = async (file: any) => {
+        if (!EVIDENCE_FILES_LIVE) {
+            toast.info("Evidence file management isn't available in this deployment.");
+            return;
+        }
+        if (!window.confirm(`Delete "${file?.filename}"? This action cannot be undone.`)) return;
+        try {
+            await removeEvidenceFileMutation.mutateAsync({ id: file.id });
+            refetchFiles();
+            toast.success("File removed");
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to remove file");
+        }
+    };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!EVIDENCE_FILES_LIVE) {
@@ -365,9 +398,17 @@ export default function AuditHub() {
                             if (!response.ok) throw new Error('Upload failed');
                             const { key, url } = await response.json();
 
-                            // evidenceFiles.create is not mounted on the AppRouter in
-                            // this deployment (see EVIDENCE_FILES_LIVE); the guard at the
-                            // top of handleFileSelect makes this path unreachable.
+                            await attachEvidenceFileMutation.mutateAsync({
+                                evidenceId,
+                                filename,
+                                originalFilename: file.name,
+                                fileKey: key,
+                                url,
+                                mimeType: file.type,
+                                size: file.size,
+                            });
+                            refetchFiles();
+                            toast.success("File attached");
                             resolve();
                         } catch (err) { reject(err); }
                     };
@@ -1163,7 +1204,7 @@ export default function AuditHub() {
                                                                                     size="sm"
                                                                                     className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 dark:text-red-400 dark:text-red-300 hover:bg-red-500/10"
                                                                                     title={EVIDENCE_FILES_LIVE ? "Delete file" : "File management isn't available in this deployment"}
-                                                                                    onClick={() => toast.info("Evidence file management isn't available in this deployment.")}
+                                                                                    onClick={() => handleDeleteEvidenceFile(file)}
                                                                                 >
                                                                                     <Trash2 className="h-4 w-4" />
                                                                                 </Button>

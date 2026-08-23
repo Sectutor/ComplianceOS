@@ -83,7 +83,13 @@ export default function Evidence() {
   );
 
   const createMutation = trpc.evidence.create.useMutation();
-  const createFileMutation = trpc.evidenceFiles.create.useMutation();
+  const createFileMutation = trpc.evidenceFiles.create.useMutation({
+    onSuccess: () => {
+      toast.success("File attached");
+      refetch();
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const packMutation = trpc.evidence.pack.useMutation();
   const checkExpirationsMutation = trpc.evidence.checkExpirations.useMutation();

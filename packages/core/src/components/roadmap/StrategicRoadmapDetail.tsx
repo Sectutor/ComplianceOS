@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { Target, Flag, TrendingUp, Scale, Building2, AlertTriangle, Shield, Clock, DollarSign, Calendar as CalendarIcon, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@complianceos/ui/ui/button";
 import { format } from "date-fns";
+import { formatCurrency, getCurrencySymbol } from "@/lib/currency";
 
 interface StrategicRoadmapDetailProps {
     roadmapId: number;
@@ -15,6 +16,7 @@ interface StrategicRoadmapDetailProps {
 
 export default function StrategicRoadmapDetail({ roadmapId, clientId, onEdit }: StrategicRoadmapDetailProps) {
     const { data: roadmap, isLoading } = trpc.roadmap.getStrategic.useQuery({ roadmapId });
+    const { data: client } = trpc.clients.get.useQuery({ id: clientId }, { enabled: !!clientId });
 
     if (isLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
@@ -206,7 +208,9 @@ export default function StrategicRoadmapDetail({ roadmapId, clientId, onEdit }: 
                                         <span className="font-medium text-gray-700">{m.name}</span>
                                         <div className="text-right">
                                             <span className="block font-bold text-primary">
-                                                {m.type === 'Currency' ? '$' : ''}{m.targetValue}{m.type === 'Percentage' ? '%' : ''}
+                                                {m.type === 'Currency' 
+                                                    ? formatCurrency(m.targetValue, client?.currency, client?.locale) 
+                                                    : `${m.targetValue}${m.type === 'Percentage' ? '%' : ''}`}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground uppercase">{m.frequency}</span>
                                         </div>

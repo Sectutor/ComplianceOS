@@ -33,15 +33,36 @@ async function callComplianceApi(procedure: string, type: 'query' | 'mutation', 
     throw new Error("COMPLIANCE_OS_PAT is missing. Please provide a valid Personal Access Token in your environment.");
   }
 
+  const superjsonBody = JSON.stringify({ '0': { json: input ?? {} } });
+
+  if (type === 'query') {
+    // tRPC batched GETs carry input as a URL-encoded superjson envelope
+    const url = `${API_URL}/${procedure}?batch=1&input=${encodeURIComponent(`{"0":{"json":${JSON.stringify(input ?? {})}}}`)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${PAT_TOKEN}`,
+        'x-mcp-client': 'true',
+      },
+    });
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 412) {
+        throw new Error("PREMIUM_REQUIRED: This feature requires a ComplianceOS Premium subscription.");
+      }
+      throw new Error(`ComplianceOS API Error: ${response.statusText} (${response.status})`);
+    }
+    return unwrapBatch(await response.json());
+  }
+
   const url = `${API_URL}/${procedure}?batch=1`;
   const response = await fetch(url, {
-    method: type === 'mutation' ? 'POST' : 'GET',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${PAT_TOKEN}`,
       'x-mcp-client': 'true',
     },
-    body: type === 'mutation' ? JSON.stringify({ '0': input }) : undefined,
+    body: superjsonBody,
   });
 
   if (!response.ok) {
@@ -51,14 +72,18 @@ async function callComplianceApi(procedure: string, type: 'query' | 'mutation', 
     throw new Error(`ComplianceOS API Error: ${response.statusText} (${response.status})`);
   }
 
-  const data = (await response.json()) as any[];
-  const result = data[0]?.result?.data;
-  
-  if (data[0]?.error) {
-    throw new Error(`Backend Error: ${data[0].error.message}`);
+  return unwrapBatch(await response.json());
+}
+
+/** Unwrap a tRPC batch response: [{ result: { data: { json: ... } } }] -> payload */
+function unwrapBatch(data: any) {
+  const first = data?.[0];
+  if (first?.error) {
+    throw new Error(`Backend Error: ${first.error.message}`);
   }
-  
-  return result;
+  const payload = first?.result?.data;
+  // Superjson wraps payloads as { json: <payload> }; plain JSON responses pass through
+  return payload && typeof payload === 'object' && 'json' in payload ? payload.json : payload;
 }
 
 /**
@@ -184,6 +209,160 @@ server.tool(
       const result = await callComplianceApi('mcp.mapControls', 'mutation', input);
       return {
         content: [{ type: "text", text: `Successfully mapped ${result.mappedCount} controls to project.` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+/**
+ * Tool: list_governance_tasks
+ * Read the governance workbench task feed.
+ */
+server.tool(
+  "list_governance_tasks",
+  "List governance workbench tasks for a workspace. Use to review pending compliance operations, overdue items, and task status.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+    status: z.enum(["pending", "in_progress", "completed", "cancelled"]).optional().describe("Filter by task status"),
+    priority: z.enum(["low", "medium", "high", "critical"]).optional().describe("Filter by priority"),
+    limit: z.number().min(1).max(200).default(50).describe("Max tasks to return"),
+  },
+  async (input: { clientId: number, status?: string, priority?: string, limit?: number }) => {
+    try {
+      const result = await callComplianceApi('mcp.listGovernanceTasks', 'query', input);
+      const tasks = result?.tasks || [];
+      return {
+        content: [{
+          type: "text",
+          text: `Found ${result?.total ?? tasks.length} governance tasks in workspace ${input.clientId}:\n${JSON.stringify(tasks, null, 2)}`,
+        }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+/**
+ * Tool: create_governance_task
+ * Create a work item in the governance workbench.
+ */
+server.tool(
+  "create_governance_task",
+  "Create a new governance task (work item) in a workspace, e.g. policy reviews, control assessments, risk reviews, vendor assessments or corrective actions.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+    title: z.string().describe("Short descriptive title of the task"),
+    description: z.string().optional().describe("Longer description / instructions"),
+    priority: z.enum(["low", "medium", "high", "critical"]).default("medium").describe("Task priority"),
+    type: z.enum(["policy_review", "control_assessment", "risk_review", "vendor_assessment", "review", "approval", "evidence_collection"]).default("review").describe("Kind of governance task"),
+    dueDate: z.string().optional().describe("Due date as ISO string, e.g. 2026-09-30"),
+  },
+  async (input: any) => {
+    try {
+      const result = await callComplianceApi('mcp.createGovernanceTask', 'mutation', input);
+      return {
+        content: [{
+          type: "text",
+          text: `Governance task created successfully! Task ID: ${result.taskId}, Status: ${result.status}, Priority: ${result.priority}`,
+        }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+/**
+ * Tool: update_governance_task
+ * Update status/priority/assignment of an existing governance task.
+ */
+server.tool(
+  "update_governance_task",
+  "Update an existing governance task: change its status (e.g. mark completed), adjust priority, or reassign it.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+    taskId: z.number().describe("ID of the governance task to update"),
+    status: z.enum(["pending", "in_progress", "completed", "cancelled"]).optional().describe("New status"),
+    priority: z.enum(["low", "medium", "high", "critical"]).optional().describe("New priority"),
+    assignedToUserId: z.number().nullable().optional().describe("User ID to assign, or null to unassign"),
+  },
+  async (input: any) => {
+    try {
+      const result = await callComplianceApi('mcp.updateGovernanceTask', 'mutation', input);
+      return {
+        content: [{
+          type: "text",
+          text: `Task ${result.taskId} updated. Status: ${result.status}, Priority: ${result.priority}`,
+        }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+/**
+ * Tool: run_autopilot
+ * Trigger the AI Autopilot engine for a workspace.
+ */
+server.tool(
+  "run_autopilot",
+  "Trigger the AI Autopilot engine for a workspace. It collects evidence, runs control health checks, detects gaps and creates remediation tasks. Returns real run outcomes.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+  },
+  async (input: { clientId: number }) => {
+    try {
+      const result = await callComplianceApi('mcp.runAutopilot', 'mutation', input);
+      return {
+        content: [{
+          type: "text",
+          text: `Autopilot run ${result.runId} finished.\n- Tasks created: ${result.totalCreated}\n- Evidence collected: ${result.evidenceCollected}\n- Health issues found: ${result.healthIssuesFound}\n- Gaps detected: ${result.gapsDetected}`,
+        }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+/**
+ * Tool: get_program_guide_progress
+ * Read program-guide step assignments and owners.
+ */
+server.tool(
+  "get_program_guide_progress",
+  "Get program guide progress for a workspace: which governance program steps have owners assigned and their target dates.",
+  {
+    clientId: z.number().describe("Your Workspace/Client ID"),
+    guideType: z.string().default("governance").describe("Program guide type, e.g. 'governance' or 'ai-governance'"),
+  },
+  async (input: { clientId: number, guideType?: string }) => {
+    try {
+      const result = await callComplianceApi('mcp.getProgramGuideProgress', 'query', input);
+      return {
+        content: [{
+          type: "text",
+          text: `Program guide '${result.guideType}': ${result.assignedSteps} step(s) with assignments.\n${JSON.stringify(result.assignments, null, 2)}`,
+        }],
       };
     } catch (error: any) {
       return {

@@ -97,9 +97,9 @@ export const NotificationCenter: React.FC = () => {
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {notifications.map((n) => (
+                            {notifications.map((n, index) => (
                                 <button
-                                    key={n.id}
+                                    key={`notif_${n.id || index}_${index}`}
                                     className={`flex flex-col gap-1 p-4 text-left border-b hover:bg-slate-50 transition-colors relative ${!n.readAt ? "bg-blue-50/40" : ""
                                         }`}
                                     onClick={() => handleNotificationClick(n)}
