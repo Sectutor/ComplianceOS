@@ -48,6 +48,10 @@ describe("i18n Multi-Language System", () => {
     expect(i18n.t("navigation:policies")).toBe("Beleid");
     expect(i18n.t("navigation:risks")).toBe("Risicobeheer");
     expect(i18n.t("navigation:vendors")).toBe("Leveranciers & Derden");
+    expect(i18n.t("dashboard:goodMorning")).toBe("Goedemorgen");
+    expect(i18n.t("dashboard:livePostureScore")).toBe("Actuele Compliancescore");
+    expect(i18n.t("dashboard:commandInterface")).toBe("Bedieningsinterface");
+    expect(i18n.t("dashboard:governanceHealth")).toBe("Governance Gezondheid");
   });
 
   it("switches to Spanish (ES) and translates statutory compliance terms", async () => {

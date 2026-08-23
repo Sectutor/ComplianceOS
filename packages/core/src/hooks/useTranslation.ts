@@ -51,11 +51,31 @@ export function useTranslation(namespace?: TranslationNamespace) {
      * Translate with automatic namespace prefix
      */
     const t = useCallback(
-        (key: string, options?: Record<string, unknown>) => {
-            // If key already contains a colon, it's fully qualified
+        (key: string, optionsOrDefault?: Record<string, unknown> | string) => {
+            const options = typeof optionsOrDefault === 'string'
+                ? { defaultValue: optionsOrDefault }
+                : optionsOrDefault;
+
+            // If key already contains a colon (e.g. 'dashboard:goodMorning'), use directly
             if (key.includes(':')) {
                 return tOriginal(key, options);
             }
+
+            // If key contains a dot with a known namespace (e.g. 'dashboard.goodMorning' or 'common.save')
+            const dotIdx = key.indexOf('.');
+            if (dotIdx > 0) {
+                const prefix = key.slice(0, dotIdx);
+                const suffix = key.slice(dotIdx + 1);
+                const KNOWN_NS = [
+                    'common', 'dashboard', 'navigation', 'compliance',
+                    'risk', 'policy', 'training', 'vendors',
+                    'employees', 'settings', 'evidence', 'translation'
+                ];
+                if (KNOWN_NS.includes(prefix)) {
+                    return tOriginal(`${prefix}:${suffix}`, options);
+                }
+            }
+
             // Otherwise, prepend namespace if provided
             const fullKey = namespace ? `${namespace}:${key}` : key;
             return tOriginal(fullKey, options);
@@ -67,7 +87,10 @@ export function useTranslation(namespace?: TranslationNamespace) {
      * Translate with explicit namespace
      */
     const tWithNamespace = useCallback(
-        (ns: TranslationNamespace, key: string, options?: Record<string, unknown>) => {
+        (ns: TranslationNamespace, key: string, optionsOrDefault?: Record<string, unknown> | string) => {
+            const options = typeof optionsOrDefault === 'string'
+                ? { defaultValue: optionsOrDefault }
+                : optionsOrDefault;
             return i18n.t(key, { ns, ...options });
         },
         [i18n]

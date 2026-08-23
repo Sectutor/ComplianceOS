@@ -8,7 +8,7 @@ import { EmptyState } from "@complianceos/ui/ui/EmptyState";
 import { ShieldCheck, Database, TrendingUp, Loader2, AlertTriangle } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
   useDashboardStats,
   derivePostureStats,
@@ -38,7 +38,7 @@ interface PostureSummaryProps {
  * numbers from the existing `dashboard.enhanced` payload.
  */
 export function PostureSummary({ clientId, framework, enhancedStats, complianceScores }: PostureSummaryProps) {
-  const { t } = useTranslation(['dashboard', 'common', 'compliance']);
+  const { t } = useTranslation('dashboard');
   const statsQuery = useDashboardStats(clientId, framework, true);
   const isLive = !!statsQuery.data && !statsQuery.isError;
 

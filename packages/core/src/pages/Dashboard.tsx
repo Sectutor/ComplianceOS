@@ -32,11 +32,11 @@ import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
 import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
 import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Status indicator component with clear, readable logic
 function StatusIndicator({ rate }: { rate: number }) {
-  const { t } = useTranslation(['common', 'dashboard']);
+  const { t } = useTranslation('dashboard');
   const status = rate >= 80 ? {
     label: t('common.compliant', 'COMPLIANT'),
     pingColor: 'bg-emerald-400',
@@ -107,7 +107,7 @@ const FRAMEWORK_COLORS = [
 ];
 
 export default function Dashboard() {
-  const { t } = useTranslation(['dashboard', 'common', 'navigation', 'compliance', 'risk', 'policy', 'evidence']);
+  const { t } = useTranslation('dashboard');
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [framework, setFramework] = useState<string | undefined>();
