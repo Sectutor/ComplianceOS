@@ -41,8 +41,8 @@ export function FrameworksSettingsTab({ clientId }: FrameworksSettingsTabProps) 
     });
 
     // Library Data
-    const { data: libraryFrameworks, isLoading: libraryLoading, refetch: refetchLibrary } = trpc.frameworkImport.listFrameworks.useQuery({ clientId });
-    const deleteLibraryFrameworkMutation = trpc.frameworkImport.deleteFramework.useMutation({
+    const { data: libraryFrameworks, isLoading: libraryLoading, refetch: refetchLibrary } = trpc.frameworkImports.listFrameworks.useQuery({ clientId });
+    const deleteLibraryFrameworkMutation = trpc.frameworkImports.deleteFramework.useMutation({
         onSuccess: () => {
             toast.success("Framework removed from library");
             refetchLibrary();

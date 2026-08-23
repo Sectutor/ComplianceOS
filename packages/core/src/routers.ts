@@ -25,7 +25,7 @@ import { createAsvsRouter } from "./server/routers/asvs";
 // Premium import placeholders
 import { createSubprocessorsRouter } from "./server/routers/subprocessors";
 import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
-// import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
+import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
 import { createControlMonitoringRouter } from "./routers/controlMonitoring";
 import { createEvidenceCollectorsRouter } from "./routers/evidenceCollectors";
 import { createEvidenceRenewalRouter } from "./routers/evidenceRenewal";
@@ -85,6 +85,10 @@ import { createRisksRouter } from "./server/routers/risks";
 import { createMetricsRouter } from "./server/routers/metrics";
 import { createGovernanceRouter } from "./server/routers/governance";
 import { createAutopilotRouter } from "./server/routers/autopilot";
+import { createProgramGuidesRouter } from "./server/routers/programGuides";
+import { createAuditorsRouter } from "./server/routers/auditors";
+import { createPolicyReviewRouter } from "./server/routers/policyReview";
+import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 import { createGapAnalysisRouter } from "./server/routers/gapAnalysis";
 import { createFederalRouter } from "./server/routers/federal";
 import { createNist80030Router } from "./server/routers/nist80030";
@@ -289,6 +293,10 @@ export const appRouter = router({
   // Gap Analysis pages were calling endpoints that did not exist.
   autopilot: createAutopilotRouter(t, clientProcedure, adminProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
+  programGuides: createProgramGuidesRouter(t, clientProcedure),
+  auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
+  policyReview: createPolicyReviewRouter(t, clientProcedure, protectedProcedure),
+  requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
 
   // ---------------------------------------------------------------------------
   // Previously-unmounted routers. Each of these was imported at the top of this
@@ -383,7 +391,7 @@ export const appRouter = router({
   maturity: createMaturityRouter(t, premiumClientProcedure),
 
   // New and Management Readiness Tools
-  // management: createManagementRouter(t, protectedProcedure),
+  management: createManagementRouter(t, protectedProcedure),
   // readiness: createReadinessRouterV2(t, protectedProcedure),
   regulations: router({
     mapToArticle: adminProcedure

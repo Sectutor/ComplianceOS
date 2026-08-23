@@ -18,7 +18,7 @@ export function EvidenceSuggestionsPopover({
     category,
     children
 }: EvidenceSuggestionsPopoverProps) {
-    const { data: suggestions = [], isLoading } = trpc.evidenceSuggestions.getSuggestions.useQuery(
+    const { data: suggestions = [], isLoading } = trpc.compliance.remediationPlaybooks.getSuggestions.useQuery(
         { controlId, controlName, framework, category },
         { staleTime: 60000 }
     );

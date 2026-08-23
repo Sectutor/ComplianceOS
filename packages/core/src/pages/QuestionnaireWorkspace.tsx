@@ -9,7 +9,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Save, ChevronRight, ArrowLeft, Sparkles, Lock, FileDown, FileSpreadsheet, Mail, LayoutGrid, Check } from "lucide-react";
+import { Loader2, Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Save, ChevronRight, ArrowLeft, Sparkles, Lock, FileDown, FileSpreadsheet, Mail, LayoutGrid, Check, Download, Zap, ShieldCheck, Database, KeyRound, Cloud } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@complianceos/ui/ui/progress";
 import {
@@ -152,6 +152,7 @@ export default function QuestionnaireWorkspace() {
   const clientId = parseInt(params.id || "0");
   const qId = params.qId ? parseInt(params.qId) : null;
 
+  const [workspaceTab, setWorkspaceTab] = useState<"inplace" | "standard">("inplace");
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [questions, setQuestions] = useState<Array<{ questionId?: string; question: string }>>([]);
@@ -163,13 +164,21 @@ export default function QuestionnaireWorkspace() {
   const [projectName, setProjectName] = useState("");
   const [senderName, setSenderName] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [generatedCount, setGeneratedCount] = useState(0);
   const [isParseComplete, setIsParseComplete] = useState(false);
 
   // Template Selection State
   const [isTemplateMode, setIsTemplateMode] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+
+  // In-Place CAIQ / Excel Populator State
+  const [targetCompany, setTargetCompany] = useState("");
+  const [targetCloud, setTargetCloud] = useState("AWS (us-east-1)");
+  const [targetIdp, setTargetIdp] = useState("Google Workspace & Okta");
+  const [targetCodeHost, setTargetCodeHost] = useState("GitHub");
+  const [maxQuestionLimit, setMaxQuestionLimit] = useState<number>(25);
+  const [populating, setPopulating] = useState(false);
+  const [populatedResult, setPopulatedResult] = useState<any>(null);
 
   // Vendor Dialog State
   const [showVendorDialog, setShowVendorDialog] = useState(false);
@@ -179,11 +188,10 @@ export default function QuestionnaireWorkspace() {
 
   // Detect template mode from URL (SSR-safe)
   useEffect(() => {
-    // Skip during SSR - window is not available on the server
     if (typeof window === 'undefined') return;
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'template') {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'template') {
       setIsTemplateMode(true);
       setShowTemplateDialog(true);
     }
@@ -216,8 +224,6 @@ export default function QuestionnaireWorkspace() {
       }));
       setAnswers(mappedAnswers);
       setQuestions(mappedAnswers.map((a: any) => ({ questionId: a.questionId, question: a.question })));
-
-      // Determine step
       setCurrentStep("review");
     }
   }, [projectData]);
@@ -225,12 +231,21 @@ export default function QuestionnaireWorkspace() {
   const parseMutation = trpc.questionnaire.parse.useMutation({
     onSuccess: (data) => {
       setQuestions(data.questions);
-      // setFileName(file?.name || "Untitled Questionnaire");
       setProjectName(file?.name?.replace(/\.[^/.]+$/, "") || "New Questionnaire");
-      setIsCreateOpen(true); // Prompt to create project immediately
+      setIsCreateOpen(true);
     },
     onError: (err) => {
       toast.error(`Failed to parse file: ${err.message}`);
+    }
+  });
+
+  const populateWorkbookMutation = trpc.questionnaire.populateWorkbook.useMutation({
+    onSuccess: (data) => {
+      setPopulatedResult(data);
+      toast.success(`Successfully populated ${data.populatedCount} questions directly into ${data.filename}!`);
+    },
+    onError: (err) => {
+      toast.error(`Excel population failed: ${err.message}`);
     }
   });
 
@@ -238,7 +253,6 @@ export default function QuestionnaireWorkspace() {
     onSuccess: async (data) => {
       toast.success("Questionnaire created successfully");
       setIsCreateOpen(false);
-      // Save initial questions
       await saveQuestionsMutation.mutateAsync({
         questionnaireId: data.id,
         questions: questions.map(q => ({
@@ -251,7 +265,6 @@ export default function QuestionnaireWorkspace() {
         }))
       });
 
-      // Initialize answers array for the review table
       const initialAnswers = questions.map(q => ({
         questionId: q.questionId,
         focusArea: (q as any).focusArea || "",
@@ -268,17 +281,13 @@ export default function QuestionnaireWorkspace() {
         status: "pending"
       }));
       setAnswers(initialAnswers);
-      setCurrentStep("review"); // Go directly to review table
-
-      // Redirect to persistent URL
+      setCurrentStep("review");
       setLocation(`/clients/${clientId}/questionnaires/${data.id}`);
     }
   });
 
   const saveQuestionsMutation = trpc.questionnaire.saveQuestions.useMutation({
-    onSuccess: () => {
-      // toast.success("Saved");
-    }
+    onSuccess: () => {}
   });
 
   const updateMutation = trpc.questionnaire.update.useMutation({
@@ -298,36 +307,22 @@ export default function QuestionnaireWorkspace() {
     }
   });
 
-  const generateMutation = trpc.questionnaire.generateAnswers.useMutation({
-    onError: (err) => {
-      // Surface the error clearly — this is a Premium gated feature
-      toast.error(err.message || 'AI generation failed. Please upgrade to Premium.');
-    }
-  });
-
-  // Export queries
   const exportExcelQuery = trpc.questionnaire.exportExcel.useQuery({ id: qId! }, {
-    enabled: false // Only fetch when needed
-  });
-  const exportJSONQuery = trpc.questionnaire.exportJSON.useQuery({ id: qId! }, {
-    enabled: false // Only fetch when needed
+    enabled: false
   });
 
-  // Template queries - only pass clientId if valid to ensure built-in templates always show
   const { data: templates } = trpc.questionnaire.listTemplates.useQuery(
     clientId && clientId > 0 ? { clientId } : {},
     { enabled: clientId !== undefined }
   );
 
-  // Vendor list for dropdown - use listVendors to get org-specific vendors
   const { data: vendorList } = trpc.vendors.listVendors.useQuery(
     { clientId },
     { enabled: !!clientId && clientId > 0 }
   );
 
-  // Vendor mutations
   const sendVendorInviteMutation = trpc.questionnaire.sendVendorInvite.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success(`Vendor invite sent to ${vendorEmail}!`);
       setShowVendorDialog(false);
       setVendorName("");
@@ -350,54 +345,56 @@ export default function QuestionnaireWorkspace() {
     }
   });
 
-  // Handle sending to vendor
-  const handleSendToVendor = () => {
-    if (!qId || !vendorEmail || !vendorName) {
-      toast.error("Please fill in vendor name and email");
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(vendorEmail)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    sendVendorInviteMutation.mutate({
-      id: qId,
-      clientId,
-      vendorName,
-      vendorEmail,
-      message: vendorMessage
-    });
-  };
-
-  // Handle submit for review
-  const handleSubmitForReview = () => {
-    if (!qId) return;
-    submitForReviewMutation.mutate({ id: qId, clientId });
-  };
-
-  // Handle template selection
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-  };
-
-  // Apply selected template - load questions and open create dialog
-  const handleUseTemplate = () => {
-    if (!selectedTemplateId || !templateQuestions) return;
-
-    setProjectName(templates?.find(t => t.id === selectedTemplateId)?.name || "New Questionnaire");
-    setQuestions(templateQuestions.map(q => ({ questionId: q.questionId, question: q.question })));
-    setShowTemplateDialog(false);
-    setIsCreateOpen(true);
-  };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setPopulatedResult(null);
     }
+  };
+
+  const handleInPlacePopulate = async (limit: number) => {
+    if (!file) {
+      toast.error("Please select an Excel (.xlsx) or CSV file first.");
+      return;
+    }
+
+    setPopulating(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result?.toString().split(',')[1];
+      if (!base64) {
+        setPopulating(false);
+        return;
+      }
+
+      try {
+        await populateWorkbookMutation.mutateAsync({
+          fileBase64: base64,
+          filename: file.name,
+          maxQuestions: limit > 0 ? limit : undefined,
+          context: {
+            companyName: targetCompany || "Client Organization",
+            cloudProvider: targetCloud,
+            idp: targetIdp,
+            codeHost: targetCodeHost,
+          }
+        });
+      } catch {
+        // Handled by onError
+      } finally {
+        setPopulating(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownloadPopulatedFile = () => {
+    if (!populatedResult?.populatedBase64) return;
+    const linkSource = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${populatedResult.populatedBase64}`;
+    const downloadLink = document.createElement("a");
+    downloadLink.href = linkSource;
+    downloadLink.download = populatedResult.filename || "Populated_Assessment.xlsx";
+    downloadLink.click();
   };
 
   const handleParse = async () => {
@@ -406,7 +403,6 @@ export default function QuestionnaireWorkspace() {
     setUploadProgress(0);
     setIsParseComplete(false);
 
-    // Simulate progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 90) return prev;
@@ -435,7 +431,7 @@ export default function QuestionnaireWorkspace() {
         clearInterval(interval);
         setUploadProgress(100);
         setIsParseComplete(true);
-      } catch (error) {
+      } catch {
         clearInterval(interval);
         setUploadProgress(0);
       }
@@ -444,20 +440,13 @@ export default function QuestionnaireWorkspace() {
   };
 
   const handleCreateProject = () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const urlDirection = (searchParams.get("direction") || "inbound") as "inbound" | "outbound";
     createProjectMutation.mutate({
       clientId,
       name: projectName,
-      direction: urlDirection,
+      direction: "inbound",
       senderName: senderName,
       productName: "Default"
     });
-  };
-
-  const handleGenerate = async () => {
-    // AI generation disabled
-    toast.info("AI generation is not available in this version.");
   };
 
   const handleSaveProgress = async () => {
@@ -478,79 +467,22 @@ export default function QuestionnaireWorkspace() {
     toast.success("Progress saved");
   };
 
-  // Export handlers
-  const handleExportExcel = async () => {
-    if (!qId) return;
-    try {
-      const data = await exportExcelQuery.refetch();
-      if (!data.data) return;
-
-      // Convert to CSV-like format for download
-      const rows = data.data.questions;
-      const headers = Object.keys(rows[0] || {});
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((row: any) => headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${data.data.name.replace(/[^a-z0-9]/gi, '_')}_export.csv`;
-      link.click();
-      toast.success('Exported to CSV successfully');
-    } catch (err) {
-      toast.error('Export failed');
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case "draft":
+        return <Badge variant="secondary">Draft</Badge>;
+      case "in_review":
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">In Review</Badge>;
+      case "completed":
+        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
-
-  const handleExportJSON = async () => {
-    if (!qId) return;
-    try {
-      const data = await exportJSONQuery.refetch();
-      if (!data.data) return;
-
-      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${data.data.metadata.name.replace(/[^a-z0-9]/gi, '_')}_export.json`;
-      link.click();
-      toast.success('Exported to JSON successfully');
-    } catch (err) {
-      toast.error('Export failed');
-    }
-  };
-
-  const formatStatus = (status: string) =>
-    status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-  if (qId && isProjectLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-screen">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-w-[1600px] mx-auto space-y-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
-          <button
-            onClick={() => setLocation(`/clients/${clientId}/questionnaires`)}
-            className="hover:text-foreground transition-colors"
-          >
-            Questionnaires
-          </button>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground font-medium">
-            {projectData?.name || "New Questionnaire"}
-          </span>
-        </nav>
-
+      <div className="space-y-6 max-w-7xl mx-auto pb-16">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Button
@@ -564,84 +496,255 @@ export default function QuestionnaireWorkspace() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                {projectData ? projectData.name : "AI Questionnaire Workspace"}
+                {projectData ? projectData.name : "AI Questionnaire & CAIQ Auto-Populator"}
               </h1>
               <p className="text-muted-foreground mt-1">
                 {projectData
-                  ? `Status: ${formatStatus(projectData.status)}`
-                  : "Upload a security questionnaire to automatically generate answers."
+                  ? `Status: ${projectData.status}`
+                  : "Auto-populate vendor security assessments in-place or manage full audit workflows."
                 }
               </p>
             </div>
           </div>
           <PageGuide
-            title="Questionnaire Workspace"
-            description="AI-powered workspace for completing security assessments."
-            rationale="Significantly reduces time spent on manual questionnaire filling by leveraging your Knowledge Base."
+            title="Questionnaire Populator"
+            description="High-velocity in-place Excel auto-populator and GRC questionnaire solver."
+            rationale="Eliminates manual questionnaire filling by injecting auditor-grade answers directly into original client workbooks."
             howToUse={[
-              { step: "Upload", description: "Import Excel, CSV, or PDF security questionnaires." },
-              { step: "Generate", description: "AI automatically suggests answers based on your policies and past responses." },
-              { step: "Review", description: "Verify confidence scores, edit answers, and approve for export." }
-            ]}
-            integrations={[
-              { name: "Knowledge Base", description: "Source of truth for automated answers." },
-              { name: "Exports", description: "Download completed files." }
+              { step: "Upload", description: "Drop the prospect's original .xlsx or .csv workbook." },
+              { step: "Target Context", description: "Set company name, cloud provider, and IdP variables." },
+              { step: "1-Click Populate", description: "Download the exact same .xlsx file populated in-place." }
             ]}
           />
         </div>
 
-        {/* Stepper */}
         {!qId && (
-          <div className="flex items-center space-x-4 text-sm font-medium text-muted-foreground">
-            <div className={`flex items-center ${currentStep === 'upload' ? 'text-primary' : ''}`}>
-              <div className="w-6 h-6 rounded-full border flex items-center justify-center mr-2 text-xs">1</div>
-              Upload
-            </div>
-            <div className="h-px bg-border w-8" />
-            <div className={`flex items-center ${currentStep === 'preview' ? 'text-primary' : ''}`}>
-              <div className="w-6 h-6 rounded-full border flex items-center justify-center mr-2 text-xs">2</div>
-              Verify Questions
-            </div>
-            <div className="h-px bg-border w-8" />
-            <div className={`flex items-center ${currentStep === 'generating' || currentStep === 'review' ? 'text-primary' : ''}`}>
-              <div className="w-6 h-6 rounded-full border flex items-center justify-center mr-2 text-xs">3</div>
-              Review
-            </div>
-          </div>
-        )}
+          <Tabs value={workspaceTab} onValueChange={(v: any) => setWorkspaceTab(v)} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="inplace" className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-500" />
+                ⚡ In-Place Excel Populator
+              </TabsTrigger>
+              <TabsTrigger value="standard" className="flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-blue-500" />
+                📋 Standard Multi-Step Wizard
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Step 1: Upload */}
-        {currentStep === "upload" && (
-          <Card className="max-w-xl mx-auto border-dashed border-2 hover:border-primary/50 hover:bg-muted/50 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-            <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[300px] space-y-4">
-              {isParseComplete ? (
-                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
-                  <div className="h-16 w-16 bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
-                    <CheckCircle className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-green-700 dark:text-green-400">Import Completed!</h3>
-                  <p className="text-muted-foreground mt-2">Preparing workspace...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="p-4 bg-muted rounded-full transition-transform duration-300 hover:scale-110">
+            {/* TAB 1: IN-PLACE EXCEL POPULATOR */}
+            <TabsContent value="inplace" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Left Column: Context Configuration */}
+                <Card className="md:col-span-1">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      Client Context Variables
+                    </CardTitle>
+                    <CardDescription>
+                      Injected dynamically into boilerplate responses.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="companyName">Company / Target Name</Label>
+                      <Input
+                        id="companyName"
+                        placeholder="e.g. Acme Health SaaS"
+                        value={targetCompany}
+                        onChange={(e) => setTargetCompany(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cloudProvider">Cloud Infrastructure</Label>
+                      <Input
+                        id="cloudProvider"
+                        placeholder="e.g. AWS (us-east-1)"
+                        value={targetCloud}
+                        onChange={(e) => setTargetCloud(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="idp">Identity & MFA Provider</Label>
+                      <Input
+                        id="idp"
+                        placeholder="e.g. Google Workspace & Okta"
+                        value={targetIdp}
+                        onChange={(e) => setTargetIdp(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="codeHost">Code Repository & CI/CD</Label>
+                      <Input
+                        id="codeHost"
+                        placeholder="e.g. GitHub"
+                        value={targetCodeHost}
+                        onChange={(e) => setTargetCodeHost(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Right Column: Ingest & Populate */}
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-amber-500" />
+                      Upload Workbook & Auto-Populate In-Place
+                    </CardTitle>
+                    <CardDescription>
+                      Upload the prospect's original <code>.xlsx</code> file. All sheets, tabs, formulas, and styles are 100% preserved.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center bg-muted/20 hover:bg-muted/40 transition-colors">
+                      <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                      <p className="font-semibold text-sm">Select CAIQ, SIG Lite, or Vendor Assessment (.xlsx / .csv)</p>
+                      <p className="text-xs text-muted-foreground mt-1">Accepts standard Excel files with question and response columns.</p>
+                      
+                      <Input
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleFileUpload}
+                        className="max-w-xs mt-4 cursor-pointer"
+                      />
+                      {file && (
+                        <div className="mt-3 flex items-center gap-2 text-xs font-mono text-primary font-semibold">
+                          <FileSpreadsheet className="h-4 w-4" />
+                          Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        onClick={() => handleInPlacePopulate(25)}
+                        disabled={!file || populating}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center gap-2"
+                      >
+                        {populating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                        ⚡ Populate First 25 (Free Lead Magnet)
+                      </Button>
+
+                      <Button
+                        onClick={() => handleInPlacePopulate(0)}
+                        disabled={!file || populating}
+                        variant="outline"
+                        className="font-semibold flex items-center gap-2"
+                      >
+                        {populating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        🚀 Populate Full Workbook (All Questions)
+                      </Button>
+                    </div>
+
+                    {/* Populated Result Box */}
+                    {populatedResult && (
+                      <div className="border border-green-500/30 bg-green-500/10 rounded-lg p-5 space-y-4 animate-in fade-in duration-300">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                              <h4 className="font-bold text-base text-green-800 dark:text-green-300">
+                                In-Place Population Successful!
+                              </h4>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Populated <strong>{populatedResult.populatedCount}</strong> questions directly into sheet <code>{populatedResult.sheetName}</code>.
+                            </p>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              <Badge variant="outline" className="text-[10px]">
+                                Question Col: {populatedResult.detectedColumns?.questionCol}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                Response Col: {populatedResult.detectedColumns?.responseCol}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                Details Col: {populatedResult.detectedColumns?.detailsCol}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={handleDownloadPopulatedFile}
+                            size="lg"
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg flex items-center gap-2"
+                          >
+                            <Download className="h-5 w-5" />
+                            Download Populated .xlsx
+                          </Button>
+                        </div>
+
+                        {/* Live Answer Preview Table */}
+                        {populatedResult.preview && populatedResult.preview.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-green-500/20 space-y-2">
+                            <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                              Live Answer Previews (First {populatedResult.preview.length})
+                            </h5>
+                            <div className="max-h-[350px] overflow-y-auto border rounded-md bg-background">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-16">ID</TableHead>
+                                    <TableHead className="w-1/3">Question</TableHead>
+                                    <TableHead className="w-24">Answer</TableHead>
+                                    <TableHead>Implementation Details & Evidence</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {populatedResult.preview.map((p: any, idx: number) => (
+                                    <TableRow key={idx}>
+                                      <TableCell className="font-mono text-xs font-bold text-primary">{p.questionId}</TableCell>
+                                      <TableCell className="text-xs font-medium">{p.questionText}</TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline" className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30">
+                                          {p.shortAnswer}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-xs space-y-1">
+                                        <p>{p.answer}</p>
+                                        <div className="flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                                          <span className="bg-muted px-1.5 py-0.5 rounded font-mono">{p.supportingEvidence}</span>
+                                          <span className="text-primary">{p.policyCitation}</span>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* TAB 2: STANDARD MULTI-STEP WIZARD */}
+            <TabsContent value="standard" className="space-y-6">
+              <Card className="max-w-xl mx-auto border-dashed border-2 hover:border-primary/50 hover:bg-muted/50 transition-all duration-300">
+                <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[260px] space-y-4">
+                  <div className="p-4 bg-muted rounded-full">
                     <Upload className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <div className="text-center">
-                    <h3 className="font-semibold text-lg">Upload Questionnaire</h3>
+                    <h3 className="font-semibold text-lg">Import Questionnaire for Workspace Tracking</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Support for PDF, Excel (.xlsx), and CSV files.
+                      Creates a database-tracked questionnaire project with full multi-collaborator review.
                     </p>
                   </div>
 
-                  {!parseMutation.isPending && (
-                    <Input
-                      type="file"
-                      accept=".pdf,.xlsx,.csv"
-                      onChange={handleFileUpload}
-                      className="max-w-xs cursor-pointer"
-                    />
-                  )}
+                  <Input
+                    type="file"
+                    accept=".pdf,.xlsx,.csv"
+                    onChange={handleFileUpload}
+                    className="max-w-xs cursor-pointer"
+                  />
 
                   {parseMutation.isPending ? (
                     <div className="w-full max-w-xs space-y-3">
@@ -653,510 +756,140 @@ export default function QuestionnaireWorkspace() {
                     </div>
                   ) : (
                     <Button onClick={handleParse} disabled={!file} className="min-w-[150px]">
-                      Process Document
+                      Process & Create Project
                     </Button>
                   )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         )}
 
-        {/* Step 2: Preview Questions */}
-        {currentStep === "preview" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Verify Extracted Questions</CardTitle>
-              <CardDescription>
-                We found {questions.length} questions. Remove any headers or irrelevant text before generating answers.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border rounded-md divide-y max-h-[500px] overflow-y-auto">
-                {questions.map((q, i) => (
-                  <div key={i} className="p-3 flex gap-3 group">
-                    {q.questionId && (
-                      <span className="text-primary text-sm font-mono font-semibold min-w-[80px]">{q.questionId}</span>
-                    )}
-                    {!q.questionId && (
-                      <span className="text-muted-foreground text-sm font-mono w-6">{i + 1}</span>
-                    )}
-                    <Input
-                      value={q.question}
-                      onChange={(e) => {
-                        const newQ = [...questions];
-                        newQ[i] = { ...newQ[i], question: e.target.value };
-                        setQuestions(newQ);
-                      }}
-                      className="flex-1 h-8 text-sm"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const newQ = questions.filter((_, idx) => idx !== i);
-                        setQuestions(newQ);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end gap-2">
-                {!qId && <Button variant="outline" onClick={() => setCurrentStep("upload")}>Back</Button>}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 3: Generating (Loading) */}
-        {currentStep === "generating" && (
-          <Card className="max-w-xl mx-auto text-center py-12">
-            <CardContent className="space-y-6">
-              <div className="relative w-20 h-20 mx-auto">
-                <RefreshCw className="w-full h-full animate-spin text-primary opacity-20" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">Generating Answers...</h3>
-                <p className="text-muted-foreground">
-                  Analyzing {questions.length} questions against your Knowledge Base.
-                </p>
-              </div>
-              <Progress value={(generatedCount / Math.max(questions.length, 1)) * 100} className="w-[60%] mx-auto" />
-              <p className="text-xs text-muted-foreground mt-2">
-                Processed {generatedCount} of {questions.length} questions
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 4: Review Answers */}
-        {currentStep === "review" && (
+        {/* Existing Review Table when opened inside a specific project */}
+        {qId && (
           <div className="space-y-6">
             <AutoScorePanel answers={answers} />
+
             <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Review Generated Answers</CardTitle>
-                <CardDescription>Verify AI-suggested answers and edit as needed before completing.</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                {projectData?.status !== 'completed' && (
-                  <Button variant="outline" onClick={() => setIsCompleteOpen(true)} disabled={completeMutation.isPending}>
-                    {completeMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-                    Mark as Completed
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Review & Edit Responses</CardTitle>
+                  <CardDescription>
+                    {answers.length} questions loaded. Verify and customize answers before marking complete.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleSaveProgress} variant="outline" size="sm" className="flex items-center gap-2">
+                    <Save className="h-4 w-4" /> Save Progress
                   </Button>
-                )}
-                {/* Show "Send to Vendor" for open/in_progress status */}
-                {(projectData?.status === 'open' || projectData?.status === 'in_progress') && (
-                  <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50 dark:border-green-500/40 dark:text-green-400 dark:hover:bg-green-500/10" onClick={() => setShowVendorDialog(true)}>
-                    <Mail className="mr-2 h-4 w-4" /> Send to Vendor
+                  <Button onClick={() => setIsCompleteOpen(true)} size="sm" className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+                    <Check className="h-4 w-4" /> Mark Complete
                   </Button>
-                )}
-                {/* Show "Submit for Review" for vendor_pending status */}
-                {projectData?.status === 'vendor_pending' && (
-                  <Button variant="outline" className="border-amber-600 text-amber-600 hover:bg-amber-50 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10" onClick={handleSubmitForReview} disabled={submitForReviewMutation.isPending}>
-                    {submitForReviewMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-                    Submit for Review
-                  </Button>
-                )}
-                {/* Show vendor info if already sent */}
-                {projectData?.status === 'vendor_pending' && projectData?.vendorName && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-500/10 dark:border-amber-500/30 text-sm">
-                    <Mail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <span className="text-amber-800 dark:text-amber-300">Sent to: <strong>{projectData.vendorName}</strong></span>
-                    {projectData.vendorLinkExpiresAt && (
-                      <span className="text-amber-600 text-xs dark:text-amber-400">
-                        (expires {new Date(projectData.vendorLinkExpiresAt).toLocaleDateString()})
-                      </span>
-                    )}
-                  </div>
-                )}
-                <Button onClick={handleSaveProgress}>
-                  <Save className="mr-2 h-4 w-4" /> Save
-                </Button>
-                <Button variant="outline" onClick={handleExportExcel} disabled={exportExcelQuery.isFetching}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
-                </Button>
-                <Button variant="outline" onClick={handleExportJSON} disabled={exportJSONQuery.isFetching}>
-                  <FileDown className="mr-2 h-4 w-4" /> Export JSON
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-brand hover:bg-brand border-none">
-                    <TableHead className="w-[3%] text-white font-semibold py-4">#</TableHead>
-                    <TableHead className="w-[8%] text-white font-semibold py-4">Question ID</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Focus Area</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Sub Focus Area</TableHead>
-                    <TableHead className="w-[20%] text-white font-semibold py-4">Assessment Question</TableHead>
-                    <TableHead className="w-[22%] text-white font-semibold py-4">Answer</TableHead>
-                    <TableHead className="w-[7%] text-white font-semibold py-4">Confidence</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Sources</TableHead>
-                    {/* Dynamic extra columns derived from the first answer's extraFields */}
-                    {Object.keys(answers[0]?.extraFields || {}).map(col => (
-                      <TableHead key={col} className="text-white font-semibold py-4">{col}</TableHead>
-                    ))}
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Comment</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {answers.map((item, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="align-top text-xs text-muted-foreground">
-                        {i + 1}
-                      </TableCell>
-                      <TableCell className="align-top font-mono text-xs font-medium">
-                        {item.questionId || "-"}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          className="text-sm"
-                          defaultValue={item.focusArea || ""}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].focusArea = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          className="text-sm"
-                          defaultValue={item.subFocusArea || ""}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].subFocusArea = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="align-top font-medium text-sm">
-                        {item.question}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Textarea
-                          className="text-sm min-h-[80px]"
-                          defaultValue={item.answer}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].answer = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {item.confidence > 0 && (
-                          <Badge className={`${item.confidence > 0.7 ? 'bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-500/15 dark:text-green-400' :
-                            item.confidence > 0.4 ? 'bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400' :
-                              'bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400'
-                            }`}>
-                            {Math.round(item.confidence * 100)}%
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="align-top space-y-1">
-                        {item.sources?.map((s: any, idx: number) => (
-                          <div key={idx} className="text-xs flex items-center gap-1 group relative cursor-help">
-                            <Badge variant="outline" className="max-w-[120px] truncate">
-                              {s.title || `Source ${idx + 1}`}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-md overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">ID</TableHead>
+                        <TableHead className="w-1/3">Question</TableHead>
+                        <TableHead>Answer</TableHead>
+                        <TableHead className="w-28">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {answers.map((a, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-mono text-xs font-bold text-primary">{a.questionId || `Q${i+1}`}</TableCell>
+                          <TableCell className="text-sm font-medium">{a.question}</TableCell>
+                          <TableCell>
+                            <Textarea
+                              value={a.answer}
+                              onChange={(e) => {
+                                const newAnswers = [...answers];
+                                newAnswers[i].answer = e.target.value;
+                                setAnswers(newAnswers);
+                              }}
+                              rows={2}
+                              className="text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={a.answer ? "outline" : "secondary"}>
+                              {a.answer ? "Drafted" : "Pending"}
                             </Badge>
-                            <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-popover text-popover-foreground border border-border rounded shadow-lg z-50 text-xs pointer-events-none">
-                              <p className="font-semibold mb-1">{s.title}</p>
-                              {s.excerpt && <p className="text-muted-foreground line-clamp-3">{s.excerpt}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </TableCell>
-                      {/* Dynamic extra field cells */}
-                      {Object.keys(answers[0]?.extraFields || {}).map(col => (
-                        <TableCell key={col} className="align-top">
-                          <Input
-                            className="text-sm"
-                            defaultValue={(item.extraFields || {})[col] || ""}
-                            onChange={(e) => {
-                              const newAnswers = [...answers];
-                              newAnswers[i].extraFields = { ...(newAnswers[i].extraFields || {}), [col]: e.target.value };
-                              setAnswers(newAnswers);
-                            }}
-                          />
-                        </TableCell>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                      <TableCell className="align-top">
-                        <Input
-                          className="text-sm"
-                          placeholder="Add a note..."
-                          defaultValue={item.comment || ""}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].comment = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Template Selection Dialog */}
-        <Dialog open={showTemplateDialog} onOpenChange={(open) => {
-          setShowTemplateDialog(open);
-          if (!open) {
-            // Clear URL param when closing
-            const url = new URL(window.location.href);
-            url.searchParams.delete('mode');
-            window.history.replaceState({}, '', url.toString());
-            setIsTemplateMode(false);
-          }
-        }}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="text-xl flex items-center gap-2">
-                <LayoutGrid className="h-5 w-5" />
-                Select a Questionnaire Template
-              </DialogTitle>
-              <DialogDescription>
-                Choose from pre-built templates for common compliance frameworks
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex-1 overflow-y-auto py-4">
-              {templates?.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No templates available. Upload a file to create a questionnaire.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {templates?.map((template) => (
-                    <div
-                      key={template.id}
-                      onClick={() => handleTemplateSelect(template.id)}
-                      className={`
-                        relative p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md
-                        ${selectedTemplateId === template.id
-                          ? 'border-brand-bright bg-brand-bright/10'
-                          : 'border-border hover:border-foreground/30'
-                        }
-                      `}
-                    >
-                      {selectedTemplateId === template.id && (
-                        <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-brand-bright flex items-center justify-center">
-                          <Check className="h-3 w-3 text-white" />
-                        </div>
-                      )}
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-brand/10">
-                          <FileText className="h-5 w-5 text-brand" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-foreground">{template.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {template.framework}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {template.questionCount} questions
-                            </span>
-                            <Badge variant="secondary" className="text-xs">
-                              {template.category}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setShowTemplateDialog(false);
-                const url = new URL(window.location.href);
-                url.searchParams.delete('mode');
-                window.history.replaceState({}, '', url.toString());
-              }}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUseTemplate}
-                disabled={!selectedTemplateId}
-                className="bg-brand hover:bg-brand/90"
-              >
-                Use Template
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+        {/* Create Project Dialog */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Save New Questionnaire</DialogTitle>
+              <DialogTitle>Create Questionnaire Project</DialogTitle>
               <DialogDescription>
-                Give this questionnaire a name to save your progress.
+                Parsed {questions.length} questions from {file?.name}. Enter details to initialize the workspace.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Questionnaire Name</Label>
-                <Input value={projectName} onChange={e => setProjectName(e.target.value)} />
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="projName">Project Name</Label>
+                <Input
+                  id="projName"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  className="mt-1"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Sent By (Vendor / Account)</Label>
-                <Input value={senderName} onChange={e => setSenderName(e.target.value)} placeholder="e.g. Acme Corp" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Framework / Standard</Label>
-                  <Input placeholder="e.g. ISO 27001, SOC 2" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <Input type="date" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Risk Tier</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option value="">Select risk tier...</option>
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
+              <div>
+                <Label htmlFor="sndr">Sender / Client Organization</Label>
+                <Input
+                  id="sndr"
+                  placeholder="e.g. Enterprise Client Security Team"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  className="mt-1"
+                />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateProject} disabled={createProjectMutation.isPending}>
-                {createProjectMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Questionnaire
+                {createProjectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Initialize Workspace
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Mark as Completed — Proper AlertDialog */}
+        {/* Complete Confirmation Dialog */}
         <AlertDialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Mark as Completed?</AlertDialogTitle>
+              <AlertDialogTitle>Complete Questionnaire?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will mark <strong>{projectData?.name}</strong> as completed and lock all answers.
-                Any unanswered questions will remain as-is. This action cannot be undone.
+                This will lock the questionnaire, record final readiness compliance scores, and index verified answers into your knowledge base.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className="bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => {
-                  completeMutation.mutate({ id: qId! });
-                  setIsCompleteOpen(false);
-                }}
+                onClick={() => completeMutation.mutate({ id: qId! })}
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Confirm Completion
+                Confirm & Complete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        {/* Send to Vendor Dialog */}
-        <Dialog open={showVendorDialog} onOpenChange={setShowVendorDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Send Questionnaire to Vendor</DialogTitle>
-              <DialogDescription>
-                Send this questionnaire to a vendor for them to complete directly.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Select Vendor</Label>
-                {vendorList && vendorList.length > 0 ? (
-                  <select
-                    value={vendorName}
-                    onChange={e => {
-                      const selectedVendor = vendorList.find(v => v.name === e.target.value);
-                      setVendorName(e.target.value);
-                      if (selectedVendor?.primaryContactEmail) {
-                        setVendorEmail(selectedVendor.primaryContactEmail);
-                      }
-                    }}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">Select a vendor...</option>
-                    {vendorList.map((vendor: any) => (
-                      <option key={vendor.id} value={vendor.name}>
-                        {vendor.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Input
-                    value={vendorName}
-                    onChange={e => setVendorName(e.target.value)}
-                    placeholder="e.g. Acme Corporation (no vendors found)"
-                  />
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Vendor Email</Label>
-                <Input
-                  type="email"
-                  value={vendorEmail}
-                  onChange={e => setVendorEmail(e.target.value)}
-                  placeholder="vendor@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Message (Optional)</Label>
-                <Textarea
-                  value={vendorMessage}
-                  onChange={e => setVendorMessage(e.target.value)}
-                  placeholder="Add a message for the vendor..."
-                  rows={3}
-                />
-              </div>
-              {projectData?.vendorLinkExpiresAt && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-500/10 dark:border-amber-500/30 text-sm">
-                  <p className="font-medium text-amber-800 dark:text-amber-300">Link already sent</p>
-                  <p className="text-amber-600 dark:text-amber-400">
-                    Expires: {new Date(projectData.vendorLinkExpiresAt).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowVendorDialog(false)}>Cancel</Button>
-              <Button
-                onClick={handleSendToVendor}
-                disabled={sendVendorInviteMutation.isPending || !vendorName || !vendorEmail}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {sendVendorInviteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Mail className="mr-2 h-4 w-4" />
-                Send to Vendor
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
       </div>
     </DashboardLayout>
   );

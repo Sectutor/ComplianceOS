@@ -245,7 +245,7 @@ export default function FrameworksDashboard() {
                         onOpenChange={setIsCustomImportOpen}
                         clientId={clientId}
                         onImport={async (data: any) => {
-                            const result = await trpc.frameworkImport.importCustomFramework.mutate({
+                            const result = await trpc.frameworkImports.importCustomFramework.mutate({
                                 clientId,
                                 ...data
                             });

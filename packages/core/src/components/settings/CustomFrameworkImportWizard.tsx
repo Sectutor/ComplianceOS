@@ -40,7 +40,7 @@ export function CustomFrameworkImportWizard({ open, onOpenChange, clientId, onSu
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const importMutation = trpc.frameworkImport.importCustomFramework.useMutation({
+    const importMutation = trpc.frameworkImports.importCustomFramework.useMutation({
         onSuccess: (data: any) => {
             toast.success(`Successfully imported ${data.count} controls to the library!`);
             onOpenChange(false);

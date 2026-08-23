@@ -11,6 +11,11 @@ import {
     summarizeScore,
     type QuestionnaireAnswer,
 } from "../../lib/questionnaire/questionnaireScoring";
+import {
+    parseDocumentBuffer,
+    parseTextQuestions,
+    populateWorkbookInPlace,
+} from "../../lib/questionnaire/excelPopulator";
 
 // Re-export for any consumer that imported the built-in templates from the router.
 export { BUILTIN_TEMPLATES } from "../../lib/questionnaire/templates";
@@ -140,12 +145,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
             }),
 
         /**
-         * Parse raw document / text into structured questions.
-         *
-         * NOT IMPLEMENTED: real document parsing (PDF/XLSX/CSV extraction) is not
-         * wired up yet. The input contract accepts what the UI sends so uploads
-         * are not silently discarded by validation, but the response is clearly
-         * flagged as sample data — callers must not present it as parsed content.
+         * Parse raw document / text / Excel into structured questions.
          */
         parse: clientProcedure
             .input(z.object({
@@ -155,6 +155,33 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 fileType: z.enum(["pdf", "xlsx", "csv", "docx", "txt"]).optional(),
             }))
             .mutation(async ({ input }: { input: any }) => {
+                let parsedQuestions: any[] = [];
+                let sheetName: string | undefined;
+
+                if (input.fileBase64) {
+                    const buf = Buffer.from(input.fileBase64, 'base64');
+                    const res = parseDocumentBuffer(buf, input.filename || 'questionnaire.xlsx');
+                    parsedQuestions = res.questions;
+                    sheetName = res.sheetName;
+                } else if (input.text) {
+                    parsedQuestions = parseTextQuestions(input.text);
+                }
+
+                // If parsing yielded real questions, return them
+                if (parsedQuestions && parsedQuestions.length > 0) {
+                    return {
+                        success: true,
+                        parsed: true,
+                        source: "document",
+                        receivedFilename: input.filename ?? null,
+                        receivedFileType: input.fileType ?? null,
+                        sheetName,
+                        totalCount: parsedQuestions.length,
+                        questions: parsedQuestions,
+                    };
+                }
+
+                // Fallback to high-value sample questions if nothing was extracted
                 const sampleQuestions = [
                     { questionId: "Q1", question: "Does your organization maintain a documented Information Security Management System (ISMS)?", focusArea: "Governance" },
                     { questionId: "Q2", question: "Are all customer data stores encrypted at rest using AES-256?", focusArea: "Data Protection" },
@@ -166,13 +193,49 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     success: true,
                     parsed: false,
                     source: "sample",
-                    notice: input.fileBase64
-                        ? "Document parsing is not implemented; returning sample questions. The uploaded file was not analysed."
-                        : "Document parsing is not implemented; returning sample questions.",
+                    notice: "Could not extract questions from input; returning sample questions.",
                     receivedFilename: input.filename ?? null,
                     receivedFileType: input.fileType ?? null,
                     questions: sampleQuestions,
                 };
+            }),
+
+        /**
+         * In-Place Excel Populator:
+         * Populates an uploaded .xlsx workbook in-place preserving all styling, formulas and sheets.
+         */
+        populateWorkbook: clientProcedure
+            .input(z.object({
+                fileBase64: z.string(),
+                filename: z.string().optional(),
+                sheetName: z.string().optional(),
+                maxQuestions: z.number().optional(),
+                context: z.object({
+                    companyName: z.string().optional(),
+                    cloudProvider: z.string().optional(),
+                    idp: z.string().optional(),
+                    codeHost: z.string().optional(),
+                    siemTool: z.string().optional(),
+                    pentestFrequency: z.string().optional(),
+                }).optional(),
+            }))
+            .mutation(async ({ input }: { input: any }) => {
+                try {
+                    const result = populateWorkbookInPlace(
+                        input.fileBase64,
+                        input.context || {},
+                        {
+                            maxQuestions: input.maxQuestions,
+                            sheetName: input.sheetName,
+                        }
+                    );
+                    return result;
+                } catch (err: any) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: `Failed to populate Excel workbook: ${err.message}`,
+                    });
+                }
             }),
 
         /**
