@@ -5,7 +5,7 @@ import * as schema from "../../schema";
 import { eq, and, sql, inArray, or, aliasedTable } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { llmService } from "../../lib/llm/service";
-import { cosineSimilarity } from "../../lib/utils";
+import "../../lib/utils";
 import { EmailService } from "../../lib/email/service";
 
 function cosineSimilarity(vecA: number[], vecB: number[]) {

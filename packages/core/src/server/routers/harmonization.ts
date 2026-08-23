@@ -77,8 +77,9 @@ export const createHarmonizationRouter = (t: any, protectedProcedure: any) => {
             // Get all controls to resolve string IDs to Int IDs
             // optimize: fetch only relevant controls? For now fetch all is safer or use where inArray
             const allControls = await db.select().from(schema.controls);
-            const controlsMap = new Map(allControls.map(c => [c.controlId, c]));
-            const controlsIdMap = new Map(allControls.map(c => [c.id, c]));
+            type ControlRow = typeof schema.controls.$inferSelect;
+            const controlsMap = new Map<string, ControlRow>(allControls.map(c => [c.controlId, c] as const));
+            const controlsIdMap = new Map<number, ControlRow>(allControls.map(c => [c.id, c] as const));
 
             // Get mappings
             const mappings = await db.select().from(schema.controlMappings);

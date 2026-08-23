@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
-import { eq, desc, count, and, sql, or, inArray, gte } from "drizzle-orm";
+import { eq, desc, count, and, sql, or, inArray, gte, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { loadDashboardStats, toPostureStats } from "../../lib/dashboardStats";
 
@@ -127,7 +127,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
 
         const evidenceQuery = dbConn.select({ value: count() }).from(schema.evidence);
 
-        const evidenceConditions = [];
+        const evidenceConditions: SQL<unknown>[] = [];
         if (frameworkFilter) {
           const mapped = frameworkMap[frameworkFilter] || frameworkFilter;
           const queryFws = Array.isArray(mapped) ? mapped : [mapped];
@@ -152,7 +152,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         })
           .from(schema.clientControls);
 
-        const controlStatusConditions = [];
+        const controlStatusConditions: SQL<unknown>[] = [];
 
         if (frameworkFilter) {
           const mappedFrameworks = frameworkMap[frameworkFilter] || frameworkFilter;
@@ -192,7 +192,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         })
           .from(schema.clientPolicies);
 
-        const policyStatusConditions = [];
+        const policyStatusConditions: SQL<unknown>[] = [];
         if (frameworkFilter) {
           const mappedFrameworks = frameworkMap[frameworkFilter] || frameworkFilter;
 
@@ -233,7 +233,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         })
           .from(schema.evidence);
 
-        const evidenceStatusConditions = [];
+        const evidenceStatusConditions: SQL<unknown>[] = [];
         if (frameworkFilter) {
           evidenceByStatusQuery.innerJoin(schema.clientControls, eq(schema.evidence.clientControlId, schema.clientControls.id))
             .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id));
@@ -290,7 +290,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         })
           .from(schema.clientControls);
 
-        const controlsOverviewConditions = [];
+        const controlsOverviewConditions: SQL<unknown>[] = [];
         if (effectiveClientIds !== null) {
           controlsOverviewConditions.push(inArray(schema.clientControls.clientId, effectiveClientIds));
         }
@@ -575,7 +575,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const [unmitigatedCount] = await unmitigatedRisksQuery;
         const unmitigated = Number(unmitigatedCount?.count || 0);
 
-        const insights = [];
+        const insights: Array<{ id: string; type: string; title: string; description: string; action: string; link: string }> = [];
 
         if (unmitigated > 0) {
           insights.push({

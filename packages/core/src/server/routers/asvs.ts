@@ -151,7 +151,7 @@ export const createAsvsRouter = (t: any, clientProcedure: any) => {
 
                 // 2. Get all requirements to find missing assessments (implicitly unanswered)
                 const allReqs = await dbConn.select().from(asvsRequirements);
-                const assessmentMap = new Map(assessments.map(a => [a.requirementId, a]));
+                const assessmentMap = new Map<number | null, typeof asvsAssessments.$inferSelect>(assessments.map(a => [a.requirementId, a] as const));
 
                 // Gaps are: failed, explicitly unanswered, or no record at all
                 const gaps = allReqs.filter(r => {

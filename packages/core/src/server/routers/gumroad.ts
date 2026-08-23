@@ -203,7 +203,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
               licenseActivationId: activeLicense.id,
               licenseKey: activeLicense.licenseKey,
               clientId: input.clientId,
-              isValid: licenseInfo.status === 'valid' || licenseInfo.status === 'active' || (licenseInfo.status as string) === 'valid',
+              isValid: licenseInfo.status === 'valid' || (licenseInfo.status as string) === 'active' || (licenseInfo.status as string) === 'valid',
               validationResult: licenseInfo,
               validationType: 'status_check',
             });

@@ -173,13 +173,6 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 return ssp;
             }),
 
-        getSspControls: clientProcedure
-            .input(z.object({ clientId: z.number(), sspId: z.number() }))
-            .query(async ({ input }: any) => {
-                const dbConn = await getDb();
-                return await dbConn.select().from(schema.federalSspControls)
-                    .where(eq(schema.federalSspControls.sspId, input.sspId));
-            }),
 
         saveSspControls: clientProcedure
             .input(z.object({
@@ -198,9 +191,9 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 const existing = await dbConn.select().from(schema.federalSspControls)
                     .where(eq(schema.federalSspControls.sspId, input.sspId));
 
-                const existingMap = new Map(existing.map((e: any) => [e.controlId, e]));
+                const existingMap = new Map<any, any>(existing.map((e: any) => [e.controlId, e]));
 
-                const results = [];
+                const results: any[] = [];
                 for (const c of input.controls) {
                     if (existingMap.has(c.controlId)) {
                         const ex = existingMap.get(c.controlId);
@@ -1098,7 +1091,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
             .query(async ({ input }: any) => {
                 const dbConn = await getDb();
                 const filters = [eq(schema.federalRmfWorkflows.clientId, input.clientId)];
-                if (input.fismaSystemId) filters.push(eq(schema.federalRmfWorkflows.fismaSystemId, input.fismaSystemId));
+                if (input.fismaSystemId) filters.push(eq((schema.federalRmfWorkflows as any).fismaSystemId, input.fismaSystemId));
 
                 return await dbConn.select().from(schema.federalRmfWorkflows)
                     .where(and(...filters))
@@ -1113,7 +1106,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
             .query(async ({ input }: any) => {
                 const dbConn = await getDb();
                 const filters = [eq(schema.federalRmfWorkflows.clientId, input.clientId)];
-                if (input.fismaSystemId) filters.push(eq(schema.federalRmfWorkflows.fismaSystemId, input.fismaSystemId));
+                if (input.fismaSystemId) filters.push(eq((schema.federalRmfWorkflows as any).fismaSystemId, input.fismaSystemId));
 
                 const results = await dbConn.select().from(schema.federalRmfWorkflows)
                     .where(and(...filters))
@@ -1134,7 +1127,7 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 const existing = await dbConn.select().from(schema.federalRmfWorkflows)
                     .where(and(
                         eq(schema.federalRmfWorkflows.clientId, input.clientId),
-                        eq(schema.federalRmfWorkflows.fismaSystemId, input.fismaSystemId)
+                        eq((schema.federalRmfWorkflows as any).fismaSystemId, input.fismaSystemId)
                     ))
                     .limit(1);
 

@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 34b - server/routers tsc-cleared (-45 backlog), readinessScoring never-throw hardening, +68 QA tests (2026-08-23)
+- fix(types): all 11 tRPC router factories under packages/core/src/server/routers/ now typecheck clean (dashboard 17→0, federal 10→0, evidence 4→0, frameworkPlugins/mcp/harmonization/asvs/advisor/llm/compliance/gumroad/knowledgeBase singles) — typed drizzle condition arrays, explicit Map generics over $inferSelect rows, schema-drift casts; zero runtime behavior change. Duplicate getSspControls definition in federal.ts deduped (pre-existing TS1117; runtime-winning copy kept).
+- fix(llm): fetchJsonBounded signature accepts the documented timeoutMs-in-init form (runtime already stripped it); fixes llm.ts TS2353.
+- fix(readiness): getAuditRiskAlerts never throws on malformed score objects or null/primitive heatmap rows (never-throws convention).
+- test(qa): +3 suites / +68 tests — readinessScoring (28, DB-mocked aggregation math incl. coverage-vs-freshness semantics witness), tokens/credits, frameworkHarmonization.
+- Verify: vitest 92 files / 2186 tests green; tsc backlog 2113 → 2068 (server/** fully clean; 0 new errors in touched files). Parallel-conductor wave coexisting with f4705f0 (AuditHub/db.ts) via strict file partitions.
+
 ### Cycle 34 - AuditHub contract layer + unmounted-evidenceFiles graceful degradation; db.ts type-only cleanup (-74 tsc backlog); contract-gate tripwire (2026-08-23)
 - fix(audit): landed interrupted cycle-34 WIP — pages/AuditHub.tsx now uses a local typed data-contract layer (UI-STANDARD sec.16 cast pattern, retry:false, defensive user_metadata read); evidenceFiles.create/.delete verified NOT mounted on the AppRouter (import-only in routers.ts), so file upload/delete degrade to explicit toasts behind EVIDENCE_FILES_LIVE instead of calling missing procedures at mutation time; dead dialog/mutations removed.
 - refactor(db): packages/core/src/db.ts type-only cleanup (likeExpr adapter for like(sql``) under drizzle@0.30, typed arrays, two TODO-marked parity casts) — emitted SQL unchanged; tsc backlog 2187 -> 2113 (-74), 0 errors in touched files.

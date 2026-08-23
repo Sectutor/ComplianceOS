@@ -46,7 +46,7 @@ export interface RecommendedLocalModel {
  */
 export async function fetchJsonBounded(
     url: string,
-    init: Omit<RequestInit, "signal"> = {},
+    init: Omit<RequestInit, "signal"> & { timeoutMs?: number } = {},
     timeoutMs: number = 2500,
     httpErrorLabel?: string
 ): Promise<any> {

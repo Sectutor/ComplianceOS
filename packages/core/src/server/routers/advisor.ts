@@ -239,11 +239,12 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
             }))
             .mutation(async ({ input }: any) => {
                 try {
-                    const result = await generateVendorMitigationPlan({
+                    const mitigationParams = {
                         clientId: input.clientId,
                         vendorId: input.vendorId,
                         scanId: input.scanId,
-                    });
+                    };
+                    const result = await generateVendorMitigationPlan(mitigationParams);
                     return result;
                 } catch (error: any) {
                     throw new TRPCError({
@@ -263,13 +264,14 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
             }))
             .mutation(async ({ input }: any) => {
                 try {
-                    const result = await generateRiskMitigationPlan({
+                    const riskParams = {
                         clientId: input.clientId,
                         riskTitle: input.riskTitle,
                         riskDescription: input.riskDescription,
                         riskContext: input.riskContext,
                         currentMitigations: input.currentMitigations
-                    });
+                    };
+                    const result = await generateRiskMitigationPlan(riskParams);
                     return result;
                 } catch (error: any) {
                     throw new TRPCError({

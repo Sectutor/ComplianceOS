@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { router, clientProcedure } from "../../server/trpc";
 import * as schema from "../../schema";
-import { eq, desc, and, ilike, or } from "drizzle-orm";
+import { eq, desc, and, ilike, or, type SQL } from "drizzle-orm";
 import * as db from "../../db";
 
 export const createKnowledgeBaseRouter = (t: any, clientProcedure: any) =>
@@ -18,7 +18,7 @@ export const createKnowledgeBaseRouter = (t: any, clientProcedure: any) =>
       )
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
-        const filters = [eq(schema.knowledgeBaseEntries.clientId, input.clientId)];
+        const filters: (SQL<unknown> | undefined)[] = [eq(schema.knowledgeBaseEntries.clientId, input.clientId)];
 
         if (input.search) {
           filters.push(

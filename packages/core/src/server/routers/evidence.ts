@@ -265,7 +265,7 @@ export const createEvidenceRouter = (
                 const now = new Date();
                 const [existingEvidence] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
                 
-                let expirationDate = null;
+                let expirationDate: Date | null = null;
                 if (input.status === 'verified' && existingEvidence) {
                     const days = existingEvidence.intervalDays || 365;
                     expirationDate = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -988,9 +988,9 @@ Provide a structured JSON response:
                     });
                 }
 
-                const request = await workflowAutomation.buildEvidenceRequest(evidence[0]);
+                const request = await (workflowAutomation as any).buildEvidenceRequest(evidence[0]);
                 
-                const results = [];
+                const results: boolean[] = [];
                 if (input.channel === 'slack' || input.channel === 'both') {
                     results.push(await workflowAutomation.sendSlackNotification(request));
                 }

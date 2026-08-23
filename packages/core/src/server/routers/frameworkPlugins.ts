@@ -66,7 +66,7 @@ export const createFrameworkPluginsRouter = (t: any, protectedProcedure: any) =>
                     const validated = PluginLoader.validate(pluginPackage);
                     const result = await PluginLoader.install(validated);
 
-                    return { success: true, ...result };
+                    return { success: true, ...(result as Omit<typeof result, "success">) };
 
                 } catch (error: any) {
                     console.error("Install failed:", error);
@@ -87,7 +87,7 @@ export const createFrameworkPluginsRouter = (t: any, protectedProcedure: any) =>
                     const json = JSON.parse(input.fileContent);
                     const validated = PluginLoader.validate(json);
                     const result = await PluginLoader.install(validated);
-                    return { success: true, ...result };
+                    return { success: true, ...(result as Omit<typeof result, "success">) };
                 } catch (error: any) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",

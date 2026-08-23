@@ -32,7 +32,7 @@ export const createMcpRouter = (t: any, premiumClientProcedure: any, protectedPr
                 const results = await db.select({
                     id: clients.id,
                     name: clients.name,
-                    edition: clients.edition,
+                    edition: (clients as any).edition,
                 })
                     .from(clients)
                     .innerJoin(userClients, eq(userClients.clientId, clients.id))
@@ -169,7 +169,7 @@ export const createMcpRouter = (t: any, premiumClientProcedure: any, protectedPr
             .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
                 
-                const results = [];
+                const results: (typeof projectComplianceMappings.$inferSelect)[] = [];
                 for (const controlId of input.controlIds) {
                     const mapping = await dbConn.insert(projectComplianceMappings)
                         .values({

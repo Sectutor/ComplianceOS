@@ -143,19 +143,24 @@ export const generateRiskHeatmap = async (clientId: number): Promise<RiskHeatmap
 export const getAuditRiskAlerts = (readinessScore: ReadinessScore, riskHeatmap: RiskHeatmapData[]) => {
   const alerts: string[] = [];
   
-  if (readinessScore.overall < 60) {
+  // Never-throw guard: malformed score objects compare false instead of crashing.
+  const s = (readinessScore && typeof readinessScore === 'object' ? readinessScore : {}) as Partial<ReadinessScore>;
+  if ((s.overall ?? NaN) < 60) {
     alerts.push(`Overall readiness score is critical (${readinessScore.overall}%). Immediate attention required.`);
   }
   
-  if (readinessScore.evidenceCoverage < 70) {
+  if ((s.evidenceCoverage ?? NaN) < 70) {
     alerts.push(`Evidence coverage is low (${readinessScore.evidenceCoverage}%). Many controls lack supporting evidence.`);
   }
   
-  if (readinessScore.evidenceFreshness < 80) {
+  if ((s.evidenceFreshness ?? NaN) < 80) {
     alerts.push(`Evidence freshness is concerning (${readinessScore.evidenceFreshness}%). Expired or stale evidence detected.`);
   }
   
-  const criticalRisks = riskHeatmap.filter(item => item.riskLevel === 'critical' && item.evidenceStatus !== 'verified');
+  const criticalRisks = riskHeatmap.filter(item =>
+    !!item && typeof item === 'object' &&
+    item.riskLevel === 'critical' && item.evidenceStatus !== 'verified'
+  );
   if (criticalRisks.length > 0) {
     alerts.push(`${criticalRisks.length} critical risks lack verified evidence. High audit exposure.`);
   }
