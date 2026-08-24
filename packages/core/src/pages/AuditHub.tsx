@@ -86,8 +86,6 @@ import { Slot, SlotNames } from "@/registry";
 
 import { PageGuide } from "@/components/PageGuide";
 
-const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
-
 /* ============================================================================
  * LOCAL DATA-CONTRACT LAYER - UI-STANDARD.md 16 (coordination by convention)
  * ---------------------------------------------------------------------------
