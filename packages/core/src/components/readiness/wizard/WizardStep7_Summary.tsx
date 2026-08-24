@@ -15,7 +15,7 @@ import {
     Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { Button } from "@complianceos/ui/ui/button";
@@ -118,14 +118,10 @@ export function WizardStep7_Summary({ data, standardId, onUpdate, onEditStep }: 
         setReport("");
         let fullReport = "";
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-
-            const response = await fetch('/api/ai/generate-stream', {
+            const response = await authedFetch('/api/ai/generate-stream', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     feature: 'scoping_report',
