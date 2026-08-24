@@ -84,9 +84,11 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
       .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
         const db = await getDb();
         if (!db) return { success: false };
+        const reviewerId = ctx.user?.id ? Number(ctx.user.id) : null;
+
         if (input.decision === "rejected") {
           await db.execute(sql`
-            UPDATE autopilot_actions SET status = 'rejected', reviewed_by = ${ctx.user?.id ?? 0}, reviewed_at = now()
+            UPDATE autopilot_actions SET status = 'rejected', reviewed_by = ${reviewerId}, reviewed_at = now()
             WHERE id = ${input.actionId}`);
           return { success: true, executed: false };
         }
@@ -103,22 +105,23 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
           "risk_review", "control_assessment",
         ]);
         const taskType = validTypes.has(pa.taskType) ? pa.taskType : "review";
-        const days = input.dueInDays ?? pa.dueInDays ?? 14;
+        const days = Number(input.dueInDays ?? pa.dueInDays ?? 14) || 14;
         const dueDate = new Date(Date.now() + days * 86400000);
+        const dueDateIso = dueDate.toISOString();
         const title = actionRow?.title || "Bot finding";
         const rationale = actionRow?.ai_rationale || "";
-        const targetClientId = meta.clientId ?? input.clientId ?? 0;
+        const targetClientId = Number(meta.clientId ?? input.clientId ?? 0) || 0;
 
         let delegationNote = "";
         if (input.assigneeType === "agent" && input.assignedAgent) {
-          delegationNote = `\n\n🤖 Delegated to Autonomous Agent: ${input.assignedAgent.toUpperCase()}`;
+          delegationNote = `\n\n🤖 Delegated to Autonomous Agent: ${String(input.assignedAgent).toUpperCase()}`;
         }
         if (input.customNotes) {
-          delegationNote += `\n\nReviewer Instructions:\n${input.customNotes}`;
+          delegationNote += `\n\nReviewer Instructions:\n${String(input.customNotes)}`;
         }
 
-        const assignedUserId = input.assigneeType === "user" && input.assigneeId ? input.assigneeId : null;
-        const assignedEmployeeId = input.assigneeType === "employee" && input.assigneeId ? input.assigneeId : null;
+        const assignedUserId = input.assigneeType === "user" && input.assigneeId ? Number(input.assigneeId) : null;
+        const assignedEmployeeId = input.assigneeType === "employee" && input.assigneeId ? Number(input.assigneeId) : null;
 
         await db.execute(sql`
           INSERT INTO work_items
@@ -129,10 +132,10 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
             ${("[Bot] " + title).slice(0, 240)},
             ${("Approved by human reviewer.\n\nRATIONALE:\n" + rationale + delegationNote).slice(0, 3900)},
             'task'::governance_entity_type,
-            ${dueDate}, ${assignedUserId}, ${assignedEmployeeId}, false, now(), now())`);
+            ${dueDateIso}::timestamptz, ${assignedUserId}, ${assignedEmployeeId}, false, now(), now())`);
 
         await db.execute(sql`
-          UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${ctx.user?.id ?? 0}, reviewed_at = now()
+          UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${reviewerId}, reviewed_at = now()
           WHERE id = ${input.actionId}`);
         return { success: true, executed: true };
       }),
