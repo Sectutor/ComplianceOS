@@ -3,6 +3,7 @@
  * and review the bot action inbox (approve / reject proposals).
  */
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -12,7 +13,7 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { RadioGroup, RadioGroupItem } from "@complianceos/ui/ui/radio-group";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Bot, Play, Check, X, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, Bot, Play, Check, X, AlertTriangle, Clock, ArrowRight, Sparkles } from "lucide-react";
 
 const BOT_LABELS: Record<string, string> = {
   complianceSentinel: "Compliance Sentinel — evidence expiry, control regressions, score drops",
@@ -74,6 +75,33 @@ export function AutomationSettingsTab({ clientId }: { clientId: number }) {
 
   return (
     <div className="space-y-6">
+      {/* Agent Command Center Banner */}
+      <Card className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 border-indigo-800 text-white shadow-md">
+        <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-500/30 shrink-0">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                Agent & Sentinel Command Center
+                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px]">
+                  Live on /agent
+                </Badge>
+              </h4>
+              <p className="text-xs text-indigo-200/80 mt-0.5">
+                Manage all 7 Sentinel bots, trigger live sweeps, and delegate findings to team members or autonomous AI teammates.
+              </p>
+            </div>
+          </div>
+          <Link href="/agent">
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap shadow-sm font-semibold">
+              Open Agent Center <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
       {/* Runtime configuration */}
       <Card>
         <CardHeader>

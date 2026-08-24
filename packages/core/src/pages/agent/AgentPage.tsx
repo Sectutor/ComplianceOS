@@ -33,6 +33,7 @@ import {
   X,
   Inbox,
   Users,
+  Shield,
   ShieldAlert,
   Brain
 } from 'lucide-react';
@@ -47,7 +48,10 @@ import { TeammatesFleetView } from '@/components/agent/TeammatesFleetView';
 import { ApprovalInboxView } from '@/components/agent/ApprovalInboxView';
 import { ScheduledRoutinesView } from '@/components/agent/ScheduledRoutinesView';
 import { MultiAgentChatCockpit } from '@/components/agent/MultiAgentChatCockpit';
+import { SentinelAutomationView } from '@/components/agent/SentinelAutomationView';
 import { CompanyMemoryCenter } from '../knowledge/CompanyMemoryCenter';
+import { useClientContext } from '@/contexts/ClientContext';
+import { trpc } from '@/lib/trpc';
 import {
   useAiCopilotDraftPolicy,
   useAiCopilotSuggestEvidence,
@@ -537,7 +541,16 @@ export function AgentPage() {
     ? groupedRecent.map(g => ({ ...g, items: g.items.filter(c => c.title.toLowerCase().includes(searchQ.toLowerCase())) })).filter(g => g.items.length > 0)
     : groupedRecent;
 
-  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'memory' | 'teammates' | 'approvals' | 'routines' | 'chat'>('cockpit');
+  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'sentinel' | 'memory' | 'teammates' | 'approvals' | 'routines' | 'chat'>('cockpit');
+
+  const { selectedClientId } = useClientContext();
+  const { data: clients } = trpc.clients.list.useQuery();
+  const activeClientId = selectedClientId || clients?.[0]?.id || 1;
+  const { data: pendingSentinelActions } = trpc.sentinel.listActions.useQuery(
+    { clientId: activeClientId, status: 'pending_review', limit: 50 },
+    { enabled: !!activeClientId }
+  );
+  const pendingSentinelCount = pendingSentinelActions?.length || 0;
 
   const filteredCronJobs = searchQ
     ? cronJobs.filter(c => c.name.toLowerCase().includes(searchQ.toLowerCase()))
@@ -565,6 +578,29 @@ export function AgentPage() {
             }`}>
               Hermes 3-Col
             </Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('sentinel')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeMainTab === 'sentinel'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            }`}
+          >
+            <Shield size={14} className={activeMainTab === 'sentinel' ? "text-white" : "text-indigo-600"} />
+            Sentinel & Action Inbox
+            {pendingSentinelCount > 0 ? (
+              <Badge className="bg-amber-500 text-white text-[10px] py-0 px-1.5 font-bold">
+                {pendingSentinelCount}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
+                activeMainTab === 'sentinel' ? "border-white/40 text-white" : "border-indigo-500/40 text-indigo-600 bg-indigo-500/10"
+              }`}>
+                7 Bots
+              </Badge>
+            )}
           </button>
 
           <button
@@ -646,6 +682,12 @@ export function AgentPage() {
       {activeMainTab === 'cockpit' && (
         <div className="flex-1 overflow-y-auto p-4 bg-background">
           <MultiAgentChatCockpit />
+        </div>
+      )}
+
+      {activeMainTab === 'sentinel' && (
+        <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <SentinelAutomationView clientId={activeClientId} />
         </div>
       )}
 
