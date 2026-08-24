@@ -92,6 +92,7 @@ import { createPolicyReviewRouter } from "./server/routers/policyReview";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 import { createGapAnalysisRouter } from "./server/routers/gapAnalysis";
 import { createFederalRouter } from "./server/routers/federal";
+import { createFederalWorkflowRouter } from "./server/routers/federal-workflows";
 import { createNist80030Router } from "./server/routers/nist80030";
 import { createActionsRouter } from "./server/routers/actions";
 import { createCalendarRouter } from "./server/routers/calendar";
@@ -311,6 +312,7 @@ export const appRouter = router({
   // ---------------------------------------------------------------------------
   employees: createEmployeesRouter(t, clientProcedure),
   federal: createFederalRouter(t, clientProcedure),
+  federalWorkflows: createFederalWorkflowRouter(t, clientProcedure),
   nist80030: createNist80030Router(t, clientProcedure),
   actions: createActionsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),

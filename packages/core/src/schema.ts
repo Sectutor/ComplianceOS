@@ -9979,7 +9979,7 @@ export const planExercises = pgTable("plan_exercises", {
 
   status: varchar("status", { length: 50 }).default('planned'), // planned, in_progress, completed, cancelled
 
-  outcome: varchar("outcome", { length: 50 }), // success, partial, fail
+  outcome: text("outcome"), // success, partial, fail, or free-text result notes (GAP-17 widened from varchar(50))
 
   notes: text("notes"),
 
