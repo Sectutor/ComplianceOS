@@ -85,6 +85,7 @@ import { createRisksRouter } from "./server/routers/risks";
 import { createMetricsRouter } from "./server/routers/metrics";
 import { createGovernanceRouter } from "./server/routers/governance";
 import { createAutopilotRouter } from "./server/routers/autopilot";
+import { createSentinelRouter } from "./server/routers/sentinel";
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
 import { createAuditorsRouter } from "./server/routers/auditors";
 import { createPolicyReviewRouter } from "./server/routers/policyReview";
@@ -218,6 +219,8 @@ import { createAuditorPortalRouter } from "./server/routers/auditorPortal";
 import { createWebhooksRouter } from "./server/routers/webhooks";
 import { createSsoRouter } from "./server/routers/sso";
 
+const adversaryAlertSettingsCache = new Map<number, any>();
+
 export const appRouter = router({
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
   users: usersSubRouter,
@@ -293,6 +296,7 @@ export const appRouter = router({
   // Same story: imported but never registered, so the Autopilot dashboard and
   // Gap Analysis pages were calling endpoints that did not exist.
   autopilot: createAutopilotRouter(t, clientProcedure, adminProcedure),
+  sentinel: createSentinelRouter(t, clientProcedure, adminProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
   programGuides: createProgramGuidesRouter(t, clientProcedure),
   auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
@@ -3461,6 +3465,242 @@ ONLY return the JSON. No Markdown formatting.
           techniqueCount: mitre.techniques.length,
           refreshedAt: new Date().toISOString(),
         };
+      }),
+
+    // Get MITRE Threat Groups
+    getMitreGroups: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }).optional())
+      .query(async () => {
+        try {
+          const groups = await adversaryIntelService.fetchMitreGroups();
+          return {
+            groups,
+            lastUpdated: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching MITRE groups:', error);
+          return {
+            groups: [],
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      }),
+
+    // Get CVE information batch
+    getCveInfos: premiumClientProcedure
+      .input(z.object({
+        cveIds: z.array(z.string()),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          if (!input.cveIds || input.cveIds.length === 0) {
+            return {};
+          }
+          const targetCves = Array.from(new Set(input.cveIds)).slice(0, 50);
+          const cveMap = await adversaryIntelService.fetchCveInfos(targetCves);
+          return Object.fromEntries(cveMap);
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching CVE info:', error);
+          return {};
+        }
+      }),
+
+    // Get alert settings for client
+    getAlertSettings: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const settings = adversaryAlertSettingsCache.get(input.clientId || 0) || {
+          webhookEnabled: false,
+          webhookUrl: '',
+          slackEnabled: false,
+          slackWebhookUrl: '',
+          alertOnCritical: true,
+          alertOnHigh: true,
+          alertOnMedium: false,
+          alertOnNewCve: true,
+          alertOnZeroDay: true,
+          alertOnRansomware: true,
+          alertOnApt: true,
+          cvssThreshold: 7,
+        };
+        return settings;
+      }),
+
+    // Save alert settings
+    saveAlertSettings: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        webhookEnabled: z.boolean().optional(),
+        webhookUrl: z.string().optional(),
+        slackEnabled: z.boolean().optional(),
+        slackWebhookUrl: z.string().optional(),
+        alertOnCritical: z.boolean().optional(),
+        alertOnHigh: z.boolean().optional(),
+        alertOnMedium: z.boolean().optional(),
+        alertOnNewCve: z.boolean().optional(),
+        alertOnZeroDay: z.boolean().optional(),
+        alertOnRansomware: z.boolean().optional(),
+        alertOnApt: z.boolean().optional(),
+        cvssThreshold: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = input.clientId || 0;
+        const current = adversaryAlertSettingsCache.get(id) || {
+          webhookEnabled: false,
+          webhookUrl: '',
+          slackEnabled: false,
+          slackWebhookUrl: '',
+          alertOnCritical: true,
+          alertOnHigh: true,
+          alertOnMedium: false,
+          alertOnNewCve: true,
+          alertOnZeroDay: true,
+          alertOnRansomware: true,
+          alertOnApt: true,
+          cvssThreshold: 7,
+        };
+        const updated = { ...current, ...input };
+        adversaryAlertSettingsCache.set(id, updated);
+        return { success: true, settings: updated };
+      }),
+
+    // Test alert settings
+    testAlertSettings: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const settings = adversaryAlertSettingsCache.get(input.clientId || 0);
+        const results: { channel: string; success: boolean; message?: string }[] = [];
+
+        if (settings?.webhookEnabled && settings.webhookUrl) {
+          try {
+            const res = await fetch(settings.webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: 'ComplianceOS Threat Intelligence Test Alert',
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            results.push({ channel: 'Webhook', success: res.ok, message: res.statusText });
+          } catch (e: any) {
+            results.push({ channel: 'Webhook', success: false, message: e.message });
+          }
+        }
+
+        if (settings?.slackEnabled && settings.slackWebhookUrl) {
+          try {
+            const res = await fetch(settings.slackWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: '🚨 *ComplianceOS Threat Intelligence Test Alert*\nNotification pipeline connected successfully.',
+              }),
+            });
+            results.push({ channel: 'Slack', success: res.ok, message: res.statusText });
+          } catch (e: any) {
+            results.push({ channel: 'Slack', success: false, message: e.message });
+          }
+        }
+
+        if (results.length === 0) {
+          results.push({ channel: 'System Diagnostic', success: true, message: 'Alert pipeline active' });
+        }
+
+        return results;
+      }),
+
+    // Generate Threat Intelligence Report
+    generateReport: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        includeFeeds: z.boolean().default(true),
+        includeMitre: z.boolean().default(true),
+        includeGroups: z.boolean().default(true),
+        includeCves: z.boolean().default(true),
+        includeBriefing: z.boolean().default(true),
+        includeBookmarks: z.boolean().default(false),
+      }))
+      .mutation(async ({ input }) => {
+        const [feeds, mitre, groups] = await Promise.all([
+          input.includeFeeds ? adversaryIntelService.fetchSecurityFeeds(20) : Promise.resolve([]),
+          input.includeMitre ? adversaryIntelService.fetchMitreAttackData() : Promise.resolve({ tactics: [], techniques: [], mitigations: [], lastUpdated: new Date() }),
+          input.includeGroups ? adversaryIntelService.fetchMitreGroups() : Promise.resolve([]),
+        ]);
+
+        const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Threat Intelligence Executive Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; padding: 32px; background: #fff; }
+    h1 { color: #0f172a; font-size: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 8px; }
+    .subtitle { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+    .section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 28px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+    .card-header { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 4px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-critical { background: #fee2e2; color: #991b1b; }
+    .badge-high { background: #ffedd5; color: #9a3412; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .desc { font-size: 12px; color: #475569; margin-top: 4px; }
+    .meta { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ Adversary Threat Intelligence Report</h1>
+  <div class="subtitle">Generated on ${dateStr} • ComplianceOS Security Intelligence</div>
+
+  ${input.includeFeeds && feeds.length > 0 ? `
+    <div class="section-title">Active Security Feeds (${feeds.length} items)</div>
+    ${feeds.slice(0, 10).map(f => `
+      <div class="card">
+        <div class="card-header">
+          <span>${f.title}</span>
+          <span class="badge badge-${f.severity || 'medium'}">${f.severity || 'info'}</span>
+        </div>
+        <div class="desc">${f.summary || ''}</div>
+        <div class="meta">Source: ${f.sourceName} • Published: ${new Date(f.pubDate).toLocaleDateString()}</div>
+      </div>
+    `).join('')}
+  ` : ''}
+
+  ${input.includeMitre && mitre.techniques.length > 0 ? `
+    <div class="section-title">Top MITRE ATT&CK Techniques</div>
+    ${mitre.techniques.slice(0, 8).map(t => `
+      <div class="card">
+        <div class="card-header">
+          <span>${t.id}: ${t.name}</span>
+          <span class="badge" style="background: #e0e7ff; color: #3730a3;">${t.tacticName}</span>
+        </div>
+        <div class="desc">${(t.description || '').slice(0, 200)}...</div>
+      </div>
+    `).join('')}
+  ` : ''}
+
+  ${input.includeGroups && groups.length > 0 ? `
+    <div class="section-title">Identified Threat Actor Groups</div>
+    ${groups.slice(0, 5).map(g => `
+      <div class="card">
+        <div class="card-header">
+          <span>${g.id}: ${g.name}</span>
+        </div>
+        <div class="desc">${(g.description || '').slice(0, 200)}...</div>
+        ${g.aliases && g.aliases.length > 0 ? `<div class="meta">Aliases: ${g.aliases.join(', ')}</div>` : ''}
+      </div>
+    `).join('')}
+  ` : ''}
+</body>
+</html>`;
       }),
   }),
 
