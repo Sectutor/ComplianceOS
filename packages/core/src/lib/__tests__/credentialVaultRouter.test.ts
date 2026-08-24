@@ -43,6 +43,7 @@ vi.mock("../../db", () => ({
 }));
 
 import {
+  CREDENTIAL_VAULT_DEFAULT_RATE_LIMIT_PER_MINUTE,
   createCredentialVaultRouter,
   credentialVaultActionSchema,
   credentialVaultPolicyCheckInputSchema,
@@ -344,6 +345,18 @@ describe("credentialVault router — exported zod schemas", () => {
   });
 });
 
+describe("credentialVault router — exported constants", () => {
+  it("publishes the sliding-window budget as a stable contract constant", async () => {
+    expect(CREDENTIAL_VAULT_DEFAULT_RATE_LIMIT_PER_MINUTE).toBe(30);
+    // and the live route reports exactly that budget (fresh clientId: the
+    // limiter is module-scoped, so tests never share buckets)
+    const { router } = buildFakeTRPC();
+    const first = await router.rateLimitCheck.handler({ input: { clientId: 777 }, ctx: { user: USER } });
+    expect(first.limitPerMinute).toBe(CREDENTIAL_VAULT_DEFAULT_RATE_LIMIT_PER_MINUTE);
+    expect(first.limited).toBe(false);
+  });
+});
+
 describe("credentialVault router — no-db guarantee & checklist witness", () => {
   it("the router source has no imports from any db module", () => {
     const source = readFileSync(
@@ -612,6 +625,8 @@ describe("credentialVault router — section-A zod schemas (cycle 37)", () => {
       })
     ).toBeDefined();
     expect(credentialVaultRotationScheduleInputSchema.parse({ credentials: [{ id: "x" }] })).toBeDefined();
+    // a MISSING credentials key is a distinct shape rejection from a non-array payload
+    expect(() => credentialVaultRotationScheduleInputSchema.parse({})).toThrow(ZodError);
 
     expect(() => credentialVaultRotationScheduleInputSchema.parse({ credentials: "nope" })).toThrow(ZodError);
     expect(() =>
@@ -621,6 +636,12 @@ describe("credentialVault router — section-A zod schemas (cycle 37)", () => {
       credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { defaultIntervalDays: -5 } })
     ).toThrow(ZodError);
     expect(() =>
+      credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { defaultIntervalDays: 3651 } })
+    ).toThrow(ZodError); // schema caps at 3650 even though the engine clamps to 36500
+    expect(() =>
+      credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { warnWithinDays: -1 } })
+    ).toThrow(ZodError);
+    expect(() =>
       credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { warnWithinDays: 1.5 } })
     ).toThrow(ZodError);
     expect(() =>
@@ -628,7 +649,7 @@ describe("credentialVault router — section-A zod schemas (cycle 37)", () => {
     ).toThrow(ZodError);
   });
 
-  it("expiryCheck schema parses valid shapes and rejects type mismatches", () => {
+  it("expiryCheck schema parses valid shapes", () => {
     expect(
       credentialVaultExpiryCheckInputSchema.parse({
         credentials: [],
@@ -636,12 +657,28 @@ describe("credentialVault router — section-A zod schemas (cycle 37)", () => {
         clock: LIFE_CLOCK.getTime(),
       })
     ).toBeDefined();
+    // bare-minimum shape: credentials is the only required key
+    expect(credentialVaultExpiryCheckInputSchema.parse({ credentials: [{ id: "x" }] })).toBeDefined();
+    // any string/number clock clears the schema gate (unparsable strings are
+    // degraded to "now" by the engine, not rejected here)
+    expect(credentialVaultExpiryCheckInputSchema.parse({ credentials: [], clock: "junk" })).toBeDefined();
+  });
 
+  it("expiryCheck schema rejects type mismatches and out-of-band windows", () => {
+    expect(() => credentialVaultExpiryCheckInputSchema.parse({})).toThrow(ZodError); // credentials missing
     expect(() => credentialVaultExpiryCheckInputSchema.parse({ credentials: 42 })).toThrow(ZodError);
+    expect(() => credentialVaultExpiryCheckInputSchema.parse({ credentials: { length: 0 } })).toThrow(ZodError);
     expect(() =>
       credentialVaultExpiryCheckInputSchema.parse({ credentials: [], policy: { warningWindowDays: -1 } })
     ).toThrow(ZodError);
+    expect(() =>
+      credentialVaultExpiryCheckInputSchema.parse({ credentials: [], policy: { warningWindowDays: 1.5 } })
+    ).toThrow(ZodError);
+    expect(() =>
+      credentialVaultExpiryCheckInputSchema.parse({ credentials: [], policy: { warningWindowDays: 3651 } }) // schema cap 3650
+    ).toThrow(ZodError);
     expect(() => credentialVaultExpiryCheckInputSchema.parse({ credentials: [], clock: new Date() })).toThrow(ZodError);
+    expect(() => credentialVaultExpiryCheckInputSchema.parse({ credentials: [], clock: true })).toThrow(ZodError);
   });
 
   it("allowlistEvaluate schema requires a string ip and an entries array", () => {
@@ -651,6 +688,13 @@ describe("credentialVault router — section-A zod schemas (cycle 37)", () => {
 
     expect(() => credentialVaultAllowlistEvaluateInputSchema.parse({ entries: [] })).toThrow(ZodError); // ip missing
     expect(() => credentialVaultAllowlistEvaluateInputSchema.parse({ ip: 42, entries: [] })).toThrow(ZodError);
+    expect(() => credentialVaultAllowlistEvaluateInputSchema.parse({ ip: "10.0.0.1" })).toThrow(ZodError); // entries missing
+    // an empty ip STRING still passes the schema gate: emptiness is the
+    // engine's denied-invalid verdict, not a zod concern
+    expect(credentialVaultAllowlistEvaluateInputSchema.parse({ ip: "", entries: [] })).toEqual({
+      ip: "",
+      entries: [],
+    });
     expect(() =>
       credentialVaultAllowlistEvaluateInputSchema.parse({ ip: "10.0.0.1", entries: "10.0.0.1" }) // non-array
     ).toThrow(ZodError);

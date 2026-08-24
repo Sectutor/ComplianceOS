@@ -736,6 +736,21 @@ describe("buildRotationSchedule — policy resolution", () => {
       expect(item.intervalDays, key).toBe(60);
     }
   });
+
+  it("clamps oversized intervals at the 36500-day policy ceiling (default and override)", () => {
+    // low-end clamp (-5 -> 1) is covered above; this pins the HIGH end of the
+    // documented [1, 36500] range for both defaults and per-key overrides
+    const ceiling = buildRotationSchedule([rotRow("huge", 10)], { defaultIntervalDays: 999_999 }, CLOCK).items[0];
+    expect(ceiling.intervalDays).toBe(36_500);
+    expect(ceiling.dueAt).toBe(iso(new Date(CLOCK.getTime() + 36_490 * DAY_MS))); // -10d rotated + 36500d
+
+    const overrideCeiling = buildRotationSchedule(
+      [rotRow("huge-key", 10, { policyKey: "cap" })],
+      { defaultIntervalDays: 90, overrides: { cap: Number.MAX_SAFE_INTEGER } },
+      CLOCK
+    ).items[0];
+    expect(overrideCeiling.intervalDays).toBe(36_500);
+  });
 });
 
 describe("buildRotationSchedule — ordering, summary & robustness", () => {
@@ -771,26 +786,31 @@ describe("buildRotationSchedule — ordering, summary & robustness", () => {
     });
   });
 
-  it("skips garbage rows and never throws on hostile containers", () => {
+  it("skips garbage rows while keeping well-formed ones", () => {
     const mixed = buildRotationSchedule([null, 42, "nope", [], rotRow("keeper", 10)] as never, null, CLOCK);
     expect(mixed.items).toHaveLength(1);
     expect(mixed.items[0].id).toBe("keeper");
     expect(mixed.summary.total).toBe(1);
+  });
 
-    // NOTE: an EMPTY-OBJECT row is not treated as garbage — it degrades into
-    // a structured record with unknown id/provider and status never
-    // (documented engine behaviour).
+  it("degrades an empty-object row into a structured never record", () => {
+    // NOTE: an EMPTY-OBJECT row is not treated as garbage. It degrades into a
+    // structured record with unknown id/provider and status never (documented
+    // engine behaviour).
     const blankRow = buildRotationSchedule([{}], null, CLOCK).items[0];
     expect(blankRow).toMatchObject({ id: "unknown", provider: "unknown", status: "never" });
     expect(blankRow.intervalDays).toBe(90);
+  });
 
+  it("never throws on hostile containers", () => {
     for (const hostile of [null, undefined, 42, "nope", true, {}, [null], [undefined]]) {
+      const label = JSON.stringify(hostile) ?? String(hostile); // hoisted: one stringify per case, not per assertion
       let out: unknown;
       expect(() => {
         out = buildRotationSchedule(hostile, null, CLOCK);
-      }, String(JSON.stringify(hostile))).not.toThrow();
-      expect((out as { items?: unknown }).items, String(JSON.stringify(hostile))).toEqual([]);
-      expect((out as { summary?: { total?: number } }).summary?.total, String(JSON.stringify(hostile))).toBe(0);
+      }, label).not.toThrow();
+      expect((out as { items?: unknown }).items, label).toEqual([]);
+      expect((out as { summary?: { total?: number } }).summary?.total, label).toBe(0);
     }
   });
 
@@ -1096,35 +1116,45 @@ describe("evaluateIpAgainstAllowlist", () => {
   });
 
   it("matches trailing-* wildcards on their fixed leading octets", () => {
-    // SPEC intent: "10.0.*" fixes the leading octets 10.0 and must contain
-    // 10.0.9.9 while excluding 10.1.0.1. The engine's wildcard matcher packs
-    // the fixed prefix at the LOW end of the uint32 (one shift stage short,
-    // cf. ipv4ToUint32A), so only zero-leading-octet wildcards align with the
-    // spec today — reported as deviation D2 (cf. the D1 convention above)
-    // for the engine owner to reconcile.
+    // SPEC: "10.0.*" fixes the leading octets 10.0 and must contain 10.0.9.9
+    // while excluding 10.1.0.1. The matcher packs the fixed prefix at the HIGH
+    // end of the uint32, mask-aligned exactly like the equivalent CIDR
+    // (cycle-37 fix for the formerly one-shift-stage-short packing reported as
+    // deviation D2), so wildcards agree with spec at every prefix length.
     const exclusion = evaluateIpAgainstAllowlist("10.1.0.1", ["10.0.*"]);
     expect(exclusion.allowed).toBe(false); // wrong leading octets stay excluded
 
-    // zero-prefixed wildcards agree under both interpretations:
-    const aligned = evaluateIpAgainstAllowlist("0.0.9.9", ["0.0.*"]);
-    expect(aligned.allowed).toBe(true);
-    expect(aligned.matchedBy).toBe("wildcard");
-    expect(aligned.matchedEntry).toBe("0.0.*");
-    expect(evaluateIpAgainstAllowlist("0.1.0.1", ["0.0.*"]).allowed).toBe(false);
+    const inclusion = evaluateIpAgainstAllowlist("10.0.9.9", ["10.0.*"]);
+    expect(inclusion.allowed).toBe(true);
+    expect(inclusion.matchedBy).toBe("wildcard");
+    expect(inclusion.matchedEntry).toBe("10.0.*");
 
-    // cycle 37 conductor fix: fixed prefixes are now packed at the HIGH end
-    // of the uint32 (mask-aligned), so non-zero leading-octet wildcards match
-    // their intended address family (deviation D2 reconciled):
+    // non-zero leading octets align correctly under the mask-aligned packing:
     const wholeFamily = evaluateIpAgainstAllowlist("10.200.1.9", ["10.*"]);
     expect(wholeFamily.allowed).toBe(true);
     expect(wholeFamily.matchedBy).toBe("wildcard");
     expect(wholeFamily.matchedEntry).toBe("10.*");
     expect(evaluateIpAgainstAllowlist("11.200.1.9", ["10.*"]).allowed).toBe(false);
 
-    const inclusion = evaluateIpAgainstAllowlist("10.0.9.9", ["10.0.*"]);
-    expect(inclusion.allowed).toBe(true);
-    expect(inclusion.matchedBy).toBe("wildcard");
-    expect(inclusion.matchedEntry).toBe("10.0.*");
+    // zero-prefixed wildcards agreed under BOTH packings (regression guard):
+    const aligned = evaluateIpAgainstAllowlist("0.0.9.9", ["0.0.*"]);
+    expect(aligned.allowed).toBe(true);
+    expect(aligned.matchedBy).toBe("wildcard");
+    expect(aligned.matchedEntry).toBe("0.0.*");
+    expect(evaluateIpAgainstAllowlist("0.1.0.1", ["0.0.*"]).allowed).toBe(false);
+  });
+
+  it("keeps three-octet wildcards mask-aligned (fixed /24 prefix)", () => {
+    // positive match at /24 granularity: only the wildcard's fixed /24 may win
+    const hit = evaluateIpAgainstAllowlist("10.5.5.9", ["10.5.5.*"]);
+    expect(hit.allowed).toBe(true);
+    expect(hit.matchedBy).toBe("wildcard");
+    expect(hit.matchedEntry).toBe("10.5.5.*");
+
+    const miss = evaluateIpAgainstAllowlist("10.5.6.9", ["10.5.5.*"]);
+    expect(miss.allowed).toBe(false);
+    expect(miss.matchedBy).toBeNull();
+    expect(miss.reason).toBe("Denied: no matching allowlist entry");
   });
 
   it("wins with kind precedence (exact > cidr > wildcard) regardless of entry order", () => {
