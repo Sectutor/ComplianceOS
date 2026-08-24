@@ -144,34 +144,40 @@ export function WizardStep7_Summary({ data, standardId, onUpdate, onEditStep }: 
 
             if (!reader) return;
 
+            let remainder = '';
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = (remainder + chunk).split('\n');
+                remainder = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const payload = JSON.parse(line.slice(6));
-                            if (payload.text) {
-                                const newText = payload.text;
-                                setReport(prev => prev + newText);
-                                fullReport += newText;
-                            }
-                        } catch (e) {
-                            // Ignore parse errors for partial chunks
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                    try {
+                        const payload = JSON.parse(trimmed.slice(6));
+                        if (payload.text) {
+                            const newText = payload.text;
+                            setReport(prev => prev + newText);
+                            fullReport += newText;
                         }
+                    } catch (e) {
+                        // Ignore parse errors for partial chunks
                     }
                 }
             }
 
             // Save the persistence
-            onUpdate({ ...data, scopingReport: fullReport });
-        } catch (error) {
-            toast.error("Failed to generate AI report");
-            console.error(error);
+            if (fullReport) {
+                onUpdate({ ...data, scopingReport: fullReport });
+                toast.success("Readiness Blueprint report generated successfully");
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Failed to generate AI report");
+            console.error('[ScopingReport Error]:', error);
         } finally {
             setIsGenerating(false);
         }
