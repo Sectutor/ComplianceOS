@@ -99,8 +99,8 @@ export default function BusinessImpactAnalysisEditor() {
     }, {} as Record<string, typeof bia.questions>);
 
     return (
-        <DashboardLayout>
-            <div className="p-8 max-w-5xl mx-auto space-y-6">
+        <DashboardLayout fullWidth={true}>
+            <div className="w-full space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link href={`/clients/${clientId}/business-continuity/bia`}>
@@ -126,14 +126,14 @@ export default function BusinessImpactAnalysisEditor() {
                 <div className="space-y-6">
 
                     <Tabs defaultValue="questionnaire" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
-                            <TabsTrigger value="questionnaire">1. Qualitative</TabsTrigger>
-                            <TabsTrigger value="context">2. Context & SPOF</TabsTrigger>
-                            <TabsTrigger value="timebased">3. Time-Based</TabsTrigger>
-                            <TabsTrigger value="financial">4. Financial</TabsTrigger>
-                            <TabsTrigger value="records">5. Vital Records</TabsTrigger>
-                            <TabsTrigger value="security">6. Security (CIA)</TabsTrigger>
-                            <TabsTrigger value="recovery">7. Recovery (RTO)</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto p-1 gap-1">
+                            <TabsTrigger value="questionnaire" className="py-2 text-xs sm:text-sm">1. Qualitative</TabsTrigger>
+                            <TabsTrigger value="context" className="py-2 text-xs sm:text-sm">2. Context & SPOF</TabsTrigger>
+                            <TabsTrigger value="timebased" className="py-2 text-xs sm:text-sm">3. Time-Based</TabsTrigger>
+                            <TabsTrigger value="financial" className="py-2 text-xs sm:text-sm">4. Financial</TabsTrigger>
+                            <TabsTrigger value="records" className="py-2 text-xs sm:text-sm">5. Vital Records</TabsTrigger>
+                            <TabsTrigger value="security" className="py-2 text-xs sm:text-sm">6. Security (CIA)</TabsTrigger>
+                            <TabsTrigger value="recovery" className="py-2 text-xs sm:text-sm">7. Recovery (RTO)</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="questionnaire" className="mt-6 space-y-6">
