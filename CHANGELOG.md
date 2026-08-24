@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 36 - Evidence-files attach-flow contract landed: hardened+mounted evidenceFiles router, typed Evidence.tsx contract layer, +14 tests (2026-08-24)
+- feat(evidence): evidenceFiles router hardened per contract gate - exported zod shape constants/input schemas/z.infer types for all six procedures (single source of truth), TRPCError-only throws (NOT_FOUND/CONFLICT business errors, INTERNAL_SERVER_ERROR wrap via rethrowAsInternal), bounded reads (list .limit(100), existing-links probe .limit(1)); AppRouter mount and EVIDENCE_FILES_LIVE=true now agree end-to-end on Evidence.tsx + AuditHub.tsx.
+- ui(evidence): Evidence.tsx consumes the attach flow through a local typed contract layer (evidenceApi = trpc as unknown as EvidenceApi, UI-STANDARD sec.16) with explicit "not available in this deployment" degradation copy on click/drag/change/submit paths.
+- test(qa): evidenceFilesContractGate.test.ts (8 static acceptance tests incl. mount-vs-flag tripwires; lands the cycle-35 leftover) + evidenceFilesRouterSchemas.test.ts (6 behavioral schema-parse tests over mocked db).
+- Verify: vitest 2298/2298 green (99 files); tsc backlog 1945 -> 1944 lines, 0 new errors in touched files; smoke green.
 ### Cycle 35 - ICU compact-currency fix, NL contract restored, connector CRUD + roadmap delete landed (2026-08-24)
 - fix(currency): compact notation strips ICU trailing zero deterministically ("$120.0K" -> "$120K") via trailingZeroDisplay stripIfInteger + defensive suffix-strip; +3 magnitude regression tests.
 - fix(i18n): nl/dashboard.json livePostureScore/commandInterface/governanceHealth restored to the committed test contract; all 66 locale JSONs validated; nav mapping keys verified present in all 6 locales.
