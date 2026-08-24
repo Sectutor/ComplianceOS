@@ -122,6 +122,20 @@ export class LLMService {
         // 3. Check environment variables if no valid DB providers exist
         const hasLiveProvider = providers.some(p => !this.isPlaceholderKey(p.apiKey));
         if (!hasLiveProvider) {
+            if (process.env.OPENROUTER_API_KEY && !process.env.OPENROUTER_API_KEY.includes('placeholder')) {
+                providers.unshift({
+                    id: 9990,
+                    name: 'OpenRouter (Live Env)',
+                    provider: 'openrouter',
+                    model: process.env.OPENROUTER_MODEL || 'openrouter/free',
+                    baseUrl: 'https://openrouter.ai/api/v1',
+                    apiKey: encrypt(process.env.OPENROUTER_API_KEY),
+                    isEnabled: true,
+                    priority: 101,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                } as any);
+            }
             if (process.env.DEEPSEEK_API_KEY && !process.env.DEEPSEEK_API_KEY.includes('placeholder')) {
                 providers.unshift({
                     id: 9991,
@@ -504,19 +518,43 @@ export class LLMService {
         const oldDocument = g.document;
 
         let completion: any;
-        try {
-            if (g.window) delete g.window;
-            if (g.location) delete g.location;
-            if (g.document) delete g.document;
-            completion = await client.chat.completions.create(params);
-        } finally {
-            if (oldWindow) g.window = oldWindow;
-            if (oldLocation) g.location = oldLocation;
-            if (oldDocument) g.document = oldDocument;
+        let actualModel = provider.model;
+        const candidateModels = provider.provider === 'openrouter'
+            ? [provider.model, 'openrouter/free', 'nvidia/nemotron-3-super-120b-a12b:free', 'liquid/lfm-2.5-2.6b:free'].filter((m, i, a) => !!m && a.indexOf(m) === i)
+            : [provider.model];
+
+        let lastOpenAIError: any;
+        for (const modelName of candidateModels) {
+            params.model = modelName;
+            try {
+                if (g.window) delete (global as any).window;
+                if (g.location) delete (global as any).location;
+                if (g.document) delete (global as any).document;
+                completion = await client.chat.completions.create(params);
+                actualModel = modelName;
+                break;
+            } catch (err: any) {
+                lastOpenAIError = err;
+                const errStr = (err?.message || '') + ' ' + (err?.status || '');
+                const isRateLimitOrNotFound = errStr.includes('429') || errStr.includes('404') || errStr.includes('Rate limit') || errStr.includes('unavailable');
+                if (candidateModels.length > 1 && isRateLimitOrNotFound && modelName !== candidateModels[candidateModels.length - 1]) {
+                    console.warn(`[LLMService] Model ${modelName} on ${provider.name} failed (${err.message}). Retrying with fallback model...`);
+                    continue;
+                }
+                throw err;
+            } finally {
+                if (oldWindow) (global as any).window = oldWindow;
+                if (oldLocation) (global as any).location = oldLocation;
+                if (oldDocument) (global as any).document = oldDocument;
+            }
+        }
+
+        if (!completion && lastOpenAIError) {
+            throw lastOpenAIError;
         }
 
         // Validate response is not empty
-        const text = completion.choices[0]?.message?.content;
+        const text = completion?.choices?.[0]?.message?.content;
         if (!text || text.trim().length === 0) {
             console.error(`[LLMService] Empty response from ${provider.name}`);
             throw new Error(`Empty response from LLM provider ${provider.name}. Please try again or use a different provider.`);
@@ -525,7 +563,7 @@ export class LLMService {
         return {
             text,
             provider: provider.provider,
-            model: provider.model,
+            model: actualModel,
             usage: {
                 promptTokens: completion.usage?.prompt_tokens || 0,
                 completionTokens: completion.usage?.completion_tokens || 0,
