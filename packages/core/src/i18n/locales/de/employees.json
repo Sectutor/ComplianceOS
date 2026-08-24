@@ -1,76 +1,76 @@
 {
-    "title": "Mitarbeiter & Berechtigungen",
-    "overview": "Employees Overview",
-    "list": "Employee List",
-    "add": "Add Employee",
-    "edit": "Edit Employee",
-    "delete": "Delete Employee",
-    "employeeDetails": "Employee Details",
-    "employeeProfile": "Employee Profile",
-    "personalInfo": "Personal Information",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "fullName": "Full Name",
-    "email": "Email",
-    "phone": "Phone",
-    "status": {
-        "title": "Status",
-        "active": "Active",
-        "inactive": "Inactive",
-        "onLeave": "On Leave",
-        "terminated": "Terminated",
-        "pending": "Pending"
-    },
-    "department": "Department",
-    "departments": "Departments",
-    "jobTitle": "Job Title",
-    "role": "Rolle & Zugriff",
-    "manager": "Manager",
-    "startDate": "Start Date",
-    "endDate": "End Date",
-    "location": "Location",
-    "timeZone": "Time Zone",
-    "profile": {
-        "title": "Profile",
-        "photo": "Photo",
-        "bio": "Bio",
-        "skills": "Skills",
-        "certifications": "Certifications"
-    },
-    "access": {
-        "title": "Access & Permissions",
-        "userAccount": "User Account",
-        "permissions": "Permissions",
-        "roles": "Roles",
-        "accessLevel": "Access Level"
-    },
-    "training": {
-        "title": "Training Status",
-        "completed": "Completed",
-        "inProgress": "In Progress",
-        "overdue": "Overdue",
-        "mandatory": "Mandatory Training"
-    },
-    "acknowledgments": {
-        "title": "Policy Acknowledgments",
-        "pending": "Pending Acknowledgments",
-        "acknowledged": "Acknowledged"
-    },
-    "assets": {
-        "title": "Assigned Assets",
-        "devices": "Devices",
-        "equipment": "Equipment"
-    },
-    "onboarding": {
-        "title": "Onboarding",
-        "checklist": "Onboarding Checklist",
-        "progress": "Onboarding Progress",
-        "tasks": "Onboarding Tasks",
-        "welcome": "Welcome Package"
-    },
-    "offboarding": {
-        "title": "Offboarding",
-        "checklist": "Offboarding Checklist",
-        "exitInterview": "Exit Interview"
-    }
+  "title": "Mitarbeiter & Berechtigungen",
+  "overview": "Mitarbeiterübersicht",
+  "list": "Mitarbeiterliste",
+  "add": "Mitarbeiter hinzufügen",
+  "edit": "Mitarbeiter bearbeiten",
+  "delete": "Mitarbeiter löschen",
+  "employeeDetails": "Mitarbeiterdetails",
+  "employeeProfile": "Mitarbeiterprofil",
+  "personalInfo": "Persönliche Informationen",
+  "firstName": "Vorname",
+  "lastName": "Nachname",
+  "fullName": "Vollständiger Name",
+  "email": "E-Mail",
+  "phone": "Telefon",
+  "status": {
+    "title": "Status",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "onLeave": "Beurlaubt",
+    "terminated": "Ausgeschieden",
+    "pending": "Ausstehend"
+  },
+  "department": "Abteilung",
+  "departments": "Abteilungen",
+  "jobTitle": "Position",
+  "role": "Rolle & Zugriff",
+  "manager": "Vorgesetzte:r",
+  "startDate": "Startdatum",
+  "endDate": "Enddatum",
+  "location": "Standort",
+  "timeZone": "Zeitzone",
+  "profile": {
+    "title": "Profil",
+    "photo": "Foto",
+    "bio": "Kurzbeschreibung",
+    "skills": "Fähigkeiten",
+    "certifications": "Zertifizierungen"
+  },
+  "access": {
+    "title": "Zugriff & Berechtigungen",
+    "userAccount": "Benutzerkonto",
+    "permissions": "Berechtigungen",
+    "roles": "Rollen",
+    "accessLevel": "Zugriffsebene"
+  },
+  "training": {
+    "title": "Schulungsstatus",
+    "completed": "Abgeschlossen",
+    "inProgress": "In Bearbeitung",
+    "overdue": "Überfällig",
+    "mandatory": "Pflichtschulung"
+  },
+  "acknowledgments": {
+    "title": "Richtlinienbestätigungen",
+    "pending": "Ausstehende Bestätigungen",
+    "acknowledged": "Bestätigt"
+  },
+  "assets": {
+    "title": "Zugewiesene Assets",
+    "devices": "Geräte",
+    "equipment": "Ausstattung"
+  },
+  "onboarding": {
+    "title": "Onboarding",
+    "checklist": "Onboarding-Checkliste",
+    "progress": "Onboarding-Fortschritt",
+    "tasks": "Onboarding-Aufgaben",
+    "welcome": "Willkommenspaket"
+  },
+  "offboarding": {
+    "title": "Offboarding",
+    "checklist": "Offboarding-Checkliste",
+    "exitInterview": "Ausscheidungsgespräch"
+  }
 }

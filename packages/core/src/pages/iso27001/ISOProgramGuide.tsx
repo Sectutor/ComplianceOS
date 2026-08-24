@@ -191,7 +191,7 @@ export default function ISOProgramGuide() {
     }, { enabled: !!clientId });
 
     const { data: readinessData } = trpc.compliance.getReadinessData.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: riskAssessments } = trpc.risks.listRisks.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: riskAssessments } = trpc.risks.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: assets } = trpc.assets.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: policies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: evidenceList } = trpc.evidence.list.useQuery({ clientId }, { enabled: !!clientId });

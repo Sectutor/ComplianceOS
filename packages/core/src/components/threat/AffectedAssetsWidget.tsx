@@ -82,7 +82,7 @@ export function AffectedAssetsWidget({ clientId }: AffectedAssetsWidgetProps) {
         { enabled: !!clientId }
     );
 
-    const { data: assets } = trpc.assets.getAll.useQuery(
+    const { data: assets } = trpc.assets.list.useQuery(
         { clientId },
         { enabled: !!clientId }
     );

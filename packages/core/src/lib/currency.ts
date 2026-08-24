@@ -103,8 +103,14 @@ export function formatCurrency(
         currency: targetCurrency,
         notation: "compact",
         maximumFractionDigits: 1,
-      }).format(numericAmount);
-      return options?.showCode ? `${formatted} ${targetCurrency}` : formatted;
+        // stripIfInteger postdates some TS lib targets; assert so older libs stay green
+        trailingZeroDisplay: "stripIfInteger",
+      } as Intl.NumberFormatOptions).format(numericAmount);
+      // Defensive: some ICU builds ignore stripIfInteger and emit "$120.0K";
+      // strip a lone ".0" right before a compact suffix letter, non-ASCII
+      // separator (NBSP etc.), or end of string. Compact path only.
+      const cleaned = formatted.replace(/\.0(?=[A-Za-z\u00a0-\uffff]|$)/, "");
+      return options?.showCode ? `${cleaned} ${targetCurrency}` : cleaned;
     }
 
     const minDec = options?.minimumFractionDigits !== undefined ? options.minimumFractionDigits : (numericAmount % 1 === 0 ? 0 : defaultDecimals);

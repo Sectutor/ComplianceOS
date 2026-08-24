@@ -25,7 +25,7 @@ export default function BCPProgramGuide() {
 
     const { data: processes } = trpc.businessContinuity.processes.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: exercises } = trpc.businessContinuity.exercises.listAll.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: plans } = trpc.businessContinuity.plans.listByClient.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: plans } = trpc.businessContinuity.plans.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: scenarios } = trpc.businessContinuity.scenarios.list.useQuery({ clientId }, { enabled: !!clientId });
 
     // Determine completion logic per step

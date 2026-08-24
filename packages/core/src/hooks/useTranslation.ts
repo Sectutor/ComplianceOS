@@ -45,6 +45,7 @@ export function useTranslation(namespace?: TranslationNamespace) {
 
     const currentLang = i18n.language || getCurrentLanguage() || 'en';
     const langConfig = getLanguageByCode(currentLang);
+    // RTL languages render right-to-left; Arabic and Hebrew are in supportedLanguages
     const isRtl = langConfig?.dir === 'rtl';
 
     /**

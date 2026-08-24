@@ -19,7 +19,7 @@
         "error": "Erreur",
         "success": "Succès",
         "warning": "Avertissement",
-        "info": "Information",
+        "info": "Informations",
         "confirm": "Confirmer",
         "close": "Fermer",
         "back": "Retour",
@@ -98,10 +98,10 @@
         "select": "Choisir la langue",
         "current": "Langue actuelle",
         "change": "Changer de langue",
-        "english": "English",
-        "spanish": "Spanish",
-        "french": "French",
-        "german": "German",
-        "japanese": "Japanese"
+        "english": "Anglais",
+        "spanish": "Espagnol",
+        "french": "Français",
+        "german": "Allemand",
+        "japanese": "Japonais"
     }
 }

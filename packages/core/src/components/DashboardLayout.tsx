@@ -135,6 +135,20 @@ export function translateNavLabel(label: string, t: (key: string, options?: any)
     "Profile": "navigation:profile",
     "Sign out": "navigation:logout",
     "Logout": "navigation:logout",
+    "Client Onboarding": "navigation:clientOnboarding",
+    "Administration": "navigation:administration",
+    "Organizations": "navigation:organizations",
+    "User Management": "navigation:userManagement",
+    "User Invitations": "navigation:userInvitations",
+    "Audit Logs": "navigation:auditLogs",
+    "LLM Settings": "navigation:llmSettings",
+    "Billing": "navigation:billing",
+    "Waitlist Management": "navigation:waitlistManagement",
+    "Global CRM": "navigation:globalCrm",
+    "System Feedback": "navigation:systemFeedback",
+    "Advisor Workbench": "navigation:advisorWorkbench",
+    "Activity Log": "navigation:activityLog",
+    "All Clients Directory": "navigation:allClientsDirectory",
   };
 
   const mappedKey = labelMap[label];

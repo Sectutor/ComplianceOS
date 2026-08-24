@@ -74,5 +74,19 @@
     "breadcrumb": {
         "home": "Home",
         "dashboard": "Dashboard"
-    }
+    },
+    "clientOnboarding": "Client Onboarding",
+    "administration": "Administration",
+    "organizations": "Organizations",
+    "userManagement": "User Management",
+    "userInvitations": "User Invitations",
+    "auditLogs": "Audit Logs",
+    "llmSettings": "LLM Settings",
+    "billing": "Billing",
+    "waitlistManagement": "Waitlist Management",
+    "globalCrm": "Global CRM",
+    "systemFeedback": "System Feedback",
+    "advisorWorkbench": "Advisor Workbench",
+    "activityLog": "Activity Log",
+    "allClientsDirectory": "All Clients Directory"
 }

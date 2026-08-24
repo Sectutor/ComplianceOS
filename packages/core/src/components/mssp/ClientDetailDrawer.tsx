@@ -129,7 +129,7 @@ export function ClientDetailDrawer({ clientId, onClose }: ClientDetailDrawerProp
   const open = clientId !== null;
 
   // Fetch client details
-  const clientQuery = trpc.clients.getById.useQuery(
+  const clientQuery = trpc.clients.get.useQuery(
     { id: clientId! },
     { enabled: open }
   );

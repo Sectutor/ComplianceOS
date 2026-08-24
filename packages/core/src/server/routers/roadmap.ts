@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, and, desc, asc, ne, sql, count } from "drizzle-orm";
@@ -115,6 +116,18 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
             return dbConn.select().from(schema.remediationPlans)
                 .where(eq(schema.remediationPlans.clientId, input.clientId))
                 .orderBy(desc(schema.remediationPlans.createdAt));
+        }),
+
+    // Delete a roadmap plan (RoadmapDashboard delete button)
+    delete: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input }: any) => {
+            const dbConn = await getDb();
+            const [deleted] = await dbConn.delete(schema.remediationPlans)
+                .where(eq(schema.remediationPlans.id, Number(input.id)))
+                .returning();
+            if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Roadmap not found" });
+            return { success: true, id: deleted.id };
         }),
 
     // Get full plan details

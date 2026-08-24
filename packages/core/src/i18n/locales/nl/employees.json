@@ -1,76 +1,76 @@
 {
     "title": "Medewerkers & Autorisaties",
-    "overview": "Employees Overview",
-    "list": "Employee List",
-    "add": "Add Employee",
-    "edit": "Edit Employee",
-    "delete": "Delete Employee",
-    "employeeDetails": "Employee Details",
-    "employeeProfile": "Employee Profile",
-    "personalInfo": "Personal Information",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "fullName": "Full Name",
-    "email": "Email",
-    "phone": "Phone",
+    "overview": "Overzicht medewerkers",
+    "list": "Lijst medewerkers",
+    "add": "Medewerker toevoegen",
+    "edit": "Medewerker bewerken",
+    "delete": "Medewerker verwijderen",
+    "employeeDetails": "Details medewerker",
+    "employeeProfile": "Profiel medewerker",
+    "personalInfo": "Persoonlijke gegevens",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "fullName": "Volledige naam",
+    "email": "E-mail",
+    "phone": "Telefoon",
     "status": {
         "title": "Status",
-        "active": "Active",
-        "inactive": "Inactive",
-        "onLeave": "On Leave",
-        "terminated": "Terminated",
-        "pending": "Pending"
+        "active": "Actief",
+        "inactive": "Inactief",
+        "onLeave": "Met verlof",
+        "terminated": "Ontslagen",
+        "pending": "In afwachting"
     },
-    "department": "Department",
-    "departments": "Departments",
-    "jobTitle": "Job Title",
+    "department": "Afdeling",
+    "departments": "Afdelingen",
+    "jobTitle": "Functietitel",
     "role": "Rol & Rechten",
     "manager": "Manager",
-    "startDate": "Start Date",
-    "endDate": "End Date",
-    "location": "Location",
-    "timeZone": "Time Zone",
+    "startDate": "Startdatum",
+    "endDate": "Einddatum",
+    "location": "Locatie",
+    "timeZone": "Tijdzone",
     "profile": {
-        "title": "Profile",
-        "photo": "Photo",
+        "title": "Profiel",
+        "photo": "Foto",
         "bio": "Bio",
-        "skills": "Skills",
-        "certifications": "Certifications"
+        "skills": "Vaardigheden",
+        "certifications": "Certificeringen"
     },
     "access": {
-        "title": "Access & Permissions",
-        "userAccount": "User Account",
-        "permissions": "Permissions",
-        "roles": "Roles",
-        "accessLevel": "Access Level"
+        "title": "Toegang en machtigingen",
+        "userAccount": "Gebruikersaccount",
+        "permissions": "Machtigingen",
+        "roles": "Rollen",
+        "accessLevel": "Toegangsniveau"
     },
     "training": {
-        "title": "Training Status",
-        "completed": "Completed",
-        "inProgress": "In Progress",
-        "overdue": "Overdue",
-        "mandatory": "Mandatory Training"
+        "title": "Trainingsstatus",
+        "completed": "Voltooid",
+        "inProgress": "Bezig",
+        "overdue": "Achterstallig",
+        "mandatory": "Verplichte training"
     },
     "acknowledgments": {
-        "title": "Policy Acknowledgments",
-        "pending": "Pending Acknowledgments",
-        "acknowledged": "Acknowledged"
+        "title": "Bevestigingen van beleid",
+        "pending": "Openstaande bevestigingen",
+        "acknowledged": "Bevestigd"
     },
     "assets": {
-        "title": "Assigned Assets",
-        "devices": "Devices",
-        "equipment": "Equipment"
+        "title": "Toegekende middelen",
+        "devices": "Apparaten",
+        "equipment": "Apparatuur"
     },
     "onboarding": {
         "title": "Onboarding",
-        "checklist": "Onboarding Checklist",
-        "progress": "Onboarding Progress",
-        "tasks": "Onboarding Tasks",
-        "welcome": "Welcome Package"
+        "checklist": "Onboarding-checklist",
+        "progress": "Onboarding-voortgang",
+        "tasks": "Onboarding-taken",
+        "welcome": "Welkomstpakket"
     },
     "offboarding": {
         "title": "Offboarding",
-        "checklist": "Offboarding Checklist",
-        "exitInterview": "Exit Interview"
+        "checklist": "Offboarding-checklist",
+        "exitInterview": "Exitgesprek"
     }
 }

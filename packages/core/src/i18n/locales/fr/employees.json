@@ -1,76 +1,76 @@
 {
     "title": "Collaborateurs & Accès",
-    "overview": "Employees Overview",
-    "list": "Employee List",
-    "add": "Add Employee",
-    "edit": "Edit Employee",
-    "delete": "Delete Employee",
-    "employeeDetails": "Employee Details",
-    "employeeProfile": "Employee Profile",
-    "personalInfo": "Personal Information",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "fullName": "Full Name",
-    "email": "Email",
-    "phone": "Phone",
+    "overview": "Vue d'ensemble des employés",
+    "list": "Liste des employés",
+    "add": "Ajouter un employé",
+    "edit": "Modifier l'employé",
+    "delete": "Supprimer l'employé",
+    "employeeDetails": "Détails de l'employé",
+    "employeeProfile": "Profil de l'employé",
+    "personalInfo": "Informations personnelles",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "fullName": "Nom complet",
+    "email": "E-mail",
+    "phone": "Téléphone",
     "status": {
-        "title": "Status",
-        "active": "Active",
-        "inactive": "Inactive",
-        "onLeave": "On Leave",
-        "terminated": "Terminated",
-        "pending": "Pending"
+        "title": "Statut",
+        "active": "Actif",
+        "inactive": "Inactif",
+        "onLeave": "En congé",
+        "terminated": "Licencié",
+        "pending": "En attente"
     },
-    "department": "Department",
-    "departments": "Departments",
-    "jobTitle": "Job Title",
+    "department": "Département",
+    "departments": "Départements",
+    "jobTitle": "Poste",
     "role": "Rôle & Habilitations",
-    "manager": "Manager",
-    "startDate": "Start Date",
-    "endDate": "End Date",
-    "location": "Location",
-    "timeZone": "Time Zone",
+    "manager": "Responsable",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "location": "Lieu",
+    "timeZone": "Fuseau horaire",
     "profile": {
-        "title": "Profile",
+        "title": "Profil",
         "photo": "Photo",
-        "bio": "Bio",
-        "skills": "Skills",
+        "bio": "Biographie",
+        "skills": "Compétences",
         "certifications": "Certifications"
     },
     "access": {
-        "title": "Access & Permissions",
-        "userAccount": "User Account",
-        "permissions": "Permissions",
-        "roles": "Roles",
-        "accessLevel": "Access Level"
+        "title": "Accès et autorisations",
+        "userAccount": "Compte utilisateur",
+        "permissions": "Autorisations",
+        "roles": "Rôles",
+        "accessLevel": "Niveau d'accès"
     },
     "training": {
-        "title": "Training Status",
-        "completed": "Completed",
-        "inProgress": "In Progress",
-        "overdue": "Overdue",
-        "mandatory": "Mandatory Training"
+        "title": "Statut de formation",
+        "completed": "Terminé",
+        "inProgress": "En cours",
+        "overdue": "En retard",
+        "mandatory": "Formation obligatoire"
     },
     "acknowledgments": {
-        "title": "Policy Acknowledgments",
-        "pending": "Pending Acknowledgments",
-        "acknowledged": "Acknowledged"
+        "title": "Accusés de réception des politiques",
+        "pending": "Accusés en attente",
+        "acknowledged": "Accusé réception"
     },
     "assets": {
-        "title": "Assigned Assets",
-        "devices": "Devices",
-        "equipment": "Equipment"
+        "title": "Actifs attribués",
+        "devices": "Appareils",
+        "equipment": "Équipement"
     },
     "onboarding": {
-        "title": "Onboarding",
-        "checklist": "Onboarding Checklist",
-        "progress": "Onboarding Progress",
-        "tasks": "Onboarding Tasks",
-        "welcome": "Welcome Package"
+        "title": "Intégration",
+        "checklist": "Liste d'intégration",
+        "progress": "Progression de l'intégration",
+        "tasks": "Tâches d'intégration",
+        "welcome": "Kit de bienvenue"
     },
     "offboarding": {
-        "title": "Offboarding",
-        "checklist": "Offboarding Checklist",
-        "exitInterview": "Exit Interview"
+        "title": "Départ",
+        "checklist": "Liste de départ",
+        "exitInterview": "Entretien de sortie"
     }
 }

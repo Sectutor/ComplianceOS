@@ -98,10 +98,10 @@
         "select": "Seleccionar idioma",
         "current": "Idioma actual",
         "change": "Cambiar idioma",
-        "english": "English",
-        "spanish": "Spanish",
-        "french": "French",
-        "german": "German",
-        "japanese": "Japanese"
+        "english": "Inglés",
+        "spanish": "Español",
+        "french": "Francés",
+        "german": "Alemán",
+        "japanese": "Japonés"
     }
 }

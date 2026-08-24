@@ -98,10 +98,10 @@
         "select": "Taal selecteren",
         "current": "Huidige taal",
         "change": "Taal wijzigen",
-        "english": "English",
-        "spanish": "Spanish",
-        "french": "French",
-        "german": "German",
-        "japanese": "Japanese"
+        "english": "Engels",
+        "spanish": "Spaans",
+        "french": "Frans",
+        "german": "Duits",
+        "japanese": "Japans"
     }
 }

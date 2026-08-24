@@ -42,7 +42,7 @@ export default function RiskRegister() {
         { enabled: !!clientId }
     );
 
-    const { data: scenarios, isLoading: loadingScenarios, refetch: refetchScenarios } = trpc.risks.getAssessments.useQuery(
+    const { data: scenarios, isLoading: loadingScenarios, refetch: refetchScenarios } = trpc.risks.getRiskAssessments.useQuery(
         { clientId },
         { enabled: !!clientId }
     );

@@ -1,76 +1,76 @@
 {
-    "title": "Employee Management",
-    "overview": "Employees Overview",
-    "list": "Employee List",
-    "add": "Add Employee",
-    "edit": "Edit Employee",
-    "delete": "Delete Employee",
-    "employeeDetails": "Employee Details",
-    "employeeProfile": "Employee Profile",
-    "personalInfo": "Personal Information",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "fullName": "Full Name",
+    "title": "Gestione dipendenti",
+    "overview": "Panoramica dipendenti",
+    "list": "Elenco dipendenti",
+    "add": "Aggiungi dipendente",
+    "edit": "Modifica dipendente",
+    "delete": "Elimina dipendente",
+    "employeeDetails": "Dettagli dipendente",
+    "employeeProfile": "Profilo dipendente",
+    "personalInfo": "Informazioni personali",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "fullName": "Nome completo",
     "email": "Email",
-    "phone": "Phone",
+    "phone": "Telefono",
     "status": {
-        "title": "Status",
-        "active": "Active",
-        "inactive": "Inactive",
-        "onLeave": "On Leave",
-        "terminated": "Terminated",
-        "pending": "Pending"
+        "title": "Stato",
+        "active": "Attivo",
+        "inactive": "Inattivo",
+        "onLeave": "In ferie",
+        "terminated": "Licenziato",
+        "pending": "In attesa"
     },
-    "department": "Department",
-    "departments": "Departments",
-    "jobTitle": "Job Title",
-    "role": "Role",
-    "manager": "Manager",
-    "startDate": "Start Date",
-    "endDate": "End Date",
-    "location": "Location",
-    "timeZone": "Time Zone",
+    "department": "Dipartimento",
+    "departments": "Dipartimenti",
+    "jobTitle": "Posizione",
+    "role": "Ruolo",
+    "manager": "Responsabile",
+    "startDate": "Data di inizio",
+    "endDate": "Data di fine",
+    "location": "Sede",
+    "timeZone": "Fuso orario",
     "profile": {
-        "title": "Profile",
-        "photo": "Photo",
-        "bio": "Bio",
-        "skills": "Skills",
-        "certifications": "Certifications"
+        "title": "Profilo",
+        "photo": "Foto",
+        "bio": "Biografia",
+        "skills": "Competenze",
+        "certifications": "Certificazioni"
     },
     "access": {
-        "title": "Access & Permissions",
-        "userAccount": "User Account",
-        "permissions": "Permissions",
-        "roles": "Roles",
-        "accessLevel": "Access Level"
+        "title": "Accessi e permessi",
+        "userAccount": "Account utente",
+        "permissions": "Permessi",
+        "roles": "Ruoli",
+        "accessLevel": "Livello di accesso"
     },
     "training": {
-        "title": "Training Status",
-        "completed": "Completed",
-        "inProgress": "In Progress",
-        "overdue": "Overdue",
-        "mandatory": "Mandatory Training"
+        "title": "Stato formazione",
+        "completed": "Completato",
+        "inProgress": "In corso",
+        "overdue": "In ritardo",
+        "mandatory": "Formazione obbligatoria"
     },
     "acknowledgments": {
-        "title": "Policy Acknowledgments",
-        "pending": "Pending Acknowledgments",
-        "acknowledged": "Acknowledged"
+        "title": "Ricevute delle politiche",
+        "pending": "Ricevute in attesa",
+        "acknowledged": "Preso visione"
     },
     "assets": {
-        "title": "Assigned Assets",
-        "devices": "Devices",
-        "equipment": "Equipment"
+        "title": "Asset assegnati",
+        "devices": "Dispositivi",
+        "equipment": "Attrezzature"
     },
     "onboarding": {
         "title": "Onboarding",
-        "checklist": "Onboarding Checklist",
-        "progress": "Onboarding Progress",
-        "tasks": "Onboarding Tasks",
-        "welcome": "Welcome Package"
+        "checklist": "Checklist onboarding",
+        "progress": "Avanzamento onboarding",
+        "tasks": "Attività onboarding",
+        "welcome": "Kit di benvenuto"
     },
     "offboarding": {
         "title": "Offboarding",
-        "checklist": "Offboarding Checklist",
-        "exitInterview": "Exit Interview"
+        "checklist": "Checklist offboarding",
+        "exitInterview": "Colloquio di uscita"
     }
 }

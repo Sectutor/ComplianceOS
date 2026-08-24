@@ -13,6 +13,13 @@ describe("Universal Currency & Localization Utility", () => {
     expect(formatted).toBe("$120K");
   });
 
+  it("formats compact USD amounts deterministically across magnitudes (no trailing zero)", () => {
+    // Regression guard: ICU trailing-zero drift must never reintroduce "$120.0K"-style output.
+    expect(formatCurrency(120000, "USD", "en-US", { compact: true })).toBe("$120K");
+    expect(formatCurrency(1200000, "USD", "en-US", { compact: true })).toBe("$1.2M");
+    expect(formatCurrency(12000000, "USD", "en-US", { compact: true })).toBe("$12M");
+  });
+
   it("formats European EUR amounts with locale", () => {
     const formatted = formatCurrency(14280, "EUR", "de-DE");
     expect(formatted).toContain("14.280");

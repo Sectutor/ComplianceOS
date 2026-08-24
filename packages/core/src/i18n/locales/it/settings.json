@@ -1,68 +1,68 @@
 {
-    "title": "Settings",
-    "overview": "Settings Overview",
-    "general": "General Settings",
-    "account": "Account Settings",
-    "security": "Security Settings",
-    "notifications": "Notification Settings",
-    "preferences": "Preferences",
+    "title": "Impostazioni",
+    "overview": "Panoramica impostazioni",
+    "general": "Impostazioni generali",
+    "account": "Impostazioni account",
+    "security": "Impostazioni di sicurezza",
+    "notifications": "Impostazioni notifiche",
+    "preferences": "Preferenze",
     "profile": {
-        "title": "Profile Settings",
-        "personalInfo": "Personal Information",
-        "changePassword": "Change Password",
-        "changeEmail": "Change Email",
-        "twoFactor": "Two-Factor Authentication",
+        "title": "Impostazioni profilo",
+        "personalInfo": "Informazioni personali",
+        "changePassword": "Cambia password",
+        "changeEmail": "Cambia email",
+        "twoFactor": "Autenticazione a due fattori",
         "avatar": "Avatar"
     },
     "organization": {
-        "title": "Organization Settings",
-        "companyInfo": "Company Information",
+        "title": "Impostazioni organizzazione",
+        "companyInfo": "Informazioni azienda",
         "branding": "Branding",
         "logo": "Logo",
-        "colors": "Colors",
-        "theme": "Theme"
+        "colors": "Colori",
+        "theme": "Tema"
     },
     "users": {
-        "title": "User Management",
-        "addUser": "Add User",
-        "editUser": "Edit User",
-        "userList": "User List",
-        "roles": "Roles",
-        "permissions": "Permissions",
-        "inviteUser": "Invite User"
+        "title": "Gestione utenti",
+        "addUser": "Aggiungi utente",
+        "editUser": "Modifica utente",
+        "userList": "Elenco utenti",
+        "roles": "Ruoli",
+        "permissions": "Permessi",
+        "inviteUser": "Invita utente"
     },
     "billing": {
-        "title": "Billing & Subscription",
-        "subscription": "Subscription",
-        "paymentMethod": "Payment Method",
-        "invoices": "Invoices",
-        "usage": "Usage"
+        "title": "Fatturazione e abbonamento",
+        "subscription": "Abbonamento",
+        "paymentMethod": "Metodo di pagamento",
+        "invoices": "Fatture",
+        "usage": "Utilizzo"
     },
     "integrations": {
-        "title": "Integrations",
-        "available": "Available Integrations",
-        "connected": "Connected",
-        "configure": "Configure"
+        "title": "Integrazioni",
+        "available": "Integrazioni disponibili",
+        "connected": "Connesso",
+        "configure": "Configura"
     },
     "api": {
-        "title": "API Settings",
-        "apiKeys": "API Keys",
-        "webhooks": "Webhooks",
-        "oauth": "OAuth Apps"
+        "title": "Impostazioni API",
+        "apiKeys": "Chiavi API",
+        "webhooks": "Webhook",
+        "oauth": "App OAuth"
     },
     "audit": {
-        "title": "Audit Logs",
-        "viewLogs": "View Audit Logs",
-        "exportLogs": "Export Logs"
+        "title": "Log di audit",
+        "viewLogs": "Visualizza log di audit",
+        "exportLogs": "Esporta log"
     },
     "language": {
-        "title": "Language & Region",
-        "language": "Language",
-        "timezone": "Timezone",
-        "dateFormat": "Date Format",
-        "currency": "Currency"
+        "title": "Lingua e regione",
+        "language": "Lingua",
+        "timezone": "Fuso orario",
+        "dateFormat": "Formato data",
+        "currency": "Valuta"
     },
-    "save": "Save Changes",
-    "cancel": "Cancel",
-    "reset": "Reset to Default"
+    "save": "Salva modifiche",
+    "cancel": "Annulla",
+    "reset": "Ripristina predefiniti"
 }
