@@ -434,7 +434,7 @@ export class AutopilotEngine {
           ${dueDate}, false, now(), now())`);
       console.log(`[Autopilot] Work item created from approved action #${action.id}`);
     } catch (e: any) {
-      console.warn(`[Autopilot] executeAction failed for #${action.id}: ${e.message}`);
+      console.error(`[Autopilot] executeAction failed for #${action.id}:`, e);
     }
   }
 }
