@@ -6,7 +6,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Shield, CheckSquare, Link as LinkIcon, ClipboardCheck, AlertTriangle, FileText, ArrowRight, LayoutDashboard, BookOpen, Download, Loader2, FileDown } from "lucide-react";
+import { Shield, CheckSquare, Link as LinkIcon, ClipboardCheck, AlertTriangle, FileText, ArrowRight, LayoutDashboard, BookOpen, Download, Loader2, FileDown, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { ChecklistProgressWidget } from "@/components/readiness/ChecklistProgressWidget";
