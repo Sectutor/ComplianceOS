@@ -12,18 +12,25 @@ export function lazyLoad(importFn: () => Promise<{ default: ComponentType<any> }
     try {
       const result = await importFn();
       window.sessionStorage.removeItem(key);
+      if (!result || typeof (result as any).default === 'undefined') {
+        console.error('Lazy load module missing default export:', result);
+        throw new Error('Lazy loaded module does not have a default export');
+      }
       return result;
     } catch (error: any) {
       // Check if it's a dynamic import error (ChunkLoadError or network failure)
       const isChunkError = 
         error.name === 'ChunkLoadError' || 
         error.message?.includes('Failed to fetch dynamically imported module') ||
-        error.message?.includes('loading dynamically imported module');
+        error.message?.includes('loading dynamically imported module') ||
+        error.message?.includes('NetworkError');
 
       if (isChunkError && !hasRetried) {
         console.warn('Chunk loading failed. Retrying once...', error);
         window.sessionStorage.setItem(key, 'true');
-        return window.location.reload() as any;
+        window.location.reload();
+        // Return a pending promise so React stays in Suspense state while page reloads
+        return new Promise<{ default: ComponentType<any> }>(() => {});
       }
 
       console.error('Lazy load failed completely:', error);
@@ -31,3 +38,4 @@ export function lazyLoad(importFn: () => Promise<{ default: ComponentType<any> }
     }
   });
 }
+
