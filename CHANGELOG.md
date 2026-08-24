@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 36b - Connectors auth hardening: admin-gated connector mutations, factory router, typed ConnectorManager contract layer, +13 tests (2026-08-24)
+- feat(connectors): connectors router converted to the house factory `createConnectorsRouter(t, adminProcedure, publicProcedure)`; state-changing mutations (runAll, runProvider, install, uninstall, run) moved from publicProcedure to adminProcedure; reads stay public; exported reusable zod input schemas/types; listTypes/listInstalled reads bounded (.limit(100)); no console.log, no bare Error throws; return shapes unchanged.
+- ui(connectors): ConnectorManager.tsx consumes the router through a UI-STANDARD sec.16 typed data-contract layer (connectorsApi cast; factory typing had collapsed client-side inference); auth-aware mutation error toasts ("You don't have permission to manage connectors." on UNAUTHORIZED/FORBIDDEN); token purity fix (text-gray-400 -> text-muted-foreground).
+- test(qa): new connectorsAuthGate.test.ts (13 tests) - static source gate (factory signature, exact 10-route/kind map, routers.ts mount tripwire, bounded reads incl. SQL-level LIMIT + single-row aggregates, no bare throws/console.log) + behavioral schema-contract layer over mocked db/collectors.
+- Verify: vitest 2298 -> 2311 green (99 -> 100 files); tsc backlog 1945 -> 1938 error lines, 0 new errors in touched files; smoke green.
 ### Cycle 36 - Evidence-files attach-flow contract landed: hardened+mounted evidenceFiles router, typed Evidence.tsx contract layer, +14 tests (2026-08-24)
 - feat(evidence): evidenceFiles router hardened per contract gate - exported zod shape constants/input schemas/z.infer types for all six procedures (single source of truth), TRPCError-only throws (NOT_FOUND/CONFLICT business errors, INTERNAL_SERVER_ERROR wrap via rethrowAsInternal), bounded reads (list .limit(100), existing-links probe .limit(1)); AppRouter mount and EVIDENCE_FILES_LIVE=true now agree end-to-end on Evidence.tsx + AuditHub.tsx.
 - ui(evidence): Evidence.tsx consumes the attach flow through a local typed contract layer (evidenceApi = trpc as unknown as EvidenceApi, UI-STANDARD sec.16) with explicit "not available in this deployment" degradation copy on click/drag/change/submit paths.
