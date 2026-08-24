@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 39 - Incidents REST surface landed (/api/v1), GAP-18 closed + incident-reporting token purity (2026-08-24)
+- feat(api): GET /api/v1/incidents (filters clientId/status/severity enum-validated, limit default 100 cap 200, offset pagination, bounded reads, {data,total}, 400 BAD_REQUEST / 500 INTERNAL_ERROR) + GET /api/v1/incidents/:id (400/404/500 conventions) appended to api-v1.ts under the shared api-key middleware; interrupted partial pass in-file repaired (cap 500->200, offset added). Closes GAP-LOG GAP-18 - incident data was DB-only, blocking the evidence-auto-collector and external bridges.
+- ui(cyber): CyberIncidentReporting.tsx token-only conversion per UI-STANDARD sec.2 (54 raw slate/white class refs -> semantic tokens; className-only, logic untouched).
+- test(qa): +apiV1IncidentsContract.test.ts (static route/auth/error-code source gate + incident pgEnum schema contract; 29 tests). Verify: partition vitest 49/49 green, tsc 0 new errors in touched files, smoke green; commit 1f510b6 pushed to origin/dev + github/dev. Parallel-session WIP (GAP-17 schema widening, federal-workflows tests, its own incidents harness) detected mid-cycle and preserved uncommitted.
 ### Cycle 38 - Sentinel Bots / Agent Runtime Phase 1 salvaged & landed, +43 contract/pure tests (2026-08-24)
 - feat(agents): interrupted-cycle WIP salvaged and landed as ddf4746 - `sentinel` tRPC router (runNow / listActions inbox / reviewSentinelAction approve-executes-proposal / escalationSweep / sendDigestNow / admin start-stop-status lifecycle) wired into appRouter; agent-runtime heartbeat started from server_entry on listen; Settings > Automation tab UI by the parallel owner session.
 - fix(runtime): conductor/backend-agent compile fixes - `SentinelBot` interface gains optional `detectScoreDrop(previousScore, currentScore)` member (bots/types.ts); agentRuntime moduleSummary widened to accept bot error markers `{findings:-1, error}`.
