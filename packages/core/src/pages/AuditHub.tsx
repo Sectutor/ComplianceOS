@@ -585,6 +585,9 @@ export default function AuditHub() {
         total: auditRequests.length,
         accepted: auditRequests.filter(r => r.status === 'Accepted').length,
         review: auditRequests.filter(r => r.status === 'In Review').length,
+        open: auditRequests.filter(r => r.status === 'Open').length,
+    };
+
     const progress = stats.total > 0 ? Math.round((stats.accepted / stats.total) * 100) : 0;
 
     const getStatusBadge = (status: string) => {
