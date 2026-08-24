@@ -6,12 +6,14 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@complianceos/ui/ui/button";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { Shield, CheckSquare, Link as LinkIcon, ClipboardCheck, AlertTriangle, FileText, ArrowRight, LayoutDashboard, BookOpen } from "lucide-react";
-import { useMemo } from "react";
+import { Shield, CheckSquare, Link as LinkIcon, ClipboardCheck, AlertTriangle, FileText, ArrowRight, LayoutDashboard, BookOpen, Download, Loader2, FileDown } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { ChecklistProgressWidget } from "@/components/readiness/ChecklistProgressWidget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@complianceos/ui/ui/dialog";
 import Markdown from "react-markdown";
+import { generateScopingReportDocx } from "@/lib/docx/generate-scoping-docx";
+import { toast } from "sonner";
 
 interface ClientCompliancePageProps {
     id?: string;
@@ -32,6 +34,26 @@ export default function ClientCompliancePage(props?: ClientCompliancePageProps) 
     const { data: assessments } = trpc.readiness.list.useQuery({ clientId }, { enabled: clientId > 0 });
 
     const readinessState = useMemo(() => assessments?.find(a => !!a.scopingReport), [assessments]);
+    const [isExportingDocx, setIsExportingDocx] = useState(false);
+
+    const handleExportDocx = async () => {
+        if (!readinessState?.scopingReport) return;
+        setIsExportingDocx(true);
+        try {
+            await generateScopingReportDocx({
+                reportMarkdown: readinessState.scopingReport,
+                standardId: readinessState.standardId || "Compliance",
+                clientName: client?.name,
+                organizationName: client?.name || "Organization"
+            });
+            toast.success("DOCX document exported successfully");
+        } catch (error: any) {
+            console.error('[DOCX Export Error]:', error);
+            toast.error(error.message || "Failed to export DOCX document");
+        } finally {
+            setIsExportingDocx(false);
+        }
+    };
 
     const loading = clientLoading || scoreLoading || coverageLoading || controlsLoading;
 
@@ -79,16 +101,31 @@ export default function ClientCompliancePage(props?: ClientCompliancePageProps) 
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-50 p-0 border-none shadow-2xl">
-                                <DialogHeader className="bg-white border-b px-8 py-6 sticky top-0 z-10">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="p-2 bg-indigo-600 rounded-lg shadow-lg shadow-indigo-200">
-                                            <FileText className="h-5 w-5 text-white" />
+                                <DialogHeader className="bg-white border-b px-8 py-6 sticky top-0 z-10 flex flex-row items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="p-2 bg-indigo-600 rounded-lg shadow-lg shadow-indigo-200">
+                                                <FileText className="h-5 w-5 text-white" />
+                                            </div>
+                                            <DialogTitle className="text-2xl font-bold text-slate-900">Executive Scoping Report</DialogTitle>
                                         </div>
-                                        <DialogTitle className="text-2xl font-bold text-slate-900">Executive Scoping Report</DialogTitle>
+                                        <DialogDescription className="text-slate-500 font-medium italic">
+                                            Strategic Readiness Assessment & Compliance Blueprint
+                                        </DialogDescription>
                                     </div>
-                                    <DialogDescription className="text-slate-500 font-medium italic">
-                                        Strategic Readiness Assessment & Compliance Blueprint
-                                    </DialogDescription>
+                                    <Button
+                                        onClick={handleExportDocx}
+                                        disabled={isExportingDocx}
+                                        size="sm"
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                                    >
+                                        {isExportingDocx ? (
+                                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                                        ) : (
+                                            <FileDown className="h-4 w-4 mr-1.5" />
+                                        )}
+                                        Export as DOCX
+                                    </Button>
                                 </DialogHeader>
                                 <div className="p-10">
                                     <div className="bg-white shadow-sm border border-slate-200 rounded-xl p-12 min-h-[500px] overflow-hidden relative">

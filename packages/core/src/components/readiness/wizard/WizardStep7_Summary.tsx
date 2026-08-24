@@ -12,10 +12,13 @@ import {
     Cpu,
     ExternalLink,
     Sparkles,
-    Loader2
+    Loader2,
+    Download,
+    FileDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authedFetch } from "@/lib/authedFetch";
+import { generateScopingReportDocx } from "@/lib/docx/generate-scoping-docx";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { Button } from "@complianceos/ui/ui/button";
@@ -112,6 +115,28 @@ export function WizardStep7_Summary({ data, standardId, onUpdate, onEditStep }: 
 
     const [report, setReport] = useState(data.scopingReport || "");
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isExportingDocx, setIsExportingDocx] = useState(false);
+
+    const handleExportDocx = async () => {
+        if (!report) {
+            toast.error("Please generate a report first before exporting.");
+            return;
+        }
+        setIsExportingDocx(true);
+        try {
+            await generateScopingReportDocx({
+                reportMarkdown: report,
+                standardId,
+                organizationName: scope?.orgBoundaries || "Organization",
+            });
+            toast.success("DOCX document downloaded successfully");
+        } catch (error: any) {
+            console.error('[DOCX Export Error]:', error);
+            toast.error(error.message || "Failed to export DOCX document");
+        } finally {
+            setIsExportingDocx(false);
+        }
+    };
 
     const handleGenerateReport = async () => {
         setIsGenerating(true);
@@ -282,16 +307,35 @@ export function WizardStep7_Summary({ data, standardId, onUpdate, onEditStep }: 
                         </div>
                     </div>
 
-                    {!report && !isGenerating && (
-                        <Button
-                            onClick={handleGenerateReport}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 border-0"
-                            size="sm"
-                        >
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Report
-                        </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {report && !isGenerating && (
+                            <Button
+                                onClick={handleExportDocx}
+                                disabled={isExportingDocx}
+                                variant="outline"
+                                size="sm"
+                                className="border-indigo-200 text-indigo-700 bg-white hover:bg-indigo-50 shadow-sm"
+                            >
+                                {isExportingDocx ? (
+                                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                                ) : (
+                                    <FileDown className="h-4 w-4 mr-1.5 text-indigo-600" />
+                                )}
+                                Export DOCX
+                            </Button>
+                        )}
+
+                        {!report && !isGenerating && (
+                            <Button
+                                onClick={handleGenerateReport}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 border-0"
+                                size="sm"
+                            >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generate Report
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {(report || isGenerating) && (
@@ -308,17 +352,30 @@ export function WizardStep7_Summary({ data, standardId, onUpdate, onEditStep }: 
                             </div>
                         )}
 
-                        {/* Regenerate Action */}
+                        {/* Actions */}
                         {!isGenerating && report && (
-                            <div className="flex justify-end mt-4">
+                            <div className="flex items-center justify-end gap-3 mt-4">
                                 <Button
                                     onClick={handleGenerateReport}
                                     variant="outline"
                                     size="sm"
-                                    className="text-slate-500 hover:text-slate-700 hover:bg-white"
+                                    className="text-slate-600 hover:text-slate-800 hover:bg-white"
                                 >
-                                    <Sparkles className="h-3 w-3 mr-2" />
+                                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                                     Regenerate
+                                </Button>
+                                <Button
+                                    onClick={handleExportDocx}
+                                    disabled={isExportingDocx}
+                                    size="sm"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                                >
+                                    {isExportingDocx ? (
+                                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                    ) : (
+                                        <Download className="h-3.5 w-3.5 mr-1.5" />
+                                    )}
+                                    Download as Word Document (.docx)
                                 </Button>
                             </div>
                         )}
