@@ -126,17 +126,10 @@ export async function processObservation(
     title: obs.title.slice(0, 250),
     description: obs.rationale.slice(0, 4000),
     priority: obs.proposedAction.priority ?? (obs.severity === "critical" ? "critical" : obs.severity === "warning" ? "high" : "medium"),
-    status: executeDirectly ? "executed" : "pending_review",
+    status: executeDirectly ? "executed" : "pending", // legacy UI filter expects 'pending'
     targetEntity: JSON.stringify({ entityType: obs.entityType, entityId: obs.entityId ?? null }),
     aiRationale: obs.rationale.slice(0, 4000),
-    metadata: JSON.stringify({
-      botId,
-      dedupeKey: obs.dedupeKey,
-      severity: obs.severity,
-      proposedAction: obs.proposedAction,
-      confidence: obs.confidence ?? 80,
-      autoRemediationId: obs.autoRemediationId ?? null,
-    }),
+    metadata: { botId, dedupeKey: obs.dedupeKey, severity: obs.severity, proposedAction: obs.proposedAction, confidence: obs.confidence ?? 80, autoRemediationId: obs.autoRemediationId ?? null },
   }).returning();
 
   // 3. Execute or hold for review
@@ -236,7 +229,7 @@ export async function runEscalationSweep(clientId: number, ackAfterHours = 48): 
     const stale = await db.execute(sql`
       SELECT id, title, ai_rationale, priority FROM autopilot_actions
       WHERE client_id = ${clientId}
-        AND status = 'pending_review'
+        AND status IN ('pending','pending_review')
         AND coalesce(metadata->>'escalated','false') <> 'true'
         AND created_at < now() - (${ackAfterHours} || ' hours')::interval
       LIMIT 20`).then((r: any) => r.rows ?? r);

@@ -403,9 +403,39 @@ export class AutopilotEngine {
   }
 
   private static async executeAction(action: AutopilotAction): Promise<void> {
-    // Execute the approved action based on its type
+    // Execute the approved action: sentinel actions carry a proposedAction in
+    // metadata — create the corresponding governance work item.
     console.log(`[Autopilot] Executing action: ${action.type} - ${action.title}`);
-    // In production, this would create actual tasks/evidence/tickets
+    try {
+      const db = await getDb();
+      const meta = typeof action.metadata === "string"
+        ? JSON.parse(action.metadata || "{}")
+        : (action.metadata || {});
+      const pa = meta.proposedAction;
+      if (!pa || pa.kind !== "create_task") return; // notify-only / escalate: nothing to execute
+
+      const validTypes = new Set([
+        "review", "approval", "evidence_collection", "raci_assignment", "risk_treatment",
+        "vendor_assessment", "bcp_approval", "policy_review", "control_implementation",
+        "risk_review", "control_assessment",
+      ]);
+      const taskType = validTypes.has(pa.taskType) ? pa.taskType : "review";
+      const dueDate = new Date(Date.now() + (pa.dueInDays ?? 14) * 86400000);
+
+      await db.execute(sql`
+        INSERT INTO work_items
+          (client_id, type, status, priority, title, description, entity_type, due_date, is_escalated, created_at, updated_at)
+        VALUES (
+          ${action.clientId}, ${taskType}::work_item_type, 'pending'::work_item_status,
+          ${(pa.priority || "medium")}::work_item_priority,
+          ${("[Bot] " + action.title).slice(0, 240)},
+          ${("Approved by human reviewer.\n\nRATIONALE:\n" + (action.aiRationale || "")).slice(0, 3900)},
+          'task'::governance_entity_type,
+          ${dueDate}, false, now(), now())`);
+      console.log(`[Autopilot] Work item created from approved action #${action.id}`);
+    } catch (e: any) {
+      console.warn(`[Autopilot] executeAction failed for #${action.id}: ${e.message}`);
+    }
   }
 }
 

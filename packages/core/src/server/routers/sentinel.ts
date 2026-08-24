@@ -51,13 +51,14 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
     listActions: clientProcedure
       .input(z.object({
         clientId: z.number(),
-        status: z.enum(["pending_review", "executed", "rejected", "all"]).default("all"),
+        status: z.enum(["pending", "pending_review", "executed", "rejected", "all"]).default("all"),
         limit: z.number().default(50),
       }))
       .query(async ({ input }: { input: any }) => {
         const db = await getDb();
         if (!db) return [];
-        const statusFilter = input.status === "all" ? sql`TRUE` : sql`status = ${input.status}`;
+        const statusVal = input.status === "pending_review" ? "pending" : input.status;
+        const statusFilter = input.status === "all" ? sql`TRUE` : sql`status = ${statusVal}`;
         const rows = await db.execute(sql`
           SELECT id, type, title, description, priority, status, ai_rationale AS "aiRationale",
                  metadata, created_at AS "createdAt"
