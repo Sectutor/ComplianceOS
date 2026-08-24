@@ -38,7 +38,6 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { GlobalSearch } from "./GlobalSearch";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { GlobalNotificationCenter } from "./common/GlobalNotificationCenter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
@@ -1461,7 +1460,8 @@ function DashboardLayoutContent({
             </DropdownMenu>
 
             <GlobalSearch />
-            <LanguageSwitcher compact />
+            {/* Language switcher: hidden pending full i18n page coverage */}
+            {/* <LanguageSwitcher compact /> */}
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <CopilotHelpTrigger />
             <GlobalNotificationCenter />
