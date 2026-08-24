@@ -420,7 +420,8 @@ export class AutopilotEngine {
         "risk_review", "control_assessment",
       ]);
       const taskType = validTypes.has(pa.taskType) ? pa.taskType : "review";
-      const dueDate = new Date(Date.now() + (pa.dueInDays ?? 14) * 86400000);
+      // db.execute(sql``) rejects Date params in this drizzle/postgres-js combo — pass ISO string
+      const dueDate = new Date(Date.now() + (pa.dueInDays ?? 14) * 86400000).toISOString();
 
       await db.execute(sql`
         INSERT INTO work_items
@@ -429,9 +430,9 @@ export class AutopilotEngine {
           ${action.clientId}, ${taskType}::work_item_type, 'pending'::work_item_status,
           ${(pa.priority || "medium")}::work_item_priority,
           ${("[Bot] " + action.title).slice(0, 240)},
-          ${("Approved by human reviewer.\n\nRATIONALE:\n" + (action.aiRationale || "")).slice(0, 3900)},
+          ${("Approved by human reviewer.\n\nRATIONALE:\n" + ((action as any).aiRationale || action.description || "")).slice(0, 3900)},
           'task'::governance_entity_type,
-          ${dueDate}, false, now(), now())`);
+          ${dueDate}::timestamptz, false, now(), now())`);
       console.log(`[Autopilot] Work item created from approved action #${action.id}`);
     } catch (e: any) {
       console.error(`[Autopilot] executeAction failed for #${action.id}:`, e);
