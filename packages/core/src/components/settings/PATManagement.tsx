@@ -59,50 +59,50 @@ export function PATManagement() {
   };
 
   return (
-    <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-xl">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+    <Card className="border-border bg-card text-card-foreground shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <Key className="h-5 w-5 text-blue-400" />
+          <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+            <Key className="h-5 w-5 text-primary" />
             Personal Access Tokens
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             Generate tokens for API and MCP access. Treat tokens as secrets.
           </CardDescription>
         </div>
-        <Button onClick={() => setShowGenerate(true)} variant="default" className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => setShowGenerate(true)}>
           Generate New Token
         </Button>
       </CardHeader>
       <CardContent>
         {tokensQuery.isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : tokensQuery.data?.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-xl">
-            <AlertCircle className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No personal access tokens found.</p>
-            <p className="text-slate-600 text-sm">Create one to get started with API integrations.</p>
+          <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/20">
+            <AlertCircle className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
+            <p className="text-foreground font-medium">No personal access tokens found.</p>
+            <p className="text-muted-foreground text-sm">Create one to get started with API integrations.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {tokensQuery.data?.map((token) => (
               <div 
                 key={token.id} 
-                className="flex items-center justify-between p-4 border border-slate-800 rounded-xl bg-slate-950/50 hover:border-blue-500/30 transition-all group"
+                className="flex items-center justify-between p-4 border border-border rounded-xl bg-card hover:bg-muted/30 hover:border-primary/30 transition-all group"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-100">{token.name}</span>
-                    <code className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-blue-300">
+                    <span className="font-semibold text-foreground">{token.name}</span>
+                    <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-mono">
                       {token.prefix}...
                     </code>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>Created: {format(new Date(token.createdAt), "PPP")}</span>
                     {token.lastUsedAt && (
-                      <span className="text-blue-400/70">
+                      <span className="text-primary/80">
                         Last used: {format(new Date(token.lastUsedAt), "PPP")}
                       </span>
                     )}
@@ -111,7 +111,7 @@ export function PATManagement() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                  className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={() => {
                     if (confirm(`Are you sure you want to revoke "${token.name}"? Any applications using this token will stop working.`)) {
                       revokeMutation.mutate({ id: token.id });
@@ -127,10 +127,10 @@ export function PATManagement() {
       </CardContent>
 
       <Dialog open={showGenerate} onOpenChange={(o) => !o && handleCloseGenerate()}>
-        <DialogContent className="sm:max-w-[500px] border-slate-800 bg-slate-900 text-slate-100">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Generate Personal Access Token</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               {generatedToken 
                 ? "Copy this token now. It will not be shown again for security reasons." 
                 : "Give your token a descriptive name to help you remember what it's for."}
@@ -139,29 +139,29 @@ export function PATManagement() {
 
           {generatedToken ? (
             <div className="space-y-4 py-4">
-              <div className="p-4 bg-blue-950/30 border border-blue-500/30 rounded-lg space-y-3">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Your New Token</span>
-                  <div className="flex items-center gap-1 text-[10px] text-blue-300">
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider">Your New Token</span>
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <AlertCircle className="h-3 w-3" />
                     Sensitive Information
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-slate-950 px-3 py-2 rounded border border-slate-800 font-mono text-sm break-all text-blue-100">
+                  <div className="flex-1 bg-muted px-3 py-2 rounded border border-border font-mono text-sm break-all text-foreground">
                     {generatedToken}
                   </div>
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="shrink-0 border-slate-700 hover:bg-slate-800"
+                    className="shrink-0"
                     onClick={copyToClipboard}
                   >
-                    {isCopied ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                    {isCopied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-amber-400/80 bg-amber-950/20 p-2 rounded border border-amber-900/30">
+              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
                 Warning: ComplianceOS cannot recover this token if lost. You will need to regenerate it.
               </p>
             </div>
@@ -174,7 +174,6 @@ export function PATManagement() {
                   placeholder="e.g. MCP-Agent-Claude" 
                   value={newTokenName} 
                   onChange={(e) => setNewTokenName(e.target.value)}
-                  className="bg-slate-950 border-slate-800"
                 />
               </div>
             </div>
@@ -182,7 +181,7 @@ export function PATManagement() {
 
           <DialogFooter>
             {generatedToken ? (
-              <Button onClick={handleCloseGenerate} className="w-full bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleCloseGenerate} className="w-full">
                 I've copied the token
               </Button>
             ) : (
@@ -191,7 +190,6 @@ export function PATManagement() {
                 <Button 
                   onClick={handleGenerate} 
                   disabled={!newTokenName || generateMutation.isLoading}
-                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   {generateMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Generate
