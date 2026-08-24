@@ -24,9 +24,9 @@
  *   expirationCheck   protected query  expiration-policy evaluation (cycle 35)
  *   rotationPlan      protected query  OAuth rotation scheduling (cycle 35)
  *   ipAllowlistCheck  protected query  IPv4 allowlist verdict (cycle 35)
- *   rotationSchedule protected query  per-credential rotation bands (cycle 35)
- *   expiryCheck      protected query  credential expiry evaluation (cycle 35)
- *   allowlistEvaluate protected query IP allowlist normalize + evaluate (cycle 35)
+ *   rotationSchedule protected query  per-credential rotation bands (cycle 37)
+ *   expiryCheck      protected query  credential expiry evaluation (cycle 37)
+ *   allowlistEvaluate protected query IP allowlist normalize + evaluate (cycle 37)
  *
  * Cycle 35 (API-FIRST-INTEGRATION-PLAN security checklist) adds the three
  * remaining P0 controls as pure passthroughs over the new lifecycle engine
@@ -53,8 +53,12 @@ import {
 } from "../../lib/security/credentialCrypto";
 import {
   buildRotationPlan,
+  buildRotationSchedule,
+  evaluateCredentialExpiry,
   evaluateExpirationBatch,
+  evaluateIpAgainstAllowlist,
   isIpAllowed,
+  normalizeAllowlist,
 } from "../../lib/security/credentialLifecycle";
 
 /* ------------------------------------------------------------------ */
@@ -101,6 +105,36 @@ export const credentialVaultRotationPlanInputSchema = z.object({
 export const credentialVaultIpAllowlistCheckInputSchema = z.object({
   ip: z.string(),
   allowlist: z.union([z.array(z.string()), z.string()]),
+});
+
+/** Input schema for `rotationSchedule` (cycle 37 — per-credential rotation bands). */
+export const credentialVaultRotationScheduleInputSchema = z.object({
+  credentials: z.array(z.unknown()),
+  policy: z
+    .object({
+      defaultIntervalDays: z.number().int().positive().max(3650).nullish(),
+      warnWithinDays: z.number().int().min(0).max(3650).nullish(),
+      overrides: z.record(z.string(), z.number()).nullish(),
+    })
+    .nullish(),
+  clock: z.union([z.string(), z.number()]).nullish(),
+});
+
+/** Input schema for `expiryCheck` (cycle 37 — credential expiry evaluation). */
+export const credentialVaultExpiryCheckInputSchema = z.object({
+  credentials: z.array(z.unknown()),
+  policy: z
+    .object({
+      warningWindowDays: z.number().int().min(0).max(3650).nullish(),
+    })
+    .nullish(),
+  clock: z.union([z.string(), z.number()]).nullish(),
+});
+
+/** Input schema for `allowlistEvaluate` (cycle 37 — IP allowlist normalize + evaluate). */
+export const credentialVaultAllowlistEvaluateInputSchema = z.object({
+  ip: z.string(),
+  entries: z.array(z.unknown()),
 });
 
 /* ------------------------------------------------------------------ */
@@ -331,6 +365,37 @@ export const createCredentialVaultRouter = (t: any, protectedProcedure: any, pub
     ipAllowlistCheck: protectedProcedure
       .input(credentialVaultIpAllowlistCheckInputSchema)
       .query(async ({ input }: any) => isIpAllowed(input?.ip ?? "", input?.allowlist ?? [])),
+
+    /**
+     * Per-credential rotation bands (cycle 37). Pure passthrough — no DB,
+     * secrets never echoed (ids/statuses/dates only).
+     */
+    rotationSchedule: protectedProcedure
+      .input(credentialVaultRotationScheduleInputSchema)
+      .query(async ({ input }: any) =>
+        buildRotationSchedule(input?.credentials ?? [], input?.policy ?? null, input?.clock ?? null)
+      ),
+
+    /**
+     * Credential expiry evaluation over a caller-supplied credential list
+     * (cycle 37). Pure passthrough — no DB, secrets never echoed.
+     */
+    expiryCheck: protectedProcedure
+      .input(credentialVaultExpiryCheckInputSchema)
+      .query(async ({ input }: any) =>
+        evaluateCredentialExpiry(input?.credentials ?? [], input?.policy ?? null, input?.clock ?? null)
+      ),
+
+    /**
+     * IP allowlist normalize + evaluate for one address (cycle 37).
+     * Pure passthrough — no DB, secrets never echoed.
+     */
+    allowlistEvaluate: protectedProcedure
+      .input(credentialVaultAllowlistEvaluateInputSchema)
+      .query(async ({ input }: any) => ({
+        normalized: normalizeAllowlist(input?.entries ?? []),
+        decision: evaluateIpAgainstAllowlist(input?.ip ?? "", input?.entries ?? []),
+      })),
 
 
   });

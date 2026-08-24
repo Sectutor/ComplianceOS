@@ -1257,8 +1257,14 @@ function lifecycleWildcardContains(entry: string, ipU32: number): boolean {
   for (const octet of prefixOctets) {
     prefixU32 = ((prefixU32 << 8) | Number(octet)) >>> 0;
   }
+  // Fixed octets sit at the HIGH end of the address: "10.*" fixes /8, so
+  // its expected prefix is 0x0A000000, not raw 10 (cycle-37 fix for the
+  // one-shift-stage-short packing that made leading-octet wildcards
+  // match nothing).
+  const shiftBits = (4 - prefixOctets.length) * 8;
+  const expected = shiftBits === 0 ? prefixU32 : ((prefixU32 << shiftBits) >>> 0);
   const mask = lifecycleCidrMask(prefixOctets.length * 8);
-  return (ipU32 & mask) === (prefixU32 & mask);
+  return (ipU32 & mask) === expected;
 }
 
 /**

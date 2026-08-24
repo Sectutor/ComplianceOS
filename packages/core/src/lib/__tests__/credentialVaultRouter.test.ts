@@ -49,6 +49,9 @@ import {
   credentialVaultRateLimitCheckInputSchema,
   credentialVaultAuditVerifyInputSchema,
   credentialVaultSelfTestInputSchema,
+  credentialVaultRotationScheduleInputSchema,
+  credentialVaultExpiryCheckInputSchema,
+  credentialVaultAllowlistEvaluateInputSchema,
 } from "../../server/routers/credentialVault";
 import { VAULT_CHECKLIST_IDS } from "../../lib/security/credentialCrypto";
 
@@ -548,6 +551,283 @@ describe("credentialVault router — lifecycle no-secret-echo guarantee (cycle 3
     ];
     for (const response of responses) {
       expect(JSON.stringify(response) ?? "").not.toMatch(SECRET_PATTERN);
+    }
+  });
+});
+
+/* ==========================================================================
+ * Cycle 37 — Section-A passthrough queries (ADDITIVE EXTENSION; every suite
+ * above is untouched). Three NEW protected queries forward to the pure
+ * engine in lib/security/credentialLifecycle.ts:
+ *   rotationSchedule   protected query { credentials, policy?, clock? }
+ *   expiryCheck        protected query { credentials, policy?, clock? }
+ *   allowlistEvaluate  protected query { ip: string, entries: unknown[] }
+ * Same fake-tRPC harness as above: UNAUTHORIZED without a user, zod
+ * BAD_REQUEST on malformed input (including Date-object clocks), no DB
+ * anywhere and no secret material ever echoed back.
+ * ========================================================================== */
+
+describe("credentialVault router — section-A route shape (cycle 37)", () => {
+  it("exposes rotationSchedule/expiryCheck/allowlistEvaluate as schema-bearing queries", () => {
+    const { router } = buildFakeTRPC();
+    for (const name of ["rotationSchedule", "expiryCheck", "allowlistEvaluate"]) {
+      expect(router[name], `route "${name}"`).toBeDefined();
+      expect(router[name].type, `route "${name}" type`).toBe("query");
+      expect(router[name].schema, `route "${name}" schema`).toBeDefined();
+    }
+    // the exported schemas are attached verbatim
+    expect(router.rotationSchedule.schema).toBe(credentialVaultRotationScheduleInputSchema);
+    expect(router.expiryCheck.schema).toBe(credentialVaultExpiryCheckInputSchema);
+    expect(router.allowlistEvaluate.schema).toBe(credentialVaultAllowlistEvaluateInputSchema);
+    // the three additions stay queries — selfTest remains the only mutation
+    for (const name of ["rotationSchedule", "expiryCheck", "allowlistEvaluate"]) {
+      expect(router[name].type, `${name} must be a query, not a mutation`).not.toBe("mutation");
+    }
+  });
+});
+
+describe("credentialVault router — section-A auth gates (cycle 37)", () => {
+  it("rejects a missing user with TRPCError UNAUTHORIZED on all three queries", async () => {
+    const { router } = buildFakeTRPC();
+    const calls = [
+      router.rotationSchedule.handler({ input: { credentials: [] }, ctx: {} }),
+      router.expiryCheck.handler({ input: { credentials: [] }, ctx: {} }),
+      router.allowlistEvaluate.handler({ input: { ip: "10.0.0.1", entries: [] }, ctx: {} }),
+    ];
+    for (const call of calls) {
+      await expect(call).rejects.toBeInstanceOf(TRPCError);
+      await expect(call).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    }
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+});
+
+describe("credentialVault router — section-A zod schemas (cycle 37)", () => {
+  it("rotationSchedule schema parses valid shapes and rejects type mismatches", () => {
+    expect(
+      credentialVaultRotationScheduleInputSchema.parse({
+        credentials: [],
+        policy: { defaultIntervalDays: 45, warnWithinDays: 7, overrides: { teamA: 30 } },
+        clock: LIFE_CLOCK.toISOString(),
+      })
+    ).toBeDefined();
+    expect(credentialVaultRotationScheduleInputSchema.parse({ credentials: [{ id: "x" }] })).toBeDefined();
+
+    expect(() => credentialVaultRotationScheduleInputSchema.parse({ credentials: "nope" })).toThrow(ZodError);
+    expect(() =>
+      credentialVaultRotationScheduleInputSchema.parse({ credentials: [], clock: LIFE_CLOCK }) // Date clock
+    ).toThrow(ZodError);
+    expect(() =>
+      credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { defaultIntervalDays: -5 } })
+    ).toThrow(ZodError);
+    expect(() =>
+      credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { warnWithinDays: 1.5 } })
+    ).toThrow(ZodError);
+    expect(() =>
+      credentialVaultRotationScheduleInputSchema.parse({ credentials: [], policy: { overrides: { teamA: "30" } } })
+    ).toThrow(ZodError);
+  });
+
+  it("expiryCheck schema parses valid shapes and rejects type mismatches", () => {
+    expect(
+      credentialVaultExpiryCheckInputSchema.parse({
+        credentials: [],
+        policy: { warningWindowDays: 14 },
+        clock: LIFE_CLOCK.getTime(),
+      })
+    ).toBeDefined();
+
+    expect(() => credentialVaultExpiryCheckInputSchema.parse({ credentials: 42 })).toThrow(ZodError);
+    expect(() =>
+      credentialVaultExpiryCheckInputSchema.parse({ credentials: [], policy: { warningWindowDays: -1 } })
+    ).toThrow(ZodError);
+    expect(() => credentialVaultExpiryCheckInputSchema.parse({ credentials: [], clock: new Date() })).toThrow(ZodError);
+  });
+
+  it("allowlistEvaluate schema requires a string ip and an entries array", () => {
+    expect(credentialVaultAllowlistEvaluateInputSchema.parse({ ip: "10.0.0.1", entries: ["10.0.0.1"] })).toBeDefined();
+    expect(credentialVaultAllowlistEvaluateInputSchema.parse({ ip: "10.0.0.1", entries: [{ value: "10.0.0.1" }] }))
+      .toBeDefined();
+
+    expect(() => credentialVaultAllowlistEvaluateInputSchema.parse({ entries: [] })).toThrow(ZodError); // ip missing
+    expect(() => credentialVaultAllowlistEvaluateInputSchema.parse({ ip: 42, entries: [] })).toThrow(ZodError);
+    expect(() =>
+      credentialVaultAllowlistEvaluateInputSchema.parse({ ip: "10.0.0.1", entries: "10.0.0.1" }) // non-array
+    ).toThrow(ZodError);
+  });
+});
+
+describe("credentialVault router — section-A validation errors (cycle 37)", () => {
+  it("rejects missing or non-array credentials payloads with BAD_REQUEST", async () => {
+    const { router } = buildFakeTRPC();
+    await expect(
+      router.rotationSchedule.handler({ input: {}, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      router.rotationSchedule.handler({ input: { credentials: "nope" }, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      router.expiryCheck.handler({ input: { credentials: 42 }, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-string ip or non-array entries with BAD_REQUEST", async () => {
+    const { router } = buildFakeTRPC();
+    await expect(
+      router.allowlistEvaluate.handler({ input: { ip: 42, entries: [] }, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      router.allowlistEvaluate.handler({ input: { ip: "10.0.0.1", entries: {} }, ctx: { user: USER } })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("rejects Date-object clocks with BAD_REQUEST (clock must be ISO string or epoch ms)", async () => {
+    const { router } = buildFakeTRPC();
+    await expect(
+      router.rotationSchedule.handler({
+        input: { credentials: [], clock: LIFE_CLOCK },
+        ctx: { user: USER },
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      router.expiryCheck.handler({
+        input: { credentials: [], clock: LIFE_CLOCK },
+        ctx: { user: USER },
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+describe("credentialVault router — rotationSchedule (cycle 37)", () => {
+  it("passes the rotation schedule through with the injected clock reflected", async () => {
+    const { router } = buildFakeTRPC();
+    const result = await router.rotationSchedule.handler({
+      input: {
+        credentials: [
+          { id: "a-ok", provider: "prov", lastRotatedAt: lifeIso(lifeShift(-10)) },
+          { id: "b-overdue", provider: "prov", lastRotatedAt: lifeIso(lifeShift(-100)) },
+          { id: "c-never", provider: "prov" },
+        ],
+        policy: { defaultIntervalDays: 90, warnWithinDays: 7 },
+        clock: lifeIso(LIFE_CLOCK),
+      },
+      ctx: { user: USER },
+    });
+    expect(result.policyVersion).toBe("clp1");
+    expect(result.generatedAt).toBe(lifeIso(LIFE_CLOCK)); // injected clock echoed
+    expect(result.summary).toMatchObject({ total: 3, ok: 1, overdue: 1, never: 1 });
+    expect(result.summary.nextDueAt).toBe(lifeIso(lifeShift(-10))); // earliest non-ok dueAt
+    expect(result.items.map((item: { id: string; status: string }) => `${item.id}:${item.status}`)).toEqual([
+      "c-never:never",
+      "b-overdue:overdue",
+      "a-ok:ok",
+    ]);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("forwards policy overrides into the engine (policyKey interval lands as due)", async () => {
+    const { router } = buildFakeTRPC();
+    const overridden = await router.rotationSchedule.handler({
+      input: {
+        credentials: [
+          { id: "team", provider: "prov", policyKey: "teamA", lastRotatedAt: lifeIso(lifeShift(-45)) },
+        ],
+        policy: { defaultIntervalDays: 90, overrides: { teamA: 45 } },
+        clock: lifeIso(LIFE_CLOCK),
+      },
+      ctx: { user: USER },
+    });
+    expect(overridden.items[0].intervalDays).toBe(45); // override applied
+    expect(overridden.items[0].status).toBe("due"); // -45d rotated + 45d interval == now exactly
+  });
+});
+
+describe("credentialVault router — expiryCheck (cycle 37)", () => {
+  it("passes the expiry evaluation through with items and summary", async () => {
+    const { router } = buildFakeTRPC();
+    const result = await router.expiryCheck.handler({
+      input: {
+        credentials: [
+          { id: "e-expired", provider: "prov", status: "active", expiryAt: lifeIso(lifeShift(-3)) },
+          { id: "v-valid", provider: "prov", status: "active", expiryAt: lifeIso(lifeShift(400)) },
+          { id: "i-inactive", provider: "prov", status: "REVOKED", expiryAt: lifeIso(lifeShift(400)) },
+          { id: "n-none", provider: "prov", status: "active" },
+        ],
+        policy: { warningWindowDays: 30 },
+        clock: lifeIso(LIFE_CLOCK),
+      },
+      ctx: { user: USER },
+    });
+    expect(result.policyVersion).toBe("clp1");
+    expect(result.generatedAt).toBe(lifeIso(LIFE_CLOCK));
+    expect(result.summary).toMatchObject({
+      total: 4,
+      expired: 1,
+      valid: 1,
+      inactive: 1,
+      noExpiry: 1,
+      coverageRate: 0.75,
+    });
+    expect(result.summary.soonestExpiry).toBe(lifeIso(lifeShift(-3)));
+    expect(result.items.map((item: { id: string }) => item.id)).toEqual([
+      "e-expired",
+      "i-inactive",
+      "n-none",
+      "v-valid",
+    ]);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+});
+
+describe("credentialVault router — allowlistEvaluate (cycle 37)", () => {
+  it("returns normalized entries plus an exact-match allow decision", async () => {
+    const { router } = buildFakeTRPC();
+    const result = await router.allowlistEvaluate.handler({
+      input: { ip: "10.0.0.1", entries: [" 10.0.0.1 ", "10.0.0.0/8", "10.0.*", "bogus"] },
+      ctx: { user: USER },
+    });
+    expect(result.normalized.version).toBe("alw1");
+    expect(result.normalized.accepted).toBe(3);
+    expect(result.normalized.rejected).toBe(1);
+    expect(result.normalized.invalid[0]).toMatchObject({ index: 3 });
+    expect(result.decision).toEqual({
+      allowed: true,
+      matchedBy: "exact",
+      matchedEntry: "10.0.0.1",
+      reason: "Allowed by exact allowlist match",
+    });
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("denies non-matching addresses with the structured deny decision", async () => {
+    const { router } = buildFakeTRPC();
+    const result = await router.allowlistEvaluate.handler({
+      input: { ip: "203.0.113.9", entries: ["10.0.0.0/8"] },
+      ctx: { user: USER },
+    });
+    expect(result.normalized.entries.map((entry: { value: string }) => entry.value)).toEqual(["10.0.0.0/8"]);
+    expect(result.decision.allowed).toBe(false);
+    expect(result.decision.matchedBy).toBeNull();
+    expect(result.decision.matchedEntry).toBeNull();
+    expect(result.decision.reason).toBe("Denied: no matching allowlist entry");
+  });
+});
+
+describe("credentialVault router — section-A no-db witness (cycle 37)", () => {
+  it("source scan still shows no db imports while wiring the three new queries", () => {
+    const source = readFileSync(
+      join(process.cwd(), "packages/core/src/server/routers/credentialVault.ts"),
+      "utf8"
+    );
+    // unchanged hardening guarantee (mirrors the cycle-32 scan above)
+    expect(source).not.toMatch(/from\s+["'][^"']*\/db["']/);
+    expect(source).not.toContain("getDb");
+    expect(source).not.toContain("drizzle-orm");
+    // the cycle-37 procedures are wired in that same db-free file
+    for (const name of ["rotationSchedule", "expiryCheck", "allowlistEvaluate"]) {
+      expect(source).toContain(name);
     }
   });
 });
