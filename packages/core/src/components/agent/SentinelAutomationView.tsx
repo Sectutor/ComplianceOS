@@ -362,165 +362,180 @@ export function SentinelAutomationView({ clientId }: SentinelAutomationViewProps
         </div>
       </div>
 
-      {/* Collapsed Summary Pill */}
-      {!settingsExpanded && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-card border border-border rounded-xl text-xs shadow-sm">
+      {/* Collapsible Sentinel Fleet & Cadence Settings Card */}
+      <Card className="border-border shadow-sm overflow-hidden transition-all">
+        <div
+          onClick={toggleSettingsExpanded}
+          className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-all select-none border-b border-border/60"
+        >
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="font-semibold text-foreground flex items-center gap-1.5">
-              <Bot className="h-4 w-4 text-primary" />
-              Sentinel Fleet Active:
-            </span>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
-              {Object.values(botModules).filter((v) => v !== false).length} of 7 Bots Enabled
-            </Badge>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">
-              Cadence: <strong className="text-foreground capitalize">{schedule}</strong>
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">
-              Mode: <strong className="text-foreground">{approvalMode === "auto" ? "Autopilot (Auto-Execute)" : "Human Review"}</strong>
-            </span>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleSettingsExpanded}
-            className="text-xs text-primary hover:text-primary/80 h-7 px-2 font-semibold"
-          >
-            Configure Fleet <ChevronDown className="h-3.5 w-3.5 ml-1" />
-          </Button>
-        </div>
-      )}
-
-      {/* Collapsible Settings Area */}
-      {settingsExpanded && (
-        <div className="space-y-6 animate-in fade-in-50 duration-200">
-          {/* Cadence & Autonomy Controls */}
-          <Card className="border-border shadow-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Zap className="h-4 w-4 text-amber-500" />
-                Autopilot Cadence & Policy Guardrails
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Set how frequently bots inspect your workspace and configure action approval thresholds.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-0">
-              <div className="flex items-center justify-between p-3.5 rounded-xl border bg-muted/20">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-semibold">Enable Sentinel Fleet</Label>
-                  <p className="text-[11px] text-muted-foreground">Wake bots on scheduled cadence</p>
-                </div>
-                <Switch checked={enabled} onCheckedChange={setEnabled} />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Inspection Frequency
-                </Label>
-                <Select value={schedule} onValueChange={setSchedule}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hourly">Hourly (Active Audit Mode)</SelectItem>
-                    <SelectItem value="daily">Daily (Standard Protection)</SelectItem>
-                    <SelectItem value="weekly">Weekly (Low Cadence)</SelectItem>
-                    <SelectItem value="manual">Manual Trigger Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Approval Autonomy Mode
-                </Label>
-                <RadioGroup value={approvalMode} onValueChange={setApprovalMode} className="flex gap-3 pt-2">
-                  <div className="flex items-center space-x-1.5">
-                    <RadioGroupItem value="review" id="mode-review" />
-                    <Label htmlFor="mode-review" className="text-xs font-medium cursor-pointer">
-                      Human Review (Inbox)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-1.5">
-                    <RadioGroupItem value="auto" id="mode-auto" />
-                    <Label htmlFor="mode-auto" className="text-xs font-medium cursor-pointer">
-                      Autopilot (Auto-Execute)
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Sentinel Fleet Directory Grid */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <Bot className="h-4 w-4 text-primary" />
-                  Specialized Sentinel Bots (7 Active)
+            <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-sm">
+              <Bot className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground">
+                  Specialized Sentinel Bots (7 Active) & Cadence Configuration
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  Each bot continuously inspects a specific risk or compliance surface in your organization.
-                </p>
+                <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 text-[10px]">
+                  {Object.values(botModules).filter((v) => v !== false).length} of 7 Active
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                {Object.values(botModules).filter((v) => v !== false).length} of 7 Active
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {BOTS.map((bot) => {
-                const Icon = bot.icon;
-                const isBotActive = botModules[bot.key] !== false;
-                return (
-                  <Card
-                    key={bot.key}
-                    className={`relative overflow-hidden transition-all duration-200 border ${
-                      isBotActive ? "border-primary/20 shadow-sm" : "border-border opacity-60 bg-muted/10"
-                    }`}
-                  >
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`p-2 rounded-lg bg-gradient-to-br ${bot.color} text-white shadow-sm`}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-sm text-foreground leading-none">{bot.name}</h4>
-                            <span className="text-[11px] text-muted-foreground">{bot.role}</span>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={isBotActive}
-                          onCheckedChange={() => handleToggleBot(bot.key, isBotActive)}
-                        />
-                      </div>
-
-                      <p className="text-xs text-muted-foreground leading-relaxed min-h-[36px]">
-                        {bot.description}
-                      </p>
-
-                      <div className="pt-2 border-t flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> Cadence: {bot.cadence}
-                        </span>
-                        <Badge variant={isBotActive ? "default" : "secondary"} className="text-[10px] py-0 px-1.5">
-                          {isBotActive ? "Active" : "Disabled"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+              <p className="text-xs text-muted-foreground">
+                One-time settings for bot activation, inspection cadence ({schedule}), and approval autonomy ({approvalMode === "auto" ? "Autopilot" : "Review"}).
+              </p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSettingsExpanded();
+              }}
+              className="text-xs h-8 px-3 gap-1.5 font-medium border-border"
+            >
+              <span>{settingsExpanded ? "Collapse" : "Expand Settings"}</span>
+              {settingsExpanded ? (
+                <ChevronUp className="h-4 w-4 text-primary" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-primary" />
+              )}
+            </Button>
+          </div>
         </div>
-      )}
+
+        {/* Collapsible Content Area */}
+        {settingsExpanded && (
+          <div className="p-6 space-y-6 animate-in fade-in-50 duration-200 bg-card">
+            {/* Cadence & Autonomy Controls */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                Autopilot Cadence & Policy Guardrails
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center justify-between p-3.5 rounded-xl border bg-muted/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-semibold">Enable Sentinel Fleet</Label>
+                    <p className="text-[11px] text-muted-foreground">Wake bots on scheduled cadence</p>
+                  </div>
+                  <Switch checked={enabled} onCheckedChange={setEnabled} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Inspection Frequency
+                  </Label>
+                  <Select value={schedule} onValueChange={setSchedule}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hourly">Hourly (Active Audit Mode)</SelectItem>
+                      <SelectItem value="daily">Daily (Standard Protection)</SelectItem>
+                      <SelectItem value="weekly">Weekly (Low Cadence)</SelectItem>
+                      <SelectItem value="manual">Manual Trigger Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Approval Autonomy Mode
+                  </Label>
+                  <RadioGroup value={approvalMode} onValueChange={setApprovalMode} className="flex gap-3 pt-2">
+                    <div className="flex items-center space-x-1.5">
+                      <RadioGroupItem value="review" id="mode-review" />
+                      <Label htmlFor="mode-review" className="text-xs font-medium cursor-pointer">
+                        Human Review
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <RadioGroupItem value="auto" id="mode-auto" />
+                      <Label htmlFor="mode-auto" className="text-xs font-medium cursor-pointer">
+                        Autopilot
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            </div>
+
+            {/* Sentinel Fleet Directory Grid */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Bot className="h-3.5 w-3.5 text-primary" />
+                  Bot Roster & Surface Scanners
+                </h4>
+                <Button
+                  size="sm"
+                  onClick={handleSaveConfig}
+                  disabled={updateConfig.isPending}
+                  className="h-7 text-xs bg-indigo-600 hover:bg-indigo-500 text-white"
+                >
+                  {updateConfig.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {BOTS.map((bot) => {
+                  const Icon = bot.icon;
+                  const isBotActive = botModules[bot.key] !== false;
+                  return (
+                    <Card
+                      key={bot.key}
+                      className={`relative overflow-hidden transition-all duration-200 border ${
+                        isBotActive ? "border-primary/20 shadow-sm" : "border-border opacity-60 bg-muted/10"
+                      }`}
+                    >
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`p-2 rounded-lg bg-gradient-to-br ${bot.color} text-white shadow-sm`}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm text-foreground leading-none">{bot.name}</h4>
+                              <span className="text-[11px] text-muted-foreground">{bot.role}</span>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={isBotActive}
+                            onCheckedChange={() => handleToggleBot(bot.key, isBotActive)}
+                          />
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed min-h-[36px]">
+                          {bot.description}
+                        </p>
+
+                        <div className="pt-2 border-t flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> Cadence: {bot.cadence}
+                          </span>
+                          <Badge variant={isBotActive ? "default" : "secondary"} className="text-[10px] py-0 px-1.5">
+                            {isBotActive ? "Active" : "Disabled"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Action Inbox Section */}
       <Card className="border-border shadow-sm">
