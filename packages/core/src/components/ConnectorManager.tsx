@@ -64,6 +64,72 @@ type InstalledConnector = {
   lastRunStatus?: string;
 };
 
+/** Map mutation failures to user-facing copy. Connector mutations are
+ *  admin-gated (cycle 36b): surface a permission message for auth errors
+ *  instead of the raw UNAUTHORIZED/FORBIDDEN code. */
+const describeConnectorError = (err: { message?: string }): string => {
+  const msg = String(err?.message ?? "");
+  if (/401|403|UNAUTHORIZED|FORBIDDEN/i.test(msg)) {
+    return "You don't have permission to manage connectors.";
+  }
+  return msg || "Connector action failed.";
+};
+
+/** Local typed data-contract layer (UI-STANDARD §16). The connectors router
+ *  is built through a factory with loosely-typed procedures (cycle 36b auth
+ *  hardening), which collapses client-side inference; this page therefore
+ *  consumes it exclusively through this typed surface - never raw
+ *  trpc.connectors.* access. Shapes mirror createConnectorsRouter exactly. */
+interface ConnectorsQuery<TInput, TData> {
+  useQuery: (
+    input?: TInput,
+    opts?: Record<string, unknown>
+  ) => {
+    data?: TData;
+    isLoading?: boolean;
+    refetch: () => Promise<unknown>;
+  };
+}
+
+interface MutationLike<TInput, TResult> {
+  useMutation: (opts?: {
+    onSuccess?: (data: TResult) => void;
+    onError?: (error: { message?: string }) => void;
+  }) => {
+    mutate: (input: TInput) => void;
+    mutateAsync?: (input: TInput) => Promise<unknown>;
+    isPending?: boolean;
+    isLoading?: boolean;
+  };
+}
+
+interface ConnectorsApi {
+  listTypes: ConnectorsQuery<void, ConnectorType[]>;
+  listInstalled: ConnectorsQuery<{ clientId: number }, InstalledConnector[]>;
+  getRunHistory: ConnectorsQuery<
+    { clientId: number; limit?: number },
+    Array<Record<string, any>>
+  >;
+  install: MutationLike<
+    {
+      clientId: number;
+      type: string;
+      name: string;
+      credentials?: Record<string, string>;
+      settings?: Record<string, unknown>;
+      schedule?: string;
+    },
+    unknown
+  >;
+  uninstall: MutationLike<{ id: string | null }, unknown>;
+  run: MutationLike<
+    { id: string },
+    { success: boolean; evidenceCollected?: number; errors?: string[] }
+  >;
+}
+
+const connectorsApi = trpc as unknown as { connectors: ConnectorsApi };
+
 export function ConnectorManager({ clientId }: ConnectorManagerProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -74,33 +140,33 @@ export function ConnectorManager({ clientId }: ConnectorManagerProps) {
   const [schedule, setSchedule] = useState<"hourly" | "daily" | "weekly">("daily");
 
   // Queries
-  const { data: types, isLoading: typesLoading } = trpc.connectors.listTypes.useQuery();
+  const { data: types, isLoading: typesLoading } = connectorsApi.connectors.listTypes.useQuery();
   const { data: installed, isLoading: installedLoading, refetch: refetchInstalled } =
-    trpc.connectors.listInstalled.useQuery({ clientId });
+    connectorsApi.connectors.listInstalled.useQuery({ clientId });
   const { data: runHistory, refetch: refetchHistory } =
-    trpc.connectors.getRunHistory.useQuery({ clientId, limit: 10 });
+    connectorsApi.connectors.getRunHistory.useQuery({ clientId, limit: 10 });
 
   // Mutations
-  const installMutation = trpc.connectors.install.useMutation({
+  const installMutation = connectorsApi.connectors.install.useMutation({
     onSuccess: () => {
       toast.success("Connector installed successfully");
       refetchInstalled();
       setAddDialogOpen(false);
       resetForm();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(describeConnectorError(err)),
   });
 
-  const uninstallMutation = trpc.connectors.uninstall.useMutation({
+  const uninstallMutation = connectorsApi.connectors.uninstall.useMutation({
     onSuccess: () => {
       toast.success("Connector removed");
       refetchInstalled();
       setDeleteConfirmId(null);
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(describeConnectorError(err)),
   });
 
-  const runMutation = trpc.connectors.run.useMutation({
+  const runMutation = connectorsApi.connectors.run.useMutation({
     onSuccess: (result) => {
       if (result.success) {
         toast.success(`Collected ${result.evidenceCollected} evidence items`);
@@ -110,7 +176,7 @@ export function ConnectorManager({ clientId }: ConnectorManagerProps) {
       refetchInstalled();
       refetchHistory();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(describeConnectorError(err)),
   });
 
   const resetForm = () => {
@@ -147,7 +213,7 @@ export function ConnectorManager({ clientId }: ConnectorManagerProps) {
     if (status === "failed" || status === "error") {
       return <XCircle className="h-4 w-4 text-red-500" />;
     }
-    return <Plug className="h-4 w-4 text-gray-400" />;
+    return <Plug className="h-4 w-4 text-muted-foreground" />;
   };
 
   if (typesLoading || installedLoading) {

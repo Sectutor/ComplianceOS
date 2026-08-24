@@ -99,7 +99,7 @@ import { usersSubRouter } from "./server/routers/users";
 import { createIntakeRouter } from "./server/routers/intake";
 import { createBillingRouter } from "./server/routers/billing";
 import { auditPackageRouter } from "./server/routers/auditPackage";
-import { connectorsRouter } from "./server/routers/connectors";
+import { createConnectorsRouter } from "./server/routers/connectors";
 import { trustBadgeRouter } from "./server/routers/trustBadge";
 import { cisaKevRouter } from "./server/routers/cisaKev";
 import { msspRouter } from "./server/routers/mssp";
@@ -318,7 +318,7 @@ export const appRouter = router({
   frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
   businessContinuity: businessContinuitySubRouter,
   auditPackage: auditPackageRouter,
-  connectors: connectorsRouter,
+  connectors: createConnectorsRouter(t, adminProcedure, publicProcedure),
   trustBadge: trustBadgeRouter,
   mssp: msspRouter,
   frameworks: createFrameworksRouter(t, protectedProcedure),
