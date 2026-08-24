@@ -1,0 +1,441 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ZodError } from "zod";
+import { TRPCError } from "@trpc/server";
+
+/**
+ * Sentinel runtime router (server/routers/sentinel.ts) — contract tests
+ * (QA build-cycle 38, Sentinel Bots / Agent Runtime Phase 1).
+ *
+ * Mirrors securityMetricsRouter.test.ts / teammatesRouter.test.ts: the router
+ * is a factory `createSentinelRouter(t, clientProcedure, adminProcedure)`
+ * tested with a tiny fake tRPC builder — no tRPC server, no DB.
+ *
+ * Contract under test — exactly these 8 procedures:
+ *   queries   : listActions (client), runtimeStatus (admin)
+ *   mutations : runNow, reviewSentinelAction, escalationSweep, sendDigestNow
+ *               (client) · startRuntime, stopRuntime (admin)
+ *
+ * Wiring contract:
+ *   - client-surface routes MUST be registered through clientProcedure
+ *     (UNAUTHORIZED when ctx.user is missing);
+ *   - startRuntime/stopRuntime/runtimeStatus MUST be registered through
+ *     adminProcedure (FORBIDDEN for authenticated non-admin roles, mirroring
+ *     trpc.ts isAdmin / PLATFORM_ADMIN_ROLES);
+ *   - zod-validated inputs surface ZodError as TRPCError BAD_REQUEST,
+ *     never a raw crash inside the handler.
+ *
+ * No-database degradation (as implemented, asserted behaviourally with the
+ * mocked getDb resolving null — the REAL runtime/actionPipeline modules run):
+ *   - listActions            → []
+ *   - reviewSentinelAction   → { success: false }
+ *   - runNow                 → throws Error("no database")
+ *   - escalationSweep        → { success: true, escalated: 0 }
+ *   - sendDigestNow          → { success: true }
+ *   - runtime lifecycle      → independent of DB (start/status/stop flips flag)
+ */
+
+const dbMocks = vi.hoisted(() => ({
+  getDb: vi.fn(),
+}));
+
+// Same `src/db` mock as the sibling router tests. The router AND the runtime
+// engine it delegates to (server/runtime/agentRuntime, actionPipeline — both
+// reached via dynamic import inside handlers) resolve their getDb through this
+// module, so a single mock keeps every path hermetic.
+vi.mock("../../db", () => ({
+  getDb: dbMocks.getDb,
+}));
+
+import { createSentinelRouter } from "../../server/routers/sentinel";
+
+// Mirrors PLATFORM_ADMIN_ROLES in server/trpc.ts (kept in sync deliberately —
+// see the "admin gating" describe block; if trpc adds a role, update here).
+const PLATFORM_ADMIN_ROLES = ["admin", "owner", "super_admin", "super", "enterprise_admin", "ent_admin"];
+
+/** Generous budget: OneDrive-synced tree can be slow under parallel load. */
+vi.setConfig({ testTimeout: 60_000 });
+
+type RouteDef = { type: "query" | "mutation"; handler: (args: { input?: unknown; ctx?: any }) => any; schema: unknown; auth: "client" | "admin" };
+
+/**
+ * Minimal fake tRPC builder producing TWO distinct procedure flavors, exactly
+ * how the real app wires createSentinelRouter(t, clientProcedure, adminProcedure).
+ *
+ * Unlike the securityMetrics builder (whose mutations did not need schema
+ * capture because that router is all-query), this router registers mostly
+ * mutations, so BOTH wrappers capture the pending schema at route-build time
+ * and reset it afterwards (startRuntime et al. register WITHOUT .input()).
+ */
+function makeProcedure(auth: "client" | "admin") {
+  let currentSchema: unknown = null;
+  const proc: any = {
+    input: (schema: unknown) => {
+      currentSchema = schema;
+      return proc;
+    },
+    query: (handler: any): RouteDef => {
+      const schema = currentSchema;
+      currentSchema = null;
+      return { type: "query", handler: wrap(handler, schema, auth), schema, auth };
+    },
+    mutation: (handler: any): RouteDef => {
+      const schema = currentSchema;
+      currentSchema = null;
+      return { type: "mutation", handler: wrap(handler, schema, auth), schema, auth };
+    },
+  };
+  return proc;
+}
+
+/** Enforce the auth gate + zod input parsing the way the real layers do. */
+function wrap(handler: any, schema: unknown, auth: "client" | "admin") {
+  return async ({ input, ctx }: { input?: unknown; ctx?: any }) => {
+    if (!ctx?.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Authentication required. Please sign in.",
+      });
+    }
+    if (auth === "admin" && !PLATFORM_ADMIN_ROLES.includes(ctx.user.role || "")) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Admin access required. Current role: " + (ctx.user.role || "none"),
+      });
+    }
+    if (schema && input !== undefined) {
+      let parsed: unknown;
+      try {
+        parsed = (schema as { parse: (v: unknown) => unknown }).parse(input);
+      } catch (err) {
+        if (err instanceof ZodError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid input", cause: err });
+        }
+        throw err;
+      }
+      return handler({ input: parsed, ctx });
+    }
+    return handler({ input, ctx });
+  };
+}
+
+function buildRouter() {
+  return createSentinelRouter(
+    { router: (routes: any) => routes } as any,
+    makeProcedure("client"),
+    makeProcedure("admin")
+  );
+}
+
+const CLIENT_ROUTES = ["runNow", "listActions", "reviewSentinelAction", "escalationSweep", "sendDigestNow"];
+const ADMIN_MUTATIONS = ["startRuntime", "stopRuntime"];
+const ADMIN_QUERIES = ["runtimeStatus"];
+
+beforeEach(() => {
+  dbMocks.getDb.mockReset();
+});
+
+// ── Route shape ──────────────────────────────────────────────────────────────
+
+describe("sentinel router — route shape", () => {
+  it("exposes exactly the 8 documented procedures, each with a callable handler", () => {
+    const router = buildRouter();
+    expect(Object.keys(router).sort()).toEqual(
+      [
+        "escalationSweep",
+        "listActions",
+        "reviewSentinelAction",
+        "runNow",
+        "runtimeStatus",
+        "sendDigestNow",
+        "startRuntime",
+        "stopRuntime",
+      ].sort()
+    );
+    for (const name of Object.keys(router)) {
+      expect(typeof (router as any)[name].handler, `handler of "${name}"`).toBe("function");
+    }
+  });
+
+  it("registers queries vs mutations through the stubbed procedure chain", () => {
+    const router = buildRouter();
+    for (const name of ["listActions", "runtimeStatus"]) {
+      expect((router as any)[name].type, `"${name}" type`).toBe("query");
+    }
+    for (const name of [
+      "runNow",
+      "reviewSentinelAction",
+      "escalationSweep",
+      "sendDigestNow",
+      "startRuntime",
+      "stopRuntime",
+    ]) {
+      expect((router as any)[name].type, `"${name}" type`).toBe("mutation");
+    }
+  });
+
+  it("attaches zod input schemas to the input-taking routes (lifecycle routes take no input)", () => {
+    const router = buildRouter();
+    for (const name of ["runNow", "listActions", "reviewSentinelAction", "escalationSweep", "sendDigestNow"]) {
+      expect((router as any)[name].schema, `schema of "${name}"`).toBeDefined();
+    }
+    for (const name of [...ADMIN_MUTATIONS, ...ADMIN_QUERIES]) {
+      expect((router as any)[name].schema, `no-input route "${name}"`).toBeFalsy();
+    }
+  });
+
+  it("wires the client surface through clientProcedure and the lifecycle through adminProcedure", () => {
+    const router = buildRouter();
+    for (const name of CLIENT_ROUTES) {
+      expect((router as any)[name].auth, `"${name}" must be clientProcedure`).toBe("client");
+    }
+    for (const name of [...ADMIN_MUTATIONS, ...ADMIN_QUERIES]) {
+      expect((router as any)[name].auth, `"${name}" must be adminProcedure`).toBe("admin");
+    }
+  });
+});
+
+// ── Authentication gates ─────────────────────────────────────────────────────
+
+describe("sentinel router — unauthenticated callers are rejected", () => {
+  it("all client procedures reject a missing user with TRPCError UNAUTHORIZED before touching the DB", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const calls = [
+      router.runNow.handler({ input: { clientId: 1 }, ctx: {} }),
+      router.listActions.handler({ input: { clientId: 1 }, ctx: {} }),
+      router.reviewSentinelAction.handler({ input: { actionId: 1, decision: "approved" }, ctx: {} }),
+      router.escalationSweep.handler({ input: { clientId: 1 }, ctx: {} }),
+      router.sendDigestNow.handler({ input: { clientId: 1 }, ctx: {} }),
+    ];
+    for (const call of calls) {
+      await expect(call).rejects.toBeInstanceOf(TRPCError);
+      await expect(call).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    }
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("the admin lifecycle procedures also reject a missing user with UNAUTHORIZED", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const calls = [
+      router.startRuntime.handler({ ctx: {} }),
+      router.stopRuntime.handler({ ctx: {} }),
+      router.runtimeStatus.handler({ ctx: {} }),
+    ];
+    for (const call of calls) {
+      await expect(call).rejects.toBeInstanceOf(TRPCError);
+      await expect(call).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    }
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("authenticated non-admin roles are FORBIDDEN on startRuntime/stopRuntime/runtimeStatus", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const memberCtx = { user: { id: 7, role: "member" } };
+    const calls = [
+      router.startRuntime.handler({ ctx: memberCtx }),
+      router.stopRuntime.handler({ ctx: memberCtx }),
+      router.runtimeStatus.handler({ ctx: memberCtx }),
+    ];
+    for (const call of calls) {
+      await expect(call).rejects.toBeInstanceOf(TRPCError);
+      await expect(call).rejects.toMatchObject({ code: "FORBIDDEN" });
+    }
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("platform admin roles ARE allowed through the admin gate", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    // ensure clean slate, then flip the runtime flag through the real lifecycle
+    await router.stopRuntime.handler({ ctx: { user: { id: 1, role: "owner" } } });
+    const status = await router.runtimeStatus.handler({ ctx: { user: { id: 1, role: "super_admin" } } });
+    expect(status).toEqual({ running: false });
+    await router.stopRuntime.handler({ ctx: { user: { id: 1, role: "owner" } } });
+  });
+});
+
+// ── Zod input validation ─────────────────────────────────────────────────────
+
+describe("sentinel router — zod BAD_REQUEST on malformed input", () => {
+  it("runNow requires a numeric clientId (missing or string-typed input is rejected)", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+
+    expect(() => router.runNow.schema.parse({})).toThrow(ZodError);
+    expect(() => router.runNow.schema.parse({ clientId: "5" })).toThrow(ZodError);
+    expect(() => router.runNow.schema.parse({ clientId: 5 })).not.toThrow();
+
+    const missing = router.runNow.handler({ input: {}, ctx: { user: { id: 1, role: "owner" } } });
+    await expect(missing).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const mistyped = router.runNow.handler({ input: { clientId: "5" }, ctx: { user: { id: 1, role: "owner" } } });
+    await expect(mistyped).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(dbMocks.getDb).not.toHaveBeenCalled(); // rejected before any handler ran
+  });
+
+  it("listActions validates the status enum against pending_review|executed|rejected|all and applies defaults", () => {
+    const router = buildRouter();
+    const parsed = router.listActions.schema.parse({ clientId: 9 });
+    expect(parsed).toEqual({ clientId: 9, status: "all", limit: 50 });
+
+    expect(() => router.listActions.schema.parse({ clientId: 9, status: "bogus" })).toThrow(ZodError);
+    expect(() => router.listActions.schema.parse({ clientId: 9, limit: "50" })).toThrow(ZodError);
+    for (const ok of ["pending_review", "executed", "rejected", "all"]) {
+      expect(() => router.listActions.schema.parse({ clientId: 9, status: ok })).not.toThrow();
+    }
+
+    const routerBuilt = buildRouter();
+    const call = routerBuilt.listActions.handler({
+      input: { clientId: 9, status: "bogus" },
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    return expect(call).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("reviewSentinelAction coerces actionId numbers, defaults optional clientId, and rejects bad decisions", async () => {
+    const router = buildRouter();
+
+    const parsed = router.reviewSentinelAction.schema.parse({ actionId: "42", decision: "approved" });
+    expect(parsed.actionId).toBe(42);
+    expect(typeof parsed.actionId).toBe("number");
+
+    expect(() => router.reviewSentinelAction.schema.parse({ actionId: 1 })).toThrow(ZodError); // decision required
+    expect(() => router.reviewSentinelAction.schema.parse({ actionId: 1, decision: "maybe" })).toThrow(ZodError);
+
+    const badDecision = router.reviewSentinelAction.handler({
+      input: { actionId: 1, decision: "maybe" },
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    await expect(badDecision).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    const missingAction = router.reviewSentinelAction.handler({
+      input: { decision: "approved" },
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    await expect(missingAction).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("escalationSweep defaults ackAfterHours to 48 and rejects non-numeric values", async () => {
+    const router = buildRouter();
+    expect(router.escalationSweep.schema.parse({ clientId: 3 })).toEqual({ clientId: 3, ackAfterHours: 48 });
+    expect(router.escalationSweep.schema.parse({ clientId: 3, ackAfterHours: 72 })).toEqual({
+      clientId: 3,
+      ackAfterHours: 72,
+    });
+    expect(() => router.escalationSweep.schema.parse({ clientId: 3, ackAfterHours: "soon" })).toThrow(ZodError);
+    expect(() => router.escalationSweep.schema.parse({})).toThrow(ZodError);
+
+    const call = router.escalationSweep.handler({
+      input: { clientId: 3, ackAfterHours: "soon" },
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    await expect(call).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("sendDigestNow requires a numeric clientId", async () => {
+    const router = buildRouter();
+    expect(() => router.sendDigestNow.schema.parse({})).toThrow(ZodError);
+    expect(() => router.sendDigestNow.schema.parse({ clientId: true })).toThrow(ZodError);
+    expect(() => router.sendDigestNow.schema.parse({ clientId: 4 })).not.toThrow();
+
+    const call = router.sendDigestNow.handler({
+      input: {},
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    await expect(call).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+// ── Graceful degradation without a database (REAL runtime modules, mocked getDb) ──
+
+describe("sentinel router — no-database degradation", () => {
+  it("listActions returns [] instead of crashing", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const rows = await router.listActions.handler({
+      input: router.listActions.schema.parse({ clientId: 1 }),
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    expect(rows).toEqual([]);
+    expect(dbMocks.getDb).toHaveBeenCalled();
+  });
+
+  it("reviewSentinelAction returns { success: false } for approved AND rejected decisions", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const approved = await router.reviewSentinelAction.handler({
+      input: router.reviewSentinelAction.schema.parse({ actionId: "11", decision: "approved" }),
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    expect(approved).toMatchObject({ success: false });
+
+    const rejected = await router.reviewSentinelAction.handler({
+      input: router.reviewSentinelAction.schema.parse({ clientId: 1, actionId: 11, decision: "rejected" }),
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    expect(rejected).toMatchObject({ success: false });
+  });
+
+  it("runNow surfaces the implemented 'no database' error rather than pretending success", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const call = router.runNow.handler({
+      input: { clientId: 1 },
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    await expect(call).rejects.toThrow(/no database/i);
+  });
+
+  it("escalationSweep reports success with escalated: 0 (pipeline sweep short-circuits)", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const result = await router.escalationSweep.handler({
+      input: router.escalationSweep.schema.parse({ clientId: 2, ackAfterHours: 24 }),
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    expect(result).toEqual({ success: true, escalated: 0 });
+  });
+
+  it("sendDigestNow succeeds silently (digest loop early-returns without a DB)", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    const result = await router.sendDigestNow.handler({
+      input: { clientId: 2 },
+      ctx: { user: { id: 1, role: "owner" } },
+    });
+    expect(result).toEqual({ success: true });
+  });
+});
+
+// ── Runtime lifecycle (admin surface) — DB-independent flag flipping ─────────
+
+describe("sentinel router — runtime lifecycle", () => {
+  it("startRuntime/runtimeStatus/stopRuntime flip and report the running flag without a database", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    vi.useFakeTimers(); // keep setInterval/setsetTimeout handles off the event loop
+    try {
+      const admin = { user: { id: 1, role: "owner" } };
+
+      await router.stopRuntime.handler({ ctx: admin }); // deterministic starting point
+      expect(await router.runtimeStatus.handler({ ctx: admin })).toEqual({ running: false });
+
+      const started = await router.startRuntime.handler({ ctx: admin });
+      expect(started).toEqual({ started: true });
+      expect(await router.runtimeStatus.handler({ ctx: admin })).toEqual({ running: true });
+
+      const stopped = await router.stopRuntime.handler({ ctx: admin });
+      expect(stopped).toEqual({ started: false });
+      expect(await router.runtimeStatus.handler({ ctx: admin })).toEqual({ running: false });
+
+      // start is idempotent while already running
+      await router.startRuntime.handler({ ctx: admin });
+      await router.startRuntime.handler({ ctx: admin });
+      expect(await router.runtimeStatus.handler({ ctx: admin })).toEqual({ running: true });
+    } finally {
+      await router.stopRuntime.handler({ ctx: { user: { id: 1, role: "owner" } } });
+      vi.useRealTimers();
+    }
+  });
+});

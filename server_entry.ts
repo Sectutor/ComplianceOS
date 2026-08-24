@@ -861,6 +861,10 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         console.log(`\n🚀 Server listening specifically on http://${listenAddr}:${port}`);
         console.log(`-> Health check: http://${listenAddr}:${port}/health`);
         console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
+        // Agent Runtime: start the sentinel heartbeat (Phase 1)
+        import('./packages/core/src/server/runtime/agentRuntime')
+            .then(m => { m.startAgentRuntime(); })
+            .catch(e => console.warn('[Server] agent runtime failed to start:', e.message));
     });
     server.on('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {

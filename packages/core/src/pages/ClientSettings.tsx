@@ -28,7 +28,8 @@ import {
     Database,
     Briefcase,
     MapPin,
-    Globe
+    Globe,
+    Bot
 } from "lucide-react";
 
 
@@ -37,6 +38,7 @@ import ClientTeamManagement from "@/components/ClientTeamManagement";
 import ClientGeneralSettings from "@/components/ClientGeneralSettings";
 import ClientBrandingSettings from "@/components/ClientBrandingSettings";
 import { SmtpSettings } from "@/components/settings/SmtpSettings";
+import { AutomationSettingsTab } from "./settings/AutomationSettingsTab";
 import { PolicySettingsTab } from "@/components/settings/PolicySettingsTab";
 import { FrameworksSettingsTab } from "@/components/settings/FrameworksSettingsTab";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -249,6 +251,13 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                         >
                             <Database className="mr-2 h-4 w-4" />
                             Demo Data
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="automation"
+                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                        >
+                            <Bot className="mr-2 h-4 w-4" />
+                            Automation
                         </TabsTrigger>
                         <TabsTrigger
                             value="email-templates"
@@ -495,6 +504,11 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                                         />
                                     </CardContent>
                                 </Card>
+                            </TabsContent>
+
+                            {/* Automation Tab — sentinel agent runtime */}
+                            <TabsContent value="automation" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
+                                <AutomationSettingsTab clientId={clientId} />
                             </TabsContent>
                         </div>
 
