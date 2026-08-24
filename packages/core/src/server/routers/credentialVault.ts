@@ -107,8 +107,8 @@ export const credentialVaultIpAllowlistCheckInputSchema = z.object({
   allowlist: z.union([z.array(z.string()), z.string()]),
 });
 
-/** Input schema for `rotationSchedule` (cycle 37 — per-credential rotation bands). */
-export const credentialVaultRotationScheduleInputSchema = z.object({
+/** Shape of the `rotationSchedule` input (cycle 37 — per-credential rotation bands). */
+export const credentialVaultRotationScheduleShape = {
   credentials: z.array(z.unknown()),
   policy: z
     .object({
@@ -118,10 +118,14 @@ export const credentialVaultRotationScheduleInputSchema = z.object({
     })
     .nullish(),
   clock: z.union([z.string(), z.number()]).nullish(),
-});
+};
 
-/** Input schema for `expiryCheck` (cycle 37 — credential expiry evaluation). */
-export const credentialVaultExpiryCheckInputSchema = z.object({
+/** Input schema for `rotationSchedule` (single source of truth: the shape above). */
+export const credentialVaultRotationScheduleInputSchema = z.object(credentialVaultRotationScheduleShape);
+export type CredentialVaultRotationScheduleInput = z.infer<typeof credentialVaultRotationScheduleInputSchema>;
+
+/** Shape of the `expiryCheck` input (cycle 37 — credential expiry evaluation). */
+export const credentialVaultExpiryCheckShape = {
   credentials: z.array(z.unknown()),
   policy: z
     .object({
@@ -129,13 +133,21 @@ export const credentialVaultExpiryCheckInputSchema = z.object({
     })
     .nullish(),
   clock: z.union([z.string(), z.number()]).nullish(),
-});
+};
 
-/** Input schema for `allowlistEvaluate` (cycle 37 — IP allowlist normalize + evaluate). */
-export const credentialVaultAllowlistEvaluateInputSchema = z.object({
+/** Input schema for `expiryCheck` (single source of truth: the shape above). */
+export const credentialVaultExpiryCheckInputSchema = z.object(credentialVaultExpiryCheckShape);
+export type CredentialVaultExpiryCheckInput = z.infer<typeof credentialVaultExpiryCheckInputSchema>;
+
+/** Shape of the `allowlistEvaluate` input (cycle 37 — IP allowlist normalize + evaluate). */
+export const credentialVaultAllowlistEvaluateShape = {
   ip: z.string(),
   entries: z.array(z.unknown()),
-});
+};
+
+/** Input schema for `allowlistEvaluate` (single source of truth: the shape above). */
+export const credentialVaultAllowlistEvaluateInputSchema = z.object(credentialVaultAllowlistEvaluateShape);
+export type CredentialVaultAllowlistEvaluateInput = z.infer<typeof credentialVaultAllowlistEvaluateInputSchema>;
 
 /* ------------------------------------------------------------------ */
 /* In-module mutable state (no DB, no globals outside this module)      */
@@ -396,8 +408,6 @@ export const createCredentialVaultRouter = (t: any, protectedProcedure: any, pub
         normalized: normalizeAllowlist(input?.entries ?? []),
         decision: evaluateIpAgainstAllowlist(input?.ip ?? "", input?.entries ?? []),
       })),
-
-
   });
 };
 
