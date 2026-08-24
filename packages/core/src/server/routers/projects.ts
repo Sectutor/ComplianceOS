@@ -15,19 +15,33 @@ export const createProjectsRouter = (t: any, clientProcedure: any) => {
             }))
             .query(async ({ input }: any) => {
                 const db = await getDb();
-                const result = await db.select({
-                    ...projects,
-                    riskCount: sql<number>`count(DISTINCT ${riskScenarios.id})`.mapWith(Number),
-                    threatModelCount: sql<number>`count(DISTINCT ${threatModels.id})`.mapWith(Number),
-                })
-                    .from(projects)
-                    .leftJoin(riskScenarios, eq(riskScenarios.projectId, projects.id))
-                    .leftJoin(threatModels, eq(threatModels.projectId, projects.id))
-                    .where(eq(projects.clientId, input.clientId))
-                    .groupBy(projects.id)
-                    .orderBy(desc(projects.updatedAt));
-
-                return result;
+                // Postgres requires every non-aggregated selected column in GROUP BY;
+                // alias snake_case DB columns back to the camelCase field names the
+                // Drizzle schema (and therefore the UI) expects.
+                const result = await db.execute(sql`
+                    SELECT p.id AS "id",
+                           p.client_id AS "clientId",
+                           p.name AS "name",
+                           p.description AS "description",
+                           p.status AS "status",
+                           p.start_date AS "startDate",
+                           p.end_date AS "endDate",
+                           p.owner AS "owner",
+                           p.project_type AS "projectType",
+                           p.security_criticality AS "securityCriticality",
+                           p.created_at AS "createdAt",
+                           p.updated_at AS "updatedAt",
+                           count(DISTINCT rs.id)::int AS "riskCount",
+                           count(DISTINCT tm.id)::int AS "threatModelCount"
+                    FROM projects p
+                    LEFT JOIN risk_scenarios rs ON rs.project_id = p.id
+                    LEFT JOIN threat_models tm ON tm.project_id = p.id
+                    WHERE p.client_id = ${input.clientId}
+                    GROUP BY p.id, p.client_id, p.name, p.description, p.status,
+                             p.start_date, p.end_date, p.owner, p.project_type,
+                             p.security_criticality, p.created_at, p.updated_at
+                    ORDER BY p.updated_at DESC`);
+                return result.rows ?? result;
             }),
 
         get: clientProcedure

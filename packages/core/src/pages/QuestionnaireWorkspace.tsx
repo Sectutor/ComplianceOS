@@ -467,6 +467,54 @@ export default function QuestionnaireWorkspace() {
     toast.success("Progress saved");
   };
 
+  // AI answer generation (LLM-backed with rules fallback, per question)
+  const generateAnswersMutation = trpc.questionnaire.generateAnswers.useMutation({
+    onSuccess: (result: any) => {
+      const answered = result?.answeredQuestions || [];
+      let applied = 0;
+      setAnswers((prev: any[]) =>
+        prev.map((a) => {
+          const match = answered.find(
+            (r: any) => r.questionId === a.questionId || r.questionText === a.question
+          );
+          if (!match) return a;
+          applied++;
+          return {
+            ...a,
+            answer: `${match.shortAnswer}. ${match.answer}`.trim(),
+            confidence: Math.round(match.confidenceScore || 0),
+            sources: [match.supportingEvidence, match.policyCitation].filter(Boolean),
+            status: "answered",
+          };
+        })
+      );
+      toast.success(`AI answered ${applied} question(s)`, {
+        description: `Engine: ${result.engine}${result.modelUsed ? ` (${result.modelUsed})` : ""} · Avg confidence ${result.overallConfidence}%`,
+      });
+    },
+    onError: (err: any) => {
+      toast.error("AI answering failed", { description: err.message });
+    },
+  });
+
+  const handleGenerateAnswers = async () => {
+    if (!qId || !clientId) return;
+    if (!answers.length) {
+      toast.error("No questions to answer", { description: "Upload or select questions first." });
+      return;
+    }
+    await generateAnswersMutation.mutateAsync({
+      clientId,
+      questionnaireId: qId,
+      engine: "auto",
+      questions: answers.map((a: any) => ({
+        questionId: a.questionId || String(a.id ?? ""),
+        questionText: a.question,
+        category: a.focusArea || undefined,
+      })),
+    });
+  };
+
   const formatStatus = (status: string) => {
     switch (status) {
       case "draft":
@@ -779,6 +827,10 @@ export default function QuestionnaireWorkspace() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button onClick={handleGenerateAnswers} variant="outline" size="sm" className="flex items-center gap-2 border-amber-400 text-amber-700 hover:bg-amber-50" disabled={generateAnswersMutation.isPending}>
+                    {generateAnswersMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-500" />}
+                    {generateAnswersMutation.isPending ? "AI Answering…" : "AI Answer All"}
+                  </Button>
                   <Button onClick={handleSaveProgress} variant="outline" size="sm" className="flex items-center gap-2">
                     <Save className="h-4 w-4" /> Save Progress
                   </Button>

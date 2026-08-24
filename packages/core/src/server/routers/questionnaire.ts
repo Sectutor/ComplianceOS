@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, t, publicProcedure, clientProcedure } from "../trpc";
 import { autoAnswerQuestionnaire } from "../../lib/ai/questionnaireAutoResponder";
+import { llmAnswerQuestionnaire } from "../../lib/ai/questionnaireLlmResponder";
 import { getDb } from "../../db";
 import { questionnaires, questionnaireQuestions, vendorAssessmentTemplates } from "../../schema";
 import { eq, desc, asc } from "drizzle-orm";
@@ -292,14 +293,40 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 clientId: z.number(),
                 questionnaireId: z.number().optional(),
                 questions: z.array(z.any()).optional(),
+                engine: z.enum(["llm", "rules", "auto"]).default("auto"),
             }))
             .mutation(async ({ input }: { input: any }) => {
-                const questionsToAnswer = input.questions || [
-                    { questionId: "Q1", questionText: "Does your organization maintain a documented Security Policy?" },
-                    { questionId: "Q2", questionText: "Are data stores encrypted at rest?" }
-                ];
+                const db = await getDb();
+                let questionsToAnswer = input.questions;
+
+                // Default: pull unanswered questions from the stored questionnaire
+                if (!questionsToAnswer && input.questionnaireId) {
+                    const qId = input.questionnaireId;
+                    const stored = await db
+                        .select()
+                        .from(questionnaireQuestions)
+                        .where(eq(questionnaireQuestions.questionnaireId, qId));
+                    questionsToAnswer = stored.map((q: any) => ({
+                        questionId: q.questionId,
+                        questionText: q.question || q.questionId,
+                        category: q.focusArea || undefined,
+                    }));
+                }
+                if (!questionsToAnswer || questionsToAnswer.length === 0) {
+                    questionsToAnswer = [
+                        { questionId: "Q1", questionText: "Does your organization maintain a documented Security Policy?" },
+                        { questionId: "Q2", questionText: "Are data stores encrypted at rest?" },
+                    ];
+                }
+
+                // engine=auto: try LLM first, graceful fallback to rules inside llmAnswerQuestionnaire
+                if (input.engine === "llm" || input.engine === "auto") {
+                    const result = await llmAnswerQuestionnaire(input.clientId, questionsToAnswer);
+                    return { success: true, ...result };
+                }
+
                 const result = await autoAnswerQuestionnaire(input.clientId, questionsToAnswer);
-                return { success: true, ...result };
+                return { success: true, ...result, engine: "rules" };
             }),
 
         /**

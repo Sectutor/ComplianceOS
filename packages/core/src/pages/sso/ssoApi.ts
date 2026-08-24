@@ -114,21 +114,25 @@ const ssoApi = trpc as unknown as SsoTrpc;
 
 /** Read-only SSO configuration/status. Never blocks a page when absent. */
 export function useSsoStatusQuery() {
-  return ssoApi.sso.status.useQuery({
+  return ssoApi.sso.status.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
-  });
+  } as any);
 }
 
 /**
  * On-demand `sso.start` — kept disabled so it only fires when the user
  * clicks "Continue with SSO" (call `refetch()` and read `authorizationUrl`).
+ * NOTE: tRPC's useQuery signature is (input, opts) — the (no-input) procedure
+ * must pass undefined as input, otherwise the options object is treated as
+ * query input and real options default to enabled, firing on mount and
+ * throwing "SSO OIDC is not enabled or configured" when unconfigured.
  */
 export function useSsoStartQuery() {
-  return ssoApi.sso.start.useQuery({
+  return ssoApi.sso.start.useQuery(undefined, {
     enabled: false,
     retry: false,
-  });
+  } as any);
 }
 
 /** Exchange the IdP authorization code + state for a session token. */

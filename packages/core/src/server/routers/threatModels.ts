@@ -1314,6 +1314,11 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                     details: { action: "committed_risks", count: results.length }
                 });
 
+                // Mark the threat model as completed now that risks are committed
+                await db.update(threatModels)
+                    .set({ status: 'completed', updatedAt: new Date() })
+                    .where(and(eq(threatModels.id, input.threatModelId), eq(threatModels.clientId, input.clientId)));
+
                 return results;
             }),
 

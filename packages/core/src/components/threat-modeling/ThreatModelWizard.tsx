@@ -18,7 +18,7 @@ import {
 import {
     ArrowLeft, ArrowRight, Save, Trash2, Loader2, AlertTriangle, Plus,
     ShieldAlert, Sparkles, Box, Search, ListChecks, CheckCircle2,
-    ShieldCheck, Activity, Server, Database, Globe, Network, Lock, Unlock, X, User, Cylinder, Download, Upload, Target, EyeOff, ChevronDown, ChevronUp, Info
+    ShieldCheck, Activity, Server, Database, Globe, Network, Lock, Unlock, X, User, Cylinder, Download, Upload, Target, EyeOff, ChevronDown, ChevronUp, Info, Pencil, ClipboardCheck
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -101,6 +101,7 @@ export function ThreatModelWizard() {
 
     const [step, setStep] = useState(1);
     const [archSubstep, setArchSubstep] = useState(1); // 1: Definition, 2: Components
+    const [viewMode, setViewMode] = useState<'summary' | 'wizard' | null>(null); // null = decide after load
 
     // Working State
     const [modelBasic, setModelBasic] = useState({ name: "", methodology: "STRIDE" });
@@ -200,6 +201,19 @@ export function ThreatModelWizard() {
             }
         }
     }, [existingModel, generatedRisks.length, archSubstep]);
+
+    // Decide the entry view once model data is loaded:
+    // completed models open in read-only Summary; drafts go straight to the wizard.
+    React.useEffect(() => {
+        if (viewMode === null && createdModelId !== null) {
+            const hasRisks = (existingModel?.risks?.length || 0) > 0 || generatedRisks.length > 0;
+            setViewMode(
+                existingModel?.status === 'completed' || (hasRisks && !isNew)
+                    ? 'summary'
+                    : 'wizard'
+            );
+        }
+    }, [viewMode, createdModelId, existingModel, generatedRisks.length, isNew]);
 
     const handleCreateBasic = async () => {
         if (!clientId || !projectId) return;
@@ -488,8 +502,10 @@ export function ThreatModelWizard() {
 
                 <div className="flex justify-between items-start">
                     <PageGuide
-                        title="Threat Modeling Wizard"
-                        description="Identify architectural flaws and security risks."
+                        title={viewMode === 'summary' ? "Threat Model Overview" : "Threat Modeling Wizard"}
+                        description={viewMode === 'summary'
+                            ? "Review the completed analysis, or jump to any stage to update it."
+                            : "Identify architectural flaws and security risks."}
                         rationale="Systematic analysis of your design prevents costly security fixes later."
                         howToUse={[
                             { step: "Architecture", description: "Design your system using the drag-and-drop canvas." },
@@ -499,6 +515,58 @@ export function ThreatModelWizard() {
                     />
                 </div>
 
+                {/* SUMMARY VIEW — completed models open here; jump-to-step for each stage */}
+                {viewMode === 'summary' && (
+                    <Card className="border-emerald-100 shadow-md">
+                        <CardHeader className="bg-emerald-50/30 flex flex-row items-center justify-between space-y-0">
+                            <div>
+                                <CardTitle className="text-xl">{modelBasic.name}</CardTitle>
+                                <CardDescription>
+                                    {existingModel?.methodology} · Status:
+                                    <Badge variant="success" className="ml-2 bg-emerald-100 text-emerald-700 border-emerald-200">
+                                        {existingModel?.status}
+                                    </Badge>
+                                </CardDescription>
+                            </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => setViewMode('wizard')}
+                                className="bg-blue-600 hover:bg-blue-700 text-white border-none"
+                            >
+                                <Pencil className="w-4 h-4 mr-2" /> Edit in Wizard
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="pt-6 grid md:grid-cols-4 gap-4">
+                            {[
+                                { stepNo: 1, icon: Network, title: "Architecture", desc: `${existingModel?.components?.length || 0} components · ${existingModel?.flows?.length || 0} data flows`, target: 1 },
+                                { stepNo: 2, icon: Search, title: "Analysis", desc: `${generatedRisks.length} threats identified`, target: 2 },
+                                { stepNo: 3, icon: ShieldCheck, title: "Mitigation", desc: `${generatedRisks.reduce((a: number, r: any) => a + (r.selectedMitigations?.length || 0), 0)} mitigations planned`, target: 3 },
+                                { stepNo: 4, icon: ClipboardCheck, title: "Verification & Commit", desc: `${generatedRisks.filter((r: any) => r.selected).length} risks committed to register`, target: 4 },
+                            ].map(({ stepNo, icon: Icon, title, desc, target }) => (
+                                <button
+                                    key={stepNo}
+                                    onClick={() => setStep(target)}
+                                    className="text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:shadow-md transition-all group"
+                                >
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                                            <Icon className="h-4 w-4" />
+                                        </div>
+                                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Stage {stepNo}</span>
+                                    </div>
+                                    <p className="font-bold text-slate-900">{title}</p>
+                                    <p className="text-sm text-slate-500 mt-1">{desc}</p>
+                                    <span className="inline-flex items-center gap-1 text-blue-600 text-sm font-semibold mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Go to stage <ArrowRight className="h-3.5 w-3.5" />
+                                    </span>
+                                </button>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {viewMode !== 'summary' && (
+                <>
                 <WorkflowDiagram currentStep={step} />
 
                 <div className={cn("mx-auto pb-20 transition-all duration-500 ease-in-out w-full max-w-[1800px] px-4")}>
@@ -1147,6 +1215,8 @@ export function ThreatModelWizard() {
                         </Card>
                     )}
                 </div>
+                </>
+                )}
             </div>
         </DashboardLayout>
     );

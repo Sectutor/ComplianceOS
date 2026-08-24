@@ -89,7 +89,7 @@ export function translateNavLabel(label: string, t: (key: string, options?: any)
     "Clients": "navigation:clients",
     "Settings": "navigation:settings",
     "Branding": "navigation:branding",
-    "Employee Onboarding": "navigation:employeeOnboarding",
+    "User Onboarding": "navigation:employeeOnboarding",
     "Global Control Library": "navigation:globalControlLibrary",
     "Harmonization": "navigation:harmonization",
     "Compliance Obligations": "navigation:complianceObligations",
@@ -650,7 +650,7 @@ function DashboardLayoutContent({
         { icon: Users, label: "Clients", path: "/clients" },
         { icon: Settings, label: "Settings", path: "/settings" },
         ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
-        { icon: GraduationCap, label: "Employee Onboarding", path: "/onboarding" },
+        { icon: GraduationCap, label: "User Onboarding", path: "/onboarding" },
       ]
     },
     {
@@ -907,8 +907,8 @@ function DashboardLayoutContent({
           {
             icon: Settings, label: "Client Settings", submenu: [
               { label: "Security", path: "/settings/security" },
-              { label: "Plugins", path: "/settings/plugins" },
-              { label: "Onboarding", path: "/settings/onboarding" },
+              // Plugins hidden from navigation (page still reachable by URL)
+              { label: "User Onboarding", path: "/settings/onboarding" },
               { label: "Users", path: "/settings/users" },
               { label: "Organization", path: "/settings/organization" },
               { label: "Branding", path: "/settings?tab=branding" },

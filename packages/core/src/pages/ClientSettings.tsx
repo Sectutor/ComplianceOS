@@ -34,17 +34,15 @@ import {
 
 import ClientContactInfo from "@/components/ClientContactInfo";
 import ClientTeamManagement from "@/components/ClientTeamManagement";
-import BillingSettings from "./BillingSettings";
 import ClientGeneralSettings from "@/components/ClientGeneralSettings";
 import ClientBrandingSettings from "@/components/ClientBrandingSettings";
 import { SmtpSettings } from "@/components/settings/SmtpSettings";
 import { PolicySettingsTab } from "@/components/settings/PolicySettingsTab";
 import { FrameworksSettingsTab } from "@/components/settings/FrameworksSettingsTab";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { OnboardingSettingsTab } from "@/components/settings/OnboardingSettingsTab";
 import { EmailTemplatesTab } from "@/components/settings/EmailTemplatesTab";
 import { PersonalizationReference } from "@/components/settings/PersonalizationReference";
-import { ListTodo, ShoppingBag, History } from "lucide-react";
+import { ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
 
 interface ClientSettingsProps {
@@ -216,13 +214,6 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                             Branding
                         </TabsTrigger>
                         <TabsTrigger
-                            value="billing"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
-                        >
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Billing
-                        </TabsTrigger>
-                        <TabsTrigger
                             value="license"
                             className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
@@ -258,13 +249,6 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                         >
                             <Database className="mr-2 h-4 w-4" />
                             Demo Data
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="onboarding"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
-                        >
-                            <ListTodo className="mr-2 h-4 w-4" />
-                            Onboarding
                         </TabsTrigger>
                         <TabsTrigger
                             value="email-templates"
@@ -322,10 +306,7 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                                 </Card>
                             </TabsContent>
 
-                            {/* Onboarding Tab */}
-                            <TabsContent value="onboarding" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
-                                <OnboardingSettingsTab clientId={clientId} />
-                            </TabsContent>
+                            {/* Onboarding tab removed — redundant with /settings/onboarding ("User Onboarding") */}
 
                             {/* Policy Settings Tab */}
                             <TabsContent value="policy" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
@@ -364,10 +345,7 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                                 />
                             </TabsContent>
 
-                            {/* Billing Tab */}
-                            <TabsContent value="billing" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
-                                <BillingSettings client={client} />
-                            </TabsContent>
+                            {/* Billing tab removed — self-hosted, no SaaS billing */}
 
                             {/* License Tab */}
                             <TabsContent value="license" className="m-0 space-y-6 animate-in fade-in-50 duration-300">

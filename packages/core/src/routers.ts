@@ -369,10 +369,17 @@ export const appRouter = router({
   feedback: feedbackRouter,
   studio: createStudioRouter(t, premiumClientProcedure),
   backupRestore: createBackupRestoreRouter(t, clientProcedure),
-  advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
+  advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(async ({ ctx, next, path, input }) => {
+    // Dev-browser requests (from the app's own UI) carry the session cookie and
+    // no HMAC headers — let them through. Only machine callers providing an
+    // HMAC signature are verified; unsigned + unauthenticated is rejected.
     const sig = ctx.req.headers["x-signature"] as string | undefined;
     const ts = ctx.req.headers["x-timestamp"] as string | undefined;
     const secret = process.env.TOOL_HMAC_SECRET as string | undefined;
+    if (!sig && !ts) {
+      // No HMAC attempt: fall back to normal session auth (clientProcedure already ran).
+      return next();
+    }
     if (!secret || !sig || !ts) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Missing HMAC headers" });
     }
