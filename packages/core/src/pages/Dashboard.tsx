@@ -32,6 +32,7 @@ import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
 import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
 import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
+import { Nis2DashboardPanels } from "@/pages/cyber/Nis2DashboardPanels";
 import { useTranslation } from "@/hooks/useTranslation";
 
 // Status indicator component with clear, readable logic
@@ -1139,6 +1140,8 @@ export default function Dashboard() {
                     <NIS2ControlHealth clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                     {/* NIS2 Incident Clock - 24h/72h/1-month reporting deadlines */}
                     <NIS2IncidentClock clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
+                    {/* NIS2 Security Command - Article 21 control health command center (cycle 38, additive) */}
+                    <Nis2DashboardPanels clientId={parseInt(effectiveClientId)} />
                   </>
                 )}
                 {/* NIS2 AI Assistant - Available to all users */}

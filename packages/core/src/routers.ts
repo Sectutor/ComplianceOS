@@ -186,6 +186,7 @@ import { createThirdPartyRiskRouter } from "./server/routers/thirdPartyRisk";
 import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgmt";
 import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
 import { createCredentialVaultRouter } from "./server/routers/credentialVault";
+import { createNis2DashboardRouter } from "./server/routers/nis2Dashboard";
 // cleaned up unused imports
 // threatIntel related schema tables removed
 
@@ -347,6 +348,7 @@ export const appRouter = router({
   incidentTimeline: createIncidentTimelineRouter(t, protectedProcedure),
   securityMetrics: createSecurityMetricsRouter(t, protectedProcedure),
   credentialVault: createCredentialVaultRouter(t, protectedProcedure, publicProcedure),
+  nis2Dashboard: createNis2DashboardRouter(t, protectedProcedure),
   supplyChain: createSupplyChainRouter(t, protectedProcedure),
   thirdPartyRisk: createThirdPartyRiskRouter(t, protectedProcedure),
   vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
