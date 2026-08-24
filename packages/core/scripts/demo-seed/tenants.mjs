@@ -1,0 +1,113 @@
+/**
+ * Tenant definitions: two demo companies with full onboarding profiles.
+ */
+export const TENANTS = {
+  nordwind: {
+    slug: "nordwind",
+    client: {
+      name: "Nordwind Logistics GmbH",
+      description:
+        "Mid-size European freight-tech and logistics provider. Operates a proprietary transport management platform (CargoTrack), cross-dock warehouses in Munich, Hamburg and Rotterdam, and an e-commerce fulfilment unit for 400+ retail customers. Currently pursuing ISO/IEC 27001:2022 certification (stage-1 audit scheduled), with GDPR and NIS2 compliance programs running in parallel.",
+      industry: "Logistics & Supply Chain",
+      size: "201-500",
+      status: "active",
+      primary_contact_name: "Katrin Hoffmann",
+      primary_contact_email: "katrin.hoffmann@nordwind-logistics.example",
+      primary_contact_phone: "+49 89 55501200",
+      deployment_type: "self-hosted",
+      region: "EU",
+      client_tier: "enterprise",
+      service_model: "inhouse",
+      target_compliance_score: 90,
+      ciso_name: "Rafael Ostermann",
+      dpo_name: "Dr. Amelie Brandt",
+      headquarters: "Landsberger Str. 302, Munich, Germany",
+      main_service_region: "EU (DACH + Benelux)",
+      policy_language: "en",
+      legal_entity_name: "Nordwind Logistics GmbH",
+      regulatory_jurisdictions: JSON.stringify(["EU", "Germany", "Netherlands"]),
+      default_document_classification: "internal",
+      plan_tier: "enterprise",
+      active_modules: JSON.stringify([
+        "governance", "risk", "compliance", "policies", "evidence", "privacy",
+        "nis2", "vendors", "business_continuity", "ai_governance",
+        "threat_intelligence", "access_reviews", "audit_hub"
+      ]),
+      currency: "EUR",
+      locale: "de-DE",
+      date_format: "DD.MM.YYYY",
+    },
+    frameworks: [
+      { short: "ISO27001", targetPct: 75 },
+      { short: "GDPR", targetPct: 80 },
+      { short: "NIS2", targetPct: 60 },
+      { short: "SOC2", targetPct: 35 },
+    ],
+    departments: [
+      ["Executive Leadership", "Katrin Hoffmann"],
+      ["IT Operations", "Tobias Krüger"],
+      ["Information Security", "Rafael Ostermann"],
+      ["Software Engineering", "Mira Lindqvist"],
+      ["Warehouse & Fleet Operations", "Bram Van Dijk"],
+      ["Human Resources", "Sanne Bakker"],
+      ["Finance & Controlling", "Julia Lehmann"],
+      ["Legal & Compliance", "Dr. Amelie Brandt"],
+      ["Customer Service", "Pieter Visser"],
+      ["Sales & Marketing", "Noor Jansen"],
+    ],
+    employeeCount: 110,
+  },
+
+  apex: {
+    slug: "apex",
+    client: {
+      name: "Apex Federal Solutions Inc.",
+      description:
+        "Virginia-based IT services contractor serving U.S. federal civilian and defense agencies. Operates the ApexCloud Gov platform (AWS GovCloud) providing managed identity, log analytics and secure file exchange for 14 agency customers. Handles CUI under DFARS 252.204-7012; pursuing FedRAMP Moderate authorization and preparing for CMMC Level 2 assessment.",
+      industry: "Government IT Services",
+      size: "51-200",
+      status: "active",
+      primary_contact_name: "Patricia Reynolds",
+      primary_contact_email: "patricia.reynolds@apexfed.example",
+      primary_contact_phone: "+1 703 555 0148",
+      deployment_type: "cloud",
+      region: "US",
+      client_tier: "enterprise",
+      service_model: "inhouse",
+      target_compliance_score: 85,
+      ciso_name: "Marcus Bell",
+      dpo_name: null,
+      headquarters: "1200 Crystal Drive, Arlington, VA 22202, USA",
+      main_service_region: "United States",
+      policy_language: "en",
+      legal_entity_name: "Apex Federal Solutions Inc.",
+      regulatory_jurisdictions: JSON.stringify(["US-Federal", "Virginia"]),
+      default_document_classification: "cui",
+      plan_tier: "enterprise",
+      active_modules: JSON.stringify([
+        "governance", "risk", "compliance", "policies", "evidence",
+        "federal", "vendors", "business_continuity", "threat_intelligence",
+        "access_reviews", "audit_hub"
+      ]),
+      currency: "USD",
+      locale: "en-US",
+      date_format: "MM/DD/YYYY",
+    },
+    frameworks: [
+      { short: "ISO27001", targetPct: 45 },
+      { short: "SOC2", targetPct: 65 },
+      // Federal frameworks handled by phase4-federal (800-171, 800-53, FedRAMP)
+    ],
+    departments: [
+      ["Executive Leadership", "Patricia Reynolds"],
+      ["Engineering", "David Cho"],
+      ["Security & Compliance", "Marcus Bell"],
+      ["Cloud Operations", "Steven Hall"],
+      ["Program Management", "Karen Foster"],
+      ["HR & Facilities", "Michelle Grant"],
+      ["Finance & Contracts", "Brian Carter"],
+      ["Business Development", "Lauren Nelson"],
+    ],
+    employeeCount: 95,
+  },
+};

@@ -1,76 +1,76 @@
 {
-  "title": "Gestione dipendenti",
-  "overview": "Panoramica dipendenti",
-  "list": "Elenco dipendenti",
-  "add": "Aggiungi dipendente",
-  "edit": "Modifica dipendente",
-  "delete": "Elimina dipendente",
-  "employeeDetails": "Dettagli dipendente",
-  "employeeProfile": "Profilo dipendente",
-  "personalInfo": "Informazioni personali",
-  "firstName": "Nome",
-  "lastName": "Cognome",
-  "fullName": "Nome completo",
-  "email": "Email",
-  "phone": "Telefono",
-  "status": {
-    "title": "Stato",
-    "active": "Attivo",
-    "inactive": "Inattivo",
-    "onLeave": "In ferie",
-    "terminated": "Licenziato",
-    "pending": "In attesa"
-  },
-  "department": "Dipartimento",
-  "departments": "Dipartimenti",
-  "jobTitle": "Posizione",
-  "role": "Ruolo",
-  "manager": "Manager",
-  "startDate": "Data di inizio",
-  "endDate": "Data di fine",
-  "location": "Sede",
-  "timeZone": "Fuso orario",
-  "profile": {
-    "title": "Profilo",
-    "photo": "Foto",
-    "bio": "Bio",
-    "skills": "Competenze",
-    "certifications": "Certificazioni"
-  },
-  "access": {
-    "title": "Accessi e permessi",
-    "userAccount": "Account utente",
-    "permissions": "Permessi",
-    "roles": "Ruoli",
-    "accessLevel": "Livello di accesso"
-  },
-  "training": {
-    "title": "Stato formazione",
-    "completed": "Completato",
-    "inProgress": "In corso",
-    "overdue": "In ritardo",
-    "mandatory": "Formazione obbligatoria"
-  },
-  "acknowledgments": {
-    "title": "Ricevute delle politiche",
-    "pending": "Ricevute in attesa",
-    "acknowledged": "Preso visione"
-  },
-  "assets": {
-    "title": "Asset assegnati",
-    "devices": "Dispositivi",
-    "equipment": "Attrezzature"
-  },
-  "onboarding": {
-    "title": "Inserimento",
-    "checklist": "Checklist onboarding",
-    "progress": "Avanzamento onboarding",
-    "tasks": "Attività onboarding",
-    "welcome": "Kit di benvenuto"
-  },
-  "offboarding": {
-    "title": "Dismissione",
-    "checklist": "Checklist offboarding",
-    "exitInterview": "Colloquio di uscita"
-  }
+    "title": "Gestione dipendenti",
+    "overview": "Panoramica dipendenti",
+    "list": "Elenco dipendenti",
+    "add": "Aggiungi dipendente",
+    "edit": "Modifica dipendente",
+    "delete": "Elimina dipendente",
+    "employeeDetails": "Dettagli dipendente",
+    "employeeProfile": "Profilo dipendente",
+    "personalInfo": "Informazioni personali",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "fullName": "Nome completo",
+    "email": "Email",
+    "phone": "Telefono",
+    "status": {
+        "title": "Stato",
+        "active": "Attivo",
+        "inactive": "Inattivo",
+        "onLeave": "In ferie",
+        "terminated": "Licenziato",
+        "pending": "In attesa"
+    },
+    "department": "Dipartimento",
+    "departments": "Dipartimenti",
+    "jobTitle": "Posizione",
+    "role": "Ruolo",
+    "manager": "Manager",
+    "startDate": "Data di inizio",
+    "endDate": "Data di fine",
+    "location": "Sede",
+    "timeZone": "Fuso orario",
+    "profile": {
+        "title": "Profilo",
+        "photo": "Foto",
+        "bio": "Bio",
+        "skills": "Competenze",
+        "certifications": "Certificazioni"
+    },
+    "access": {
+        "title": "Accessi e permessi",
+        "userAccount": "Account utente",
+        "permissions": "Permessi",
+        "roles": "Ruoli",
+        "accessLevel": "Livello di accesso"
+    },
+    "training": {
+        "title": "Stato formazione",
+        "completed": "Completato",
+        "inProgress": "In corso",
+        "overdue": "In ritardo",
+        "mandatory": "Formazione obbligatoria"
+    },
+    "acknowledgments": {
+        "title": "Ricevute delle politiche",
+        "pending": "Ricevute in attesa",
+        "acknowledged": "Preso visione"
+    },
+    "assets": {
+        "title": "Asset assegnati",
+        "devices": "Dispositivi",
+        "equipment": "Attrezzature"
+    },
+    "onboarding": {
+        "title": "Inserimento",
+        "checklist": "Checklist onboarding",
+        "progress": "Avanzamento onboarding",
+        "tasks": "Attività onboarding",
+        "welcome": "Kit di benvenuto"
+    },
+    "offboarding": {
+        "title": "Dismissione",
+        "checklist": "Checklist offboarding",
+        "exitInterview": "Colloquio di uscita"
+    }
 }

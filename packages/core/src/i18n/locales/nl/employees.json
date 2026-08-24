@@ -1,76 +1,76 @@
 {
-  "title": "Medewerkers & Autorisaties",
-  "overview": "Overzicht medewerkers",
-  "list": "Lijst medewerkers",
-  "add": "Medewerker toevoegen",
-  "edit": "Medewerker bewerken",
-  "delete": "Medewerker verwijderen",
-  "employeeDetails": "Details medewerker",
-  "employeeProfile": "Profiel medewerker",
-  "personalInfo": "Persoonlijke gegevens",
-  "firstName": "Voornaam",
-  "lastName": "Achternaam",
-  "fullName": "Volledige naam",
-  "email": "E-mail",
-  "phone": "Telefoon",
-  "status": {
-    "title": "Status",
-    "active": "Actief",
-    "inactive": "Inactief",
-    "onLeave": "Met verlof",
-    "terminated": "Ontslagen",
-    "pending": "In afwachting"
-  },
-  "department": "Afdeling",
-  "departments": "Afdelingen",
-  "jobTitle": "Functietitel",
-  "role": "Rol & Rechten",
-  "manager": "Manager",
-  "startDate": "Startdatum",
-  "endDate": "Einddatum",
-  "location": "Locatie",
-  "timeZone": "Tijdzone",
-  "profile": {
-    "title": "Profiel",
-    "photo": "Foto",
-    "bio": "Bio",
-    "skills": "Vaardigheden",
-    "certifications": "Certificeringen"
-  },
-  "access": {
-    "title": "Toegang en machtigingen",
-    "userAccount": "Gebruikersaccount",
-    "permissions": "Machtigingen",
-    "roles": "Rollen",
-    "accessLevel": "Toegangsniveau"
-  },
-  "training": {
-    "title": "Trainingsstatus",
-    "completed": "Voltooid",
-    "inProgress": "Bezig",
-    "overdue": "Achterstallig",
-    "mandatory": "Verplichte training"
-  },
-  "acknowledgments": {
-    "title": "Bevestigingen van beleid",
-    "pending": "Openstaande bevestigingen",
-    "acknowledged": "Bevestigd"
-  },
-  "assets": {
-    "title": "Toegekende middelen",
-    "devices": "Apparaten",
-    "equipment": "Apparatuur"
-  },
-  "onboarding": {
-    "title": "Onboarding",
-    "checklist": "Onboarding-checklist",
-    "progress": "Onboarding-voortgang",
-    "tasks": "Onboarding-taken",
-    "welcome": "Welkomstpakket"
-  },
-  "offboarding": {
-    "title": "Uittreding",
-    "checklist": "Offboarding-checklist",
-    "exitInterview": "Exitgesprek"
-  }
+    "title": "Medewerkers & Autorisaties",
+    "overview": "Overzicht medewerkers",
+    "list": "Lijst medewerkers",
+    "add": "Medewerker toevoegen",
+    "edit": "Medewerker bewerken",
+    "delete": "Medewerker verwijderen",
+    "employeeDetails": "Details medewerker",
+    "employeeProfile": "Profiel medewerker",
+    "personalInfo": "Persoonlijke gegevens",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "fullName": "Volledige naam",
+    "email": "E-mail",
+    "phone": "Telefoon",
+    "status": {
+        "title": "Status",
+        "active": "Actief",
+        "inactive": "Inactief",
+        "onLeave": "Met verlof",
+        "terminated": "Ontslagen",
+        "pending": "In afwachting"
+    },
+    "department": "Afdeling",
+    "departments": "Afdelingen",
+    "jobTitle": "Functietitel",
+    "role": "Rol & Rechten",
+    "manager": "Manager",
+    "startDate": "Startdatum",
+    "endDate": "Einddatum",
+    "location": "Locatie",
+    "timeZone": "Tijdzone",
+    "profile": {
+        "title": "Profiel",
+        "photo": "Foto",
+        "bio": "Bio",
+        "skills": "Vaardigheden",
+        "certifications": "Certificeringen"
+    },
+    "access": {
+        "title": "Toegang en machtigingen",
+        "userAccount": "Gebruikersaccount",
+        "permissions": "Machtigingen",
+        "roles": "Rollen",
+        "accessLevel": "Toegangsniveau"
+    },
+    "training": {
+        "title": "Trainingsstatus",
+        "completed": "Voltooid",
+        "inProgress": "Bezig",
+        "overdue": "Achterstallig",
+        "mandatory": "Verplichte training"
+    },
+    "acknowledgments": {
+        "title": "Bevestigingen van beleid",
+        "pending": "Openstaande bevestigingen",
+        "acknowledged": "Bevestigd"
+    },
+    "assets": {
+        "title": "Toegekende middelen",
+        "devices": "Apparaten",
+        "equipment": "Apparatuur"
+    },
+    "onboarding": {
+        "title": "Onboarding",
+        "checklist": "Onboarding-checklist",
+        "progress": "Onboarding-voortgang",
+        "tasks": "Onboarding-taken",
+        "welcome": "Welkomstpakket"
+    },
+    "offboarding": {
+        "title": "Uittreding",
+        "checklist": "Offboarding-checklist",
+        "exitInterview": "Exitgesprek"
+    }
 }

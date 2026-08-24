@@ -176,13 +176,18 @@ const trpcClient = trpc.createClient({
     retryLink({
       retry: (opts) => {
         const { error, count } = opts;
-        // Only retry on network errors, not on HTTP errors or TRPC errors
+        // Only retry on network errors, not on HTTP errors or TRPC errors.
+        // Also retry transform failures: they occur transiently when the Vite dep
+        // pre-bundle or backend restarts mid-session and a batch response is
+        // truncated/mismatched ("Unable to transform response from server").
         const isNetworkError = error.message?.includes('fetch') ||
           error.message?.includes('network') ||
           error.message?.includes('unexpected end of data');
+        const isTransformError = error.message?.includes('Unable to transform response from server') ||
+          error.message?.includes('Missing result');
         const maxRetries = 3;
 
-        if (isNetworkError && count < maxRetries) {
+        if ((isNetworkError || isTransformError) && count < maxRetries) {
           console.warn(`[TRPC] Retrying request (attempt ${count}/${maxRetries}):`, error.message);
           return true;
         }

@@ -158,12 +158,20 @@ export type Nis2IncidentMilestoneLabel =
 
 /** The single most urgent unmet reporting deadline. */
 export interface Nis2NextIncidentDeadline {
-  label: Nis2IncidentMilestoneLabel;
-  /** ISO-8601 timestamp of the anchor (detectedAt + offset). */
+  /**
+   * Human-readable label. Exact Art. 23 strings for known anchors ("24h
+   * Early Warning", "72h Incident Notification", "30-day Final Report");
+   * otherwise the raw milestone key supplied by the caller.
+   */
+  label: string;
+  /** Milestone identifier when the explicit `milestones` model is used. */
+  key: string;
+  /** ISO-8601 timestamp of the deadline anchor. */
   dueAt: string;
   /** Signed hours until due (negative once overdue), 1 decimal. */
   hoursRemaining: number;
-  incidentId: number | null;
+  /** Raw incident identity passthrough (numeric or string ids alike). */
+  incidentId: number | string | null;
   incidentTitle: string;
 }
 
@@ -175,7 +183,7 @@ export interface Nis2IncidentClockResult {
 
 /**
  * Raw domain rows consumed by the engine. Each array holds loosely-typed
- * records (drizzle rows are compatible); arrays are optional — a missing or
+ * records (plain database rows are compatible); arrays are optional — a missing or
  * malformed array is treated as empty ("no-data" for its measures).
  */
 export interface Nis2ControlHealthRows {
@@ -196,6 +204,13 @@ export interface Nis2ControlHealthRows {
 
 /** Injectable-clock options for the report builders. */
 export interface Nis2EngineOptions {
+  /**
+   * Fixed reference time: epoch milliseconds, an ISO-8601 string, or a Date.
+   * Ignored when `clock` is provided; the REAL clock is used only when
+   * neither is given.
+   */
+  now?: number | string | Date;
+  /** Clock factory; wins over `now`. May throw — treated as unavailable. */
   clock?: () => Date;
 }
 

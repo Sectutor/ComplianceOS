@@ -1,76 +1,76 @@
 {
-  "title": "Empleados y Accesos",
-  "overview": "Resumen de empleados",
-  "list": "Lista de empleados",
-  "add": "Agregar empleado",
-  "edit": "Editar empleado",
-  "delete": "Eliminar empleado",
-  "employeeDetails": "Detalles del empleado",
-  "employeeProfile": "Perfil del empleado",
-  "personalInfo": "Información personal",
-  "firstName": "Nombre",
-  "lastName": "Apellido",
-  "fullName": "Nombre completo",
-  "email": "Correo electrónico",
-  "phone": "Teléfono",
-  "status": {
-    "title": "Estado",
-    "active": "Activo",
-    "inactive": "Inactivo",
-    "onLeave": "De baja",
-    "terminated": "Desvinculado",
-    "pending": "Pendiente"
-  },
-  "department": "Departamento",
-  "departments": "Departamentos",
-  "jobTitle": "Cargo",
-  "role": "Rol y Permisos",
-  "manager": "Responsable",
-  "startDate": "Fecha de inicio",
-  "endDate": "Fecha de fin",
-  "location": "Ubicación",
-  "timeZone": "Zona horaria",
-  "profile": {
-    "title": "Perfil",
-    "photo": "Foto",
-    "bio": "Biografía",
-    "skills": "Habilidades",
-    "certifications": "Certificaciones"
-  },
-  "access": {
-    "title": "Acceso y permisos",
-    "userAccount": "Cuenta de usuario",
-    "permissions": "Permisos",
-    "roles": "Roles",
-    "accessLevel": "Nivel de acceso"
-  },
-  "training": {
-    "title": "Estado de formación",
-    "completed": "Completado",
-    "inProgress": "En progreso",
-    "overdue": "Atrasado",
-    "mandatory": "Formación obligatoria"
-  },
-  "acknowledgments": {
-    "title": "Acuses de recibo de políticas",
-    "pending": "Acuses pendientes",
-    "acknowledged": "Confirmado"
-  },
-  "assets": {
-    "title": "Activos asignados",
-    "devices": "Dispositivos",
-    "equipment": "Equipos"
-  },
-  "onboarding": {
-    "title": "Incorporación",
-    "checklist": "Lista de incorporación",
-    "progress": "Progreso de incorporación",
-    "tasks": "Tareas de incorporación",
-    "welcome": "Paquete de bienvenida"
-  },
-  "offboarding": {
-    "title": "Desvinculación",
-    "checklist": "Lista de desvinculación",
-    "exitInterview": "Entrevista de salida"
-  }
+    "title": "Empleados y Accesos",
+    "overview": "Resumen de empleados",
+    "list": "Lista de empleados",
+    "add": "Agregar empleado",
+    "edit": "Editar empleado",
+    "delete": "Eliminar empleado",
+    "employeeDetails": "Detalles del empleado",
+    "employeeProfile": "Perfil del empleado",
+    "personalInfo": "Información personal",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "fullName": "Nombre completo",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "status": {
+        "title": "Estado",
+        "active": "Activo",
+        "inactive": "Inactivo",
+        "onLeave": "De baja",
+        "terminated": "Desvinculado",
+        "pending": "Pendiente"
+    },
+    "department": "Departamento",
+    "departments": "Departamentos",
+    "jobTitle": "Cargo",
+    "role": "Rol y Permisos",
+    "manager": "Responsable",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "location": "Ubicación",
+    "timeZone": "Zona horaria",
+    "profile": {
+        "title": "Perfil",
+        "photo": "Foto",
+        "bio": "Biografía",
+        "skills": "Habilidades",
+        "certifications": "Certificaciones"
+    },
+    "access": {
+        "title": "Acceso y permisos",
+        "userAccount": "Cuenta de usuario",
+        "permissions": "Permisos",
+        "roles": "Roles",
+        "accessLevel": "Nivel de acceso"
+    },
+    "training": {
+        "title": "Estado de formación",
+        "completed": "Completado",
+        "inProgress": "En progreso",
+        "overdue": "Atrasado",
+        "mandatory": "Formación obligatoria"
+    },
+    "acknowledgments": {
+        "title": "Acuses de recibo de políticas",
+        "pending": "Acuses pendientes",
+        "acknowledged": "Confirmado"
+    },
+    "assets": {
+        "title": "Activos asignados",
+        "devices": "Dispositivos",
+        "equipment": "Equipos"
+    },
+    "onboarding": {
+        "title": "Incorporación",
+        "checklist": "Lista de incorporación",
+        "progress": "Progreso de incorporación",
+        "tasks": "Tareas de incorporación",
+        "welcome": "Paquete de bienvenida"
+    },
+    "offboarding": {
+        "title": "Desvinculación",
+        "checklist": "Lista de desvinculación",
+        "exitInterview": "Entrevista de salida"
+    }
 }

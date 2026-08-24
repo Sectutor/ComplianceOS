@@ -1,68 +1,68 @@
 {
-  "title": "Configuración",
-  "overview": "Resumen de configuración",
-  "general": "Configuración General",
-  "account": "Configuración de cuenta",
-  "security": "Seguridad y MFA",
-  "notifications": "Configuración de notificaciones",
-  "preferences": "Preferencias",
-  "profile": {
-    "title": "Configuración de perfil",
-    "personalInfo": "Información personal",
-    "changePassword": "Cambiar contraseña",
-    "changeEmail": "Cambiar correo",
-    "twoFactor": "Autenticación de dos factores",
-    "avatar": "Avatar"
-  },
-  "organization": {
-    "title": "Configuración de la organización",
-    "companyInfo": "Información de la empresa",
-    "branding": "Marca",
-    "logo": "Logotipo",
-    "colors": "Colores",
-    "theme": "Tema"
-  },
-  "users": {
-    "title": "Gestión de usuarios",
-    "addUser": "Agregar usuario",
-    "editUser": "Editar usuario",
-    "userList": "Lista de usuarios",
-    "roles": "Roles",
-    "permissions": "Permisos",
-    "inviteUser": "Invitar usuario"
-  },
-  "billing": {
-    "title": "Facturación y suscripción",
-    "subscription": "Suscripción",
-    "paymentMethod": "Método de pago",
-    "invoices": "Facturas",
-    "usage": "Uso"
-  },
-  "integrations": {
-    "title": "Integraciones",
-    "available": "Integraciones disponibles",
-    "connected": "Conectado",
-    "configure": "Configurar"
-  },
-  "api": {
-    "title": "Configuración de API",
-    "apiKeys": "Claves API",
-    "webhooks": "Webhooks",
-    "oauth": "Aplicaciones OAuth"
-  },
-  "audit": {
-    "title": "Registros de auditoría",
-    "viewLogs": "Ver registros de auditoría",
-    "exportLogs": "Exportar registros"
-  },
-  "language": {
-    "title": "Idioma y región",
-    "language": "Idioma",
-    "timezone": "Zona horaria",
-    "dateFormat": "Formato de fecha",
-    "currency": "Moneda"
-  },
-  "save": "Guardar cambios",
-  "cancel": "Cancelar",
-  "reset": "Restablecer valores predeterminados"
+    "title": "Configuración",
+    "overview": "Resumen de configuración",
+    "general": "Configuración General",
+    "account": "Configuración de cuenta",
+    "security": "Seguridad y MFA",
+    "notifications": "Configuración de notificaciones",
+    "preferences": "Preferencias",
+    "profile": {
+        "title": "Configuración de perfil",
+        "personalInfo": "Información personal",
+        "changePassword": "Cambiar contraseña",
+        "changeEmail": "Cambiar correo",
+        "twoFactor": "Autenticación de dos factores",
+        "avatar": "Avatar"
+    },
+    "organization": {
+        "title": "Configuración de la organización",
+        "companyInfo": "Información de la empresa",
+        "branding": "Marca",
+        "logo": "Logotipo",
+        "colors": "Colores",
+        "theme": "Tema"
+    },
+    "users": {
+        "title": "Gestión de usuarios",
+        "addUser": "Agregar usuario",
+        "editUser": "Editar usuario",
+        "userList": "Lista de usuarios",
+        "roles": "Roles",
+        "permissions": "Permisos",
+        "inviteUser": "Invitar usuario"
+    },
+    "billing": {
+        "title": "Facturación y suscripción",
+        "subscription": "Suscripción",
+        "paymentMethod": "Método de pago",
+        "invoices": "Facturas",
+        "usage": "Uso"
+    },
+    "integrations": {
+        "title": "Integraciones",
+        "available": "Integraciones disponibles",
+        "connected": "Conectado",
+        "configure": "Configurar"
+    },
+    "api": {
+        "title": "Configuración de API",
+        "apiKeys": "Claves API",
+        "webhooks": "Webhooks",
+        "oauth": "Aplicaciones OAuth"
+    },
+    "audit": {
+        "title": "Registros de auditoría",
+        "viewLogs": "Ver registros de auditoría",
+        "exportLogs": "Exportar registros"
+    },
+    "language": {
+        "title": "Idioma y región",
+        "language": "Idioma",
+        "timezone": "Zona horaria",
+        "dateFormat": "Formato de fecha",
+        "currency": "Moneda"
+    },
+    "save": "Guardar cambios",
+    "cancel": "Cancelar",
+    "reset": "Restablecer valores predeterminados"
 }

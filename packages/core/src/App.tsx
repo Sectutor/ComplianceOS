@@ -546,155 +546,138 @@ function ProtectedRoute({ component: Component, children, ...rest }: { component
 
 function ClientControlsAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/controls`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/controls`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function ClientPoliciesAlias() {
   const { selectedClientId } = useClientContext();
   const currentSearch = window.location.search;
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/policies${currentSearch}`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/policies${currentSearch}`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function RiskManagementAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function RiskHeatmapAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/heatmap`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/heatmap`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function RiskRegisterAlias() {
   const { selectedClientId } = useClientContext();
   const search = window.location.search;
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/register${search}`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/register${search}`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function CriticalRisksAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/critical`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/critical`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function OverdueAssessmentsAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/vendors/assessments/overdue`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/vendors/assessments/overdue`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function AccessReviewsAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/access-reviews`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/access-reviews`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function WebhooksAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/webhooks`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/webhooks`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function EvidenceAlias() {
   const { selectedClientId } = useClientContext();
   const search = window.location.search;
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/evidence${search}`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/evidence${search}`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function GapAnalysisAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/gap-analysis`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/gap-analysis`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function AssetsAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/assets`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/risks/assets`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function ComplianceDashboardAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/compliance`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/compliance`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function SAMMAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/samm`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/samm`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function DevProjectsAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/dev/projects`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/dev/projects`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 function ProjectsAlias() {
   const { selectedClientId } = useClientContext();
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/projects`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/projects`} replace />;
+  return <Redirect to="/clients" replace />;
 }
-
-
-
 
 function BusinessContinuityAlias() {
   const { selectedClientId } = useClientContext();
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const params = useParams(); // Should capture :rest*
 
   if (selectedClientId) {
-    // location includes the full path, e.g. /business-continuity/bia
-    // We can just construct the new path.
-    // But wait, if matches /business-continuity/:rest*, params.rest is 'bia' (maybe 'bia/')
-
     const rest = params.rest || '';
-    // Clean leading slash if present in rest or needs adding
     const suffix = rest.startsWith('/') ? rest : `/${rest}`;
-
-    // Handle case where rest is empty or undefined
     const finalSuffix = (rest === undefined || rest === '') ? '' : suffix;
 
     if (finalSuffix === '/overview') {
-      // Handle specific case to avoid redirection loops or issues if needed, strictly mapping
-      return <Redirect to={`/clients/${selectedClientId}/business-continuity/overview`} />;
+      return <Redirect to={`/clients/${selectedClientId}/business-continuity/overview`} replace />;
     }
 
-    return <Redirect to={`/clients/${selectedClientId}/business-continuity${finalSuffix}`} />;
+    return <Redirect to={`/clients/${selectedClientId}/business-continuity${finalSuffix}`} replace />;
   }
-  return <Redirect to="/clients" />;
+  return <Redirect to="/clients" replace />;
 }
-
 
 function CyberAlias() {
   const { selectedClientId } = useClientContext();
   const [location] = useLocation();
 
   if (selectedClientId) {
-    // Extract the part after /cyber
     const cyberPath = location.replace(/^\/cyber/, '');
-    return <Redirect to={`/clients/${selectedClientId}/cyber${cyberPath}`} />;
+    return <Redirect to={`/clients/${selectedClientId}/cyber${cyberPath}`} replace />;
   }
-  return <Redirect to="/clients" />;
+  return <Redirect to="/clients" replace />;
 }
-
-
-
-
 
 function VendorsAlias() {
   const { selectedClientId } = useClientContext();
   const search = window.location.search;
-  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/vendors/overview${search}`} />;
-  return <Redirect to="/clients" />;
+  if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/vendors/overview${search}`} replace />;
+  return <Redirect to="/clients" replace />;
 }
 
 /**

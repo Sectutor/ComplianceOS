@@ -24,7 +24,7 @@ describe("i18n Multi-Language System", () => {
   it("switches to German (DE) and translates statutory compliance terms", async () => {
     await changeLanguage("de");
     expect(getCurrentLanguage()).toBe("de");
-    expect(i18n.t("navigation:dashboard")).toBe("Dashboard");
+    expect(i18n.t("navigation:dashboard")).toBe("Übersicht");
     expect(i18n.t("navigation:controls")).toBe("Kontrollen");
     expect(i18n.t("navigation:policies")).toBe("Richtlinien");
     expect(i18n.t("navigation:risks")).toBe("Risikomanagement");
@@ -57,7 +57,7 @@ describe("i18n Multi-Language System", () => {
   it("switches to Spanish (ES) and translates statutory compliance terms", async () => {
     await changeLanguage("es");
     expect(getCurrentLanguage()).toBe("es");
-    expect(i18n.t("navigation:dashboard")).toBe("Panel de Control");
+    expect(i18n.t("navigation:dashboard")).toBe("Panel");
     expect(i18n.t("navigation:compliance")).toBe("Cumplimiento");
     expect(i18n.t("navigation:risks")).toBe("Gestión de Riesgos");
   });

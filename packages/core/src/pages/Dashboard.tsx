@@ -32,8 +32,23 @@ import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
 import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
 import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
+import { useDashboardStats } from "@/pages/dashboard/postureStatsApi";
 import { Nis2DashboardPanels } from "@/pages/cyber/Nis2DashboardPanels";
 import { useTranslation } from "@/hooks/useTranslation";
+import {
+  PieChart as RechartsPie,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+} from "recharts";
 
 // Status indicator component with clear, readable logic
 function StatusIndicator({ rate }: { rate: number }) {
@@ -73,20 +88,6 @@ function StatusIndicator({ rate }: { rate: number }) {
     </>
   );
 }
-import {
-  PieChart as RechartsPie,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-} from "recharts";
 
 const COLORS = {
   implemented: "#22c55e",
@@ -238,17 +239,22 @@ export default function Dashboard() {
     count: count as number
   }));
 
-  // Calculate overall compliance rate
+  // Calculate overall compliance rate and live posture score
   const totalControlsAssigned = (status.implemented || 0) +
     (status.inProgress || 0) +
     (status.notStarted || 0);
-  const overallComplianceRate = totalControlsAssigned > 0 ?
+  const calculatedComplianceRate = totalControlsAssigned > 0 ?
     Math.round(((status.implemented || 0) / totalControlsAssigned) * 100) : 0;
+
+  const statsQuery = useDashboardStats(effectiveClientId, framework, !!user);
+  const livePostureScore = (statsQuery.data && typeof statsQuery.data.postureScore === 'number' && statsQuery.data.postureScore > 0)
+    ? statsQuery.data.postureScore
+    : (calculatedComplianceRate > 0 ? calculatedComplianceRate : (overview.controlsImplemented > 0 && overview.totalControls > 0 ? Math.round((overview.controlsImplemented / overview.totalControls) * 100) : 0));
+  const overallComplianceRate = livePostureScore;
 
   // Show onboarding only if: no clients, not loading, and hasn't been shown this session
   const shouldShowOnboarding = !statsLoading && !clientsLoading && clients && clients.length === 0 && !hasSeenOnboardingThisSession;
 
-  // Show loading state when transitioning from onboarding to dashboard
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Mark that we've seen onboarding this session when conditions are met
@@ -276,74 +282,6 @@ export default function Dashboard() {
             <div className="text-center space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
               <p className="text-muted-foreground">Loading your workspace...</p>
-            </div>
-          </div>
-        )}
-        {shouldShowOnboarding && (
-          <div className="max-w-4xl mx-auto space-y-8 mt-12 px-4">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 mb-2">
-                <Shield className="h-10 w-10 text-primary" />
-              </div>
-              <h1 className="text-4xl font-extrabold tracking-tight">Set up your Compliance OS</h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Follow our guided path to get audit-ready in record time. Complete these steps to activate your live compliance reports.
-              </p>
-            </div>
-
-            <OnboardingChecklist stats={enhancedStats} />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
-              <Card className="bg-muted border-none shadow-sm h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-500" />
-                    Auto-Policies
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Get 20+ policies tailored to your industry instantly using our AI policy engine.</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-muted border-none shadow-sm h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-purple-500" />
-                    Unified Controls
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Map one master control to multiple frameworks like ISO 27001 and SOC 2 seamlessly.</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-muted border-none shadow-sm h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-emerald-500" />
-                    Live Monitoring
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Connect your cloud stack to automate evidence collection and get real-time readiness scores.</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="pt-8 flex flex-col items-center gap-4">
-              <Button
-                variant="default"
-                className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 font-bold shadow-lg shadow-indigo-200 animate-pulse"
-                onClick={() => sampleMutation.mutate({ name: "DEMO Organization", industry: "Technology" })}
-                disabled={sampleMutation.isPending}
-              >
-                <Sparkles className="mr-2 h-5 w-5" />
-                {sampleMutation.isPending ? "Generating Magic..." : "Explore with Demo Data"}
-              </Button>
-
-              <Button variant="ghost" className="text-muted-foreground hover:text-primary" onClick={() => setLocation('/learning')}>
-                <FolderOpen className="mr-2 h-4 w-4" />
-                Not ready yet? Explore the Learning Zone
-              </Button>
             </div>
           </div>
         )}
@@ -761,13 +699,20 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       {statsLoading ? (
                         <Skeleton className="h-32 w-full" />
-                      ) : clientsOverview.length > 0 ? (
+                      ) : (clientsOverview.length > 0 || (clients && clients.length > 0)) ? (
                         <div className="space-y-4">
-                          {clientsOverview.slice(0, 2).map((client, idx) => (
-                            <div key={`client-overview-${client.id}-${idx}`} className="space-y-2">
+                          {(clientsOverview.length > 0
+                            ? clientsOverview
+                            : (clients || []).map(c => ({ id: c.id, name: c.name, compliancePercentage: livePostureScore }))
+                          ).slice(0, 4).map((client, idx) => (
+                            <div
+                              key={`client-overview-${client.id}-${idx}`}
+                              className="space-y-2 cursor-pointer p-2.5 rounded-xl hover:bg-muted/60 transition-all group"
+                              onClick={() => setLocation(`/clients/${client.id}`)}
+                            >
                               <div className="flex items-center justify-between text-sm font-bold">
-                                <span>{client.name}</span>
-                                <span>{client.compliancePercentage}%</span>
+                                <span className="group-hover:text-blue-600 transition-colors">{client.name}</span>
+                                <span className="tabular-nums">{client.compliancePercentage}%</span>
                               </div>
                               <Progress value={client.compliancePercentage} className="h-2" />
                             </div>
@@ -1138,6 +1083,201 @@ export default function Dashboard() {
                   <>
                     <SecurityDomainGrid clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                     <NIS2ControlHealth clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
+                              <Pie
+                                data={controlStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={50}
+                                outerRadius={80}
+                                paddingAngle={2}
+                                dataKey="value"
+                                cursor="pointer"
+                              >
+                                {controlStatusData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                              <Legend />
+                            </RechartsPie>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <EmptyState
+                          icon={Shield}
+                          title={t("dashboard.noControlsFound", "No Controls Found")}
+                          description={t("dashboard.noControlsDesc", "Start by adding your first compliance control to track progress.")}
+                          className="h-48"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Policy Status Chart */}
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-fuchsia-500/5 opacity-50 pointer-events-none" />
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        {t("dashboard.policiesByStatus", "Policy Status")}
+                      </CardTitle>
+                      <CardDescription className="font-medium text-muted-foreground">{t("dashboard.policyStatusDesc", "Policy approval status")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 relative z-10">
+                      {statsLoading ? (
+                        <Skeleton className="h-48 w-full" />
+                      ) : policyStatusData.length > 0 ? (
+                        <div className="h-48 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPie>
+                              <Pie
+                                data={policyStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={50}
+                                outerRadius={80}
+                                paddingAngle={2}
+                                dataKey="value"
+                                cursor="pointer"
+                              >
+                                {policyStatusData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                              <Legend />
+                            </RechartsPie>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <EmptyState
+                          icon={FileText}
+                          title={t("dashboard.noPoliciesFound", "No Policies Found")}
+                          description={t("dashboard.noPoliciesDesc", "Generate or upload policies to manage your compliance framework.")}
+                          className="h-48"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Evidence Status Chart */}
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-50 pointer-events-none" />
+                    <CardHeader className="pb-4 relative z-10 border-b border-border">
+                      <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-blue-600/10 text-emerald-600">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                        {t("dashboard.evidenceStatus", "Evidence Status")}
+                      </CardTitle>
+                      <CardDescription className="font-medium text-muted-foreground">{t("dashboard.evidenceStatusDesc", "Evidence verification status")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 relative z-10">
+                      {statsLoading ? (
+                        <Skeleton className="h-48 w-full" />
+                      ) : evidenceStatusData.length > 0 ? (
+                        <div className="h-48 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPie>
+                              <Pie
+                                data={evidenceStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={50}
+                                outerRadius={80}
+                                paddingAngle={2}
+                                dataKey="value"
+                                cursor="pointer"
+                              >
+                                {evidenceStatusData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                              <Legend />
+                            </RechartsPie>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <EmptyState
+                          icon={CheckCircle2}
+                          title="No Evidence Found"
+                          description="Upload evidence files to demonstrate control implementation."
+                          className="h-48"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Detailed Blocks */}
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <CardHeader className="pb-4 border-b border-border">
+                      <CardTitle className="text-lg font-bold">{t("dashboard.totalClients", "Client Overview")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      {clientsOverview.length > 0 ? (
+                        <div className="space-y-4">
+                          {clientsOverview.slice(0, 3).map((client, idx) => (
+                            <div key={`client-card-${client.id}-${idx}`} className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{client.name}</span>
+                                <span className="font-bold">{client.compliancePercentage}%</span>
+                              </div>
+                              <Progress value={client.compliancePercentage} className="h-1.5" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">{t("dashboard.noActiveContexts", "No organizations")}</p>}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <CardHeader className="pb-4 border-b border-border">
+                      <CardTitle className="text-lg font-bold">{t("dashboard.recentActivity", "Recent Activity")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      {recentActivity.length > 0 ? (
+                        <div className="space-y-3">
+                          {recentActivity.slice(0, 3).map((activity, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              <span className="truncate">{activity.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">{t("dashboard.noRecentSignals", "No activity")}</p>}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
+                    <CardHeader className="pb-4 border-b border-border">
+                      <CardTitle className="text-lg font-bold">{t("dashboard.controlsByFramework", "Controls by Framework")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      {frameworkData.length > 0 ? (
+                        <div className="h-32">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={frameworkData} layout="vertical">
+                              <XAxis type="number" hide />
+                              <YAxis dataKey="name" type="category" width={80} fontSize={10} />
+                              <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : <p className="text-center py-4 text-muted-foreground text-sm">{t("dashboard.noInsights", "No frameworks")}</p>}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* NIS2 & Security Domains Section */}
+                {effectiveClientId && (
+                  <>
+                    <SecurityDomainGrid clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
+                    <NIS2ControlHealth clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                     {/* NIS2 Incident Clock - 24h/72h/1-month reporting deadlines */}
                     <NIS2IncidentClock clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
                     {/* NIS2 Security Command - Article 21 control health command center (cycle 38, additive) */}
@@ -1172,7 +1312,7 @@ export default function Dashboard() {
                         <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">{t("dashboard.context", "Create new workspace")}</span>
                       </div>
                     </Button>
-                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/controls')}>
+                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation(resolveNavigationPath('/client-controls', effectiveClientId ? parseInt(effectiveClientId) : null))}>
                       <div className="flex flex-col items-start gap-1.5">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
@@ -1183,7 +1323,7 @@ export default function Dashboard() {
                         <span className="text-[11px] font-semibold text-muted-foreground leading-relaxed uppercase tracking-wider">{t("dashboard.controls", "Manage master controls")}</span>
                       </div>
                     </Button>
-                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/policy-templates')}>
+                    <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-[#0284c7]/30 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation(resolveNavigationPath('/client-policies', effectiveClientId ? parseInt(effectiveClientId) : null))}>
                       <div className="flex flex-col items-start gap-1.5">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-lg bg-[#0284c7]/10 text-[#0284c7] group-hover:scale-110 transition-transform">
@@ -1199,7 +1339,7 @@ export default function Dashboard() {
                 <Button
                   variant="outline"
                   className="justify-start h-auto py-5 px-5 rounded-2xl border-border hover:border-emerald-300 bg-muted backdrop-blur-sm hover:bg-card/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-emerald-500/20"
-                  onClick={() => setLocation(resolveNavigationPath('/evidence', effectiveClientId))}
+                  onClick={() => setLocation(resolveNavigationPath('/evidence', effectiveClientId ? parseInt(effectiveClientId) : null))}
                 >
                   <div className="flex flex-col items-start gap-1.5">
                     <div className="flex items-center gap-2">
