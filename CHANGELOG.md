@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 35 - ICU compact-currency fix, NL contract restored, connector CRUD + roadmap delete landed (2026-08-24)
+- fix(currency): compact notation strips ICU trailing zero deterministically ("$120.0K" -> "$120K") via trailingZeroDisplay stripIfInteger + defensive suffix-strip; +3 magnitude regression tests.
+- fix(i18n): nl/dashboard.json livePostureScore/commandInterface/governanceHealth restored to the committed test contract; all 66 locale JSONs validated; nav mapping keys verified present in all 6 locales.
+- feat(connectors): listTypes/listInstalled/install/uninstall/run/getStats/getRunHistory procedures backing ConnectorManager (malformed history rows guarded); feat(roadmap): admin delete mutation.
+- Verify: vitest 2284/2284 green (97 files); tsc 0 errors in touched files, backlog 2113 -> 1945 lines.
 ### Cycle 34b - server/routers tsc-cleared (-45 backlog), readinessScoring never-throw hardening, +68 QA tests (2026-08-23)
 - fix(types): all 11 tRPC router factories under packages/core/src/server/routers/ now typecheck clean (dashboard 17→0, federal 10→0, evidence 4→0, frameworkPlugins/mcp/harmonization/asvs/advisor/llm/compliance/gumroad/knowledgeBase singles) — typed drizzle condition arrays, explicit Map generics over $inferSelect rows, schema-drift casts; zero runtime behavior change. Duplicate getSspControls definition in federal.ts deduped (pre-existing TS1117; runtime-winning copy kept).
 - fix(llm): fetchJsonBounded signature accepts the documented timeoutMs-in-init form (runtime already stripped it); fixes llm.ts TS2353.
