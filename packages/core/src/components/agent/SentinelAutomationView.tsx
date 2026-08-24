@@ -128,11 +128,17 @@ const PRIORITY_VARIANT: Record<string, string> = {
 };
 
 const AGENT_TEAMMATES = [
-  { id: "sentinel", name: "Sentinel", role: "Continuous Auditor", avatar: "🛡️" },
-  { id: "harper", name: "Harper", role: "Policy Steward", avatar: "📜" },
-  { id: "horizon", name: "Horizon", role: "Vendor & Supply Chain Risk", avatar: "🌐" },
-  { id: "lexi", name: "Lexi", role: "Regulatory & Legal Copilot", avatar: "⚖️" },
-  { id: "cipher", name: "Cipher", role: "Evidence & Telemetry Collector", avatar: "🔍" },
+  { id: "hermes", name: "Hermes", role: "Chief Compliance Orchestrator", avatar: "🧠" },
+  { id: "sentinel", name: "Sentinel", role: "Continuous Control & Policy Auditor", avatar: "🛡️" },
+  { id: "alex", name: "Alex", role: "Vendor Trust & SOC 2 Scout", avatar: "🕵️" },
+  { id: "morgan", name: "Morgan", role: "Cloud & IaC Drift Remediator", avatar: "🛠️" },
+  { id: "riley", name: "Riley", role: "Evidence Harvester & UAR Auditor", avatar: "📋" },
+  { id: "nova", name: "Nova", role: "Incident Commander (NIS2 / DORA)", avatar: "🚨" },
+  { id: "sasha", name: "Sasha", role: "Vulnerability Sentinel & Patch SLA", avatar: "🛡️" },
+  { id: "tara", name: "Tara", role: "Privacy & GDPR/CCPA Officer", avatar: "⚖️" },
+  { id: "elena", name: "Elena", role: "Audit Preparation & Auditor Liaison", avatar: "📑" },
+  { id: "marcus", name: "Marcus", role: "Risk Assessment & BIA Modeler", avatar: "⚠️" },
+  { id: "sam", name: "Sam", role: "Access Governor & Zero Trust", avatar: "🔐" },
 ];
 
 export function SentinelAutomationView({ clientId }: SentinelAutomationViewProps) {
@@ -143,6 +149,22 @@ export function SentinelAutomationView({ clientId }: SentinelAutomationViewProps
     { clientId },
     { enabled: !!clientId }
   );
+
+  const { data: dynamicTeammates } = trpc.teammates.listTeammates.useQuery();
+
+  const availableAgents = React.useMemo(() => {
+    if (!dynamicTeammates || dynamicTeammates.length === 0) return AGENT_TEAMMATES;
+    const dynamicFormatted = dynamicTeammates.map((tm: any) => ({
+      id: tm.id,
+      name: tm.name,
+      role: tm.role,
+      avatar: tm.avatar || "🤖",
+    }));
+    // Merge unique by name/id
+    const ids = new Set(dynamicFormatted.map((a: any) => a.id));
+    const staticFiltered = AGENT_TEAMMATES.filter((a) => !ids.has(a.id));
+    return [...dynamicFormatted, ...staticFiltered];
+  }, [dynamicTeammates]);
 
   const [inboxFilter, setInboxFilter] = useState<"pending_review" | "executed" | "rejected" | "all">("pending_review");
 
@@ -817,7 +839,7 @@ export function SentinelAutomationView({ clientId }: SentinelAutomationViewProps
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {AGENT_TEAMMATES.map((ag) => (
+                      {availableAgents.map((ag) => (
                         <SelectItem key={ag.id} value={ag.id}>
                           <span className="flex items-center gap-2">
                             <span>{ag.avatar}</span>
