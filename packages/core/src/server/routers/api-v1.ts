@@ -22,12 +22,13 @@ import {
   auditFindings,
   employees,
   employeeAcknowledgments,
+  incidents,
   workItems,
   programGuideAssignments,
   users as usersTable,
 } from '../../schema';
 import { AutopilotEngine } from '../../lib/autopilot/engine';
-import { and, desc } from 'drizzle-orm';
+import { and, desc, type SQL } from 'drizzle-orm';
 
 // ── API Key Auth Middleware ──────────────────────────────────────────────────
 
@@ -1475,5 +1476,104 @@ apiV1Router.get('/governance/program-guide/:clientId', async (req: Request, res:
     res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
   }
 });
+
+// ─── GET /api/v1/incidents ──────────────────────────────────────────────
+// List security incidents (GAP-18: incident data was DB-only before this;
+// evidence-auto-collector and external bridges need REST read access).
+// Optional filters: clientId, status, severity; limit (default 100, cap 200);
+// offset (default 0).
+const INCIDENT_STATUSES = ['open', 'investigating', 'mitigated', 'resolved', 'reported'] as const;
+const INCIDENT_SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
+
+apiV1Router.get('/incidents', async (req: Request, res: Response) => {
+  // Validate EVERY query param BEFORE touching the DB (fail fast, no
+  // connection is opened for malformed requests).
+  const conditions: SQL[] = [];
+
+  if (req.query.clientId !== undefined) {
+    const clientId = parseInt(req.query.clientId as string, 10);
+    if (isNaN(clientId)) {
+      return res.status(400).json({ error: 'Invalid clientId — must be an integer', code: 'BAD_REQUEST' });
+    }
+    conditions.push(eq(incidents.clientId, clientId));
+  }
+
+  if (req.query.status !== undefined) {
+    const status = req.query.status as typeof INCIDENT_STATUSES[number];
+    if (!INCIDENT_STATUSES.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status — must be one of open|investigating|mitigated|resolved|reported', code: 'BAD_REQUEST' });
+    }
+    conditions.push(eq(incidents.status, status));
+  }
+
+  if (req.query.severity !== undefined) {
+    const severity = req.query.severity as typeof INCIDENT_SEVERITIES[number];
+    if (!INCIDENT_SEVERITIES.includes(severity)) {
+      return res.status(400).json({ error: 'Invalid severity — must be one of low|medium|high|critical', code: 'BAD_REQUEST' });
+    }
+    conditions.push(eq(incidents.severity, severity));
+  }
+
+  let limit = 100;
+  if (req.query.limit !== undefined) {
+    limit = parseInt(req.query.limit as string, 10);
+    if (isNaN(limit) || limit < 1) {
+      return res.status(400).json({ error: 'Invalid limit — must be a positive integer', code: 'BAD_REQUEST' });
+    }
+    limit = Math.min(limit, 200);
+  }
+
+  let offset = 0;
+  if (req.query.offset !== undefined) {
+    offset = parseInt(req.query.offset as string, 10);
+    if (isNaN(offset) || offset < 0) {
+      return res.status(400).json({ error: 'Invalid offset - must be a non-negative integer', code: 'BAD_REQUEST' });
+    }
+  }
+
+  try {
+    const db = await getDb();
+
+    const rows = await db
+      .select()
+      .from(incidents)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(incidents.detectedAt))
+      .limit(limit)
+      .offset(offset);
+
+    res.json({ data: rows, total: rows.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
+// ─── GET /api/v1/incidents/:id ──────────────────────────────────────────
+apiV1Router.get('/incidents/:id', async (req: Request, res: Response) => {
+  // Validate the id BEFORE touching the DB.
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid incident id', code: 'BAD_REQUEST' });
+  }
+
+  try {
+    const db = await getDb();
+
+    const [incident] = await db
+      .select()
+      .from(incidents)
+      .where(eq(incidents.id, id))
+      .limit(1);
+
+    if (!incident) {
+      return res.status(404).json({ error: 'Incident not found', code: 'NOT_FOUND' });
+    }
+
+    res.json(incident);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
 
 export { apiV1Router };

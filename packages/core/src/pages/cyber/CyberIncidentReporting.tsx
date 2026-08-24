@@ -160,7 +160,7 @@ export default function CyberIncidentReporting() {
                     variant="ghost"
                     size="icon"
                     onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents`)}
-                    className="mt-1 h-10 w-10 rounded-xl hover:bg-white shadow-sm ring-1 ring-slate-200/50"
+                    className="mt-1 h-10 w-10 rounded-xl hover:bg-muted shadow-sm ring-1 ring-border/50"
                 >
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -177,24 +177,24 @@ export default function CyberIncidentReporting() {
             </div>
 
             {/* Progress Bar */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+            <div className="bg-card p-6 rounded-2xl shadow-sm border border-border mb-8">
                 <div className="flex justify-between mb-4">
                     {['Incident Details', 'Impact Analysis', 'NIS2 Significance', 'Review & Submit'].map((label, i) => (
                         <div key={label} className="flex flex-col items-center gap-2">
                             <div className={cn(
                                 "h-10 w-10 rounded-full flex items-center justify-center font-bold transition-all duration-300",
-                                step >= i ? "bg-brand-bright text-white shadow-lg shadow-sky-100" : "bg-slate-100 text-slate-400"
+                                step >= i ? "bg-brand-bright text-white shadow-lg shadow-sky-100" : "bg-muted text-muted-foreground"
                             )}>
                                 {i + 1}
                             </div>
                             <span className={cn(
                                 "text-xs font-bold uppercase tracking-wider",
-                                step >= i ? "text-brand" : "text-slate-400"
+                                step >= i ? "text-brand" : "text-muted-foreground"
                             )}>{label}</span>
                         </div>
                     ))}
                 </div>
-                <Progress value={(step / 3) * 100} className="h-2 rounded-full bg-slate-100" />
+                <Progress value={(step / 3) * 100} className="h-2 rounded-full bg-muted" />
             </div>
 
             {classificationInput ? (
@@ -260,15 +260,15 @@ export default function CyberIncidentReporting() {
                 </Card>
             ) : null}
 
-            <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
-                    <CardTitle className="text-2xl font-bold text-slate-900">
+            <Card className="border-none shadow-xl rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                <CardHeader className="bg-muted/50 border-b border-border p-8">
+                    <CardTitle className="text-2xl font-bold text-foreground">
                         {step === 0 ? "Step 1: Incident Context" :
                             step === 1 ? "Step 2: Impact Analysis" :
                                 step === 2 ? "Step 3: NIS2 Significance" :
                                     "Step 4: Verification"}
                     </CardTitle>
-                    <CardDescription className="text-slate-500 text-lg">
+                    <CardDescription className="text-muted-foreground text-lg">
                         {step === 0 ? "When was it detected and what is the nature of the event?" :
                             step === 1 ? "Assess the scale and cross-border implications." :
                                 step === 2 ? "Determine if this is a 'Significant Incident' under Art. 23." :
@@ -280,24 +280,24 @@ export default function CyberIncidentReporting() {
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Detailed at (UTC)</Label>
+                                    <Label className="text-sm font-bold text-foreground">Detailed at (UTC)</Label>
                                     <Input
                                         type="datetime-local"
-                                        className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                                        className="h-12 rounded-xl border-input focus:border-brand-bright focus:ring-brand-bright/20"
                                         value={formData.detectedAt}
                                         onChange={(e) => setFormData({ ...formData, detectedAt: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Initial Severity Estimate</Label>
+                                    <Label className="text-sm font-bold text-foreground">Initial Severity Estimate</Label>
                                     <Select
                                         value={formData.severity}
                                         onValueChange={(val: any) => setFormData({ ...formData, severity: val })}
                                     >
-                                        <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                                        <SelectTrigger className="h-12 rounded-xl border-input">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-slate-200">
+                                        <SelectContent className="rounded-xl border-input">
                                             <SelectItem value="low">Low - Minimum Impact</SelectItem>
                                             <SelectItem value="medium">Medium - Normal Operations Impacted</SelectItem>
                                             <SelectItem value="high">High - Critical Systems Disrupted</SelectItem>
@@ -307,10 +307,10 @@ export default function CyberIncidentReporting() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Incident Description</Label>
+                                <Label className="text-sm font-bold text-foreground">Incident Description</Label>
                                 <Textarea
                                     placeholder="Briefly describe the nature of the incident..."
-                                    className="min-h-[150px] rounded-xl border-slate-200 p-4 focus:border-brand-bright focus:ring-brand-bright/20"
+                                    className="min-h-[150px] rounded-xl border-input p-4 focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 />
@@ -321,19 +321,19 @@ export default function CyberIncidentReporting() {
                     {step === 1 && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Root Cause (if known)</Label>
+                                <Label className="text-sm font-bold text-foreground">Root Cause (if known)</Label>
                                 <Input
                                     placeholder="e.g., Phishing, Zero-day exploit, Hardware failure"
-                                    className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                                    className="h-12 rounded-xl border-input focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={formData.cause}
                                     onChange={(e) => setFormData({ ...formData, cause: e.target.value })}
                                 />
                             </div>
-                            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                            <div className="p-6 bg-muted rounded-2xl border border-border space-y-4">
                                 <div className="flex items-start justify-between">
                                     <div className="space-y-1">
-                                        <Label className="text-base font-bold text-slate-900">Cross-border Impact</Label>
-                                        <p className="text-sm text-slate-500">Does this incident affect entities in other EU member states?</p>
+                                        <Label className="text-base font-bold text-foreground">Cross-border Impact</Label>
+                                        <p className="text-sm text-muted-foreground">Does this incident affect entities in other EU member states?</p>
                                     </div>
                                     <Switch
                                         checked={formData.crossBorderImpact}
@@ -342,10 +342,10 @@ export default function CyberIncidentReporting() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Affected Assets</Label>
+                                <Label className="text-sm font-bold text-foreground">Affected Assets</Label>
                                 <Input
                                     placeholder="e.g., Production DB, ERP System, Remote Access Portal"
-                                    className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                                    className="h-12 rounded-xl border-input focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={formData.affectedAssets || ""}
                                     onChange={(e) => setFormData({ ...formData, affectedAssets: e.target.value })}
                                 />
@@ -357,8 +357,8 @@ export default function CyberIncidentReporting() {
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="p-6 bg-brand-bright/5 rounded-2xl border border-brand-bright/10 items-center justify-between flex">
                                 <div className="space-y-1">
-                                    <Label className="text-base font-bold text-slate-900">Mark as Significant Incident</Label>
-                                    <p className="text-sm text-slate-500">Requires mandatory 24h Early Warning to authorities.</p>
+                                    <Label className="text-base font-bold text-foreground">Mark as Significant Incident</Label>
+                                    <p className="text-sm text-muted-foreground">Requires mandatory 24h Early Warning to authorities.</p>
                                 </div>
                                 <Switch
                                     checked={formData.isSignificant}
@@ -369,19 +369,19 @@ export default function CyberIncidentReporting() {
                             {formData.isSignificant && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-slate-700">Affected Users (estimate)</Label>
+                                        <Label className="text-sm font-bold text-foreground">Affected Users (estimate)</Label>
                                         <Input
                                             type="number"
-                                            className="h-12 rounded-xl border-slate-200"
+                                            className="h-12 rounded-xl border-input"
                                             value={formData.affectedUsersCount}
                                             onChange={(e) => setFormData({ ...formData, affectedUsersCount: parseInt(e.target.value) })}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-slate-700">Service Disruption (minutes)</Label>
+                                        <Label className="text-sm font-bold text-foreground">Service Disruption (minutes)</Label>
                                         <Input
                                             type="number"
-                                            className="h-12 rounded-xl border-slate-200"
+                                            className="h-12 rounded-xl border-input"
                                             value={formData.serviceDisruptionDuration}
                                             onChange={(e) => setFormData({ ...formData, serviceDisruptionDuration: parseInt(e.target.value) })}
                                         />
@@ -390,13 +390,13 @@ export default function CyberIncidentReporting() {
                                         <Label className="text-sm font-bold text-foreground">Financial Loss (€ estimate)</Label>
                                         <Input
                                             type="number"
-                                            className="h-12 rounded-xl border-slate-200"
+                                            className="h-12 rounded-xl border-input"
                                             value={formData.estimatedFinancialLoss}
                                             onChange={(e) => setFormData({ ...formData, estimatedFinancialLoss: parseInt(e.target.value) })}
                                         />
                                     </div>
-                                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 items-center justify-between flex">
-                                        <Label className="text-sm font-bold text-slate-700">BCP/DR Triggered</Label>
+                                    <div className="p-6 bg-muted rounded-2xl border border-border items-center justify-between flex">
+                                        <Label className="text-sm font-bold text-foreground">BCP/DR Triggered</Label>
                                         <Switch
                                             checked={formData.isContinuityTriggered}
                                             onCheckedChange={(val) => setFormData({ ...formData, isContinuityTriggered: val })}
@@ -416,11 +416,11 @@ export default function CyberIncidentReporting() {
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-1">
-                                        <div className="text-xs font-bold text-slate-400 uppercase">Detection Time</div>
-                                        <div className="font-bold text-slate-900">{new Date(formData.detectedAt).toLocaleString()}</div>
+                                        <div className="text-xs font-bold text-muted-foreground uppercase">Detection Time</div>
+                                        <div className="font-bold text-foreground">{new Date(formData.detectedAt).toLocaleString()}</div>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-xs font-bold text-slate-400 uppercase">Severity</div>
+                                        <div className="text-xs font-bold text-muted-foreground uppercase">Severity</div>
                                         <div>
                                             <Badge className={cn(
                                                 "font-bold px-3 py-1",
@@ -430,18 +430,18 @@ export default function CyberIncidentReporting() {
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-xs font-bold text-slate-400 uppercase">NIS2 SIGNIFICANCE</div>
+                                        <div className="text-xs font-bold text-muted-foreground uppercase">NIS2 SIGNIFICANCE</div>
                                         <div>
                                             {formData.isSignificant ? (
                                                 <Badge className="bg-red-100 text-red-700 border-red-200 font-bold">SIGNIFICANT (ART. 23)</Badge>
                                             ) : (
-                                                <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-bold">NORMAL</Badge>
+                                                <Badge className="bg-muted text-foreground border-border font-bold">NORMAL</Badge>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="md:col-span-2 space-y-1 pt-4 border-t border-slate-100">
-                                        <div className="text-xs font-bold text-slate-400 uppercase">Description</div>
-                                        <div className="text-slate-700 leading-relaxed">{formData.description}</div>
+                                    <div className="md:col-span-2 space-y-1 pt-4 border-t border-border">
+                                        <div className="text-xs font-bold text-muted-foreground uppercase">Description</div>
+                                        <div className="text-foreground leading-relaxed">{formData.description}</div>
                                     </div>
                                 </div>
                             </div>
@@ -459,12 +459,12 @@ export default function CyberIncidentReporting() {
                         </div>
                     )}
                 </CardContent>
-                <CardFooter className="bg-slate-50/50 border-t border-slate-100 p-8 flex justify-between">
+                <CardFooter className="bg-muted/50 border-t border-border p-8 flex justify-between">
                     <Button
                         variant="outline"
                         onClick={() => step > 0 && setStep(step - 1)}
                         disabled={step === 0}
-                        className="h-12 px-8 rounded-xl font-bold border-slate-200 hover:bg-slate-100"
+                        className="h-12 px-8 rounded-xl font-bold border-border hover:bg-muted"
                     >
                         Previous
                     </Button>
