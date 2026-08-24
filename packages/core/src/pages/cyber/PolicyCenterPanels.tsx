@@ -641,11 +641,11 @@ function ApprovalWorkflowPanel({
                       Overdue
                     </Badge>
                   )}
-                  <Badge variant={APPROVAL_STATUS_META[data.currentStatus].badgeVariant}>
-                    {APPROVAL_STATUS_META[data.currentStatus].label}
+                  <Badge variant={(APPROVAL_STATUS_META[data.currentStatus] ?? APPROVAL_STATUS_META.unknown).badgeVariant}>
+                    {(APPROVAL_STATUS_META[data.currentStatus] ?? APPROVAL_STATUS_META.unknown).label}
                   </Badge>
-                  <Badge variant={APPROVAL_VERDICT_META[data.verdict].badgeVariant}>
-                    {APPROVAL_VERDICT_META[data.verdict].label}
+                  <Badge variant={(APPROVAL_VERDICT_META[data.verdict] ?? APPROVAL_VERDICT_META.Unknown).badgeVariant}>
+                    {(APPROVAL_VERDICT_META[data.verdict] ?? APPROVAL_VERDICT_META.Unknown).label}
                   </Badge>
                 </div>
               </div>
