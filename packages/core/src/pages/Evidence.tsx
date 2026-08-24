@@ -38,6 +38,49 @@ import {
 import { Separator } from "@complianceos/ui/ui/separator";
 import { authedFetch } from "@/lib/authedFetch";
 
+/**
+ * Local typed contract layer for the file-attach flow (UI-STANDARD §16):
+ * the page talks to evidenceFiles only through this surface, never via
+ * direct router access. Mirrors server/routers/evidenceFiles.ts
+ * create input exactly ({ evidenceId, filename, fileKey, url,
+ * originalFilename?, mimeType?, size? }; url/mimeType/size map onto the
+ * fileUrl/contentType/fileSize columns server-side).
+ */
+interface EvidenceFileCreateInput {
+    evidenceId: number;
+    filename: string;
+    originalFilename: string;
+    mimeType: string;
+    size: number;
+    fileKey: string;
+    url: string;
+}
+
+// NOTE: react-query v5 ignores per-mutation callbacks passed to useMutation;
+// the signature keeps accepting them because the existing page code passes
+// them and they are inert no-ops at runtime (behaviour preserved).
+interface TypedMutation<TInput> {
+    useMutation: (opts?: {
+        onSuccess?: () => void;
+        onError?: (error: { message: string }) => void;
+    }) => {
+        mutate: (input: TInput) => void;
+        mutateAsync: (input: TInput) => Promise<unknown>;
+        isPending: boolean;
+    };
+}
+
+interface EvidenceApi {
+    evidenceFiles: {
+        create: TypedMutation<EvidenceFileCreateInput>;
+    };
+}
+
+const evidenceApi = trpc as unknown as EvidenceApi;
+
+/** Capability flag: evidenceFiles router is mounted on the AppRouter as of cycle 35. */
+const EVIDENCE_FILES_LIVE = true;
+
 export default function Evidence() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation('evidence');
@@ -83,7 +126,7 @@ export default function Evidence() {
   );
 
   const createMutation = trpc.evidence.create.useMutation();
-  const createFileMutation = trpc.evidenceFiles.create.useMutation({
+  const createFileMutation = evidenceApi.evidenceFiles.create.useMutation({
     onSuccess: () => {
       toast.success("File attached");
       refetch();
@@ -295,6 +338,10 @@ export default function Evidence() {
         expirationDate: formData.get("expirationDate") ? new Date(formData.get("expirationDate") as string) : undefined,
       });
 
+      if (!EVIDENCE_FILES_LIVE && selectedFiles.length > 0) {
+        toast.info("Evidence file uploads aren't available in this deployment.");
+        setSelectedFiles([]);
+      }
       if (selectedFiles.length > 0 && evidence?.id) {
         for (const file of selectedFiles) {
           const reader = new FileReader();
@@ -618,18 +665,18 @@ export default function Evidence() {
                   <div className="grid gap-2 mt-4">
                     <Label>Attachments</Label>
                     <div
-                      className="border-2 border-dashed rounded-xl p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer relative border-border"
-                      onClick={() => document.getElementById('evidence-file-upload')?.click()}
+                      title={EVIDENCE_FILES_LIVE ? undefined : "Evidence file uploads aren't available in this deployment"}
+                      onClick={() => EVIDENCE_FILES_LIVE ? document.getElementById('evidence-file-upload')?.click() : toast.info("Evidence file uploads aren't available in this deployment.")}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         e.preventDefault();
-                        if (e.dataTransfer.files) {
+                        if (!EVIDENCE_FILES_LIVE) { toast.info("Evidence file uploads aren't available in this deployment."); } else if (e.dataTransfer.files) {
                           setSelectedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
                         }
                       }}
                     >
                       <input id="evidence-file-upload" type="file" className="hidden" multiple onChange={(e) => {
-                        if (e.target.files) setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                        if (!EVIDENCE_FILES_LIVE) { toast.info("Evidence file uploads aren't available in this deployment."); e.target.value = ""; } else if (e.target.files) setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                       }} />
                       <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm font-medium text-foreground/80">Drag & drop files here, or click to select</p>
