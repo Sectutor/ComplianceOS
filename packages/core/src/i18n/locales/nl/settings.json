@@ -1,68 +1,68 @@
 {
-    "title": "Instellingen",
-    "overview": "Overzicht instellingen",
-    "general": "Algemene Instellingen",
-    "account": "Accountinstellingen",
-    "security": "Beveiliging & MFA",
-    "notifications": "Meldingsinstellingen",
-    "preferences": "Voorkeuren",
-    "profile": {
-        "title": "Profielinstellingen",
-        "personalInfo": "Persoonlijke gegevens",
-        "changePassword": "Wachtwoord wijzigen",
-        "changeEmail": "E-mail wijzigen",
-        "twoFactor": "Tweetrapsauthenticatie",
-        "avatar": "Avatar"
-    },
-    "organization": {
-        "title": "Organisatie-instellingen",
-        "companyInfo": "Bedrijfsgegevens",
-        "branding": "Huisstijl",
-        "logo": "Logo",
-        "colors": "Kleuren",
-        "theme": "Thema"
-    },
-    "users": {
-        "title": "Gebruikersbeheer",
-        "addUser": "Gebruiker toevoegen",
-        "editUser": "Gebruiker bewerken",
-        "userList": "Gebruikerslijst",
-        "roles": "Rollen",
-        "permissions": "Machtigingen",
-        "inviteUser": "Gebruiker uitnodigen"
-    },
-    "billing": {
-        "title": "Facturatie en abonnement",
-        "subscription": "Abonnement",
-        "paymentMethod": "Betaalmethode",
-        "invoices": "Facturen",
-        "usage": "Gebruik"
-    },
-    "integrations": {
-        "title": "Integraties",
-        "available": "Beschikbare integraties",
-        "connected": "Verbonden",
-        "configure": "Configureren"
-    },
-    "api": {
-        "title": "API-instellingen",
-        "apiKeys": "API-sleutels",
-        "webhooks": "Webhooks",
-        "oauth": "OAuth-apps"
-    },
-    "audit": {
-        "title": "Auditlogboeken",
-        "viewLogs": "Auditlogboeken bekijken",
-        "exportLogs": "Logboeken exporteren"
-    },
-    "language": {
-        "title": "Taal en regio",
-        "language": "Taal",
-        "timezone": "Tijdzone",
-        "dateFormat": "Datumnotatie",
-        "currency": "Valuta"
-    },
-    "save": "Wijzigingen opslaan",
-    "cancel": "Annuleren",
-    "reset": "Terug naar standaard"
+  "title": "Instellingen",
+  "overview": "Overzicht instellingen",
+  "general": "Algemene Instellingen",
+  "account": "Accountinstellingen",
+  "security": "Beveiliging & MFA",
+  "notifications": "Meldingsinstellingen",
+  "preferences": "Voorkeuren",
+  "profile": {
+    "title": "Profielinstellingen",
+    "personalInfo": "Persoonlijke gegevens",
+    "changePassword": "Wachtwoord wijzigen",
+    "changeEmail": "E-mail wijzigen",
+    "twoFactor": "Tweetrapsauthenticatie",
+    "avatar": "Avatar"
+  },
+  "organization": {
+    "title": "Organisatie-instellingen",
+    "companyInfo": "Bedrijfsgegevens",
+    "branding": "Huisstijl",
+    "logo": "Logo",
+    "colors": "Kleuren",
+    "theme": "Thema"
+  },
+  "users": {
+    "title": "Gebruikersbeheer",
+    "addUser": "Gebruiker toevoegen",
+    "editUser": "Gebruiker bewerken",
+    "userList": "Gebruikerslijst",
+    "roles": "Rollen",
+    "permissions": "Machtigingen",
+    "inviteUser": "Gebruiker uitnodigen"
+  },
+  "billing": {
+    "title": "Facturatie en abonnement",
+    "subscription": "Abonnement",
+    "paymentMethod": "Betaalmethode",
+    "invoices": "Facturen",
+    "usage": "Gebruik"
+  },
+  "integrations": {
+    "title": "Integraties",
+    "available": "Beschikbare integraties",
+    "connected": "Verbonden",
+    "configure": "Configureren"
+  },
+  "api": {
+    "title": "API-instellingen",
+    "apiKeys": "API-sleutels",
+    "webhooks": "Webhooks",
+    "oauth": "OAuth-apps"
+  },
+  "audit": {
+    "title": "Auditlogboeken",
+    "viewLogs": "Auditlogboeken bekijken",
+    "exportLogs": "Logboeken exporteren"
+  },
+  "language": {
+    "title": "Taal en regio",
+    "language": "Taal",
+    "timezone": "Tijdzone",
+    "dateFormat": "Datumnotatie",
+    "currency": "Valuta"
+  },
+  "save": "Wijzigingen opslaan",
+  "cancel": "Annuleren",
+  "reset": "Terug naar standaard"
 }

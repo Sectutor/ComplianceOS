@@ -1,6 +1,6 @@
 {
   "home": "Startseite",
-  "dashboard": "Dashboard",
+  "dashboard": "Übersicht",
   "startHere": "Hier starten",
   "agent": "KI-Teammitglieder & Verbund",
   "clients": "Kunden",
@@ -52,7 +52,7 @@
   "discoveryScoping": "Discovery & Scoping",
   "accessReviews": "Zugriffsüberprüfungen",
   "webhooks": "Webhooks",
-  "workbench": "Workbench",
+  "workbench": "Werkbank",
   "strategicRoadmaps": "Strategische Roadmaps",
   "roadmapDashboard": "Roadmap-Dashboard",
   "implementationPlans": "Umsetzungspläne",
@@ -73,7 +73,7 @@
   "questionnaires": "Sicherheitsfragebögen",
   "breadcrumb": {
     "home": "Startseite",
-    "dashboard": "Dashboard"
+    "dashboard": "Übersicht"
   },
   "clientOnboarding": "Kunden-Onboarding",
   "administration": "Verwaltung",

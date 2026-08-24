@@ -1,68 +1,68 @@
 {
-    "title": "Paramètres",
-    "overview": "Vue d'ensemble des paramètres",
-    "general": "Paramètres Généraux",
-    "account": "Paramètres du compte",
-    "security": "Sécurité & MFA",
-    "notifications": "Paramètres de notification",
-    "preferences": "Préférences",
-    "profile": {
-        "title": "Paramètres du profil",
-        "personalInfo": "Informations personnelles",
-        "changePassword": "Changer le mot de passe",
-        "changeEmail": "Changer l'e-mail",
-        "twoFactor": "Authentification à deux facteurs",
-        "avatar": "Avatar"
-    },
-    "organization": {
-        "title": "Paramètres de l'organisation",
-        "companyInfo": "Informations sur l'entreprise",
-        "branding": "Image de marque",
-        "logo": "Logo",
-        "colors": "Couleurs",
-        "theme": "Thème"
-    },
-    "users": {
-        "title": "Gestion des utilisateurs",
-        "addUser": "Ajouter un utilisateur",
-        "editUser": "Modifier l'utilisateur",
-        "userList": "Liste des utilisateurs",
-        "roles": "Rôles",
-        "permissions": "Autorisations",
-        "inviteUser": "Inviter un utilisateur"
-    },
-    "billing": {
-        "title": "Facturation et abonnement",
-        "subscription": "Abonnement",
-        "paymentMethod": "Mode de paiement",
-        "invoices": "Factures",
-        "usage": "Utilisation"
-    },
-    "integrations": {
-        "title": "Intégrations",
-        "available": "Intégrations disponibles",
-        "connected": "Connecté",
-        "configure": "Configurer"
-    },
-    "api": {
-        "title": "Paramètres API",
-        "apiKeys": "Clés API",
-        "webhooks": "Webhooks",
-        "oauth": "Applications OAuth"
-    },
-    "audit": {
-        "title": "Journaux d'audit",
-        "viewLogs": "Voir les journaux d'audit",
-        "exportLogs": "Exporter les journaux"
-    },
-    "language": {
-        "title": "Langue et région",
-        "language": "Langue",
-        "timezone": "Fuseau horaire",
-        "dateFormat": "Format de date",
-        "currency": "Devise"
-    },
-    "save": "Enregistrer les modifications",
-    "cancel": "Annuler",
-    "reset": "Rétablir par défaut"
+  "title": "Paramètres",
+  "overview": "Vue d'ensemble des paramètres",
+  "general": "Paramètres Généraux",
+  "account": "Paramètres du compte",
+  "security": "Sécurité & MFA",
+  "notifications": "Paramètres de notification",
+  "preferences": "Préférences",
+  "profile": {
+    "title": "Paramètres du profil",
+    "personalInfo": "Informations personnelles",
+    "changePassword": "Changer le mot de passe",
+    "changeEmail": "Changer l'e-mail",
+    "twoFactor": "Authentification à deux facteurs",
+    "avatar": "Avatar"
+  },
+  "organization": {
+    "title": "Paramètres de l'organisation",
+    "companyInfo": "Informations sur l'entreprise",
+    "branding": "Image de marque",
+    "logo": "Logo",
+    "colors": "Couleurs",
+    "theme": "Thème"
+  },
+  "users": {
+    "title": "Gestion des utilisateurs",
+    "addUser": "Ajouter un utilisateur",
+    "editUser": "Modifier l'utilisateur",
+    "userList": "Liste des utilisateurs",
+    "roles": "Rôles",
+    "permissions": "Autorisations",
+    "inviteUser": "Inviter un utilisateur"
+  },
+  "billing": {
+    "title": "Facturation et abonnement",
+    "subscription": "Abonnement",
+    "paymentMethod": "Mode de paiement",
+    "invoices": "Factures",
+    "usage": "Utilisation"
+  },
+  "integrations": {
+    "title": "Intégrations",
+    "available": "Intégrations disponibles",
+    "connected": "Connecté",
+    "configure": "Configurer"
+  },
+  "api": {
+    "title": "Paramètres API",
+    "apiKeys": "Clés API",
+    "webhooks": "Webhooks",
+    "oauth": "Applications OAuth"
+  },
+  "audit": {
+    "title": "Journaux d'audit",
+    "viewLogs": "Voir les journaux d'audit",
+    "exportLogs": "Exporter les journaux"
+  },
+  "language": {
+    "title": "Langue et région",
+    "language": "Langue",
+    "timezone": "Fuseau horaire",
+    "dateFormat": "Format de date",
+    "currency": "Devise"
+  },
+  "save": "Enregistrer les modifications",
+  "cancel": "Annuler",
+  "reset": "Rétablir par défaut"
 }

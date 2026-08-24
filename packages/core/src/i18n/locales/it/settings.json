@@ -1,68 +1,68 @@
 {
-    "title": "Impostazioni",
-    "overview": "Panoramica impostazioni",
-    "general": "Impostazioni generali",
-    "account": "Impostazioni account",
-    "security": "Impostazioni di sicurezza",
-    "notifications": "Impostazioni notifiche",
-    "preferences": "Preferenze",
-    "profile": {
-        "title": "Impostazioni profilo",
-        "personalInfo": "Informazioni personali",
-        "changePassword": "Cambia password",
-        "changeEmail": "Cambia email",
-        "twoFactor": "Autenticazione a due fattori",
-        "avatar": "Avatar"
-    },
-    "organization": {
-        "title": "Impostazioni organizzazione",
-        "companyInfo": "Informazioni azienda",
-        "branding": "Branding",
-        "logo": "Logo",
-        "colors": "Colori",
-        "theme": "Tema"
-    },
-    "users": {
-        "title": "Gestione utenti",
-        "addUser": "Aggiungi utente",
-        "editUser": "Modifica utente",
-        "userList": "Elenco utenti",
-        "roles": "Ruoli",
-        "permissions": "Permessi",
-        "inviteUser": "Invita utente"
-    },
-    "billing": {
-        "title": "Fatturazione e abbonamento",
-        "subscription": "Abbonamento",
-        "paymentMethod": "Metodo di pagamento",
-        "invoices": "Fatture",
-        "usage": "Utilizzo"
-    },
-    "integrations": {
-        "title": "Integrazioni",
-        "available": "Integrazioni disponibili",
-        "connected": "Connesso",
-        "configure": "Configura"
-    },
-    "api": {
-        "title": "Impostazioni API",
-        "apiKeys": "Chiavi API",
-        "webhooks": "Webhook",
-        "oauth": "App OAuth"
-    },
-    "audit": {
-        "title": "Log di audit",
-        "viewLogs": "Visualizza log di audit",
-        "exportLogs": "Esporta log"
-    },
-    "language": {
-        "title": "Lingua e regione",
-        "language": "Lingua",
-        "timezone": "Fuso orario",
-        "dateFormat": "Formato data",
-        "currency": "Valuta"
-    },
-    "save": "Salva modifiche",
-    "cancel": "Annulla",
-    "reset": "Ripristina predefiniti"
+  "title": "Impostazioni",
+  "overview": "Panoramica impostazioni",
+  "general": "Impostazioni generali",
+  "account": "Impostazioni account",
+  "security": "Impostazioni di sicurezza",
+  "notifications": "Impostazioni notifiche",
+  "preferences": "Preferenze",
+  "profile": {
+    "title": "Impostazioni profilo",
+    "personalInfo": "Informazioni personali",
+    "changePassword": "Cambia password",
+    "changeEmail": "Cambia email",
+    "twoFactor": "Autenticazione a due fattori",
+    "avatar": "Avatar"
+  },
+  "organization": {
+    "title": "Impostazioni organizzazione",
+    "companyInfo": "Informazioni azienda",
+    "branding": "Brand",
+    "logo": "Logo",
+    "colors": "Colori",
+    "theme": "Tema"
+  },
+  "users": {
+    "title": "Gestione utenti",
+    "addUser": "Aggiungi utente",
+    "editUser": "Modifica utente",
+    "userList": "Elenco utenti",
+    "roles": "Ruoli",
+    "permissions": "Permessi",
+    "inviteUser": "Invita utente"
+  },
+  "billing": {
+    "title": "Fatturazione e abbonamento",
+    "subscription": "Abbonamento",
+    "paymentMethod": "Metodo di pagamento",
+    "invoices": "Fatture",
+    "usage": "Utilizzo"
+  },
+  "integrations": {
+    "title": "Integrazioni",
+    "available": "Integrazioni disponibili",
+    "connected": "Connesso",
+    "configure": "Configura"
+  },
+  "api": {
+    "title": "Impostazioni API",
+    "apiKeys": "Chiavi API",
+    "webhooks": "Webhook",
+    "oauth": "App OAuth"
+  },
+  "audit": {
+    "title": "Log di audit",
+    "viewLogs": "Visualizza log di audit",
+    "exportLogs": "Esporta log"
+  },
+  "language": {
+    "title": "Lingua e regione",
+    "language": "Lingua",
+    "timezone": "Fuso orario",
+    "dateFormat": "Formato data",
+    "currency": "Valuta"
+  },
+  "save": "Salva modifiche",
+  "cancel": "Annulla",
+  "reset": "Ripristina predefiniti"
 }
