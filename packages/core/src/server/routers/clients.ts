@@ -305,7 +305,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     // 6. Send Email Notification
                     if (targetEmail) {
-                        const loginLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/login`;
+                        const loginLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/auth/login`;
                         const defaultMsg = `You have been added as an administrator for the new organization <strong>${input.name}</strong> on ComplianceOS.`;
 
                         await sendEmail({

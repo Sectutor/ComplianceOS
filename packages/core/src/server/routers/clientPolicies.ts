@@ -420,6 +420,29 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           details: { notes }
         });
 
+        // Auto-deposit evidence artifact upon policy approval
+        if (decision === 'approved') {
+          try {
+            const dbConn = await db.getDb();
+            const [clientCtrl] = await dbConn.select().from(clientControls).where(eq(clientControls.clientId, clientId)).limit(1);
+            if (clientCtrl) {
+              await dbConn.insert(schema.evidence).values({
+                clientId,
+                clientControlId: clientCtrl.id,
+                evidenceId: `EVID-POL-${id}-${Date.now().toString().slice(-4)}`,
+                description: `Signed Executive Sign-Off Artifact for policy: ${notes || 'Annual Policy Review'}`,
+                type: 'policy',
+                status: 'verified',
+                owner: ctx.user.name || 'Executive Signer',
+                location: `Policy #${id}`,
+                dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+              });
+            }
+          } catch (e) {
+            console.error('[PolicyReview] Failed to auto-archive evidence:', e);
+          }
+        }
+
         // Notify Policy Owner/Creator
         try {
           const dbConn = await db.getDb();

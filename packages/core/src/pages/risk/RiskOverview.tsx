@@ -19,18 +19,49 @@ import {
     Bug,
     Stethoscope,
     Radar,
-    Zap
+    Zap,
+    LifeBuoy,
+    PhoneCall,
+    Building2,
+    Layers,
+    Clock,
+    RefreshCw
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageGuide } from "@/components/PageGuide";
 import { useTranslation } from "@/hooks/useTranslation";
+import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
 
 export default function RiskOverview() {
     const { id } = useParams<{ id: string }>();
     const { t } = useTranslation('risk');
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
+
+    const { data: riskAssessments, isLoading: risksLoading } = trpc.risks.getRiskAssessments.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+    const { data: appetite } = trpc.risks.getAppetite.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+    const { data: treatments } = trpc.risks.getAllTreatments.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+
+    const totalRisks = riskAssessments?.length || 0;
+    const criticalRisks = riskAssessments?.filter((r: any) => r.severity === 'critical' || r.inherentRisk === 'Very High' || r.inherentRisk === 'Critical' || ((r.likelihood || 0) * (r.impact || 0) >= 16)).length || 0;
+    const highRisks = riskAssessments?.filter((r: any) => r.severity === 'high' || r.inherentRisk === 'High' || (((r.likelihood || 0) * (r.impact || 0) >= 10) && ((r.likelihood || 0) * (r.impact || 0) < 16))).length || 0;
+    
+    const implementedTreatments = treatments?.filter((t: any) => t.status === 'implemented' || t.status === 'completed').length || 0;
+    const totalTreatments = treatments?.length || 0;
+    const treatmentRate = totalTreatments > 0 ? Math.round((implementedTreatments / totalTreatments) * 100) : 0;
+    
+    const isAppetiteBreached = criticalRisks > 0;
 
     const sections = [
         {
@@ -188,55 +219,120 @@ export default function RiskOverview() {
                     />
                 </div>
 
-                {/* Hero Section */}
-                <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-8 md:p-16 text-white shadow-2xl">
+                {/* Cross-Module Quick Navigation Pills */}
+                <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-2 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-orange-500" />
+                        Connected Modules:
+                    </span>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setLocation(`/clients/${clientId}/business-continuity/bia`)}
+                        className="h-8 text-xs font-semibold hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-xl"
+                    >
+                        <LifeBuoy className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                        BCP & BIA Scenarios
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setLocation(`/clients/${clientId}/cyber/incidents`)}
+                        className="h-8 text-xs font-semibold hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-xl"
+                    >
+                        <PhoneCall className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
+                        Incident Response
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setLocation(`/clients/${clientId}/vendors`)}
+                        className="h-8 text-xs font-semibold hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-xl"
+                    >
+                        <Building2 className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                        Vendor TPRM Risks
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setLocation(`/clients/${clientId}/nis2/security-measures`)}
+                        className="h-8 text-xs font-semibold hover:bg-purple-50 hover:text-purple-700 text-slate-700 rounded-xl"
+                    >
+                        <Shield className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
+                        NIS2 Art. 21 Controls
+                    </Button>
+                </div>
+
+                {/* Hero Section with Live Telemetry */}
+                <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-8 md:p-14 text-white shadow-2xl">
                     <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-red-500/20 rounded-full blur-3xl animate-pulse" />
                     <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl" />
 
-                    <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
-                        <div className="space-y-6">
+                    <div className="relative z-10 grid lg:grid-cols-12 gap-8 items-center">
+                        <div className="lg:col-span-7 space-y-6">
                             <div className="inline-flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full border border-white/20">
                                 <Shield className="w-4 h-4 text-orange-400" />
-                                <span className="text-xs font-bold uppercase tracking-wider text-orange-100">Risk Intelligence</span>
+                                <span className="text-xs font-bold uppercase tracking-wider text-orange-100">Live Risk Intelligence</span>
                             </div>
-                            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+                            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
                                 Integrated <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">
                                     Risk Management
                                 </span>
                             </h1>
-                            <p className="text-lg text-slate-300 leading-relaxed">
-                                Transform uncertainty into informed decisions. Our ISO 27005-aligned framework helps you identify, assess, treat, and monitor information security risks with precision.
+                            <p className="text-base text-slate-300 leading-relaxed max-w-xl">
+                                Transform uncertainty into informed decisions. Continuous ISO 27005 & FAIR-aligned risk orchestration across assets, active threats, and business continuity.
                             </p>
-                            <div className="flex flex-wrap gap-4 pt-4">
-                                <div className="flex items-center space-x-2 text-sm text-slate-400">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <div className="flex flex-wrap gap-4 pt-2">
+                                <div className="flex items-center space-x-2 text-xs text-slate-400">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                     <span>ISO 27005 Aligned</span>
                                 </div>
-                                <div className="flex items-center space-x-2 text-sm text-slate-400">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                <div className="flex items-center space-x-2 text-xs text-slate-400">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                     <span>NIST RMF Compatible</span>
                                 </div>
-                                <div className="flex items-center space-x-2 text-sm text-slate-400">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                    <span>FAIR Framework Ready</span>
+                                <div className="flex items-center space-x-2 text-xs text-slate-400">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>FAIR Quantitative Engine</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="hidden md:flex justify-center relative">
-                            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-3xl rotate-3 hover:rotate-0 transition-transform duration-500">
-                                <div className="grid grid-cols-2 gap-4">
-                                    {[AlertTriangle, Eye, TrendingUp, BarChart3].map((Icon, i) => (
-                                        <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center">
-                                            <Icon className="w-8 h-8 text-orange-400" />
-                                        </div>
-                                    ))}
+
+                        {/* Live Telemetry Card Grid */}
+                        <div className="lg:col-span-5 bg-white/10 backdrop-blur-xl border border-white/15 p-6 rounded-3xl shadow-2xl space-y-4">
+                            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                                <span className="text-xs font-bold uppercase tracking-wider text-orange-300 flex items-center gap-1.5">
+                                    <Activity className="w-4 h-4" /> Live Posture Telemetry
+                                </span>
+                                <Badge className={cn(
+                                    "text-[10px] uppercase font-bold",
+                                    isAppetiteBreached ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+                                )}>
+                                    {isAppetiteBreached ? "Appetite Breached" : "Within Appetite"}
+                                </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 bg-black/20 rounded-2xl border border-white/10">
+                                    <div className="text-xs text-slate-400 font-medium">Total Risks</div>
+                                    <div className="text-2xl font-black text-white mt-1">{totalRisks}</div>
+                                    <div className="text-[11px] text-orange-300 mt-0.5">{criticalRisks} Critical / {highRisks} High</div>
                                 </div>
-                                <div className="mt-6 p-4 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl border border-white/10">
-                                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                        <div className="h-full w-2/3 bg-orange-400 rounded-full" />
-                                    </div>
-                                    <p className="text-[10px] mt-2 text-orange-200 font-mono">RISK REDUCTION: 67%</p>
+                                <div className="p-3 bg-black/20 rounded-2xl border border-white/10">
+                                    <div className="text-xs text-slate-400 font-medium">Treatment Velocity</div>
+                                    <div className="text-2xl font-black text-emerald-400 mt-1">{treatmentRate}%</div>
+                                    <div className="text-[11px] text-slate-300 mt-0.5">{implementedTreatments} of {totalTreatments} closed</div>
+                                </div>
+                            </div>
+
+                            <div className="p-3 bg-black/20 rounded-2xl border border-white/10 space-y-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-300 font-medium">Risk Treatment Progress</span>
+                                    <span className="font-mono font-bold text-orange-300">{treatmentRate}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-orange-400 to-emerald-400 rounded-full transition-all duration-500" style={{ width: `${treatmentRate}%` }} />
                                 </div>
                             </div>
                         </div>

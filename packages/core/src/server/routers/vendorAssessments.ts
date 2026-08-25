@@ -1,4 +1,4 @@
-﻿
+
 // Remove the incorrect import
 import { z } from "zod";
 // import { router, clientProcedure, publicProcedure } from "../trpc"; // Deleted
@@ -116,7 +116,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 }).returning();
 
                 // 3. Send Real Email
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3005";
                 const inviteLink = `${baseUrl}/portal/assessment/${token}`;
 
                 await EmailService.send({
@@ -274,7 +274,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 }).returning();
 
                 // Send Real Consolidated Email
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3005";
                 const portalLink = `${baseUrl}/portal/request/${token}`;
 
                 await EmailService.send({

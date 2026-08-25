@@ -51,6 +51,12 @@
  * 8) federalWorkflows.exportPoamEmassCsv (clientProcedure mutation)
  *    input:  { clientId, poamId }
  *    output: EmassCsvExportResult           // { filename, csv, itemCount }
+ *
+ * 9) federalWorkflows.cmmcPractices       (protected pure query)
+ *    input:  { family?, level?, search? }  // zod-guarded, all optional
+ *    output: CmmcRegisterResult            // NIST SP 800-171 Rev 2 register
+ *                                           // (families = full-register
+ *                                           // rollup; practices honor filter)
  * -----------------------------------------------------------------------
  */
 
@@ -324,6 +330,12 @@ interface FederalWorkflowsTrpcContract {
         onSuccess?: (data: EmassCsvExportResult) => void;
         onError?: (error: FederalWorkflowTrpcError) => void;
       }) => FederalWorkflowMutationLike<EmassCsvExportInput, EmassCsvExportResult>;
+    };
+    cmmcPractices: {
+      useQuery: (
+        input: CmmcPracticesInput,
+        opts?: FederalWorkflowQueryOptions
+      ) => FederalWorkflowQueryLike<CmmcRegisterResult>;
     };
   };
 }
@@ -1011,5 +1023,423 @@ export function buildDemoCmmcReadiness(): CmmcReadinessResult {
       "26 controls lack linked evidence",
       "14 open POA&M weaknesses",
     ],
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* CMMC Practice Register — NIST SP 800-171 Rev 2 (cmmcPractices)      */
+/*                                                                      */
+/* Mirrors `federalWorkflows.cmmcPractices` (protected pure query):     */
+/*   input:  { family?, level?, search? }   — zod-guarded, optional     */
+/*   output: { total, families[], practices[] }                         */
+/* `families` is ALWAYS the full-register rollup; `practices` honor the */
+/* current family/level/search filter.                                  */
+/* ------------------------------------------------------------------ */
+
+/** CMMC maturity level of a practice (NIST SP 800-171 Rev 2). */
+export type CmmcPracticeLevel = 1 | 2 | 3;
+
+/** One NIST SP 800-171 Rev 2 practice row. */
+export interface CmmcPractice {
+  /** Canonical practice id, e.g. "AC-L1-3.1.1". */
+  id: string;
+  /** Two-letter family code, e.g. "AC". */
+  family: string;
+  level: CmmcPracticeLevel;
+  /** Short title, e.g. "Limit system access to authorized users". */
+  title: string;
+  /** Full requirement statement text. */
+  requirement: string;
+  /** Assessment objective sub-statements. */
+  objectives: string[];
+}
+
+/** Per-family rollup row with per-level mini-counts. */
+export interface CmmcFamilyRollup {
+  family: string;
+  count: number;
+  levels: Record<CmmcPracticeLevel, number>;
+}
+
+/** Output of federalWorkflows.cmmcPractices. */
+export interface CmmcRegisterResult {
+  /** Total practices in the register (110 for full SP 800-171 Rev 2). */
+  total: number;
+  /** Always the FULL-register family rollup regardless of filters. */
+  families: CmmcFamilyRollup[];
+  /** Practices honoring the family/level/search filter. */
+  practices: CmmcPractice[];
+}
+
+/** Input of federalWorkflows.cmmcPractices (all fields optional). */
+export interface CmmcPracticesInput {
+  family?: string;
+  level?: CmmcPracticeLevel;
+  search?: string;
+}
+
+/**
+ * Hook over `trpc.federalWorkflows.cmmcPractices.useQuery` (retry: false,
+ * UI-STANDARD §16). Input vars drive server-side filtering; the endpoint is
+ * a pure reference query so there is no clientId gate here — panels scope
+ * rendering themselves.
+ */
+export function useCmmcPractices(
+  input: CmmcPracticesInput
+): FederalWorkflowQueryLike<CmmcRegisterResult> {
+  return federalWorkflowsApi.federalWorkflows.cmmcPractices.useQuery(input, {
+    retry: false,
+  });
+}
+
+/** Tolerant normalizer for partial cmmcPractices payloads. */
+export function normalizeCmmcRegister(raw: unknown): CmmcRegisterResult {
+  const src = isRecord(raw) ? raw : {};
+  const levelsOf = (value: unknown): Record<CmmcPracticeLevel, number> => {
+    const rec = isRecord(value) ? value : {};
+    return {
+      1: toNum(rec["1"]),
+      2: toNum(rec["2"]),
+      3: toNum(rec["3"]),
+    };
+  };
+  const levelOf = (value: unknown): CmmcPracticeLevel => {
+    const num = toNum(value);
+    if (num === 2) return 2;
+    if (num === 3) return 3;
+    return 1;
+  };
+  const practices = toArray<Record<string, unknown>>(src.practices).map((entry) => ({
+    id: typeof entry.id === "string" ? entry.id : "",
+    family: typeof entry.family === "string" ? entry.family : "",
+    level: levelOf(entry.level),
+    title: typeof entry.title === "string" ? entry.title : "",
+    requirement: typeof entry.requirement === "string" ? entry.requirement : "",
+    objectives: toArray<string>(entry.objectives).filter(
+      (objective) => typeof objective === "string"
+    ),
+  }));
+  return {
+    total: toNum(src.total),
+    families: toArray<Record<string, unknown>>(src.families).map((entry) => ({
+      family: typeof entry.family === "string" ? entry.family : "",
+      count: toNum(entry.count),
+      levels: levelsOf(entry.levels),
+    })),
+    practices,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* EMPTY_* shape + predicate + shared copy                              */
+/* ------------------------------------------------------------------ */
+
+export const EMPTY_CMMC_REGISTER: CmmcRegisterResult = {
+  total: 0,
+  families: [],
+  practices: [],
+};
+
+export function isEmptyCmmcRegister(result: CmmcRegisterResult): boolean {
+  return result.total <= 0 && result.practices.length === 0;
+}
+
+/** Empty-state titles shared by the CMMC register panel (copy w/ contract). */
+export const CMMC_REGISTER_EMPTY_TITLE = "No practices match the current filters";
+
+/* ------------------------------------------------------------------ */
+/* META maps — maturity-level badges + family display names             */
+/* ------------------------------------------------------------------ */
+
+/** Badge metadata for a CMMC maturity level (UI-STANDARD token variants). */
+export interface LevelBadgeMeta {
+  label: string;
+  shortLabel: string;
+  badgeVariant: FederalBadgeVariant;
+}
+
+export const LEVEL_META: Record<CmmcPracticeLevel, LevelBadgeMeta> = {
+  1: { label: "Level 1", shortLabel: "L1", badgeVariant: "secondary" },
+  2: { label: "Level 2", shortLabel: "L2", badgeVariant: "default" },
+  3: { label: "Level 3", shortLabel: "L3", badgeVariant: "info" },
+};
+
+export function levelMeta(level: number): LevelBadgeMeta {
+  if (level === 2) return LEVEL_META[2];
+  if (level === 3) return LEVEL_META[3];
+  return LEVEL_META[1];
+}
+
+/** Canonical two-letter family order for NIST SP 800-171 Rev 2 (14 families). */
+export const NIST_800_171_FAMILY_ORDER = [
+  "AC", "AT", "AU", "CA", "CM", "IA", "IR",
+  "MA", "MP", "PE", "PS", "RA", "SC", "SI",
+] as const;
+
+export type CmmcFamilyCode = (typeof NIST_800_171_FAMILY_ORDER)[number];
+
+/** Two-letter code → human display name for the 14 SP 800-171 families. */
+export const FAMILY_DISPLAY_NAMES: Record<CmmcFamilyCode, string> = {
+  AC: "Access Control",
+  AT: "Awareness & Training",
+  AU: "Audit & Accountability",
+  CA: "Security Assessment",
+  CM: "Configuration Management",
+  IA: "Identification & Authentication",
+  IR: "Incident Response",
+  MA: "Maintenance",
+  MP: "Media Protection",
+  PE: "Physical Protection",
+  PS: "Personnel Security",
+  RA: "Risk Assessment",
+  SC: "System & Communications Protection",
+  SI: "System & Information Integrity",
+};
+
+export function familyDisplayName(family: string): string {
+  return FAMILY_DISPLAY_NAMES[family as CmmcFamilyCode] ?? family;
+}
+
+/** Stable sort rank so distribution rows follow the canonical order. */
+export function familyOrderRank(family: string): number {
+  const index = (NIST_800_171_FAMILY_ORDER as readonly string[]).indexOf(family);
+  return index >= 0 ? index : NIST_800_171_FAMILY_ORDER.length;
+}
+
+/* ------------------------------------------------------------------ */
+/* Demo-mode builders (UI-STANDARD §17)                                 */
+/*                                                                      */
+/* DEMO_CMMC_PRACTICES carries representative REAL practice ids from    */
+/* NIST SP 800-171 Rev 2 covering all 14 families; the builder derives  */
+/* the family rollup from it so counts stay internally consistent.      */
+/* ------------------------------------------------------------------ */
+
+export const DEMO_CMMC_PRACTICES: CmmcPractice[] = [
+  {
+    id: "AC-L1-3.1.1",
+    family: "AC",
+    level: 1,
+    title: "Limit system access to authorized users",
+    requirement:
+      "Limit system access to authorized users, processes acting on behalf of authorized users, and devices (including other systems).",
+    objectives: [
+      "Authorized users are determined and documented",
+      "Processes acting on behalf of users covered",
+      "Devices (incl. other systems) covered",
+    ],
+  },
+  {
+    id: "AC-L2-3.1.12",
+    family: "AC",
+    level: 2,
+    title: "Control remote access sessions",
+    requirement:
+      "Control remote access sessions, where feasible, by limiting session duration, terminating sessions after defined conditions, and monitoring for unauthorized access.",
+    objectives: [
+      "Remote access session limits defined",
+      "Session termination conditions enforced",
+      "Unauthorized access monitored",
+    ],
+  },
+  {
+    id: "AT-L1-3.2.1",
+    family: "AT",
+    level: 1,
+    title: "Security awareness training",
+    requirement:
+      "Ensure that managers, systems administrators, and users of organizational systems are made aware of the security risks associated with their activities and of the applicable policies, standards, and procedures related to the security of those systems.",
+    objectives: [
+      "Awareness activities cover all roles",
+      "Risks of user activities communicated",
+      "Applicable policies referenced",
+    ],
+  },
+  {
+    id: "AU-L1-3.3.1",
+    family: "AU",
+    level: 1,
+    title: "Create and retain system audit logs",
+    requirement:
+      "Create and retain system audit logs and records to the extent needed to enable the monitoring, analysis, investigation, and reporting of unlawful or unauthorized system activity.",
+    objectives: [
+      "Audit logs created for covered events",
+      "Logs retained per policy",
+      "Records support investigation & reporting",
+    ],
+  },
+  {
+    id: "CA-L2-3.12.1",
+    family: "CA",
+    level: 2,
+    title: "Periodically assess security controls",
+    requirement:
+      "Periodically assess the security controls in organizational systems to determine if the controls are effective in their application.",
+    objectives: [
+      "Assessment cadence defined",
+      "Control effectiveness determined",
+      "Findings feed remediation",
+    ],
+  },
+  {
+    id: "CM-L1-3.4.1",
+    family: "CM",
+    level: 1,
+    title: "Establish baseline configurations",
+    requirement:
+      "Establish and enforce security configuration settings for information technology products employed in organizational systems.",
+    objectives: [
+      "Baseline configurations established",
+      "Settings enforced via technical means",
+      "Deviations tracked",
+    ],
+  },
+  {
+    id: "IA-L1-3.5.1",
+    family: "IA",
+    level: 1,
+    title: "Identify system users and devices",
+    requirement:
+      "Identify system users, processes acting on behalf of users, and devices.",
+    objectives: [
+      "Users uniquely identified",
+      "Processes acting for users identified",
+      "Devices identified",
+    ],
+  },
+  {
+    id: "IR-L1-3.6.1",
+    family: "IR",
+    level: 1,
+    title: "Operational incident-handling capability",
+    requirement:
+      "Establish an operational incident-handling capability for organizational systems that includes adequate preparation, detection, analysis, containment, recovery, and user response activities.",
+    objectives: [
+      "Capability documented & resourced",
+      "Preparation through recovery covered",
+      "Users know response duties",
+    ],
+  },
+  {
+    id: "IR-L2-3.6.2",
+    family: "IR",
+    level: 2,
+    title: "Track, document and report incidents",
+    requirement:
+      "Track, document, and report incidents to designated officials and/or authorities both internal and external to the organization.",
+    objectives: [
+      "Incidents tracked & documented",
+      "Internal officials notified",
+      "External authorities notified when required",
+    ],
+  },
+  {
+    id: "MA-L1-3.7.1",
+    family: "MA",
+    level: 1,
+    title: "Perform system maintenance",
+    requirement: "Perform maintenance on organizational systems.",
+    objectives: [
+      "Maintenance scheduled & performed",
+      "Maintenance records retained",
+    ],
+  },
+  {
+    id: "MP-L1-3.8.1",
+    family: "MP",
+    level: 1,
+    title: "Protect system media containing CUI",
+    requirement:
+      "Protect (i.e., physically control and securely store) system media containing CUI, both paper and digital.",
+    objectives: [
+      "Paper media physically controlled",
+      "Digital media securely stored",
+      "Access limited to authorized roles",
+    ],
+  },
+  {
+    id: "PE-L1-3.10.1",
+    family: "PE",
+    level: 1,
+    title: "Limit physical access to systems",
+    requirement:
+      "Limit physical access to organizational systems, equipment, and the respective operating environments to authorized individuals.",
+    objectives: [
+      "Physical access lists maintained",
+      "Operating environments restricted",
+      "Visitor access controlled",
+    ],
+  },
+  {
+    id: "PS-L1-3.9.1",
+    family: "PS",
+    level: 1,
+    title: "Screen individuals prior to access",
+    requirement:
+      "Screen individuals prior to authorizing access to organizational systems containing CUI.",
+    objectives: [
+      "Screening completed pre-access",
+      "Rescreening criteria defined",
+    ],
+  },
+  {
+    id: "RA-L2-3.11.1",
+    family: "RA",
+    level: 2,
+    title: "Periodically assess risk",
+    requirement:
+      "Periodically assess the risk to organizational operations (including mission, functions, image, or reputation), organizational assets, and individuals, resulting from the operation of organizational systems.",
+    objectives: [
+      "Risk assessment cadence defined",
+      "Operations, assets & individuals covered",
+      "Results modify posture",
+    ],
+  },
+  {
+    id: "SC-L1-3.13.1",
+    family: "SC",
+    level: 1,
+    title: "Monitor and protect communications boundaries",
+    requirement:
+      "Monitor, control, and protect organizational communications (i.e., information transmitted or received by organizational systems) at the external boundaries and key internal boundaries of organizational systems.",
+    objectives: [
+      "External boundaries protected",
+      "Key internal boundaries identified",
+      "Boundary traffic monitored",
+    ],
+  },
+  {
+    id: "SI-L1-3.14.1",
+    family: "SI",
+    level: 1,
+    title: "Identify, report and correct system flaws",
+    requirement:
+      "Identify, report, and correct system flaws in a timely manner.",
+    objectives: [
+      "Flaws identified & reported",
+      "Flaws corrected within SLA",
+      "Corrective actions tracked",
+    ],
+  },
+];
+
+export function buildDemoCmmcRegister(): CmmcRegisterResult {
+  const rollups = new Map<string, Record<CmmcPracticeLevel, number>>();
+  for (const practice of DEMO_CMMC_PRACTICES) {
+    const levels = rollups.get(practice.family) ?? { 1: 0, 2: 0, 3: 0 };
+    levels[practice.level] += 1;
+    rollups.set(practice.family, levels);
+  }
+  return {
+    total: DEMO_CMMC_PRACTICES.length,
+    // Full canonical 14-family axis so the distribution table renders every row.
+    families: NIST_800_171_FAMILY_ORDER.map((family) => {
+      const levels = rollups.get(family) ?? { 1: 0, 2: 0, 3: 0 };
+      return {
+        family,
+        count: levels[1] + levels[2] + levels[3],
+        levels,
+      };
+    }),
+    practices: DEMO_CMMC_PRACTICES,
   };
 }

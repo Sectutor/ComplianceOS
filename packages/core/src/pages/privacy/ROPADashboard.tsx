@@ -285,12 +285,22 @@ export default function ROPADashboard() {
                         Maintain a comprehensive inventory of your business processes and their data flows (Article 30).
                     </p>
                 </div>
-                <Button
-                    onClick={() => setCreateOpen(true)}
-                    className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
-                >
-                    <Plus className="mr-2 h-5 w-5" /> Add Business Process
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/subprocessors`)}
+                        className="border-purple-300 text-purple-800 bg-purple-50/50 hover:bg-purple-100 font-semibold h-11 px-4 rounded-xl"
+                    >
+                        <Shield className="mr-2 h-4 w-4 text-purple-600" />
+                        Verify Subprocessor DPAs (Art. 28)
+                    </Button>
+                    <Button
+                        onClick={() => setCreateOpen(true)}
+                        className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                    >
+                        <Plus className="mr-2 h-5 w-5" /> Add Business Process
+                    </Button>
+                </div>
             </div>
 
             {/* Process Table */}

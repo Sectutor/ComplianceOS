@@ -667,6 +667,37 @@ export default function VendorDetails() {
         }
     };
 
+    const exportToRiskMutation = trpc.risks.createRiskAssessment.useMutation({
+        onSuccess: () => {
+            toast.success("Vendor Risk Exported to Risk Register", {
+                description: `Successfully added ${vendor?.name} supply chain risk scenario under DORA Art. 28 / NIS2.`,
+                action: {
+                    label: "Open Risk Register",
+                    onClick: () => setLocation(`/clients/${clientId}/risks/register`)
+                }
+            });
+        },
+        onError: (err: any) => {
+            toast.error("Export Failed", { description: err.message });
+        }
+    });
+
+    const handleExportToRisk = () => {
+        if (!vendor) return;
+        const impact = (vendor.criticality === 'Tier 1 (Critical)' || vendor.criticality === 'High' || vendor.criticality === 'Critical') ? 5 : 4;
+        const likelihood = vendorRisk?.riskBand === 'high' || vendorRisk?.riskBand === 'critical' ? 4 : 3;
+        exportToRiskMutation.mutate({
+            clientId,
+            title: `[TPRM Supply Chain] ${vendor.name} (${vendor.category || 'Third-Party Service'})`,
+            threatDescription: `Third-party vendor dependency risk with ${vendor.name}. Criticality tier: ${vendor.criticality || 'Tier 2'}. Category: ${vendor.category || 'Cloud SaaS'}. Residual security score: ${vendorRisk?.residualScore ?? 'Under evaluation'}.`,
+            vulnerabilityDescription: `Supply chain vulnerability & potential single point of failure under DORA Article 28 and NIS2 Article 21(2)(d). Service Notes: ${vendor.serviceDescription || vendor.description || 'Core operations reliance.'}`,
+            likelihood,
+            impact,
+            category: "Third-Party & Supply Chain (DORA / NIS2)",
+            status: "draft"
+        });
+    };
+
     if (isLoading) {
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
@@ -688,8 +719,8 @@ export default function VendorDetails() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex justify-between items-center">
-                <div className="flex gap-2">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" size="sm" asChild>
                         <a href={`/clients/${clientId}/vendors/all`}>Back</a>
                     </Button>
@@ -698,6 +729,16 @@ export default function VendorDetails() {
                     </Button>
                     <Button variant="outline" size="sm" onClick={openEditDialog}>
                         <Edit2 className="mr-2 h-4 w-4" /> Edit Vendor
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportToRisk}
+                        disabled={exportToRiskMutation.isPending}
+                        className="text-xs font-semibold text-purple-700 bg-purple-50/50 hover:bg-purple-100 border-purple-200"
+                    >
+                        <ShieldAlert className="mr-1.5 h-3.5 w-3.5 text-purple-600" />
+                        {exportToRiskMutation.isPending ? "Exporting..." : "Export to Risk Register (DORA / NIS2)"}
                     </Button>
                 </div>
             </div>

@@ -546,6 +546,50 @@ export default function ControlDetailsDialog({
           </TabsContent>
 
           <TabsContent value="evidence" className="space-y-4 mt-4">
+            {/* Live Evidence Freshness & Audit Health Status */}
+            {(!evidenceList || evidenceList.length === 0) ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-bold text-amber-900">Missing Evidence:</span>
+                  <span className="text-amber-800 ml-1">No supporting verification artifacts are linked to this control. Auditors may flag this during assessment.</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRequestFormOpen(true)}
+                  className="text-xs h-7 border-amber-300 bg-amber-100/50 hover:bg-amber-200 text-amber-900 shrink-0"
+                >
+                  Request Fresh Evidence
+                </Button>
+              </div>
+            ) : evidenceList.some(item => item.evidence?.validUntil && new Date(item.evidence.validUntil) < new Date()) ? (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-bold text-red-900">Evidence Expired:</span>
+                  <span className="text-red-800 ml-1">One or more linked compliance evidence files have passed their validity period. Control health is degraded.</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRequestFormOpen(true)}
+                  className="text-xs h-7 border-red-300 bg-red-100/50 hover:bg-red-200 text-red-900 shrink-0"
+                >
+                  Request Re-collection
+                </Button>
+              </div>
+            ) : (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2 text-emerald-900">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-bold">Active Evidence Verification:</span>
+                  <span>{evidenceList.length} evidence artifact{evidenceList.length > 1 ? 's' : ''} currently verified and within validity windows.</span>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px]">Audit Ready</Badge>
+              </div>
+            )}
+
             {/* Evidence Requests Section */}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
               <div className="flex justify-between items-center mb-4">

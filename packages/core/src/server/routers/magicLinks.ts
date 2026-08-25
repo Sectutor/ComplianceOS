@@ -88,7 +88,7 @@ export const magicLinksRouter = router({
                 // Send Email if address is provided
                 if (input.email) {
                     console.log("[MagicLinks] Email provided, sending...");
-                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                    const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3005";
                     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
 
                     try {

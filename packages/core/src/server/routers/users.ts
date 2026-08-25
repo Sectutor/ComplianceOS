@@ -651,7 +651,7 @@ export const usersSubRouter = router({
             });
 
             // Send actual email
-            const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invite?token=${token}`;
+            const inviteLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/auth/accept-invite?token=${token}`;
 
             await sendEmail({
                 to: input.email,

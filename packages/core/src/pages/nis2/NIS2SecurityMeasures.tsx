@@ -10,7 +10,7 @@
 import React from 'react';
 import { useParams } from 'wouter';
 import { useClientContext } from '@/contexts/ClientContext';
-import { Shield, ArrowLeft, Lock, AlertTriangle, Activity, Users, Database, Globe, Server, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Shield, ArrowLeft, Lock, AlertTriangle, Activity, Users, Database, Globe, Server, FileText, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -18,6 +18,8 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // Article 21 security measure categories
 const SECURITY_MEASURES = [
@@ -76,6 +78,19 @@ export default function NIS2SecurityMeasures() {
     const notStarted = total - implemented - inProgress;
     const progress = total > 0 ? Math.round((implemented / total) * 100) : 0;
 
+    const utils = trpc.useUtils();
+    const syncMutation = trpc.cyber.autoSyncNis2FromIso.useMutation({
+        onSuccess: () => {
+            toast.success("Security Measures Synced", {
+                description: "Mapped ISO 27001 verified controls to NIS2 Article 21 domains."
+            });
+            utils.cyber.getMappings.invalidate({ clientId, framework: 'NIS2' });
+        },
+        onError: (err: any) => {
+            toast.error("Sync Failed", { description: err.message });
+        }
+    });
+
     if (isLoadingMappings) {
         return (
             <DashboardLayout fullWidth={true}>
@@ -95,27 +110,40 @@ export default function NIS2SecurityMeasures() {
         <DashboardLayout fullWidth={true}>
             <div className="container mx-auto py-8 space-y-8">
                 {/* Header */}
-                <div className="flex items-center gap-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => window.history.back()}
-                    >
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
-                        <Shield className="h-8 w-8 text-white" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.history.back()}
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                            <Shield className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">Security Measures</h1>
+                            <p className="text-muted-foreground">
+                                Article 21 - Technical and organizational security measures
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Security Measures</h1>
-                        <p className="text-muted-foreground">
-                            Article 21 - Technical and organizational security measures
-                        </p>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => syncMutation.mutate({ clientId })}
+                            disabled={syncMutation.isPending || !clientId}
+                            className="gap-2 border-emerald-300 text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100 font-semibold"
+                        >
+                            <RefreshCw className={cn("h-4 w-4 text-emerald-600", syncMutation.isPending && "animate-spin")} />
+                            {syncMutation.isPending ? "Syncing Controls..." : "Sync from ISO 27001 Controls"}
+                        </Button>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Article 21
+                        </Badge>
                     </div>
-                    <Badge variant="outline" className="ml-auto bg-green-50 text-green-700 border-green-200">
-                        <Shield className="h-3 w-3 mr-1" />
-                        Article 21
-                    </Badge>
                 </div>
 
                 {/* Progress Overview */}

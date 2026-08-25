@@ -5,6 +5,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { FederalWorkflowsPanels } from "./FederalWorkflowsPanels";
+import { FederalCmmcPanels } from "./FederalCmmcPanels";
 import {
     FileText,
     ShieldCheck,
@@ -243,6 +244,13 @@ export default function FederalHub() {
                 {Number.isFinite(clientId) && (
                     <section className="pt-8">
                         <FederalWorkflowsPanels clientId={clientId} />
+                    </section>
+                )}
+
+                {/* CMMC practice register (NIST SP 800-171) — trailing section, scoped to a valid client. */}
+                {Number.isFinite(clientId) && (
+                    <section className="pt-8">
+                        <FederalCmmcPanels clientId={clientId} />
                     </section>
                 )}
             </div>

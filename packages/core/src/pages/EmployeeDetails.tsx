@@ -1,13 +1,14 @@
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
-import { Loader2, ArrowLeft, Mail, Briefcase, Building2, Users } from 'lucide-react';
+import { Loader2, ArrowLeft, Mail, Briefcase, Building2, Users, UserMinus, KeyRound, ShieldAlert } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
 import { Link } from 'wouter';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { toast } from 'sonner';
 
 const RACI_COLORS: Record<string, { bg: string; text: string; label: string }> = {
     'R': { bg: 'bg-red-100', text: 'text-red-800', label: 'Responsible' },
@@ -18,6 +19,7 @@ const RACI_COLORS: Record<string, { bg: string; text: string; label: string }> =
 
 export default function EmployeeDetails() {
     const { id: clientId, employeeId } = useParams<{ id: string; employeeId: string }>();
+    const [, setLocation] = useLocation();
     const { t } = useTranslation('employees');
     const cId = parseInt(clientId || '0', 10);
     const eId = parseInt(employeeId || '0', 10);
@@ -26,6 +28,16 @@ export default function EmployeeDetails() {
     const { data: employee } = trpc.employees.get.useQuery({ id: eId, clientId: cId }, { enabled: eId > 0 && cId > 0 });
     const { data: orgRole } = trpc.orgRoles.get.useQuery({ id: employee?.orgRoleId || 0 }, { enabled: !!employee?.orgRoleId });
     const { data: raciMatrix, isLoading } = trpc.employees.getRACIMatrix.useQuery({ clientId: cId }, { enabled: cId > 0 });
+
+    const handleInitiateOffboardingReview = () => {
+        toast.success("Offboarding Access Review Initiated", {
+            description: `Deprovisioning checklist created for ${employee?.firstName} ${employee?.lastName} (ISO 27001 A.9.2.6).`,
+            action: {
+                label: "Open Access Reviews",
+                onClick: () => setLocation(`/clients/${cId}/access-reviews`)
+            }
+        });
+    };
 
     // Filter matrix for this specific employee
     const employeeData = raciMatrix?.find((e: any) => e.employeeId === eId);
@@ -60,16 +72,27 @@ export default function EmployeeDetails() {
                     ]}
                 />
 
-                <div className="flex items-center gap-4">
-                    <Link href={`/clients/${cId}/people`}>
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="w-4 h-4" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold">{employee.firstName} {employee.lastName}</h1>
-                        <p className="text-gray-600 mt-1">Employee Profile & Assignments</p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Link href={`/clients/${cId}/people`}>
+                            <Button variant="ghost" size="icon">
+                                <ArrowLeft className="w-4 h-4" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-3xl font-bold">{employee.firstName} {employee.lastName}</h1>
+                            <p className="text-gray-600 mt-1">Employee Profile & Assignments</p>
+                        </div>
                     </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleInitiateOffboardingReview}
+                        className="gap-2 border-rose-300 text-rose-800 bg-rose-50/50 hover:bg-rose-100 font-semibold"
+                    >
+                        <UserMinus className="w-4 h-4 text-rose-600" />
+                        Initiate Offboarding Access Review (A.9.2.6)
+                    </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

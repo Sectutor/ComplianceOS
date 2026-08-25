@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { trpc } from '@/lib/trpc';
-import { Shield } from 'lucide-react';
+import { Shield, LifeBuoy, PhoneCall, AlertTriangle } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Slot, SlotNames } from '@/registry';
 import { Wand2, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface RiskDetailsDialogProps {
     open: boolean;
@@ -36,6 +37,49 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
         { enabled: !!risk?.id && open }
     );
 
+    const reportIncidentMutation = trpc.cyber.reportIncident.useMutation({
+        onSuccess: (res) => {
+            toast.success("Incident Declared & Mobilized!", {
+                description: `Created active incident #${res.incidentId} from risk scenario.`,
+                action: {
+                    label: "Open Incident",
+                    onClick: () => {
+                        window.location.href = `/clients/${clientId}/cyber/incidents/${res.incidentId}`;
+                    }
+                }
+            });
+            onOpenChange(false);
+        },
+        onError: (err) => {
+            toast.error("Failed to declare incident", { description: err.message });
+        }
+    });
+
+    const handleDeclareIncident = () => {
+        const sev = (risk.inherentRisk === 'Very High' || risk.inherentRisk === 'Critical' || ((risk.likelihood || 0) * (risk.impact || 0) >= 16)) ? 'critical' : (risk.inherentRisk === 'High' || ((risk.likelihood || 0) * (risk.impact || 0) >= 10)) ? 'high' : 'medium';
+        reportIncidentMutation.mutate({
+            clientId,
+            title: `[Escalation] ${risk.title || 'Risk Scenario ' + (risk.assessmentId || '')}`,
+            detectedAt: new Date().toISOString(),
+            severity: sev as "low" | "medium" | "high" | "critical",
+            cause: risk.threatDescription || "Threat materialized from Risk Register",
+            description: `Materialized risk scenario: ${risk.threatDescription || ''}. Vulnerability: ${risk.vulnerabilityDescription || ''}. Assessment ID: ${risk.assessmentId || 'N/A'}.`,
+            crossBorderImpact: false,
+            affectedAssets: Array.isArray(risk.affectedAssets) ? risk.affectedAssets.join(', ') : (typeof risk.affectedAssets === 'string' ? risk.affectedAssets : '')
+        });
+    };
+
+    const utils = trpc.useUtils();
+    const createTreatmentMutation = trpc.risks.createRiskTreatment.useMutation({
+        onSuccess: () => {
+            toast.success("Mitigation Control Attached", {
+                description: "Control successfully bound to risk treatment plan."
+            });
+            utils.risks.getRiskTreatments.invalidate({ riskAssessmentId: risk?.id });
+        },
+        onError: (err: any) => toast.error("Failed to attach control: " + err.message)
+    });
+
     const parseAffectedAssets = (assets: any): string[] => {
         if (typeof assets === 'string') {
             try {
@@ -63,7 +107,33 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
             size="xl"
             className="max-h-[85vh]"
             footer={
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Close Details</Button>
+                <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                onOpenChange(false);
+                                window.location.href = `/clients/${clientId}/business-continuity/bia`;
+                            }}
+                            className="gap-1.5 text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 font-semibold"
+                        >
+                            <LifeBuoy className="w-3.5 h-3.5 text-emerald-600" />
+                            Link / Create BIA Scenario
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDeclareIncident}
+                            disabled={reportIncidentMutation.isPending}
+                            className="gap-1.5 text-xs text-rose-800 bg-rose-50 hover:bg-rose-100 border-rose-300 font-semibold"
+                        >
+                            <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
+                            {reportIncidentMutation.isPending ? "Declaring..." : "🚨 Declare Cyber Incident"}
+                        </Button>
+                    </div>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close Details</Button>
+                </div>
             }
         >
             <div className="space-y-6">
@@ -118,7 +188,7 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
 
                                 // Fallback
                                 return parseAffectedAssets(risk.affectedAssets).map((asset, i) => (
-                                    <Badge key={i} variant="secondary">{asset}</Badge>
+                                    <Badge key={i} variant="outline">{asset}</Badge>
                                 ));
                             })()}
                         </div>
@@ -204,7 +274,14 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
                                 vulnerability: risk.vulnerabilityDescription || '',
                                 selectedControlIds: [], // We'd need to fetch these or pass from risk
                                 onAddControl: (id: number) => {
-                                    console.log('Would add control:', id);
+                                    createTreatmentMutation.mutate({
+                                        clientId,
+                                        riskAssessmentId: risk.id,
+                                        treatmentType: 'mitigate',
+                                        strategy: `Implement mapped security control #${id}`,
+                                        priority: 'high',
+                                        justification: 'AI-recommended control to mitigate active threat and vulnerability.'
+                                    });
                                 }
                             }}
                         />

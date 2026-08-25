@@ -2,10 +2,10 @@
  * Phase 3 bot roster: Risk Watchdog, Vulnerability Sentinel, Policy Steward,
  * BC Guardian, Anomaly Spotter.
  */
-import { eq, and, isNotNull, desc, ne, sql } from "drizzle-orm";
+import { eq, and, isNotNull, desc, ne, sql, or, isNull } from "drizzle-orm";
 import { getDb } from "../../../db";
 import {
-  riskTreatments, riskScenarios, riskAppetite,
+  riskTreatments, riskScenarios, riskAppetite, riskAssessments,
   vulnerabilities,
   clientPolicies,
   bcPlans, bcTrainingRecords,
@@ -106,6 +106,40 @@ export const riskWatchdog: SentinelBot = {
         metadata: { residualScore: r.residualScore, appetite: appetiteScore },
       });
     }
+
+    // 3. Unassigned / Orphan high-impact risk assessments
+    try {
+      const unassignedRisks = await db
+        .select({
+          id: riskAssessments.id,
+          title: riskAssessments.title,
+          inherentScore: riskAssessments.inherentScore,
+        })
+        .from(riskAssessments)
+        .where(and(
+          eq(riskAssessments.clientId, ctx.clientId),
+          sql`${riskAssessments.inherentScore} >= 12`,
+          or(isNull(riskAssessments.ownerId), eq(riskAssessments.status, "draft"))
+        ));
+
+      for (const u of unassignedRisks.slice(0, 10)) {
+        out.push({
+          severity: "warning",
+          title: `Unassigned high-impact risk: "${u.title}"`,
+          rationale: `Risk "${u.title}" has an inherent score of ${u.inherentScore} (High/Critical) but lacks an assigned risk owner in the register (ISO 27005 Clause 8.2).`,
+          entityType: "risk_assessment",
+          entityId: u.id,
+          proposedAction: {
+            kind: "escalate",
+            priority: "high",
+            dueInDays: 7,
+          },
+          dedupeKey: `orphan-risk:${u.id}`,
+          confidence: 90,
+          metadata: { inherentScore: u.inherentScore },
+        });
+      }
+    } catch { /* graceful fallback */ }
 
     return out;
   },

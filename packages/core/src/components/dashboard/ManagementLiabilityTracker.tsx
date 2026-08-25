@@ -185,6 +185,26 @@ export function ManagementLiabilityTracker({ clientId }: ManagementLiabilityTrac
         }
     ];
 
+    const [isSignOffOpen, setIsSignOffOpen] = useState(false);
+    const [signatoryName, setSignatoryName] = useState("John Smith");
+    const [signatoryRole, setSignatoryRole] = useState("CEO");
+    const [signedResolutions, setSignedResolutions] = useState<any[]>([]);
+
+    const handleSignOff = () => {
+        const resolution = {
+            id: Date.now(),
+            signatory: signatoryName,
+            role: signatoryRole,
+            signedAt: new Date(),
+            hash: `SHA256:${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`
+        };
+        setSignedResolutions(prev => [resolution, ...prev]);
+        setIsSignOffOpen(false);
+        toast.success("Executive Sign-Off Recorded", {
+            description: `NIS2 Article 20 formal resolution registered for ${signatoryName} (${signatoryRole}). Stamp: ${resolution.hash.slice(0, 16)}...`
+        });
+    };
+
     const getStatusColor = (completed: boolean) => {
         return completed
             ? "bg-emerald-100 text-emerald-700 border-emerald-200"
@@ -360,18 +380,79 @@ export function ManagementLiabilityTracker({ clientId }: ManagementLiabilityTrac
                 </div>
 
                 {/* Quick Actions */}
-                <div className="flex flex-wrap gap-3">
-                    <Button variant="outline" className="gap-2">
+                <div className="flex flex-wrap items-center gap-3">
+                    <Dialog open={isSignOffOpen} onOpenChange={setIsSignOffOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-md">
+                                <Shield className="h-4 w-4" />
+                                Execute Executive Sign-Off (Art. 20)
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md bg-white">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+                                    <Shield className="w-5 h-5 text-blue-600" />
+                                    NIS2 Article 20 Executive Sign-Off
+                                </DialogTitle>
+                                <DialogDescription className="text-xs text-slate-500">
+                                    Formal digital resolution approving corporate cybersecurity risk management measures and oversight.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-4 py-2">
+                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 space-y-1">
+                                    <p className="font-bold">Statutory Legal Undertaking:</p>
+                                    <p className="text-[11px] text-blue-800">
+                                        "By executing this digital signature, I confirm that the management body has approved the technical & organizational cybersecurity measures (Article 21) and assumes ongoing supervision responsibilities."
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-700">Executive Signatory Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                                        value={signatoryName}
+                                        onChange={(e) => setSignatoryName(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-700">Executive / Board Role</label>
+                                    <select
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                                        value={signatoryRole}
+                                        onChange={(e) => setSignatoryRole(e.target.value)}
+                                    >
+                                        <option value="CEO">Chief Executive Officer (CEO)</option>
+                                        <option value="CISO">Chief Information Security Officer (CISO)</option>
+                                        <option value="CTO">Chief Technology Officer (CTO)</option>
+                                        <option value="CFO">Chief Financial Officer (CFO)</option>
+                                        <option value="Board Chair">Chairperson of the Board</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsSignOffOpen(false)}>Cancel</Button>
+                                <Button
+                                    onClick={handleSignOff}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    Sign & Stamp Resolution
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Button variant="outline" className="gap-2" onClick={() => toast.success("Training reminders sent to 4 management members")}>
                         <UserCheck className="h-4 w-4" />
                         Send Training Reminders
                     </Button>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2" onClick={() => toast.success("Article 20 Oversight Report generated")}>
                         <FileText className="h-4 w-4" />
                         Generate Oversight Report
-                    </Button>
-                    <Button variant="outline" className="gap-2">
-                        <Calendar className="h-4 w-4" />
-                        Schedule Board Review
                     </Button>
                 </div>
             </CardContent>

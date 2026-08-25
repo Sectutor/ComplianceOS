@@ -60,7 +60,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
             });
 
             // 3. Send Email
-            const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invite?token=${token}&role=auditor&clientId=${input.clientId}`;
+            const inviteLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/auth/accept-invite?token=${token}&role=auditor&clientId=${input.clientId}`;
 
             await sendEmail({
                 to: input.email,
@@ -283,7 +283,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
                         });
 
                         // Send invitation email
-                        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invite?token=${token}&role=auditor&clientId=${input.clientId}`;
+                        const inviteLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/auth/accept-invite?token=${token}&role=auditor&clientId=${input.clientId}`;
 
                         await sendEmail({
                             to: input.auditorEmail,
@@ -348,7 +348,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
                             });
 
                             // Send invitation email
-                            const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invite?token=${token}&role=viewer&clientId=${input.clientId}`;
+                            const inviteLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/auth/accept-invite?token=${token}&role=viewer&clientId=${input.clientId}`;
 
                             await sendEmail({
                                 to: participant.email,

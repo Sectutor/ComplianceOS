@@ -18,11 +18,7 @@ import {
     DialogTrigger
 } from "@complianceos/ui/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
-import { ArrowLeft, Save, Loader2, Clock, CheckCircle2, Send, ShieldAlert, FileText, AlertTriangle, Milestone, BellRing, LifeBuoy, PhoneCall, Copy, ExternalLink, Zap } from "lucide-react";
-import {
-    useCyberIncident,
-    useCyberUpdateIncident,
-} from "@/pages/cyber/cyberApi";
+import { ArrowLeft, Save, Loader2, Clock, CheckCircle2, Send, ShieldAlert, FileText, AlertTriangle, Milestone, BellRing, LifeBuoy, PhoneCall, Copy, ExternalLink, Zap, TrendingUp } from "lucide-react";
 import {
     useIncidentClassification,
     useIncidentDeadlines,
@@ -48,6 +44,7 @@ import { useLocation, useParams } from "wouter";
 import { format } from "date-fns";
 import { PageGuide } from "@/components/PageGuide";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
 
 export default function CyberIncidentDetail() {
     const { selectedClientId } = useClientContext();
@@ -67,11 +64,13 @@ export default function CyberIncidentDetail() {
     // NIS2 Classification panel state
     const [templateCountry, setTemplateCountry] = useState<string>("DE");
     const [templateRequested, setTemplateRequested] = useState(false);
-    const [templateOpen, setTemplateOpen] = useState(false);
 
-    const { data: incident, isLoading, refetch } = useCyberIncident(selectedClientId!, incidentId);
+    const { data: incident, isLoading, refetch } = trpc.cyber.getIncident.useQuery(
+        { clientId: selectedClientId!, incidentId },
+        { enabled: !!selectedClientId && !!incidentId }
+    );
 
-    const updateMutation = useCyberUpdateIncident({
+    const updateMutation = trpc.cyber.updateIncident.useMutation({
         onSuccess: () => {
             toast.success("Incident Updated", {
                 description: "The incident report has been saved.",
@@ -81,6 +80,23 @@ export default function CyberIncidentDetail() {
         onError: (error) => {
             toast.error("Error", {
                 description: error.message || "Failed to update incident",
+            });
+        }
+    });
+
+    const createRiskMutation = trpc.risks.createRiskAssessment.useMutation({
+        onSuccess: () => {
+            toast.success("Risk Scenario Created", {
+                description: "Post-incident lessons learned added to Risk Register.",
+                action: {
+                    label: "Open Risk Register",
+                    onClick: () => setLocation(`/clients/${selectedClientId}/risks/register`)
+                }
+            });
+        },
+        onError: (error) => {
+            toast.error("Failed to create risk scenario", {
+                description: error.message || "Error creating risk"
             });
         }
     });
@@ -124,8 +140,6 @@ export default function CyberIncidentDetail() {
         isLoading: deadlinesLoading,
         isError: deadlinesError,
     } = useIncidentDeadlines(
-        // cyberApi contract layer widens detectedAt to string | Date | null; the
-        // classifier hook takes Date | null | undefined — normalize here (conductor).
         incident?.detectedAt instanceof Date
             ? incident.detectedAt
             : incident?.detectedAt
@@ -259,7 +273,39 @@ export default function CyberIncidentDetail() {
                         ]}
                     />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (!selectedClientId) return;
+                            const likelihood = severity === 'critical' ? 5 : severity === 'high' ? 4 : 3;
+                            const impact = severity === 'critical' ? 5 : severity === 'high' ? 4 : 3;
+                            createRiskMutation.mutate({
+                                clientId: selectedClientId,
+                                title: `[Post-Mortem] ${title || 'Cyber Incident #' + incidentId}`,
+                                threatDescription: `Root Cause: ${cause || 'Under analysis'}. Details: ${description || 'Documented in incident response.'}`,
+                                vulnerabilityDescription: `Affected Assets: ${affectedAssets || 'General network/services'}. Disruption: ${incident?.serviceDisruptionDuration || 0} mins. Financial loss: €${((incident?.estimatedFinancialLoss || 0)/100).toLocaleString()}.`,
+                                likelihood,
+                                impact,
+                                category: "Cyber Incident Lessons Learned",
+                                status: "draft"
+                            });
+                        }}
+                        disabled={createRiskMutation.isPending}
+                        className="h-10 text-xs font-semibold hover:bg-slate-50"
+                    >
+                        <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
+                        {createRiskMutation.isPending ? "Exporting..." : "Export to Risk Register"}
+                    </Button>
+                    <Button
+                        onClick={handleSave}
+                        disabled={updateMutation.isPending}
+                        className="h-10 px-4 bg-brand-bright hover:bg-brand text-white font-bold rounded-xl shadow-sm text-xs"
+                    >
+                        <Save className="w-3.5 h-3.5 mr-1.5" />
+                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
                     <Badge className={cn(
                         "font-bold px-4 py-2 rounded-xl uppercase tracking-widest text-xs",
                         severity === 'critical' ? "bg-red-500 text-white shadow-lg shadow-red-100" :
@@ -339,503 +385,73 @@ export default function CyberIncidentDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-foreground">Detailed Description</Label>
+                                <Label className="text-sm font-bold text-foreground">Detailed Description & Investigative Notes</Label>
                                 <Textarea
-                                    className="min-h-[150px] rounded-xl border-border p-4 focus:border-brand-bright focus:ring-brand-bright/20"
+                                    className="min-h-[160px] rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Provide detailed observations, indicators of compromise (IOCs), and forensic notes..."
                                 />
                             </div>
-                        </CardContent>
-                        <CardFooter className="bg-muted/50 border-t border-border p-8 flex justify-between">
-                            <Button
-                                variant="outline"
-                                onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents`)}
-                                className="h-12 px-8 rounded-xl font-bold border-border hover:bg-muted"
-                            >
-                                Discard Changes
-                            </Button>
-                            <Button
-                                onClick={handleSave}
-                                disabled={updateMutation.isLoading}
-                                className="bg-brand-bright hover:bg-brand text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
-                            >
-                                {updateMutation.isLoading ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Save className="mr-2 h-4 w-4" />
-                                )}
-                                Save Incident Analysis
-                            </Button>
-                        </CardFooter>
-                    </Card>
 
-                    {/* NIS2 Classification */}
-                    <Card className="rounded-xl shadow-sm border-border">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                <ShieldAlert className="h-5 w-5 text-muted-foreground" />
-                                NIS2 Classification
-                            </CardTitle>
-                            <CardDescription className="text-sm text-muted-foreground">
-                                Article 23 significance assessment computed from saved incident fields.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {classificationLoading && !classification ? (
-                                <div className="space-y-3">
-                                    <Skeleton className="h-5 w-48" />
-                                    <Skeleton className="h-2 w-full" />
-                                    <Skeleton className="h-4 w-3/4" />
-                                    <Skeleton className="h-4 w-1/2" />
-                                </div>
-                            ) : classificationError || !classification ? (
-                                <EmptyState
-                                    icon={ShieldAlert}
-                                    title={classificationError ? "Connect the incidentClassifier.classify API" : "Classification unavailable"}
-                                    description={
-                                        classificationError
-                                            ? "The NIS2 classification endpoint is not live yet. Save the incident and retry once the router is deployed."
-                                            : "Load the incident record to compute the Article 23 assessment."
-                                    }
-                                />
-                            ) : (
-                                <>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Badge variant={classificationMeta?.badgeVariant}>{classificationMeta?.label}</Badge>
-                                        <Badge variant={classification.isSignificant ? "error" : "secondary"}>
-                                            {classification.isSignificant ? "Significant - report required" : "Not significant"}
-                                        </Badge>
-                                        {classification.category ? (
-                                            <Badge variant="outline">{classification.category}</Badge>
-                                        ) : null}
-                                        <Badge variant="info">{getNextDeadlineLabel(classification.nextDeadline)}</Badge>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Severity score</span>
-                                            <span className="text-sm font-bold tabular-nums text-foreground">{classification.score}/100</span>
-                                        </div>
-                                        <div className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", classificationMeta?.barClass)}>
-                                            <div
-                                                data-slot="progress-indicator"
-                                                className="h-full rounded-full transition-all"
-                                                style={{ width: `${Math.min(100, Math.max(0, classification.score))}%` }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            {classification.isSignificant ? (
-                                                <AlertTriangle className="h-4 w-4 text-destructive" />
-                                            ) : (
-                                                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                            <span className="text-sm font-semibold text-foreground">
-                                                {classification.isSignificant ? "Significant - report required" : "Not significant"}
-                                            </span>
-                                        </div>
-                                        {classification.reasons.length > 0 ? (
-                                            <ul className="space-y-1 pl-6 list-disc">
-                                                {classification.reasons.map((reason, index) => (
-                                                    <li key={index} className="text-sm text-muted-foreground">{reason}</li>
-                                                ))}
-                                            </ul>
-                                        ) : null}
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="space-y-3 border-t border-border pt-4">
-                                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reporting deadlines</div>
-                                {deadlinesLoading && !deadlines ? (
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-10 w-full" />
-                                        <Skeleton className="h-10 w-full" />
-                                        <Skeleton className="h-10 w-full" />
-                                    </div>
-                                ) : deadlinesError ? (
-                                    <EmptyState
-                                        icon={Clock}
-                                        title="Connect the incidentClassifier.deadlines API"
-                                        description="The deadline tracker needs the incidentClassifier router. It appears once the endpoint is live."
-                                    />
-                                ) : deadlineRows.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {deadlineRows.map((row) => (
-                                            <div key={row.key} className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 px-3 py-2">
-                                                <div className="min-w-0">
-                                                    <div className="text-sm font-medium text-foreground">{row.label}</div>
-                                                    <div className="text-xs text-muted-foreground">{row.window}</div>
-                                                </div>
-                                                <div className="flex shrink-0 items-center gap-2">
-                                                    <span className="text-sm tabular-nums text-foreground">{row.date}</span>
-                                                    <Badge variant={row.meta.badgeVariant}>{row.meta.label}</Badge>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
-                                        <Clock className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm text-muted-foreground">Deadline tracker unavailable.</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-3 border-t border-border pt-4">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="space-y-0.5">
-                                        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">CSIRT notification</div>
-                                        <p className="text-sm text-muted-foreground">Draft the Article 23 notification for the competent authority.</p>
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={() => setTemplateOpen((open) => !open)}>
-                                        <FileText className="h-4 w-4" />
-                                        {templateOpen ? "Hide template" : "Show template"}
-                                    </Button>
-                                </div>
-                                {templateOpen ? (
-                                    <div className="space-y-3">
-                                        <div className="flex flex-wrap items-end gap-3">
-                                            <div className="min-w-[220px] flex-1 space-y-1.5">
-                                                <Label className="text-xs font-medium text-muted-foreground">Competent authority country</Label>
-                                                <Select value={templateCountry} onValueChange={setTemplateCountry}>
-                                                    <SelectTrigger className="h-9 rounded-md border-border bg-background text-sm">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl border-border">
-                                                        {EU_COUNTRIES.map((country) => (
-                                                            <SelectItem key={country.code} value={country.code}>
-                                                                {country.code} - {country.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <Button
-                                                onClick={() => setTemplateRequested(true)}
-                                                disabled={templateLoading}
-                                                className="h-9"
-                                            >
-                                                {templateLoading ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <FileText className="h-4 w-4" />
-                                                )}
-                                                Generate CSIRT notification
-                                            </Button>
-                                        </div>
-                                        {templateError ? (
-                                            <EmptyState
-                                                icon={FileText}
-                                                title="Connect the incidentClassifier.csirtTemplate API"
-                                                description="The template generator is not live yet."
-                                            />
-                                        ) : templateLoading && !csirtTemplate ? (
-                                            <div className="space-y-2">
-                                                <Skeleton className="h-4 w-2/3" />
-                                                <Skeleton className="h-24 w-full" />
-                                            </div>
-                                        ) : csirtTemplate ? (
-                                            <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                                                <div className="text-sm font-semibold text-foreground">{csirtTemplate.subject}</div>
-                                                <pre className="whitespace-pre-wrap text-sm text-muted-foreground">{csirtTemplate.body}</pre>
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : null}
-                            </div>
-                        </CardContent>
-                    </Card>
-{/* NIS2 Incident Timeline */}
-                    <Card className="rounded-xl shadow-sm border-border">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                <Milestone className="h-5 w-5 text-muted-foreground" />
-                                NIS2 Incident Timeline
-                            </CardTitle>
-                            <CardDescription className="text-sm text-muted-foreground">
-                                Article 23 reporting milestones and escalation triggers computed from saved incident fields.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {!timelineInput ? (
-                                <EmptyState
-                                    icon={Milestone}
-                                    title="Detection date required"
-                                    description="Save the incident with a detection date to unlock the Article 23 reporting timeline."
-                                />
-                            ) : timelineLoading && !timeline ? (
-                                <div className="space-y-3">
-                                    <Skeleton className="h-14 w-full" />
-                                    <Skeleton className="h-14 w-full" />
-                                    <Skeleton className="h-14 w-full" />
-                                    <Skeleton className="h-14 w-full" />
-                                </div>
-                            ) : timelineError || !timeline || timeline.phases.length === 0 ? (
-                                <EmptyState
-                                    icon={Milestone}
-                                    title="Connect the incidentTimeline.timeline API"
-                                    description="The reporting timeline endpoint is not live yet. It appears once the incidentTimeline router is deployed."
-                                />
-                            ) : (
-                                <>
-                                    {/* 4-step vertical timeline */}
-                                    <ol className="space-y-1">
-                                        {[...timeline.phases]
-                                            .sort((a, b) => getPhaseMeta(a.phase).order - getPhaseMeta(b.phase).order)
-                                            .map((phase, index, arr) => {
-                                                const meta = getPhaseMeta(phase.phase);
-                                                const isCurrent = phase.status === "current";
-                                                return (
-                                                    <li
-                                                        key={phase.id || phase.phase}
-                                                        className={cn(
-                                                            "flex gap-3 rounded-lg px-3 py-2.5",
-                                                            isCurrent && "bg-muted/40 ring-1 ring-border"
-                                                        )}
-                                                    >
-                                                        <div className="flex flex-col items-center">
-                                                            <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", meta.dotClass[phase.status])} />
-                                                            {index < arr.length - 1 ? <span className="mt-1 w-px flex-1 bg-border" /> : null}
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <span className="text-sm font-semibold text-foreground">{meta.label}</span>
-                                                                <Badge variant={meta.badgeVariant[phase.status]}>
-                                                                    {INCIDENT_PHASE_STATUS_LABEL[phase.status]}
-                                                                </Badge>
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground tabular-nums">
-                                                                {phase.at ? format(new Date(phase.at), "MMM d, yyyy HH:mm") : "Not sent yet"}
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                );
-                                            })}
-                                    </ol>
-
-                                    {/* Escalations */}
-                                    <div className="space-y-3 border-t border-border pt-4">
-                                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                            <BellRing className="h-3.5 w-3.5" />
-                                            Escalations
-                                        </div>
-                                        {escalationsLoading && !escalations ? (
-                                            <div className="space-y-2">
-                                                <Skeleton className="h-12 w-full" />
-                                                <Skeleton className="h-12 w-full" />
-                                            </div>
-                                        ) : escalationsError ? (
-                                            <EmptyState
-                                                icon={BellRing}
-                                                title="Connect the incidentTimeline.escalations API"
-                                                description="Escalation triggers need the incidentTimeline router. They appear once the endpoint is live."
-                                            />
-                                        ) : orderedEscalations.length > 0 ? (
-                                            <ul className="space-y-2">
-                                                {orderedEscalations.map((escalation) => {
-                                                    const meta = getEscalationMeta(escalation.level);
-                                                    const overdue = isEscalationOverdue(escalation);
-                                                    return (
-                                                        <li key={escalation.id} className={cn("flex items-start gap-3 rounded-lg border px-3 py-2.5", meta.tintClass)}>
-                                                            <AlertTriangle className={cn("mt-0.5 h-4 w-4 shrink-0", meta.iconClass)} />
-                                                            <div className="min-w-0 flex-1 space-y-0.5">
-                                                                <div className="flex flex-wrap items-center gap-2">
-                                                                    <span className="text-sm font-semibold text-foreground">{escalation.title}</span>
-                                                                    <Badge variant={meta.badgeVariant}>{meta.label}</Badge>
-                                                                    {overdue ? <Badge variant="error">Overdue</Badge> : null}
-                                                                </div>
-                                                                {escalation.detail ? (
-                                                                    <p className="text-sm text-muted-foreground">{escalation.detail}</p>
-                                                                ) : null}
-                                                                {escalation.dueBy ? (
-                                                                    <p className="text-xs text-muted-foreground tabular-nums">
-                                                                        Due {format(new Date(escalation.dueBy), "MMM d, yyyy HH:mm")}
-                                                                    </p>
-                                                                ) : null}
-                                                            </div>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        ) : (
-                                            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
-                                                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm text-muted-foreground">No active escalations.</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Sidebar Context */}
-                <div className="space-y-8">
-                    {/* BCP & Disaster Recovery Activation Bridge */}
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
-                        <CardHeader className="bg-muted/50 border-b border-border p-6">
-                            <CardTitle className="text-lg font-bold text-foreground flex items-center justify-between">
-                                <span className="flex items-center gap-2">
-                                    <LifeBuoy className="h-5 w-5 text-emerald-600" />
-                                    BCP & Continuity Response
-                                </span>
-                                <Badge className={cn(
-                                    "text-[10px] font-bold uppercase",
-                                    incident?.isContinuityTriggered ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground"
-                                )}>
-                                    {incident?.isContinuityTriggered ? "Active" : "Standby"}
-                                </Badge>
-                            </CardTitle>
-                            <CardDescription className="text-xs text-muted-foreground">
-                                Art. 21(2)(c) Business Continuity & Disaster Recovery Bridge
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-4">
-                            {incident?.isContinuityTriggered ? (
-                                <div className="space-y-3">
-                                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 font-medium">
-                                        🚨 <strong>BCP Protocol Active:</strong> Emergency response has been initiated for this incident. Call tree and recovery playbooks are underway.
-                                    </div>
-                                    <Button
-                                        onClick={() => setLocation(`/clients/${selectedClientId}/business-continuity/call-tree`)}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 rounded-xl shadow-sm text-xs"
-                                    >
-                                        <PhoneCall className="w-3.5 h-3.5 mr-1.5" /> Open Emergency Call Tree
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <p className="text-xs text-muted-foreground leading-relaxed">
-                                        For major outages or ransomware incidents requiring crisis management, activate the disaster recovery response and mobilize the team.
-                                    </p>
-                                    <Button
-                                        onClick={() => {
-                                            if (!selectedClientId) return;
-                                            updateMutation.mutate({
-                                                clientId: selectedClientId,
-                                                incidentId,
-                                                isContinuityTriggered: true
-                                            }, {
-                                                onSuccess: () => {
-                                                    toast.success("BCP Protocol Triggered", {
-                                                        description: "Business continuity response initiated. Opening Emergency Call Tree..."
-                                                    });
-                                                    setLocation(`/clients/${selectedClientId}/business-continuity/call-tree`);
-                                                }
-                                            });
-                                        }}
-                                        disabled={updateMutation.isPending}
-                                        className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-10 rounded-xl shadow-md shadow-rose-100 text-xs cursor-pointer"
-                                    >
-                                        <Zap className="w-3.5 h-3.5 mr-1.5" /> 🚨 Activate BCP Call Tree
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Compliance Reporting & CSIRT Dispatcher */}
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
-                        <CardHeader className="bg-muted/50 border-b border-border p-6">
-                            <CardTitle className="text-lg font-bold text-foreground flex items-center justify-between">
-                                <span className="flex items-center gap-2">
-                                    <Send className="h-5 w-5 text-brand-bright" />
-                                    NIS2 CSIRT Reporting
-                                </span>
-                                <Badge className="text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                                    Art. 23
-                                </Badge>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-6">
-                            <div className="p-4 bg-muted rounded-2xl border border-border space-y-2">
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="font-medium text-muted-foreground">24h Early Warning:</span>
-                                    <span className="font-bold text-foreground">
-                                        {incident?.earlyWarningSentAt ? format(new Date(incident.earlyWarningSentAt), "MMM d, HH:mm") : "Pending"}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="font-medium text-muted-foreground">72h Notification:</span>
-                                    <span className="font-bold text-foreground">
-                                        {incident?.intermediateReportSentAt ? format(new Date(incident.intermediateReportSentAt), "MMM d, HH:mm") : "Pending"}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="font-medium text-muted-foreground">1-Month Final:</span>
-                                    <span className="font-bold text-foreground">
-                                        {incident?.finalReportSentAt ? format(new Date(incident.finalReportSentAt), "MMM d, HH:mm") : "Pending"}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* 3-Stage CSIRT Dispatcher Dialog */}
+                            {/* Dispatch CSIRT Regulatory Modal */}
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button className="w-full bg-primary-cta hover:bg-primary-cta/90 text-white font-bold h-11 rounded-xl shadow-md text-xs">
-                                        <FileText className="w-4 h-4 mr-1.5" /> Open 3-Stage CSIRT Dispatcher
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full h-12 rounded-xl border-amber-300 bg-amber-50/50 hover:bg-amber-100/60 text-amber-900 font-bold text-sm flex items-center justify-center gap-2 shadow-sm"
+                                    >
+                                        <BellRing className="w-4 h-4 text-amber-600 animate-bounce" />
+                                        NIS2 Article 23 Regulatory Notification Dispatcher
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                                <DialogContent className="max-w-2xl bg-white">
                                     <DialogHeader>
-                                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
-                                            <ShieldAlert className="w-5 h-5 text-primary" />
-                                            NIS2 Article 23 Regulatory Notification Dispatcher
+                                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+                                            <ShieldAlert className="w-5 h-5 text-amber-600" />
+                                            NIS2 Art. 23 CSIRT Regulatory Notification Dispatcher
                                         </DialogTitle>
-                                        <DialogDescription className="text-xs text-muted-foreground">
-                                            Prepare and record official incident notifications for national CSIRTs and competent authorities.
+                                        <DialogDescription className="text-xs text-slate-500">
+                                            Generate compliant submissions for competent national authorities and record mandatory milestones.
                                         </DialogDescription>
                                     </DialogHeader>
 
-                                    <Tabs defaultValue="early_warning" className="space-y-4 mt-2">
+                                    <Tabs defaultValue="24h" className="w-full mt-2">
                                         <TabsList className="grid grid-cols-3 w-full">
-                                            <TabsTrigger value="early_warning" className="text-xs font-semibold">
-                                                Stage 1: 24h Warning
+                                            <TabsTrigger value="24h" className="text-xs font-semibold">
+                                                Stage 1: 24h Early Warning
                                             </TabsTrigger>
-                                            <TabsTrigger value="intermediate" className="text-xs font-semibold">
-                                                Stage 2: 72h Notice
+                                            <TabsTrigger value="72h" className="text-xs font-semibold">
+                                                Stage 2: 72h Incident Notice
                                             </TabsTrigger>
-                                            <TabsTrigger value="final" className="text-xs font-semibold">
+                                            <TabsTrigger value="1month" className="text-xs font-semibold">
                                                 Stage 3: Final Report
                                             </TabsTrigger>
                                         </TabsList>
 
-                                        {/* Stage 1: Early Warning */}
-                                        <TabsContent value="early_warning" className="space-y-4">
-                                            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900">
-                                                <strong>Art. 23(4)(a) Deadline:</strong> Submit within <strong>24 hours</strong> of becoming aware of the significant incident. State whether caused by unlawful or malicious acts and potential cross-border impact.
+                                        {/* Stage 1 */}
+                                        <TabsContent value="24h" className="space-y-4 pt-3">
+                                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                                                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold">Art. 23(4)(a) Early Warning:</span> Must state whether the incident is suspected of being caused by unlawful or malicious acts, or could have a cross-border impact.
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-foreground">Official CSIRT Early Warning Draft</Label>
+                                                <Label className="text-xs font-bold text-slate-700">Pre-formatted 24h Early Warning Draft</Label>
                                                 <Textarea
                                                     readOnly
-                                                    className="font-mono text-xs h-40 bg-muted"
-                                                    value={`[NIS2 ARTICLE 23(4)(a) EARLY WARNING NOTIFICATION]
-To: National CSIRT / Competent Authority
-Date/Time: ${new Date().toISOString()}
-Organization: Client #${selectedClientId}
-Incident Reference: INC-${incidentId}
-Title: ${title}
-Severity Assessment: ${severity.toUpperCase()}
-Suspected Cause: ${cause || "Under Investigation"}
-Suspected Malicious/Unlawful Act: ${cause?.toLowerCase().includes("malware") || cause?.toLowerCase().includes("attack") ? "YES" : "POSSIBLE"}
-Cross-Border Impact Suspected: ${crossBorder === "yes" ? "YES (Multiple Member States)" : "NO (Single Member State)"}
-Detection Timestamp: ${incident?.detectedAt ? new Date(incident.detectedAt).toISOString() : new Date().toISOString()}
-Initial Containment: In progress`}
+                                                    className="font-mono text-xs h-32 bg-slate-50 text-slate-800"
+                                                    value={`Subject: [NIS2 Art. 23 EARLY WARNING] Significant Incident Detected\nTo: CSIRT National Authority\nEntity: Client ID #${selectedClientId}\nIncident ID: ${incidentId}\nTitle: ${title}\nDetection Time: ${incident?.detectedAt ? new Date(incident.detectedAt).toISOString() : new Date().toISOString()}\nSuspected Malicious: ${cause === 'malware' || cause === 'vulnerability' ? 'YES' : 'UNDER INVESTIGATION'}\nCross-border Potential: ${crossBorder === 'yes' ? 'YES' : 'NO'}\nInitial Description: ${description?.slice(0, 200) || 'Pending technical containment.'}`}
                                                 />
                                             </div>
                                             <div className="flex justify-between items-center pt-2">
                                                 <Button
-                                                    variant="outline"
                                                     size="sm"
+                                                    variant="outline"
                                                     onClick={() => {
-                                                        const text = `[NIS2 ARTICLE 23(4)(a) EARLY WARNING NOTIFICATION]\nIncident: INC-${incidentId}\nTitle: ${title}\nSeverity: ${severity}\nCross-Border: ${crossBorder}`;
-                                                        navigator.clipboard.writeText(text);
+                                                        navigator.clipboard.writeText(`[NIS2 Art. 23 EARLY WARNING] Entity #${selectedClientId} - ${title}`);
                                                         toast.success("Draft copied to clipboard");
                                                     }}
                                                     className="text-xs"
@@ -845,11 +461,11 @@ Initial Containment: In progress`}
                                                 <Button
                                                     size="sm"
                                                     onClick={() => {
-                                                        if (!selectedClientId) return;
                                                         updateMutation.mutate({
-                                                            clientId: selectedClientId,
+                                                            clientId: selectedClientId!,
                                                             incidentId,
                                                             earlyWarningSentAt: new Date().toISOString(),
+                                                            status: 'reported',
                                                             reportedToAuthorities: true
                                                         }, {
                                                             onSuccess: () => toast.success("Stage 1 Early Warning Recorded")
@@ -857,39 +473,33 @@ Initial Containment: In progress`}
                                                     }}
                                                     className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
                                                 >
-                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Record 24h Warning Sent
+                                                    <Milestone className="w-3.5 h-3.5 mr-1" /> Record 24h Warning Sent
                                                 </Button>
                                             </div>
                                         </TabsContent>
 
-                                        {/* Stage 2: 72h Incident Notification */}
-                                        <TabsContent value="intermediate" className="space-y-4">
-                                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-xs text-blue-900">
-                                                <strong>Art. 23(4)(b) Deadline:</strong> Submit within <strong>72 hours</strong>. Provide initial technical assessment, severity indicators, and compromise details.
+                                        {/* Stage 2 */}
+                                        <TabsContent value="72h" className="space-y-4 pt-3">
+                                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-start gap-2">
+                                                <ShieldAlert className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold">Art. 23(4)(b) Incident Notification:</span> Provide an initial assessment of the incident, including its severity and impact, as well as indicators of compromise (IOCs).
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-foreground">Official 72h Incident Notification Draft</Label>
+                                                <Label className="text-xs font-bold text-slate-700">Pre-formatted 72h Intermediate Notification</Label>
                                                 <Textarea
                                                     readOnly
-                                                    className="font-mono text-xs h-40 bg-muted"
-                                                    value={`[NIS2 ARTICLE 23(4)(b) 72-HOUR INCIDENT NOTIFICATION]
-Incident Reference: INC-${incidentId}
-Title: ${title}
-Confirmed Severity: ${severity.toUpperCase()}
-Affected Assets: ${affectedAssets || "Core Infrastructure / Services"}
-Initial Root Cause: ${description || "Technical analysis ongoing"}
-Continuity Response Triggered: ${incident?.isContinuityTriggered ? "YES (BCP Mobilized)" : "NO"}
-Impact to Service Availability: ${incident?.serviceDisruptionDuration ? `${incident.serviceDisruptionDuration} minutes` : "Mitigated"}
-Indicators of Compromise: Preserved for CSIRT analysis`}
+                                                    className="font-mono text-xs h-32 bg-slate-50 text-slate-800"
+                                                    value={`Subject: [NIS2 Art. 23 INTERMEDIATE NOTICE] Incident ID #${incidentId}\nSeverity: ${severity.toUpperCase()}\nAffected Assets: ${affectedAssets || 'Under isolation'}\nImpact Duration: ${incident?.serviceDisruptionDuration || 0} minutes\nEstimated Financial Loss: €${((incident?.estimatedFinancialLoss || 0)/100).toLocaleString()}\nTechnical Assessment: ${description || 'Containment active.'}`}
                                                 />
                                             </div>
                                             <div className="flex justify-between items-center pt-2">
                                                 <Button
-                                                    variant="outline"
                                                     size="sm"
+                                                    variant="outline"
                                                     onClick={() => {
-                                                        const text = `[NIS2 ARTICLE 23(4)(b) 72-HOUR INCIDENT NOTIFICATION]\nIncident: INC-${incidentId}\nTitle: ${title}\nSeverity: ${severity}\nAffected: ${affectedAssets}`;
-                                                        navigator.clipboard.writeText(text);
+                                                        navigator.clipboard.writeText(`[NIS2 Art. 23 INTERMEDIATE NOTICE] ${title}`);
                                                         toast.success("Draft copied to clipboard");
                                                     }}
                                                     className="text-xs"
@@ -899,11 +509,11 @@ Indicators of Compromise: Preserved for CSIRT analysis`}
                                                 <Button
                                                     size="sm"
                                                     onClick={() => {
-                                                        if (!selectedClientId) return;
                                                         updateMutation.mutate({
-                                                            clientId: selectedClientId,
+                                                            clientId: selectedClientId!,
                                                             incidentId,
                                                             intermediateReportSentAt: new Date().toISOString(),
+                                                            status: 'reported',
                                                             reportedToAuthorities: true
                                                         }, {
                                                             onSuccess: () => toast.success("Stage 2 Notification Recorded")
@@ -911,37 +521,33 @@ Indicators of Compromise: Preserved for CSIRT analysis`}
                                                     }}
                                                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs"
                                                 >
-                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Record 72h Notification Sent
+                                                    <Milestone className="w-3.5 h-3.5 mr-1" /> Record 72h Notification Sent
                                                 </Button>
                                             </div>
                                         </TabsContent>
 
-                                        {/* Stage 3: 1-Month Final Report */}
-                                        <TabsContent value="final" className="space-y-4">
-                                            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-900">
-                                                <strong>Art. 23(4)(e) Deadline:</strong> Submit no later than <strong>1 month</strong> after incident resolution. Include detailed root cause, financial loss, and applied mitigation.
+                                        {/* Stage 3 */}
+                                        <TabsContent value="1month" className="space-y-4 pt-3">
+                                            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-bold">Art. 23(4)(e) Final Report:</span> Detailed description of incident, root cause, mitigation measures applied, and cross-border impact.
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-foreground">Official Final Incident Report Draft</Label>
+                                                <Label className="text-xs font-bold text-slate-700">Pre-formatted Final Incident Report</Label>
                                                 <Textarea
                                                     readOnly
-                                                    className="font-mono text-xs h-40 bg-muted"
-                                                    value={`[NIS2 ARTICLE 23(4)(e) FINAL INCIDENT REPORT]
-Incident Reference: INC-${incidentId}
-Resolution Status: ${status.toUpperCase()}
-Complete Root Cause Analysis: ${description || "Fully documented"}
-Total Estimated Financial Impact: €${((incident?.estimatedFinancialLoss || 0) / 100).toLocaleString()}
-Total Disruption Duration: ${incident?.serviceDisruptionDuration || 0} minutes
-Permanent Corrective Actions: Controls updated and verified under NIS2 Article 21.`}
+                                                    className="font-mono text-xs h-32 bg-slate-50 text-slate-800"
+                                                    value={`Subject: [NIS2 Art. 23 FINAL REPORT] Incident ID #${incidentId} Closure\nStatus: FULLY RESOLVED\nRoot Cause: ${cause}\nDetailed Summary: ${description}\nAffected Assets Remediated: ${affectedAssets || 'Verified secured'}\nTotal Outage: ${incident?.serviceDisruptionDuration || 0} minutes`}
                                                 />
                                             </div>
                                             <div className="flex justify-between items-center pt-2">
                                                 <Button
-                                                    variant="outline"
                                                     size="sm"
+                                                    variant="outline"
                                                     onClick={() => {
-                                                        const text = `[NIS2 ARTICLE 23(4)(e) FINAL INCIDENT REPORT]\nIncident: INC-${incidentId}\nStatus: ${status}\nRoot Cause: ${description}`;
-                                                        navigator.clipboard.writeText(text);
+                                                        navigator.clipboard.writeText(`[NIS2 Art. 23 FINAL REPORT] ${title}`);
                                                         toast.success("Draft copied to clipboard");
                                                     }}
                                                     className="text-xs"
@@ -951,13 +557,11 @@ Permanent Corrective Actions: Controls updated and verified under NIS2 Article 2
                                                 <Button
                                                     size="sm"
                                                     onClick={() => {
-                                                        if (!selectedClientId) return;
                                                         updateMutation.mutate({
-                                                            clientId: selectedClientId,
+                                                            clientId: selectedClientId!,
                                                             incidentId,
                                                             finalReportSentAt: new Date().toISOString(),
-                                                            status: "resolved",
-                                                            reportedToAuthorities: true
+                                                            status: 'resolved'
                                                         }, {
                                                             onSuccess: () => toast.success("Stage 3 Final Report Recorded")
                                                         });
@@ -985,6 +589,319 @@ Permanent Corrective Actions: Controls updated and verified under NIS2 Article 2
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* NIS2 Classification Panel (UI-STANDARD §16) */}
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                        <CardHeader className="bg-muted/50 border-b border-border p-8 flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                                    <ShieldAlert className="h-5 w-5 text-brand-bright" />
+                                    NIS2 Article 23 Classification & Deadlines
+                                </CardTitle>
+                                <CardDescription className="text-muted-foreground">
+                                    Evaluates regulatory thresholds and tracks statutory CSIRT submission windows.
+                                </CardDescription>
+                            </div>
+                            {classificationMeta && (
+                                <Badge className={cn("font-bold px-3 py-1 text-xs uppercase", classificationMeta.badgeClass)}>
+                                    {classificationMeta.label}
+                                </Badge>
+                            )}
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-6">
+                            {classificationLoading ? (
+                                <div className="space-y-3">
+                                    <Skeleton className="h-4 w-1/3" />
+                                    <Skeleton className="h-20 w-full" />
+                                </div>
+                            ) : classificationError ? (
+                                <p className="text-sm text-destructive">Failed to evaluate NIS2 classification.</p>
+                            ) : classification ? (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl border border-border bg-muted/20">
+                                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Regulatory Severity</p>
+                                            <p className="text-base font-bold text-foreground mt-1 capitalize">{classification.severity}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">{classificationMeta?.description}</p>
+                                        </div>
+                                        <div className="p-4 rounded-xl border border-border bg-muted/20">
+                                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Next Reporting Window</p>
+                                            <p className="text-base font-bold text-foreground mt-1">
+                                                {deadlines ? getNextDeadlineLabel(deadlines) : "—"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {classification.isSignificant
+                                                    ? "Mandatory CSIRT submission required."
+                                                    : "Below significance threshold; monitoring."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Deadline Timeline */}
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Statutory Reporting Windows</h4>
+                                        {deadlinesLoading ? (
+                                            <Skeleton className="h-24 w-full" />
+                                        ) : deadlinesError ? (
+                                            <p className="text-xs text-destructive">Failed to calculate deadlines.</p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {deadlineRows.map((row) => (
+                                                    <div
+                                                        key={row.key}
+                                                        className="flex items-center justify-between p-3 rounded-xl border border-border bg-card text-xs"
+                                                    >
+                                                        <div className="space-y-0.5">
+                                                            <p className="font-bold text-foreground">{row.label}</p>
+                                                            <p className="text-muted-foreground text-[11px]">{row.window}</p>
+                                                        </div>
+                                                        <div className="text-right space-y-0.5">
+                                                            <p className="font-mono font-medium text-foreground">{row.date}</p>
+                                                            {row.meta && (
+                                                                <Badge className={cn("text-[10px] px-2 py-0.5 uppercase", row.meta.badgeClass)}>
+                                                                    {row.meta.label}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Rationale & Triggered Criteria */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Evaluation Rationale</h4>
+                                        <p className="text-xs text-muted-foreground leading-relaxed bg-muted/20 p-3 rounded-xl border border-border">
+                                            {classification.rationale}
+                                        </p>
+                                    </div>
+
+                                    {classification.triggeredCriteria && classification.triggeredCriteria.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Triggered Criteria</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {classification.triggeredCriteria.map((c: string) => (
+                                                    <Badge key={c} variant="outline" className="text-xs font-mono">
+                                                        {c}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* CSIRT Template Generator */}
+                                    <div className="pt-4 border-t border-border space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-brand-bright" />
+                                                CSIRT Notification Template
+                                            </h4>
+                                            <div className="flex items-center gap-2">
+                                                <Select value={templateCountry} onValueChange={setTemplateCountry}>
+                                                    <SelectTrigger className="h-8 w-28 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {EU_COUNTRIES.map((c) => (
+                                                            <SelectItem key={c.code} value={c.code} className="text-xs">
+                                                                {c.code} — {c.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 text-xs"
+                                                    onClick={() => setTemplateRequested(true)}
+                                                >
+                                                    Generate
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {templateRequested && (
+                                            templateLoading ? (
+                                                <Skeleton className="h-28 w-full" />
+                                            ) : templateError ? (
+                                                <p className="text-xs text-destructive">Failed to build template.</p>
+                                            ) : csirtTemplate ? (
+                                                <div className="space-y-2 bg-muted/30 p-3 rounded-xl border border-border text-xs font-mono">
+                                                    <p className="text-[11px] text-muted-foreground font-sans">
+                                                        Authority: <span className="font-bold text-foreground">{csirtTemplate.authorityName}</span> ({csirtTemplate.authorityEmail || "email on file"})
+                                                    </p>
+                                                    <p className="text-[11px] text-muted-foreground font-sans font-bold">Subject: {csirtTemplate.subject}</p>
+                                                    <pre className="whitespace-pre-wrap text-[11px] text-foreground bg-background p-2 rounded border border-border max-h-40 overflow-y-auto">
+                                                        {csirtTemplate.body}
+                                                    </pre>
+                                                </div>
+                                            ) : null
+                                        )}
+                                    </div>
+                                </>
+                            ) : null}
+                        </CardContent>
+                    </Card>
+
+                    {/* Timeline & Escalations Panel */}
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                        <CardHeader className="bg-muted/50 border-b border-border p-8">
+                            <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                                <Clock className="h-5 w-5 text-brand-bright" />
+                                NIS2 Incident Progression & Escalations
+                            </CardTitle>
+                            <CardDescription className="text-muted-foreground">
+                                Step-by-step regulatory milestone progression with overdue escalation flags.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-6">
+                            {timelineLoading || escalationsLoading ? (
+                                <div className="space-y-3">
+                                    <Skeleton className="h-4 w-1/3" />
+                                    <Skeleton className="h-24 w-full" />
+                                </div>
+                            ) : timelineError || escalationsError ? (
+                                <p className="text-sm text-destructive">Failed to load incident progression.</p>
+                            ) : (
+                                <>
+                                    {/* Phase sequence */}
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Milestone Phases</h4>
+                                        <div className="space-y-2">
+                                            {timeline?.phases.map((p) => {
+                                                const meta = getPhaseMeta(p.status);
+                                                return (
+                                                    <div
+                                                        key={p.phase}
+                                                        className="flex items-center justify-between p-3 rounded-xl border border-border bg-card text-xs"
+                                                    >
+                                                        <div className="space-y-0.5">
+                                                            <p className="font-bold text-foreground">{p.label}</p>
+                                                            <p className="text-muted-foreground text-[11px]">
+                                                                Status: {INCIDENT_PHASE_STATUS_LABEL[p.status]}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right space-y-0.5">
+                                                            <p className="font-mono text-muted-foreground text-[11px]">
+                                                                {p.completedAt ? format(new Date(p.completedAt), "MMM d, HH:mm") : p.targetDeadline ? format(new Date(p.targetDeadline), "MMM d, HH:mm") : "—"}
+                                                            </p>
+                                                            <Badge className={cn("text-[10px] px-2 py-0.5 uppercase", meta.badgeClass)}>
+                                                                {meta.label}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Escalation items */}
+                                    <div className="space-y-3 pt-4 border-t border-border">
+                                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                            Active Escalations ({orderedEscalations.length})
+                                        </h4>
+                                        {orderedEscalations.length > 0 ? (
+                                            <ul className="space-y-2">
+                                                {orderedEscalations.map((esc) => {
+                                                    const meta = getEscalationMeta(esc.severity);
+                                                    const overdue = isEscalationOverdue(esc);
+                                                    return (
+                                                        <li
+                                                            key={esc.id}
+                                                            className={cn(
+                                                                "p-3 rounded-xl border text-xs space-y-1",
+                                                                overdue ? "border-red-300 bg-red-50/40" : "border-border bg-card"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-bold text-foreground">{esc.title}</span>
+                                                                <Badge className={cn("text-[10px] uppercase", meta.badgeClass)}>
+                                                                    {meta.label}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-muted-foreground text-[11px]">{esc.reason}</p>
+                                                            {esc.actionRequired && (
+                                                                <p className="text-foreground text-[11px] font-medium">
+                                                                    Action: {esc.actionRequired}
+                                                                </p>
+                                                            )}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        ) : (
+                                            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                                                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">No active escalations.</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Sidebar Context */}
+                <div className="space-y-8">
+                    {/* BCP & Disaster Recovery Activation Bridge */}
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
+                            <CardTitle className="text-lg font-bold text-slate-900 flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <LifeBuoy className="h-5 w-5 text-emerald-600" />
+                                    BCP & Continuity Response
+                                </span>
+                                <Badge className={cn(
+                                    "text-[10px] font-bold uppercase",
+                                    incident?.isContinuityTriggered ? "bg-red-500 text-white" : "bg-emerald-100 text-emerald-800"
+                                )}>
+                                    {incident?.isContinuityTriggered ? "BCP Mobilized" : "Standby"}
+                                </Badge>
+                            </CardTitle>
+                            <CardDescription className="text-xs text-slate-500">
+                                NIS2 Article 21(2)(c) Business continuity & disaster recovery link.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-500 font-medium">Continuity Trigger:</span>
+                                    <span className="font-bold text-slate-900">
+                                        {incident?.isContinuityTriggered ? "Active Mobilization" : "Not Triggered"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-500 font-medium">Target Emergency Call Tree:</span>
+                                    <span className="font-bold text-emerald-600">Level 1 - Core Leadership</span>
+                                </div>
+                            </div>
+
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    if (!selectedClientId) return;
+                                    updateMutation.mutate({
+                                        clientId: selectedClientId,
+                                        incidentId,
+                                        isContinuityTriggered: true
+                                    }, {
+                                        onSuccess: () => {
+                                            toast.success("BCP Continuity Response Mobilized!");
+                                            setLocation(`/clients/${selectedClientId}/business-continuity/call-tree`);
+                                        }
+                                    });
+                                }}
+                                className="w-full h-11 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold rounded-xl shadow-md text-xs flex items-center justify-center gap-2"
+                            >
+                                <PhoneCall className="w-4 h-4 animate-pulse" />
+                                🚨 Activate BCP Call Tree
+                            </Button>
                         </CardContent>
                     </Card>
 

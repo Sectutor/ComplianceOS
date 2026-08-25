@@ -239,6 +239,40 @@ export default function GapAnalysisEditor() {
         }
     };
 
+    const [dispatchingTasks, setDispatchingTasks] = useState(false);
+    const handleBulkDispatchTasks = async () => {
+        const gapResponses = responses.filter(r => r.currentStatus === 'not_implemented' || r.currentStatus === 'partially_implemented');
+        if (gapResponses.length === 0) {
+            return toast.info("No unaddressed compliance gaps found in this assessment.");
+        }
+        setDispatchingTasks(true);
+        try {
+            let createdCount = 0;
+            for (const r of gapResponses.slice(0, 10)) {
+                const ctrl = safeControls.find((c: any) => c.controlId === r.controlId);
+                await createActionMutation.mutateAsync({
+                    clientId,
+                    title: `Remediate Gap: ${r.controlId} - ${ctrl?.name || 'Control Implementation'}`,
+                    description: `Automated remediation task from ${assessment?.name || 'Gap Analysis'}. Status: ${r.currentStatus}.`,
+                    priority: r.currentStatus === 'not_implemented' ? 'high' : 'medium',
+                    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                });
+                createdCount++;
+            }
+            toast.success(`Dispatched ${createdCount} Remediation Task${createdCount > 1 ? 's' : ''}`, {
+                description: "Tasks created in Action Center for prioritized gap remediation.",
+                action: {
+                    label: "Open Action Center",
+                    onClick: () => setLocation(`/clients/${clientId}/action-center`)
+                }
+            });
+        } catch (e: any) {
+            toast.error("Failed to dispatch tasks: " + e.message);
+        } finally {
+            setDispatchingTasks(false);
+        }
+    };
+
     if (loadingAssessment || loadingControls) {
         return (
             <DashboardLayout>
@@ -374,27 +408,35 @@ export default function GapAnalysisEditor() {
                                         <History className="w-4 h-4 text-slate-500" />
                                     </Button>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <Button
                                         id="gap-ai-prioritize"
                                         onClick={handlePrioritize}
                                         disabled={prioritizing}
-                                        className="h-12 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none font-bold shadow-lg shadow-indigo-100 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                        className="h-11 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none font-bold shadow-sm hover:scale-[1.01] active:scale-[0.98] transition-all"
                                     >
                                         {prioritizing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                                         AI Prioritize
                                     </Button>
 
+                                    <Button
+                                        onClick={handleBulkDispatchTasks}
+                                        disabled={dispatchingTasks}
+                                        variant="outline"
+                                        className="h-11 border-rose-300 text-rose-800 bg-rose-50/50 hover:bg-rose-100 font-bold shadow-sm transition-all"
+                                    >
+                                        {dispatchingTasks ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2 text-rose-600" />}
+                                        Dispatch Remediation Tasks
+                                    </Button>
+
                                     {assessment.status !== 'completed' && (
                                         <Button
-                                            id="gap-complete-btn"
                                             onClick={handleComplete}
-                                            disabled={progress < 100}
-                                            className="h-12 bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-none font-bold shadow-lg shadow-emerald-100 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                            disabled={completeMutation.isPending}
+                                            className="h-11 col-span-1 sm:col-span-2 bg-slate-900 text-white hover:bg-slate-800 font-bold shadow-sm"
                                         >
-                                            <CheckCircle className="w-4 h-4 mr-2" />
-                                            Complete
+                                            {completeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                                            Complete Assessment
                                         </Button>
                                     )}
                                 </div>
