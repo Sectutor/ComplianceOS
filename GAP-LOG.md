@@ -56,11 +56,20 @@ federal_contracts + 2 seeded contracts with DFARS clause flags.
 
 ## Remaining gaps
 - **GAP-19**: OSCAL is export-only; import/validation of external OSCAL files not yet built.
+**→ FIXED 2026-08-25 (cycle 42, commit 7bb070f):** lib/federal/oscalImport.ts pure validator/normalizer for the five
+OSCAL models (stable kebab-case issue codes, injected 5MB cap, never-throws fuzz-tested, deterministic normalization
+with last-wins controlId dedupe) + federalWorkflows.importOscal mutation (raw JSON text in → {valid,errors,warnings,
+normalized} out; invalid-json issue list instead of throw; no DB on path). 31 engine tests + router contract extended
+to the exact 9-route surface.
 - **GAP-20**: CMMC readiness uses SSP controls as proxy for 800-171 practices; a proper
   practice-level register (110 rows with objectives per CMMC assessment guide) is future work.
 - **GAP-21**: SPRS deduction model is family-weighted approximation, not per-practice DoD
   point values; replace when full 800-171 register exists (see GAP-20).
 - **GAP-22**: No UI pages consume the new `federalWorkflows` procedures yet — backend only.
+**→ FIXED 2026-08-25 (cycle 42, commit 7bb070f):** pages/federal/federalWorkflowsApi.ts §16 typed contract layer
+(hooks/EMPTY_*/normalizers/META/demo builders/download helpers) + FederalWorkflowsPanels.tsx (SPRS card, DFARS/CIRCIA
+reporting clocks, con-mon dashboard w/ POA&M aging, CMMC readiness band, export actions row incl. SAR→POAM sync) with
+Skeleton/EmptyState degradation and gated demo mode; additive embed in FederalHub.tsx.
 - **GAP-23**: `federal_contracts` schema.ts Drizzle definitions lack the new section_889_*
   columns (added via SQL migration in phase-federal-889.mjs); sync schema.ts before
   writing typed code against them.
