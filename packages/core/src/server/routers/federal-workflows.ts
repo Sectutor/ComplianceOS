@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
-import { validateOscalDocument, normalizeOscalDocument } from "../../lib/federal/oscalImport";
+import { validateOscalDocument, normalizeOscalDocument, oscalUuidFromSeed } from "../../lib/federal/oscalImport";
 
 /**
  * Federal Workflow Intelligence Router (Phase 2)
@@ -227,7 +227,7 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
 
                 return {
                     oscalVersion: "1.1.2",
-                    uuid: `oscal-ssp-${ssp.id}-${input.clientId}`,
+                    uuid: oscalUuidFromSeed(`oscal-ssp-${ssp.id}-${input.clientId}`),
                     metadata: {
                         title: ssp.title,
                         lastModified: ssp.updatedAt?.toISOString(),
@@ -267,18 +267,18 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
 
                 return {
                     oscalVersion: "1.1.2",
-                    uuid: `oscal-poam-${poam.id}-${input.clientId}`,
-                    metadata: { title: poam.title, lastModified: poam.updatedAt?.toISOString(), oscalModel: "plan-of-action-and-milestones" },
+                    uuid: oscalUuidFromSeed(`oscal-poam-${poam.id}-${input.clientId}`),
+                    metadata: { title: poam.title, lastModified: poam.updatedAt?.toISOString(), version: String(poam.version ?? 1), oscalModel: "plan-of-action-and-milestones" },
                     milestones: [],
                     observations: items.map((i: any) => ({
-                        uuid: `obs-${i.id}`,
+                        uuid: oscalUuidFromSeed(`oscal-poam-obs-${poam.id}-${i.id}`),
                         title: i.weaknessName,
                         description: i.weaknessDescription,
                         methods: i.weaknessDetectorSource === "Independent Assessment" ? ["EXAMINE", "INTERVIEW"] : ["EXAMINE"],
                         relevantEvidence: i.supportingDocuments || [],
                     })),
                     tasks: items.map((i: any) => ({
-                        uuid: `task-${i.id}`,
+                        uuid: oscalUuidFromSeed(`oscal-poam-task-${poam.id}-${i.id}`),
                         title: i.weaknessName,
                         description: i.overallRemediationPlan,
                         timing: i.scheduledCompletionDate ? { onDate: i.scheduledCompletionDate } : undefined,

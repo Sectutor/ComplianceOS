@@ -25,6 +25,14 @@ import {
   OSCAL_MAX_SERIALIZED_LENGTH,
 } from "../federal/oscalImport";
 
+/**
+ * Cycle-43 namespace handle. `oscalUuidFromSeed` lands with the concurrent
+ * backend drop, so it is read OFF THE NAMESPACE (never a named import): a
+ * missing export then only reddens the individual gates below instead of
+ * failing module evaluation for this entire file.
+ */
+import * as OscalEngine from "../federal/oscalImport";
+
 const UUID = (n: number) =>
   `${String(n).repeat(8)}-${String(n).repeat(4)}-${String(n).repeat(4)}-${String(n).repeat(4)}-${String(n).repeat(12)}`;
 
@@ -250,15 +258,28 @@ describe("oscalImport — never throws on hostile input", () => {
     expect(() => validateOscalDocument(hostile)).not.toThrow();
     expect(() => normalizeOscalDocument(hostile)).not.toThrow();
     expect(validateOscalDocument(hostile).valid).toBe(false);
+    // Cycle 43 (C4): a throwing getter makes JSON.stringify refuse, which now
+    // fails CLOSED as a single unserializable-document issue (was: the gate
+    // silently skipped, detection fell through to unsupported-oscal-type).
+    expect(codes(validateOscalDocument(hostile))).toEqual(["unserializable-document"]);
 
     const sym = { metadata: {}, results: Symbol("x") };
     expect(() => validateOscalDocument(sym)).not.toThrow();
     expect(validateOscalDocument(sym).valid).toBe(false);
+    // Symbol-valued members are SKIPPED by JSON.stringify (not an error), so
+    // they must NOT trip the unserializable gate — plain structural failure.
+    expect(codes(validateOscalDocument(sym))).not.toContain("unserializable-document");
 
     const deep: Record<string, unknown> = { a: null };
-    deep.self = deep; // JSON.stringify throws on circularity -> guard must swallow
+    deep.self = deep; // JSON.stringify throws on circularity -> C4 fail-closed
     expect(() => validateOscalDocument(deep)).not.toThrow();
     expect(() => normalizeOscalDocument(deep)).not.toThrow();
+    const vd = validateOscalDocument(deep);
+    expect(vd.valid).toBe(false);
+    expect(codes(vd)).toEqual(["unserializable-document"]);
+    const nd = normalizeOscalDocument(deep);
+    expect(nd.ok).toBe(false);
+    if (!nd.ok) expect(nd.errors).toEqual(vd.errors); // exact issue agreement
 
     expect(() => normalizeOscalDocument(null)).not.toThrow();
     expect(normalizeOscalDocument(null)).toMatchObject({ ok: false });
@@ -358,6 +379,12 @@ describe("oscalImport — static purity gate", () => {
     const imports = [...src.matchAll(/^\s*import\s.+from\s+["']([^"']+)["']/gm)].map((m) => m[1]);
     expect(imports).toEqual([]); // zero runtime deps, not even node builtins
     expect(src).not.toMatch(/\bgetDb\b|drizzle-orm|\.\.\/\.\.\/db\b/);
+    // Cycle 43: the seed→uuid derivation must stay dependency-free — in
+    // particular no node:crypto smuggle-in and no PRNG nondeterminism.
+    expect(src, "node:crypto import must stay absent from the engine").not.toMatch(
+      /from\s+["']node?:crypto["']|\brequire\(\s*["']node?:crypto["']\s*\)/,
+    );
+    expect(src, "no Math.random in the deterministic engine").not.toMatch(/Math\.random\b/);
   });
 });
 
@@ -424,7 +451,7 @@ describe("oscalImport — injected maxSerializedLength boundaries", () => {
     }
   });
 
-  it("documents that refuse serialization (BigInt members, circular refs) skip the size gate, never throw", () => {
+  it("C4 totality: docs refusing serialization (BigInt members, circular refs) fail CLOSED with exactly one unserializable-document issue in BOTH entry points", () => {
     const bigintDoc: Record<string, unknown> = {
       results: [],
       oscalVersion: "1.1.2",
@@ -432,18 +459,42 @@ describe("oscalImport — injected maxSerializedLength boundaries", () => {
       metadata: { title: "T", lastModified: "2026-08-24T12:00:00.000Z", version: "1" },
       hostile: BigInt(1),
     };
+    expect(() => validateOscalDocument(bigintDoc)).not.toThrow();
+    expect(() => normalizeOscalDocument(bigintDoc)).not.toThrow();
     const rb = validateOscalDocument(bigintDoc);
-    expect(codes(rb)).not.toContain("size-exceeded");
-    // The structurally-complete document still passes — serialization refusal
-    // only disables the size gate, it never fails the document by itself.
-    expect(rb.valid).toBe(true);
-    expect(rb.warnings.map((w) => w.code)).toEqual(["empty-collection"]);
+    expect(rb.valid).toBe(false);
+    // Exactly ONE issue — no size/structural codes, no fallthrough.
+    expect(codes(rb)).toEqual(["unserializable-document"]);
+    expect(rb.warnings).toEqual([]);
+    const nb = normalizeOscalDocument(bigintDoc);
+    expect(nb.ok).toBe(false);
+    if (!nb.ok) expect(nb.errors).toEqual(rb.errors); // validate/normalize agree exactly
 
     const circ: Record<string, unknown> = { note: "circular" };
-    circ.self = circ; // JSON.stringify throws -> serializedLength -1 -> gate skipped
+    circ.self = circ; // JSON.stringify throws -> serializedLength -1 -> fail closed
     const rc = validateOscalDocument(circ);
     expect(rc.valid).toBe(false);
-    expect(codes(rc)).toEqual(["unsupported-oscal-type"]);
+    expect(codes(rc)).toEqual(["unserializable-document"]);
+    const nc = normalizeOscalDocument(circ);
+    expect(nc.ok).toBe(false);
+    if (!nc.ok) expect(nc.errors).toEqual(rc.errors);
+  });
+
+  it("C4 precedence: serialization refusal outranks injected caps and structural checks", () => {
+    const bigintDoc: Record<string, unknown> = {
+      results: [],
+      oscalVersion: "1.1.2",
+      uuid: UUID(1),
+      metadata: { title: "T", lastModified: "2026-08-24T12:00:00.000Z", version: "1" },
+      hostile: BigInt(1),
+    };
+    // An injected zero cap cannot reinterpret refusal as size-exceeded.
+    expect(codes(validateOscalDocument(bigintDoc, { maxSerializedLength: 0 }))).toEqual([
+      "unserializable-document",
+    ]);
+    // Structural damage is masked: ONLY the serialization issue is reported.
+    delete (bigintDoc.metadata as Record<string, unknown>).title;
+    expect(codes(validateOscalDocument(bigintDoc))).toEqual(["unserializable-document"]);
   });
 });
 
@@ -516,8 +567,14 @@ describe("oscalImport — hostile Proxy robustness", () => {
     const r2 = validateOscalDocument(makeTrapProxy());
     expect(r1).toEqual(r2);
     expect(r1.valid).toBe(false);
-    expect(codes(r1)).toEqual(["unsupported-oscal-type"]);
-    expect(normalizeOscalDocument(makeTrapProxy())).toMatchObject({ ok: false });
+    // Cycle 43 (C4): a proxy refusing even key enumeration refuses
+    // serialization, which now fails closed as unserializable-document
+    // (previously: unsupported-oscal-type via detection fallthrough).
+    expect(codes(r1)).toEqual(["unserializable-document"]);
+    expect(normalizeOscalDocument(makeTrapProxy())).toMatchObject({
+      ok: false,
+      errors: [{ code: "unserializable-document" }],
+    });
   });
 });
 
@@ -626,5 +683,215 @@ describe("oscalImport — validate/normalize agreement across structured inputs"
     ];
     expect(runs[0]).toEqual(runs[1]);
     expect(runs[1]).toEqual(runs[2]);
+  });
+});
+
+// ═════ GAP-19 QA-cycle-43: oscalUuidFromSeed gates + router-export round-trip ═════
+
+/** Strict lowercase RFC-4122 matcher with the v4 version/variant nibbles baked in. */
+const V4_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/**
+ * Lazily resolved off the namespace (see import note at top): while the
+ * backend drop is pending this stays undefined and only the tests below go
+ * red ([expected-red-pending-backend]) — the rest of the file stays green.
+ */
+const oscalUuidFromSeed = (OscalEngine as unknown as Record<string, unknown>)
+  .oscalUuidFromSeed as ((seed: string) => string) | undefined;
+
+describe("oscalImport — oscalUuidFromSeed (cycle 43 seed→v4-uuid derivation)", () => {
+  // Router seeds post-C2/C3 (roots, observations, tasks) plus edge shapes.
+  const SEEDS = [
+    "",
+    "x",
+    "oscal-ssp-3-7",
+    "oscal-ssp-999-123456",
+    "oscal-poam-8-7",
+    "oscal-poam-obs-8-101",
+    "oscal-poam-obs-8-102",
+    "oscal-poam-task-8-101",
+    "üñíçødé-seed-🔑",
+    "\u0000\u0007\n\t seed-with-control-chars",
+    "x".repeat(10_000), // very long seed
+    "x".repeat(10_001), // …and its one-char-longer sibling (distinctness pair)
+  ];
+  const label = (s: string) => JSON.stringify(s.length > 24 ? s.slice(0, 24) + "…" : s);
+
+  it("derives lowercase RFC-4122 v4 uuids (regex + idx14='4' + idx19∈{8,9,a,b}) for every seed shape", () => {
+    expect(typeof oscalUuidFromSeed).toBe("function");
+    for (const seed of SEEDS) {
+      const u = oscalUuidFromSeed!(seed);
+      expect(typeof u, label(seed)).toBe("string");
+      expect(u, label(seed)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(u[14], `version nibble for ${label(seed)}`).toBe("4");
+      expect(["8", "9", "a", "b"], `variant nibble for ${label(seed)}`).toContain(u[19]);
+      expect(V4_UUID_RE.test(u), `combined v4 form for ${label(seed)}`).toBe(true);
+    }
+  });
+
+  it("is deterministic: the same seed yields the identical uuid across repeated calls", () => {
+    expect(typeof oscalUuidFromSeed).toBe("function");
+    for (const seed of ["oscal-ssp-3-7", "", "üñíçødé-seed-🔑", "x".repeat(4096)]) {
+      const first = oscalUuidFromSeed!(seed);
+      for (let i = 0; i < 5; i++) {
+        expect(oscalUuidFromSeed!(seed), `run ${i} for ${label(seed)}`).toBe(first);
+      }
+    }
+  });
+
+  it("keeps distinct seeds distinct, including near-collisions one character apart", () => {
+    expect(typeof oscalUuidFromSeed).toBe("function");
+    const nearPairs: [string, string][] = [
+      ["oscal-poam-obs-8-101", "oscal-poam-obs-8-102"],
+      ["oscal-poam-obs-8-101", "oscal-poam-task-8-101"],
+      ["oscal-ssp-3-7", "oscal-ssp-37-"],
+      ["seed-a", "seed-b"],
+      ["aaaaaaaa", "aaaaaaab"],
+      ["x".repeat(64) + "!", "x".repeat(63) + "!"],
+    ];
+    const all = [...new Set([...SEEDS.filter((s) => s.length <= 128), ...nearPairs.flat()])];
+    const outs = all.map((s) => oscalUuidFromSeed!(s));
+    expect(new Set(outs).size, "every distinct seed maps to a distinct uuid").toBe(all.length);
+    for (const [a, b] of nearPairs) {
+      expect(oscalUuidFromSeed!(a), `${label(a)} vs ${label(b)}`).not.toBe(oscalUuidFromSeed!(b));
+    }
+  });
+});
+
+// ── Router-shaped round-trip payloads (post-C2/C3 export byte-shapes) ────────
+
+/**
+ * Shape witnesses of what exportSspOscal / exportPoamOscal emit AFTER the
+ * cycle-43 fix — same key layout and value types as the handlers produce,
+ * with RFC-4122 v4 uuids standing in for the oscalUuidFromSeed(...) digests
+ * (the derivation gates above pin the emitted values to exactly this format).
+ */
+const SSP_ROUND_TRIP = {
+  oscalVersion: "1.1.2",
+  uuid: "9f0c3a52-6d41-4b8e-a27c-0e5d81f43ba7", // ≙ oscalUuidFromSeed("oscal-ssp-3-7")
+  metadata: {
+    title: "APEX Core SSP",
+    lastModified: "2026-08-24T09:30:00.000Z",
+    version: "2",
+    oscalModel: "system-security-plan",
+  },
+  systemCharacteristics: {
+    systemName: "APEX Core",
+    description: "The APEX production boundary",
+    securitySensitivityLevel: "moderate",
+    systemOperationalStatus: { status: "operational" },
+  },
+  controlImplementationSrc: [
+    {
+      controlId: "cm-6",
+      implementedRequirement: {
+        description: "Baseline configs enforced",
+        responsibleRole: "Ops",
+        status: "partial",
+        evidenceLinks: [],
+      },
+    },
+    {
+      controlId: "ac-2",
+      implementedRequirement: {
+        description: "Account reviews monthly",
+        responsibleRole: "ISO",
+        status: "implemented",
+        evidenceLinks: ["ev-1"],
+      },
+    },
+  ],
+};
+
+const POAM_ROUND_TRIP = {
+  oscalVersion: "1.1.2",
+  uuid: "5b21e7d8-90af-4c63-b1d2-73ea9c04f586", // ≙ oscalUuidFromSeed("oscal-poam-8-7")
+  metadata: {
+    title: "POA&M — Remediation",
+    lastModified: "2026-08-24T09:30:00.000Z",
+    version: "1", // String(poam.version ?? 1) — the C2/C3-added metadata field
+    oscalModel: "plan-of-action-and-milestones",
+  },
+  milestones: [],
+  observations: [
+    {
+      uuid: "2c94d1f0-38a7-4e25-9b60-d1fa07c85e93", // ≙ oscalUuidFromSeed("oscal-poam-obs-8-101")
+      title: "Weak patching",
+      description: "Servers unpatched",
+      methods: ["EXAMINE", "INTERVIEW"],
+      relevantEvidence: [],
+    },
+    {
+      uuid: "77e03b4a-51cd-49f8-8a92-6cb20fe31d70", // ≙ oscalUuidFromSeed("oscal-poam-obs-8-102")
+      title: "Old finding",
+      description: "Fixed",
+      methods: ["EXAMINE"],
+      relevantEvidence: ["doc-1"],
+    },
+  ],
+  tasks: [
+    {
+      uuid: "aa1b6c95-7de2-4f30-84b7-90ec5da61c48", // ≙ oscalUuidFromSeed("oscal-poam-task-8-101")
+      title: "Weak patching",
+      description: "Patch monthly",
+      timing: { onDate: "2026-09-30T00:00:00.000Z" },
+      associatedControls: ["si-2"],
+      status: "in-progress",
+      riskRating: "high",
+    },
+    {
+      uuid: "bd47f209-6831-4ad5-92ce-1f0a83be67d4", // ≙ oscalUuidFromSeed("oscal-poam-task-8-102")
+      title: "Old finding",
+      description: "",
+      associatedControls: [],
+      status: "completed",
+      riskRating: "low",
+    },
+  ],
+};
+
+describe("oscalImport — router-export round-trip (cycle 43 pinning)", () => {
+  it("detects and fully validates the post-fix SSP export shape", () => {
+    expect(detectOscalDocType(SSP_ROUND_TRIP)).toBe("system-security-plan");
+    const r = validateOscalDocument(SSP_ROUND_TRIP);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("normalizes the SSP export into the canonical document (controls sorted, envelope intact)", () => {
+    const n = normalizeOscalDocument(SSP_ROUND_TRIP);
+    expect(n.ok).toBe(true);
+    if (!n.ok) return;
+    expect(n.document.docType).toBe("system-security-plan");
+    expect(n.document.uuid).toBe(SSP_ROUND_TRIP.uuid);
+    expect(n.document.title).toBe("APEX Core SSP");
+    expect(n.document.version).toBe("2");
+    expect(n.document.lastModified).toBe("2026-08-24T09:30:00.000Z");
+    expect(n.document.controls?.map((c) => c.controlId)).toEqual(["ac-2", "cm-6"]);
+    expect(n.document.controls?.[0]).toMatchObject({
+      description: "Account reviews monthly",
+      status: "implemented",
+    });
+  });
+
+  it("detects and validates the post-fix POA&M export shape (empty milestones[] is warning-only)", () => {
+    expect(detectOscalDocType(POAM_ROUND_TRIP)).toBe("poam");
+    const r = validateOscalDocument(POAM_ROUND_TRIP);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.map((w) => ({ code: w.code, path: w.path }))).toEqual([
+      { code: "empty-collection", path: "milestones" },
+    ]);
+  });
+
+  it("normalizes the POA&M export: version '1', associatedControls flattened, control-less task dropped", () => {
+    const n = normalizeOscalDocument(POAM_ROUND_TRIP);
+    expect(n.ok).toBe(true);
+    if (!n.ok) return;
+    expect(n.document.docType).toBe("poam");
+    expect(n.document.version).toBe("1");
+    expect(n.document.controls?.map((c) => c.controlId)).toEqual(["si-2"]);
+    expect(n.document.controls?.[0]?.description).toBe("Patch monthly"); // task description passthrough
   });
 });

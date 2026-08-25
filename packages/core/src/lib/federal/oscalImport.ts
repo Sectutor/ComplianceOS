@@ -10,6 +10,16 @@
  *
  *   validateOscalDocument(input)   -> { valid, errors, warnings }
  *   normalizeOscalDocument(input)  -> { ok: true, document } | { ok: false, errors }
+ *   oscalUuidFromSeed(seed)        -> deterministic RFC-4122 v4-SHAPED uuid derived
+ *                                     from an arbitrary seed string (FNV-1a x2,
+ *                                     pure JS, zero deps) — lets exporters mint
+ *     uuids that round-trip through this validator unchanged.
+ *
+ * Unserializable roots (circular structures / BigInt / throwing toJSON or
+ * getters) are rejected up front by BOTH entry points with EXACTLY ONE
+ * `unserializable-document` issue (path-less message) — they never fall
+ * through to the structural checks. Oversized roots keep the single
+ * `size-exceeded` issue; exactly-at-cap stays valid.
  *
  * Detected root docTypes: assessment-results | component-definition | plan |
  * system-security-plan | poam — anything else (including unrecognized
@@ -135,6 +145,40 @@ const REQUIRED_COLLECTIONS: Record<SupportedOscalDocType, { primary: string; key
   poam: [{ primary: "tasks", keys: ["tasks", "observations", "milestones"] }],
 };
 
+/* ── Seeded uuid derivation (pure, zero-dep) ───────────────────────────────── */
+
+/**
+ * FNV-1a 32-bit over UTF-16 code units with a caller-chosen offset basis.
+ * Pure JS (Math.imul keeps the multiply in int32) — NO node crypto import.
+ */
+function fnv1a32(input: string, basis: number): number {
+  let hash = basis >>> 0;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * Deterministically derive an RFC-4122 v4-SHAPED uuid from an arbitrary seed
+ * string: two FNV-1a 32-bit passes (distinct offset bases) expanded to 32
+ * lowercase hex chars, dashes inserted, then the version nibble (dashed-form
+ * position 14 = '4') and variant nibble (position 19 ∈ {8,9,a,b}) forced on.
+ * Same seed ⇒ identical output; distinct seeds ⇒ distinct outputs (modulo
+ * astronomically unlikely collisions); always matches UUID_RE (lowercase).
+ */
+export function oscalUuidFromSeed(seed: string): string {
+  const a = fnv1a32(seed, 0x811c9dc5); // canonical FNV-1a offset basis
+  const b = fnv1a32(seed, 0x1b873593); // distinct second-pass basis
+  const hex = (a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0")).repeat(2);
+  const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  const chars = uuid.split("");
+  chars[14] = "4"; // version nibble (dashes occupy indexes 8/13/18/23)
+  chars[19] = "89ab".charAt(b & 3); // RFC-4122 variant nibble
+  return chars.join("");
+}
+
 /* ── Guarded primitives (never throw, even on hostile objects) ─────────────── */
 
 function safeGet(host: unknown, key: string): unknown {
@@ -181,14 +225,56 @@ function asString(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-/** Serialized length in characters; -1 when JSON.stringify refuses (circular, BigInt…). */
-function serializedLength(input: unknown): number {
+/**
+ * THE single serialization chokepoint shared by validateOscalDocument and
+ * normalizeOscalDocument. Returns `{ ok: false }` when JSON.stringify throws
+ * (circular structures, BigInt, hostile getters/toJSON) or yields undefined
+ * (undefined / function / symbol root) — never throws itself. Cycle 43 fix:
+ * unserializable inputs previously slipped past the size gate (`len < 0`
+ * fell through to structural checks).
+ */
+function safeStringify(value: unknown): { ok: true; text: string } | { ok: false } {
   try {
-    const s = JSON.stringify(input);
-    return s === undefined ? -1 : s.length;
+    const text = JSON.stringify(value);
+    return typeof text === "string" ? { ok: true, text } : { ok: false };
   } catch {
-    return -1;
+    return { ok: false };
   }
+}
+
+/** Outcome of the combined serialize-once + cap gate. */
+type SerializedGate =
+  | { kind: "ok"; length: number }
+  | { kind: "unserializable" }
+  | { kind: "size-exceeded"; length: number; cap: number };
+
+/**
+ * Serialize `input` once through safeStringify and classify against the
+ * effective cap (injected maxSerializedLength when valid, else
+ * OSCAL_MAX_SERIALIZED_LENGTH). Total: exactly one outcome per input;
+ * unserializable input NEVER falls through to structural checks.
+ */
+function gateSerialization(input: unknown, options: OscalEngineOptions): SerializedGate {
+  const cap =
+    typeof options.maxSerializedLength === "number" &&
+    Number.isFinite(options.maxSerializedLength) &&
+    options.maxSerializedLength >= 0
+      ? Math.floor(options.maxSerializedLength)
+      : OSCAL_MAX_SERIALIZED_LENGTH;
+  const ser = safeStringify(input);
+  if (!ser.ok) return { kind: "unserializable" };
+  const length = ser.text.length;
+  return length > cap ? { kind: "size-exceeded", length, cap } : { kind: "ok", length };
+}
+
+/** Canonical path-less issue for unserializable documents (shared shape). */
+function unserializableIssue(): OscalIssue {
+  return {
+    code: "unserializable-document",
+    path: "",
+    message:
+      "OSCAL document could not be serialized to JSON text (circular structure, BigInt, or throwing toJSON/getter)",
+  };
 }
 
 function isIso8601(v: unknown): boolean {
@@ -333,14 +419,11 @@ function validateImpl(input: unknown, options: OscalEngineOptions): OscalValidat
     };
   }
 
-  const cap =
-    typeof options.maxSerializedLength === "number" &&
-    Number.isFinite(options.maxSerializedLength) &&
-    options.maxSerializedLength >= 0
-      ? Math.floor(options.maxSerializedLength)
-      : OSCAL_MAX_SERIALIZED_LENGTH;
-  const len = serializedLength(input);
-  if (len >= 0 && len > cap) {
+  const gate = gateSerialization(input, options);
+  if (gate.kind === "unserializable") {
+    return { valid: false, warnings, errors: [unserializableIssue()] };
+  }
+  if (gate.kind === "size-exceeded") {
     return {
       valid: false,
       warnings,
@@ -348,7 +431,7 @@ function validateImpl(input: unknown, options: OscalEngineOptions): OscalValidat
         {
           code: "size-exceeded",
           path: "",
-          message: `Serialized OSCAL document is ${len} characters, exceeding the limit of ${cap}`,
+          message: `Serialized OSCAL document is ${gate.length} characters, exceeding the limit of ${gate.cap}`,
         },
       ],
     };
@@ -641,6 +724,43 @@ function extractFindings(doc: Record<string, unknown>): NormalizedOscalFinding[]
 /* ── normalizeOscalDocument ────────────────────────────────────────────────── */
 
 function normalizeImpl(input: unknown, options: OscalEngineOptions): OscalNormalizationResult {
+  // Type check FIRST, mirroring validateImpl, so non-object inputs
+  // (undefined / null / primitives) classify as `not-an-object` in BOTH
+  // entry points and validate<->normalize issue agreement holds for every
+  // malformed input.
+  if (!isObj(input)) {
+    return {
+      ok: false,
+      errors: [
+        {
+          code: "not-an-object",
+          path: "",
+          message: `OSCAL document must be a JSON object (received ${describeType(input)})`,
+        },
+      ],
+    };
+  }
+
+  // Same serialize+cap gate as validateOscalDocument so BOTH entry points
+  // classify unserializable / oversized input identically: exactly one
+  // issue, no fallthrough into extraction/normalization.
+  const gate = gateSerialization(input, options);
+  if (gate.kind === "unserializable") {
+    return { ok: false, errors: [unserializableIssue()] };
+  }
+  if (gate.kind === "size-exceeded") {
+    return {
+      ok: false,
+      errors: [
+        {
+          code: "size-exceeded",
+          path: "",
+          message: `Serialized OSCAL document is ${gate.length} characters, exceeding the limit of ${gate.cap}`,
+        },
+      ],
+    };
+  }
+
   const verdict = validateOscalDocument(input, options);
   if (!verdict.valid) {
     return { ok: false, errors: verdict.errors };

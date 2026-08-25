@@ -44,7 +44,15 @@ import {
   createFederalWorkflowRouter,
   oscalImportInputSchema,
 } from "../../server/routers/federal-workflows";
-import { OSCAL_MAX_SERIALIZED_LENGTH } from "../../lib/federal/oscalImport";
+import { OSCAL_MAX_SERIALIZED_LENGTH, validateOscalDocument } from "../../lib/federal/oscalImport";
+
+/**
+ * Cycle-43 pinning: strict RFC-4122 v4 matcher (lowercase hex, version nibble
+ * '4' at index 14, variant nibble ∈ {8,9,a,b} at index 19). Every uuid the
+ * OSCAL exports emit — root, observations and tasks alike — must satisfy it,
+ * because the documents must survive re-import through the real engine.
+ */
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** Generous budget: OneDrive-synced tree can be slow under parallel load. */
 vi.setConfig({ testTimeout: 60_000 });
@@ -693,7 +701,9 @@ describe("federal-workflows router — OSCAL exports", () => {
     });
 
     expect(result.oscalVersion).toBe("1.1.2");
-    expect(result.uuid).toBe("oscal-ssp-3-7");
+    // Cycle 43: the root uuid is now a deterministic RFC-4122 v4 digest of
+    // `oscal-ssp-${ssp.id}-${clientId}` (was the raw "oscal-ssp-3-7" tag).
+    expect(result.uuid).toMatch(UUID_V4_RE);
     expect(result.metadata).toEqual({
       title: "APEX Core SSP",
       lastModified: FIXED.toISOString(),
@@ -766,21 +776,24 @@ describe("federal-workflows router — OSCAL exports", () => {
     });
 
     expect(result.oscalVersion).toBe("1.1.2");
-    expect(result.uuid).toBe("oscal-poam-8-7");
+    // Cycle 43: deterministic RFC-4122 v4 root uuid (was "oscal-poam-8-7").
+    expect(result.uuid).toMatch(UUID_V4_RE);
     expect(result.metadata).toEqual({
       title: "POA&M — Remediation",
       lastModified: FIXED.toISOString(),
+      version: "1", // C2/C3-added: String(poam.version ?? 1); stored poam has no version
       oscalModel: "plan-of-action-and-milestones",
     });
-    // Independent-assessment findings are examined AND interviewed
+    // Independent-assessment findings are examined AND interviewed; every
+    // emitted uuid (root, observations, tasks) is now a proper v4 uuid.
     expect(result.observations[0]).toMatchObject({
-      uuid: "obs-101",
+      uuid: expect.stringMatching(UUID_V4_RE),
       title: "Weak patching",
       methods: ["EXAMINE", "INTERVIEW"],
       relevantEvidence: [],
     });
     expect(result.tasks[0]).toMatchObject({
-      uuid: "task-101",
+      uuid: expect.stringMatching(UUID_V4_RE),
       status: "in-progress",
       associatedControls: ["SI-2"],
       riskRating: "high",
@@ -789,7 +802,12 @@ describe("federal-workflows router — OSCAL exports", () => {
     // Continuous-monitoring findings are examine-only; closed items map to completed tasks
     expect(result.observations[1].methods).toEqual(["EXAMINE"]);
     expect(result.observations[1].relevantEvidence).toEqual(["doc-1"]);
-    expect(result.tasks[1]).toMatchObject({ uuid: "task-102", status: "completed", associatedControls: [], timing: undefined });
+    expect(result.tasks[1]).toMatchObject({
+      uuid: expect.stringMatching(UUID_V4_RE),
+      status: "completed",
+      associatedControls: [],
+      timing: undefined,
+    });
   });
 });
 
@@ -1145,5 +1163,216 @@ describe("federal-workflows router — importOscal contract edges (GAP-19 QA)", 
     expect(result.normalized.findings.map((f: any) => f.controlId)).toEqual(["ac-2", "cm-2"]);
     expect(result.normalized.controls.map((c: any) => c.controlId)).toEqual(["ac-2", "cm-2"]);
     expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+});
+
+// ═══ GAP-19 cycle-43 pinning: OSCAL export ⇄ import round-trip (real engine) ══
+
+describe("federal-workflows router — OSCAL export⇄import round-trip (cycle 43)", () => {
+  const FIXED2 = new Date("2026-08-24T09:30:00.000Z");
+
+  /** Root + every observation + every task uuid, in emission order. */
+  const collectExportUuids = (doc: any): string[] => [
+    doc.uuid,
+    ...(doc.observations ?? []).map((o: any) => o.uuid),
+    ...(doc.tasks ?? []).map((t: any) => t.uuid),
+  ];
+
+  it("exportSspOscal emits a v4 root uuid, unchanged mutation keys, and re-imports valid via the real engine", async () => {
+    const ssp = {
+      id: 3,
+      clientId: 7,
+      title: "APEX Core SSP",
+      systemName: "APEX Core",
+      status: "operational",
+      version: 2,
+      boundaryDescription: "The APEX production boundary",
+      content: null,
+      updatedAt: FIXED2,
+    };
+    const controls = [
+      { controlId: "ac-2", implementationStatus: "implemented", implementationDescription: "Done", responsibleRole: "ISO", evidenceLinks: ["a"] },
+      { controlId: "cm-6", implementationStatus: "planned", implementationDescription: "Later", responsibleRole: "CTO", evidenceLinks: null },
+    ];
+    mockDb([[ssp], controls]);
+    const router = buildRouter();
+
+    const result = await (router as any).exportSspOscal.handler({
+      input: { clientId: 7, sspId: 3 },
+      ctx: { user: { id: 1 } },
+    });
+
+    // Root identity is now a proper RFC-4122 v4 uuid…
+    expect(typeof result.uuid).toBe("string");
+    expect(result.uuid).toMatch(UUID_V4_RE);
+    // …while the mutation surface keeps EXACTLY its documented keys.
+    expect(Object.keys(result).sort()).toEqual([
+      "controlImplementationSrc",
+      "metadata",
+      "oscalVersion",
+      "systemCharacteristics",
+      "uuid",
+    ]);
+
+    // Round-trip witness: exported text → wire → parsed document feeds the
+    // REAL import engine completely green.
+    const wire = JSON.stringify(result);
+    const verdict = validateOscalDocument(JSON.parse(wire));
+    expect(verdict.valid).toBe(true);
+    expect(verdict.errors).toEqual([]);
+    expect(verdict.warnings).toEqual([]);
+  });
+
+  it("exportPoamOscal stamps distinct v4 uuids on the root + every observation + every task, and re-imports valid", async () => {
+    const poam = { id: 8, clientId: 7, title: "POA&M — Remediation", updatedAt: FIXED2 };
+    const items = [
+      {
+        id: 101,
+        poamId: 8,
+        weaknessName: "Weak patching",
+        weaknessDescription: "Servers unpatched",
+        weaknessDetectorSource: "Independent Assessment",
+        supportingDocuments: null,
+        overallRemediationPlan: "Patch monthly",
+        scheduledCompletionDate: new Date("2026-09-30T00:00:00.000Z"),
+        controlId: "SI-2",
+        status: "open",
+        adjustedRiskRating: "high",
+      },
+      {
+        id: 102,
+        poamId: 8,
+        weaknessName: "Old finding",
+        weaknessDescription: "Fixed",
+        weaknessDetectorSource: "Continuous Monitoring",
+        supportingDocuments: ["doc-1"],
+        overallRemediationPlan: "",
+        scheduledCompletionDate: null,
+        controlId: null,
+        status: "closed",
+        adjustedRiskRating: "low",
+      },
+    ];
+    mockDb([[poam], items]);
+    const router = buildRouter();
+
+    const result = await (router as any).exportPoamOscal.handler({
+      input: { clientId: 7, poamId: 8 },
+      ctx: { user: { id: 1 } },
+    });
+
+    const uuids = collectExportUuids(result);
+    expect(uuids).toHaveLength(1 + 2 + 2); // root + observations + tasks
+    for (const u of uuids) expect(u, `uuid ${String(u)}`).toMatch(UUID_V4_RE);
+    // Distinct seeds ⇒ distinct digests — no cross-entity collisions.
+    expect(new Set(uuids).size).toBe(uuids.length);
+
+    // Mutation keys unchanged otherwise.
+    expect(Object.keys(result).sort()).toEqual([
+      "metadata",
+      "milestones",
+      "observations",
+      "oscalVersion",
+      "tasks",
+      "uuid",
+    ]);
+
+    // Round-trip through the real engine; empty milestones[] is warning-only.
+    const verdict = validateOscalDocument(JSON.parse(JSON.stringify(result)));
+    expect(verdict.valid).toBe(true);
+    expect(verdict.errors).toEqual([]);
+    expect(verdict.warnings.map((w) => w.path)).toContain("milestones");
+  });
+
+  it("exportPoamOscal writes metadata.version as a string with the '1' fallback for nullish poam.version", async () => {
+    const items = [
+      {
+        id: 201,
+        poamId: 5,
+        weaknessName: "W",
+        weaknessDescription: "D",
+        weaknessDetectorSource: "Assessment",
+        supportingDocuments: [],
+        overallRemediationPlan: "",
+        scheduledCompletionDate: null,
+        controlId: "AC-2",
+        status: "open",
+        adjustedRiskRating: "medium",
+      },
+    ];
+    for (const stored of [undefined, null]) {
+      mockDb([[{ id: 5, clientId: 7, title: "P", updatedAt: FIXED2, version: stored }], items]);
+      const router = buildRouter();
+      const result = await (router as any).exportPoamOscal.handler({
+        input: { clientId: 7, poamId: 5 },
+        ctx: { user: { id: 1 } },
+      });
+      expect(typeof result.metadata.version, `stored=${String(stored)}`).toBe("string");
+      expect(result.metadata.version, `stored=${String(stored)}`).toBe("1");
+    }
+
+    mockDb([[{ id: 5, clientId: 7, title: "P", updatedAt: FIXED2, version: 4 }], items]);
+    const router = buildRouter();
+    const result = await (router as any).exportPoamOscal.handler({
+      input: { clientId: 7, poamId: 5 },
+      ctx: { user: { id: 1 } },
+    });
+    expect(result.metadata.version).toBe("4");
+  });
+
+  it("both exports are deterministic: repeated invocations over identical state yield byte-identical documents", async () => {
+    const sspRow = {
+      id: 3,
+      clientId: 7,
+      title: "APEX Core SSP",
+      systemName: "APEX Core",
+      status: "operational",
+      version: 2,
+      boundaryDescription: "B",
+      content: null,
+      updatedAt: FIXED2,
+    };
+    const sspControls = [
+      { controlId: "ac-2", implementationStatus: "implemented", implementationDescription: "Done", responsibleRole: "ISO", evidenceLinks: [] },
+    ];
+    mockDb([[sspRow], sspControls]);
+    const sspA = await (buildRouter() as any).exportSspOscal.handler({
+      input: { clientId: 7, sspId: 3 },
+      ctx: { user: { id: 1 } },
+    });
+    mockDb([[sspRow], sspControls]);
+    const sspB = await (buildRouter() as any).exportSspOscal.handler({
+      input: { clientId: 7, sspId: 3 },
+      ctx: { user: { id: 1 } },
+    });
+    expect(JSON.stringify(sspB)).toBe(JSON.stringify(sspA));
+
+    const poamRow = { id: 8, clientId: 7, title: "POA&M — Remediation", updatedAt: FIXED2 };
+    const poamItems = [
+      {
+        id: 101,
+        poamId: 8,
+        weaknessName: "W",
+        weaknessDescription: "D",
+        weaknessDetectorSource: "Independent Assessment",
+        supportingDocuments: null,
+        overallRemediationPlan: "P",
+        scheduledCompletionDate: new Date("2026-09-30T00:00:00.000Z"),
+        controlId: "SI-2",
+        status: "open",
+        adjustedRiskRating: "high",
+      },
+    ];
+    mockDb([[poamRow], poamItems]);
+    const poamA = await (buildRouter() as any).exportPoamOscal.handler({
+      input: { clientId: 7, poamId: 8 },
+      ctx: { user: { id: 1 } },
+    });
+    mockDb([[poamRow], poamItems]);
+    const poamB = await (buildRouter() as any).exportPoamOscal.handler({
+      input: { clientId: 7, poamId: 8 },
+      ctx: { user: { id: 1 } },
+    });
+    expect(JSON.stringify(poamB)).toBe(JSON.stringify(poamA));
   });
 });
