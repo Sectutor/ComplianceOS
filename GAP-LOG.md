@@ -10,15 +10,23 @@ module showed an empty state during prospect demos.
 ransomware precursor/Hamburg WMS) + 1 completed tabletop exercise inserted directly via SQL.
 **Proper fix:** extend `packages/core/scripts/demo-seed/` so `--tenant nordwind` seeds
 incidents + exercises natively (tenant-scoped reset must wipe them too).
+**FIXED (2026-08-25, cycle 40, commit 9ff67ac):** seed-ir-nordwind.mjs seeds 3 closed incidents
+(phishing/Rotterdam, CargoTrack API outage, ransomware precursor/Hamburg WMS) + a completed
+tabletop anchored to an upserted bc_plans row; wired into index.mjs for --tenant nordwind;
+idempotent (skips when incidents exist) and reset-safe (all three tables carry client_id).
 
 ## GAP-17 — `plan_exercises.outcome` is varchar(50) (2026-08-24)
 Exercise outcomes can't hold meaningful text ("passed-with-findings" barely fits). Detail had
 to be pushed into `notes`. Consider widening to varchar(255)/text.
+**FIXED (2026-08-25):** migration packages/core/drizzle/0024_widen_plan_exercise_outcome.sql
+widens outcome to text; schema.ts planExercises.outcome now text.
 
 ## GAP-18 — No REST endpoint exposes incidents under /api/v1 (2026-08-24)
 `GET /api/v1/incidents` (and variants tried: incident, cyber/incidents, findings) all return
 "Procedure or API endpoint not found". Incident data is DB-only. The evidence-auto-collector
 and external bridges cannot read incidents via API. Add an incidents route to api-v1.
+**FIXED (2026-08-24, cycle 39, commit 1f510b6):** GET /api/v1/incidents + /incidents/:id on
+the api-v1 router (api-key gated, enum-validated filters, pagination).
 
 ---
 
