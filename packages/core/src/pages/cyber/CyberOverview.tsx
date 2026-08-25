@@ -10,7 +10,8 @@ import {
     ArrowRight,
     CheckCircle2,
     AlertCircle,
-    Globe
+    Globe,
+    LifeBuoy
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { PageGuide } from "@/components/PageGuide";
@@ -53,6 +54,21 @@ export default function CyberOverview() {
             ]
         },
         {
+            title: "Business Continuity (BCP)",
+            headerTitle: "Article 21(2)(c)",
+            description: "Business continuity management, disaster recovery plans, backup hygiene, and crisis emergency response call trees.",
+            icon: LifeBuoy,
+            color: "from-emerald-500 to-teal-600",
+            textColor: "text-emerald-600",
+            bgLight: "bg-emerald-50",
+            path: `/clients/${clientId}/business-continuity/plans`,
+            benefits: [
+                "BIA critical process recovery",
+                "Disaster recovery playbooks",
+                "Emergency call tree activation"
+            ]
+        },
+        {
             title: "Documentation",
             headerTitle: "Policies & Procedures",
             description: "Maintain required cybersecurity policies, procedures, and documentation to demonstrate NIS2 compliance.",
@@ -72,9 +88,9 @@ export default function CyberOverview() {
             headerTitle: "Article 21(2)(d)",
             description: "Map and monitor security in your ICT supply chain, identifying critical dependencies and vendor transition risks.",
             icon: Globe,
-            color: "from-emerald-600 to-teal-500",
-            textColor: "text-emerald-600",
-            bgLight: "bg-emerald-50",
+            color: "from-cyan-600 to-blue-500",
+            textColor: "text-cyan-600",
+            bgLight: "bg-cyan-50",
             path: `/clients/${clientId}/cyber/supply-chain`,
             benefits: [
                 "Critical dependency mapping",
@@ -196,7 +212,7 @@ export default function CyberOverview() {
             {/* Feature Grid */}
             <div className="grid md:grid-cols-3 gap-8">
                 {sections.map((section, idx) => (
-                    <Card key={idx} className="group overflow-hidden border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-white ring-1 ring-slate-200/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-sky-900/5">
+                    <Card key={idx} className="group overflow-hidden border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-card ring-1 ring-border/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-sky-900/5">
                         <CardContent className="p-0" id={idx === 0 ? "nis2-assessment-card" : idx === 1 ? "nis2-incident-card" : "nis2-documentation-card"}>
                             <div className={`h-2 bg-gradient-to-r ${section.color}`} />
                             <div className="p-10">
@@ -204,17 +220,17 @@ export default function CyberOverview() {
                                     <div className={`h-16 w-16 rounded-2xl ${section.bgLight} ${section.textColor} flex items-center justify-center shadow-inner`}>
                                         <section.icon className="w-8 h-8" />
                                     </div>
-                                    <Badge variant="outline" className="font-black text-[10px] tracking-widest text-slate-400 uppercase border-slate-200 px-3 py-1 rounded-full">
+                                    <Badge variant="outline" className="font-black text-[10px] tracking-widest text-muted-foreground uppercase border-border px-3 py-1 rounded-full">
                                         {section.headerTitle}
                                     </Badge>
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-900 mb-4">{section.title}</h2>
-                                <p className="text-slate-500 mb-8 leading-relaxed font-medium text-sm">
+                                <h2 className="text-2xl font-black text-foreground mb-4">{section.title}</h2>
+                                <p className="text-muted-foreground mb-8 leading-relaxed font-medium text-sm">
                                     {section.description}
                                 </p>
                                 <div className="space-y-4 mb-10">
                                     {section.benefits.map((benefit, bIdx) => (
-                                        <div key={bIdx} className="flex items-center text-xs font-bold text-slate-700 uppercase tracking-tight">
+                                        <div key={bIdx} className="flex items-center text-xs font-bold text-foreground uppercase tracking-tight">
                                             <div className={cn("w-1.5 h-1.5 rounded-full mr-3 bg-gradient-to-r", section.color)} />
                                             {benefit}
                                         </div>
@@ -223,7 +239,7 @@ export default function CyberOverview() {
                                 <Button
                                     onClick={() => setLocation(section.path)}
                                     className={cn(
-                                        "w-full bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-900 font-bold py-6 rounded-2xl border border-slate-200 transition-all duration-300 flex items-center justify-between px-6"
+                                        "w-full bg-muted hover:bg-primary-cta hover:text-white text-foreground font-bold py-6 rounded-2xl border border-border transition-all duration-300 flex items-center justify-between px-6"
                                     )}
                                 >
                                     <span>Access Module</span>
@@ -245,7 +261,7 @@ export default function CyberOverview() {
                             </div>
                             <div>
                                 <h3 className="text-3xl font-black text-brand mb-4">New to NIS2?</h3>
-                                <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                                <p className="text-muted-foreground text-lg font-medium leading-relaxed">
                                     If your organization is subject to NIS2, follow this standardized compliance trajectory to avoid sanctions and ensure business continuity.
                                 </p>
                             </div>
@@ -257,7 +273,7 @@ export default function CyberOverview() {
                                 Start Implementation Journey <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-sm rounded-[2.5rem] p-10 space-y-6 ring-1 ring-sky-100">
+                        <div className="bg-card/50 backdrop-blur-sm rounded-[2.5rem] p-10 space-y-6 ring-1 ring-sky-100">
                             {[
                                 { step: "01", title: "Determine Classification", desc: "Essential vs Important entity status." },
                                 { step: "02", title: "Complete Assessment", desc: "Audit current security maturity levels." },
@@ -267,8 +283,8 @@ export default function CyberOverview() {
                                 <div key={i} className="flex gap-6 items-start">
                                     <div className="text-2xl font-black text-brand-bright opacity-30 mt-1">{item.step}</div>
                                     <div>
-                                        <h4 className="font-black text-slate-900 uppercase tracking-wider">{item.title}</h4>
-                                        <p className="text-slate-500 font-medium text-sm">{item.desc}</p>
+                                        <h4 className="font-black text-foreground uppercase tracking-wider">{item.title}</h4>
+                                        <p className="text-muted-foreground font-medium text-sm">{item.desc}</p>
                                     </div>
                                 </div>
                             ))}
@@ -278,11 +294,11 @@ export default function CyberOverview() {
             </Card>
 
             {/* Why it Matters Section - Consistency */}
-            <div className="relative overflow-hidden rounded-[3rem] bg-slate-900 p-12 md:p-20 text-white mt-8 shadow-2xl">
+            <div className="relative overflow-hidden rounded-[3rem] bg-primary-cta p-12 md:p-20 text-white mt-8 shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(58,190,249,0.1),transparent)]" />
                 <div className="relative z-10 text-center max-w-3xl mx-auto space-y-6">
                     <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">Beyond Compliance: <br /><span className="text-brand-bright">Systemic Integrity.</span></h2>
-                    <p className="text-slate-400 text-lg font-medium leading-relaxed">
+                    <p className="text-muted-foreground text-lg font-medium leading-relaxed">
                         Cyber resilience is not just a regulatory hurdle; it's the foundation of trust in the digital age. Compliance ensures your organization remains a strong link in the global supply chain.
                     </p>
 
@@ -295,7 +311,7 @@ export default function CyberOverview() {
                             <div key={i} className="space-y-3">
                                 <div className="h-1 w-12 bg-brand-bright rounded-full" />
                                 <h3 className="font-black text-xl">{item.title}</h3>
-                                <p className="text-slate-500 text-sm font-medium italic">"{item.desc}"</p>
+                                <p className="text-muted-foreground text-sm font-medium italic">"{item.desc}"</p>
                             </div>
                         ))}
                     </div>

@@ -4,7 +4,7 @@
  */
 import { eq, and, lt, isNotNull, ne } from "drizzle-orm";
 import { getDb } from "../../../db";
-import { questionnaires, vendorAssessmentRequests, dsarRequests, vendorContracts, clientPolicies } from "../../../schema";
+import { questionnaires, vendorAssessmentRequests, dsarRequests, vendorContracts, clientPolicies, incidents } from "../../../schema";
 import type { SentinelBot, Observation } from "./types";
 
 export const slaHound: SentinelBot = {
@@ -210,6 +210,112 @@ export const slaHound: SentinelBot = {
         confidence: 97,
         metadata: { version: p.version, overdueDays },
       });
+    }
+
+    // ---- 6. NIS2 Article 23 Incident Clocks (24h Early Warning & 72h Notification) ----
+    // Graceful degradation (bots contract): a rejected select must never reject observe().
+    interface IncidentClockRow {
+      id: number;
+      title: string;
+      status: string;
+      severity: string | null;
+      detectedAt: Date | null;
+      isSignificant: boolean | null;
+      earlyWarningSentAt: Date | null;
+      intermediateReportSentAt: Date | null;
+    }
+    let incRows: IncidentClockRow[] = [];
+    try {
+      incRows = await db
+        .select({
+          id: incidents.id,
+          title: incidents.title,
+          status: incidents.status,
+          severity: incidents.severity,
+          detectedAt: incidents.detectedAt,
+          isSignificant: incidents.isSignificant,
+          earlyWarningSentAt: incidents.earlyWarningSentAt,
+          intermediateReportSentAt: incidents.intermediateReportSentAt,
+        })
+        .from(incidents)
+        .where(and(
+          eq(incidents.clientId, ctx.clientId),
+          ne(incidents.status, "resolved")
+        ));
+    } catch { /* DB unavailable — no Art. 23 findings this sweep */ }
+
+    for (const inc of incRows) {
+      // Hardened: coerce/guard non-Date detectedAt values (drivers may return strings); skip invalid rows rather than throw.
+      const rawDetected = inc.detectedAt as unknown;
+      const detectedMs = rawDetected instanceof Date
+        ? rawDetected.getTime()
+        : typeof rawDetected === "string" || typeof rawDetected === "number"
+          ? new Date(rawDetected).getTime()
+          : Number.NaN;
+      if (!Number.isFinite(detectedMs)) continue;
+      const detectedDate = new Date(detectedMs);
+      const hoursSinceDetection = (nowMs - detectedMs) / 3600000;
+
+      // 24-hour Early Warning check
+      if (!inc.earlyWarningSentAt && (inc.isSignificant || inc.severity === "critical" || inc.severity === "high")) {
+        const hoursRemaining = 24 - hoursSinceDetection;
+        if (hoursRemaining <= 0) {
+          out.push({
+            severity: "critical",
+            title: `NIS2 24h Early Warning DEADLINE BREACHED: "${inc.title}"`,
+            rationale: `Significant incident "${inc.title}" (detected ${detectedDate.toISOString().slice(0, 16)}) has exceeded the mandatory NIS2 Article 23(4)(a) 24-hour Early Warning deadline by ${Math.abs(Math.round(hoursRemaining))} hour(s) without CSIRT notification.`,
+            entityType: "task",
+            entityId: inc.id,
+            proposedAction: {
+              kind: "escalate",
+              priority: "critical",
+              dueInDays: 1,
+            },
+            dedupeKey: `nis2-24h-breach:${inc.id}`,
+            confidence: 99,
+            metadata: { incidentId: inc.id, hoursOverdue: Math.abs(hoursRemaining) }
+          });
+        } else if (hoursRemaining <= 6) {
+          out.push({
+            severity: "warning",
+            title: `NIS2 24h Early Warning due in ${Math.round(hoursRemaining)} hour(s): "${inc.title}"`,
+            rationale: `Incident "${inc.title}" is subject to NIS2 Article 23(4)(a) reporting. ${Math.round(hoursRemaining)} hour(s) remain before the mandatory 24-hour CSIRT notification window expires.`,
+            entityType: "task",
+            entityId: inc.id,
+            proposedAction: {
+              kind: "create_task",
+              taskType: "review",
+              priority: "high",
+              dueInDays: 1,
+            },
+            dedupeKey: `nis2-24h-warn:${inc.id}:${Math.floor(hoursSinceDetection / 6)}`,
+            confidence: 95,
+            metadata: { incidentId: inc.id, hoursRemaining }
+          });
+        }
+      }
+
+      // 72-hour Notification check
+      if (inc.earlyWarningSentAt && !inc.intermediateReportSentAt && (inc.isSignificant || inc.severity === "critical" || inc.severity === "high")) {
+        const hoursRemaining72 = 72 - hoursSinceDetection;
+        if (hoursRemaining72 <= 0) {
+          out.push({
+            severity: "critical",
+            title: `NIS2 72h Incident Notification DEADLINE BREACHED: "${inc.title}"`,
+            rationale: `Incident "${inc.title}" has passed the 72-hour Article 23(4)(b) milestone without an intermediate notification submission to the competent authority.`,
+            entityType: "task",
+            entityId: inc.id,
+            proposedAction: {
+              kind: "escalate",
+              priority: "critical",
+              dueInDays: 1,
+            },
+            dedupeKey: `nis2-72h-breach:${inc.id}`,
+            confidence: 99,
+            metadata: { incidentId: inc.id, hoursOverdue: Math.abs(hoursRemaining72) }
+          });
+        }
+      }
     }
 
     return out;

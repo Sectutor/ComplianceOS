@@ -258,7 +258,7 @@ export const bcGuardian: SentinelBot = {
       out.push({
         severity: daysOverdue > 60 || neverTested ? "warning" : "info",
         title: `BC plan "${p.title}" test overdue by ${daysOverdue} days${neverTested ? " (never tested)" : ""}`,
-        rationale: `Business continuity plan "${p.title}" passed its scheduled test date ${p.nextTestDate!.toISOString().slice(0, 10)} — ${daysOverdue} days ago. ${neverTested ? "This plan has NEVER been tested; untested plans routinely fail during actual incidents." : "Untested BC plans are an ISO 22301 / A.5.30 nonconformity."}`,
+        rationale: `Business continuity plan "${p.title}" passed its scheduled test date ${p.nextTestDate!.toISOString().slice(0, 10)} — ${daysOverdue} days ago. ${neverTested ? "This plan has NEVER been tested; untested plans routinely fail during actual incidents and violate NIS2 Article 21(2)(c)." : "Untested BC plans violate NIS2 Article 21(2)(c) business continuity requirements and ISO 22301 / A.5.30."}`,
         entityType: "bc_plan",
         entityId: p.id,
         proposedAction: {
@@ -269,7 +269,7 @@ export const bcGuardian: SentinelBot = {
         },
         dedupeKey: `bc-test-overdue:${p.id}`,
         confidence: 95,
-        metadata: { nextTestDate: p.nextTestDate!.toISOString().slice(0, 10), neverTested },
+        metadata: { nextTestDate: p.nextTestDate!.toISOString().slice(0, 10), neverTested, nis2Article: "21.2.c" },
       });
     }
 

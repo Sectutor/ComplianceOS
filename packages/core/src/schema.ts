@@ -15083,6 +15083,9 @@ export const federalContracts = pgTable("federal_contracts", {
   dfars7021: boolean("dfars_7021").default(false),
   far5220421: boolean("far_52_204_21").default(false),
   cmmcLevel: varchar("cmmc_level", { length: 20 }),
+  section889Status: varchar("section_889_status", { length: 50 }).default("not_required"), // not_required, pending, compliant
+  section889Representative: varchar("section_889_representative", { length: 255 }),
+  section889Date: timestamp("section_889_date"),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   createdAt: timestamp("created_at").defaultNow(),

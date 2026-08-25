@@ -54,6 +54,10 @@ import {
   bcGuardian,
   anomalySpotter,
 } from "../../server/runtime/bots/roster";
+// Real schema objects are used as table-identity keys when faking the db
+// select chain below (same module the bots import via "../../../schema").
+import { incidents, bcPlans, bcTrainingRecords } from "../../schema";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 const ALL_BOTS: SentinelBot[] = [
   complianceSentinel,
@@ -245,5 +249,390 @@ describe("sentinel bots — observe() degrades gracefully when getDb() yields nu
       expect(observations, `${ALL_BOTS[i].id}.observe should be empty without a DB`).toEqual([]);
     });
     expect(dbMocks.getDb).toHaveBeenCalledTimes(ALL_BOTS.length);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// slaHound -- NIS2 Article 23 incident clocks (section 6, build cycle 41 WIP)
+//
+// Contract under test (the incidents scan inside slaHound.observe()):
+//   * SQL-level gate: the incidents query filters status != 'resolved'.
+//   * 24h Early Warning -- only while !earlyWarningSentAt AND (isSignificant
+//     OR severity critical/high). Past the deadline -> critical BREACH with
+//     stable key `nis2-24h-breach:<id>` + escalate action; inside the final
+//     <=6h -> warning due-soon with the slice-stable key
+//     `nis2-24h-warn:<id>:<Math.floor(hoursSinceDetection / 6)>` -- constant
+//     within each 6-hour slice of time-since-detection, so re-runs do not
+//     churn alerts inside the window; otherwise silent.
+//   * 72h Notification -- only once earlyWarningSentAt exists AND
+//     !intermediateReportSentAt (same significance gate); past 72h -> critical
+//     BREACH `nis2-72h-breach:<id>`; silent while the window is still open.
+//   * Robustness: null db -> []; malformed/null dates never throw.
+//
+// All Art.23 timing derives exclusively from ctx.now, so these tests pass
+// explicit instants instead of faking global timers.
+// ---------------------------------------------------------------------------
+
+const HOUR_MS = 3_600_000;
+const DAY_MS = 86_400_000;
+const NIS2_NOW = new Date("2026-08-25T12:00:00.000Z");
+
+type IncidentRow = Record<string, unknown>;
+
+function incidentRow(overrides: Partial<IncidentRow> = {}): IncidentRow {
+  return {
+    id: 501,
+    title: "Ransomware outbreak on file server",
+    status: "open",
+    severity: "critical",
+    detectedAt: new Date(NIS2_NOW.getTime() - 25 * HOUR_MS),
+    isSignificant: true,
+    earlyWarningSentAt: null,
+    intermediateReportSentAt: null,
+    ...overrides,
+  };
+}
+
+/** Fake db: every select().from(table).where(...) resolves to rows mapped by schema-table identity. */
+function dbReturningRows(rowsByTable: Array<[unknown, unknown[]]>) {
+  const map = new Map(rowsByTable);
+  return {
+    select: () => ({
+      from: (table: unknown) => ({
+        where: () => Promise.resolve(map.get(table) ?? []),
+      }),
+    }),
+  };
+}
+
+/** Fake db that additionally records each where() condition next to its source table. */
+function dbRecordingWhere(incidentRows: unknown[]) {
+  const captured: Array<{ table: unknown; condition: unknown }> = [];
+  return {
+    captured,
+    db: {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: (condition: unknown) => {
+            captured.push({ table, condition });
+            return Promise.resolve(table === incidents ? incidentRows : []);
+          },
+        }),
+      }),
+    },
+  };
+}
+
+/** observe() with only the incidents table populated, reduced to the Art.23 findings. */
+async function art23Findings(rows: IncidentRow[], now: Date = NIS2_NOW) {
+  dbMocks.getDb.mockResolvedValue(dbReturningRows([[incidents, rows]]));
+  const observations = await slaHound.observe({ clientId: 7, now });
+  return observations.filter((o) => o.dedupeKey.startsWith("nis2-"));
+}
+
+describe("sentinel bots -- slaHound NIS2 Art.23: 24h Early Warning", () => {
+  it("raises a critical BREACH once a significant incident hits 24h without an early warning, keyed stably on the incident id", async () => {
+    const rows = [
+      incidentRow(), // 25h since detection
+      incidentRow({ id: 505, detectedAt: new Date(NIS2_NOW.getTime() - 24 * HOUR_MS) }), // exactly at the limit
+    ];
+    const findings = await art23Findings(rows);
+    expect(findings.map((f) => f.dedupeKey)).toEqual([
+      "nis2-24h-breach:501",
+      "nis2-24h-breach:505",
+    ]);
+    const [breach] = findings;
+    expect(breach.severity).toBe("critical");
+    expect(breach.title).toContain("NIS2 24h Early Warning DEADLINE BREACHED");
+    expect(breach.title).toContain("Ransomware outbreak on file server");
+    expect(breach.rationale).toContain("Article 23");
+    expect(breach.entityType).toBe("task");
+    expect(breach.entityId).toBe(501);
+    expect(breach.proposedAction).toEqual({ kind: "escalate", priority: "critical", dueInDays: 1 });
+    expect(breach.confidence).toBe(99);
+    expect(breach.metadata).toMatchObject({ incidentId: 501 });
+    // Re-running later must reproduce identical dedupe keys (no alert churn).
+    const rerun = await art23Findings(rows, new Date(NIS2_NOW.getTime() + 2 * HOUR_MS));
+    expect(rerun.map((f) => f.dedupeKey)).toEqual(["nis2-24h-breach:501", "nis2-24h-breach:505"]);
+  });
+
+  it.each([
+    ["critical severity alone", { severity: "critical", isSignificant: false }],
+    ["high severity alone", { severity: "high", isSignificant: false }],
+    ["the significant flag alone", { severity: "medium", isSignificant: true }],
+  ])("gates the 24h clock on %s even without the other marker", async (_label, overrides) => {
+    const findings = await art23Findings([
+      incidentRow({
+        ...(overrides as Partial<IncidentRow>),
+        id: 502,
+        detectedAt: new Date(NIS2_NOW.getTime() - 30 * HOUR_MS),
+      }),
+    ]);
+    expect(findings.map((f) => f.dedupeKey)).toEqual(["nis2-24h-breach:502"]);
+    expect(findings[0].severity).toBe("critical");
+  });
+
+  it("warns inside the final <=6h before the deadline (inclusive) instead of breaching", async () => {
+    const rows = [
+      incidentRow({ detectedAt: new Date(NIS2_NOW.getTime() - 20 * HOUR_MS) }), // 4h remain
+      incidentRow({ id: 506, detectedAt: new Date(NIS2_NOW.getTime() - 18 * HOUR_MS) }), // exactly 6h remain
+    ];
+    const findings = await art23Findings(rows);
+    expect(findings.map((f) => f.dedupeKey)).toEqual([
+      "nis2-24h-warn:501:3", // 20h since detection -> floor(20 / 6) = 3
+      "nis2-24h-warn:506:3", // exactly 18h since detection -> floor(18 / 6) = 3
+    ]);
+    // Shape pin: the due-soon key is slice-suffixed `<incidentId>:<slice>`.
+    for (const f of findings) {
+      expect(f.dedupeKey).toMatch(/^nis2-24h-warn:\d+:\d+$/);
+    }
+    expect(findings.every((f) => f.severity === "warning")).toBe(true);
+    expect(findings[0].title).toContain("due in 4 hour(s)");
+    expect(findings[0].proposedAction).toEqual({
+      kind: "create_task",
+      taskType: "review",
+      priority: "high",
+      dueInDays: 1,
+    });
+    expect(findings[0].metadata).toMatchObject({ incidentId: 501, hoursRemaining: 4 });
+  });
+
+  it.each([0, 12])("stays silent while more than 6h remain until the 24h deadline (%dh since detection)", async (hoursSince) => {
+    const findings = await art23Findings([
+      incidentRow({ detectedAt: new Date(NIS2_NOW.getTime() - hoursSince * HOUR_MS) }),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  it("fires the due-soon warning at exactly 18h since detection (slice suffix 3) and stays silent one hour earlier", async () => {
+    const atBoundary = await art23Findings([
+      incidentRow({ id: 507, detectedAt: new Date(NIS2_NOW.getTime() - 18 * HOUR_MS) }),
+    ]);
+    expect(atBoundary.map((f) => f.dedupeKey)).toEqual(["nis2-24h-warn:507:3"]); // floor(18 / 6) === 3
+    expect(atBoundary[0].title).toContain("due in 6 hour(s)");
+    expect(atBoundary[0].severity).toBe("warning");
+    const beforeWindow = await art23Findings([
+      incidentRow({ id: 507, detectedAt: new Date(NIS2_NOW.getTime() - 17 * HOUR_MS) }), // 7h remain
+    ]);
+    expect(beforeWindow).toEqual([]);
+  });
+
+  it("keeps one stable due-soon dedupeKey across the whole final-6h window and hands over to the BREACH key afterwards", async () => {
+    const detectedAt = new Date(NIS2_NOW.getTime() - 40 * HOUR_MS);
+    const row = [incidentRow({ detectedAt })];
+    for (const hoursSince of [18.2, 20.5, 23.5]) {
+      const run = await art23Findings(row, new Date(detectedAt.getTime() + hoursSince * HOUR_MS));
+      expect(run, `${hoursSince}h since detection`).toHaveLength(1);
+      // Every instant of the final-6h window lies in slice floor(h/6) === 3,
+      // so the suffixed key is stable across repeated observations there.
+      expect(run[0].dedupeKey, `${hoursSince}h since detection`).toBe("nis2-24h-warn:501:3");
+    }
+    const pastDeadline = await art23Findings(row, new Date(detectedAt.getTime() + 24.5 * HOUR_MS));
+    expect(pastDeadline.map((f) => f.dedupeKey)).toEqual(["nis2-24h-breach:501"]);
+  });
+
+  it("suppresses all 24h findings once earlyWarningSentAt is recorded", async () => {
+    const findings = await art23Findings([
+      incidentRow({ earlyWarningSentAt: new Date(NIS2_NOW.getTime() - 20 * HOUR_MS) }), // 25h since detection
+    ]);
+    expect(findings).toEqual([]); // 72h clock not breached yet either
+  });
+});
+
+describe("sentinel bots -- slaHound NIS2 Art.23: 72h Notification", () => {
+  // Early warning filed shortly after detection; intermediate report still missing.
+  const postEarlyWarning = {
+    detectedAt: new Date(NIS2_NOW.getTime() - 80 * HOUR_MS),
+    earlyWarningSentAt: new Date(NIS2_NOW.getTime() - 78 * HOUR_MS),
+  };
+
+  it("raises exactly one critical 72h BREACH when the intermediate report is missing past 72h after an early warning", async () => {
+    const findings = await art23Findings([incidentRow(postEarlyWarning)]);
+    expect(findings).toHaveLength(1); // no residual 24h alert once warned
+    const [breach] = findings;
+    expect(breach.severity).toBe("critical");
+    expect(breach.title).toContain("NIS2 72h Incident Notification DEADLINE BREACHED");
+    expect(breach.rationale).toContain("Article 23");
+    expect(breach.dedupeKey).toBe("nis2-72h-breach:501");
+    expect(breach.proposedAction).toEqual({ kind: "escalate", priority: "critical", dueInDays: 1 });
+    expect(breach.confidence).toBe(99);
+    expect(breach.metadata).toMatchObject({ incidentId: 501 });
+  });
+
+  it.each([
+    ["significance only", { severity: "medium", isSignificant: true }],
+    ["high severity only", { severity: "high", isSignificant: false }],
+  ])("gates the 72h clock on %s", async (_label, overrides) => {
+    const findings = await art23Findings([
+      incidentRow({
+        ...postEarlyWarning,
+        ...(overrides as Partial<IncidentRow>),
+        id: 503,
+        detectedAt: new Date(NIS2_NOW.getTime() - 75 * HOUR_MS),
+        earlyWarningSentAt: new Date(NIS2_NOW.getTime() - 73 * HOUR_MS),
+      }),
+    ]);
+    expect(findings.map((f) => f.dedupeKey)).toEqual(["nis2-72h-breach:503"]);
+  });
+
+  it.each([48, 71])("stays silent while the 72h window is still open (%dh since detection)", async (hoursSince) => {
+    const findings = await art23Findings([
+      incidentRow({
+        ...postEarlyWarning,
+        detectedAt: new Date(NIS2_NOW.getTime() - hoursSince * HOUR_MS),
+        earlyWarningSentAt: new Date(NIS2_NOW.getTime() - (hoursSince + 1) * HOUR_MS),
+      }),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  it("goes quiet once intermediateReportSentAt is recorded", async () => {
+    const findings = await art23Findings([
+      incidentRow({
+        ...postEarlyWarning,
+        intermediateReportSentAt: new Date(NIS2_NOW.getTime() - 60 * HOUR_MS),
+      }),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  it("never raises the 72h finding without a prior early warning -- the 24h breach stands in instead", async () => {
+    const findings = await art23Findings([
+      incidentRow({ detectedAt: new Date(NIS2_NOW.getTime() - 100 * HOUR_MS) }), // no earlyWarningSentAt
+    ]);
+    expect(findings.map((f) => f.dedupeKey)).toEqual(["nis2-24h-breach:501"]);
+  });
+});
+
+describe("sentinel bots -- slaHound NIS2 Art.23 gating", () => {
+  it("excludes resolved incidents via the SQL filter (where clause carries status != 'resolved')", async () => {
+    const { db, captured } = dbRecordingWhere([]);
+    dbMocks.getDb.mockResolvedValue(db);
+    await slaHound.observe({ clientId: 7, now: NIS2_NOW });
+    const incidentCall = captured.find((c) => c.table === incidents);
+    expect(incidentCall, "slaHound must query the incidents table").toBeDefined();
+    // Render the drizzle condition to verify the resolved-status gate exists in SQL
+    // (rows returned by a real DB would already be filtered, so this cannot be
+    // asserted behaviorally through a fake that bypasses the WHERE clause).
+    const rendered = new PgDialect().sqlToQuery(incidentCall!.condition as never);
+    expect(rendered.sql).toContain('"status"');
+    expect(rendered.params).toContain("resolved");
+  });
+
+  it("skips incidents without detectedAt entirely", async () => {
+    const findings = await art23Findings([
+      incidentRow({ id: 601, detectedAt: null }),
+      incidentRow({ id: 602 }), // control: otherwise identical and dated -> fires
+    ]);
+    expect(findings.map((f) => f.dedupeKey)).toEqual(["nis2-24h-breach:602"]);
+  });
+
+  it.each(["low", "medium"])("produces no Art.23 findings for non-significant %s-severity incidents on any clock state", async (severity) => {
+    const findings = await art23Findings([
+      incidentRow({ severity, isSignificant: false }),
+      incidentRow({
+        severity,
+        isSignificant: false,
+        detectedAt: new Date(NIS2_NOW.getTime() - 96 * HOUR_MS),
+        earlyWarningSentAt: new Date(NIS2_NOW.getTime() - 90 * HOUR_MS),
+      }),
+    ]);
+    expect(findings).toEqual([]);
+  });
+});
+
+describe("sentinel bots -- slaHound NIS2 Art.23 robustness", () => {
+  it("returns [] when getDb() yields null (DB unavailable)", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    await expect(slaHound.observe({ clientId: 7, now: NIS2_NOW })).resolves.toEqual([]);
+  });
+
+  it("does not throw on malformed or null date fields", async () => {
+    const findings = await art23Findings([
+      incidentRow({ id: 701, detectedAt: new Date("not-a-date") }), // NaN math fires neither branch
+      incidentRow({ id: 702, detectedAt: null }), // skipped outright
+      incidentRow({
+        id: 703, // truthy garbage timestamp suppresses 24h; 72h not yet due
+        detectedAt: new Date(NIS2_NOW.getTime() - 30 * HOUR_MS),
+        earlyWarningSentAt: new Date("bogus"),
+      }),
+      incidentRow({ id: 705, detectedAt: new Date(NIS2_NOW.getTime() + 2 * HOUR_MS) }), // future detection -> >24h remain
+      // Hardened coercion paths: drivers may return strings / epoch numbers.
+      incidentRow({ id: 706, detectedAt: new Date(NIS2_NOW.getTime() - 30 * HOUR_MS).toISOString() }), // ISO string, 30h ago -> fires
+      incidentRow({ id: 707, detectedAt: "garbage" }), // unparseable string -> skipped, no throw
+      incidentRow({ id: 704, detectedAt: NIS2_NOW.getTime() - 25 * HOUR_MS }), // epoch-ms number -> fires
+    ]);
+    expect(findings.map((f) => f.dedupeKey)).toEqual([
+      "nis2-24h-breach:706",
+      "nis2-24h-breach:704",
+    ]);
+  });
+
+  it("FIXED (cycle 41): a rejected db.select degrades to [] per the graceful-degradation contract", async () => {
+    // slaHound now wraps its Art. 23 incident-clock select in try/catch
+    // (cf. riskWatchdog's appetite query). The mock rejects ONLY the incidents
+    // select — sections 1-5 are pre-existing unwrapped selects (follow-up:
+    // wrap those too) and still resolve empty here, so any rejection escaping
+    // observe() would come from the unwrapped section-6 chain.
+    dbMocks.getDb.mockResolvedValue({
+      select: () => ({
+        from: (table: unknown) => ({
+          where: () =>
+            table === incidents
+              ? Promise.reject(new Error("db down"))
+              : Promise.resolve([]),
+        }),
+      }),
+    });
+    await expect(slaHound.observe({ clientId: 7, now: NIS2_NOW })).resolves.toEqual([]);
+  });
+});
+
+describe("sentinel bots -- bcGuardian NIS2 Article 21(2)(c) citation (cycle 41 copy change)", () => {
+  function bcDb(plans: unknown[], trainings: unknown[] = []) {
+    return {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: () =>
+            Promise.resolve(
+              table === bcPlans ? plans : table === bcTrainingRecords ? trainings : [],
+            ),
+        }),
+      }),
+    };
+  }
+
+  async function bcObservations(plans: unknown[], trainings: unknown[] = []) {
+    dbMocks.getDb.mockResolvedValue(bcDb(plans, trainings));
+    return bcGuardian.observe({ clientId: 7, now: NIS2_NOW });
+  }
+
+  const overduePlan = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: 900,
+    title: "Payment continuity plan",
+    lastTestedDate: new Date(NIS2_NOW.getTime() - 400 * DAY_MS),
+    nextTestDate: new Date(NIS2_NOW.getTime() - 30 * DAY_MS),
+    ...overrides,
+  });
+
+  it("tags overdue-test findings with nis2Article '21.2.c' metadata and cites NIS2 Article 21(2)(c)", async () => {
+    const obs = await bcObservations([overduePlan()]);
+    const finding = obs.find((o) => o.dedupeKey === "bc-test-overdue:900");
+    expect(finding, "expected one overdue-test finding for plan 900").toBeDefined();
+    expect(finding!.entityType).toBe("bc_plan");
+    expect(finding!.severity).toBe("info"); // tested before, only 30 days overdue
+    expect(finding!.metadata).toMatchObject({ nis2Article: "21.2.c", neverTested: false });
+    expect(finding!.rationale).toContain("NIS2 Article 21(2)(c)");
+    expect(finding!.rationale).toContain("ISO 22301"); // companion standard reference retained
+  });
+
+  it("flags never-tested plans with warning severity and the same NIS2 Article 21(2)(c) citation", async () => {
+    const obs = await bcObservations([overduePlan({ lastTestedDate: null })]);
+    const finding = obs.find((o) => o.dedupeKey === "bc-test-overdue:900")!;
+    expect(finding.severity).toBe("warning");
+    expect(finding.title).toContain("(never tested)");
+    expect(finding.rationale).toContain("NEVER been tested");
+    expect(finding.rationale).toContain("NIS2 Article 21(2)(c)");
+    expect(finding.metadata).toMatchObject({ nis2Article: "21.2.c", neverTested: true });
   });
 });

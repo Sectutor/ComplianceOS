@@ -8,8 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EmptyState } from "@complianceos/ui/ui/EmptyState";
-import { ArrowLeft, Save, Loader2, Clock, CheckCircle2, Send, ShieldAlert, FileText, AlertTriangle, Milestone, BellRing } from "lucide-react";
-import { trpc } from "@/lib/trpc";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@complianceos/ui/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
+import { ArrowLeft, Save, Loader2, Clock, CheckCircle2, Send, ShieldAlert, FileText, AlertTriangle, Milestone, BellRing, LifeBuoy, PhoneCall, Copy, ExternalLink, Zap } from "lucide-react";
+import {
+    useCyberIncident,
+    useCyberUpdateIncident,
+} from "@/pages/cyber/cyberApi";
 import {
     useIncidentClassification,
     useIncidentDeadlines,
@@ -56,12 +69,9 @@ export default function CyberIncidentDetail() {
     const [templateRequested, setTemplateRequested] = useState(false);
     const [templateOpen, setTemplateOpen] = useState(false);
 
-    const { data: incident, isLoading, refetch } = trpc.cyber.getIncident.useQuery(
-        { clientId: selectedClientId!, incidentId },
-        { enabled: !!selectedClientId && !!incidentId }
-    );
+    const { data: incident, isLoading, refetch } = useCyberIncident(selectedClientId!, incidentId);
 
-    const updateMutation = trpc.cyber.updateIncident.useMutation({
+    const updateMutation = useCyberUpdateIncident({
         onSuccess: () => {
             toast.success("Incident Updated", {
                 description: "The incident report has been saved.",
@@ -113,7 +123,15 @@ export default function CyberIncidentDetail() {
         data: deadlines,
         isLoading: deadlinesLoading,
         isError: deadlinesError,
-    } = useIncidentDeadlines(incident?.detectedAt ?? null);
+    } = useIncidentDeadlines(
+        // cyberApi contract layer widens detectedAt to string | Date | null; the
+        // classifier hook takes Date | null | undefined — normalize here (conductor).
+        incident?.detectedAt instanceof Date
+            ? incident.detectedAt
+            : incident?.detectedAt
+                ? new Date(incident.detectedAt)
+                : null,
+    );
 
     const classificationMeta = classification ? getSeverityMeta(classification.severity) : null;
 
@@ -212,7 +230,7 @@ export default function CyberIncidentDetail() {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-brand-bright" />
-                <p className="text-sm font-bold text-slate-500">Loading incident data...</p>
+                <p className="text-sm font-bold text-muted-foreground">Loading incident data...</p>
             </div>
         );
     }
@@ -226,7 +244,7 @@ export default function CyberIncidentDetail() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents`)}
-                        className="mt-1 h-10 w-10 rounded-xl hover:bg-white shadow-sm ring-1 ring-slate-200/50"
+                        className="mt-1 h-10 w-10 rounded-xl hover:bg-accent shadow-sm ring-1 ring-border/50"
                     >
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
@@ -256,16 +274,16 @@ export default function CyberIncidentDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
-                            <CardTitle className="text-xl font-bold text-slate-900">Incident Core Information</CardTitle>
-                            <CardDescription className="text-slate-500">Document the technical details and current severity standing.</CardDescription>
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                        <CardHeader className="bg-muted/50 border-b border-border p-8">
+                            <CardTitle className="text-xl font-bold text-foreground">Incident Core Information</CardTitle>
+                            <CardDescription className="text-muted-foreground">Document the technical details and current severity standing.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-8 space-y-8">
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Incident Title / Summary</Label>
+                                <Label className="text-sm font-bold text-foreground">Incident Title / Summary</Label>
                                 <Input
-                                    className="h-12 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 font-bold"
+                                    className="h-12 rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20 font-bold"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                 />
@@ -273,12 +291,12 @@ export default function CyberIncidentDetail() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Current Lifecycle Status</Label>
+                                    <Label className="text-sm font-bold text-foreground">Current Lifecycle Status</Label>
                                     <Select value={status} onValueChange={setStatus}>
-                                        <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                                        <SelectTrigger className="h-12 rounded-xl border-border">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-slate-200">
+                                        <SelectContent className="rounded-xl border-border">
                                             <SelectItem value="open">Open - New Report</SelectItem>
                                             <SelectItem value="investigating">Investigating - Active Analysis</SelectItem>
                                             <SelectItem value="mitigated">Mitigated - Threats Contained</SelectItem>
@@ -288,12 +306,12 @@ export default function CyberIncidentDetail() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Priority Level</Label>
+                                    <Label className="text-sm font-bold text-foreground">Priority Level</Label>
                                     <Select value={severity} onValueChange={setSeverity}>
-                                        <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                                        <SelectTrigger className="h-12 rounded-xl border-border">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-slate-200">
+                                        <SelectContent className="rounded-xl border-border">
                                             <SelectItem value="low">Low - Minimum Operational Impact</SelectItem>
                                             <SelectItem value="medium">Medium - Disruptive but Managed</SelectItem>
                                             <SelectItem value="high">High - Critical Service Interruption</SelectItem>
@@ -304,12 +322,12 @@ export default function CyberIncidentDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Suspected Root Cause</Label>
+                                <Label className="text-sm font-bold text-foreground">Suspected Root Cause</Label>
                                 <Select value={cause} onValueChange={setCause}>
-                                    <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                                    <SelectTrigger className="h-12 rounded-xl border-border">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-slate-200">
+                                    <SelectContent className="rounded-xl border-border">
                                         <SelectItem value="malware">Malware / Ransomware Activity</SelectItem>
                                         <SelectItem value="phishing">Phishing / Social Engineering</SelectItem>
                                         <SelectItem value="dos">Distributed Denial of Service (DDoS)</SelectItem>
@@ -321,19 +339,19 @@ export default function CyberIncidentDetail() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Detailed Description</Label>
+                                <Label className="text-sm font-bold text-foreground">Detailed Description</Label>
                                 <Textarea
-                                    className="min-h-[150px] rounded-xl border-slate-200 p-4 focus:border-brand-bright focus:ring-brand-bright/20"
+                                    className="min-h-[150px] rounded-xl border-border p-4 focus:border-brand-bright focus:ring-brand-bright/20"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
                             </div>
                         </CardContent>
-                        <CardFooter className="bg-slate-50/50 border-t border-slate-100 p-8 flex justify-between">
+                        <CardFooter className="bg-muted/50 border-t border-border p-8 flex justify-between">
                             <Button
                                 variant="outline"
                                 onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents`)}
-                                className="h-12 px-8 rounded-xl font-bold border-slate-200 hover:bg-slate-100"
+                                className="h-12 px-8 rounded-xl font-bold border-border hover:bg-muted"
                             >
                                 Discard Changes
                             </Button>
@@ -658,37 +676,309 @@ export default function CyberIncidentDetail() {
 
                 {/* Sidebar Context */}
                 <div className="space-y-8">
-                    {/* Compliance Reporting */}
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
-                            <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <Send className="h-5 w-5 text-brand-bright" />
-                                Regulatory Status
+                    {/* BCP & Disaster Recovery Activation Bridge */}
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                        <CardHeader className="bg-muted/50 border-b border-border p-6">
+                            <CardTitle className="text-lg font-bold text-foreground flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <LifeBuoy className="h-5 w-5 text-emerald-600" />
+                                    BCP & Continuity Response
+                                </span>
+                                <Badge className={cn(
+                                    "text-[10px] font-bold uppercase",
+                                    incident?.isContinuityTriggered ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground"
+                                )}>
+                                    {incident?.isContinuityTriggered ? "Active" : "Standby"}
+                                </Badge>
+                            </CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">
+                                Art. 21(2)(c) Business Continuity & Disaster Recovery Bridge
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            {incident?.isContinuityTriggered ? (
+                                <div className="space-y-3">
+                                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 font-medium">
+                                        🚨 <strong>BCP Protocol Active:</strong> Emergency response has been initiated for this incident. Call tree and recovery playbooks are underway.
+                                    </div>
+                                    <Button
+                                        onClick={() => setLocation(`/clients/${selectedClientId}/business-continuity/call-tree`)}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 rounded-xl shadow-sm text-xs"
+                                    >
+                                        <PhoneCall className="w-3.5 h-3.5 mr-1.5" /> Open Emergency Call Tree
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        For major outages or ransomware incidents requiring crisis management, activate the disaster recovery response and mobilize the team.
+                                    </p>
+                                    <Button
+                                        onClick={() => {
+                                            if (!selectedClientId) return;
+                                            updateMutation.mutate({
+                                                clientId: selectedClientId,
+                                                incidentId,
+                                                isContinuityTriggered: true
+                                            }, {
+                                                onSuccess: () => {
+                                                    toast.success("BCP Protocol Triggered", {
+                                                        description: "Business continuity response initiated. Opening Emergency Call Tree..."
+                                                    });
+                                                    setLocation(`/clients/${selectedClientId}/business-continuity/call-tree`);
+                                                }
+                                            });
+                                        }}
+                                        disabled={updateMutation.isPending}
+                                        className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-10 rounded-xl shadow-md shadow-rose-100 text-xs cursor-pointer"
+                                    >
+                                        <Zap className="w-3.5 h-3.5 mr-1.5" /> 🚨 Activate BCP Call Tree
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Compliance Reporting & CSIRT Dispatcher */}
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                        <CardHeader className="bg-muted/50 border-b border-border p-6">
+                            <CardTitle className="text-lg font-bold text-foreground flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <Send className="h-5 w-5 text-brand-bright" />
+                                    NIS2 CSIRT Reporting
+                                </span>
+                                <Badge className="text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                    Art. 23
+                                </Badge>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6 space-y-6">
-                            <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-xs font-bold text-slate-400 uppercase">CSIRT Notification</span>
-                                    <Badge variant="outline" className={cn(
-                                        "border-none font-bold px-2 py-0.5 rounded-full text-[10px]",
-                                        reportedToAuthorities ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
-                                    )}>
-                                        {reportedToAuthorities ? "COMPLETED" : "PENDING"}
-                                    </Badge>
+                            <div className="p-4 bg-muted rounded-2xl border border-border space-y-2">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="font-medium text-muted-foreground">24h Early Warning:</span>
+                                    <span className="font-bold text-foreground">
+                                        {incident?.earlyWarningSentAt ? format(new Date(incident.earlyWarningSentAt), "MMM d, HH:mm") : "Pending"}
+                                    </span>
                                 </div>
-                                <p className="text-sm font-bold text-slate-900">
-                                    {reportedToAuthorities ? "Reported to national CSIRT" : "Not yet reported to CSIRT"}
-                                </p>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="font-medium text-muted-foreground">72h Notification:</span>
+                                    <span className="font-bold text-foreground">
+                                        {incident?.intermediateReportSentAt ? format(new Date(incident.intermediateReportSentAt), "MMM d, HH:mm") : "Pending"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="font-medium text-muted-foreground">1-Month Final:</span>
+                                    <span className="font-bold text-foreground">
+                                        {incident?.finalReportSentAt ? format(new Date(incident.finalReportSentAt), "MMM d, HH:mm") : "Pending"}
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <Label className="text-sm font-bold text-slate-700">Cross-border Significance</Label>
+                            {/* 3-Stage CSIRT Dispatcher Dialog */}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full bg-primary-cta hover:bg-primary-cta/90 text-white font-bold h-11 rounded-xl shadow-md text-xs">
+                                        <FileText className="w-4 h-4 mr-1.5" /> Open 3-Stage CSIRT Dispatcher
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                            <ShieldAlert className="w-5 h-5 text-primary" />
+                                            NIS2 Article 23 Regulatory Notification Dispatcher
+                                        </DialogTitle>
+                                        <DialogDescription className="text-xs text-muted-foreground">
+                                            Prepare and record official incident notifications for national CSIRTs and competent authorities.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <Tabs defaultValue="early_warning" className="space-y-4 mt-2">
+                                        <TabsList className="grid grid-cols-3 w-full">
+                                            <TabsTrigger value="early_warning" className="text-xs font-semibold">
+                                                Stage 1: 24h Warning
+                                            </TabsTrigger>
+                                            <TabsTrigger value="intermediate" className="text-xs font-semibold">
+                                                Stage 2: 72h Notice
+                                            </TabsTrigger>
+                                            <TabsTrigger value="final" className="text-xs font-semibold">
+                                                Stage 3: Final Report
+                                            </TabsTrigger>
+                                        </TabsList>
+
+                                        {/* Stage 1: Early Warning */}
+                                        <TabsContent value="early_warning" className="space-y-4">
+                                            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900">
+                                                <strong>Art. 23(4)(a) Deadline:</strong> Submit within <strong>24 hours</strong> of becoming aware of the significant incident. State whether caused by unlawful or malicious acts and potential cross-border impact.
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-foreground">Official CSIRT Early Warning Draft</Label>
+                                                <Textarea
+                                                    readOnly
+                                                    className="font-mono text-xs h-40 bg-muted"
+                                                    value={`[NIS2 ARTICLE 23(4)(a) EARLY WARNING NOTIFICATION]
+To: National CSIRT / Competent Authority
+Date/Time: ${new Date().toISOString()}
+Organization: Client #${selectedClientId}
+Incident Reference: INC-${incidentId}
+Title: ${title}
+Severity Assessment: ${severity.toUpperCase()}
+Suspected Cause: ${cause || "Under Investigation"}
+Suspected Malicious/Unlawful Act: ${cause?.toLowerCase().includes("malware") || cause?.toLowerCase().includes("attack") ? "YES" : "POSSIBLE"}
+Cross-Border Impact Suspected: ${crossBorder === "yes" ? "YES (Multiple Member States)" : "NO (Single Member State)"}
+Detection Timestamp: ${incident?.detectedAt ? new Date(incident.detectedAt).toISOString() : new Date().toISOString()}
+Initial Containment: In progress`}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const text = `[NIS2 ARTICLE 23(4)(a) EARLY WARNING NOTIFICATION]\nIncident: INC-${incidentId}\nTitle: ${title}\nSeverity: ${severity}\nCross-Border: ${crossBorder}`;
+                                                        navigator.clipboard.writeText(text);
+                                                        toast.success("Draft copied to clipboard");
+                                                    }}
+                                                    className="text-xs"
+                                                >
+                                                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy Draft
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (!selectedClientId) return;
+                                                        updateMutation.mutate({
+                                                            clientId: selectedClientId,
+                                                            incidentId,
+                                                            earlyWarningSentAt: new Date().toISOString(),
+                                                            reportedToAuthorities: true
+                                                        }, {
+                                                            onSuccess: () => toast.success("Stage 1 Early Warning Recorded")
+                                                        });
+                                                    }}
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Record 24h Warning Sent
+                                                </Button>
+                                            </div>
+                                        </TabsContent>
+
+                                        {/* Stage 2: 72h Incident Notification */}
+                                        <TabsContent value="intermediate" className="space-y-4">
+                                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-xs text-blue-900">
+                                                <strong>Art. 23(4)(b) Deadline:</strong> Submit within <strong>72 hours</strong>. Provide initial technical assessment, severity indicators, and compromise details.
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-foreground">Official 72h Incident Notification Draft</Label>
+                                                <Textarea
+                                                    readOnly
+                                                    className="font-mono text-xs h-40 bg-muted"
+                                                    value={`[NIS2 ARTICLE 23(4)(b) 72-HOUR INCIDENT NOTIFICATION]
+Incident Reference: INC-${incidentId}
+Title: ${title}
+Confirmed Severity: ${severity.toUpperCase()}
+Affected Assets: ${affectedAssets || "Core Infrastructure / Services"}
+Initial Root Cause: ${description || "Technical analysis ongoing"}
+Continuity Response Triggered: ${incident?.isContinuityTriggered ? "YES (BCP Mobilized)" : "NO"}
+Impact to Service Availability: ${incident?.serviceDisruptionDuration ? `${incident.serviceDisruptionDuration} minutes` : "Mitigated"}
+Indicators of Compromise: Preserved for CSIRT analysis`}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const text = `[NIS2 ARTICLE 23(4)(b) 72-HOUR INCIDENT NOTIFICATION]\nIncident: INC-${incidentId}\nTitle: ${title}\nSeverity: ${severity}\nAffected: ${affectedAssets}`;
+                                                        navigator.clipboard.writeText(text);
+                                                        toast.success("Draft copied to clipboard");
+                                                    }}
+                                                    className="text-xs"
+                                                >
+                                                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy Draft
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (!selectedClientId) return;
+                                                        updateMutation.mutate({
+                                                            clientId: selectedClientId,
+                                                            incidentId,
+                                                            intermediateReportSentAt: new Date().toISOString(),
+                                                            reportedToAuthorities: true
+                                                        }, {
+                                                            onSuccess: () => toast.success("Stage 2 Notification Recorded")
+                                                        });
+                                                    }}
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs"
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Record 72h Notification Sent
+                                                </Button>
+                                            </div>
+                                        </TabsContent>
+
+                                        {/* Stage 3: 1-Month Final Report */}
+                                        <TabsContent value="final" className="space-y-4">
+                                            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-900">
+                                                <strong>Art. 23(4)(e) Deadline:</strong> Submit no later than <strong>1 month</strong> after incident resolution. Include detailed root cause, financial loss, and applied mitigation.
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-foreground">Official Final Incident Report Draft</Label>
+                                                <Textarea
+                                                    readOnly
+                                                    className="font-mono text-xs h-40 bg-muted"
+                                                    value={`[NIS2 ARTICLE 23(4)(e) FINAL INCIDENT REPORT]
+Incident Reference: INC-${incidentId}
+Resolution Status: ${status.toUpperCase()}
+Complete Root Cause Analysis: ${description || "Fully documented"}
+Total Estimated Financial Impact: €${((incident?.estimatedFinancialLoss || 0) / 100).toLocaleString()}
+Total Disruption Duration: ${incident?.serviceDisruptionDuration || 0} minutes
+Permanent Corrective Actions: Controls updated and verified under NIS2 Article 21.`}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const text = `[NIS2 ARTICLE 23(4)(e) FINAL INCIDENT REPORT]\nIncident: INC-${incidentId}\nStatus: ${status}\nRoot Cause: ${description}`;
+                                                        navigator.clipboard.writeText(text);
+                                                        toast.success("Draft copied to clipboard");
+                                                    }}
+                                                    className="text-xs"
+                                                >
+                                                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy Draft
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (!selectedClientId) return;
+                                                        updateMutation.mutate({
+                                                            clientId: selectedClientId,
+                                                            incidentId,
+                                                            finalReportSentAt: new Date().toISOString(),
+                                                            status: "resolved",
+                                                            reportedToAuthorities: true
+                                                        }, {
+                                                            onSuccess: () => toast.success("Stage 3 Final Report Recorded")
+                                                        });
+                                                    }}
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Record Final Report Sent
+                                                </Button>
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
+                                </DialogContent>
+                            </Dialog>
+
+                            <div className="space-y-4 pt-2">
+                                <Label className="text-sm font-bold text-foreground">Cross-border Significance</Label>
                                 <Select value={crossBorder} onValueChange={setCrossBorder}>
-                                    <SelectTrigger className="h-10 rounded-xl border-slate-200">
+                                    <SelectTrigger className="h-10 rounded-xl border-border">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-slate-200">
+                                    <SelectContent className="rounded-xl border-border">
                                         <SelectItem value="no">Single Member State Only</SelectItem>
                                         <SelectItem value="yes">EU Cross-border Impact</SelectItem>
                                         <SelectItem value="unknown">Impact Unknown</SelectItem>
@@ -699,16 +989,16 @@ export default function CyberIncidentDetail() {
                     </Card>
 
                     {/* Affected Assets */}
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
-                            <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-card overflow-hidden ring-1 ring-border/50">
+                        <CardHeader className="bg-muted/50 border-b border-border p-6">
+                            <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                                 <CheckCircle2 className="h-5 w-5 text-brand-bright" />
                                 Affected Systems
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                             <Textarea
-                                className="min-h-[120px] rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                                className="min-h-[120px] rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20"
                                 value={affectedAssets}
                                 onChange={(e) => setAffectedAssets(e.target.value)}
                                 placeholder="List systems, databases, or cloud services affected..."
