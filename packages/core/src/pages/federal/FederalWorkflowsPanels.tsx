@@ -74,14 +74,14 @@ import {
   riskRatingMeta,
   severityMeta,
   sprsBandMeta,
-  useCmmcReadiness,
-  useConMonDashboard,
-  useExportPoamEmassCsv,
-  useExportPoamOscal,
-  useExportSspOscal,
-  useReportingClocks,
-  useSprsBreakdown,
-  useSyncSarToPoam,
+  useCmmcReadinessQuery,
+  useConMonDashboardQuery,
+  useExportPoamEmassCsvMutation,
+  useExportPoamOscalMutation,
+  useExportSspOscalMutation,
+  useReportingClocksQuery,
+  useSprsBreakdownQuery,
+  useSyncSarToPoamMutation,
   type EmassCsvExportResult,
   type FederalBadgeVariant,
   type OscalExportPayload,
@@ -173,7 +173,7 @@ function parseEntityId(raw: string): number | null {
 /* ------------------------------------------------------------------ */
 
 function SprsScoreCard({ clientId, demoMode, onEnableDemo, onToggleDemo, className }: PanelProps) {
-  const sprsQuery = useSprsBreakdown(clientId);
+  const sprsQuery = useSprsBreakdownQuery(clientId);
 
   const live = sprsQuery.data ? normalizeSprsBreakdown(sprsQuery.data) : null;
   const isLoading = !live && sprsQuery.isLoading;
@@ -321,7 +321,7 @@ function SprsScoreCard({ clientId, demoMode, onEnableDemo, onToggleDemo, classNa
 /* ------------------------------------------------------------------ */
 
 function ReportingClocksPanel({ clientId, demoMode, onEnableDemo, onToggleDemo, className }: PanelProps) {
-  const clocksQuery = useReportingClocks(clientId);
+  const clocksQuery = useReportingClocksQuery(clientId);
 
   const live = clocksQuery.data ? normalizeReportingClocks(clocksQuery.data) : null;
   const isLoading = !live && clocksQuery.isLoading;
@@ -467,7 +467,7 @@ function ReportingClocksPanel({ clientId, demoMode, onEnableDemo, onToggleDemo, 
 /* ------------------------------------------------------------------ */
 
 function ConMonDashboardPanel({ clientId, demoMode, onEnableDemo, onToggleDemo, className }: PanelProps) {
-  const conMonQuery = useConMonDashboard(clientId);
+  const conMonQuery = useConMonDashboardQuery(clientId);
 
   const live = conMonQuery.data ? normalizeConMonDashboard(conMonQuery.data) : null;
   const isLoading = !live && conMonQuery.isLoading;
@@ -623,7 +623,7 @@ function ConMonDashboardPanel({ clientId, demoMode, onEnableDemo, onToggleDemo, 
 /* ------------------------------------------------------------------ */
 
 function CmmcReadinessPanel({ clientId, demoMode, onEnableDemo, onToggleDemo, className }: PanelProps) {
-  const readinessQuery = useCmmcReadiness(clientId);
+  const readinessQuery = useCmmcReadinessQuery(clientId);
 
   const live = readinessQuery.data ? normalizeCmmcReadiness(readinessQuery.data) : null;
   const isLoading = !live && readinessQuery.isLoading;
@@ -784,10 +784,10 @@ function ExportActionsRow({ clientId, className }: { clientId: number; className
   const [emassStatus, setEmassStatus] = useState<ActionStatus | null>(null);
   const [syncStatus, setSyncStatus] = useState<ActionStatus | null>(null);
 
-  const exportSspOscal = useExportSspOscal();
-  const exportPoamOscal = useExportPoamOscal();
-  const exportEmassCsv = useExportPoamEmassCsv();
-  const syncSarToPoam = useSyncSarToPoam();
+  const exportSspOscal = useExportSspOscalMutation();
+  const exportPoamOscal = useExportPoamOscalMutation();
+  const exportEmassCsv = useExportPoamEmassCsvMutation();
+  const syncSarToPoam = useSyncSarToPoamMutation();
 
   const sspId = parseEntityId(sspIdText);
   const poamId = parseEntityId(poamIdText);

@@ -4,14 +4,6 @@ import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import { validateOscalDocument, normalizeOscalDocument } from "../../lib/federal/oscalImport";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GAP-19: OSCAL import — single-source-of-truth input schema for importOscal.
-// Accepts the RAW OSCAL JSON text; parsing/validation/normalization happen in
-// the pure zero-dep lib/federal/oscalImport engine, never in the DB layer.
-// ─────────────────────────────────────────────────────────────────────────────
-export const oscalImportInputSchema = z.object({ content: z.string() });
-export type OscalImportInput = z.infer<typeof oscalImportInputSchema>;
-
 /**
  * Federal Workflow Intelligence Router (Phase 2)
  *
@@ -29,6 +21,14 @@ export type OscalImportInput = z.infer<typeof oscalImportInputSchema>;
  * NIST SP 800-171 DoD Assessment Methodology deduction values are used for
  * SPRS scoring: each unmet practice deducts its assigned point value from 110.
  */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAP-19: OSCAL import — single-source-of-truth input schema for importOscal.
+// Accepts the RAW OSCAL JSON text; parsing/validation/normalization happen in
+// the pure zero-dep lib/federal/oscalImport engine, never in the DB layer.
+// ─────────────────────────────────────────────────────────────────────────────
+export const oscalImportInputSchema = z.object({ content: z.string() });
+export type OscalImportInput = z.infer<typeof oscalImportInputSchema>;
 
 // Standard DoD assessment deductions by 800-171 control family weight.
 // Simplified mapping per DoD Assessment Methodology v1.2.1 (basic self-assessment):

@@ -335,7 +335,7 @@ const federalWorkflowsApi = trpc as unknown as FederalWorkflowsTrpcContract;
 /* ------------------------------------------------------------------ */
 
 /** Live SPRS score breakdown from open POA&M items (getSprsBreakdown). */
-export function useSprsBreakdown(
+export function useSprsBreakdownQuery(
   clientId: number
 ): FederalWorkflowQueryLike<SprsBreakdownResult> {
   return federalWorkflowsApi.federalWorkflows.getSprsBreakdown.useQuery(
@@ -345,7 +345,7 @@ export function useSprsBreakdown(
 }
 
 /** DFARS 7012 / CIRCIA reporting clocks per incident (getReportingClocks). */
-export function useReportingClocks(
+export function useReportingClocksQuery(
   clientId: number
 ): FederalWorkflowQueryLike<ReportingClocksResult> {
   return federalWorkflowsApi.federalWorkflows.getReportingClocks.useQuery(
@@ -355,7 +355,7 @@ export function useReportingClocks(
 }
 
 /** Continuous-monitoring dashboard: posture + POA&M aging (getConMonDashboard). */
-export function useConMonDashboard(
+export function useConMonDashboardQuery(
   clientId: number
 ): FederalWorkflowQueryLike<ConMonDashboardResult> {
   return federalWorkflowsApi.federalWorkflows.getConMonDashboard.useQuery(
@@ -365,7 +365,7 @@ export function useConMonDashboard(
 }
 
 /** CMMC L2 readiness band + gaps (getCmmcReadiness). */
-export function useCmmcReadiness(
+export function useCmmcReadinessQuery(
   clientId: number
 ): FederalWorkflowQueryLike<CmmcReadinessResult> {
   return federalWorkflowsApi.federalWorkflows.getCmmcReadiness.useQuery(
@@ -379,7 +379,7 @@ export function useCmmcReadiness(
 /* ------------------------------------------------------------------ */
 
 /** SAR findings → POA&M sync (syncSarToPoam). */
-export function useSyncSarToPoam(handlers?: {
+export function useSyncSarToPoamMutation(handlers?: {
   onSuccess?: (data: SyncSarToPoamResult) => void;
   onError?: (error: FederalWorkflowTrpcError) => void;
 }): FederalWorkflowMutationLike<SyncSarToPoamInput, SyncSarToPoamResult> {
@@ -390,7 +390,7 @@ export function useSyncSarToPoam(handlers?: {
 }
 
 /** SSP → OSCAL 1.1.2 JSON document (exportSspOscal). */
-export function useExportSspOscal(handlers?: {
+export function useExportSspOscalMutation(handlers?: {
   onSuccess?: (data: OscalExportPayload) => void;
   onError?: (error: FederalWorkflowTrpcError) => void;
 }): FederalWorkflowMutationLike<SspOscalExportInput, OscalExportPayload> {
@@ -401,7 +401,7 @@ export function useExportSspOscal(handlers?: {
 }
 
 /** POA&M → OSCAL 1.1.2 JSON document (exportPoamOscal). */
-export function useExportPoamOscal(handlers?: {
+export function useExportPoamOscalMutation(handlers?: {
   onSuccess?: (data: OscalExportPayload) => void;
   onError?: (error: FederalWorkflowTrpcError) => void;
 }): FederalWorkflowMutationLike<PoamOscalExportInput, OscalExportPayload> {
@@ -412,7 +412,7 @@ export function useExportPoamOscal(handlers?: {
 }
 
 /** POA&M → eMASS-compatible CSV (exportPoamEmassCsv). */
-export function useExportPoamEmassCsv(handlers?: {
+export function useExportPoamEmassCsvMutation(handlers?: {
   onSuccess?: (data: EmassCsvExportResult) => void;
   onError?: (error: FederalWorkflowTrpcError) => void;
 }): FederalWorkflowMutationLike<EmassCsvExportInput, EmassCsvExportResult> {

@@ -4,7 +4,7 @@
  * Pure, deterministic, ZERO runtime deps, NEVER throws on ANY input
  * (null / primitives / arrays / deep structures / throwing getters /
  * circular references / hostile Proxies). House style mirrors the other
- * lib engines (see nis2ControlHealth.ts): every property read goes through
+ * lib engines (see nis2/controlHealth.ts): every property read goes through
  * a guarded accessor, every collection is type-checked before iteration,
  * and both entry points carry a catastrophic-catch backstop.
  *

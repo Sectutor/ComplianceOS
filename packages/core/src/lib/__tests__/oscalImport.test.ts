@@ -360,3 +360,271 @@ describe("oscalImport — static purity gate", () => {
     expect(src).not.toMatch(/\bgetDb\b|drizzle-orm|\.\.\/\.\.\/db\b/);
   });
 });
+
+// ═══ GAP-19 QA-cycle additions: boundaries, hostile inputs, agreement ════════
+
+describe("oscalImport — serialized-length boundary at the default 5_000_000 cap", () => {
+  // Self-calibrating padding: adding a trailing top-level `pad` string key
+  // grows the serialization by pad.length + measured overhead (comma, quotes,
+  // colon), computed here instead of hand-counted.
+  const paddedTo = (target: number) => {
+    const base = validDoc("poam") as Record<string, unknown>;
+    const overhead =
+      JSON.stringify({ ...base, pad: "" }).length - JSON.stringify(base).length;
+    return { ...base, pad: "x".repeat(target - JSON.stringify(base).length - overhead) };
+  };
+
+  it("a document serializing to exactly OSCAL_MAX_SERIALIZED_LENGTH characters stays fully valid", () => {
+    const atLimit = paddedTo(OSCAL_MAX_SERIALIZED_LENGTH);
+    expect(JSON.stringify(atLimit).length).toBe(OSCAL_MAX_SERIALIZED_LENGTH);
+    const r = validateOscalDocument(atLimit);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("one character over the default cap is rejected with a lone size-exceeded issue", () => {
+    const over = paddedTo(OSCAL_MAX_SERIALIZED_LENGTH + 1);
+    expect(JSON.stringify(over).length).toBe(OSCAL_MAX_SERIALIZED_LENGTH + 1);
+    const r = validateOscalDocument(over);
+    expect(r.valid).toBe(false);
+    expect(codes(r)).toEqual(["size-exceeded"]);
+    expect(r.warnings).toEqual([]);
+    expect(r.errors[0].path).toBe("");
+    expect(r.errors[0].message).toContain(String(OSCAL_MAX_SERIALIZED_LENGTH));
+    expect(normalizeOscalDocument(over)).toMatchObject({ ok: false });
+  });
+});
+
+describe("oscalImport — injected maxSerializedLength boundaries", () => {
+  const mkObj = (bodyLen: number) => ({ k: "x".repeat(bodyLen) });
+  const lenOf = (n: number) => JSON.stringify(mkObj(n)).length;
+
+  it("guard is exclusive: serialized length === cap passes the gate, cap+1 trips it before structure", () => {
+    const cap = lenOf(20); // calibrate the cap to an exactly achievable length
+    expect(lenOf(20)).toBe(cap);
+    // At-cap object clears the size gate (then fails structurally as unsupported)
+    expect(codes(validateOscalDocument(mkObj(20), { maxSerializedLength: cap }))).toEqual([
+      "unsupported-oscal-type",
+    ]);
+    // One char longer is size-rejected before any structural check
+    expect(codes(validateOscalDocument(mkObj(21), { maxSerializedLength: cap }))).toEqual([
+      "size-exceeded",
+    ]);
+  });
+
+  it("cap 0 rejects every non-empty object; invalid option values fall back to the 5MB default", () => {
+    expect(codes(validateOscalDocument({}, { maxSerializedLength: 0 }))).toEqual(["size-exceeded"]);
+
+    const normal = validDoc("poam");
+    for (const bogus of [Number.NaN, -1, -1000, Infinity, -Infinity]) {
+      const r = validateOscalDocument(normal, { maxSerializedLength: bogus });
+      expect(r.errors.filter((e) => e.code === "size-exceeded")).toHaveLength(0);
+      expect(r.valid).toBe(true); // fell back to the default cap
+    }
+  });
+
+  it("documents that refuse serialization (BigInt members, circular refs) skip the size gate, never throw", () => {
+    const bigintDoc: Record<string, unknown> = {
+      results: [],
+      oscalVersion: "1.1.2",
+      uuid: UUID(1),
+      metadata: { title: "T", lastModified: "2026-08-24T12:00:00.000Z", version: "1" },
+      hostile: BigInt(1),
+    };
+    const rb = validateOscalDocument(bigintDoc);
+    expect(codes(rb)).not.toContain("size-exceeded");
+    // The structurally-complete document still passes — serialization refusal
+    // only disables the size gate, it never fails the document by itself.
+    expect(rb.valid).toBe(true);
+    expect(rb.warnings.map((w) => w.code)).toEqual(["empty-collection"]);
+
+    const circ: Record<string, unknown> = { note: "circular" };
+    circ.self = circ; // JSON.stringify throws -> serializedLength -1 -> gate skipped
+    const rc = validateOscalDocument(circ);
+    expect(rc.valid).toBe(false);
+    expect(codes(rc)).toEqual(["unsupported-oscal-type"]);
+  });
+});
+
+describe("oscalImport — malformed-input sweep: never throws, validate/normalize agree", () => {
+  const MALFORMED: unknown[] = [
+    null,
+    undefined,
+    0,
+    -7,
+    Number.NaN,
+    "",
+    "null",
+    "{}", // string that LOOKS like a document — still just a string
+    '{"results":[]}',
+    true,
+    false,
+    [],
+    [[]],
+    [{ results: [] }],
+    new Date(0), // object-shaped non-document
+    Symbol("doc"),
+    () => "fn",
+    { results: { deep: [{}] } }, // right key, wrong shape
+    { metadata: { oscalModel: { nested: {} } }, results: [] }, // non-string marker
+    { metadata: "not-an-object", results: ["entry"] }, // unwrappable metadata
+  ];
+
+  it("every malformed input yields a structured failure from BOTH entry points without throwing", () => {
+    for (const bad of MALFORMED) {
+      const label =
+        typeof bad === "symbol" || typeof bad === "function"
+          ? `${typeof bad} input`
+          : String(JSON.stringify(bad) ?? bad);
+      expect(() => validateOscalDocument(bad), label).not.toThrow();
+      expect(() => normalizeOscalDocument(bad), label).not.toThrow();
+
+      const v = validateOscalDocument(bad);
+      const n = normalizeOscalDocument(bad);
+      expect(v.valid, label).toBe(false);
+      expect(v.warnings, label).toEqual([]);
+      expect(v.errors.length, label).toBeGreaterThan(0);
+      expect(n.ok, label).toBe(false);
+      if (!n.ok) expect(n.errors, label).toEqual(v.errors); // exact issue agreement
+    }
+  });
+});
+
+describe("oscalImport — hostile Proxy robustness", () => {
+  const makeTrapProxy = () =>
+    new Proxy(
+      {},
+      {
+        get() {
+          throw new Error("get-boom");
+        },
+        has() {
+          throw new Error("has-boom");
+        },
+        ownKeys() {
+          throw new Error("ownKeys-boom");
+        },
+      },
+    );
+
+  it("a Proxy throwing on get/in/ownKeys yields a stable unsupported verdict, deterministic across calls", () => {
+    expect(() => validateOscalDocument(makeTrapProxy())).not.toThrow();
+    expect(() => normalizeOscalDocument(makeTrapProxy())).not.toThrow();
+
+    const r1 = validateOscalDocument(makeTrapProxy());
+    const r2 = validateOscalDocument(makeTrapProxy());
+    expect(r1).toEqual(r2);
+    expect(r1.valid).toBe(false);
+    expect(codes(r1)).toEqual(["unsupported-oscal-type"]);
+    expect(normalizeOscalDocument(makeTrapProxy())).toMatchObject({ ok: false });
+  });
+});
+
+describe("oscalImport — docType detection matrix completion", () => {
+  it("resolves every MODEL_ALIASES alias, including trim/case normalization", () => {
+    const cases: [string, string][] = [
+      ["assessment-results", "assessment-results"],
+      ["component-definition", "component-definition"],
+      ["assessment-plan", "plan"],
+      ["plan", "plan"],
+      ["system-security-plan", "system-security-plan"],
+      ["ssp", "system-security-plan"],
+      ["plan-of-action-and-milestones", "poam"],
+      ["poam", "poam"],
+      ["poa&m", "poam"],
+      ["  SSP  ", "system-security-plan"],
+      ["Plan-Of-Action-And-Milestones", "poam"],
+    ];
+    for (const [marker, expected] of cases) {
+      expect(detectOscalDocType({ metadata: { oscalModel: marker } }), marker).toBe(expected);
+    }
+  });
+
+  it("non-string markers force unsupported even when structural keys would match", () => {
+    for (const marker of [42, null, true, {}, []]) {
+      expect(
+        detectOscalDocType({ metadata: { oscalModel: marker }, results: [] }),
+        String(marker),
+      ).toBe("unsupported");
+    }
+  });
+
+  it("structural sniffing follows the fixed precedence results > components > ssp > plan > poam keys", () => {
+    expect(
+      detectOscalDocType({ results: [], components: [], controls: [], observations: [] }),
+    ).toBe("assessment-results");
+    expect(detectOscalDocType({ components: [], controls: [], milestones: [] })).toBe(
+      "component-definition",
+    );
+    expect(detectOscalDocType({ controls: [], assessmentActivities: [], tasks: [] })).toBe(
+      "system-security-plan",
+    );
+    expect(detectOscalDocType({ assessmentActivities: [], observations: [] })).toBe("plan");
+    expect(detectOscalDocType({ observations: [], tasks: [], milestones: [] })).toBe("poam");
+  });
+
+  it("non-object metadata does not block structural sniffing", () => {
+    expect(detectOscalDocType({ metadata: "legacy", tasks: [] })).toBe("poam");
+  });
+});
+
+describe("oscalImport — validate/normalize agreement across structured inputs", () => {
+  it("normalize mirrors validation verdicts (exact same issues) for every broken variant", () => {
+    const broken: Record<string, unknown>[] = [
+      {},
+      { results: [] },
+      { ...validDoc("poam"), uuid: "nope" },
+      { ...validDoc("poam"), tasks: "not-an-array" },
+      (() => {
+        const d = validDoc("system-security-plan") as Record<string, unknown>;
+        delete d.controls; // systemCharacteristics keeps docType stable
+        return d;
+      })(),
+      (() => {
+        const d = validDoc("plan") as Record<string, unknown>;
+        delete (d.metadata as Record<string, unknown>).lastModified;
+        return d;
+      })(),
+      (() => {
+        const d = validDoc("component-definition") as Record<string, unknown>;
+        delete d.components; // loses its type signal -> unsupported
+        return d;
+      })(),
+      (() => {
+        const d = validDoc("assessment-results") as Record<string, unknown>;
+        (d.metadata as Record<string, unknown>).version = ""; // empty string -> missing-field
+        return d;
+      })(),
+    ];
+    for (const doc of broken) {
+      const v = validateOscalDocument(doc);
+      expect(v.valid).toBe(false);
+      const n = normalizeOscalDocument(doc);
+      expect(n.ok).toBe(false);
+      if (!n.ok) expect(n.errors).toEqual(v.errors);
+    }
+  });
+
+  it("normalized docType matches detection for all five supported models", () => {
+    for (const t of ["assessment-results", "component-definition", "plan", "system-security-plan", "poam"]) {
+      const n = normalizeOscalDocument(validDoc(t));
+      expect(n.ok).toBe(true);
+      if (n.ok) {
+        expect(n.document.docType).toBe(t);
+        expect(n.document.docType).toBe(detectOscalDocType(validDoc(t)));
+      }
+    }
+  });
+
+  it("repeated normalization of the same document is stable across three runs", () => {
+    const d = validDoc("poam");
+    const runs = [
+      normalizeOscalDocument(d),
+      normalizeOscalDocument(d),
+      normalizeOscalDocument(d),
+    ];
+    expect(runs[0]).toEqual(runs[1]);
+    expect(runs[1]).toEqual(runs[2]);
+  });
+});

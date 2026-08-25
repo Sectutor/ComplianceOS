@@ -40,7 +40,11 @@ vi.mock("../../db", () => ({
   getDb: dbMocks.getDb,
 }));
 
-import { createFederalWorkflowRouter } from "../../server/routers/federal-workflows";
+import {
+  createFederalWorkflowRouter,
+  oscalImportInputSchema,
+} from "../../server/routers/federal-workflows";
+import { OSCAL_MAX_SERIALIZED_LENGTH } from "../../lib/federal/oscalImport";
 
 /** Generous budget: OneDrive-synced tree can be slow under parallel load. */
 vi.setConfig({ testTimeout: 60_000 });
@@ -1034,5 +1038,112 @@ describe("federal-workflows router — importOscal (GAP-19)", () => {
     await expect(
       (router as any).importOscal.handler({ input: { content: "{}" }, ctx: {} })
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+});
+
+// ── importOscal contract edges (GAP-19 QA cycle) ─────────────────────────────
+
+/** assessment-results fixture exercising the findings passthrough. */
+const AR_DOC = {
+  oscalVersion: "1.1.2",
+  uuid: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  metadata: { title: "AR", lastModified: "2026-08-24T12:00:00.000Z", version: "1" },
+  results: [
+    { uuid: "11111111-2222-3333-4444-555555555555", controlId: "cm-2", result: "fail", title: "CM-2 gap" },
+    { uuid: "99999999-2222-3333-4444-555555555555", controlId: "ac-2", result: "pass", title: "AC-2 ok" },
+  ],
+};
+
+describe("federal-workflows router — importOscal contract edges (GAP-19 QA)", () => {
+  const invokeImport = (router: any, content: string): Promise<any> =>
+    router.importOscal.handler({ input: { content }, ctx: { user: { id: 1 } } });
+
+  it("exported-schema witness: oscalImportInputSchema IS the attached procedure schema and enforces string content", () => {
+    const router = buildRouter();
+    expect(oscalImportInputSchema).toBeDefined();
+    // Single source of truth — the router registers this exact schema object.
+    expect(router.importOscal.schema).toBe(oscalImportInputSchema);
+
+    expect(oscalImportInputSchema.safeParse({ content: "{}" }).success).toBe(true);
+    for (const badContent of [undefined, 42, true, null, ["{}"], {}]) {
+      expect(
+        oscalImportInputSchema.safeParse({ content: badContent }).success,
+        `content=${JSON.stringify(badContent)}`,
+      ).toBe(false);
+    }
+    expect(oscalImportInputSchema.safeParse({}).success).toBe(false); // content missing
+  });
+
+  it("handler-level zod gates: missing/non-string/array/null content is BAD_REQUEST before any work", async () => {
+    dbMocks.getDb.mockResolvedValue(null);
+    const router = buildRouter();
+    for (const input of [{}, { content: 42 }, { content: ["{}"] }, { content: null }]) {
+      await expect(
+        router.importOscal.handler({ input, ctx: { user: { id: 1 } } })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("mutation-shape witness: every outcome returns exactly valid/errors/warnings/normalized", async () => {
+    const router = buildRouter();
+    const outcomes = [
+      await invokeImport(router, "{not json"),        // parse failure
+      await invokeImport(router, ""),                 // empty text is also unparseable
+      await invokeImport(router, '"just a string"'),  // parses to a non-object
+      await invokeImport(router, "null"),             // parses to null
+      await invokeImport(router, JSON.stringify(VALID_SSP)), // success
+    ];
+    for (const r of outcomes) {
+      expect(Object.keys(r).sort()).toEqual(["errors", "normalized", "valid", "warnings"]);
+    }
+    // Parse-failure branch carries its dedicated issue and no warnings
+    expect(outcomes[0].errors[0].code).toBe("invalid-json");
+    expect(outcomes[0].warnings).toEqual([]);
+    expect(outcomes[0].normalized).toBeNull();
+    expect(outcomes[1].errors[0].code).toBe("invalid-json");
+    // Parsed-but-non-object falls through to the engine's not-an-object gate
+    expect(outcomes[2].errors.map((e: any) => e.code)).toEqual(["not-an-object"]);
+    expect(outcomes[2].normalized).toBeNull();
+    expect(outcomes[3].valid).toBe(false);
+    expect(outcomes[4].valid).toBe(true);
+  });
+
+  it("passthrough is deterministic: identical content yields deep-identical verdicts", async () => {
+    const router = buildRouter();
+    const good = JSON.stringify(VALID_SSP);
+    expect(await invokeImport(router, good)).toEqual(await invokeImport(router, good));
+    expect(await invokeImport(router, "{bad")).toEqual(await invokeImport(router, "{bad"));
+  });
+
+  it("router path enforces the engine's default 5_000_000-character cap (oversized -> size-exceeded)", async () => {
+    dbMocks.getDb.mockClear();
+    const router = buildRouter();
+    const base = VALID_SSP as Record<string, unknown>;
+    const overhead = JSON.stringify({ ...base, pad: "" }).length - JSON.stringify(base).length;
+    const doc = {
+      ...base,
+      pad: "x".repeat(OSCAL_MAX_SERIALIZED_LENGTH + 1 - JSON.stringify(base).length - overhead),
+    };
+    const content = JSON.stringify(doc);
+    expect(content.length).toBe(OSCAL_MAX_SERIALIZED_LENGTH + 1);
+
+    const result = await invokeImport(router, content);
+    expect(result.valid).toBe(false);
+    expect(result.normalized).toBeNull();
+    expect(result.errors.map((e: any) => e.code)).toEqual(["size-exceeded"]);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("assessment-results content passes through with sorted findings and docType intact", async () => {
+    dbMocks.getDb.mockClear();
+    const router = buildRouter();
+    const result = await invokeImport(router, JSON.stringify(AR_DOC));
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.normalized.docType).toBe("assessment-results");
+    expect(result.normalized.findings.map((f: any) => f.controlId)).toEqual(["ac-2", "cm-2"]);
+    expect(result.normalized.controls.map((c: any) => c.controlId)).toEqual(["ac-2", "cm-2"]);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
   });
 });
