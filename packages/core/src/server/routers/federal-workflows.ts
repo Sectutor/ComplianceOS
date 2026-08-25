@@ -2,6 +2,15 @@ import { z } from "zod";
 import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
+import { validateOscalDocument, normalizeOscalDocument } from "../../lib/federal/oscalImport";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAP-19: OSCAL import — single-source-of-truth input schema for importOscal.
+// Accepts the RAW OSCAL JSON text; parsing/validation/normalization happen in
+// the pure zero-dep lib/federal/oscalImport engine, never in the DB layer.
+// ─────────────────────────────────────────────────────────────────────────────
+export const oscalImportInputSchema = z.object({ content: z.string() });
+export type OscalImportInput = z.infer<typeof oscalImportInputSchema>;
 
 /**
  * Federal Workflow Intelligence Router (Phase 2)
@@ -15,6 +24,7 @@ import { getDb } from "../../db";
  *   DFARS/CIRCIA incident reporting clocks  (getReportingClocks, checkIncidentReportingDeadlines)
  *   Continuous Monitoring dashboard  (getConMonDashboard, incl. ATO expiry tracking)
  *   eMASS-compatible CSV export  (exportPoamEmassCsv)
+ *   External OSCAL import + validation  (importOscal)
  *
  * NIST SP 800-171 DoD Assessment Methodology deduction values are used for
  * SPRS scoring: each unmet practice deducts its assigned point value from 110.
@@ -483,6 +493,39 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
                     csv: [header, ...rows].join("\n"),
                     itemCount: items.length,
                     note: "Column layout follows the eMASS POA&M import template ordering; verify against your eMASS instance before bulk upload.",
+                };
+            }),
+
+        // ────────────────────────────────────────────────────────────────
+        // P4-1: OSCAL import/validation (GAP-19) — pure passthrough over
+        // lib/federal/oscalImport (validate + normalize). The raw JSON text
+        // is parsed here and handed to the zero-dep engine; there are NO DB
+        // reads/writes on this path. Unparseable JSON surfaces as an issue
+        // list (valid:false), never a thrown error.
+        // ────────────────────────────────────────────────────────────────
+        importOscal: clientProcedure
+            .input(oscalImportInputSchema)
+            .mutation(async ({ input }: any) => {
+                let parsed: unknown;
+                try {
+                    parsed = JSON.parse(input.content);
+                } catch {
+                    return {
+                        valid: false,
+                        errors: [{ code: "invalid-json", path: "content", message: "content is not parseable JSON text" }],
+                        warnings: [],
+                        normalized: null,
+                    };
+                }
+
+                const verdict = validateOscalDocument(parsed);
+                const normalized = normalizeOscalDocument(parsed);
+
+                return {
+                    valid: verdict.valid,
+                    errors: verdict.errors,
+                    warnings: verdict.warnings,
+                    normalized: normalized.ok ? normalized.document : null,
                 };
             }),
     });

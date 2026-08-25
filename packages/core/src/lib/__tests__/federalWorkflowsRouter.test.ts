@@ -10,13 +10,13 @@ import { TRPCError } from "@trpc/server";
  * a factory `createFederalWorkflowRouter(t, clientProcedure)` tested with a
  * tiny fake tRPC builder — no tRPC server, no DB (`../../db` is mocked).
  *
- * Contract under test — exactly these 8 procedures (all registered through
+ * Contract under test — exactly these 9 procedures (all registered through
  * clientProcedure, per routers.ts line "federalWorkflows:
  * createFederalWorkflowRouter(t, clientProcedure)"):
  *   queries   : getSprsBreakdown, getCmmcReadiness, getReportingClocks,
  *               getConMonDashboard
  *   mutations : syncSarToPoam, exportSspOscal, exportPoamOscal,
- *               exportPoamEmassCsv
+ *               exportPoamEmassCsv, importOscal (cycle 41, GAP-19)
  * Every input schema requires numeric `clientId`; syncSarToPoam additionally
  * requires `sarId`; the three exports require `sspId`/`poamId`.
  *
@@ -116,11 +116,11 @@ function buildRouter() {
 }
 
 const QUERIES = ["getSprsBreakdown", "getCmmcReadiness", "getReportingClocks", "getConMonDashboard"];
-const MUTATIONS = ["syncSarToPoam", "exportSspOscal", "exportPoamOscal", "exportPoamEmassCsv"];
+const MUTATIONS = ["syncSarToPoam", "exportSspOscal", "exportPoamOscal", "exportPoamEmassCsv", "importOscal"];
 const ALL_ROUTES = [...QUERIES, ...MUTATIONS].sort();
 
 /** Minimal valid input per route (for auth-gate sweeps). */
-const MIN_INPUT: Record<string, Record<string, number>> = {
+const MIN_INPUT: Record<string, any> = {
   syncSarToPoam: { clientId: 1, sarId: 1 },
   getSprsBreakdown: { clientId: 1 },
   exportSspOscal: { clientId: 1, sspId: 1 },
@@ -129,6 +129,7 @@ const MIN_INPUT: Record<string, Record<string, number>> = {
   getReportingClocks: { clientId: 1 },
   getConMonDashboard: { clientId: 1 },
   exportPoamEmassCsv: { clientId: 1, poamId: 1 },
+  importOscal: { content: "{}" },
 };
 
 // ── Mocked drizzle connection ────────────────────────────────────────────────
@@ -216,7 +217,7 @@ beforeEach(() => {
 // ── Route shape ──────────────────────────────────────────────────────────────
 
 describe("federal-workflows router — route shape", () => {
-  it("exposes exactly the 8 documented procedures, each with a callable handler", () => {
+  it("exposes exactly the 9 documented procedures, each with a callable handler", () => {
     const router = buildRouter();
     expect(Object.keys(router).sort()).toEqual(ALL_ROUTES);
     for (const name of Object.keys(router)) {
@@ -224,7 +225,7 @@ describe("federal-workflows router — route shape", () => {
     }
   });
 
-  it("registers the four intelligence surfaces as queries and the four artifact operations as mutations", () => {
+  it("registers the four intelligence surfaces as queries and the five artifact operations as mutations", () => {
     const router = buildRouter();
     for (const name of QUERIES) {
       expect((router as any)[name].type, `"${name}" kind`).toBe("query");
@@ -234,11 +235,18 @@ describe("federal-workflows router — route shape", () => {
     }
   });
 
-  it("attaches a zod input schema requiring numeric clientId to every procedure", () => {
+  it("attaches a zod input schema to every procedure (clientId-bearing routes enforce numeric clientId)", () => {
     const router = buildRouter();
     for (const name of ALL_ROUTES) {
       const schema = (router as any)[name].schema;
       expect(schema, `schema of "${name}"`).toBeDefined();
+      if (name === "importOscal") {
+        // importOscal takes raw JSON `content`, not clientId — its edges are
+        // covered in the dedicated describe below.
+        expect(() => schema.parse({})).toThrow(ZodError); // content missing
+        expect(() => schema.parse(MIN_INPUT[name])).not.toThrow();
+        continue;
+      }
       expect(() => schema.parse({}), `"${name}" without clientId`).toThrow(ZodError);
       expect(
         () => schema.parse({ ...MIN_INPUT[name], clientId: "5" }),
@@ -252,7 +260,7 @@ describe("federal-workflows router — route shape", () => {
 // ── Auth gate ────────────────────────────────────────────────────────────────
 
 describe("federal-workflows router — authentication gate", () => {
-  it("all 8 procedures reject a missing user with TRPCError UNAUTHORIZED before touching the DB", async () => {
+  it("all 9 procedures reject a missing user with TRPCError UNAUTHORIZED before touching the DB", async () => {
     dbMocks.getDb.mockResolvedValue(null);
     const router = buildRouter();
     const calls = ALL_ROUTES.map((name) =>
@@ -941,5 +949,90 @@ describe("federal-workflows router — getConMonDashboard", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// ── importOscal (cycle 41, GAP-19) ───────────────────────────────────────────
+
+const VALID_SSP = {
+  oscalVersion: "1.1.2",
+  uuid: "11111111-2222-3333-4444-555555555555",
+  metadata: {
+    title: "Apex SSP",
+    lastModified: "2026-08-24T12:00:00.000Z",
+    version: "3",
+  },
+  systemCharacteristics: { systemName: "Apex" },
+  controls: [
+    { controlId: "ac-2", statement: "Access control policy enforced.", status: "implemented" },
+    { controlId: "au-6", description: "Audit review weekly.", status: "partial" },
+  ],
+};
+
+describe("federal-workflows router — importOscal (GAP-19)", () => {
+  it("zod schema requires string content; missing/non-string content is BAD_REQUEST-shaped ZodError", () => {
+    const router = buildRouter();
+    const schema = (router as any).importOscal.schema;
+    expect(() => schema.parse({})).toThrow(ZodError);
+    expect(() => schema.parse({ content: 42 })).toThrow(ZodError);
+    expect(schema.parse({ content: "{}" })).toEqual({ content: "{}" });
+  });
+
+  it("validates + normalizes a well-formed SSP document without touching the DB", async () => {
+    dbMocks.getDb.mockClear();
+    const router = buildRouter();
+    const result = await (router as any).importOscal.handler({
+      input: { content: JSON.stringify(VALID_SSP) },
+      ctx: { user: { id: 1 } },
+    });
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.normalized).toMatchObject({
+      oscalVersion: "1.1.2",
+      docType: "system-security-plan",
+      uuid: VALID_SSP.uuid,
+      title: "Apex SSP",
+      lastModified: "2026-08-24T12:00:00.000Z",
+      version: "3",
+    });
+    expect(result.normalized.controls.map((c: any) => c.controlId)).toEqual(["ac-2", "au-6"]);
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("unparseable JSON returns an invalid-json issue list instead of throwing", async () => {
+    const router = buildRouter();
+    const result = await (router as any).importOscal.handler({
+      input: { content: "{not json" },
+      ctx: { user: { id: 1 } },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.normalized).toBeNull();
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].code).toBe("invalid-json");
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("structurally-invalid OSCAL surfaces engine error codes with normalized null", async () => {
+    const router = buildRouter();
+    const result = await (router as any).importOscal.handler({
+      input: { content: JSON.stringify({ results: [] }) },
+      ctx: { user: { id: 1 } },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.normalized).toBeNull();
+    const codes = result.errors.map((e: any) => e.code).sort();
+    expect(codes.length).toBeGreaterThan(0);
+    expect(codes.every((c: string) => c === c.toLowerCase())).toBe(true); // kebab-case convention
+    // empty `results` array is a warning anomaly, not an error
+    expect(result.warnings.some((w: any) => w.code === "empty-collection")).toBe(true);
+  });
+
+  it("rides clientProcedure as a mutation and rejects unauthenticated callers pre-DB", async () => {
+    const router = buildRouter();
+    expect((router as any).importOscal.type).toBe("mutation");
+    await expect(
+      (router as any).importOscal.handler({ input: { content: "{}" }, ctx: {} })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

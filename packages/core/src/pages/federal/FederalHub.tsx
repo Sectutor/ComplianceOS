@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { FederalWorkflowsPanels } from "./FederalWorkflowsPanels";
 import {
     FileText,
     ShieldCheck,
@@ -240,6 +241,11 @@ export default function FederalHub() {
                     </div>
                 ))}
             </div>
+                {Number.isFinite(clientId) && (
+                    <section className="pt-8">
+                        <FederalWorkflowsPanels clientId={clientId} />
+                    </section>
+                )}
         </DashboardLayout>
     );
 }
