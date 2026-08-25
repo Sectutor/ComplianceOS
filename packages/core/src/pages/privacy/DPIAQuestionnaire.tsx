@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useClientContext } from "@/contexts/ClientContext";
-import { PrivacyLayout } from "./PrivacyLayout";
 import { Button } from "@complianceos/ui/ui/button";
-import { ArrowLeft, Save, AlertTriangle, CheckCircle, HelpCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, AlertTriangle, CheckCircle, HelpCircle, Loader2, FileText, Copy, ShieldCheck, Printer } from "lucide-react";
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { toast } from "sonner";
 import { Separator } from "@complianceos/ui/ui/separator";
+import { Badge } from "@complianceos/ui/ui/badge";
 
 export default function DPIAQuestionnaire() {
     const { selectedClientId } = useClientContext();
     const clientId = selectedClientId || 0;
     const [location, setLocation] = useLocation();
+    const params = useParams<{ id: string; dpiaId?: string }>();
+    const dpiaId = params.dpiaId ? parseInt(params.dpiaId) : null;
 
     // Parse query params manually since wouter doesn't have useSearchParams
     const searchParams = new URLSearchParams(window.location.search);
@@ -24,17 +26,36 @@ export default function DPIAQuestionnaire() {
     const templateId = templateIdStr ? parseInt(templateIdStr) : null;
 
     const { data: templates, isLoading: templatesLoading } = trpc.privacyEnhancements.dpiaTemplates.list.useQuery({ clientId }, { enabled: !!clientId });
-    const selectedTemplate = templates?.find(t => t.id === templateId);
+    const { data: assessments, isLoading: assessmentsLoading } = (trpc.privacy as any).listAssessments.useQuery(
+        { clientId, typePrefix: "DPIA:" },
+        { enabled: !!clientId && !!dpiaId }
+    );
 
+    const existingAssessment = assessments?.find((a: any) => a.id === dpiaId);
+
+    const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(templateId);
     const [responses, setResponses] = useState<Record<string, any>>({});
     const [projectTitle, setProjectTitle] = useState("");
     const [projectDesc, setProjectDesc] = useState("");
+    const [status, setStatus] = useState("in_progress");
 
+    const selectedTemplate = templates?.find(t => t.id === selectedTemplateId) || (templates && templates.length > 0 ? templates[0] : null);
+
+    // Populate existing assessment if editing
     useEffect(() => {
-        if (selectedTemplate) {
+        if (existingAssessment) {
+            setProjectTitle(existingAssessment.type.replace("DPIA: ", ""));
+            const resp = existingAssessment.responses || {};
+            setProjectDesc(resp.projectDescription || "");
+            setResponses(resp.answers || {});
+            setStatus(existingAssessment.status || "in_progress");
+            if (resp.templateId) {
+                setSelectedTemplateId(resp.templateId);
+            }
+        } else if (selectedTemplate && !projectTitle) {
             setProjectTitle(`${selectedTemplate.name} - ${new Date().toLocaleDateString()}`);
         }
-    }, [selectedTemplate]);
+    }, [existingAssessment, selectedTemplate]);
 
     // Mutation to save assessment
     const saveMutation = trpc.privacy.saveAssessment.useMutation({
@@ -42,39 +63,63 @@ export default function DPIAQuestionnaire() {
             toast.success("DPIA saved successfully");
             setLocation(`/clients/${clientId}/privacy/dpia`);
         },
-        onError: (err) => toast.error(`Failed to save: ${err.message}`)
+        onError: (err: any) => toast.error(`Failed to save: ${err.message}`)
     });
 
-    const handleSave = () => {
-        if (!selectedTemplate) return;
+    const handleSave = (forcedStatus?: string) => {
+        if (!selectedTemplate && !existingAssessment) return;
         if (!projectTitle) return toast.error("Please provide an assessment title");
+
+        const content = (selectedTemplate?.templateContent || (existingAssessment?.responses as any)) as any;
+        const totalQuestions = content?.screeningQuestions?.length || 1;
+        const affirmativeCount = Object.values(responses).filter(v => v === 'yes' || (typeof v === 'string' && v.length > 0 && v !== 'no')).length;
+        const calculatedScore = Math.min(100, Math.round((affirmativeCount / totalQuestions) * 100));
+        const finalStatus = forcedStatus || status;
 
         saveMutation.mutate({
             clientId,
-            // We use a unique type string to allow multiple assessments of the same template
             type: `DPIA: ${projectTitle}`,
             responses: {
                 projectDescription: projectDesc,
                 answers: responses,
-                templateVersion: selectedTemplate.version,
-                templateId: selectedTemplate.id,
-                templateName: selectedTemplate.name
+                templateVersion: selectedTemplate?.version || 1,
+                templateId: selectedTemplate?.id || selectedTemplateId,
+                templateName: selectedTemplate?.name || "Standard DPIA",
+                riskFactors: content?.riskFactors || [],
+                mitigationMeasures: content?.mitigationMeasures || [],
+                evaluatedAt: new Date().toISOString()
             },
-            status: "in_progress",
-            score: 0
+            status: finalStatus as any,
+            score: calculatedScore
         });
     };
 
-    if (templatesLoading) {
+    const copyDpiaReport = () => {
+        const report = `DATA PROTECTION IMPACT ASSESSMENT (DPIA) AUDIT DOSSIER\n` +
+            `============================================================\n` +
+            `Project Title: ${projectTitle}\n` +
+            `Client / Entity: #${clientId}\n` +
+            `Status: ${status.toUpperCase()}\n` +
+            `Evaluation Date: ${new Date().toLocaleDateString()}\n\n` +
+            `1. Scope & Context:\n${projectDesc || 'N/A'}\n\n` +
+            `2. Screening Answers:\n` +
+            Object.entries(responses).map(([k, v]) => ` - [${k}]: ${v}`).join('\n') +
+            `\n\n3. DPO Determination:\nProcessing compliant with GDPR Article 35. Supplementary safeguards enacted.`;
+
+        navigator.clipboard.writeText(report);
+        toast.success("DPIA Audit Report copied to clipboard!");
+    };
+
+    if (templatesLoading || (dpiaId && assessmentsLoading)) {
         return (
             <div className="flex flex-col items-center justify-center p-24 space-y-4">
                 <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
-                <p className="text-slate-400 font-medium animate-pulse">Loading assessment template...</p>
+                <p className="text-slate-400 font-medium animate-pulse">Loading assessment details...</p>
             </div>
         );
     }
 
-    if (!selectedTemplate && !templateId) {
+    if (!selectedTemplate && !existingAssessment && !templateId) {
         return (
             <div className="p-12 space-y-8 animate-in fade-in duration-500">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-5xl mx-auto w-full">
@@ -173,18 +218,43 @@ export default function DPIAQuestionnaire() {
                         <ArrowLeft className="h-6 w-6" />
                     </Button>
                     <div className="space-y-0.5">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Initialize Assessment</h1>
-                        <p className="text-slate-500 text-lg">Questionnaire: {selectedTemplate.name}</p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                                {dpiaId ? "DPIA Assessment Dossier" : "Initialize Assessment"}
+                            </h1>
+                            {existingAssessment && (
+                                <Badge className={existingAssessment.status === 'completed' ? 'bg-emerald-100 text-emerald-700 font-bold' : 'bg-amber-100 text-amber-700 font-bold'}>
+                                    {existingAssessment.status === 'completed' ? 'DPO Approved' : 'In Progress'}
+                                </Badge>
+                            )}
+                        </div>
+                        <p className="text-slate-500 text-lg">Questionnaire: {selectedTemplate?.name || 'Article 35 DPIA'}</p>
                     </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
                     <Button
-                        onClick={handleSave}
+                        variant="outline"
+                        onClick={copyDpiaReport}
+                        className="border-slate-300 hover:border-brand-bright text-slate-700 font-bold h-11 px-4 rounded-xl"
+                    >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Audit Report
+                    </Button>
+                    <Button
+                        onClick={() => handleSave("completed")}
+                        disabled={saveMutation.isLoading}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-5 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                    >
+                        <ShieldCheck className="mr-2 h-5 w-5" />
+                        DPO Sign-Off & Approve
+                    </Button>
+                    <Button
+                        onClick={() => handleSave()}
                         disabled={saveMutation.isLoading}
                         className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                     >
                         {saveMutation.isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
-                        Finalize & Save
+                        Save Progress
                     </Button>
                 </div>
             </div>

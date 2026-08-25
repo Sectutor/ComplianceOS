@@ -288,11 +288,35 @@ export default function ROPADashboard() {
                 <div className="flex flex-wrap items-center gap-3">
                     <Button
                         variant="outline"
+                        onClick={() => {
+                            if (!processes || processes.length === 0) {
+                                toast.error("No processing activities to export.");
+                                return;
+                            }
+                            const csvContent = "ID,Activity Name,Department,Criticality,RTO,RPO,Description\n" +
+                                processes.map(p => `"${p.id}","${p.name}","${p.department || 'General'}","${p.criticalityTier || 'N/A'}","${p.rto || 'N/A'}","${p.rpo || 'N/A'}","${(p.description || '').replace(/"/g, '""')}"`).join("\n");
+                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", url);
+                            link.setAttribute("download", `ROPA_Article_30_Client_${clientId}.csv`);
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            toast.success("Article 30 ROPA CSV exported successfully!");
+                        }}
+                        className="border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold h-11 px-4 rounded-xl"
+                    >
+                        <FileText className="mr-2 h-4 w-4 text-brand-bright" />
+                        Export Article 30 Register (CSV)
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={() => setLocation(`/clients/${clientId}/subprocessors`)}
                         className="border-purple-300 text-purple-800 bg-purple-50/50 hover:bg-purple-100 font-semibold h-11 px-4 rounded-xl"
                     >
                         <Shield className="mr-2 h-4 w-4 text-purple-600" />
-                        Verify Subprocessor DPAs (Art. 28)
+                        Verify Subprocessors (Art. 28)
                     </Button>
                     <Button
                         onClick={() => setCreateOpen(true)}
@@ -370,6 +394,15 @@ export default function ROPADashboard() {
                                         </TableCell>
                                         <TableCell className="text-right py-4 px-6">
                                             <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 px-2 text-xs font-semibold text-slate-600 hover:text-brand-bright hover:bg-sky-50"
+                                                    title="Launch DPIA for this activity"
+                                                    onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new`)}
+                                                >
+                                                    ⚡ DPIA
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"

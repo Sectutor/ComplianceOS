@@ -10,9 +10,19 @@ import {
     Globe,
     AlertTriangle,
     ShieldCheck,
-    Users
+    Users,
+    Home,
+    ChevronRight
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@complianceos/ui/ui/breadcrumb";
 
 interface PrivacyLayoutProps {
     clientId: number;
@@ -22,9 +32,7 @@ interface PrivacyLayoutProps {
 
 export function PrivacyLayout({ clientId, children, fullWidth = false }: PrivacyLayoutProps) {
     const [location] = useLocation();
-
-    // We could fetch privacy stats here for badges if needed
-    // const { data: stats } = trpc.privacy.getPrivacyStats.useQuery({ clientId });
+    const { data: client } = trpc.clients.get.useQuery({ id: clientId }, { enabled: clientId > 0 });
 
     const navItems = [
         {
@@ -34,19 +42,13 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
             badge: null
         },
         {
-            label: "Alignment",
-            href: `/clients/${clientId}/privacy/alignment-guide`,
-            icon: Globe,
-            badge: null
+            label: "Program Guide",
+            href: `/clients/${clientId}/privacy/guide`,
+            icon: FileText,
+            badge: "Manual"
         },
         {
-            label: "Dashboard",
-            href: `/clients/${clientId}/privacy`,
-            icon: LayoutDashboard,
-            badge: null
-        },
-        {
-            label: "ROPA",
+            label: "ROPA (Art. 30)",
             href: `/clients/${clientId}/privacy/ropa`,
             icon: FileText,
             badge: null
@@ -58,48 +60,96 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
             badge: null
         },
         {
-            label: "DPIA",
+            label: "DPIA Manager",
             href: `/clients/${clientId}/privacy/dpia`,
             icon: Scale,
             badge: null
         },
         {
-            label: "Transfers",
+            label: "Data Transfers (TIA)",
             href: `/clients/${clientId}/privacy/transfers`,
             icon: Globe,
             badge: null
         },
         {
-            label: "Documents",
-            href: `/clients/${clientId}/privacy/documents`,
-            icon: FileText,
-            badge: null
-        },
-        {
-            label: "DSAR",
+            label: "DSAR Portal",
             href: `/clients/${clientId}/privacy/dsar`,
             icon: Users,
             badge: null
         },
         {
-            label: "Breaches",
+            label: "Data Breaches",
             href: `/clients/${clientId}/privacy/breaches`,
             icon: AlertTriangle,
+            badge: null
+        },
+        {
+            label: "Alignment",
+            href: `/clients/${clientId}/privacy/alignment-guide`,
+            icon: Globe,
             badge: null
         }
     ];
 
     const isActive = (href: string) => {
-        if (href.endsWith('/privacy') && location === href) return true;
-        if (!href.endsWith('/privacy') && location.startsWith(href)) return true;
+        if (location === href) return true;
+        if (href.endsWith('/privacy/guide') && location.includes('/privacy/program-guide')) return true;
+        if (href.endsWith('/privacy/program-guide') && location.includes('/privacy/guide')) return true;
+        if (!href.endsWith('/privacy/overview') && location.startsWith(href)) return true;
         return false;
     };
 
+    const activeItem = navItems.find(item => isActive(item.href));
+
+    const breadcrumbItems = [
+        { label: "Dashboard", href: "/dashboard", icon: Home },
+        { label: "Clients", href: "/clients" },
+        { label: client?.name || "Client", href: `/clients/${clientId}` },
+        { label: "Privacy Program", href: `/clients/${clientId}/privacy/overview` }
+    ];
+
+    if (activeItem && activeItem.label !== "Overview") {
+        breadcrumbItems.push({ label: activeItem.label, href: activeItem.href });
+    }
+
     return (
-        <DashboardLayout>
-            <div className="flex flex-col min-h-screen">
-                <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b px-4 py-4">
-                    <nav className="flex space-x-3 overflow-x-auto no-scrollbar py-2" aria-label="Tabs">
+        <DashboardLayout fullWidth={fullWidth}>
+            <div className="flex flex-col min-h-screen bg-transparent">
+                <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
+                    {/* Breadcrumb Section */}
+                    <Breadcrumb className="mb-0">
+                        <BreadcrumbList>
+                            {breadcrumbItems.map((item, idx) => {
+                                const isLast = idx === breadcrumbItems.length - 1;
+                                return (
+                                    <React.Fragment key={idx}>
+                                        <BreadcrumbItem>
+                                            {isLast ? (
+                                                <BreadcrumbPage className="font-bold text-brand">
+                                                    {item.label}
+                                                </BreadcrumbPage>
+                                            ) : (
+                                                <BreadcrumbLink asChild>
+                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-brand-bright transition-colors">
+                                                        {item.icon && <item.icon className="h-3.5 w-3.5" />}
+                                                        {item.label}
+                                                    </Link>
+                                                </BreadcrumbLink>
+                                            )}
+                                        </BreadcrumbItem>
+                                        {!isLast && (
+                                            <BreadcrumbSeparator>
+                                                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                            </BreadcrumbSeparator>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </BreadcrumbList>
+                    </Breadcrumb>
+
+                    {/* Navigation Pills */}
+                    <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 py-1" aria-label="Tabs">
                         {navItems.map((item) => {
                             const active = isActive(item.href);
                             return (
@@ -107,23 +157,23 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "px-4 py-2 rounded-lg transition-all flex items-center whitespace-nowrap text-sm font-bold shadow-sm shrink-0 min-w-max",
+                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0",
                                         active
-                                            ? "bg-brand-bright text-white"
-                                            : "bg-brand text-white hover:bg-brand-bright"
+                                            ? "bg-brand-bright text-white shadow-md shadow-brand-bright/20 ring-1 ring-white/20"
+                                            : "bg-brand text-white hover:bg-brand-bright/90"
                                     )}
                                 >
                                     <item.icon className={cn(
-                                        "mr-2 h-4 w-4 shrink-0 transition-transform duration-300",
-                                        active ? "scale-110" : "opacity-80"
+                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300",
+                                        active ? "scale-105" : "opacity-80"
                                     )} />
-                                    <span className="whitespace-nowrap shrink-0">{item.label}</span>
+                                    <span className="whitespace-nowrap">{item.label}</span>
                                     {!!item.badge && (
                                         <span className={cn(
-                                            "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md shrink-0 whitespace-nowrap",
+                                            "ml-2 rounded-full py-0.2 px-1.5 text-[9px] sm:text-[10px] font-bold border backdrop-blur-md shrink-0 whitespace-nowrap",
                                             active
-                                                ? "bg-white/20 text-white border-white/30"
-                                                : "bg-brand-bright/20 text-white border-brand-bright/30"
+                                                ? "bg-white/25 text-white border-white/30"
+                                                : "bg-brand-bright/30 text-white border-brand-bright/40"
                                         )}>
                                             {item.badge}
                                         </span>
@@ -133,7 +183,8 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full py-8 bg-slate-50/30">
+
+                <div className="flex-1 w-full py-6">
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {children}
                     </div>

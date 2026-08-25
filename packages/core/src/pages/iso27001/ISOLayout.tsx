@@ -41,12 +41,18 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
             icon: LayoutDashboard,
         },
         {
+            label: "Program Guide",
+            href: `/clients/${clientId}/iso27001/guide`,
+            icon: FileText,
+            badge: "Manual"
+        },
+        {
             label: "Organization Context",
             href: `/clients/${clientId}/iso27001/governance`,
             icon: Users,
         },
         {
-            label: "SoA",
+            label: "SoA (Annex A)",
             href: `/clients/${clientId}/iso27001/soa`,
             icon: ClipboardList,
         },
@@ -56,7 +62,7 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
             icon: ShieldCheck,
         },
         {
-            label: "Assets",
+            label: "Asset Inventory",
             href: `/clients/${clientId}/iso27001/assets`,
             icon: Database,
         },
@@ -64,6 +70,11 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
             label: "Documents",
             href: `/clients/${clientId}/iso27001/documents`,
             icon: FileText,
+        },
+        {
+            label: "Internal Audit",
+            href: `/clients/${clientId}/iso27001/audit`,
+            icon: Activity,
         },
         {
             label: "Mgmt Review",
@@ -145,6 +156,11 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
                                 >
                                     <item.icon className="mr-2.5 h-4 w-4" />
                                     {item.label}
+                                    {item.badge && (
+                                        <span className="ml-2 px-1.5 py-0.5 text-[10px] uppercase font-black tracking-wider rounded-md bg-white/20 text-white">
+                                            {item.badge}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         })}

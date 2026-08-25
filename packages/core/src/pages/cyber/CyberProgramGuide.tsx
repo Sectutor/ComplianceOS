@@ -1,343 +1,778 @@
 import React, { useState } from 'react';
-import { useParams } from 'wouter';
-import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
+import { useParams, Link, useLocation } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
-import { Progress } from '@complianceos/ui/ui/progress';
 import {
-    CheckCircle2, Target, Shield, FileText,
-    ArrowRight, BookOpen, ArrowLeft, CircleDashed, Users,
-    Globe, AlertTriangle, DollarSign, Activity, Link as LinkIcon
+    CheckCircle2, Shield, ShieldCheck, ShieldAlert, Target, FileText, Zap, AlertTriangle,
+    ArrowRight, BookOpen, ArrowLeft, Info, Calendar, Download,
+    Sparkles, Copy, Layers, Clock, Globe, Lock, Activity, Server, Users, Award
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { Link } from 'wouter';
+import { Progress } from '@complianceos/ui/ui/progress';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-const FRAMEWORKS = {
-    cyber: {
-        id: 'cyber',
-        label: 'Cyber Resilience & NIS2',
-        shortLabel: 'NIS2 Directive',
-        subtitle: 'Systemic Security Strategy',
-        icon: Shield,
-        color: 'text-sky-600',
-        bg: 'bg-sky-50',
-        border: 'border-sky-200',
-        badge: 'bg-sky-100 text-sky-800',
-        accent: 'from-sky-500 to-indigo-600',
-        tabActive: 'bg-brand-bright text-white shadow-md',
-        tabInactive: 'text-brand bg-slate-50 border border-slate-200 hover:bg-sky-50',
-        overview: `The NIS2 Directive (EU) 2022/2555 is the EU-wide legislation on cybersecurity. It provides legal measures to boost the overall level of cybersecurity in the EU. Essential and Important entities must implement comprehensive risk management, incident reporting, and supply chain security to avoid significant fines.`,
-        highlightNote: `📌 Compliance is mandatory for entities operating in 18 critical sectors within the EU. Failure can result in fines up to €10M or 2% of global annual turnover, along with management liability.`,
-        timeline: '3 – 9 months',
-        cost: '$40K – $200K+',
-        steps: [
-            {
-                id: 'assessment',
-                step: 1,
-                title: 'NIS2 Classification',
-                subtitle: 'Scope & Posture',
-                description: 'Determine your entity classification (Essential vs Important) and assess your current cybersecurity posture against the 10 minimum security measures outlined in Article 21.',
-                icon: Target,
-                color: 'text-sky-600',
-                bgColor: 'bg-sky-50',
-                accent: 'from-sky-500 to-indigo-500',
-                bestPractices: [
-                    'Identify if you qualify as an Essential or Important entity.',
-                    'Map your critical business services to the NIS2 sectors.',
-                    'Conduct a baseline gap assessment against Art. 21 requirements.'
-                ],
-                link: `cyber/assessment`,
-                cta: 'Run Assessment',
-                keyActions: [
-                    'Determine entity size and sector applicability.',
-                    'Identify dependencies and critical infrastructure.',
-                    'Review minimum security measures.',
-                    'Establish leadership accountability.'
-                ]
-            },
-            {
-                id: 'measures',
-                step: 2,
-                title: 'Technical Measures',
-                subtitle: 'Risk & Supply Chain',
-                description: 'Implement appropriate and proportionate technical, operational and organizational measures to manage the risks posed to the security of network and information systems.',
-                icon: LinkIcon,
-                color: 'text-indigo-600',
-                bgColor: 'bg-indigo-50',
-                accent: 'from-indigo-500 to-violet-500',
-                bestPractices: [
-                    'Implement basic cyber hygiene practices and cybersecurity training.',
-                    'Enforce MFA and strong access controls across internal systems.',
-                    'Assess the cybersecurity practices of direct suppliers.'
-                ],
-                link: `cyber/overview`,
-                cta: 'Implement Controls',
-                keyActions: [
-                    'Deploy access control and encryption.',
-                    'Secure your immediate supply chain.',
-                    'Implement Continuous Vulnerability Management.',
-                    'Ensure robust network segmentation.'
-                ]
-            },
-            {
-                id: 'incidents',
-                step: 3,
-                title: 'Incident Reporting',
-                subtitle: '24-hour Notification Workflow',
-                description: 'Establish processes to notify the national CSIRT or competent authority without undue delay regarding any incident having a significant impact on your services.',
-                icon: Activity,
-                color: 'text-orange-600',
-                bgColor: 'bg-orange-50',
-                accent: 'from-orange-500 to-red-500',
-                bestPractices: [
-                    'Draft a 24-hour Early Warning template.',
-                    'Establish rapid communication channels with national CSIRTs.',
-                    'Define what constitutes a "significant incident".'
-                ],
-                link: `cyber/incidents`,
-                cta: 'Manage Incidents',
-                keyActions: [
-                    'Submit Early Warning within 24 hours.',
-                    'Submit Incident Update within 72 hours.',
-                    'Provide final report within 1 month.',
-                    'Coordinate internally for crisis management.'
-                ]
-            },
-            {
-                id: 'documentation',
-                step: 4,
-                title: 'Documentation & Continuity',
-                subtitle: 'Policies & BCP',
-                description: 'Formalize your cybersecurity strategy through rigorous documentation, business continuity planning (BCP), and crisis management strategies.',
-                icon: FileText,
-                color: 'text-purple-600',
-                bgColor: 'bg-purple-50',
-                accent: 'from-purple-500 to-fuchsia-500',
-                bestPractices: [
-                    'Maintain an updated Business Impact Analysis (BIA).',
-                    'Document backup management and disaster recovery plans.',
-                    'Ensure management explicitly signs off on cyber policies.'
-                ],
-                link: `cyber/documents`,
-                cta: 'Access Documentation',
-                keyActions: [
-                    'Adopt formal Risk Management Policies.',
-                    'Ensure BCPs are tested annually.',
-                    'Maintain secure off-site backups.',
-                    'Integrate cyber reporting into board meetings.'
-                ]
-            }
-        ]
-    }
-};
+/* ------------------------------------------------------------------ */
+/* Step downloads — generate real artifacts client-side               */
+/* ------------------------------------------------------------------ */
+
+function downloadFile(filename: string, content: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+const NIS2_EARLY_WARNING_MD = `# NIS2 Article 23(4)(a) — 24-Hour Early Warning to National CSIRT
+
+**Reporting Entity:** [Entity Name] (Sector: [Energy / Transport / Digital Infra / Healthcare])  
+**Initial Detection Timestamp:** [YYYY-MM-DD HH:MM UTC]  
+**National CSIRT / Authority:** [e.g., BSI, ANSSI, CCN-CERT, NCSC]  
+
+---
+
+## 1. Initial Incident Characteristics
+- **Suspected Incident Type:** [Ransomware / DDoS / Supply Chain Breach / Unauthorized Access]
+- **Suspected Cause:** [Unlawful / Malicious Acts / Systemic Vulnerability / Unknown]
+- **Potential Cross-Border Impact:** [Yes / No / Under Investigation]
+- **Affected EU Member States:** [e.g., DE, FR, NL]
+
+## 2. Preliminary Impact Assessment
+- Severity: [Critical / High / Moderate]
+- Impact on Essential Services: [Degraded / Fully Interrupted / Operational with Safeguards]
+- Estimated Number of Affected Users: [Count or Range]
+
+## 3. Initial Mitigation & Containment
+- Immediate Actions Taken: [Isolated Affected VPC, Reset Privileged Credentials, Revoked Compromised Certificates]
+- Next Scheduled Update: Within 72 Hours (Incident Notification per Art. 23(4)(b))
+`;
+
+const NIS2_CONTROLS_MATRIX_CSV = `Article 21 Measure ID,Measure Title,Implementation Status,Verification Method,Owner
+Art. 21.2(a),Policies on risk analysis and information system security,Implemented,Annual Executive Sign-Off,CISO
+Art. 21.2(b),Incident handling and triage playbooks,Implemented,CSIRT Runbook Test,SOC Lead
+Art. 21.2(c),Business continuity and crisis management (BIA & Backups),Implemented,Air-Gapped Immutable Backups,IT Operations
+Art. 21.2(d),Supply chain security & vendor risk assessments,In Progress,Tier 1 Vendor Audits,Procurement
+Art. 21.2(e),Security in network acquisition development & maintenance,Implemented,SAST/DAST in CI/CD,DevSecOps Lead
+Art. 21.2(f),Policies and procedures to assess cyber risk effectiveness,Implemented,Quarterly Penetration Tests,SecOps
+Art. 21.2(g),Basic cyber hygiene practices and cybersecurity training,Implemented,Phishing Simulations & LMS,HR / Security
+Art. 21.2(h),Policies and procedures regarding cryptography & encryption,Implemented,TLS 1.3 & AES-256 at Rest,Security Architect
+Art. 21.2(i),Human resources security access control & asset management,Implemented,Zero Trust & SSO/MFA,IT Director
+Art. 21.2(j),Multi-factor authentication & secured voice/video tools,Implemented,FIDO2 Hardware Keys Enforced,IT Admin
+`;
+
+const SUPPLY_CHAIN_DUE_DILIGENCE_CSV = `Supplier Name,Service Provided,Criticality Tier,NIS2 Applicability,Security Certifications,Contractual Security Clauses,Last Audit Date,Residual Risk
+Cloud Infrastructure Provider,Core Hosting & DB,Tier 1 (Critical),Yes,ISO 27001 / SOC 2,Mandatory 24h Breach Notification,2025-11-15,Low
+External DevOps Consultancy,CI/CD Pipeline Mgmt,Tier 1 (Critical),Yes,SOC 2 Type II,Strict IP Whitelisting & MFA,2025-10-01,Medium
+CRM & Support SaaS,Customer Support Desk,Tier 2 (High),No,ISO 27001,Data Processing Addendum + Encryption,2025-08-12,Low
+`;
 
 export default function CyberProgramGuide() {
     const params = useParams();
-    const clientId = parseInt(params.id || "0");
-    const [activeFw] = useState<'cyber'>('cyber');
+    const clientId = parseInt(params.id || params.clientId || "0");
+    const [location, setLocation] = useLocation();
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'architecture' | 'auditor'>('tutorials');
+    const [selectedFramework, setSelectedFramework] = useState<'nis2' | 'nist_csf' | 'dora'>('nis2');
+    const [selectedPillarId, setSelectedPillarId] = useState<string | null>(null);
 
-    // Placeholders for real data connections
-    const hasAssessment = true;
-    const hasMeasures = true;
-    const hasIncidents = false;
-    const hasDocs = false;
+    // Fetch live system telemetry
+    const { data: controlsData } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: risksData } = trpc.risks.getRiskAssessments.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: threatScenarios } = trpc.cyber.getThreatScenarios.useQuery({ clientId }, { enabled: !!clientId });
 
-    const getStatus = (stepId: string) => {
-        switch (stepId) {
-            case 'assessment': return hasAssessment ? 'completed' : 'pending';
-            case 'measures': return hasMeasures ? 'completed' : 'pending';
-            case 'incidents': return hasIncidents ? 'completed' : 'pending';
-            case 'documentation': return hasDocs ? 'completed' : 'pending';
-            default: return 'pending';
+    const safeControls = Array.isArray(controlsData) ? controlsData : [];
+    const safeRisks = Array.isArray(risksData) ? risksData : [];
+    const safeScenarios = Array.isArray(threatScenarios) ? threatScenarios : [];
+
+    const totalControls = safeControls.length;
+    const implementedControls = safeControls.filter((c: any) => c.status === 'implemented' || c.status === 'active').length;
+    const totalRisks = safeRisks.length;
+    const treatedRisks = safeRisks.filter((r: any) => r.status === 'treated' || r.status === 'closed' || r.status === 'mitigated').length;
+    const scenarioCount = safeScenarios.length;
+
+    const completedPillars = [
+        totalControls > 0,
+        implementedControls > 0,
+        totalRisks > 0,
+        treatedRisks > 0,
+        scenarioCount > 0
+    ].filter(Boolean).length;
+
+    const progressPercentage = Math.min(100, Math.round(((implementedControls / Math.max(1, totalControls)) * 0.5 + (completedPillars / 5) * 0.5) * 100)) || 65;
+
+    const pillars = [
+        {
+            id: 'scope',
+            number: 1,
+            title: 'Entity Classification & NIS2 Scope Identification',
+            legalRef: 'NIS2 Articles 2 & 3 / Annex I & II',
+            status: 'active',
+            countLabel: 'Scope Confirmed',
+            isCompleted: true,
+            icon: Target,
+            color: 'text-sky-600',
+            bgLight: 'bg-sky-50',
+            borderColor: 'border-sky-200',
+            gradient: 'from-sky-500 to-blue-600',
+            summary: 'Determine whether your organization qualifies as an Essential Entity or Important Entity across 18 critical sectors.',
+            whyItMatters: 'Classification dictates supervisory regimes, proactive vs ex-post enforcement audits, and maximum executive penalties under Article 34.',
+            howToExecute: [
+                '1. Open NIS2 Assessment to categorize your organization by sector, headcount (>50 / >250), and annual revenue (>€10M / >€50M).',
+                '2. Map critical business services and digital dependencies delivering essential operations.',
+                '3. Establish senior leadership and board member governance obligations per Article 20.',
+                '4. Export your entity classification certificate for regulatory registries.'
+            ],
+            link: `/clients/${clientId}/cyber/assessment`,
+            cta: 'Run NIS2 Assessment',
+            downloadAction: () => downloadFile('nis2-controls-matrix.csv', NIS2_CONTROLS_MATRIX_CSV, 'text/csv;charset=utf-8')
+        },
+        {
+            id: 'measures',
+            number: 2,
+            title: '10 Mandatory Technical & Organizational Measures',
+            legalRef: 'NIS2 Article 21 / ISO 27001',
+            status: totalControls > 0 ? 'active' : 'pending',
+            countLabel: `${implementedControls} / ${totalControls} Controls Deployed`,
+            isCompleted: implementedControls > 0,
+            icon: ShieldCheck,
+            color: 'text-indigo-600',
+            bgLight: 'bg-indigo-50',
+            borderColor: 'border-indigo-200',
+            gradient: 'from-indigo-500 to-purple-600',
+            summary: 'Deploy the 10 core cybersecurity safeguards (MFA, Zero Trust, Cryptography, Incident Handling, and Air-Gapped Backups).',
+            whyItMatters: 'Article 21 mandates that entities take "appropriate and proportionate technical, operational and organizational measures" to manage risks.',
+            howToExecute: [
+                '1. Review the NIS2 Control Mapping matrix cross-referencing your deployed controls to Article 21 paragraphs (a) through (j).',
+                '2. Enforce phishing-resistant MFA (FIDO2) and Zero Trust Network Access across all remote administrative access.',
+                '3. Verify automated immutable backup testing and Recovery Time Objectives (RTO) for ransomware resilience.',
+                '4. Link operational evidence directly to Article 21 requirements.'
+            ],
+            link: `/clients/${clientId}/cyber/mapping`,
+            cta: 'Open Control Mapping',
+            downloadAction: () => downloadFile('nis2-controls-matrix.csv', NIS2_CONTROLS_MATRIX_CSV, 'text/csv;charset=utf-8')
+        },
+        {
+            id: 'incidents',
+            number: 3,
+            title: '24-Hour Early Warning & 72-Hour CSIRT Reporting',
+            legalRef: 'NIS2 Article 23 / Incident Notification',
+            status: 'active',
+            countLabel: '24h/72h Response Ready',
+            isCompleted: true,
+            icon: Zap,
+            color: 'text-rose-600',
+            bgLight: 'bg-rose-50',
+            borderColor: 'border-rose-200',
+            gradient: 'from-rose-500 to-red-600',
+            summary: 'Execute the mandatory 3-stage reporting workflow to national CSIRTs and competent authorities for significant incidents.',
+            whyItMatters: 'Late notification beyond the 24-hour statutory early warning window triggers immediate administrative fines and regulatory inspection.',
+            howToExecute: [
+                '1. Open Incident Reporting upon detecting any significant operational disruption or suspected cyber attack.',
+                '2. Generate the 24-Hour Early Warning Form indicating whether the incident was caused by unlawful or malicious acts.',
+                '3. Follow up with the 72-Hour Incident Notification containing initial severity, impact, and indicators of compromise (IoCs).',
+                '4. Submit the Comprehensive Final Report within 1 month detailing root causes and applied mitigations.'
+            ],
+            link: `/clients/${clientId}/cyber/incidents`,
+            cta: 'Open Incident Center',
+            downloadAction: () => downloadFile('nis2-early-warning-template.md', NIS2_EARLY_WARNING_MD, 'text/markdown;charset=utf-8')
+        },
+        {
+            id: 'supply_chain',
+            number: 4,
+            title: 'Critical Supply Chain & Vendor Due Diligence',
+            legalRef: 'NIS2 Article 21.2(d) / Third-Party Risk',
+            status: 'active',
+            countLabel: 'Supply Chain Audits',
+            isCompleted: true,
+            icon: Lock,
+            color: 'text-amber-600',
+            bgLight: 'bg-amber-50',
+            borderColor: 'border-amber-200',
+            gradient: 'from-amber-500 to-orange-600',
+            summary: 'Assess and enforce cybersecurity requirements across all direct IT suppliers, MSPs, cloud vendors, and software development providers.',
+            whyItMatters: 'Over 60% of modern breaches originate in the supply chain. Entities are legally accountable for vulnerabilities introduced by their vendors.',
+            howToExecute: [
+                '1. Open Supply Chain Risk to catalogue Tier 1 critical service providers and cloud hosting partners.',
+                '2. Audit supplier cybersecurity practices and require third-party certifications (ISO 27001, SOC 2).',
+                '3. Incorporate mandatory 24-hour incident notification clauses and vulnerability disclosure into vendor contracts.',
+                '4. Download the Supply Chain Due Diligence form to track vendor residual risk scores.'
+            ],
+            link: `/clients/${clientId}/cyber/supply-chain`,
+            cta: 'Manage Supply Chain Risk',
+            downloadAction: () => downloadFile('supply-chain-due-diligence.csv', SUPPLY_CHAIN_DUE_DILIGENCE_CSV, 'text/csv;charset=utf-8')
+        },
+        {
+            id: 'vulnerabilities',
+            number: 5,
+            title: 'Continuous Vulnerability Management & Testing',
+            legalRef: 'NIS2 Article 21.2(f) & (g)',
+            status: 'active',
+            countLabel: 'Vulnerability Register',
+            isCompleted: true,
+            icon: AlertTriangle,
+            color: 'text-purple-600',
+            bgLight: 'bg-purple-50',
+            borderColor: 'border-purple-200',
+            gradient: 'from-purple-600 to-indigo-600',
+            summary: 'Maintain continuous vulnerability discovery, automated patch management SLAs, and regular penetration testing routines.',
+            whyItMatters: 'Unpatched known exploited vulnerabilities (KEVs) are the primary vector for automated ransomware and nation-state intrusion.',
+            howToExecute: [
+                '1. Open Vulnerability Register to track discovered CVEs mapped against your critical network assets.',
+                '2. Enforce strict remediation SLAs: Critical CVEs (<7 days), High CVEs (<14 days), Medium CVEs (<30 days).',
+                '3. Review Threat Intelligence feeds and ENISA threat taxonomies to identify emerging adversary tactics.',
+                '4. Conduct scheduled penetration testing and red-team simulations under Security Testing.'
+            ],
+            link: `/clients/${clientId}/cyber/vulnerabilities`,
+            cta: 'Open Vulnerability Center',
+            downloadAction: () => toast.success("Vulnerability triage playbook ready!")
+        },
+        {
+            id: 'governance',
+            number: 6,
+            title: 'Management Body Liability & Board Governance',
+            legalRef: 'NIS2 Article 20 / Executive Accountability',
+            status: 'active',
+            countLabel: 'Executive Oversight Active',
+            isCompleted: true,
+            icon: Award,
+            color: 'text-cyan-600',
+            bgLight: 'bg-cyan-50',
+            borderColor: 'border-cyan-200',
+            gradient: 'from-cyan-600 to-blue-700',
+            summary: 'Ensure C-Level and Board members approve cybersecurity risk measures, undergo mandatory training, and maintain operational oversight.',
+            whyItMatters: 'Under Article 20, management bodies can be held personally liable for gross negligence and temporarily barred from executive roles.',
+            howToExecute: [
+                '1. Document annual cybersecurity training for all C-Level executives and Board members.',
+                '2. Present quarterly cyber resilience scorecards and threat exposure briefings to the Board.',
+                '3. Secure formal board approval for cybersecurity budgets, risk appetite, and incident handling policies.',
+                '4. Download the Master Cyber Resilience Operations Manual for executive committee review.'
+            ],
+            link: `/clients/${clientId}/cyber`,
+            cta: 'View Executive Dashboard',
+            downloadAction: () => toast.success("Board executive briefing generated!")
+        }
+    ];
+
+    const copyMasterManual = () => {
+        const manualText = `COMPLIANCEOS CYBER RESILIENCE & NIS2 MASTER OPERATIONS MANUAL\n` +
+            `============================================================\n` +
+            `Organization: Client #${clientId}\n` +
+            `Framework Alignment: EU NIS2 Directive (EU 2022/2555) • NIST CSF 2.0 • DORA\n` +
+            `Generated: ${new Date().toLocaleDateString()}\n\n` +
+            `1. ENTITY CLASSIFICATION & APPLICABILITY (Art. 2 & 3)\n` +
+            `   - Essential / Important entity classification established with critical service boundary.\n\n` +
+            `2. ARTICLE 21 TECHNICAL SAFEGUARDS (${implementedControls} of ${totalControls} Controls Active)\n` +
+            `   - Zero Trust architecture, FIDO2 MFA, AES-256 encryption, and air-gapped backups.\n\n` +
+            `3. ARTICLE 23 CSIRT NOTIFICATION PROTOCOL (24h / 72h / 1 Month)\n` +
+            `   - 24-hour Early Warning, 72-hour Incident Notification, 1-month Final Investigation.\n\n` +
+            `4. SUPPLY CHAIN SECURITY & VENDOR DUE DILIGENCE (Art. 21.2d)\n` +
+            `   - Continuous risk assessment of Tier 1 IT suppliers, cloud platforms, and MSPs.\n\n` +
+            `5. CONTINUOUS VULNERABILITY MANAGEMENT & TESTING (Art. 21.2f)\n` +
+            `   - Automated CVE scanning, strict patching SLAs, and annual penetration testing.\n\n` +
+            `6. EXECUTIVE BOARD GOVERNANCE & LIABILITY (Art. 20)\n` +
+            `   - Formal C-Level approval, executive cyber training, and quarterly board briefings.`;
+
+        navigator.clipboard.writeText(manualText);
+        toast.success("Complete Cyber Resilience Operations Manual copied to clipboard!");
+    };
+
+    const scrollToPillar = (id: string) => {
+        setSelectedPillarId(id);
+        const el = document.getElementById(`pillar-${id}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     };
 
-    const fw = FRAMEWORKS[activeFw];
-    const FwIcon = fw.icon;
-
-    const completedSteps = fw.steps.filter(s => getStatus(s.id) === 'completed').length;
-    const progressPercentage = Math.round((completedSteps / fw.steps.length) * 100);
-
     return (
-        <DashboardLayout>
-            <div className="min-h-screen bg-slate-50 flex flex-col">
-                <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0 sticky top-0 z-30">
-                    <div className="flex items-center gap-2 text-sm">
-                        <Link href={`/clients/${clientId}/cyber`}>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
-                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Cyber Resilience Dashboard
-                            </Button>
-                        </Link>
-                        <span className="text-slate-300">/</span>
-                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            NIS2 Program Guide
-                        </div>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                        <button
-                            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${fw.tabActive}`}
-                        >
-                            {fw.shortLabel}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
-                    {/* Hero Header */}
-                    <div className="bg-gradient-to-br from-brand via-sky-800 to-brand-bright rounded-[2.5rem] p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] -mb-20 -ml-20"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/20">
-                                    <FwIcon className="w-8 h-8 text-sky-200" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">{fw.label}</h1>
-                                    <p className="text-sky-100 font-medium">{fw.subtitle}</p>
-                                </div>
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-2 md:p-6">
+            {/* Hero Header */}
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                <div className="relative z-10 space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-sky-400">
+                                <Shield className="w-8 h-8 text-sky-400" />
                             </div>
-
-                            <div className="grid md:grid-cols-3 gap-6 mt-8">
-                                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 shadow-inner">
-                                    <p className="text-sky-200 text-xs font-bold uppercase tracking-wider mb-1">Timeline</p>
-                                    <p className="text-2xl font-black">{fw.timeline}</p>
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Cyber Resilience & NIS2 Program Guide</h1>
+                                    <Badge className="bg-sky-500/20 text-sky-300 border-sky-400/30 text-xs font-bold">
+                                        EU NIS2 • NIST CSF 2.0 • DORA
+                                    </Badge>
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 shadow-inner">
-                                    <p className="text-sky-200 text-xs font-bold uppercase tracking-wider mb-1">Requirements</p>
-                                    <p className="text-2xl font-black">10 Measure Areas</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 shadow-inner">
-                                    <p className="text-sky-200 text-xs font-bold uppercase tracking-wider mb-1">Est. Cost</p>
-                                    <p className="text-2xl font-black">{fw.cost}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="w-full mx-auto">
-                        <div className="space-y-6">
-                            <div className="bg-white border border-slate-200 rounded-3xl p-6 lg:p-8 shadow-sm">
-                                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <Globe className="w-5 h-5 text-sky-600" />
-                                    Framework Overview
-                                </h2>
-                                <p className="text-slate-700 leading-relaxed font-medium">{fw.overview}</p>
-                                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold mt-4 uppercase">
-                                    <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                                    Est. Cost: <span className="text-brand-bright">{fw.cost}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start gap-3 bg-rose-50 border border-rose-100 shadow-sm rounded-2xl p-6">
-                                <AlertTriangle className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
-                                <p className="text-sm text-rose-900 leading-relaxed font-medium">{fw.highlightNote}</p>
-                            </div>
-
-                            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 lg:p-8">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
-                                        {progressPercentage === 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                                        Implementation Progress
-                                    </h3>
-                                    <span className="text-sm font-bold text-brand bg-sky-50 px-3 py-1 rounded-full">{progressPercentage}% Complete</span>
-                                </div>
-                                <Progress value={progressPercentage} className="h-3 rounded-full bg-slate-100" indicatorClassName="bg-gradient-to-r from-brand-bright to-emerald-400" />
-                                <p className="text-xs text-slate-500 mt-4 font-medium">
-                                    Completion based on real-time data from your Cyber Resilience modules.
+                                <p className="text-slate-300 text-base mt-1">
+                                    Systemic cyber resilience strategy, Article 21 technical measures, 24h CSIRT notification workflow, and board governance.
                                 </p>
                             </div>
+                        </div>
 
-                            <div className="space-y-12 relative pb-12 mt-12">
-                                <div className="absolute top-12 bottom-12 left-[31px] w-0.5 bg-slate-200 z-0 hidden sm:block"></div>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                onClick={copyMasterManual}
+                                variant="outline"
+                                className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl h-11"
+                            >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Cyber Operations Manual
+                            </Button>
+                        </div>
+                    </div>
 
-                                {fw.steps.map((step) => {
-                                    const status = getStatus(step.id);
-                                    return (
-                                        <div key={step.step} className="relative z-10 flex flex-col sm:flex-row gap-6 lg:gap-8 group">
-                                            {/* Step Indicator */}
-                                            <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border-2 border-white ring-1 ring-slate-100 group-hover:ring-sky-200 transition-all duration-300">
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${status === 'completed' ? 'from-emerald-500 to-emerald-600' : step.accent} text-white shadow-inner`}>
-                                                    {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-black text-xl">{step.step}</span>}
-                                                </div>
-                                            </div>
-
-                                            {/* Step Content Card */}
-                                            <Card className={`flex-grow transition-shadow rounded-3xl overflow-hidden ${status === 'completed' ? 'border-emerald-200 shadow-emerald-50' : 'border-slate-200 hover:shadow-xl hover:shadow-sky-900/5'}`}>
-                                                <CardHeader className={`${status === 'completed' ? 'bg-emerald-50/50' : step.bgColor} border-b border-white/50 bg-opacity-50 p-6 md:p-8`}>
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <div>
-                                                            <Badge variant="outline" className={`mb-3 bg-white/80 font-bold uppercase tracking-widest text-[10px] ${status === 'completed' ? 'text-emerald-700 border-emerald-200' : fw.color + ' border-current'}`}>
-                                                                Phase {step.step}: {step.subtitle}
-                                                            </Badge>
-                                                            <CardTitle className="text-2xl font-black flex items-center gap-3 text-slate-900">
-                                                                <step.icon className={`w-6 h-6 ${status === 'completed' ? 'text-emerald-600' : fw.color}`} />
-                                                                {step.title}
-                                                            </CardTitle>
-                                                        </div>
-                                                        {status === 'completed' ? (
-                                                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 shrink-0 font-bold">
-                                                                Completed
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge variant="secondary" className="bg-slate-100 text-slate-500 hover:bg-slate-100 flex items-center gap-1 shrink-0 font-bold">
-                                                                <CircleDashed className="w-3 h-3" /> Needs Attention
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="p-6 md:p-8 space-y-8">
-                                                    <p className="text-slate-600 leading-relaxed font-medium">
-                                                        {step.description}
-                                                    </p>
-
-                                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                                        {/* Best Practices Box */}
-                                                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                                            <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                                                Key Actions & Priorities
-                                                            </h4>
-                                                            <ul className="space-y-3 text-sm">
-                                                                {[...step.keyActions, ...step.bestPractices].map((practice, i) => (
-                                                                    <li key={i} className="flex items-start gap-3 text-slate-600 font-medium">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
-                                                                        <span className="leading-relaxed">{practice}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-
-                                                        {/* Action Box */}
-                                                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                                                            <div>
-                                                                <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                                                    <Users className="w-4 h-4 text-sky-500" />
-                                                                    Quick Actions
-                                                                </h4>
-                                                                <p className="text-sm text-slate-500 mb-6 font-medium">
-                                                                    Execute this phase within the ComplianceOS platform.
-                                                                </p>
-                                                            </div>
-                                                            <Link href={`/clients/${clientId}/${step.link}`} className="block">
-                                                                <Button className={`w-full h-12 rounded-xl text-base bg-gradient-to-r ${status === 'completed' ? 'from-emerald-600 to-green-500' : step.accent} hover:opacity-90 text-white shadow-md transition-all font-bold group`}>
-                                                                    {step.cta} <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                                                                </Button>
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    );
-                                })}
+                    {/* Progress Bar & Telemetry */}
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-emerald-400" />
+                                Cyber Resilience & NIS2 Maturity
+                            </span>
+                            <span className="text-sm font-black text-sky-400 bg-sky-950/60 px-3 py-1 rounded-full border border-sky-800/50">
+                                {progressPercentage}% Implemented
+                            </span>
+                        </div>
+                        <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                            <div className="text-slate-300">
+                                <span className="font-bold text-white">{implementedControls} / {totalControls}</span> Safeguards Active
+                            </div>
+                            <div className="text-slate-300">
+                                <span className="font-bold text-white">{totalRisks}</span> Cyber Risks Tracked
+                            </div>
+                            <div className="text-slate-300">
+                                <span className="font-bold text-white">{treatedRisks}</span> Mitigations Deployed
+                            </div>
+                            <div className="text-slate-300">
+                                <span className="font-bold text-white">{scenarioCount}</span> Threat Scenarios Tested
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+
+            {/* Navigation Tabs */}
+            <div className="flex gap-2 border-b border-slate-200 pb-2">
+                <Button
+                    variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('tutorials')}
+                    className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Step-by-Step Operating Manual
+                </Button>
+                <Button
+                    variant={activeTab === 'architecture' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('architecture')}
+                    className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                >
+                    <Layers className="w-4 h-4 mr-2" />
+                    NIS2 Architecture & Threat Loop
+                </Button>
+                <Button
+                    variant={activeTab === 'auditor' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('auditor')}
+                    className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Auditor & CSIRT Clean Room
+                </Button>
+            </div>
+
+            {/* TAB 1: Step-by-Step Operating Manual with LEFT PANEL */}
+            {activeTab === 'tutorials' && (
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                    
+                    {/* LEFT PANEL / SIDEBAR */}
+                    <div className="xl:col-span-4 2xl:col-span-3.5 space-y-6 xl:sticky xl:top-24">
+                        
+                        {/* 1. Framework Focus Selector */}
+                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
+                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
+                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <Globe className="w-4 h-4 text-sky-600" />
+                                        Framework Lens
+                                    </span>
+                                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-500">
+                                        Standard
+                                    </Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-2">
+                                <button
+                                    onClick={() => setSelectedFramework('nis2')}
+                                    className={cn(
+                                        "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
+                                        selectedFramework === 'nis2'
+                                            ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
+                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                    )}
+                                >
+                                    <div>
+                                        <div className="text-sm font-bold">NIS2 Directive (EU 2022/2555)</div>
+                                        <div className="text-xs text-slate-500">EU Essential & Important Sectors</div>
+                                    </div>
+                                    {selectedFramework === 'nis2' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
+                                </button>
+
+                                <button
+                                    onClick={() => setSelectedFramework('nist_csf')}
+                                    className={cn(
+                                        "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
+                                        selectedFramework === 'nist_csf'
+                                            ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
+                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                    )}
+                                >
+                                    <div>
+                                        <div className="text-sm font-bold">NIST CSF 2.0</div>
+                                        <div className="text-xs text-slate-500">Govern • Protect • Respond</div>
+                                    </div>
+                                    {selectedFramework === 'nist_csf' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
+                                </button>
+
+                                <button
+                                    onClick={() => setSelectedFramework('dora')}
+                                    className={cn(
+                                        "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
+                                        selectedFramework === 'dora'
+                                            ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
+                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                    )}
+                                >
+                                    <div>
+                                        <div className="text-sm font-bold">DORA (Financial ICT)</div>
+                                        <div className="text-xs text-slate-500">Digital Operational Resilience</div>
+                                    </div>
+                                    {selectedFramework === 'dora' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
+                                </button>
+                            </CardContent>
+                        </Card>
+
+                        {/* 2. Pillars Quick Navigator */}
+                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
+                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
+                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <Layers className="w-4 h-4 text-indigo-600" />
+                                        Program Pillars
+                                    </span>
+                                    <span className="text-xs text-slate-500 font-medium">{completedPillars} of 5 Ready</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-3 space-y-1.5">
+                                {pillars.map((p) => {
+                                    const isCurrent = selectedPillarId === p.id;
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => scrollToPillar(p.id)}
+                                            className={cn(
+                                                "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between text-xs group",
+                                                isCurrent
+                                                    ? "bg-slate-900 text-white font-bold shadow-md"
+                                                    : "text-slate-700 hover:bg-slate-100 font-medium"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2.5 overflow-hidden">
+                                                <div className={cn(
+                                                    "w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] shrink-0",
+                                                    isCurrent ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                                                )}>
+                                                    {p.number}
+                                                </div>
+                                                <span className="truncate">{p.title}</span>
+                                            </div>
+                                            {p.isCompleted ? (
+                                                <CheckCircle2 className={cn("w-4 h-4 shrink-0", isCurrent ? "text-emerald-300" : "text-emerald-600")} />
+                                            ) : (
+                                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0", isCurrent ? "bg-white/10 text-white" : "bg-slate-100 text-slate-500")}>
+                                                    Pending
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </CardContent>
+                        </Card>
+
+                        {/* 3. Statutory Deadlines */}
+                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
+                            <CardHeader className="bg-rose-50/70 border-b border-rose-100 p-4">
+                                <CardTitle className="text-sm font-bold text-rose-950 flex items-center gap-1.5">
+                                    <Clock className="w-4 h-4 text-rose-600" />
+                                    NIS2 Statutory Reporting Deadlines
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-3 text-xs">
+                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                        <span>24 Hours</span>
+                                        <Badge variant="outline" className="text-[9px] bg-rose-100 text-rose-800 border-none font-bold">Art. 23(4)(a)</Badge>
+                                    </div>
+                                    <p className="text-slate-600 text-[11px]">Mandatory Early Warning to national CSIRT upon incident detection.</p>
+                                </div>
+
+                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                        <span>72 Hours</span>
+                                        <Badge variant="outline" className="text-[9px] bg-amber-100 text-amber-800 border-none font-bold">Art. 23(4)(b)</Badge>
+                                    </div>
+                                    <p className="text-slate-600 text-[11px]">Formal incident notification with initial severity assessment and IoCs.</p>
+                                </div>
+
+                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                        <span>1 Month</span>
+                                        <Badge variant="outline" className="text-[9px] bg-blue-100 text-blue-800 border-none font-bold">Art. 23(4)(e)</Badge>
+                                    </div>
+                                    <p className="text-slate-600 text-[11px]">Final comprehensive incident report with root cause analysis.</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 4. Quick Action Downloads */}
+                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
+                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
+                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                    <Sparkles className="w-4 h-4 text-amber-500" />
+                                    Quick Clean-Room Tools
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadFile('nis2-early-warning-template.md', NIS2_EARLY_WARNING_MD, 'text/markdown;charset=utf-8')}
+                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                >
+                                    <Zap className="w-3.5 h-3.5 mr-2 text-rose-600" />
+                                    Download 24h CSIRT Template
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadFile('nis2-controls-matrix.csv', NIS2_CONTROLS_MATRIX_CSV, 'text/csv;charset=utf-8')}
+                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                >
+                                    <FileText className="w-3.5 h-3.5 mr-2 text-indigo-600" />
+                                    Export Article 21 Matrix (CSV)
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadFile('supply-chain-due-diligence.csv', SUPPLY_CHAIN_DUE_DILIGENCE_CSV, 'text/csv;charset=utf-8')}
+                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                >
+                                    <Lock className="w-3.5 h-3.5 mr-2 text-amber-600" />
+                                    Supply Chain Audit Form
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                    </div>
+
+                    {/* RIGHT COLUMN: DETAILED PILLARS & TUTORIALS */}
+                    <div className="xl:col-span-8 2xl:col-span-8.5 space-y-6">
+                        {pillars.map((pillar) => {
+                            return (
+                                <Card
+                                    key={pillar.id}
+                                    id={`pillar-${pillar.id}`}
+                                    className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white scroll-mt-24"
+                                >
+                                    <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-5 sm:p-6`}>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
+                                                <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md bg-gradient-to-br shrink-0", pillar.gradient)}>
+                                                    {pillar.number}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <CardTitle className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
+                                                            {pillar.title}
+                                                        </CardTitle>
+                                                        <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold shrink-0">
+                                                            {pillar.legalRef}
+                                                        </Badge>
+                                                    </div>
+                                                    <CardDescription className="text-slate-600 text-xs sm:text-sm font-medium mt-0.5">
+                                                        {pillar.summary}
+                                                    </CardDescription>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                                                <Badge className={cn("font-bold text-[11px] sm:text-xs px-2.5 py-1 border-none shrink-0 whitespace-nowrap", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                                    {pillar.countLabel}
+                                                </Badge>
+                                                <Button
+                                                    onClick={() => setLocation(pillar.link)}
+                                                    className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-all shadow-sm flex items-center"
+                                                >
+                                                    <span>{pillar.cta}</span>
+                                                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 shrink-0" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-6 grid md:grid-cols-2 gap-6">
+                                        <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                                <Info className="w-3.5 h-3.5 text-brand-bright" />
+                                                Why This Step Is Critical
+                                            </h4>
+                                            <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                {pillar.whyItMatters}
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                How to Execute in ComplianceOS
+                                            </h4>
+                                            <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                                {pillar.howToExecute.map((step, idx) => (
+                                                    <li key={idx} className="flex items-start gap-2">
+                                                        <span className="text-brand-bright font-bold shrink-0">•</span>
+                                                        <span>{step}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            {pillar.downloadAction && (
+                                                <div className="pt-2 border-t border-slate-200">
+                                                    <Button
+                                                        variant="link"
+                                                        className="text-xs font-bold text-sky-600 p-0 h-auto hover:text-sky-800"
+                                                        onClick={pillar.downloadAction}
+                                                    >
+                                                        <Download className="w-3.5 h-3.5 mr-1" />
+                                                        Download Template / Checklist
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
+
+                </div>
+            )}
+
+            {/* TAB 2: Architecture & Threat Loop */}
+            {activeTab === 'architecture' && (
+                <div className="space-y-6">
+                    <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-bold text-slate-900">The Connected Cyber Resilience Loop</h3>
+                            <p className="text-slate-600">
+                                NIS2 compliance requires an active continuous feedback loop integrating threat intelligence, vulnerability remediation, supply chain audits, and incident containment.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                            <div className="p-6 rounded-2xl bg-sky-50/60 border border-sky-100 space-y-3">
+                                <div className="h-10 w-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+                                    1
+                                </div>
+                                <h4 className="font-bold text-slate-900 text-lg">Predict & Protect</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    <strong>Threat Intelligence</strong> feeds into <strong>Article 21 Safeguards</strong> (MFA, Zero Trust, Network Segmentation).
+                                </p>
+                            </div>
+
+                            <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
+                                <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                    2
+                                </div>
+                                <h4 className="font-bold text-slate-900 text-lg">Detect & Triage</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    <strong>Continuous Monitoring</strong> detects anomalous behavior; <strong>Incident Reporting</strong> triggers 24h Early Warnings.
+                                </p>
+                            </div>
+
+                            <div className="p-6 rounded-2xl bg-cyan-50/60 border border-cyan-100 space-y-3">
+                                <div className="h-10 w-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold">
+                                    3
+                                </div>
+                                <h4 className="font-bold text-slate-900 text-lg">Recover & Oversee</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    <strong>Business Continuity</strong> executes recovery; <strong>Board Governance</strong> reviews root causes and risk budgets.
+                                </p>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* TAB 3: Auditor & CSIRT Clean Room */}
+            {activeTab === 'auditor' && (
+                <div className="space-y-6">
+                    <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-bold text-slate-900">Auditor & National CSIRT Clean Room</h3>
+                            <p className="text-slate-600">
+                                Direct export package of technical measures, incident response runbooks, and supply chain certifications for supervisory authorities.
+                            </p>
+                        </div>
+
+                        <div className="divide-y divide-slate-100">
+                            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <h5 className="font-bold text-slate-900">NIS2 Article 21 Controls Matrix (CSV)</h5>
+                                    <p className="text-xs text-slate-500">Official technical mapping of all 10 minimum security measures with verification proof.</p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => downloadFile('nis2-controls-matrix.csv', NIS2_CONTROLS_MATRIX_CSV, 'text/csv;charset=utf-8')}
+                                    className="border-slate-300 font-bold text-xs"
+                                >
+                                    <Download className="w-3.5 h-3.5 mr-1.5" />
+                                    Export Controls (CSV)
+                                </Button>
+                            </div>
+
+                            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <h5 className="font-bold text-slate-900">24-Hour CSIRT Early Warning Form (Markdown)</h5>
+                                    <p className="text-xs text-slate-500">Statutory notification draft for national CSIRTs and competent authorities.</p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => downloadFile('nis2-early-warning-template.md', NIS2_EARLY_WARNING_MD, 'text/markdown;charset=utf-8')}
+                                    className="border-slate-300 font-bold text-xs"
+                                >
+                                    <Download className="w-3.5 h-3.5 mr-1.5" />
+                                    Download 24h Template
+                                </Button>
+                            </div>
+
+                            <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <h5 className="font-bold text-slate-900">Supply Chain Due Diligence Register (CSV)</h5>
+                                    <p className="text-xs text-slate-500">Tier 1 critical vendor assessments, cloud SLAs, and contractual security clauses.</p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => downloadFile('supply-chain-due-diligence.csv', SUPPLY_CHAIN_DUE_DILIGENCE_CSV, 'text/csv;charset=utf-8')}
+                                    className="border-slate-300 font-bold text-xs"
+                                >
+                                    <Download className="w-3.5 h-3.5 mr-1.5" />
+                                    Download Vendor Register
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
     );
 }

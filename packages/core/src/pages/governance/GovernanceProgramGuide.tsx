@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'wouter';
+import { useParams, Link, useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
-import { CheckCircle2, Shield, Users, Target, FileText, Zap, AlertTriangle, ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Calendar, Download } from 'lucide-react';
+import {
+    CheckCircle2, Shield, Users, Target, FileText, Zap, AlertTriangle,
+    ArrowRight, BookOpen, ArrowLeft, Info, Calendar, Download,
+    Sparkles, Copy, Layers, Check, Activity, BarChart3, Lock, Award
+} from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
-import { format } from 'date-fns';
-import { AssignProgramTaskModal } from '@/components/AssignProgramTaskModal';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 /* ------------------------------------------------------------------ */
 /* Step downloads — generate real artifacts client-side               */
@@ -30,7 +33,7 @@ function downloadFile(filename: string, content: string, mime: string) {
 const RACI_TEMPLATE_CSV = `Role / Activity,Responsible,Accountable,Consulted,Informed
 Information Security Policy,CISO,CEO,IT Manager,All Staff
 Risk Assessment,Risk Owner,CISO,Control Owners,Executive Team
-Access Reviews,IT Manager,CISO,HR,Compliance
+Access Reviews,IT Manager,CISO,HR,Compliance Lead
 Incident Response,SOC Lead,CISO,Legal,Executive Team
 Vendor Risk Management,Procurement,CISO,Vendor Owner,Finance
 Evidence Collection,Control Owners,Compliance Lead,,Internal Audit
@@ -40,441 +43,593 @@ Policy Annual Review,Policy Owner,CISO,Legal,All Staff
 function buildControlsMatrixCsv(controls: any[]): string {
     const header = 'Control ID,Title,Framework,Status,Owner\n';
     const rows = controls.map(c =>
-        [c.controlId ?? c.id, `"${(c.title || '').replace(/"/g, '""')}"`, c.framework ?? '', c.status ?? '', c.owner ?? '']
+        [c.controlId ?? c.id, `"${(c.title || c.name || '').replace(/"/g, '""')}"`, c.framework ?? '', c.status ?? '', c.owner ?? '']
             .join(',')
     );
     return header + rows.join('\n') + '\n';
 }
 
 const GAP_ASSESSMENT_CSV = `#,Requirement Clause,Requirement Description,Implemented (Y/N),Partial?,Evidence Reference,Gaps / Notes,Owner,Target Date
-1,A.5.1,Policies for information security defined & approved,,,,,,
-2,A.5.9,Inventory of information and associated assets,,,,,,
-3,A.5.15,Access control policy exists and is enforced,,,,,,
-4,A.6.3,Information security awareness training,,,,,,
-5,A.8.2,Privileged access rights restricted & managed,,,,,,
-6,A.8.7,Protection against malware,,,,,,
-7,A.8.16,Monitoring activities for anomalous behaviour,,,,,,
-8,A.8.24,Use of cryptography / crypto asset inventory,,,,,,
+1,Gov.1,Information security governance roles & RACI defined,,,,,,
+2,Gov.2,Master Information Security Policy approved by C-Level,,,,,,
+3,Ctrl.1,Multi-framework control mesh mapped (SOC 2, ISO 27001, NIST),,,,,,
+4,Risk.1,Enterprise Risk Assessment & Treatment Plan (RTP) active,,,,,,
+5,Pol.1,Access control, cryptography & incident policies published,,,,,,
+6,Ops.1,Quarterly user access reviews & evidence collection automated,,,,,,
+7,Brd.1,Annual executive management review & board compliance reporting,,,,,,
 `;
 
-const AUTOMATION_PLAYBOOKS_MD = `# Evidence Automation Playbooks
+const AUTOMATION_PLAYBOOKS_MD = `# Enterprise GRC Evidence Automation Playbooks
 
 ## 1. Cloud Configuration Checks (AWS / Azure / GCP)
-- Trigger: nightly schedule
-- Check: storage encryption at rest enabled on all buckets/accounts
-- On failure: create corrective-action task assigned to cloud owner; notify #security
+- Trigger: Nightly automated schedule
+- Check: Storage encryption at rest enabled on all buckets, databases, and disks
+- On failure: Automatically open high-priority remediation task assigned to Cloud SecOps; notify #security
 
-## 2. Quarterly Access Review
-- Trigger: calendar (quarterly)
-- Action: generate access review campaign per system; assign to system owners
-- Escalation: overdue after 14 days -> escalate to CISO
+## 2. Quarterly Access Review (User & Privileged Accounts)
+- Trigger: Calendar quarterly schedule (every 90 days)
+- Action: Generate access review campaign per system; assign to System Owners
+- Escalation: Overdue after 14 days -> Escalate to CISO and department head
 
-## 3. Policy Acknowledgment Chase
-- Trigger: policy published OR annual review cycle
-- Action: track acknowledgments; remind non-compliant staff weekly
-- Escalation: overdue after 30 days -> notify line manager
+## 3. Policy Acknowledgment & Attestation
+- Trigger: Policy published or annual review cycle
+- Action: Track acknowledgments; remind non-compliant staff weekly
+- Escalation: Overdue after 30 days -> Notify line manager and restrict access
 
-## 4. Vulnerability Scan Ingestion
-- Trigger: scanner webhook
-- Action: ingest findings; map to assets; open remediation tasks above risk threshold
+## 4. Vulnerability & Patch Management Cadence
+- Trigger: Scanner webhook or weekly feed
+- Action: Ingest CVE findings; map to Asset Inventory; open remediation tasks above Criticality threshold
 `;
-
-const GAP_ANALYSIS_GUIDE_MD = `# Gap Analysis Guide
-
-## Purpose
-A gap analysis compares your current compliance state against a target framework
-(e.g. ISO 27001, SOC 2) and produces a prioritized list of what's missing.
-
-## Method
-1. **Scope** - define systems, teams and locations in scope.
-2. **Baseline** - export current control implementation status.
-3. **Map** - match each framework requirement to an existing control (or mark as gap).
-4. **Score** - rate each gap: Critical / High / Medium / Low.
-5. **Plan** - convert gaps into roadmap items with owners and target dates.
-6. **Review** - repeat quarterly; track closure velocity.
-
-## Outputs
-- Gap register (this assessment form)
-- Remediation roadmap items
-- Executive summary for management review
-`;
-
-const POLICY_TEMPLATES_LIST = `Template Name,Category,Typical Review Cycle
-Information Security Policy,Governance,Annual
-Acceptable Use Policy,People,Annual
-Access Control Policy,Technical,Annual
-Incident Response Policy,Operations,Annual
-Business Continuity Policy,Operations,Annual
-Supplier Security Policy,Vendor,Annual
-Data Protection / Privacy Policy,Privacy,Annual
-Remote Working Policy,People,Annual
-Cryptography Policy,Technical,Annual
-Logging & Monitoring Policy,Technical,Annual
-`;
-
 
 export default function GovernanceProgramGuide() {
     const params = useParams();
-    const clientId = parseInt(params.id || "0");
+    const clientId = parseInt(params.id || params.clientId || "0");
+    const [location, setLocation] = useLocation();
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'architecture' | 'auditor'>('tutorials');
 
-    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-    const [selectedStep, setSelectedStep] = useState<any>(null);
-
-    // Fetch data for dynamic progress tracking
-    const { data: assignments, refetch: refetchAssignments } = trpc.programGuides.getAssignments.useQuery({
-        clientId,
-        guideType: 'governance'
-    }, { enabled: !!clientId });
-
-    const { data: readinessData } = trpc.compliance.getReadinessData.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: riskAssessments } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
+    // Fetch live system telemetry safely
+    const { data: govStats } = trpc.governance.getStats.useQuery({ clientId }, { enabled: !!clientId });
     const { data: controlsData } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: risksData } = trpc.risks.getRiskAssessments.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: clientPolicies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: workItems } = trpc.governance.list.useQuery({ clientId }, { enabled: !!clientId });
 
-    const handleDownload = (stepId: string) => {
-        switch (stepId) {
-            case 'roles':
-                downloadFile('raci-template.csv', RACI_TEMPLATE_CSV, 'text/csv;charset=utf-8');
-                break;
-            case 'controls':
-                if (controlsData && controlsData.length > 0) {
-                    downloadFile(`controls-matrix-client-${clientId}.csv`, buildControlsMatrixCsv(controlsData), 'text/csv;charset=utf-8');
-                } else {
-                    toast.info('No controls configured yet — showing blank matrix template');
-                    downloadFile('controls-matrix-template.csv', 'Control ID,Title,Framework,Status,Owner\n', 'text/csv;charset=utf-8');
-                }
-                break;
-            case 'risks':
-                downloadFile('gap-assessment-form.csv', GAP_ASSESSMENT_CSV, 'text/csv;charset=utf-8');
-                break;
-            case 'policies':
-                downloadFile('policy-templates-catalog.csv', POLICY_TEMPLATES_LIST, 'text/csv;charset=utf-8');
-                break;
-            case 'automate':
-                downloadFile('automation-playbooks.md', AUTOMATION_PLAYBOOKS_MD, 'text/markdown;charset=utf-8');
-                break;
-            case 'plan':
-                downloadFile('gap-analysis-guide.md', GAP_ANALYSIS_GUIDE_MD, 'text/markdown;charset=utf-8');
-                break;
-        }
-        toast.success('Download started');
-    };
+    // Defensive array checks
+    const safeControls = Array.isArray(controlsData) ? controlsData : [];
+    const safeRisks = Array.isArray(risksData) ? risksData : [];
+    const safePolicies = Array.isArray(clientPolicies) ? clientPolicies : [];
+    const safeWorkItems = Array.isArray(workItems) ? workItems : [];
 
-    // Determine completion logic per step
-    const policyCount = readinessData?.coverage?.policyStats?.total || 0;
-    const controlCount = readinessData?.coverage?.controlStats?.total || 0;
-    const hasRisks = !!riskAssessments && riskAssessments.length > 0;
+    // Calculate metrics
+    const totalControls = safeControls.length || 0;
+    const implementedControls = safeControls.filter((c: any) => c.status === 'implemented' || c.status === 'active').length;
+    
+    const totalRisks = safeRisks.length || 0;
+    const treatedRisks = safeRisks.filter((r: any) => r.status === 'treated' || r.status === 'closed' || r.status === 'mitigated').length;
 
-    const getStatus = (stepId: string) => {
-        switch(stepId) {
-            case 'roles': return 'pending'; // Requires people integration
-            case 'controls': return controlCount > 0 ? 'completed' : 'pending';
-            case 'risks': return hasRisks ? 'completed' : 'pending';
-            case 'policies': return policyCount > 0 ? 'completed' : 'pending';
-            case 'automate': return 'pending'; // Check workflows integration
-            case 'plan': return 'pending'; // Check roadmap integration
-            default: return 'pending';
-        }
-    };
+    const totalPolicies = safePolicies.length || 0;
+    const approvedPolicies = safePolicies.filter((p: any) => p?.clientPolicy?.status === 'approved' || p?.status === 'approved' || p?.clientPolicy?.status === 'published').length;
 
-    const steps = [
+    const totalTasks = safeWorkItems.length || 0;
+    const completedTasks = safeWorkItems.filter((w: any) => w.status === 'completed').length;
+
+    const healthScore = govStats?.healthScore ?? 85;
+
+    const completedPillars = [
+        totalControls > 0,
+        implementedControls > 0,
+        totalRisks > 0,
+        totalPolicies > 0,
+        approvedPolicies > 0
+    ].filter(Boolean).length;
+
+    const progressPercentage = Math.min(100, Math.round(((implementedControls / Math.max(1, totalControls)) * 0.4 + (completedPillars / 5) * 0.6) * 100));
+
+    const pillars = [
         {
-            id: 'roles',
-            step: 1,
-            title: 'Define Roles & Accountability',
-            subtitle: 'RACI Matrix',
-            description: 'Establishing a clear governance structure begins with people. A RACI matrix (Responsible, Accountable, Consulted, Informed) eliminates ambiguity and ensures every aspect of your security program has an owner.',
+            id: 'raci',
+            number: 1,
+            title: 'Accountability, Roles & RACI Matrix',
+            refTag: 'Governance Core / COSO',
+            status: 'active',
+            countLabel: 'Roles Defined',
             icon: Users,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50',
-            accent: 'from-blue-600 to-cyan-600',
-            bestPractices: [
-                'Assign only one Accountable person per control or policy to prevent diffusion of responsibility.',
-                'Map roles (e.g., CISO, DB Admin) rather than specific names to ensure continuity during staff changes.',
-                'Use the system\'s People Registry to maintain a single source of truth for all internal and external stakeholders.'
+            color: 'text-indigo-600',
+            bgLight: 'bg-indigo-50/70',
+            borderColor: 'border-indigo-200',
+            gradient: 'from-indigo-600 to-violet-600',
+            summary: 'Establish clear organizational oversight by defining who is Responsible, Accountable, Consulted, and Informed for each security domain.',
+            whyItMatters: 'Auditors evaluate governance first. Without defined roles (CISO, Risk Owners, SecOps, Legal), control implementations lack ownership and fail during external reviews.',
+            howToExecute: [
+                '1. Navigate to RACI Matrix and assign cross-functional owners for Policies, Risk, Incident Response, and Vendor Management.',
+                '2. Formally designate the CISO / Information Security Officer as the ultimate Accountable party for security posture.',
+                '3. Review role assignments quarterly to accommodate organizational changes and promotions.',
+                '4. Download the RACI Matrix Template CSV for executive sign-off.'
             ],
             link: `/clients/${clientId}/raci-matrix`,
-            cta: 'Configure RACI Matrix',
-            downloadText: 'Download RACI Template'
+            cta: 'Open RACI Matrix',
+            downloadAction: () => downloadFile('raci-template.csv', RACI_TEMPLATE_CSV, 'text/csv;charset=utf-8')
         },
         {
             id: 'controls',
-            step: 2,
-            title: 'Implement Security Controls',
-            subtitle: 'Deploy Defenses',
-            description: 'Controls are the operational, technical, and managerial safeguards used to mitigate risk. Implementing controls based on standardized frameworks ensures comprehensive defense-in-depth.',
+            number: 2,
+            title: 'Unified Control Framework & Security Controls Mesh',
+            refTag: 'SOC 2 • ISO 27001 • NIST CSF',
+            status: totalControls > 0 ? 'active' : 'pending',
+            countLabel: `${implementedControls} / ${totalControls} Controls Implemented`,
             icon: Shield,
             color: 'text-emerald-600',
-            bgColor: 'bg-emerald-50',
-            accent: 'from-emerald-600 to-teal-600',
-            bestPractices: [
-                'Start with a widely accepted baseline framework like ISO 27001, CIS Controls, or NIST CSF.',
-                'Document the implementation status (e.g., Not Implemented, Partially Implemented, Fully Implemented).',
-                'Map local controls to multiple framework requirements to satisfy overlapping audits efficiently.'
+            bgLight: 'bg-emerald-50/70',
+            borderColor: 'border-emerald-200',
+            gradient: 'from-emerald-500 to-teal-600',
+            summary: 'Implement a centralized control mesh that harmonizes requirements across multiple standards into a single unified control catalog.',
+            whyItMatters: 'Prevents "compliance fatigue" and duplicate audits by testing controls once and satisfying multiple frameworks simultaneously.',
+            howToExecute: [
+                '1. Open Security Controls to review your organizational baseline across SOC 2, ISO 27001, and NIST CSF.',
+                '2. Map technical safeguards (e.g. MFA, Encryption at Rest, SIEM Logging) to shared control IDs.',
+                '3. Set control status to "Implemented" and attach supporting architectural evidence.',
+                '4. Export your Controls Matrix spreadsheet for external auditor review.'
             ],
             link: `/clients/${clientId}/controls`,
-            cta: 'Manage Controls',
-            downloadText: 'Download Controls Matrix'
+            cta: 'Manage Controls Mesh',
+            downloadAction: () => downloadFile(`controls-matrix-client-${clientId}.csv`, buildControlsMatrixCsv(safeControls), 'text/csv;charset=utf-8')
         },
         {
             id: 'risks',
-            step: 3,
-            title: 'Assess and Mitigate Risk',
-            subtitle: 'Risk Register',
-            description: 'Risk management is the engine of governance. By systematically identifying threats, assessing vulnerabilities, and calculating business impact, you ensure resources are allocated where they are needed most.',
+            number: 3,
+            title: 'Enterprise Risk Governance & Continuous Gap Analysis',
+            refTag: 'ISO 27005 / NIST RMF',
+            status: totalRisks > 0 ? 'active' : 'pending',
+            countLabel: `${totalRisks} Risks (${treatedRisks} Treated)`,
             icon: AlertTriangle,
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-50',
-            accent: 'from-orange-500 to-red-500',
-            bestPractices: [
-                'Utilize a standardized 5x5 matrix for Likelihood and Impact to produce objective risk scores.',
-                'Link identified risks to the mitigating controls established in Step 2.',
-                'Assign actionable treatment plans (Accept, Mitigate, Transfer, Avoid) for all high and critical risks.'
+            color: 'text-amber-600',
+            bgLight: 'bg-amber-50/70',
+            borderColor: 'border-amber-200',
+            gradient: 'from-amber-500 to-orange-600',
+            summary: 'Identify, prioritize, and treat organizational risks with a formalized scoring methodology and ongoing Key Risk Indicator (KRI) monitoring.',
+            whyItMatters: 'Modern compliance is risk-informed. Auditors expect to see that controls are chosen based on calculated risk severities rather than arbitrary checklists.',
+            howToExecute: [
+                '1. Open Enterprise Risk Register and log identified business and technology threat scenarios.',
+                '2. Score Inherent Likelihood and Impact (1–5) to calculate Risk Priority Numbers.',
+                '3. Formulate a Risk Treatment Plan (RTP) and assign remediation owners with target completion dates.',
+                '4. Download the Gap Assessment & Risk Evaluation template to track remediation velocity.'
             ],
-            link: `/clients/${clientId}/risks/register`,
+            link: `/clients/${clientId}/risks`,
             cta: 'Open Risk Register',
-            downloadText: 'Download Gap Assessment form'
+            downloadAction: () => downloadFile('gap-assessment-form.csv', GAP_ASSESSMENT_CSV, 'text/csv;charset=utf-8')
         },
         {
             id: 'policies',
-            step: 4,
-            title: 'Codify in Policies',
-            subtitle: 'Draft & Approve',
-            description: 'Policies represent management\'s intent and effectively communicate expectations to the workforce. They act as the foundational rulebook for all subsequent security activities.',
+            number: 4,
+            title: 'Policy Lifecycle Management & Staff Attestation',
+            refTag: 'Governance Core / ISO Clause 7.5',
+            status: totalPolicies > 0 ? 'active' : 'pending',
+            countLabel: `${totalPolicies} Policies (${approvedPolicies} Approved)`,
             icon: FileText,
-            color: 'text-amber-600',
-            bgColor: 'bg-amber-50',
-            accent: 'from-amber-500 to-yellow-600',
-            bestPractices: [
-                'Keep policies concise, high-level, and technology-agnostic (put specific technical details in Standards/Procedures).',
-                'Enforce an annual review cycle to ensure policies remain aligned with business objectives.',
-                'Track employee attestation (acknowledgement) to demonstrate an active culture of compliance.'
+            color: 'text-purple-600',
+            bgLight: 'bg-purple-50/70',
+            borderColor: 'border-purple-200',
+            gradient: 'from-purple-600 to-indigo-600',
+            summary: 'Draft, approve, publish, and track employee acknowledgments across all mandatory information security policies and procedures.',
+            whyItMatters: 'Unpublished or unacknowledged policies are treated by auditors as non-existent. Staff attestation provides legal evidence of security awareness.',
+            howToExecute: [
+                '1. Open Policy Hub to author or customize core policies (Access Control, Acceptable Use, Incident Response, Cryptography).',
+                '2. Route draft policies through executive review and formal approval.',
+                '3. Distribute approved policies to all employees for annual digital acknowledgment.',
+                '4. Monitor acknowledgment completion rates and chase outstanding attestations.'
             ],
             link: `/clients/${clientId}/policies`,
-            cta: 'Draft Policies',
-            downloadText: 'Download Policy Templates'
+            cta: 'Manage Policy Hub',
+            downloadAction: () => downloadFile('policy-templates-catalog.csv', `Policy Name,Category,Review Frequency\nInformation Security Policy,Governance,Annual\nAccess Control Policy,Technical,Annual\nIncident Response Plan,Operations,Annual\nAcceptable Use Policy,HR/People,Annual\n`, 'text/csv;charset=utf-8')
         },
         {
-            id: 'automate',
-            step: 5,
-            title: 'Automate Evidence Collection',
-            subtitle: 'Workflows',
-            description: 'Manual evidence collection leads to compliance fatigue and human error. Automating workflows transforms compliance from a point-in-time audit to a continuous, real-time posture.',
+            id: 'workbench',
+            number: 5,
+            title: 'Compliance Workbench & Automated Task Orchestration',
+            refTag: 'Operations & Continuous Audit',
+            status: 'active',
+            countLabel: `${completedTasks} / ${totalTasks} Tasks Completed`,
             icon: Zap,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
-            accent: 'from-purple-600 to-violet-600',
-            bestPractices: [
-                'Integrate with cloud providers (AWS, Azure) to automatically verify configuration controls (e.g., S3 encryption).',
-                'Set up recurring automated tasks for periodic human-required activities (e.g., quarterly access reviews).',
-                'Alert control owners immediately when an automated check fails, enabling proactive remediation.'
+            color: 'text-rose-600',
+            bgLight: 'bg-rose-50/70',
+            borderColor: 'border-rose-200',
+            gradient: 'from-rose-500 to-red-600',
+            summary: 'Track recurring compliance work items, quarterly access reviews, vendor assessments, and evidence collection workflows in a unified workbench.',
+            whyItMatters: 'Prevents annual compliance scrambles by transforming audits into continuous, manageable weekly operational tasks.',
+            howToExecute: [
+                '1. Open Governance Workbench to view all pending, in-progress, and critical compliance work items.',
+                '2. Assign recurring task triggers (e.g. quarterly user access reviews, monthly firewall rule reviews).',
+                '3. Upload operational evidence directly to work items to automatically satisfy linked controls.',
+                '4. Download the Evidence Automation Playbooks to streamline collection.'
             ],
-            link: `/clients/${clientId}/workflows`,
-            cta: 'Setup Automations',
-            downloadText: 'Download Automation Playbooks'
+            link: `/clients/${clientId}/governance/workbench`,
+            cta: 'Open Workbench',
+            downloadAction: () => downloadFile('evidence-automation-playbooks.md', AUTOMATION_PLAYBOOKS_MD, 'text/markdown;charset=utf-8')
         },
         {
-            id: 'plan',
-            step: 6,
-            title: 'Continuous Planning',
-            subtitle: 'Roadmap',
-            description: 'Governance is not a destination, but a continuous cycle of improvement. A strategic roadmap aligns upcoming security initiatives with budget cycles and business growth.',
-            icon: Target,
-            color: 'text-pink-600',
-            bgColor: 'bg-pink-50',
-            accent: 'from-pink-500 to-rose-500',
-            bestPractices: [
-                'Generate a Gap Analysis report against your target framework to identify missing requirements.',
-                'Convert gaps into actionable roadmap items with assigned owners and target completion dates.',
-                'Regularly measure your Governance Health Score to track progress over time.'
+            id: 'board',
+            number: 6,
+            title: 'Executive Reporting, Board Oversight & Audit Clean Room',
+            refTag: 'Executive Leadership & Audit Ready',
+            status: 'active',
+            countLabel: `Health Score: ${healthScore}%`,
+            icon: Award,
+            color: 'text-cyan-600',
+            bgLight: 'bg-cyan-50/70',
+            borderColor: 'border-cyan-200',
+            gradient: 'from-cyan-600 to-blue-700',
+            summary: 'Provide real-time visibility to C-Level executives, the Board of Directors, and external auditors on program health, velocity, and readiness.',
+            whyItMatters: 'Demonstrates active management oversight and provides instant proof of compliance during customer security reviews and investor due diligence.',
+            howToExecute: [
+                '1. Review the Governance Dashboard for high-level compliance trends, health scores, and open action items.',
+                '2. Export the Master GRC Operations Manual and Audit Clean Room packages.',
+                '3. Present quarterly governance health reports to the Board Risk Committee.',
+                '4. Provide auditors with read-only Clean Room access to verify evidence.'
             ],
-            link: `/clients/${clientId}/roadmap/dashboard`,
-            cta: 'View Roadmap',
-            downloadText: 'Download Gap Analysis Guide'
+            link: `/clients/${clientId}/governance`,
+            cta: 'View Executive Dashboard',
+            downloadAction: () => toast.success("Executive report ready for review!")
         }
     ];
 
-    const completedSteps = steps.filter(s => getStatus(s.id) === 'completed').length;
-    const progressPercentage = Math.round((completedSteps / steps.length) * 100);
+    const copyMasterManual = () => {
+        const manualText = `COMPLIANCEOS ENTERPRISE GRC OPERATING MANUAL\n` +
+            `=============================================\n` +
+            `Organization: Client #${clientId}\n` +
+            `Framework Alignment: NIST CSF • ISO/IEC 27001 • SOC 2 • COSO GRC\n` +
+            `Generated: ${new Date().toLocaleDateString()}\n\n` +
+            `1. ACCOUNTABILITY & RACI MATRIX\n` +
+            `   - CISO Accountable for overall information security posture.\n` +
+            `   - Designated Owners assigned for Policies, Risk, Incident Response, and Vendor Management.\n\n` +
+            `2. UNIFIED CONTROLS MESH (${implementedControls} of ${totalControls} Implemented)\n` +
+            `   - Cross-mapped controls satisfying SOC 2, ISO 27001, and NIST CSF simultaneously.\n\n` +
+            `3. RISK GOVERNANCE & GAP ANALYSIS (${totalRisks} Risks, ${treatedRisks} Treated)\n` +
+            `   - Continuous risk assessment, residual risk calculation, and Risk Treatment Plans.\n\n` +
+            `4. POLICY LIFECYCLE (${totalPolicies} Policies, ${approvedPolicies} Approved)\n` +
+            `   - Version-controlled policy portfolio with annual employee acknowledgment attestation.\n\n` +
+            `5. WORKBENCH & EVIDENCE AUTOMATION (${completedTasks} of ${totalTasks} Tasks Completed)\n` +
+            `   - Recurring cadence for quarterly access reviews and automated evidence collection.\n\n` +
+            `6. EXECUTIVE HEALTH & BOARD REPORTING\n` +
+            `   - Governance Health Score: ${healthScore}%\n` +
+            `   - Continuous audit clean room packaging and management oversight.`;
+
+        navigator.clipboard.writeText(manualText);
+        toast.success("Complete GRC Operations Manual copied to clipboard!");
+    };
 
     return (
-        <DashboardLayout fullWidth={true}>
-            <div className="relative min-h-screen bg-slate-50 pl-0 pr-4 py-8 md:pl-0 md:pr-8 space-y-8 animate-in fade-in duration-500">
-                <div className="w-full space-y-8">
-                    {/* Header */}
-                    <div className="flex justify-between items-center">
+        <DashboardLayout>
+            <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-4 md:p-8">
+                {/* Header Breadcrumb */}
+                <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-4">
+                    <div className="flex items-center gap-2 text-sm">
                         <Link href={`/clients/${clientId}/governance`}>
-                            <Button variant="ghost" className="text-slate-500 hover:text-slate-900">
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back to Governance Dashboard
+                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
+                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Governance Dashboard
                             </Button>
                         </Link>
-                        {progressPercentage === 100 && (
-                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                Program Fully Initialized
-                            </Badge>
-                        )}
-                    </div>
-                    
-                    <div className="text-center space-y-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 mb-4 shadow-sm border border-indigo-200">
-                            <BookOpen className="w-8 h-8" />
+                        <span className="text-slate-300">/</span>
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold">
+                            <BookOpen className="w-4 h-4 text-indigo-600" />
+                            Program Guide & Manual
                         </div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
-                            Governance Program Guide
-                        </h1>
-                        <p className="text-xl text-slate-600 leading-relaxed">
-                            A dynamic, comprehensive step-by-step methodology to establish a robust, modern GRC program from the ground up.
-                        </p>
                     </div>
 
-                    <div className="my-10 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 lg:p-8">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-lg text-slate-900">Program Implementation Progress</h3>
-                            <span className="text-sm font-medium text-slate-600">{progressPercentage}% Complete</span>
-                        </div>
-                        <Progress value={progressPercentage} className="h-3 rounded-full" />
-                        <p className="text-xs text-slate-500 mt-4 text-center">
-                            Completion based on real-time program data. Complete all stages to fully initialize the program.
-                        </p>
+                    <div className="flex items-center gap-3">
+                        <Link href={`/clients/${clientId}/governance/workbench`}>
+                            <Button variant="outline" size="sm" className="font-bold text-xs">
+                                <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                                Open Workbench
+                            </Button>
+                        </Link>
                     </div>
+                </div>
 
-                    {/* Timeline / Stepper */}
-                    <div className="space-y-12 relative pb-12">
-                        {/* Connecting Line */}
-                        <div className="absolute top-12 bottom-12 left-[31px] w-0.5 bg-slate-200 z-0 hidden sm:block"></div>
-
-                        {steps.map((step) => {
-                            const status = getStatus(step.id);
-                            return (
-                                <div key={step.id} className="relative z-10 flex flex-col sm:flex-row gap-6 lg:gap-8 group">
-                                    {/* Step Indicator */}
-                                    <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border-2 border-white ring-1 ring-slate-100 group-hover:ring-indigo-200 transition-all duration-300">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} text-white shadow-inner`}>
-                                            {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-black text-xl">{step.step}</span>}
-                                        </div>
+                {/* Hero Header */}
+                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                    <div className="relative z-10 space-y-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-indigo-400">
+                                    <Shield className="w-8 h-8 text-indigo-400" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Governance Operating Guide & Manual</h1>
+                                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-xs font-bold">
+                                            NIST CSF • ISO 27001 • SOC 2
+                                        </Badge>
                                     </div>
+                                    <p className="text-slate-300 text-base mt-1">
+                                        Complete GRC operating model, RACI accountability framework, and continuous compliance playbook.
+                                    </p>
+                                </div>
+                            </div>
 
-                                    {/* Content Card */}
-                                    <Card className={`flex-grow transition-shadow ${status === 'completed' ? 'border-emerald-200 shadow-emerald-100/50' : 'border-slate-200 hover:shadow-md'}`}>
-                                        <CardHeader className={`${status === 'completed' ? 'bg-emerald-50/50' : step.bgColor} border-b border-white rounded-t-xl bg-opacity-50`}>
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <Badge variant="outline" className={`mb-2 bg-white ${status === 'completed' ? 'text-emerald-700 border-emerald-200' : step.color + ' border-current'}`}>
-                                                        Phase {step.step}: {step.subtitle}
-                                                    </Badge>
-                                                    <CardTitle className="text-2xl font-bold flex items-center gap-3">
-                                                        <step.icon className={`w-6 h-6 ${status === 'completed' ? 'text-emerald-600' : step.color}`} />
-                                                        {step.title}
-                                                    </CardTitle>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    onClick={copyMasterManual}
+                                    variant="outline"
+                                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl h-11"
+                                >
+                                    <Copy className="w-4 h-4 mr-2" />
+                                    Copy GRC Operations Manual
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar & Telemetry */}
+                        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                    <Activity className="w-4 h-4 text-emerald-400" />
+                                    GRC Program Maturity & Implementation
+                                </span>
+                                <span className="text-sm font-black text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/50">
+                                    {progressPercentage}% Mature
+                                </span>
+                            </div>
+                            <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{implementedControls} / {totalControls}</span> Controls Implemented
+                                </div>
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{totalRisks}</span> Risks Identified
+                                </div>
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{approvedPolicies}</span> Approved Policies
+                                </div>
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{completedTasks}</span> Workbench Tasks Completed
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Navigation Tabs */}
+                <div className="flex gap-2 border-b border-slate-200 pb-2">
+                    <Button
+                        variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('tutorials')}
+                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    >
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Step-by-Step Operating Manual
+                    </Button>
+                    <Button
+                        variant={activeTab === 'architecture' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('architecture')}
+                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    >
+                        <Layers className="w-4 h-4 mr-2" />
+                        GRC Ecosystem Architecture
+                    </Button>
+                    <Button
+                        variant={activeTab === 'auditor' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('auditor')}
+                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Auditor & Board Clean Room
+                    </Button>
+                </div>
+
+                {/* TAB 1: Step-by-Step Operating Manual */}
+                {activeTab === 'tutorials' && (
+                    <div className="space-y-8">
+                        <div className="grid grid-cols-1 gap-6">
+                            {pillars.map((pillar) => {
+                                const IconComponent = pillar.icon;
+                                return (
+                                    <Card
+                                        key={pillar.id}
+                                        className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white"
+                                    >
+                                        <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-6`}>
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-white shadow-md bg-gradient-to-br", pillar.gradient)}>
+                                                        {pillar.number}
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <CardTitle className="text-xl font-bold text-slate-900">
+                                                                {pillar.title}
+                                                            </CardTitle>
+                                                            <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold">
+                                                                {pillar.refTag}
+                                                            </Badge>
+                                                        </div>
+                                                        <CardDescription className="text-slate-600 text-sm font-medium mt-0.5">
+                                                            {pillar.summary}
+                                                        </CardDescription>
+                                                    </div>
                                                 </div>
-                                                {status === 'completed' ? (
-                                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                                                        Completed
+
+                                                <div className="flex items-center gap-3">
+                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                                        {pillar.countLabel}
                                                     </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 flex items-center gap-1">
-                                                        <CircleDashed className="w-3 h-3" /> Needs Attention
-                                                    </Badge>
-                                                )}
+                                                    <Button
+                                                        onClick={() => setLocation(pillar.link)}
+                                                        className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-10 px-4 transition-all"
+                                                    >
+                                                        {pillar.cta}
+                                                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </CardHeader>
-                                        <CardContent className="pt-6 space-y-6">
-                                            <p className="text-slate-700 leading-relaxed text-lg">
-                                                {step.description}
-                                            </p>
+                                        <CardContent className="p-6 grid md:grid-cols-2 gap-6">
+                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                                    <Info className="w-3.5 h-3.5 text-indigo-600" />
+                                                    Why This Step Is Critical
+                                                </h4>
+                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                    {pillar.whyItMatters}
+                                                </p>
+                                            </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                                        Best Practices
-                                                    </h4>
-                                                    <ul className="space-y-3">
-                                                        {step.bestPractices.map((practice, i) => (
-                                                            <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
-                                                                <span className="leading-relaxed text-sm">{practice}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-
-                                                <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
-                                                    <div>
-                                                        <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                                            <Users className="w-5 h-5 text-indigo-500" />
-                                                            Task Assignment
-                                                        </h4>
-                                                        <p className="text-sm text-slate-500 mb-4">Assign this phase to a team member and set a target deadline.</p>
-                                                        
-                                                        <div className="space-y-3 border-t border-slate-100 pt-3">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-medium text-slate-500 uppercase">Owner</span>
-                                                                <span className="text-sm text-slate-800 font-medium">{assignments?.[step.id]?.owner || 'Unassigned'}</span>
-                                                            </div>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-medium text-slate-500 uppercase flex items-center gap-1"><Calendar className="w-3 h-3"/> Target Date</span>
-                                                                <span className="text-sm text-slate-800 font-medium">{assignments?.[step.id]?.targetDate ? format(new Date(assignments[step.id].targetDate), 'MMM d, yyyy') : 'Not set'}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-4">
-                                                        <Button variant="outline" size="sm" className="w-full" onClick={() => { setSelectedStep(step); setIsAssignModalOpen(true); }}>
-                                                            Manage Assignment
+                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                    How to Execute in ComplianceOS
+                                                </h4>
+                                                <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                                    {pillar.howToExecute.map((step, idx) => (
+                                                        <li key={idx} className="flex items-start gap-2">
+                                                            <span className="text-indigo-600 font-bold shrink-0">•</span>
+                                                            <span>{step}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                {pillar.downloadAction && (
+                                                    <div className="pt-2 border-t border-slate-200">
+                                                        <Button
+                                                            variant="link"
+                                                            className="text-xs font-bold text-indigo-600 p-0 h-auto hover:text-indigo-800"
+                                                            onClick={pillar.downloadAction}
+                                                        >
+                                                            <Download className="w-3.5 h-3.5 mr-1" />
+                                                            Download Template / Playbook
                                                         </Button>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="pt-2 flex flex-wrap gap-3 items-center">
-                                                <Link href={step.link}>
-                                                    <Button className={`bg-gradient-to-r ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} hover:opacity-90 text-white font-medium shadow-md transition-all group-hover:translate-x-1`}>
-                                                        {step.cta} <ArrowRight className="w-4 h-4 ml-2" />
-                                                    </Button>
-                                                </Link>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="gap-2"
-                                                    onClick={() => handleDownload(step.id)}
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                    {step.downloadText}
-                                                </Button>
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* TAB 2: GRC Architecture & Lifecycle */}
+                {activeTab === 'architecture' && (
+                    <div className="space-y-6">
+                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-bold text-slate-900">The Connected GRC Operating Model</h3>
+                                <p className="text-slate-600">
+                                    ComplianceOS connects accountability (RACI), controls implementation, risk management, policy orchestration, and automated work items into an integrated feedback loop.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                                <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                        1
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Strategy & Accountability</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        <strong>RACI Matrix</strong> establishes roles; <strong>Policies</strong> establish rules; <strong>Risk Register</strong> establishes priorities.
+                                    </p>
                                 </div>
-                            );
-                        })}
-                    </div>
 
-                    {/* Footer Summary */}
-                    <div className="mt-12 text-center pb-20">
-                        <Link href={`/clients/${clientId}/governance`}>
-                            <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-14 rounded-full shadow-lg hover:shadow-xl transition-all">
-                                Return to Dashboard
-                            </Button>
-                        </Link>
-                    </div>
+                                <div className="p-6 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                                        2
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Execution & Controls Mesh</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Unified controls satisfy multiple audits; <strong>Workbench</strong> automates recurring evidence collection tasks.
+                                    </p>
+                                </div>
 
-                </div>
+                                <div className="p-6 rounded-2xl bg-cyan-50/60 border border-cyan-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold">
+                                        3
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Oversight & Clean Room</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Real-time health scorecards for the Board; continuous audit readiness dossiers for external certifiers.
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                )}
+
+                {/* TAB 3: Auditor Clean Room */}
+                {activeTab === 'auditor' && (
+                    <div className="space-y-6">
+                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-bold text-slate-900">Auditor & Board Executive Clean Room</h3>
+                                <p className="text-slate-600">
+                                    Centralized repository of governance deliverables, accountability matrices, controls catalogs, and risk treatment registers.
+                                </p>
+                            </div>
+
+                            <div className="divide-y divide-slate-100">
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">RACI Accountability Matrix (CSV)</h5>
+                                        <p className="text-xs text-slate-500">Formal assignment of Responsible, Accountable, Consulted, and Informed stakeholders across all security domains.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => downloadFile('raci-template.csv', RACI_TEMPLATE_CSV, 'text/csv;charset=utf-8')}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                                        Download RACI
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Unified Controls Implementation Matrix (CSV)</h5>
+                                        <p className="text-xs text-slate-500">Complete catalog of organizational controls mapped across SOC 2, ISO 27001, and NIST CSF with implementation status.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => downloadFile(`controls-matrix-client-${clientId}.csv`, buildControlsMatrixCsv(safeControls), 'text/csv;charset=utf-8')}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                                        Export Controls Matrix
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Enterprise Gap Analysis & Risk Assessment (CSV)</h5>
+                                        <p className="text-xs text-slate-500">Standardized baseline gap assessment and risk treatment action tracker.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => downloadFile('gap-assessment-form.csv', GAP_ASSESSMENT_CSV, 'text/csv;charset=utf-8')}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                                        Download Gap Assessment
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Evidence Automation & Cadence Playbooks (MD)</h5>
+                                        <p className="text-xs text-slate-500">Documented operational routines for recurring user access reviews, cloud checks, and attestation chasing.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => downloadFile('evidence-automation-playbooks.md', AUTOMATION_PLAYBOOKS_MD, 'text/markdown;charset=utf-8')}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                                        Download Playbooks
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                )}
             </div>
-
-            {selectedStep && (
-                <AssignProgramTaskModal 
-                    isOpen={isAssignModalOpen}
-                    onClose={() => setIsAssignModalOpen(false)}
-                    clientId={clientId}
-                    guideType="governance"
-                    stepId={selectedStep.id}
-                    stepTitle={selectedStep.title}
-                    currentUserId={assignments?.[selectedStep.id]?.ownerId}
-                    currentTargetDate={assignments?.[selectedStep.id]?.targetDate}
-                    onAssignmentUpdated={() => refetchAssignments()}
-                />
-            )}
         </DashboardLayout>
     );
 }

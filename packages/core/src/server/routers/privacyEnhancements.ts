@@ -6,6 +6,144 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 
+const STANDARD_DPIA_TEMPLATES = [
+  {
+    name: "GDPR Article 35 High-Risk Processing DPIA",
+    category: "high_risk",
+    description: "Standard comprehensive DPIA assessing EDPB high-risk criteria (systematic evaluation, large-scale processing, matching datasets, vulnerable subjects).",
+    templateContent: {
+      screeningQuestions: [
+        { id: "q1", question: "Does the processing involve systematic and extensive evaluation or scoring, including profiling?", type: "boolean" as const, required: true },
+        { id: "q2", question: "Does the processing involve automated decision-making producing legal or similarly significant effects (Art. 22)?", type: "boolean" as const, required: true },
+        { id: "q3", question: "Does the processing involve systematic monitoring of publicly accessible areas on a large scale?", type: "boolean" as const, required: true },
+        { id: "q4", question: "Does the processing involve special category data (Art. 9) or criminal convictions (Art. 10)?", type: "boolean" as const, required: true },
+        { id: "q5", question: "Is the processing conducted on a large scale (volume, number of data subjects, geographic extent)?", type: "boolean" as const, required: true },
+        { id: "q6", question: "Are datasets matched or combined originating from two or more distinct processing operations?", type: "boolean" as const, required: true },
+        { id: "q7", question: "Does the processing concern vulnerable data subjects (children, employees, patients)?", type: "boolean" as const, required: true },
+        { id: "q8", question: "Does the processing use innovative technological or organizational solutions (e.g. biometrics, IoT, AI)?", type: "boolean" as const, required: true },
+        { id: "q9", question: "Will personal data be transferred outside the European Economic Area without an adequacy decision?", type: "boolean" as const, required: true },
+        { id: "q10", question: "Does the processing prevent data subjects from exercising a right or using a contract?", type: "boolean" as const, required: true },
+      ],
+      riskFactors: [
+        { factor: "Unauthorized disclosure or data breach of high-volume personal data", weight: 5, description: "Risk of exfiltration or unauthorized exposure affecting data subjects." },
+        { factor: "Lack of transparency or failure to provide clear privacy notices", weight: 4, description: "Data subjects unaware of the scope or purposes of processing." },
+        { factor: "Inability to fulfill data subject rights (access, erasure, objection)", weight: 4, description: "Architecture prevents granular DSAR fulfillment." },
+        { factor: "Unlawful secondary use beyond initial purpose limitation", weight: 4, description: "Processing data for unapproved secondary purposes." },
+        { factor: "Inaccurate profiling leading to discriminatory outcomes", weight: 5, description: "Algorithms generating biased or unfair decisions against protected classes." },
+      ],
+      mitigationMeasures: [
+        { measure: "End-to-End Encryption (AES-256 at rest, TLS 1.3 in transit)", category: "Technical", description: "Cryptographic protection across all databases and communication channels." },
+        { measure: "Granular Role-Based Access Control (RBAC) & Multi-Factor Auth", category: "Technical", description: "Enforcing least privilege and MFA on all administrator accounts." },
+        { measure: "Automated Pseudonymization & Tokenization", category: "Technical", description: "Separating direct identifiers from analytical datasets." },
+        { measure: "Automated Data Retention & Scheduled Deletion", category: "Technical", description: "Enforcing storage limitation under Article 5(1)(e)." },
+        { measure: "Granular Consent Management & Notice Transparency", category: "Governance", description: "Clear, freely given consent collection with instant withdrawal mechanism." },
+      ]
+    }
+  },
+  {
+    name: "AI & Automated Decision-Making (ADM) DPIA",
+    category: "ai_governance",
+    description: "Tailored assessment for Machine Learning models, LLMs, and automated scoring systems under EU AI Act and GDPR Article 22.",
+    templateContent: {
+      screeningQuestions: [
+        { id: "ai_q1", question: "Does the AI system process personal data to evaluate, predict, or score human behavior, performance, or attributes?", type: "boolean" as const, required: true },
+        { id: "ai_q2", question: "Are automated decisions executed without mandatory human review prior to final effect?", type: "boolean" as const, required: true },
+        { id: "ai_q3", question: "Are foundation models or LLMs trained/fine-tuned on customer personal data or user prompt inputs?", type: "boolean" as const, required: true },
+        { id: "ai_q4", question: "Is there a human-in-the-loop override mechanism capable of reversing algorithmic outcomes?", type: "boolean" as const, required: true },
+        { id: "ai_q5", question: "Has the training and validation dataset been audited for demographic representativeness and bias?", type: "boolean" as const, required: true },
+        { id: "ai_q6", question: "Can individuals obtain meaningful information about the logic involved in the automated decision (Art. 13-15)?", type: "boolean" as const, required: true },
+      ],
+      riskFactors: [
+        { factor: "Algorithmic bias and discriminatory output impacting protected classes", weight: 5, description: "System systematically disadvantages specific demographic groups." },
+        { factor: "Model hallucinations and processing of inaccurate personal data", weight: 4, description: "LLM generating false factual statements about individuals." },
+        { factor: "Model inversion and prompt leakage of training data", weight: 5, description: "Extraction of training personal data via adversarial prompt injection." },
+        { factor: "Opaque black-box decisions violating transparency obligations", weight: 4, description: "Inability to provide human-interpretable rationale for decisions." },
+      ],
+      mitigationMeasures: [
+        { measure: "Explainable AI (XAI) feature attribution and decision logging", category: "Technical", description: "Recording input weights and rationale for every automated decision." },
+        { measure: "Mandatory human-in-the-loop review for high-impact decisions", category: "Organizational", description: "Human compliance officer sign-off on decisions affecting rights." },
+        { measure: "Pre-deployment fairness and demographic parity testing", category: "Technical", description: "Regular bias auditing against protected characteristics." },
+        { measure: "Input guardrails and data leakage prevention for LLM prompts", category: "Technical", description: "Filtering PII before sending prompts to external model APIs." },
+      ]
+    }
+  },
+  {
+    name: "Special Category, Biometric & Health Data DPIA",
+    category: "special_category",
+    description: "Impact assessment for sensitive data processing under GDPR Article 9 (biometric identification, medical records, genetic data).",
+    templateContent: {
+      screeningQuestions: [
+        { id: "sc_q1", question: "Does the processing involve biometric data for uniquely identifying a natural person (e.g., facial recognition, voiceprint)?", type: "boolean" as const, required: true },
+        { id: "sc_q2", question: "Does the processing involve electronic health records (EHR), medical diagnoses, or genetic data?", type: "boolean" as const, required: true },
+        { id: "sc_q3", question: "What is the specific Article 9(2) exception relied upon for processing?", type: "select" as const, options: ["Explicit Consent (Art. 9.2.a)", "Employment / Social Security Law (Art. 9.2.b)", "Vital Interests (Art. 9.2.c)", "Healthcare / Medical Diagnosis (Art. 9.2.h)", "Public Health (Art. 9.2.i)", "Scientific / Historical Research (Art. 9.2.j)"], required: true },
+        { id: "sc_q4", question: "Are sensitive health/biometric attributes cryptographically segregated from common identifiers?", type: "boolean" as const, required: true },
+        { id: "sc_q5", question: "Is privileged access strictly restricted to authorized medical or designated personnel under professional secrecy?", type: "boolean" as const, required: true },
+      ],
+      riskFactors: [
+        { factor: "Irreversible harm and discrimination resulting from biometric or health data compromise", weight: 5, description: "Compromised biometric templates cannot be reset like passwords." },
+        { factor: "Invalidation of consent or lack of explicit opt-in for sensitive processing", weight: 5, description: "Failure to meet high threshold of explicit Article 9 consent." },
+        { factor: "Unintended inferences of health conditions from behavioral telemetry", weight: 4, description: "Deriving medical conditions from app usage patterns." },
+      ],
+      mitigationMeasures: [
+        { measure: "Hardware Security Module (HSM) key management & zero-knowledge biometric hashing", category: "Technical", description: "Templates stored as irreversible cryptographic hashes in dedicated HSM." },
+        { measure: "Strict physical and logical air-gapping of sensitive health databases", category: "Technical", description: "Isolated VPC and database instances with zero direct internet exposure." },
+        { measure: "Real-time SIEM audit logging on all access to Article 9 records", category: "Technical", description: "Automated alerting on anomalous bulk queries or after-hours access." },
+        { measure: "Mandatory staff confidentiality undertakings and medical secrecy training", category: "Organizational", description: "Binding non-disclosure agreements for all handlers." },
+      ]
+    }
+  },
+  {
+    name: "Employee Monitoring & Workplace Telemetry DPIA",
+    category: "workplace_monitoring",
+    description: "Assessment for DLP endpoints, productivity analytics, keystroke logging, and video surveillance in employee environments.",
+    templateContent: {
+      screeningQuestions: [
+        { id: "em_q1", question: "Does the system monitor employee keystrokes, screen activity, or webcam feeds?", type: "boolean" as const, required: true },
+        { id: "em_q2", question: "Does monitoring extend to personal devices (BYOD) or remote home working environments?", type: "boolean" as const, required: true },
+        { id: "em_q3", question: "What is the primary lawful basis relied upon for monitoring?", type: "select" as const, options: ["Legitimate Interest (Art. 6.1.f) with LIA", "Legal Obligation (Art. 6.1.c)", "Performance of Employment Contract (Art. 6.1.b)"], required: true },
+        { id: "em_q4", question: "Have employees and works councils / employee representatives been formally consulted and notified?", type: "boolean" as const, required: true },
+        { id: "em_q5", question: "Is the monitoring continuous and pervasive, or triggered solely on security DLP alerts?", type: "select" as const, options: ["Targeted Security Incident Trigger Only", "Periodic Sample Audit", "Continuous Automated Telemetry"], required: true },
+      ],
+      riskFactors: [
+        { factor: "Disproportionate intrusion into employee private life and home environment", weight: 5, description: "Violating reasonable expectation of privacy during remote work." },
+        { factor: "Scope creep: using security telemetry for performance or disciplinary evaluations", weight: 4, description: "Using DLP logs outside legitimate cybersecurity purposes." },
+        { factor: "Employee mistrust and regulatory complaints to Data Protection Authorities", weight: 3, description: "Friction and labor disputes over opaque surveillance." },
+      ],
+      mitigationMeasures: [
+        { measure: "Comprehensive Employee Monitoring Policy & Transparent Disclosures", category: "Governance", description: "Clear handbook detailing what is monitored and how logs are stored." },
+        { measure: "DLP privacy filters ignoring personal email and private banking domains", category: "Technical", description: "Exclusion lists preventing capture of personal web sessions." },
+        { measure: "Data aggregation and anonymization in executive reports", category: "Technical", description: "Team-level summaries rather than individualized surveillance." },
+        { measure: "Strict 30-90 day log retention limit with automated purging", category: "Technical", description: "Automatic deletion of monitoring records." },
+      ]
+    }
+  },
+  {
+    name: "Cross-Border Cloud Migration & Vendor Subprocessor DPIA",
+    category: "cross_border_cloud",
+    description: "Assessment for third-party cloud hosting, international data transfers (Schrems II / TIA), and multi-tenant SaaS vendors.",
+    templateContent: {
+      screeningQuestions: [
+        { id: "cb_q1", question: "Will personal data be transferred to or hosted in third countries outside the EEA/UK?", type: "boolean" as const, required: true },
+        { id: "cb_q2", question: "Does the destination country have an EU Adequacy Decision (e.g. EU-US DPF, UK, Japan, Switzerland)?", type: "boolean" as const, required: true },
+        { id: "cb_q3", question: "What transfer safeguard is implemented for the cloud provider?", type: "select" as const, options: ["EU-US Data Privacy Framework (DPF)", "Standard Contractual Clauses (SCCs Module 2/3)", "Binding Corporate Rules (BCRs)", "Explicit Consent Derogation (Art. 49.1.a)", "No Transfer Safeguard in Place"], required: true },
+        { id: "cb_q4", question: "Has a Transfer Impact Assessment (TIA) evaluating local government surveillance laws been conducted?", type: "boolean" as const, required: true },
+        { id: "cb_q5", question: "Are technical supplementary measures (Customer-Managed Encryption Keys, confidential compute) deployed?", type: "boolean" as const, required: true },
+      ],
+      riskFactors: [
+        { factor: "Foreign lawful intercept / surveillance access conflicting with EU fundamental rights", weight: 5, description: "Risk of non-proportional foreign intelligence access (FISA 702)." },
+        { factor: "Vendor lock-in and inability to retrieve or purge data upon contract termination", weight: 4, description: "Data retention by vendor after service agreement expires." },
+        { factor: "Inadequate subprocessor chain oversight without prior written notice", weight: 4, description: "Unvetted 4th-party vendors in the data flow pipeline." },
+      ],
+      mitigationMeasures: [
+        { measure: "Executed Article 28 Data Processing Agreement (DPA) with SCC appendices", category: "Legal", description: "Legally binding data processing terms and audit commitments." },
+        { measure: "Customer-Managed Encryption Keys (CMEK) held within European jurisdiction", category: "Technical", description: "Ensuring cloud vendor cannot decrypt data without customer key." },
+        { measure: "Documented Transfer Impact Assessment (TIA) on file with annual review", category: "Governance", description: "Legal assessment of destination country surveillance laws." },
+        { measure: "Contractual audit rights and 30-day prior notice for subprocessor changes", category: "Legal", description: "Right to object to new subprocessors." },
+      ]
+    }
+  }
+];
+
 export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
   return t.router({
 
@@ -273,14 +411,64 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
         .input(z.object({ clientId: z.number() }))
         .query(async ({ input, ctx }: any) => {
           const dbConn = await getDb();
-          const templates = await dbConn.select()
+          let templates = await dbConn.select()
             .from(dpiaTemplates)
             .where(and(
               eq(dpiaTemplates.clientId, input.clientId),
               eq(dpiaTemplates.isActive, true)
             ))
             .orderBy(desc(dpiaTemplates.usageCount));
+
+          // Auto-seed standard templates if none exist for this client
+          if (templates.length === 0) {
+            for (const tpl of STANDARD_DPIA_TEMPLATES) {
+              await dbConn.insert(dpiaTemplates).values({
+                clientId: input.clientId,
+                name: tpl.name,
+                description: tpl.description,
+                category: tpl.category,
+                templateContent: tpl.templateContent,
+                createdBy: ctx.user?.id,
+              });
+            }
+            templates = await dbConn.select()
+              .from(dpiaTemplates)
+              .where(and(
+                eq(dpiaTemplates.clientId, input.clientId),
+                eq(dpiaTemplates.isActive, true)
+              ))
+              .orderBy(desc(dpiaTemplates.usageCount));
+          }
+
           return templates;
+        }),
+
+      seedStandardTemplates: clientEditorProcedure
+        .input(z.object({ clientId: z.number() }))
+        .mutation(async ({ input, ctx }: any) => {
+          const dbConn = await getDb();
+          const created = [];
+          for (const tpl of STANDARD_DPIA_TEMPLATES) {
+            const [newTemplate] = await dbConn.insert(dpiaTemplates).values({
+              clientId: input.clientId,
+              name: tpl.name,
+              description: tpl.description,
+              category: tpl.category,
+              templateContent: tpl.templateContent,
+              createdBy: ctx.user?.id,
+            }).returning();
+            created.push(newTemplate);
+          }
+
+          await logActivity({
+            clientId: input.clientId,
+            userId: ctx.user?.id,
+            action: 'dpia_templates_seeded',
+            entityType: 'dpia_template',
+            details: `Seeded ${created.length} standard DPIA templates`,
+          });
+
+          return created;
         }),
 
       create: clientEditorProcedure
@@ -330,6 +518,22 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
           });
 
           return newTemplate;
+        }),
+
+      delete: clientEditorProcedure
+        .input(z.object({
+          clientId: z.number(),
+          templateId: z.number()
+        }))
+        .mutation(async ({ input }: any) => {
+          const dbConn = await getDb();
+          await dbConn.update(dpiaTemplates)
+            .set({ isActive: false, updatedAt: new Date() })
+            .where(and(
+              eq(dpiaTemplates.id, input.templateId),
+              eq(dpiaTemplates.clientId, input.clientId)
+            ));
+          return { success: true };
         }),
     }),
 

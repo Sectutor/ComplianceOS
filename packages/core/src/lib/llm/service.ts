@@ -72,6 +72,36 @@ export class LLMService {
     }
 
     /**
+     * Universal sanitizer for cleaning chain-of-thought traces, thinking blocks, and preambles
+     */
+    public static cleanResponseText(raw: string): string {
+        if (!raw) return "";
+        let text = raw;
+        // 1. Remove XML/HTML thinking tags
+        text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+        text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, '');
+        
+        // 2. Extract actual draft content if wrapped in meta-analysis
+        if (text.includes("Draft:") || text.includes("Draft -") || text.includes("Draft 1:")) {
+            const draftParts = text.split(/Draft(?:\s*-\s*Paragraph\s*\d*:?|\s*\d*:?|:)\s*/i);
+            if (draftParts.length > 1) {
+                text = draftParts.slice(1).join('\n\n');
+            }
+        }
+
+        // 3. Remove "Here's a thinking process:" and similar lead-in chatter
+        text = text.replace(/^Here('s| is) a thinking process:?[\s\S]*?\n\n/i, '');
+        text = text.replace(/^\*\*Thinking Process:\*\*[\s\S]*?\n\n/gi, '');
+        text = text.replace(/^Thinking Process:[\s\S]*?\n\n/gi, '');
+        text = text.replace(/^Here('s| is) (the|a) (draft|response|summary|conclusion|output):?\s*/i, '');
+        
+        // 4. Remove leftover raw prompt artifact bullets
+        text = text.replace(/\*\*\d+\.\s*[^:]+:\*\*/g, '');
+        text = text.replace(/^["']|["']$/g, '');
+        return text.trim();
+    }
+
+    /**
      * Get the configured provider for a feature, or fallback to highest priority
      */
     private async getProviders(feature?: string): Promise<LLMProvider[]> {
@@ -449,6 +479,9 @@ export class LLMService {
                         // Continue anyway failure here is not provider failure
                     }
                 }
+
+                // Clean thinking tokens / meta-commentary from response text
+                response.text = LLMService.cleanResponseText(response.text);
 
                 const latencyMs = Date.now() - startTime;
                 await this.trackUsage(provider, response.usage, metadata, latencyMs, true);

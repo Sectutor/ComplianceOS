@@ -687,35 +687,34 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                     // --- TASK INTEGRATION ---
                     // Automatically create remediation tasks for "No" or "Partial" answers
                     console.log("[PrivacyRouter] Checking for gaps to create tasks...");
-                    const gapEntries = Object.entries(input.responses).filter(
-                        ([_, res]: [string, any]) => res.answer === "No" || res.answer === "Partial"
-                    );
+                    if (input.responses && typeof input.responses === 'object') {
+                        const gapEntries = Object.entries(input.responses).filter(
+                            ([_, res]: [string, any]) => res && typeof res === 'object' && (res.answer === "No" || res.answer === "Partial")
+                        );
 
-                    if (gapEntries.length > 0) {
-                        // Check for existing tasks to avoid duplicates? 
-                        // For simplicity, we'll search by title pattern for now.
-                        for (const [qId, res] of gapEntries as [string, any][]) {
-                            const taskTitle = `[Privacy Gap - ${input.type.toUpperCase()}] Resolve ${qId}`;
+                        if (gapEntries.length > 0) {
+                            for (const [qId, res] of gapEntries as [string, any][]) {
+                                const taskTitle = `[Privacy Gap - ${input.type.toUpperCase()}] Resolve ${qId}`;
 
-                            // Check if task already exists
-                            const existingTask = await db.query.remediationTasks.findFirst({
-                                where: and(
-                                    eq(remediationTasks.clientId, assessmentClientId),
-                                    eq(remediationTasks.title, taskTitle),
-                                    sql`status NOT IN ('resolved', 'closed')`
-                                )
-                            });
-
-                            if (!existingTask) {
-                                console.log(`[PrivacyRouter] Creating task for gap: ${qId}`);
-                                await db.insert(remediationTasks).values({
-                                    clientId: assessmentClientId,
-                                    title: taskTitle,
-                                    description: `Privacy gap identified in ${input.type} assessment for question ${qId}.\n\nNotes: ${res.notes || 'No notes provided'}.`,
-                                    priority: res.answer === "No" ? "high" : "medium",
-                                    status: "open",
-                                    dueDate: res.dueDate ? new Date(res.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days default
+                                const existingTask = await db.query.remediationTasks.findFirst({
+                                    where: and(
+                                        eq(remediationTasks.clientId, assessmentClientId),
+                                        eq(remediationTasks.title, taskTitle),
+                                        sql`status NOT IN ('resolved', 'closed')`
+                                    )
                                 });
+
+                                if (!existingTask) {
+                                    console.log(`[PrivacyRouter] Creating task for gap: ${qId}`);
+                                    await db.insert(remediationTasks).values({
+                                        clientId: assessmentClientId,
+                                        title: taskTitle,
+                                        description: `Privacy gap identified in ${input.type} assessment for question ${qId}.\n\nNotes: ${res.notes || 'No notes provided'}.`,
+                                        priority: res.answer === "No" ? "high" : "medium",
+                                        status: "open",
+                                        dueDate: res.dueDate ? new Date(res.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+                                    });
+                                }
                             }
                         }
                     }
@@ -728,6 +727,21 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                         message: `Failed to save: ${e.message}`
                     });
                 }
+            }),
+
+        deleteAssessment: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                id: z.number()
+            }))
+            .mutation(async ({ input }: { input: any }) => {
+                const db = await getDb();
+                await db.delete(privacyAssessments)
+                    .where(and(
+                        eq(privacyAssessments.id, input.id),
+                        eq(privacyAssessments.clientId, input.clientId)
+                    ));
+                return { success: true };
             }),
     });
 };

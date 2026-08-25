@@ -98,59 +98,132 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card id="privacy-pii-assets" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card
+                        id="privacy-pii-assets"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/inventory`)}
+                        className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50 cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all group"
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">PII Assets</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand group-hover:text-brand-bright transition-colors">PII Assets</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-sky-50 flex items-center justify-center text-brand-bright">
                                 <Database className="h-4 w-4" />
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-slate-900 mb-1">{stats?.piiAssetCount || 0}</div>
-                            <p className="text-xs font-medium text-slate-400">Personal data assets mapped</p>
+                            <p className="text-xs font-medium text-slate-400">Personal data assets mapped &rarr;</p>
                         </CardContent>
                     </Card>
 
-                    <Card id="privacy-active-dsars" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card
+                        id="privacy-active-dsars"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/dsar`)}
+                        className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50 cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all group"
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">Active DSARs</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand group-hover:text-brand-bright transition-colors">Active DSARs</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
                                 <Users className="h-4 w-4" />
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-slate-900 mb-1">{pendingDsars}</div>
-                            <p className="text-xs font-medium text-slate-400">Requests requiring processing</p>
+                            <p className="text-xs font-medium text-slate-400">Requests requiring processing &rarr;</p>
                         </CardContent>
                     </Card>
 
-                    <Card id="privacy-impact-tasks" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card
+                        id="privacy-impact-tasks"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
+                        className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50 cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all group"
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">Impact Tasks</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand group-hover:text-brand-bright transition-colors">Impact Tasks</CardTitle>
                             <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
                                 <CheckCircle className="h-4 w-4" />
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-slate-900 mb-1">{assessments?.filter((a: any) => a.status === 'in_progress').length || 0}</div>
-                            <p className="text-xs font-medium text-slate-400">Open assessments in queue</p>
+                            <p className="text-xs font-medium text-slate-400">Open DPIA / TIA in queue &rarr;</p>
                         </CardContent>
                     </Card>
 
-                    <Card id="privacy-health-score" className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50">
+                    <Card
+                        id="privacy-health-score"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/transfers`)}
+                        className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden ring-1 ring-slate-200/50 cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-all group"
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand">Health Score</CardTitle>
-                            <div className="h-8 w-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-brand group-hover:text-brand-bright transition-colors">Cross-Border TIAs</CardTitle>
+                            <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
                                 <Shield className="h-4 w-4" />
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-slate-900 mb-1">94%</div>
-                            <p className="text-xs font-medium text-slate-400">Compliance health indicator</p>
+                            <div className="text-3xl font-bold text-slate-900 mb-1">
+                                {assessments?.filter((a: any) => a.type?.startsWith('TIA:')).length || 0}
+                            </div>
+                            <p className="text-xs font-medium text-slate-400">International data transfers &rarr;</p>
                         </CardContent>
                     </Card>
                 </div>
             )}
+
+            {/* Quick Navigation Hub */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Connected Privacy Operations</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/ropa`)}
+                        className="h-auto py-3 px-3 flex flex-col items-center gap-1.5 border-slate-200 hover:border-brand-bright hover:bg-sky-50 text-slate-700 hover:text-brand-bright text-xs font-bold rounded-xl"
+                    >
+                        <FileText className="w-4 h-4 text-brand-bright" />
+                        ROPA (Art. 30)
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/inventory`)}
+                        className="h-auto py-3 px-3 flex flex-col items-center gap-1.5 border-slate-200 hover:border-brand-bright hover:bg-sky-50 text-slate-700 hover:text-brand-bright text-xs font-bold rounded-xl"
+                    >
+                        <Database className="w-4 h-4 text-brand-bright" />
+                        Data Inventory
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/dsar`)}
+                        className="h-auto py-3 px-3 flex flex-col items-center gap-1.5 border-slate-200 hover:border-brand-bright hover:bg-sky-50 text-slate-700 hover:text-brand-bright text-xs font-bold rounded-xl"
+                    >
+                        <Users className="w-4 h-4 text-amber-500" />
+                        DSAR Portal
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
+                        className="h-auto py-3 px-3 flex flex-col items-center gap-1.5 border-slate-200 hover:border-brand-bright hover:bg-sky-50 text-slate-700 hover:text-brand-bright text-xs font-bold rounded-xl"
+                    >
+                        <Shield className="w-4 h-4 text-emerald-600" />
+                        DPIA Manager
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/transfers`)}
+                        className="h-auto py-3 px-3 flex flex-col items-center gap-1.5 border-slate-200 hover:border-brand-bright hover:bg-sky-50 text-slate-700 hover:text-brand-bright text-xs font-bold rounded-xl"
+                    >
+                        <Shield className="w-4 h-4 text-indigo-600" />
+                        Data Transfers (TIA)
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setLocation(`/clients/${clientId}/privacy/breaches`)}
+                        className="h-auto py-3 px-3 flex flex-col items-center gap-1.5 border-slate-200 hover:border-brand-bright hover:bg-sky-50 text-slate-700 hover:text-brand-bright text-xs font-bold rounded-xl"
+                    >
+                        <AlertTriangle className="w-4 h-4 text-rose-500" />
+                        Data Breaches
+                    </Button>
+                </div>
+            </div>
 
             <div className="grid gap-8 lg:grid-cols-2">
                 <Card id="privacy-recent-dsars" className="border-slate-200 shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white">
@@ -208,7 +281,21 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                         {assessments && assessments.length > 0 ? (
                             <div className="divide-y divide-slate-100">
                                 {assessments.slice(0, 5).map(assessment => (
-                                    <div key={assessment.id} className="flex items-center justify-between p-5 hover:bg-slate-50/80 transition-all cursor-pointer group">
+                                    <div
+                                        key={assessment.id}
+                                        className="flex items-center justify-between p-5 hover:bg-slate-50/80 transition-all cursor-pointer group"
+                                        onClick={() => {
+                                            if (assessment.type.startsWith("DPIA:")) {
+                                                setLocation(`/clients/${clientId}/privacy/dpia`);
+                                            } else if (assessment.type.startsWith("TIA:")) {
+                                                setLocation(`/clients/${clientId}/privacy/transfers`);
+                                            } else if (assessment.type.startsWith("BREACH:")) {
+                                                setLocation(`/clients/${clientId}/privacy/breaches`);
+                                            } else {
+                                                setLocation(`/clients/${clientId}/privacy/dpia`);
+                                            }
+                                        }}
+                                    >
                                         <div className="flex items-center gap-4">
                                             <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                                                 <FileText className="h-5 w-5" />

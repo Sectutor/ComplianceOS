@@ -103,7 +103,7 @@ export default function ISODashboard() {
             title: "Program Guide",
             description: "Step-by-step ISO 27001 implementation guide.",
             icon: BookOpen,
-            path: `/clients/${clientId}/iso27001/program-guide`,
+            path: `/clients/${clientId}/iso27001/guide`,
             progress: 0,
             status: "Start"
         },
@@ -135,10 +135,10 @@ export default function ISODashboard() {
             title: "Internal Audit",
             description: "Plan and track ISO internal audit cycles.",
             icon: FileText,
-            path: `/clients/${clientId}/audit-manager`,
+            path: `/clients/${clientId}/iso27001/audit`,
             progress: 10,
             status: "Scheduled"
-        }
+        },
     ];
 
     return (

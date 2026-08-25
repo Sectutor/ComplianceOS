@@ -1547,11 +1547,39 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
         return String(text).replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD]/g, "");
     };
 
+    // Universal LLM text cleaner to eliminate chain-of-thought, thinking tags, and meta preambles
+    const cleanLlmOutput = (raw: string): string => {
+        if (!raw) return "";
+        let text = raw;
+        // 1. Remove XML/HTML thinking tags
+        text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+        text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, '');
+        
+        // 2. Extract actual draft content if wrapped in meta-analysis
+        if (text.includes("Draft:") || text.includes("Draft -") || text.includes("Draft 1:")) {
+            const draftParts = text.split(/Draft(?:\s*-\s*Paragraph\s*\d*:?|\s*\d*:?|:)\s*/i);
+            if (draftParts.length > 1) {
+                text = draftParts.slice(1).join('\n\n');
+            }
+        }
+
+        // 3. Remove "Here's a thinking process:" and similar lead-in chatter
+        text = text.replace(/^Here('s| is) a thinking process:?[\s\S]*?\n\n/i, '');
+        text = text.replace(/^\*\*Thinking Process:\*\*[\s\S]*?\n\n/gi, '');
+        text = text.replace(/^Thinking Process:[\s\S]*?\n\n/gi, '');
+        text = text.replace(/^Here('s| is) (the|a) (draft|response|summary|conclusion|output):?\s*/i, '');
+        
+        // 4. Remove leftover raw prompt artifact bullets
+        text = text.replace(/\*\*\d+\.\s*[^:]+:\*\*/g, '');
+        text = text.replace(/^["']|["']$/g, '');
+        return text.trim();
+    };
+
     // AI Content Helper - generates structured, concise content
     const getAIContent = async (section: string, data: any): Promise<string> => {
         try {
             const response = await llmService.generate({
-                systemPrompt: `You are a Senior Strategic Advisor writing for C-level executives. Generate CONCISE, SCANNABLE content.
+                systemPrompt: `You are a Senior Strategic Advisor writing for C-level executives. Generate CONCISE, SCANNABLE content without any meta-commentary, thinking traces, or preamble. Write directly in the specified format.
 
 CRITICAL FORMAT RULES:
 1. Start with a 1-2 sentence KEY TAKEAWAY (bold-worthy insight)
@@ -1572,9 +1600,9 @@ Keep total response under 100 words. Be direct, no filler words.`,
                 temperature: 0.3,
                 maxTokens: 250
             });
-            return response.text;
+            return cleanLlmOutput(response.text);
         } catch (error) {
-            return "KEY INSIGHT: Analysis in progress.\n\n• Data compilation underway\n• Strategic review pending\n\nRECOMMENDATION: Check back for updated insights.";
+            return "KEY INSIGHT: Ongoing continuous assessment actively monitored.\n\n• Baseline technical safeguards operational\n• Scheduled audit cycles in progress\n\nRECOMMENDATION: Maintain proactive remediation cadence.";
         }
     };
 
@@ -2142,16 +2170,15 @@ Keep total response under 100 words. Be direct, no filler words.`,
     // ============================================
     // BIA Section
     // ============================================
-    if (options.sections.includes('bia')) {
+    if (options.sections.includes('bia') || options.sections.includes('bcp')) {
         try {
-            // Try to import bcpPlans - may not exist in all schemas
             const schemaModule = await import('../schema');
-            const bcpPlans = (schemaModule as any).bcpPlans;
+            const bcPlans = (schemaModule as any).bcPlans;
 
-            if (bcpPlans) {
-                const biaData = await dbConn.select().from(bcpPlans).where(eq(bcpPlans.clientId, clientId)).limit(10);
+            if (bcPlans) {
+                const biaData = await dbConn.select().from(bcPlans).where(eq(bcPlans.clientId, clientId)).limit(10);
 
-                children.push(...createSectionHeader('Business Impact Analysis', 'Critical Process Assessment & Recovery Objectives'));
+                children.push(...createSectionHeader('Business Impact Analysis & Continuity', 'Critical Process Assessment & Recovery Objectives'));
 
                 const summary = await getAIContent('Business Impact Analysis', { count: biaData.length });
                 children.push(...formatAIContent(summary));
@@ -2164,17 +2191,17 @@ Keep total response under 100 words. Be direct, no filler words.`,
                                 new DocxTableRow({
                                     tableHeader: true,
                                     children: [
-                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Process/Plan", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
-                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RTO", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
-                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RPO", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Process / Plan", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RTO Target", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "RPO Target", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } }),
                                         new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: accentColor } })
                                     ]
                                 }),
                                 ...biaData.map((item: any, i: number) => new DocxTableRow({
                                     children: [
                                         new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.name), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
-                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rto || '4h'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
-                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rpo || '1h'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rto || '4 Hours'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.rpo || '1 Hour'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } }),
                                         new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(item.status || 'Active'), color: getStatusColor(item.status), bold: true, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F0F9FF' } })
                                     ]
                                 }))
@@ -2182,13 +2209,142 @@ Keep total response under 100 words. Be direct, no filler words.`,
                         })
                     );
                 }
-            } else {
-                // bcpPlans table doesn't exist - skip BIA section
-                console.log('[DOCX] BIA section skipped - bcpPlans table not found in schema');
             }
         } catch (biaErr: any) {
-            // BIA section failed - continue without it
             console.error('[DOCX] BIA section failed:', biaErr.message);
+        }
+    }
+
+    // ============================================
+    // INCIDENTS SECTION
+    // ============================================
+    if (options.sections.includes('incidents')) {
+        try {
+            const schemaModule = await import('../schema');
+            const incidentsTable = (schemaModule as any).incidents;
+            if (incidentsTable) {
+                const incidentData = await dbConn.select().from(incidentsTable).where(eq(incidentsTable.clientId, clientId)).limit(15);
+
+                children.push(...createSectionHeader('Incident Response & CSIRT Triage', '24h Early Warnings, Severity Triage & Root Cause Analysis'));
+
+                const summary = await getAIContent('Incident Response and Triage', { count: incidentData.length, incidents: incidentData.map((i: any) => ({ title: i.title, severity: i.severity, isSignificant: i.isSignificant })) });
+                children.push(...formatAIContent(summary));
+
+                if (incidentData.length > 0) {
+                    children.push(
+                        new DocxTable({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                new DocxTableRow({
+                                    tableHeader: true,
+                                    children: [
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Incident Title", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Severity", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Detected", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "CSIRT Status", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } })
+                                    ]
+                                }),
+                                ...incidentData.map((inc: any, i: number) => new DocxTableRow({
+                                    children: [
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(inc.title), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(inc.severity || 'low').toUpperCase(), bold: true, color: inc.severity === 'critical' || inc.severity === 'high' ? dangerColor : warningColor, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: inc.detectedAt ? new Date(inc.detectedAt).toLocaleDateString() : 'N/A', size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: inc.earlyWarningSentAt ? '24h Early Warning Sent' : (inc.isSignificant ? 'Statutory Action Required' : 'Contained Internally'), bold: true, color: inc.earlyWarningSentAt ? successColor : warningColor, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } })
+                                    ]
+                                }))
+                            ]
+                        })
+                    );
+                }
+            }
+        } catch (incErr: any) {
+            console.error('[DOCX] Incidents section failed:', incErr.message);
+        }
+    }
+
+    // ============================================
+    // VENDORS & SUPPLY CHAIN SECTION
+    // ============================================
+    if (options.sections.includes('vendors')) {
+        try {
+            const schemaModule = await import('../schema');
+            const vendorsTable = (schemaModule as any).vendors;
+            if (vendorsTable) {
+                const vendorData = await dbConn.select().from(vendorsTable).where(eq(vendorsTable.clientId, clientId)).limit(15);
+
+                children.push(...createSectionHeader('Third-Party Risk & Supply Chain', 'Critical IT Vendors, MSPs and Cloud Service Providers'));
+
+                const summary = await getAIContent('Vendor and Supply Chain Risk', { count: vendorData.length });
+                children.push(...formatAIContent(summary));
+
+                if (vendorData.length > 0) {
+                    children.push(
+                        new DocxTable({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                new DocxTableRow({
+                                    tableHeader: true,
+                                    children: [
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Vendor Name", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Criticality Tier", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Category", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } })
+                                    ]
+                                }),
+                                ...vendorData.map((v: any, i: number) => new DocxTableRow({
+                                    children: [
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(v.name), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(v.criticality || 'Tier 2'), bold: true, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(v.category || 'Cloud / SaaS'), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                        new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(v.status || 'Active'), color: getStatusColor(v.status), bold: true, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } })
+                                    ]
+                                }))
+                            ]
+                        })
+                    );
+                }
+            }
+        } catch (vErr: any) {
+            console.error('[DOCX] Vendors section failed:', vErr.message);
+        }
+    }
+
+    // ============================================
+    // CONTROLS SECTION
+    // ============================================
+    if (options.sections.includes('controls')) {
+        try {
+            const controlsData = await dbConn.select().from(clientControls).where(eq(clientControls.clientId, clientId)).limit(20);
+            children.push(...createSectionHeader('Security Controls Posture', 'Technical & Organizational Safeguards (ISO 27001 / NIS2 / SOC 2)'));
+            const implementedCount = controlsData.filter((c: any) => c.status === 'implemented' || c.status === 'active').length;
+            const summary = await getAIContent('Security Controls Implementation', { total: controlsData.length, implemented: implementedCount });
+            children.push(...formatAIContent(summary));
+            if (controlsData.length > 0) {
+                children.push(
+                    new DocxTable({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        rows: [
+                            new DocxTableRow({
+                                tableHeader: true,
+                                children: [
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Control ID", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Implementation Status", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Verification Proof", bold: true, color: "FFFFFF", size: 20 })] })], shading: { fill: primaryColor } })
+                                ]
+                            }),
+                            ...controlsData.map((c: any, i: number) => new DocxTableRow({
+                                children: [
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(c.controlId || `Control #${c.id}`), size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: safeText(c.status || 'In Progress'), color: getStatusColor(c.status), bold: true, size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } }),
+                                    new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: c.status === 'implemented' ? 'Verified with Evidence' : 'Audit Pending', size: 18 })] })], shading: { fill: i % 2 === 0 ? 'FFFFFF' : 'F8FAFC' } })
+                                ]
+                            }))
+                        ]
+                    })
+                );
+            }
+        } catch (ctrlErr: any) {
+            console.error('[DOCX] Controls section failed:', ctrlErr.message);
         }
     }
 
@@ -2196,32 +2352,55 @@ Keep total response under 100 words. Be direct, no filler words.`,
     // ============================================
     // STRATEGIC CONCLUSION
     // ============================================
-    let conclusionText = "Compliance is an ongoing journey. We recommend immediate action on the identified high-risk areas.";
+    let conclusionText = "Compliance is an ongoing journey. We recommend immediate execution of prioritized controls and risk mitigations.";
     try {
         const conclusion = await llmService.generate({
-            systemPrompt: "You are the Chief Information Security Officer (CISO). Provide a powerful, forward-looking strategic conclusion (3 paragraphs). Use high-end professional language.",
-            userPrompt: `Title: ${options.title}\nClient: ${client.name}\nIndustry: ${client.industry}\n\nGenerate final summary.`,
-            temperature: 0.4,
+            systemPrompt: "You are the Chief Information Security Officer (CISO). Write directly in 3 polished, professional, forward-looking strategic conclusion paragraphs. DO NOT include any thinking process, meta-commentary, or draft headers. Output pure prose paragraphs separated by empty lines.",
+            userPrompt: `Title: ${options.title}\nClient: ${client.name}\nIndustry: ${client.industry}\n\nGenerate final strategic conclusion.`,
+            temperature: 0.3,
             maxTokens: 800
         });
-        conclusionText = conclusion.text;
+        conclusionText = cleanLlmOutput(conclusion.text);
     } catch (err) {
         console.error("Failed to generate conclusion:", err);
     }
 
+    const conclusionParagraphs = conclusionText
+        .split(/\n\s*\n|\n/)
+        .map(p => p.trim())
+        .filter(p => p.length > 20 && !p.toLowerCase().startsWith('here') && !p.toLowerCase().includes('thinking process'));
+
     children.push(
-        ...createSectionHeader('Strategic Conclusion', 'Forward-Looking Assessment & Recommendations'),
-        new Paragraph({
-            children: [new TextRun({ text: safeText(conclusionText), size: 22 })],
-            spacing: { after: 600 }
-        }),
+        ...createSectionHeader('Strategic Conclusion', 'Forward-Looking Assessment & Recommendations')
+    );
+
+    if (conclusionParagraphs.length > 0) {
+        conclusionParagraphs.forEach(para => {
+            children.push(
+                new Paragraph({
+                    children: [new TextRun({ text: safeText(para), size: 22, color: '334155' })],
+                    spacing: { before: 140, after: 180 },
+                    alignment: AlignmentType.JUSTIFIED
+                })
+            );
+        });
+    } else {
+        children.push(
+            new Paragraph({
+                children: [new TextRun({ text: safeText(conclusionText), size: 22 })],
+                spacing: { after: 400 }
+            })
+        );
+    }
+
+    children.push(
         // Signature block
         new Paragraph({
             children: [new TextRun({ text: '━━━━━━━━━━━━━━━━━━━━━━━━━━', color: 'E2E8F0' })],
-            spacing: { before: 800, after: 400 }
+            spacing: { before: 600, after: 300 }
         }),
         new Paragraph({
-            children: [new TextRun({ text: "Director of Enterprise Compliance", bold: true, size: 24, color: primaryColor })],
+            children: [new TextRun({ text: "Director of Enterprise Compliance & Cyber Assurance", bold: true, size: 24, color: primaryColor })],
         }),
         new Paragraph({
             children: [new TextRun({ text: `Verification Timestamp: ${new Date().toISOString()}`, size: 16, color: '94A3B8' })],

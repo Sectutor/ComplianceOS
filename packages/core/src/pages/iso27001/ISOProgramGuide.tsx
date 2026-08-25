@@ -1,398 +1,590 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'wouter';
-import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
+import { useParams, Link, useLocation } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
-import { Progress } from '@complianceos/ui/ui/progress';
 import {
-    CheckCircle2, Target, Database, Shield, Lock, FileText, ClipboardList,
-    ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Users, Calendar,
-    Globe, Settings, AlertTriangle, DollarSign
+    CheckCircle2, Database, FileText, Activity, Users, AlertTriangle,
+    ArrowRight, BookOpen, ArrowLeft, Info, Calendar,
+    Globe, Shield, Scale, Clock, Lock, Sparkles, Copy, ChevronRight,
+    Check, Target, Layers, Compass, Award, ExternalLink
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-
-const FRAMEWORKS = {
-    iso27001: {
-        id: 'iso27001',
-        label: 'ISO/IEC 27001:2022',
-        shortLabel: 'ISO 27001',
-        subtitle: 'ISMS Certification',
-        icon: Globe,
-        color: 'text-indigo-700',
-        bg: 'bg-indigo-50',
-        border: 'border-indigo-200',
-        badge: 'bg-indigo-100 text-indigo-800',
-        accent: 'from-indigo-600 to-violet-600',
-        tabActive: 'bg-indigo-600 text-white shadow-md',
-        tabInactive: 'text-indigo-700 bg-indigo-50/50 border border-indigo-200 hover:bg-indigo-100',
-        overview: `ISO/IEC 27001:2022 is the global standard for Information Security Management Systems (ISMS). It provides a systematic approach to managing sensitive company information through risk assessment, treatment, and continuous improvement. Certification demonstrates your commitment to information security.`,
-        highlightNote: `📌 Required for organizations seeking formal ISO 27001 certification. Start with the Statement of Applicability (SoA) to define scope, then systematically implement controls. Certification typically takes 6-12 months.`,
-        timeline: '6 – 12 months',
-        cost: '$50K – $300K+',
-        steps: [
-            {
-                id: 'context',
-                step: 1,
-                title: 'Organization Context',
-                subtitle: 'ISMS Scope & Leadership',
-                description: 'Define the scope of your Information Security Management System (ISMS) and establish leadership commitment. Identify internal and external issues, interested parties, and boundaries.',
-                icon: Target,
-                color: 'text-indigo-600',
-                bgColor: 'bg-indigo-50',
-                accent: 'from-indigo-600 to-violet-600',
-                bestPractices: [
-                    'Define ISMS scope clearly - processes, locations, and assets.',
-                    'Obtain explicit commitment from top management (C-level).',
-                    'Document organizational context in the Statement of Applicability (SoA).'
-                ],
-                link: `iso27001/soa`,
-                cta: 'Configure ISMS Context',
-                keyActions: [
-                    'Define ISMS scope and boundaries.',
-                    'Identify interested parties and their requirements.',
-                    'Obtain leadership commitment.',
-                    'Establish information security policy.'
-                ]
-            },
-            {
-                id: 'assets',
-                step: 2,
-                title: 'Asset Inventory',
-                subtitle: 'Information Asset Register',
-                description: 'Identify and classify all information assets within the ISMS scope. Assets include hardware, software, data, and people that support business processes.',
-                icon: Database,
-                color: 'text-violet-600',
-                bgColor: 'bg-violet-50',
-                accent: 'from-violet-500 to-purple-500',
-                bestPractices: [
-                    'Classify assets by sensitivity and criticality.',
-                    'Assign asset owners responsible for protecting each asset.',
-                    'Include asset dependencies and data flows.'
-                ],
-                link: `iso27001/assets`,
-                cta: 'Manage Assets',
-                keyActions: [
-                    'Inventory all information assets.',
-                    'Classify assets (Confidential, Internal, Public).',
-                    'Assign asset owners.',
-                    'Document data flows and dependencies.'
-                ]
-            },
-            {
-                id: 'risks',
-                step: 3,
-                title: 'Risk Assessment',
-                subtitle: 'ISO 27005 Risk Treatment',
-                description: 'Conduct systematic risk assessments following ISO 27005 guidelines. Identify threats, vulnerabilities, and potential impacts to determine risk levels.',
-                icon: Shield,
-                color: 'text-pink-600',
-                bgColor: 'bg-pink-50',
-                accent: 'from-pink-600 to-rose-600',
-                bestPractices: [
-                    'Use a consistent risk assessment methodology.',
-                    'Document risk owners and acceptance thresholds.',
-                    'Review and update risk assessments annually.'
-                ],
-                link: `iso27001/risks`,
-                cta: 'View Risk Register',
-                keyActions: [
-                    'Identify risks to information assets.',
-                    'Analyze likelihood and impact.',
-                    'Evaluate and prioritize risks.',
-                    'Document risk treatment plans.'
-                ]
-            },
-            {
-                id: 'controls',
-                step: 4,
-                title: 'Annex A Controls',
-                subtitle: 'Control Implementation',
-                description: 'Implement the applicable controls from Annex A of ISO 27001. These controls address people, physical, technological, and organizational security aspects.',
-                icon: Lock,
-                color: 'text-purple-600',
-                bgColor: 'bg-purple-50',
-                accent: 'from-purple-600 to-indigo-600',
-                bestPractices: [
-                    'Complete the Statement of Applicability (SoA).',
-                    'Map controls to specific assets and risks.',
-                    'Document implementation evidence.'
-                ],
-                link: `iso27001/soa`,
-                cta: 'Manage Controls',
-                keyActions: [
-                    'Review all 93 Annex A controls.',
-                    'Justify inclusions and exclusions in SoA.',
-                    'Implement applicable controls.',
-                    'Document control implementation.'
-                ]
-            },
-            {
-                id: 'documentation',
-                step: 5,
-                title: 'Documentation',
-                subtitle: 'Policies & Procedures',
-                description: 'Create and maintain required documentation including Information Security Policy, procedures, and records mandated by ISO 27001.',
-                icon: FileText,
-                color: 'text-rose-600',
-                bgColor: 'bg-rose-50',
-                accent: 'from-rose-600 to-pink-600',
-                bestPractices: [
-                    'Follow ISO 27001 documented information requirements.',
-                    'Ensure documents are approved and current.',
-                    'Maintain records as evidence of conformance.'
-                ],
-                link: `iso27001/documents`,
-                cta: 'Manage Documents',
-                keyActions: [
-                    'Develop information security policies.',
-                    'Create required procedures and work instructions.',
-                    'Establish record keeping requirements.',
-                    'Implement document control.'
-                ]
-            },
-            {
-                id: 'audit',
-                step: 6,
-                title: 'Internal Audit',
-                subtitle: 'Audit & Management Review',
-                description: 'Conduct internal audits and management reviews to ensure the ISMS is functioning effectively and achieving its objectives.',
-                icon: ClipboardList,
-                color: 'text-teal-600',
-                bgColor: 'bg-teal-50',
-                accent: 'from-teal-600 to-cyan-600',
-                bestPractices: [
-                    'Plan internal audits with a multi-year schedule.',
-                    'Document audit findings and corrective actions.',
-                    'Conduct management reviews per ISO 27001 Clause 9.3.'
-                ],
-                link: `iso27001/audit-manager`,
-                cta: 'Plan Audit',
-                keyActions: [
-                    'Develop internal audit program.',
-                    'Conduct internal audits.',
-                    'Document nonconformities and corrective actions.',
-                    'Hold management review meetings.'
-                ]
-            }
-        ]
-    }
-};
+import { Progress } from '@complianceos/ui/ui/progress';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { ISOLayout } from './ISOLayout';
 
 export default function ISOProgramGuide() {
     const params = useParams();
-    const clientId = parseInt(params.id || "0");
-    const [activeFw] = useState<'iso27001'>('iso27001');
+    const clientId = parseInt(params.id || params.clientId || "0");
+    const [location, setLocation] = useLocation();
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'architecture' | 'auditor'>('tutorials');
 
-    // Fetch data for dynamic progress tracking
-    const { data: assignments, refetch: refetchAssignments } = trpc.programGuides.getAssignments.useQuery({
-        clientId,
-        guideType: 'iso27001'
-    }, { enabled: !!clientId });
+    // Fetch live system telemetry safely
+    const { data: soaData } = trpc.iso27001.getSoA.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: risksData } = trpc.risks.getRiskAssessments.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: clientPolicies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
 
-    const { data: readinessData } = trpc.compliance.getReadinessData.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: riskAssessments } = trpc.risks.list.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: assets } = trpc.assets.list.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: policies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: evidenceList } = trpc.evidence.list.useQuery({ clientId }, { enabled: !!clientId });
+    // Defensive array checks
+    const safeSoa = Array.isArray(soaData) ? soaData : [];
+    const safeRisks = Array.isArray(risksData) ? risksData : [];
+    const safePolicies = Array.isArray(clientPolicies) ? clientPolicies : [];
 
-    const hasSoA = (readinessData?.coverage?.controlStats?.implemented || 0) > 0;
-    const hasRisks = !!riskAssessments && riskAssessments.length > 0;
-    const hasAssets = !!assets && assets.length > 0;
-    const hasControls = (readinessData?.coverage?.controlStats?.implemented || 0) > 40;
-    // For documentation and audit, we check if there's relevant data
-    const hasDocs = !!policies && policies.length > 0;
-    const hasAudit = !!evidenceList && evidenceList.length > 0;
+    // Compute live progress stats
+    const totalSoaControls = safeSoa.length || 93;
+    const implementedSoaControls = safeSoa.filter((c: any) => c?.clientControl?.status === 'implemented' || c?.clientControl?.status === 'active').length;
+    const inProgressSoaControls = safeSoa.filter((c: any) => c?.clientControl?.status === 'in_progress').length;
+    
+    const totalRisks = safeRisks.length;
+    const treatedRisks = safeRisks.filter((r: any) => r?.status === 'treated' || r?.status === 'closed' || r?.status === 'mitigated').length;
+    
+    const totalPolicies = safePolicies.length;
+    const approvedPolicies = safePolicies.filter((p: any) => p?.clientPolicy?.status === 'approved' || p?.status === 'approved' || p?.clientPolicy?.status === 'published').length;
 
-    const getStatus = (stepId: string) => {
-        switch (stepId) {
-            case 'context': return hasSoA ? 'completed' : 'pending';
-            case 'assets': return hasAssets ? 'completed' : 'pending';
-            case 'risks': return hasRisks ? 'completed' : 'pending';
-            case 'controls': return hasControls ? 'completed' : 'pending';
-            case 'documentation': return hasDocs ? 'completed' : 'pending';
-            case 'audit': return hasAudit ? 'completed' : 'pending';
-            default: return 'pending';
+    const completedPillars = [
+        totalSoaControls > 0,
+        implementedSoaControls > 0,
+        totalRisks > 0,
+        totalPolicies > 0,
+        approvedPolicies > 0
+    ].filter(Boolean).length;
+
+    const progressPercentage = Math.min(100, Math.round(((implementedSoaControls / 93) * 0.5 + (completedPillars / 5) * 0.5) * 100));
+
+    const pillars = [
+        {
+            id: 'context',
+            number: 1,
+            title: 'ISMS Context & Leadership Commitment',
+            clauseRef: 'ISO 27001:2022 Clauses 4 & 5',
+            status: 'active',
+            countLabel: 'Scope & Governance',
+            icon: Target,
+            color: 'text-indigo-600',
+            bgLight: 'bg-indigo-50/70',
+            borderColor: 'border-indigo-200',
+            gradient: 'from-indigo-600 to-violet-600',
+            summary: 'Define the boundary and applicability of the Information Security Management System (ISMS), identify interested parties, and formalize top management commitment.',
+            whyItMatters: 'Lead auditors immediately review Clause 4.3 (Scope Statement) and Clause 5.2 (Information Security Policy). If your scope is ambiguous or lacks executive sign-off, the entire certification halts.',
+            howToExecute: [
+                '1. Navigate to Organization Context and define the ISMS Scope Statement (in-scope products, offices, cloud infrastructure, and departments).',
+                '2. Catalogue Internal & External Issues (e.g. cloud migration risks, remote work security, regulatory compliance).',
+                '3. Document Interested Parties (Customers, Regulators, Board, SaaS vendors) and their legal/contractual requirements.',
+                '4. Ensure the C-Level Executive Team approves and publishes the Master Information Security Policy.'
+            ],
+            link: `/clients/${clientId}/iso27001/governance`,
+            cta: 'Configure ISMS Scope'
+        },
+        {
+            id: 'assets',
+            number: 2,
+            title: 'Information Asset Register & Classification',
+            clauseRef: 'ISO 27001 Clause 8 / Annex A.5.9–A.5.14',
+            status: 'active',
+            countLabel: 'Asset Classification',
+            icon: Database,
+            color: 'text-blue-600',
+            bgLight: 'bg-blue-50/70',
+            borderColor: 'border-blue-200',
+            gradient: 'from-blue-600 to-cyan-600',
+            summary: 'Identify, classify, and assign ownership for all information assets, hardware systems, cloud services, and repositories handling sensitive data.',
+            whyItMatters: 'You cannot assess risks on assets you have not identified. ISO 27001 requires an accurate asset inventory with defined ownership and handling rules.',
+            howToExecute: [
+                '1. Open Asset Inventory and review or register all organizational information assets.',
+                '2. Classify each asset based on Confidentiality, Integrity, and Availability (CIA) impact (Confidential, Restricted, Internal, Public).',
+                '3. Assign a designated Asset Owner responsible for maintaining security controls and lifecycle management.',
+                '4. Map asset dependencies to key business processes and cloud infrastructure.'
+            ],
+            link: `/clients/${clientId}/iso27001/assets`,
+            cta: 'Manage Asset Register'
+        },
+        {
+            id: 'risks',
+            number: 3,
+            title: 'ISO 27005 Risk Assessment & Treatment Plan (RTP)',
+            clauseRef: 'ISO 27001:2022 Clause 6.1',
+            status: totalRisks > 0 ? 'active' : 'pending',
+            countLabel: `${totalRisks} Risks Logged (${treatedRisks} Treated)`,
+            icon: Shield,
+            color: 'text-amber-600',
+            bgLight: 'bg-amber-50/70',
+            borderColor: 'border-amber-200',
+            gradient: 'from-amber-500 to-orange-600',
+            summary: 'Conduct systematic risk assessments to identify threats and vulnerabilities, evaluate likelihood and impact, and document formal Risk Treatment Plans.',
+            whyItMatters: 'ISO 27001 is fundamentally a risk-driven standard. Every Annex A control in your SoA must be justified by an identified risk or legal obligation.',
+            howToExecute: [
+                '1. Open Risk Register and log identified information security threats (e.g. ransomware, credential stuffing, vendor outages, data leakage).',
+                '2. Score Inherent Likelihood and Impact (1 to 5) to determine the overall Risk Severity Score.',
+                '3. Select a Risk Treatment Option (Mitigate, Transfer, Avoid, Accept) and assign a Treatment Owner and deadline.',
+                '4. Link the treatment plan directly to corresponding Annex A controls in the SoA.'
+            ],
+            link: `/clients/${clientId}/iso27001/risks`,
+            cta: 'Open Risk Register'
+        },
+        {
+            id: 'soa',
+            number: 4,
+            title: 'Statement of Applicability (SoA) & 93 Annex A Controls',
+            clauseRef: 'ISO 27001:2022 Clause 6.1.3 & Annex A',
+            status: implementedSoaControls > 0 ? 'active' : 'pending',
+            countLabel: `${implementedSoaControls} / 93 Implemented`,
+            icon: Lock,
+            color: 'text-purple-600',
+            bgLight: 'bg-purple-50/70',
+            borderColor: 'border-purple-200',
+            gradient: 'from-purple-600 to-indigo-600',
+            summary: 'Review and document the applicability and implementation status of all 93 controls across the 4 modernized ISO 27001:2022 themes.',
+            whyItMatters: 'The Statement of Applicability (SoA) is the single most critical document in your certification audit. External auditors examine every inclusion and exclusion justification.',
+            howToExecute: [
+                '1. Open SoA (Annex A) and review controls across the 4 Themes: Organizational (37), People (8), Physical (14), Technological (34).',
+                '2. For each control, select Applicability (Applicable vs. Not Applicable) and provide formal business justification.',
+                '3. Update Implementation Status (Not Implemented, In Progress, Implemented) and link supporting policy and technical evidence.',
+                '4. Use the "Export SoA" feature to generate the formal audit deliverable.'
+            ],
+            link: `/clients/${clientId}/iso27001/soa`,
+            cta: 'Manage SoA Controls'
+        },
+        {
+            id: 'documents',
+            number: 5,
+            title: 'Mandatory ISMS Document Tracker & Policies',
+            clauseRef: 'ISO 27001:2022 Clause 7.5',
+            status: totalPolicies > 0 ? 'active' : 'pending',
+            countLabel: `${totalPolicies} Policies (${approvedPolicies} Approved)`,
+            icon: FileText,
+            color: 'text-rose-600',
+            bgLight: 'bg-rose-50/70',
+            borderColor: 'border-rose-200',
+            gradient: 'from-rose-500 to-pink-600',
+            summary: 'Author, review, approve, and maintain version-controlled policies and mandatory records mandated by ISO 27001.',
+            whyItMatters: 'Missing mandatory documented information (such as Access Control Policy, Incident Response Procedure, or Cryptography Policy) triggers immediate Major Non-Conformities in Stage 1.',
+            howToExecute: [
+                '1. Open Documents & Policies to review mandatory ISO 27001 policy templates.',
+                '2. Customize policies to reflect your technical environment (MFA enforcement, AWS/GCP access controls, data retention).',
+                '3. Route policies for formal C-Level approval and distribute to employees for annual acknowledgment.',
+                '4. Track review cadences to ensure all policies are refreshed at least annually.'
+            ],
+            link: `/clients/${clientId}/iso27001/documents`,
+            cta: 'Manage ISMS Documents'
+        },
+        {
+            id: 'audit',
+            number: 6,
+            title: 'Internal Audit Program & Corrective Actions (CAPA)',
+            clauseRef: 'ISO 27001:2022 Clauses 9.2 & 10.2',
+            status: 'active',
+            countLabel: 'Audit & Remediation',
+            icon: Activity,
+            color: 'text-emerald-600',
+            bgLight: 'bg-emerald-50/70',
+            borderColor: 'border-emerald-200',
+            gradient: 'from-emerald-500 to-teal-600',
+            summary: 'Plan and execute objective internal audits across all ISMS clauses and Annex A controls to detect non-conformities prior to external certification.',
+            whyItMatters: 'You cannot achieve ISO 27001 certification without conducting at least one full internal audit covering the entire ISMS scope and demonstrating effective corrective actions.',
+            howToExecute: [
+                '1. Open Internal Audit and generate an Internal Audit Schedule covering Clauses 4–10 and Annex A.',
+                '2. Sample evidence and log findings classified as Major Non-Conformity, Minor Non-Conformity, or Opportunity for Improvement (OFI).',
+                '3. Perform Root Cause Analysis (RCA) for any non-conformities and assign Corrective and Preventive Actions (CAPA).',
+                '4. Verify that corrective actions are implemented and validated before scheduling Stage 1 audit.'
+            ],
+            link: `/clients/${clientId}/iso27001/audit`,
+            cta: 'Open Internal Audit'
+        },
+        {
+            id: 'review',
+            number: 7,
+            title: 'Management Review & Certification Audit Readiness',
+            clauseRef: 'ISO 27001:2022 Clause 9.3 & Stage 1 / Stage 2',
+            status: 'active',
+            countLabel: 'Executive Review & Cert',
+            icon: Award,
+            color: 'text-cyan-600',
+            bgLight: 'bg-cyan-50/70',
+            borderColor: 'border-cyan-200',
+            gradient: 'from-cyan-600 to-blue-700',
+            summary: 'Convene executive leadership to review ISMS performance, risk treatment results, audit findings, and finalize readiness for accredited certification.',
+            whyItMatters: 'Clause 9.3 requires formal Management Review minutes with executive signatures before Stage 1 (Documentation Review) and Stage 2 (Certification Audit) can begin.',
+            howToExecute: [
+                '1. Open Mgmt Review and prepare the formal agenda covering ISMS metrics, audit results, security incidents, and risk posture.',
+                '2. Record executive decisions regarding resource allocation, budget, and continuous improvement initiatives.',
+                '3. Generate and archive the signed Management Review Meeting Minutes.',
+                '4. Assemble the final Auditor Clean Room package for your accredited Certification Body (e.g. BSI, TÜV, SGS, Schellman).'
+            ],
+            link: `/clients/${clientId}/iso27001/management-review`,
+            cta: 'Open Management Review'
         }
+    ];
+
+    const copyMasterManual = () => {
+        const manualText = `COMPLIANCEOS ISO/IEC 27001:2022 ISMS OPERATING MANUAL\n` +
+            `============================================================\n` +
+            `Organization: Client #${clientId}\n` +
+            `Standard: ISO/IEC 27001:2022 (Information Security Management System)\n` +
+            `Generated: ${new Date().toLocaleDateString()}\n\n` +
+            `1. ISMS CONTEXT & LEADERSHIP (Clauses 4 & 5)\n` +
+            `   - ISMS Scope Statement, Internal/External context, and Top Management Security Policy.\n\n` +
+            `2. ASSET INVENTORY & CLASSIFICATION (Clause 8 / A.5.9-A.5.14)\n` +
+            `   - Hardware, Software, Cloud SaaS, and Information assets categorized by CIA sensitivity.\n\n` +
+            `3. RISK ASSESSMENT & TREATMENT (Clause 6.1 / ISO 27005)\n` +
+            `   - Inherent vs Residual risk evaluation, risk appetite, and assigned treatment plans (${totalRisks} risks logged).\n\n` +
+            `4. STATEMENT OF APPLICABILITY - SoA (Clause 6.1.3 & Annex A)\n` +
+            `   - 93 Annex A controls across 4 Themes: Organizational (37), People (8), Physical (14), Technological (34).\n` +
+            `   - Implementation Progress: ${implementedSoaControls} of 93 controls implemented.\n\n` +
+            `5. MANDATORY ISMS POLICIES & RECORDS (Clause 7.5)\n` +
+            `   - ${totalPolicies} documented policies approved, versioned, and acknowledged by personnel.\n\n` +
+            `6. INTERNAL AUDIT & CAPA (Clauses 9.2 & 10.2)\n` +
+            `   - Full ISMS scope internal audit execution, non-conformity tracking, and corrective action verification.\n\n` +
+            `7. MANAGEMENT REVIEW & CERTIFICATION AUDIT (Clause 9.3 & Stage 1/2)\n` +
+            `   - Executive review meeting minutes, resource commitment, and certification audit package.`;
+
+        navigator.clipboard.writeText(manualText);
+        toast.success("Complete ISO 27001 ISMS Operating Manual copied to clipboard!");
     };
 
-    const fw = FRAMEWORKS[activeFw];
-    const FwIcon = fw.icon;
-
-    const completedSteps = fw.steps.filter(s => getStatus(s.id) === 'completed').length;
-    const progressPercentage = Math.round((completedSteps / fw.steps.length) * 100);
-
     return (
-        <DashboardLayout>
-            <div className="min-h-screen bg-slate-50 flex flex-col">
-                <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0">
-                    <div className="flex items-center gap-2 text-sm">
-                        <Link href={`/clients/${clientId}/iso27001`}>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
-                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> ISO 27001 Dashboard
-                            </Button>
-                        </Link>
-                        <span className="text-slate-300">/</span>
-                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            ISO 27001 Program Guide
+        <ISOLayout clientId={clientId} fullWidth>
+            <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-4 md:p-8">
+                {/* Hero Header */}
+                <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                    <div className="relative z-10 space-y-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-indigo-400">
+                                    <BookOpen className="w-8 h-8 text-indigo-400" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h1 className="text-3xl lg:text-4xl font-black tracking-tight">ISO 27001 Operating Guide & Manual</h1>
+                                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-xs font-bold">
+                                            ISO/IEC 27001:2022 ISMS
+                                        </Badge>
+                                    </div>
+                                    <p className="text-slate-300 text-base mt-1">
+                                        Complete implementation roadmap, Clauses 4–10 operational manual, and Annex A controls registry.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    onClick={copyMasterManual}
+                                    variant="outline"
+                                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl h-11"
+                                >
+                                    <Copy className="w-4 h-4 mr-2" />
+                                    Copy ISMS Operations Manual
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                        <button
-                            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${fw.tabActive}`}
-                        >
-                            {fw.shortLabel}
-                        </button>
+
+                        {/* Progress Bar & Telemetry */}
+                        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                    <Shield className="w-4 h-4 text-emerald-400" />
+                                    ISO 27001:2022 Implementation & Certification Maturity
+                                </span>
+                                <span className="text-sm font-black text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/50">
+                                    {progressPercentage}% Ready
+                                </span>
+                            </div>
+                            <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{implementedSoaControls} / 93</span> Annex A Controls
+                                </div>
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{totalRisks}</span> Assessed Risks
+                                </div>
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{totalPolicies}</span> Documented Policies
+                                </div>
+                                <div className="text-slate-300">
+                                    <span className="font-bold text-white">{approvedPolicies}</span> Approved Policies
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="p-6 lg:p-10 space-y-8">
-                    <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl">
-                                    <FwIcon className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">{fw.label}</h1>
-                                    <p className="text-indigo-200 font-medium">{fw.subtitle}</p>
-                                </div>
-                            </div>
+                {/* Navigation Tabs */}
+                <div className="flex gap-2 border-b border-slate-200 pb-2">
+                    <Button
+                        variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('tutorials')}
+                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    >
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Step-by-Step Operating Manual
+                    </Button>
+                    <Button
+                        variant={activeTab === 'architecture' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('architecture')}
+                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    >
+                        <Layers className="w-4 h-4 mr-2" />
+                        ISMS PDCA Architecture
+                    </Button>
+                    <Button
+                        variant={activeTab === 'auditor' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('auditor')}
+                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Auditor & Stage 1/2 Clean Room
+                    </Button>
+                </div>
 
-                            <div className="grid md:grid-cols-3 gap-6 mt-8">
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Timeline</p>
-                                    <p className="text-2xl font-black">{fw.timeline}</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Controls</p>
-                                    <p className="text-2xl font-black">93 Controls</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Est. Cost</p>
-                                    <p className="text-2xl font-black">{fw.cost}</p>
-                                </div>
-                            </div>
+                {/* TAB 1: Step-by-Step Operating Manual */}
+                {activeTab === 'tutorials' && (
+                    <div className="space-y-8">
+                        <div className="grid grid-cols-1 gap-6">
+                            {pillars.map((pillar) => {
+                                const IconComponent = pillar.icon;
+                                return (
+                                    <Card
+                                        key={pillar.id}
+                                        className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white"
+                                    >
+                                        <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-6`}>
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-white shadow-md bg-gradient-to-br", pillar.gradient)}>
+                                                        {pillar.number}
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <CardTitle className="text-xl font-bold text-slate-900">
+                                                                {pillar.title}
+                                                            </CardTitle>
+                                                            <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold">
+                                                                {pillar.clauseRef}
+                                                            </Badge>
+                                                        </div>
+                                                        <CardDescription className="text-slate-600 text-sm font-medium mt-0.5">
+                                                            {pillar.summary}
+                                                        </CardDescription>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                                        {pillar.countLabel}
+                                                    </Badge>
+                                                    <Button
+                                                        onClick={() => setLocation(pillar.link)}
+                                                        className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-10 px-4 transition-all"
+                                                    >
+                                                        {pillar.cta}
+                                                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-6 grid md:grid-cols-2 gap-6">
+                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                                    <Info className="w-3.5 h-3.5 text-indigo-600" />
+                                                    Why This Step Is Mandatory for Certification
+                                                </h4>
+                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                    {pillar.whyItMatters}
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                    How to Execute in ComplianceOS
+                                                </h4>
+                                                <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                                    {pillar.howToExecute.map((step, idx) => (
+                                                        <li key={idx} className="flex items-start gap-2">
+                                                            <span className="text-indigo-600 font-bold shrink-0">•</span>
+                                                            <span>{step}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     </div>
+                )}
 
-                    <div className="w-full mx-auto">
-                        <div className="space-y-6">
-                            <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 shadow-sm">
-                                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <Globe className="w-5 h-5 text-indigo-600" />
-                                    Framework Overview
-                                </h2>
-                                <p className="text-slate-700 leading-relaxed">{fw.overview}</p>
-                                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold mt-4">
-                                    <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                                    Est. Cost: <strong>{fw.cost}</strong>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start gap-3 bg-white border border-slate-200 shadow-sm rounded-xl p-5">
-                                <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
-                                <p className="text-sm text-slate-700 leading-relaxed font-medium">{fw.highlightNote}</p>
-                            </div>
-
-                            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 lg:p-8">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
-                                        {progressPercentage === 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                                        Implementation Progress
-                                    </h3>
-                                    <span className="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">{progressPercentage}% Complete</span>
-                                </div>
-                                <Progress value={progressPercentage} className="h-3 rounded-full" />
-                                <p className="text-xs text-slate-500 mt-4">
-                                    Completion based on real-time data from your ISO 27001 modules.
+                {/* TAB 2: ISMS PDCA Architecture */}
+                {activeTab === 'architecture' && (
+                    <div className="space-y-6">
+                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-bold text-slate-900">The ISO 27001:2022 PDCA Architecture</h3>
+                                <p className="text-slate-600">
+                                    ISO 27001 is structured around the Plan-Do-Check-Act (PDCA) management system cycle to achieve continuous information security improvement.
                                 </p>
                             </div>
 
-                            <div className="space-y-12 relative pb-12">
-                                <div className="absolute top-12 bottom-12 left-[31px] w-0.5 bg-slate-200 z-0 hidden sm:block"></div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4">
+                                <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                        PLAN
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Clauses 4, 5, 6, 7</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Define ISMS Scope, Leadership Policy, ISO 27005 Risk Assessment, and Statement of Applicability (SoA).
+                                    </p>
+                                </div>
 
-                                {fw.steps.map((step) => {
-                                    const status = getStatus(step.id);
-                                    return (
-                                        <div key={step.step} className="relative z-10 flex flex-col sm:flex-row gap-6 lg:gap-8 group">
-                                            <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border-2 border-white ring-1 ring-slate-100 group-hover:ring-slate-300 transition-all duration-300">
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} text-white shadow-inner`}>
-                                                    {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-black text-xl">{step.step}</span>}
-                                                </div>
-                                            </div>
+                                <div className="p-6 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                                        DO
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Clause 8 & Annex A</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Deploy the 93 Annex A technical, physical, people, and organizational security controls across all assets.
+                                    </p>
+                                </div>
 
-                                            <Card className={`flex-grow transition-shadow ${status === 'completed' ? 'border-emerald-200 shadow-emerald-100/50' : 'border-slate-200 hover:shadow-md'}`}>
-                                                <CardHeader className={`${status === 'completed' ? 'bg-emerald-50/50' : step.bgColor} border-b border-white rounded-t-xl bg-opacity-50 pb-5`}>
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <div>
-                                                            <Badge variant="outline" className={`mb-2 bg-white/80 ${status === 'completed' ? 'text-emerald-700 border-emerald-200' : fw.color + ' border-current'}`}>
-                                                                Phase {step.step}: {step.subtitle}
-                                                            </Badge>
-                                                            <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                                                <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-emerald-600' : fw.color}`} />
-                                                                {step.title}
-                                                            </CardTitle>
-                                                        </div>
-                                                        {status === 'completed' ? (
-                                                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 shrink-0">
-                                                                Completed
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 flex items-center gap-1 shrink-0">
-                                                                <CircleDashed className="w-3 h-3" /> Needs Attention
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="pt-6 space-y-6">
-                                                    <p className="text-slate-700 leading-relaxed text-sm md:text-base">
-                                                        {step.description}
-                                                    </p>
+                                <div className="p-6 rounded-2xl bg-amber-50/60 border border-amber-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                                        CHECK
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Clause 9</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Execute independent <strong>Internal Audits (9.2)</strong>, monitor security metrics, and hold <strong>Management Reviews (9.3)</strong>.
+                                    </p>
+                                </div>
 
-                                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                                        <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                                                Key Actions & Best Practices
-                                                            </h4>
-                                                            <ul className="space-y-2 text-sm">
-                                                                {[...step.keyActions, ...step.bestPractices].map((practice, i) => (
-                                                                    <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
-                                                                        <span className="leading-relaxed">{practice}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-
-                                                        <div className="bg-white p-5 rounded-xl border border-slate-200">
-                                                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                                                                <Users className="w-4 h-4 text-indigo-500" />
-                                                                Quick Actions
-                                                            </h4>
-                                                            <p className="text-xs text-slate-500 mb-4">
-                                                                Click the button below to navigate to this section.
-                                                            </p>
-                                                            <Link href={`/clients/${clientId}/${step.link}`} className="block">
-                                                                <Button className={`w-full bg-gradient-to-r ${status === 'completed' ? 'from-emerald-600 to-green-600' : step.accent} hover:opacity-90 text-white shadow-md transition-all font-semibold`}>
-                                                                    {step.cta} <ArrowRight className="w-4 h-4 ml-2" />
-                                                                </Button>
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    );
-                                })}
+                                <div className="p-6 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                                        ACT
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-lg">Clause 10 & Cert</h4>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Implement Corrective Actions (CAPA), remediate non-conformities, and achieve Stage 1 & Stage 2 certification.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+
+                            {/* 4 Annex A Themes Breakdown */}
+                            <div className="pt-6 border-t border-slate-100">
+                                <h4 className="font-bold text-slate-900 text-lg mb-4">ISO/IEC 27001:2022 Annex A Control Structure (93 Controls)</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 5: Organizational</div>
+                                        <p className="text-slate-500 font-semibold mb-2">37 Controls</p>
+                                        <p className="text-slate-600">Information security policies, asset management, cloud governance, supplier security, and incident management.</p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 6: People</div>
+                                        <p className="text-slate-500 font-semibold mb-2">8 Controls</p>
+                                        <p className="text-slate-600">Background screening, employment terms, security awareness training, disciplinary process, and remote working.</p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 7: Physical</div>
+                                        <p className="text-slate-500 font-semibold mb-2">14 Controls</p>
+                                        <p className="text-slate-600">Physical security perimeters, entry controls, office security, equipment protection, clear desk/screen, and secure disposal.</p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 8: Technological</div>
+                                        <p className="text-slate-500 font-semibold mb-2">34 Controls</p>
+                                        <p className="text-slate-600">User endpoint security, privileged access, secure coding, cryptography, backup, network security, and vulnerability management.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
                     </div>
-                </div>
+                )}
+
+                {/* TAB 3: Auditor Clean Room */}
+                {activeTab === 'auditor' && (
+                    <div className="space-y-6">
+                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-bold text-slate-900">Lead Auditor & Certification Body Clean Room</h3>
+                                <p className="text-slate-600">
+                                    Direct access to all mandatory ISMS records and verification deliverables required for Stage 1 (Documentation Review) and Stage 2 (On-Site Certification).
+                                </p>
+                            </div>
+
+                            <div className="divide-y divide-slate-100">
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Statement of Applicability (SoA)</h5>
+                                        <p className="text-xs text-slate-500">Formal document detailing the 93 Annex A controls, applicability justifications, and implementation evidence.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLocation(`/clients/${clientId}/iso27001/soa`)}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        View & Export SoA
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">ISO 27005 Risk Assessment & Treatment Plan (RTP)</h5>
+                                        <p className="text-xs text-slate-500">Risk register, likelihood/impact scoring matrix, risk owners, and treatment action items.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLocation(`/clients/${clientId}/iso27001/risks`)}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        View Risk Register
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Mandatory ISMS Policies & Procedures Binder</h5>
+                                        <p className="text-xs text-slate-500">Access Control, Cryptography, Incident Response, Supplier Security, and Data Classification policies.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLocation(`/clients/${clientId}/iso27001/documents`)}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        View Document Binder
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Internal Audit Reports & CAPA Log (Clause 9.2)</h5>
+                                        <p className="text-xs text-slate-500">Full audit trail of internal audits, non-conformity findings, root cause analyses, and verified remediations.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLocation(`/clients/${clientId}/iso27001/audit`)}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        View Internal Audits
+                                    </Button>
+                                </div>
+
+                                <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h5 className="font-bold text-slate-900">Management Review Minutes (Clause 9.3)</h5>
+                                        <p className="text-xs text-slate-500">Signed executive meeting minutes approving ISMS performance, resources, and continual improvement.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLocation(`/clients/${clientId}/iso27001/management-review`)}
+                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                    >
+                                        View Mgmt Review
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                )}
             </div>
-        </DashboardLayout>
+        </ISOLayout>
     );
 }

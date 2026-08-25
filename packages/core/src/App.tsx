@@ -822,6 +822,9 @@ function Router() {
         <Route path="/clients/:id/governance/alignment-guide">
           <ProtectedRoute component={GovernanceAlignmentPage} />
         </Route>
+        <Route path="/clients/:id/governance/guide">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} /></UnifiedClientGuard>}
+        </Route>
         <Route path="/clients/:id/governance/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} /></UnifiedClientGuard>}
         </Route>
@@ -834,8 +837,23 @@ function Router() {
         <Route path="/clients/:id/vendors/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={VendorProgramGuide} /></UnifiedClientGuard>}
         </Route>
+        <Route path="/clients/:id/privacy/guide">
+          {(_params) => (
+            <UnifiedClientGuard requirePremium>
+              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+                <PrivacyProgramGuide />
+              </PrivacyLayout>
+            </UnifiedClientGuard>
+          )}
+        </Route>
         <Route path="/clients/:id/privacy/program-guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={PrivacyProgramGuide} /></UnifiedClientGuard>}
+          {(_params) => (
+            <UnifiedClientGuard requirePremium>
+              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+                <PrivacyProgramGuide />
+              </PrivacyLayout>
+            </UnifiedClientGuard>
+          )}
         </Route>
         <Route path="/clients/:id/business-continuity/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={BCPProgramGuide} /></UnifiedClientGuard>}
@@ -1600,6 +1618,20 @@ function Router() {
             </PrivacyLayout>
           )}
         </Route>
+        <Route path="/clients/:id/privacy/guide">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+              <PrivacyProgramGuide />
+            </PrivacyLayout>
+          )}
+        </Route>
+        <Route path="/clients/:id/privacy/program-guide">
+          {(_params) => (
+            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+              <PrivacyProgramGuide />
+            </PrivacyLayout>
+          )}
+        </Route>
         <Route path="/clients/:clientId/privacy/alignment-guide">
           {(_params) => (
             <PrivacyLayout clientId={parseInt(_params.clientId)}>
@@ -1707,8 +1739,19 @@ function Router() {
         </Route>
 
         {/* Cyber Resilience Routes */}
+        <Route path="/clients/:id/cyber/guide">
+          {(_params) => (
+            <CyberLayout fullWidth>
+              <CyberProgramGuide />
+            </CyberLayout>
+          )}
+        </Route>
         <Route path="/clients/:id/cyber/program-guide">
-          {(_params) => <ProtectedRoute component={CyberProgramGuide} />}
+          {(_params) => (
+            <CyberLayout fullWidth>
+              <CyberProgramGuide />
+            </CyberLayout>
+          )}
         </Route>
         <Route path="/clients/:id/cyber/overview">
           {(_params) => (
@@ -1830,6 +1873,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/iso27001/documents">
           {(_params) => <ProtectedRoute component={ISODocumentTracker} />}
+        </Route>
+        <Route path="/clients/:id/iso27001/guide">
+          {(_params) => <ProtectedRoute component={ISOProgramGuide} />}
         </Route>
         <Route path="/clients/:id/iso27001/program-guide">
           {(_params) => <ProtectedRoute component={ISOProgramGuide} />}

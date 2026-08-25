@@ -1,48 +1,156 @@
-
-import { PropsWithChildren } from "react";
+import React, { PropsWithChildren } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { cn } from "@/lib/utils";
-import { ShieldCheck } from "lucide-react";
+import {
+    ShieldCheck,
+    ShieldAlert,
+    AlertTriangle,
+    Activity,
+    Lock,
+    FileText,
+    Server,
+    Zap,
+    BookOpen,
+    Target,
+    Layers,
+    Home,
+    ChevronRight
+} from "lucide-react";
 import { useClientContext } from "@/contexts/ClientContext";
+import { trpc } from "@/lib/trpc";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@complianceos/ui/ui/breadcrumb";
 
-export default function CyberLayout({ children, fullWidth = false }: PropsWithChildren<{ fullWidth?: boolean }>) {
+interface CyberLayoutProps {
+    clientId?: number;
+    children: React.ReactNode;
+    fullWidth?: boolean;
+}
+
+export default function CyberLayout({ children, fullWidth = false, clientId: propClientId }: PropsWithChildren<CyberLayoutProps>) {
     const [location] = useLocation();
+    const params = useParams();
     const { selectedClientId } = useClientContext();
+    
+    const clientId = propClientId || parseInt(params.id || params.clientId || "0") || selectedClientId;
+    const { data: client } = trpc.clients.get.useQuery({ id: clientId }, { enabled: clientId > 0 });
 
     const tabs = [
-        { name: "NIS2 & Cyber Resilience", path: `/clients/${selectedClientId}/cyber`, icon: ShieldCheck },
-        { name: "NIS2 Workbook", path: `/clients/${selectedClientId}/cyber/workbook`, icon: ShieldCheck },
-        { name: "Control Mapping", path: `/clients/${selectedClientId}/cyber/mapping`, icon: ShieldCheck },
+        { name: "Overview & Dashboard", path: `/clients/${clientId}/cyber`, icon: ShieldCheck, badge: null },
+        { name: "Program Guide", path: `/clients/${clientId}/cyber/guide`, icon: BookOpen, badge: "Manual" },
+        { name: "NIS2 Assessment", path: `/clients/${clientId}/cyber/assessment`, icon: Target, badge: "Art. 21" },
+        { name: "Incident Reporting", path: `/clients/${clientId}/cyber/incidents`, icon: Zap, badge: "24h/72h" },
+        { name: "Vulnerability Register", path: `/clients/${clientId}/cyber/vulnerabilities`, icon: AlertTriangle, badge: null },
+        { name: "Threat Intelligence", path: `/clients/${clientId}/cyber/threat-intel`, icon: ShieldAlert, badge: null },
+        { name: "Supply Chain Risk", path: `/clients/${clientId}/cyber/supply-chain`, icon: Lock, badge: null },
+        { name: "Security Testing", path: `/clients/${clientId}/cyber/security-testing`, icon: Activity, badge: null },
+        { name: "Continuous Monitoring", path: `/clients/${clientId}/cyber/monitoring`, icon: Server, badge: null },
+        { name: "Documentation Hub", path: `/clients/${clientId}/cyber/documents`, icon: FileText, badge: null },
+        { name: "Control Mapping", path: `/clients/${clientId}/cyber/mapping`, icon: Layers, badge: null },
     ];
+
+    const isActive = (path: string) => {
+        if (location === path) return true;
+        if (path.endsWith('/cyber/guide') && location.includes('/cyber/program-guide')) return true;
+        if (path.endsWith('/cyber/program-guide') && location.includes('/cyber/guide')) return true;
+        if (path !== `/clients/${clientId}/cyber` && location.startsWith(path)) return true;
+        return false;
+    };
+
+    const activeItem = tabs.find(tab => isActive(tab.path));
+
+    const breadcrumbItems = [
+        { label: "Dashboard", href: "/dashboard", icon: Home },
+        { label: "Clients", href: "/clients" },
+        { label: client?.name || "Client", href: `/clients/${clientId}` },
+        { label: "Cyber Resilience & NIS2", href: `/clients/${clientId}/cyber` }
+    ];
+
+    if (activeItem && activeItem.name !== "Overview & Dashboard") {
+        breadcrumbItems.push({ label: activeItem.name, href: activeItem.path });
+    }
 
     return (
         <DashboardLayout fullWidth={fullWidth}>
-            <div className="flex flex-col min-h-screen bg-transparent pt-4">
-                <div className="bg-transparent border-b border-slate-200 py-4 sticky top-16 z-30 shadow-none space-y-3">
-                    <nav className="flex space-x-2 overflow-x-auto no-scrollbar py-1" aria-label="Tabs">
+            <div className="flex flex-col min-h-screen bg-transparent">
+                <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
+                    {/* Breadcrumb Section */}
+                    <Breadcrumb className="mb-0">
+                        <BreadcrumbList>
+                            {breadcrumbItems.map((item, idx) => {
+                                const isLast = idx === breadcrumbItems.length - 1;
+                                return (
+                                    <React.Fragment key={idx}>
+                                        <BreadcrumbItem>
+                                            {isLast ? (
+                                                <BreadcrumbPage className="font-bold text-brand">
+                                                    {item.label}
+                                                </BreadcrumbPage>
+                                            ) : (
+                                                <BreadcrumbLink asChild>
+                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-brand-bright transition-colors">
+                                                        {item.icon && <item.icon className="h-3.5 w-3.5" />}
+                                                        {item.label}
+                                                    </Link>
+                                                </BreadcrumbLink>
+                                            )}
+                                        </BreadcrumbItem>
+                                        {!isLast && (
+                                            <BreadcrumbSeparator>
+                                                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                            </BreadcrumbSeparator>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </BreadcrumbList>
+                    </Breadcrumb>
+
+                    {/* Navigation Pills */}
+                    <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 py-1" aria-label="Tabs">
                         {tabs.map((tab) => {
-                            const active = location === tab.path;
+                            const active = isActive(tab.path);
                             return (
                                 <Link
                                     key={tab.path}
                                     href={tab.path}
                                     className={cn(
-                                        "flex items-center gap-2 px-5 py-2.5 rounded-lg whitespace-nowrap shrink-0 min-w-max transition-all duration-300 font-bold text-sm shadow-sm border",
+                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0",
                                         active
-                                            ? "bg-brand-bright text-white border-brand-bright shadow-lg shadow-sky-200"
-                                            : "bg-brand text-white border-brand hover:bg-brand-bright hover:border-brand-bright"
+                                            ? "bg-brand-bright text-white shadow-md shadow-brand-bright/20 ring-1 ring-white/20"
+                                            : "bg-brand text-white hover:bg-brand-bright/90"
                                     )}
                                 >
-                                    <tab.icon className="h-4 w-4" />
-                                    {tab.name}
+                                    <tab.icon className={cn(
+                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300",
+                                        active ? "scale-105" : "opacity-80"
+                                    )} />
+                                    <span className="whitespace-nowrap">{tab.name}</span>
+                                    {!!tab.badge && (
+                                        <span className={cn(
+                                            "ml-2 rounded-full py-0.2 px-1.5 text-[9px] sm:text-[10px] font-bold border backdrop-blur-md shrink-0 whitespace-nowrap",
+                                            active
+                                                ? "bg-white/25 text-white border-white/30"
+                                                : "bg-brand-bright/30 text-white border-brand-bright/40"
+                                        )}>
+                                            {tab.badge}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full px-0 py-8 bg-transparent">
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full max-w-full">
+
+                <div className="flex-1 w-full py-6">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {children}
                     </div>
                 </div>
