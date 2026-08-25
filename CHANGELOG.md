@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 42b - OSCAL import hardening + Federal Hub polish over the parallel GAP-19/GAP-22 landing (2026-08-25)
+- test(qa): +20 gates for lib/federal/oscalImport.ts and federalWorkflows.importOscal - real 5MB serialized-length boundary, injected-cap semantics, hostile-Proxy + detection-matrix coverage, 20-input malformed never-throws sweep with validate<->normalize agreement, exported-schema/BAD_REQUEST/exact-shape/determinism/no-DB router contracts (two suites -> 74 tests).
+- refactor(ui): FederalHub converted to semantic tokens per UI-STANDARD sec.2 (0 raw palette refs) and the FederalWorkflowsPanels embed corrected to nest inside the layout container; contract layer + panels audited clean.
+- chore(backend): oscalImport doc exemplar corrected (nis2/controlHealth.ts); exported oscalImportInputSchema relocated below the module docblock per house layout - behavior unchanged.
+- Verify: vitest 2675/2675 green (110 files); tsc backlog unchanged at 1956, 0 errors in touched files; landed as 19e560c on dev. QA follow-ups noted: federal OSCAL exports currently fail their own import validation (non-RFC-4122 uuid, missing metadata.version).
 ### Cycle 42 - Federal workflow intelligence closed end-to-end: OSCAL import (GAP-19) + live federalWorkflows UI panels (GAP-22) (2026-08-25)
 - feat(lib): lib/federal/oscalImport.ts — pure deterministic validator/normalizer for the five OSCAL models (assessment-results / component-definition / plan / system-security-plan / poam): stable kebab-case issue codes, injected 5MB serialized cap, never-throws on hostile input (fuzz-tested), deterministic normalization with last-wins controlId dedupe sorted by controlId asc; zero runtime deps. Conductor fix pre-commit: restored the dropped `merged` declaration in dedupeAndSortControls — a backstop-swallowed ReferenceError that made every valid document normalize to {ok:false}; caught by the new engine suite before landing.
 - feat(api): federalWorkflows.importOscal clientProcedure mutation — raw JSON text in, {valid, errors, warnings, normalized} out; unparseable JSON surfaces an invalid-json issue list instead of throwing; no DB reads/writes on the path; exported oscalImportInputSchema/OscalImportInput per sibling-router convention.
