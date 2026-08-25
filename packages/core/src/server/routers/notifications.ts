@@ -131,7 +131,7 @@ export const createNotificationsRouter = (t: any, clientProcedure: any, adminPro
             }),
 
         markAsRead: clientProcedure
-            .input(z.object({ id: z.number() }))
+            .input(z.object({ id: z.number().int() }))
             .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await db.getDb();
                 await dbConn.update(schema.notificationLog)

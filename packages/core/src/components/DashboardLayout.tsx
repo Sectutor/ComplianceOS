@@ -56,9 +56,8 @@ import {
 } from "@complianceos/ui/ui/dialog";
 import { Label } from "@complianceos/ui/ui/label";
 import { Slider } from "@complianceos/ui/ui/slider";
-// Force rebuild
+// Force rebuild - single notification center active
 import { toast } from "sonner";
-import { NotificationCenter } from "./notifications/NotificationCenter";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
 import { useTranslation } from "react-i18next";
 
@@ -1465,7 +1464,6 @@ function DashboardLayoutContent({
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <CopilotHelpTrigger />
             <GlobalNotificationCenter />
-            <NotificationCenter />
           </div>
         </div>
         <div className={`flex-1 bg-background w-full max-w-full ${fullWidth ? "px-4 md:px-8 py-4" : "px-4 md:px-8 py-8"}`}>{children}</div>

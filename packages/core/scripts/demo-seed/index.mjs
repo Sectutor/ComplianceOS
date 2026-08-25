@@ -14,6 +14,7 @@ import { seedPhase5 } from "./phase5-reports-federal.mjs";
 import { seedPhase5b } from "./phase5b-onboarding-profile.mjs";
 import { seedPhase5c } from "./phase5c-federal-profile.mjs";
 import { seedProjectsForClient } from "./projects-data.mjs";
+import { seedIncidentResponse } from "./seed-ir-nordwind.mjs";
 
 const args = process.argv.slice(2);
 const getArg = (k, d) => {
@@ -64,6 +65,8 @@ async function main() {
   const p2 = await seedPhase2(sql, p0.clientId, tenant);
   const p3 = await seedPhase3(sql, p0.clientId, tenant);
   const p4 = await seedPhase4(sql, p0.clientId, tenant);
+  // GAP-16: native incident/exercise seeding so the IR module demos with real history
+  const ir = tenant === 'nordwind' ? await seedIncidentResponse(sql, p0.clientId) : {};
   const p5 = await seedPhase5(sql, p0.clientId, tenant);
   const p5b = await seedPhase5b(sql, p0.clientId, tenant);
   let p5c = {};
@@ -71,7 +74,7 @@ async function main() {
     p5c = await seedPhase5c(sql, p0.clientId);
   }
   const projects = await seedProjectsForClient(sql, p0.clientId);
-  log("RESULT", JSON.stringify({ clientId: p0.clientId, ...p1, ...p2, ...p3, ...p4, ...p5, ...p5b, ...p5c, projects }));
+  log("RESULT", JSON.stringify({ clientId: p0.clientId, ...p1, ...p2, ...p3, ...p4, ...ir, ...p5, ...p5b, ...p5c, projects }));
   await sql.end();
 }
 
