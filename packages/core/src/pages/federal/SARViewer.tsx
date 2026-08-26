@@ -102,12 +102,12 @@ export default function SARViewer() {
                             </Button>
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{selectedSar.title}</h1>
+                                    <h1 className="text-3xl font-black text-foreground tracking-tight">{selectedSar.title}</h1>
                                     <Badge className={selectedSar.status === 'final' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}>
                                         {selectedSar.status?.toUpperCase() || 'DRAFT'}
                                     </Badge>
                                 </div>
-                                <p className="text-slate-500 mt-1">Assessed by: {selectedSar.assessorName || 'Not Assigned'}</p>
+                                <p className="text-muted-foreground mt-1">Assessed by: {selectedSar.assessorName || 'Not Assigned'}</p>
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -131,20 +131,20 @@ export default function SARViewer() {
                     </div>
 
                     <Tabs defaultValue="overview" className="space-y-6">
-                        <TabsList className="bg-slate-100 p-1 rounded-xl">
-                            <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsList className="bg-muted p-1 rounded-xl">
+                            <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                                 <LayoutDashboard className="h-4 w-4 mr-2" />
                                 Overview
                             </TabsTrigger>
-                            <TabsTrigger value="findings" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                            <TabsTrigger value="findings" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                                 <Search className="h-4 w-4 mr-2" />
                                 Findings
                             </TabsTrigger>
-                            <TabsTrigger value="risk" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                            <TabsTrigger value="risk" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                                 <AlertTriangle className="h-4 w-4 mr-2" />
                                 Risk Assessment
                             </TabsTrigger>
-                            <TabsTrigger value="details" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                            <TabsTrigger value="details" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                                 <Settings2 className="h-4 w-4 mr-2" />
                                 System Details
                             </TabsTrigger>
@@ -152,30 +152,30 @@ export default function SARViewer() {
 
                         <TabsContent value="overview" className="space-y-6 outline-none">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <Card className="md:col-span-2 border-slate-200 shadow-sm">
+                                <Card className="md:col-span-2 border-border shadow-sm">
                                     <CardHeader>
-                                        <CardTitle className="text-lg font-bold text-slate-900">Executive Summary</CardTitle>
+                                        <CardTitle className="text-lg font-bold text-foreground">Executive Summary</CardTitle>
                                         <CardDescription>High-level summary of assessment results for organizational leadership.</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <Textarea
                                             placeholder="Enter executive summary..."
-                                            className="min-h-[200px] border-slate-200 focus:ring-blue-500"
+                                            className="min-h-[200px] border-border focus:ring-blue-500"
                                             value={selectedSar.executiveSummary || ''}
                                             onBlur={(e) => handleUpdateField('executiveSummary', e.target.value)}
                                         />
                                     </CardContent>
-                                    <CardFooter className="bg-slate-50/50 border-t border-slate-100 flex justify-between py-3">
-                                        <span className="text-xs text-slate-500">Auto-saves on blur</span>
+                                    <CardFooter className="bg-muted/50 border-t border-border flex justify-between py-3">
+                                        <span className="text-xs text-muted-foreground">Auto-saves on blur</span>
                                         {isSaving && <Loader2 className="h-3 w-3 animate-spin text-blue-600" />}
                                     </CardFooter>
                                 </Card>
 
                                 <div className="space-y-6">
-                                    <Card className="border-slate-200 shadow-sm overflow-hidden">
+                                    <Card className="border-border shadow-sm overflow-hidden">
                                         <div className="h-2 bg-blue-600" />
                                         <CardHeader>
-                                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Assessment Info</CardTitle>
+                                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Assessment Info</CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <div className="flex items-center gap-3">
@@ -183,8 +183,8 @@ export default function SARViewer() {
                                                     <Calendar className="h-4 w-4 text-blue-600" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] uppercase font-bold text-slate-400">Completion Date</p>
-                                                    <p className="text-sm font-medium text-slate-900">
+                                                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Completion Date</p>
+                                                    <p className="text-sm font-medium text-foreground">
                                                         {selectedSar.assessmentCompletionDate ? new Date(selectedSar.assessmentCompletionDate).toLocaleDateString() : 'Not Set'}
                                                     </p>
                                                 </div>
@@ -194,8 +194,8 @@ export default function SARViewer() {
                                                     <User className="h-4 w-4 text-purple-600" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] uppercase font-bold text-slate-400">Assessor</p>
-                                                    <p className="text-sm font-medium text-slate-900">{selectedSar.assessorName}</p>
+                                                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Assessor</p>
+                                                    <p className="text-sm font-medium text-foreground">{selectedSar.assessorName}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -203,21 +203,21 @@ export default function SARViewer() {
                                                     <Shield className="h-4 w-4 text-green-600" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] uppercase font-bold text-slate-400">Impact Level</p>
+                                                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Impact Level</p>
                                                     <Badge variant="outline" className="text-xs">{selectedSar.impact?.toUpperCase() || 'MODERATE'}</Badge>
                                                 </div>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    <Card className="border-slate-200 shadow-sm">
+                                    <Card className="border-border shadow-sm">
                                         <CardHeader>
-                                            <CardTitle className="text-sm font-bold text-slate-900">Findings Chart</CardTitle>
+                                            <CardTitle className="text-sm font-bold text-foreground">Findings Chart</CardTitle>
                                         </CardHeader>
-                                        <CardContent className="h-40 flex items-center justify-center bg-slate-50 rounded-lg mx-6 mb-6">
+                                        <CardContent className="h-40 flex items-center justify-center bg-muted rounded-lg mx-6 mb-6">
                                             <div className="text-center">
-                                                <BarChart3 className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-                                                <p className="text-xs text-slate-500 uppercase font-black">Findings Visualization</p>
+                                                <BarChart3 className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                                                <p className="text-xs text-muted-foreground uppercase font-black">Findings Visualization</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -226,14 +226,14 @@ export default function SARViewer() {
                         </TabsContent>
 
                         <TabsContent value="findings" className="outline-none">
-                            <Card className="border-slate-200 shadow-sm">
+                            <Card className="border-border shadow-sm">
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <CardTitle className="text-lg font-bold text-slate-900">Summary of Findings</CardTitle>
+                                            <CardTitle className="text-lg font-bold text-foreground">Summary of Findings</CardTitle>
                                             <CardDescription>Detailed list of security controls found to be non-compliant.</CardDescription>
                                         </div>
-                                        <Button variant="outline" size="sm" className="border-slate-300">
+                                        <Button variant="outline" size="sm" className="border-input">
                                             <Plus className="h-4 w-4 mr-2" />
                                             Manual Finding
                                         </Button>
@@ -243,7 +243,7 @@ export default function SARViewer() {
                                     <div className="space-y-4">
                                         <Textarea
                                             placeholder="Provide a summary of all findings identified during the assessment..."
-                                            className="min-h-[300px] border-slate-200 focus:ring-blue-500"
+                                            className="min-h-[300px] border-border focus:ring-blue-500"
                                             value={selectedSar.summaryOfFindings || ''}
                                             onBlur={(e) => handleUpdateField('summaryOfFindings', e.target.value)}
                                         />
@@ -253,15 +253,15 @@ export default function SARViewer() {
                         </TabsContent>
 
                         <TabsContent value="risk" className="outline-none">
-                            <Card className="border-slate-200 shadow-sm">
+                            <Card className="border-border shadow-sm">
                                 <CardHeader>
-                                    <CardTitle className="text-lg font-bold text-slate-900">Risk Executive Summary</CardTitle>
+                                    <CardTitle className="text-lg font-bold text-foreground">Risk Executive Summary</CardTitle>
                                     <CardDescription>Summary of risks identified and recommended treatments.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <Textarea
                                         placeholder="Enter risk summary and professional opinion on system risk posture..."
-                                        className="min-h-[300px] border-slate-200 focus:ring-blue-500"
+                                        className="min-h-[300px] border-border focus:ring-blue-500"
                                         value={selectedSar.riskExecutiveSummary || ''}
                                         onBlur={(e) => handleUpdateField('riskExecutiveSummary', e.target.value)}
                                     />
@@ -271,15 +271,15 @@ export default function SARViewer() {
 
                         <TabsContent value="details" className="outline-none">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Card className="border-slate-200 shadow-sm">
+                                <Card className="border-border shadow-sm">
                                     <CardHeader>
-                                        <CardTitle className="text-lg font-bold text-slate-900">System Identification</CardTitle>
+                                        <CardTitle className="text-lg font-bold text-foreground">System Identification</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         <div className="space-y-2">
                                             <Label>Linked System Security Plan (SSP)</Label>
                                             <select
-                                                className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                                                className="w-full h-10 px-3 py-2 bg-card border border-border rounded-md outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
                                                 value={selectedSar.sspId || ''}
                                                 onChange={(e) => handleUpdateField('sspId', e.target.value ? parseInt(e.target.value) : null)}
                                             >
@@ -305,9 +305,9 @@ export default function SARViewer() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <Card className="border-slate-200 shadow-sm">
+                                <Card className="border-border shadow-sm">
                                     <CardHeader>
-                                        <CardTitle className="text-lg font-bold text-slate-900">Categorization Details</CardTitle>
+                                        <CardTitle className="text-lg font-bold text-foreground">Categorization Details</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         <div className="grid grid-cols-3 gap-2">
@@ -361,30 +361,30 @@ export default function SARViewer() {
                             </div>
 
                             <section className="space-y-2">
-                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                                    <ClipboardCheck className="h-4 w-4 text-slate-500" />
+                                <h4 className="font-bold text-foreground flex items-center gap-2">
+                                    <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
                                     1. Findings Summary
                                 </h4>
-                                <p className="text-sm text-slate-600">
+                                <p className="text-sm text-muted-foreground">
                                     The core of the SAR is the list of non-compliant controls. Use this section to document exactly
                                     which security requirements were not met and the evidence observed during testing.
                                 </p>
                             </section>
 
                             <section className="space-y-2">
-                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4 text-slate-500" />
+                                <h4 className="font-bold text-foreground flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                                     2. Risk Assessment
                                 </h4>
-                                <p className="text-sm text-slate-600">
+                                <p className="text-sm text-muted-foreground">
                                     Translate technical findings into business risk. Each finding should contribute to a
                                     **Residual Risk** calculation that the AO will eventually accept.
                                 </p>
                             </section>
 
                             <section className="space-y-2 border-t pt-4 mt-4">
-                                <h4 className="font-bold text-slate-900">Report Metadata</h4>
-                                <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                                <h4 className="font-bold text-foreground">Report Metadata</h4>
+                                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                                     <li><strong>Draft:</strong> Use this while performing the assessment.</li>
                                     <li><strong>Final:</strong> Lock the report once the independent review is complete.</li>
                                     <li><strong>Export:</strong> Generate a PDF for the official authorization package.</li>
@@ -415,8 +415,8 @@ export default function SARViewer() {
                         <Button variant="ghost" className="mb-2 pl-0 hover:pl-2 transition-all" onClick={() => setLocation(`/clients/${clientId}/federal`)}>
                             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
                         </Button>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Security Assessment Reports (SAR)</h1>
-                        <p className="text-slate-500 mt-1">Manage and review your security assessment findings for authorization.</p>
+                        <h1 className="text-4xl font-black text-foreground tracking-tight">Security Assessment Reports (SAR)</h1>
+                        <p className="text-muted-foreground mt-1">Manage and review your security assessment findings for authorization.</p>
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={() => setIsGuideOpen(true)}>
@@ -438,19 +438,19 @@ export default function SARViewer() {
                         {sars.map((sar: any) => (
                             <Card
                                 key={sar.id}
-                                className="group cursor-pointer hover:border-blue-300 hover:shadow-lg transition-all border-slate-200"
+                                className="group cursor-pointer hover:border-blue-300 hover:shadow-lg transition-all border-border"
                                 onClick={() => setSelectedSarId(sar.id)}
                             >
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
-                                        <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-blue-50 transition-colors">
-                                            <FileText className="h-5 w-5 text-slate-500 group-hover:text-blue-600" />
+                                        <div className="bg-muted p-2 rounded-lg group-hover:bg-blue-50 transition-colors">
+                                            <FileText className="h-5 w-5 text-muted-foreground group-hover:text-blue-600" />
                                         </div>
                                         <Badge className={sar.status === 'final' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}>
                                             {sar.status?.toUpperCase() || 'DRAFT'}
                                         </Badge>
                                     </div>
-                                    <CardTitle className="text-lg font-bold text-slate-900 mt-4">{sar.title}</CardTitle>
+                                    <CardTitle className="text-lg font-bold text-foreground mt-4">{sar.title}</CardTitle>
                                     <CardDescription className="flex items-center gap-2 mt-1">
                                         <Calendar className="h-3 w-3" />
                                         {new Date(sar.createdAt).toLocaleDateString()}
@@ -459,17 +459,17 @@ export default function SARViewer() {
                                 <CardContent>
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-slate-500 font-medium">Assessor:</span>
-                                            <span className="text-slate-900 font-semibold">{sar.assessorName || 'None'}</span>
+                                            <span className="text-muted-foreground font-medium">Assessor:</span>
+                                            <span className="text-foreground font-semibold">{sar.assessorName || 'None'}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-slate-500 font-medium">Findings:</span>
-                                            <span className="text-slate-900 font-semibold">--</span>
+                                            <span className="text-muted-foreground font-medium">Findings:</span>
+                                            <span className="text-foreground font-semibold">--</span>
                                         </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="pt-0 pb-6">
-                                    <Button variant="outline" size="sm" className="w-full border-slate-200 group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                                    <Button variant="outline" size="sm" className="w-full border-border group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
                                         View Assessment Details
                                     </Button>
                                 </CardFooter>
@@ -477,18 +477,18 @@ export default function SARViewer() {
                         ))}
                     </div>
                 ) : (
-                    <Card className="mt-8 border-slate-200 shadow-sm overflow-hidden">
-                        <CardHeader className="bg-slate-50/50">
-                            <CardTitle className="text-lg font-bold text-slate-900">Assessment Summary</CardTitle>
+                    <Card className="mt-8 border-border shadow-sm overflow-hidden">
+                        <CardHeader className="bg-muted/50">
+                            <CardTitle className="text-lg font-bold text-foreground">Assessment Summary</CardTitle>
                             <CardDescription>Overall compliance posture based on latest assessment.</CardDescription>
                         </CardHeader>
                         <CardContent className="py-12">
                             <div className="max-w-md mx-auto text-center">
-                                <div className="bg-slate-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                                    <Search className="h-10 w-10 text-slate-400" />
+                                <div className="bg-muted p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                                    <Search className="h-10 w-10 text-muted-foreground" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900">No Assessment Data Found</h3>
-                                <p className="text-slate-500 mt-2 mb-8 leading-relaxed">
+                                <h3 className="text-xl font-bold text-foreground">No Assessment Data Found</h3>
+                                <p className="text-muted-foreground mt-2 mb-8 leading-relaxed">
                                     Security Assessment Reports (SAR) are generated after technical testing.
                                     Create a report to document your findings.
                                 </p>
@@ -521,7 +521,7 @@ export default function SARViewer() {
                                 value={newSarTitle}
                                 onChange={(e) => setNewSarTitle(e.target.value)}
                                 placeholder="e.g. FY26 Q1 FedRAMP Assessment"
-                                className="border-slate-200 focus:ring-blue-500"
+                                className="border-border focus:ring-blue-500"
                             />
                         </div>
                     </div>
@@ -553,23 +553,23 @@ export default function SARViewer() {
                             </div>
 
                             <section className="space-y-2">
-                                <h4 className="font-bold text-slate-900">Key Components of a SAR</h4>
+                                <h4 className="font-bold text-foreground">Key Components of a SAR</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                                        <p className="font-bold text-xs uppercase text-slate-500">System Information</p>
-                                        <p className="text-sm text-slate-600 mt-1">Acronym, type, version, and organizational ownership details.</p>
+                                    <div className="p-3 bg-card border border-border rounded-lg">
+                                        <p className="font-bold text-xs uppercase text-muted-foreground">System Information</p>
+                                        <p className="text-sm text-muted-foreground mt-1">Acronym, type, version, and organizational ownership details.</p>
                                     </div>
-                                    <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                                        <p className="font-bold text-xs uppercase text-slate-500">Findings Summary</p>
-                                        <p className="text-sm text-slate-600 mt-1">Critical, High, Moderate, and Low findings across all controls.</p>
+                                    <div className="p-3 bg-card border border-border rounded-lg">
+                                        <p className="font-bold text-xs uppercase text-muted-foreground">Findings Summary</p>
+                                        <p className="text-sm text-muted-foreground mt-1">Critical, High, Moderate, and Low findings across all controls.</p>
                                     </div>
-                                    <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                                        <p className="font-bold text-xs uppercase text-slate-500">Risk Policy</p>
-                                        <p className="text-sm text-slate-600 mt-1">Executive summary of the residual risk level.</p>
+                                    <div className="p-3 bg-card border border-border rounded-lg">
+                                        <p className="font-bold text-xs uppercase text-muted-foreground">Risk Policy</p>
+                                        <p className="text-sm text-muted-foreground mt-1">Executive summary of the residual risk level.</p>
                                     </div>
-                                    <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                                        <p className="font-bold text-xs uppercase text-slate-500">Assessor Details</p>
-                                        <p className="text-sm text-slate-600 mt-1">Information about the independent party who performed the test.</p>
+                                    <div className="p-3 bg-card border border-border rounded-lg">
+                                        <p className="font-bold text-xs uppercase text-muted-foreground">Assessor Details</p>
+                                        <p className="text-sm text-muted-foreground mt-1">Information about the independent party who performed the test.</p>
                                     </div>
                                 </div>
                             </section>

@@ -59,6 +59,25 @@ const PAGES = [
   'packages/core/src/pages/BoardSummaryPage.tsx',
   // Home / landing page — tokenized in cycle 46.
   'packages/core/src/pages/Home.tsx',
+  // Cycle 47 tokenization wave — enforced strictly from landing; the UI agent
+  // tokenizes these in parallel within cycle 47. Deliberately NOT listed in
+  // PARALLEL_BUILD_FILES: absence is a failure.
+  // MSP onboarding flow — tokenized in cycle 47.
+  'packages/core/src/pages/MSPOnboarding.tsx',
+  // NIST 800-30 risk assessment — tokenized in cycle 47.
+  'packages/core/src/pages/nist/NIST80030RiskAssessment.tsx',
+  // NIST 800-53 extras — tokenized in cycle 47.
+  'packages/core/src/pages/nist/NIST80053Extras.tsx',
+  // Governance program guide — tokenized in cycle 47.
+  'packages/core/src/pages/governance/GovernanceProgramGuide.tsx',
+  // SAR viewer (federal) — tokenized in cycle 47.
+  'packages/core/src/pages/federal/SARViewer.tsx',
+  // Policy editor — tokenized in cycle 47.
+  'packages/core/src/pages/PolicyEditor.tsx',
+  // NIST 800-30 impact analysis — tokenized in cycle 47.
+  'packages/core/src/pages/nist/NIST80030ImpactAnalysis.tsx',
+  // NIST 800-171 assessment page (federal) — tokenized in cycle 47.
+  'packages/core/src/pages/federal/Nist800171AssessmentPage.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing

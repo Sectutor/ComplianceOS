@@ -29,6 +29,7 @@ const SCHEDULE_MIN_HOURS: Record<string, number> = {
 };
 
 let timer: ReturnType<typeof setInterval> | null = null;
+let bootTimer: ReturnType<typeof setTimeout> | null = null;
 const runningClients = new Set<number>();
 let bootCatchupDone = false;
 
@@ -46,11 +47,12 @@ export function startAgentRuntime(): void {
   if (timer) return;
   log("[agent-runtime] starting — tick every 60s");
   // initial tick after short delay so server finishes booting
-  setTimeout(() => { void tick(true); }, 15_000);
+  bootTimer = setTimeout(() => { void tick(true); }, 15_000);
   timer = setInterval(() => { void tick(false); }, TICK_INTERVAL_MS);
 }
 
 export function stopAgentRuntime(): void {
+  if (bootTimer) { clearTimeout(bootTimer); bootTimer = null; }
   if (timer) { clearInterval(timer); timer = null; log("[agent-runtime] stopped"); }
 }
 

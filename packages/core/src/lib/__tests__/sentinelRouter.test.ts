@@ -439,3 +439,160 @@ describe("sentinel router — runtime lifecycle", () => {
     }
   });
 });
+
+// ── reviewSentinelAction hardening (QA cycle 47) ─────────────────────────────
+
+/**
+ * Cycle-47 contracts for reviewSentinelAction:
+ *   - a nonexistent actionId → TRPCError NOT_FOUND ("Sentinel action not found")
+ *     for BOTH decisions — never a fabricated ghost-action success;
+ *   - approve requires a resolvable clientId (metadata.clientId ?? input.clientId,
+ *     integer > 0) → otherwise TRPCError BAD_REQUEST and NO work_items row is
+ *     ever written with client_id <= 0 / missing;
+ *   - success shapes are unchanged: approve { success:true, executed:true },
+ *     reject { success:true, executed:false };
+ *   - getDb() falsy → { success:false }, never throws (covered above, unchanged).
+ *
+ * Reconciliation note (cycle 47): NO pre-existing fixture in this file assumed
+ * ghost-action success — the no-database block asserts { success:false } for
+ * both decisions and every other describe block stops before the happy path,
+ * so no reconciliations were required.
+ */
+describe("sentinel router — reviewSentinelAction ghost-action & clientId guards (cycle 47)", () => {
+  /**
+   * Fake db whose first autopilot_actions lookup returns `actionRow` (or [] when
+   * null). Records every executed query as { text, params }: static SQL text is
+   * reconstructed from the drizzle chunk tree, bound scalars land in params.
+   */
+  function makeSentinelDb(actionRow: Record<string, unknown> | null) {
+    const queries: { text: string; params: unknown[] }[] = [];
+    const describeQuery = (q: any): { text: string; params: unknown[] } => {
+      const out = { text: "", params: [] as unknown[] };
+      const walk = (chunk: any, depth: number): void => {
+        if (chunk == null || depth > 4) return;
+        const t = typeof chunk;
+        if (t === "string") { out.text += chunk; return; }
+        if (t === "number" || t === "boolean" || t === "bigint") { out.params.push(chunk); return; }
+        if (Array.isArray(chunk)) { for (const c of chunk) walk(c, depth + 1); return; }
+        if (t !== "object") return;
+        if (Array.isArray((chunk as any).value) && typeof (chunk as any).value[0] === "string") {
+          out.text += (chunk as any).value.join("");
+          return;
+        }
+        if ("value" in chunk) { out.params.push((chunk as any).value); return; }
+        if ((chunk as any).queryChunks) walk((chunk as any).queryChunks, depth + 1);
+      };
+      try { walk(q?.queryChunks ?? q, 0); } catch { /* opaque query shape — text stays empty */ }
+      return out;
+    };
+    const execute = vi.fn(async (q: any) => {
+      const d = describeQuery(q);
+      queries.push(d);
+      if (/FROM\s+autopilot_actions/i.test(d.text)) {
+        return { rows: actionRow ? [structuredClone(actionRow)] : [] };
+      }
+      return { rows: [] };
+    });
+    return { execute, queries };
+  }
+
+  const USER_CTX = { user: { id: 5 } };
+
+  /** A real-looking pending action with a resolvable metadata clientId. */
+  const ACTION_ROW = {
+    metadata: JSON.stringify({
+      clientId: 7,
+      proposedAction: { taskType: "policy_review", priority: "high", dueInDays: 10 },
+    }),
+    title: "Policy stale",
+    ai_rationale: "not reviewed for 400 days",
+    priority: "high",
+  };
+
+  const callReview = async (db: ReturnType<typeof makeSentinelDb>, input: Record<string, unknown>) => {
+    dbMocks.getDb.mockResolvedValue(db);
+    return buildRouter().reviewSentinelAction.handler({
+      input: buildRouter().reviewSentinelAction.schema.parse(input),
+      ctx: USER_CTX,
+    });
+  };
+
+  it("approve on a nonexistent action id throws NOT_FOUND 'Sentinel action not found' and writes nothing", async () => {
+    const db = makeSentinelDb(null);
+    const call = callReview(db, { clientId: 1, actionId: 999, decision: "approved" });
+    await expect(call).rejects.toBeInstanceOf(TRPCError);
+    await expect(call).rejects.toMatchObject({ code: "NOT_FOUND", message: "Sentinel action not found" });
+    expect(db.execute).toHaveBeenCalledTimes(1); // only the lookup ran
+    expect(db.queries.every(q => !/INSERT\s+INTO\s+work_items/i.test(q.text))).toBe(true);
+  });
+
+  it("reject on a nonexistent action id ALSO throws NOT_FOUND instead of returning ghost success", async () => {
+    const db = makeSentinelDb(null);
+    const call = callReview(db, { clientId: 1, actionId: 999, decision: "rejected" });
+    await expect(call).rejects.toBeInstanceOf(TRPCError);
+    await expect(call).rejects.toMatchObject({ code: "NOT_FOUND", message: "Sentinel action not found" });
+    expect(db.execute).toHaveBeenCalledTimes(1); // no status UPDATE either
+  });
+
+  it("approve without any resolvable clientId throws BAD_REQUEST and never inserts into work_items", async () => {
+    const db = makeSentinelDb(
+      structuredClone({ ...ACTION_ROW, metadata: JSON.stringify({ proposedAction: { taskType: "review" } }) })
+    );
+    const call = callReview(db, { actionId: 11, decision: "approved" }); // no input.clientId either
+    await expect(call).rejects.toBeInstanceOf(TRPCError);
+    await expect(call).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(call).rejects.toMatchObject({ message: /clientId/i });
+    expect(db.execute).toHaveBeenCalledTimes(1); // lookup only — nothing written
+    expect(db.queries.every(q => !/INSERT\s+INTO\s+work_items/i.test(q.text))).toBe(true);
+  });
+
+  it("approve with a non-positive resolvable clientId (metadata or input) throws BAD_REQUEST and never inserts into work_items", async () => {
+    const cases: Array<[Record<string, unknown>, Record<string, unknown>]> = [
+      [{ ...ACTION_ROW, metadata: JSON.stringify({ clientId: 0 }) }, { actionId: 12, decision: "approved" }],
+      [{ ...ACTION_ROW, metadata: JSON.stringify({ clientId: -5 }) }, { actionId: 12, decision: "approved" }],
+      [{ ...ACTION_ROW, metadata: JSON.stringify({}) }, { actionId: 12, decision: "approved", clientId: 0 }],
+      [{ ...ACTION_ROW, metadata: JSON.stringify({}) }, { actionId: 12, decision: "approved", clientId: -1 }],
+    ];
+    for (const [row, input] of cases) {
+      const db = makeSentinelDb(structuredClone(row));
+      const call = callReview(db, input);
+      await expect(call, JSON.stringify(input)).rejects.toBeInstanceOf(TRPCError);
+      await expect(call, JSON.stringify(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(db.execute, JSON.stringify(input)).toHaveBeenCalledTimes(1); // lookup only
+      expect(db.queries.every(q => !/INSERT\s+INTO\s+work_items/i.test(q.text)), JSON.stringify(input)).toBe(true);
+    }
+  });
+
+  it("reject needs no clientId: valid action rejects cleanly with the unchanged success shape", async () => {
+    const db = makeSentinelDb(structuredClone({ ...ACTION_ROW, metadata: "{}" }));
+    const result = await callReview(db, { actionId: 11, decision: "rejected" }); // no clientId anywhere
+    expect(result).toEqual({ success: true, executed: false });
+    expect(db.execute).toHaveBeenCalledTimes(2); // lookup + status update
+    expect(db.queries[1].text).toMatch(/status\s*=\s*'rejected'/);
+    expect(db.queries.every(q => !/INSERT\s+INTO\s+work_items/i.test(q.text))).toBe(true);
+  });
+
+  it("approve with valid metadata.clientId executes: unchanged shape, insert carries the METADATA clientId over the request's", async () => {
+    const db = makeSentinelDb(structuredClone(ACTION_ROW)); // metadata.clientId === 7
+    const result = await callReview(db, { clientId: 9, actionId: 11, decision: "approved" }); // input says 9
+    expect(result).toEqual({ success: true, executed: true });
+
+    const insert = db.queries.find(q => /INSERT\s+INTO\s+work_items/i.test(q.text));
+    expect(insert, "a work_items INSERT must run").toBeDefined();
+    expect(insert!.params[0]).toBe(7); // metadata.clientId wins over input.clientId
+
+    const markExecuted = db.queries[db.queries.length - 1];
+    expect(markExecuted.text).toMatch(/status\s*=\s*'executed'/);
+    expect(db.execute).toHaveBeenCalledTimes(3); // lookup + INSERT + mark-executed UPDATE
+  });
+
+  it("approve falls back to input.clientId when the action metadata has none", async () => {
+    const db = makeSentinelDb(structuredClone({ ...ACTION_ROW, metadata: "{}" }));
+    const result = await callReview(db, { clientId: 9, actionId: 11, decision: "approved" });
+    expect(result).toEqual({ success: true, executed: true });
+
+    const insert = db.queries.find(q => /INSERT\s+INTO\s+work_items/i.test(q.text));
+    expect(insert, "a work_items INSERT must run").toBeDefined();
+    expect(insert!.params[0]).toBe(9); // fell back to the request clientId
+  });
+});

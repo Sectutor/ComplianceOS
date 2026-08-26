@@ -134,10 +134,10 @@ export default function GovernanceProgramGuide() {
             status: 'active',
             countLabel: 'Roles Defined',
             icon: Users,
-            color: 'text-indigo-600',
-            bgLight: 'bg-indigo-50/70',
-            borderColor: 'border-indigo-200',
-            gradient: 'from-indigo-600 to-violet-600',
+            color: 'text-primary',
+            bgLight: 'bg-primary/NaN',
+            borderColor: 'border-primary/30',
+            gradient: 'from-primary to-violet-600',
             summary: 'Establish clear organizational oversight by defining who is Responsible, Accountable, Consulted, and Informed for each security domain.',
             whyItMatters: 'Auditors evaluate governance first. Without defined roles (CISO, Risk Owners, SecOps, Legal), control implementations lack ownership and fail during external reviews.',
             howToExecute: [
@@ -209,7 +209,7 @@ export default function GovernanceProgramGuide() {
             color: 'text-purple-600',
             bgLight: 'bg-purple-50/70',
             borderColor: 'border-purple-200',
-            gradient: 'from-purple-600 to-indigo-600',
+            gradient: 'from-purple-600 to-primary',
             summary: 'Draft, approve, publish, and track employee acknowledgments across all mandatory information security policies and procedures.',
             whyItMatters: 'Unpublished or unacknowledged policies are treated by auditors as non-existent. Staff attestation provides legal evidence of security awareness.',
             howToExecute: [
@@ -301,16 +301,16 @@ export default function GovernanceProgramGuide() {
         <DashboardLayout>
             <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-4 md:p-8">
                 {/* Header Breadcrumb */}
-                <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-4">
+                <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border pb-4">
                     <div className="flex items-center gap-2 text-sm">
                         <Link href={`/clients/${clientId}/governance`}>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground -ml-2 h-8">
                                 <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Governance Dashboard
                             </Button>
                         </Link>
-                        <span className="text-slate-300">/</span>
-                        <div className="flex items-center gap-1.5 text-slate-700 font-bold">
-                            <BookOpen className="w-4 h-4 text-indigo-600" />
+                        <span className="text-muted-foreground">/</span>
+                        <div className="flex items-center gap-1.5 text-foreground font-bold">
+                            <BookOpen className="w-4 h-4 text-primary" />
                             Program Guide & Manual
                         </div>
                     </div>
@@ -326,22 +326,22 @@ export default function GovernanceProgramGuide() {
                 </div>
 
                 {/* Hero Header */}
-                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                <div className="bg-sidebar rounded-3xl p-8 lg:p-12 text-sidebar-foreground shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                     <div className="relative z-10 space-y-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-indigo-400">
-                                    <Shield className="w-8 h-8 text-indigo-400" />
+                                <div className="bg-sidebar-muted backdrop-blur-md p-4 rounded-2xl border border-sidebar-border text-sidebar-accent">
+                                    <Shield className="w-8 h-8 text-primary" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Governance Operating Guide & Manual</h1>
-                                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-xs font-bold">
+                                        <Badge className="bg-primary/20 text-primary border-primary text-xs font-bold">
                                             NIST CSF • ISO 27001 • SOC 2
                                         </Badge>
                                     </div>
-                                    <p className="text-slate-300 text-base mt-1">
+                                    <p className="text-muted-foreground text-base mt-1">
                                         Complete GRC operating model, RACI accountability framework, and continuous compliance playbook.
                                     </p>
                                 </div>
@@ -351,7 +351,7 @@ export default function GovernanceProgramGuide() {
                                 <Button
                                     onClick={copyMasterManual}
                                     variant="outline"
-                                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl h-11"
+                                    className="bg-sidebar-muted border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent/20 font-bold rounded-xl h-11"
                                 >
                                     <Copy className="w-4 h-4 mr-2" />
                                     Copy GRC Operations Manual
@@ -360,29 +360,29 @@ export default function GovernanceProgramGuide() {
                         </div>
 
                         {/* Progress Bar & Telemetry */}
-                        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                        <div className="bg-sidebar-muted backdrop-blur-md rounded-2xl p-6 border border-sidebar-border space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <span className="text-sm font-bold text-muted-foreground flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-emerald-400" />
                                     GRC Program Maturity & Implementation
                                 </span>
-                                <span className="text-sm font-black text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/50">
+                                <span className="text-sm font-black text-primary bg-primary/60 px-3 py-1 rounded-full border border-primary">
                                     {progressPercentage}% Mature
                                 </span>
                             </div>
-                            <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
+                            <Progress value={progressPercentage} className="h-2.5 bg-sidebar-muted rounded-full" />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
-                                <div className="text-slate-300">
-                                    <span className="font-bold text-white">{implementedControls} / {totalControls}</span> Controls Implemented
+                                <div className="text-muted-foreground">
+                                    <span className="font-bold text-sidebar-foreground">{implementedControls} / {totalControls}</span> Controls Implemented
                                 </div>
-                                <div className="text-slate-300">
-                                    <span className="font-bold text-white">{totalRisks}</span> Risks Identified
+                                <div className="text-muted-foreground">
+                                    <span className="font-bold text-sidebar-foreground">{totalRisks}</span> Risks Identified
                                 </div>
-                                <div className="text-slate-300">
-                                    <span className="font-bold text-white">{approvedPolicies}</span> Approved Policies
+                                <div className="text-muted-foreground">
+                                    <span className="font-bold text-sidebar-foreground">{approvedPolicies}</span> Approved Policies
                                 </div>
-                                <div className="text-slate-300">
-                                    <span className="font-bold text-white">{completedTasks}</span> Workbench Tasks Completed
+                                <div className="text-muted-foreground">
+                                    <span className="font-bold text-sidebar-foreground">{completedTasks}</span> Workbench Tasks Completed
                                 </div>
                             </div>
                         </div>
@@ -390,11 +390,11 @@ export default function GovernanceProgramGuide() {
                 </div>
 
                 {/* Navigation Tabs */}
-                <div className="flex gap-2 border-b border-slate-200 pb-2">
+                <div className="flex gap-2 border-b border-border pb-2">
                     <Button
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('tutorials')}
-                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <BookOpen className="w-4 h-4 mr-2" />
                         Step-by-Step Operating Manual
@@ -402,7 +402,7 @@ export default function GovernanceProgramGuide() {
                     <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('architecture')}
-                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <Layers className="w-4 h-4 mr-2" />
                         GRC Ecosystem Architecture
@@ -410,7 +410,7 @@ export default function GovernanceProgramGuide() {
                     <Button
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('auditor')}
-                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
                         Auditor & Board Clean Room
@@ -426,36 +426,36 @@ export default function GovernanceProgramGuide() {
                                 return (
                                     <Card
                                         key={pillar.id}
-                                        className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white"
+                                        className="border-border shadow-xl shadow-primary/6 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card"
                                     >
-                                        <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-6`}>
+                                        <CardHeader className={`${pillar.bgLight} border-b border-border p-6`}>
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-white shadow-md bg-gradient-to-br", pillar.gradient)}>
+                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-primary-foreground shadow-md bg-gradient-to-br", pillar.gradient)}>
                                                         {pillar.number}
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <CardTitle className="text-xl font-bold text-slate-900">
+                                                            <CardTitle className="text-xl font-bold text-foreground">
                                                                 {pillar.title}
                                                             </CardTitle>
-                                                            <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold">
+                                                            <Badge className="bg-card border-border text-foreground text-[10px] font-bold">
                                                                 {pillar.refTag}
                                                             </Badge>
                                                         </div>
-                                                        <CardDescription className="text-slate-600 text-sm font-medium mt-0.5">
+                                                        <CardDescription className="text-muted-foreground text-sm font-medium mt-0.5">
                                                             {pillar.summary}
                                                         </CardDescription>
                                                     </div>
                                                 </div>
 
                                                 <div className="flex items-center gap-3">
-                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground")}>
                                                         {pillar.countLabel}
                                                     </Badge>
                                                     <Button
                                                         onClick={() => setLocation(pillar.link)}
-                                                        className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-10 px-4 transition-all"
+                                                        className="bg-primary hover:bg-brand-bright text-primary-foreground font-bold rounded-xl h-10 px-4 transition-all"
                                                     >
                                                         {pillar.cta}
                                                         <ArrowRight className="w-4 h-4 ml-1.5" />
@@ -464,34 +464,34 @@ export default function GovernanceProgramGuide() {
                                             </div>
                                         </CardHeader>
                                         <CardContent className="p-6 grid md:grid-cols-2 gap-6">
-                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                                                    <Info className="w-3.5 h-3.5 text-indigo-600" />
+                                            <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                    <Info className="w-3.5 h-3.5 text-primary" />
                                                     Why This Step Is Critical
                                                 </h4>
-                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                <p className="text-sm text-foreground leading-relaxed font-medium">
                                                     {pillar.whyItMatters}
                                                 </p>
                                             </div>
 
-                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                            <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                     How to Execute in ComplianceOS
                                                 </h4>
-                                                <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                                <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed font-medium">
                                                     {pillar.howToExecute.map((step, idx) => (
                                                         <li key={idx} className="flex items-start gap-2">
-                                                            <span className="text-indigo-600 font-bold shrink-0">•</span>
+                                                            <span className="text-primary font-bold shrink-0">•</span>
                                                             <span>{step}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
                                                 {pillar.downloadAction && (
-                                                    <div className="pt-2 border-t border-slate-200">
+                                                    <div className="pt-2 border-t border-border">
                                                         <Button
                                                             variant="link"
-                                                            className="text-xs font-bold text-indigo-600 p-0 h-auto hover:text-indigo-800"
+                                                            className="text-xs font-bold text-primary p-0 h-auto hover:text-primary"
                                                             onClick={pillar.downloadAction}
                                                         >
                                                             <Download className="w-3.5 h-3.5 mr-1" />
@@ -511,21 +511,21 @@ export default function GovernanceProgramGuide() {
                 {/* TAB 2: GRC Architecture & Lifecycle */}
                 {activeTab === 'architecture' && (
                     <div className="space-y-6">
-                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                        <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-bold text-slate-900">The Connected GRC Operating Model</h3>
-                                <p className="text-slate-600">
+                                <h3 className="text-2xl font-bold text-foreground">The Connected GRC Operating Model</h3>
+                                <p className="text-muted-foreground">
                                     ComplianceOS connects accountability (RACI), controls implementation, risk management, policy orchestration, and automated work items into an integrated feedback loop.
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                                <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
-                                    <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                <div className="p-6 rounded-2xl bg-primary/NaN border border-primary/30 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
                                         1
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Strategy & Accountability</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Strategy & Accountability</h4>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
                                         <strong>RACI Matrix</strong> establishes roles; <strong>Policies</strong> establish rules; <strong>Risk Register</strong> establishes priorities.
                                     </p>
                                 </div>
@@ -534,8 +534,8 @@ export default function GovernanceProgramGuide() {
                                     <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
                                         2
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Execution & Controls Mesh</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Execution & Controls Mesh</h4>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
                                         Unified controls satisfy multiple audits; <strong>Workbench</strong> automates recurring evidence collection tasks.
                                     </p>
                                 </div>
@@ -544,8 +544,8 @@ export default function GovernanceProgramGuide() {
                                     <div className="h-10 w-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold">
                                         3
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Oversight & Clean Room</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Oversight & Clean Room</h4>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
                                         Real-time health scorecards for the Board; continuous audit readiness dossiers for external certifiers.
                                     </p>
                                 </div>
@@ -557,24 +557,24 @@ export default function GovernanceProgramGuide() {
                 {/* TAB 3: Auditor Clean Room */}
                 {activeTab === 'auditor' && (
                     <div className="space-y-6">
-                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                        <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-bold text-slate-900">Auditor & Board Executive Clean Room</h3>
-                                <p className="text-slate-600">
+                                <h3 className="text-2xl font-bold text-foreground">Auditor & Board Executive Clean Room</h3>
+                                <p className="text-muted-foreground">
                                     Centralized repository of governance deliverables, accountability matrices, controls catalogs, and risk treatment registers.
                                 </p>
                             </div>
 
-                            <div className="divide-y divide-slate-100">
+                            <div className="divide-y divide-border">
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">RACI Accountability Matrix (CSV)</h5>
-                                        <p className="text-xs text-slate-500">Formal assignment of Responsible, Accountable, Consulted, and Informed stakeholders across all security domains.</p>
+                                        <h5 className="font-bold text-foreground">RACI Accountability Matrix (CSV)</h5>
+                                        <p className="text-xs text-muted-foreground">Formal assignment of Responsible, Accountable, Consulted, and Informed stakeholders across all security domains.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => downloadFile('raci-template.csv', RACI_TEMPLATE_CSV, 'text/csv;charset=utf-8')}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-input font-bold text-xs shrink-0"
                                     >
                                         <Download className="w-3.5 h-3.5 mr-1.5" />
                                         Download RACI
@@ -583,13 +583,13 @@ export default function GovernanceProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Unified Controls Implementation Matrix (CSV)</h5>
-                                        <p className="text-xs text-slate-500">Complete catalog of organizational controls mapped across SOC 2, ISO 27001, and NIST CSF with implementation status.</p>
+                                        <h5 className="font-bold text-foreground">Unified Controls Implementation Matrix (CSV)</h5>
+                                        <p className="text-xs text-muted-foreground">Complete catalog of organizational controls mapped across SOC 2, ISO 27001, and NIST CSF with implementation status.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => downloadFile(`controls-matrix-client-${clientId}.csv`, buildControlsMatrixCsv(safeControls), 'text/csv;charset=utf-8')}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-input font-bold text-xs shrink-0"
                                     >
                                         <Download className="w-3.5 h-3.5 mr-1.5" />
                                         Export Controls Matrix
@@ -598,13 +598,13 @@ export default function GovernanceProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Enterprise Gap Analysis & Risk Assessment (CSV)</h5>
-                                        <p className="text-xs text-slate-500">Standardized baseline gap assessment and risk treatment action tracker.</p>
+                                        <h5 className="font-bold text-foreground">Enterprise Gap Analysis & Risk Assessment (CSV)</h5>
+                                        <p className="text-xs text-muted-foreground">Standardized baseline gap assessment and risk treatment action tracker.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => downloadFile('gap-assessment-form.csv', GAP_ASSESSMENT_CSV, 'text/csv;charset=utf-8')}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-input font-bold text-xs shrink-0"
                                     >
                                         <Download className="w-3.5 h-3.5 mr-1.5" />
                                         Download Gap Assessment
@@ -613,13 +613,13 @@ export default function GovernanceProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Evidence Automation & Cadence Playbooks (MD)</h5>
-                                        <p className="text-xs text-slate-500">Documented operational routines for recurring user access reviews, cloud checks, and attestation chasing.</p>
+                                        <h5 className="font-bold text-foreground">Evidence Automation & Cadence Playbooks (MD)</h5>
+                                        <p className="text-xs text-muted-foreground">Documented operational routines for recurring user access reviews, cloud checks, and attestation chasing.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => downloadFile('evidence-automation-playbooks.md', AUTOMATION_PLAYBOOKS_MD, 'text/markdown;charset=utf-8')}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-input font-bold text-xs shrink-0"
                                     >
                                         <Download className="w-3.5 h-3.5 mr-1.5" />
                                         Download Playbooks

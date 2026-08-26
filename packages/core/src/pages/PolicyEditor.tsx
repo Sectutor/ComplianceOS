@@ -890,7 +890,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                         {policy.status === 'approved' && (
                             <Button
                                 variant="outline"
-                                className="text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                                className="text-primary border-primary/30 bg-primary/undefined hover:bg-accent"
                                 onClick={handleSendToIntake}
                                 disabled={sendToIntakeMutation.isPending}
                             >
@@ -944,7 +944,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 Request Changes
                             </Button>
                             <Button
-                                className="bg-amber-600 hover:bg-amber-700 text-white w-full md:w-auto"
+                                className="bg-amber-600 hover:bg-amber-700 text-primary-foreground w-full md:w-auto"
                                 onClick={() => handleReviewDecision('approve')}
                                 disabled={submitApprovalMutation.isPending}
                             >
@@ -1026,35 +1026,35 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 <TabsTrigger
                                                     value="edit"
                                                     id="policy-tab-edit"
-                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-primary-foreground bg-brand text-primary-foreground hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Edit
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="preview"
                                                     id="policy-tab-preview"
-                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-primary-foreground bg-brand text-primary-foreground hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Preview
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="links"
                                                     id="policy-tab-links"
-                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-primary-foreground bg-brand text-primary-foreground hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Links
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="employees"
                                                     id="policy-tab-employees"
-                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-primary-foreground bg-brand text-primary-foreground hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     Employees
                                                 </TabsTrigger>
                                                 <TabsTrigger
                                                     value="history"
                                                     id="policy-tab-history"
-                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
+                                                    className="data-[state=active]:bg-brand-bright data-[state=active]:text-primary-foreground bg-brand text-primary-foreground hover:bg-brand-bright transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
                                                 >
                                                     History
                                                 </TabsTrigger>
@@ -1091,7 +1091,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             Request Changes
                                                         </Button>
                                                         <Button
-                                                            className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                                                            className="bg-green-600 hover:bg-green-700 text-primary-foreground shadow-sm"
                                                             onClick={() => handleReviewDecision('approve')}
                                                         >
                                                             <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -1140,7 +1140,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     </div>
                                                 </div>
                                                 <Button
-                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-primary-foreground shadow-sm"
                                                     onClick={() => setShowPublishDialog(true)}
                                                 >
                                                     <History className="mr-2 h-4 w-4" />
@@ -1171,7 +1171,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     ref={editorRef}
                                                 />
                                             ) : (
-                                                <div className="min-h-[400px] flex items-center justify-center bg-slate-50 rounded-lg border">
+                                                <div className="min-h-[400px] flex items-center justify-center bg-muted rounded-lg border">
                                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                                 </div>
                                             )}
@@ -1302,7 +1302,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                                             {/* Version History Column */}
                                             <div className="space-y-4">
-                                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 pb-2 border-b">
+                                                <h3 className="text-lg font-bold text-foreground flex items-center gap-2 pb-2 border-b">
                                                     <History className="h-5 w-5 text-purple-600" />
                                                     Version History
                                                 </h3>
@@ -1310,10 +1310,10 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     {versionHistory && versionHistory.length > 0 ? (
                                                         versionHistory.map((v: any) => (
                                                             <div key={v.version.id} className="relative group">
-                                                                <div className="flex items-start justify-between p-4 border rounded-xl bg-white hover:border-purple-200 hover:shadow-sm transition-all">
+                                                                <div className="flex items-start justify-between p-4 border rounded-xl bg-card hover:border-purple-200 hover:shadow-sm transition-all">
                                                                     <div className="space-y-1.5 flex-1 pr-4">
                                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                                            <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded text-sm">{v.version.version}</span>
+                                                                            <span className="font-bold text-foreground bg-muted px-2 py-0.5 rounded text-sm">{v.version.version}</span>
                                                                             <Badge variant="outline" className="text-xs uppercase tracking-wider font-semibold border-purple-200 text-purple-700 bg-purple-50">
                                                                                 {v.version.status}
                                                                             </Badge>
@@ -1321,14 +1321,14 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                                 {new Date(v.version.createdAt).toLocaleString()}
                                                                             </span>
                                                                         </div>
-                                                                        <p className="text-sm text-slate-600 leading-relaxed">
-                                                                            {v.version.description || <span className="italic text-slate-400">No description provided</span>}
+                                                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                                                            {v.version.description || <span className="italic text-muted-foreground">No description provided</span>}
                                                                         </p>
                                                                         <div className="flex items-center gap-2 pt-1">
-                                                                            <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                                                                            <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                                                                                 {(v.publisher?.name || "?").charAt(0)}
                                                                             </div>
-                                                                            <span className="text-xs text-slate-500 font-medium">
+                                                                            <span className="text-xs text-muted-foreground font-medium">
                                                                                 Published by {v.publisher?.name || "Unknown"}
                                                                             </span>
                                                                         </div>
@@ -1336,7 +1336,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                     <Button
                                                                         variant="outline"
                                                                         size="sm"
-                                                                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100 text-slate-600"
+                                                                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent text-muted-foreground"
                                                                         onClick={() => handleRestoreVersion(v.version.id)}
                                                                     >
                                                                         <RotateCcw className="mr-2 h-3.5 w-3.5" />
@@ -1346,10 +1346,10 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl bg-slate-50/50">
+                                                        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl bg-muted/50">
                                                             <History className="h-10 w-10 mx-auto mb-3 opacity-20" />
                                                             <p className="font-medium">No published versions yet</p>
-                                                            <p className="text-xs text-slate-400 mt-1">Publish a version to see history here</p>
+                                                            <p className="text-xs text-muted-foreground mt-1">Publish a version to see history here</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -1357,7 +1357,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                                             {/* Activity Log Column */}
                                             <div className="space-y-4">
-                                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 pb-2 border-b">
+                                                <h3 className="text-lg font-bold text-foreground flex items-center gap-2 pb-2 border-b">
                                                     <Activity className="h-5 w-5 text-blue-600" />
                                                     Activity Log
                                                 </h3>
@@ -1374,9 +1374,9 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             switch (item.log.action) {
                                                                 case 'approve_policy': Icon = CheckCircle2; bgClass = "bg-green-50 text-green-600 border-green-100"; break;
                                                                 case 'reject_policy': Icon = X; bgClass = "bg-red-50 text-red-600 border-red-100"; break;
-                                                                case 'request_review': Icon = Users; bgClass = "bg-indigo-50 text-indigo-600 border-indigo-100"; break;
+                                                                case 'request_review': Icon = Users; bgClass = "bg-primary/undefined text-primary border-primary/30"; break;
                                                                 case 'publish': Icon = Save; bgClass = "bg-purple-50 text-purple-600 border-purple-100"; break;
-                                                                case 'update': Icon = FileText; bgClass = "bg-slate-50 text-slate-600 border-slate-200"; break;
+                                                                case 'update': Icon = FileText; bgClass = "bg-muted text-muted-foreground border-border"; break;
                                                                 case 'restore': Icon = RotateCcw; bgClass = "bg-amber-50 text-amber-600 border-amber-100"; break;
                                                                 case 'create': Icon = Plus; bgClass = "bg-emerald-50 text-emerald-600 border-emerald-100"; break;
                                                                 case 'comment': Icon = MessageSquare; bgClass = "bg-blue-50 text-blue-600 border-blue-100"; break;
@@ -1385,38 +1385,38 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             return (
                                                                 <div key={item.log.id} className="group relative pl-4 pb-4 last:pb-0">
                                                                     {/* Timeline connector */}
-                                                                    <div className="absolute left-[27px] top-8 bottom-0 w-px bg-slate-200 group-last:hidden"></div>
+                                                                    <div className="absolute left-[27px] top-8 bottom-0 w-px bg-muted group-last:hidden"></div>
 
                                                                     <div className="flex gap-4">
                                                                         <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border shadow-sm z-10 ${bgClass}`}>
                                                                             <Icon className="h-4 w-4" />
                                                                         </div>
-                                                                        <div className="flex-1 min-w-0 bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                                                                        <div className="flex-1 min-w-0 bg-card border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
                                                                             <div className="flex items-start justify-between gap-3 mb-1">
-                                                                                <p className="text-sm font-medium text-slate-900 truncate">
+                                                                                <p className="text-sm font-medium text-foreground truncate">
                                                                                     {item.log.action.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                                                                 </p>
-                                                                                <span className="text-[10px] text-muted-foreground whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded border">
+                                                                                <span className="text-[10px] text-muted-foreground whitespace-nowrap bg-muted px-1.5 py-0.5 rounded border">
                                                                                     {new Date(item.log.createdAt).toLocaleDateString()}
                                                                                 </span>
                                                                             </div>
 
-                                                                            <p className="text-xs text-slate-600 mb-2 flex items-center gap-1.5">
-                                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                                                                Performed by <span className="font-semibold text-slate-800">{item.user?.name || item.user?.email || 'System'}</span>
+                                                                            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-muted"></span>
+                                                                                Performed by <span className="font-semibold text-foreground">{item.user?.name || item.user?.email || 'System'}</span>
                                                                             </p>
 
                                                                             {(Object.keys(details).length > 0) && (
-                                                                                <div className="text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded border border-slate-100/50 space-y-1">
-                                                                                    {details.name && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Name:</span> <span>{details.name}</span></div>}
-                                                                                    {details.changes && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Changes:</span> <span>{Array.isArray(details.changes) ? details.changes.join(', ') : details.changes}</span></div>}
-                                                                                    {details.content && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Content:</span> <span className="truncate">{details.content}</span></div>}
-                                                                                    {details.message && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Message:</span> <span>{details.message}</span></div>}
-                                                                                    {details.notes && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Notes:</span> <span>{details.notes}</span></div>}
-                                                                                    {details.feedback && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Feedback:</span> <span className="text-orange-700 italic">"{details.feedback}"</span></div>}
-                                                                                    {details.version && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Version:</span> <span className="font-mono bg-white px-1 rounded border">{details.version}</span></div>}
-                                                                                    {details.reviewers && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Reviewers:</span> <span>{Array.isArray(details.reviewers) ? `${details.reviewers.length} assigned` : details.reviewers}</span></div>}
-                                                                                    {details.restoredFromVersion && <div className="flex gap-2"><span className="font-medium text-slate-500 w-16 shrink-0">Source:</span> <span>{details.restoredFromVersion}</span></div>}
+                                                                                <div className="text-xs text-muted-foreground bg-muted/80 p-2.5 rounded border border-border space-y-1">
+                                                                                    {details.name && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Name:</span> <span>{details.name}</span></div>}
+                                                                                    {details.changes && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Changes:</span> <span>{Array.isArray(details.changes) ? details.changes.join(', ') : details.changes}</span></div>}
+                                                                                    {details.content && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Content:</span> <span className="truncate">{details.content}</span></div>}
+                                                                                    {details.message && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Message:</span> <span>{details.message}</span></div>}
+                                                                                    {details.notes && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Notes:</span> <span>{details.notes}</span></div>}
+                                                                                    {details.feedback && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Feedback:</span> <span className="text-orange-700 italic">"{details.feedback}"</span></div>}
+                                                                                    {details.version && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Version:</span> <span className="font-mono bg-card px-1 rounded border">{details.version}</span></div>}
+                                                                                    {details.reviewers && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Reviewers:</span> <span>{Array.isArray(details.reviewers) ? `${details.reviewers.length} assigned` : details.reviewers}</span></div>}
+                                                                                    {details.restoredFromVersion && <div className="flex gap-2"><span className="font-medium text-muted-foreground w-16 shrink-0">Source:</span> <span>{details.restoredFromVersion}</span></div>}
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -1425,10 +1425,10 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             );
                                                         })
                                                     ) : (
-                                                        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl bg-slate-50/50">
+                                                        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl bg-muted/50">
                                                             <Activity className="h-10 w-10 mx-auto mb-3 opacity-20" />
                                                             <p className="font-medium">No activity recorded yet</p>
-                                                            <p className="text-xs text-slate-400 mt-1">Actions performed on this policy will appear here</p>
+                                                            <p className="text-xs text-muted-foreground mt-1">Actions performed on this policy will appear here</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -1438,14 +1438,14 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     <TabsContent value="links" className="m-0 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h2 className="text-2xl font-bold tracking-tight text-slate-900">Compliance Dashboard</h2>
-                                                <p className="text-sm text-slate-500">Mapping policy enforcement to risk mitigation and controls.</p>
+                                                <h2 className="text-2xl font-bold tracking-tight text-foreground">Compliance Dashboard</h2>
+                                                <p className="text-sm text-muted-foreground">Mapping policy enforcement to risk mitigation and controls.</p>
                                             </div>
                                         </div>
 
                                         {/* Executive summary header */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-100 shadow-sm overflow-hidden relative group">
+                                            <Card className="bg-gradient-to-br from-orange-50 to-background border-orange-100 shadow-sm overflow-hidden relative group">
                                                 <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 group-hover:scale-125 transition-transform duration-500">
                                                     <ShieldAlert size={80} className="text-orange-900" />
                                                 </div>
@@ -1477,7 +1477,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 </CardContent>
                                             </Card>
 
-                                            <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100 shadow-sm overflow-hidden relative group">
+                                            <Card className="bg-gradient-to-br from-emerald-50 to-background border-emerald-100 shadow-sm overflow-hidden relative group">
                                                 <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 group-hover:scale-125 transition-transform duration-500">
                                                     <Shield size={80} className="text-emerald-900" />
                                                 </div>
@@ -1504,7 +1504,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 </CardContent>
                                             </Card>
 
-                                            <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100 shadow-sm overflow-hidden relative group">
+                                            <Card className="bg-gradient-to-br from-blue-50 to-background border-blue-100 shadow-sm overflow-hidden relative group">
                                                 <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 group-hover:scale-125 transition-transform duration-500">
                                                     <Target size={80} className="text-blue-900" />
                                                 </div>
@@ -1526,7 +1526,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                         )}
                                                     </div>
                                                     <div className="mt-4">
-                                                        <Badge variant="outline" className="border-blue-200 text-blue-700 font-bold bg-white/50 backdrop-blur-sm shadow-sm ring-1 ring-blue-100/50">
+                                                        <Badge variant="outline" className="border-blue-200 text-blue-700 font-bold bg-card/50 backdrop-blur-sm shadow-sm ring-1 ring-blue-100/50">
                                                             {policy?.approvalStatus === 'approved' ? 'Audit-Ready' : 'In-Development'}
                                                         </Badge>
                                                     </div>
@@ -1563,7 +1563,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                         <Button
                                                                             size="sm"
                                                                             variant={alert.type === 'critical' ? 'destructive' : 'outline'}
-                                                                            className={`shrink-0 ${alert.type !== 'critical' ? 'bg-white/50 hover:bg-white' : ''}`}
+                                                                            className={`shrink-0 ${alert.type !== 'critical' ? 'bg-card/50 hover:bg-card' : ''}`}
                                                                             onClick={() => {
                                                                                 if (alert.actionType === 'link_risk') setOpenLinkRisk(true);
                                                                                 if (alert.actionType === 'link_control') setOpenLinkControl(true);
@@ -1661,7 +1661,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 <div className="flex items-center gap-2 h-8">
                                                     {riskMetrics.riskLevelCounts.critical > 0 && (
                                                         <div
-                                                            className="h-full bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            className="h-full bg-red-500 rounded flex items-center justify-center text-primary-foreground text-xs font-bold"
                                                             style={{ flex: riskMetrics.riskLevelCounts.critical }}
                                                             title={`${riskMetrics.riskLevelCounts.critical} Critical`}
                                                         >
@@ -1670,7 +1670,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     )}
                                                     {riskMetrics.riskLevelCounts.high > 0 && (
                                                         <div
-                                                            className="h-full bg-orange-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            className="h-full bg-orange-500 rounded flex items-center justify-center text-primary-foreground text-xs font-bold"
                                                             style={{ flex: riskMetrics.riskLevelCounts.high }}
                                                             title={`${riskMetrics.riskLevelCounts.high} High`}
                                                         >
@@ -1679,7 +1679,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     )}
                                                     {riskMetrics.riskLevelCounts.medium > 0 && (
                                                         <div
-                                                            className="h-full bg-yellow-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            className="h-full bg-yellow-500 rounded flex items-center justify-center text-primary-foreground text-xs font-bold"
                                                             style={{ flex: riskMetrics.riskLevelCounts.medium }}
                                                             title={`${riskMetrics.riskLevelCounts.medium} Medium`}
                                                         >
@@ -1688,7 +1688,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     )}
                                                     {riskMetrics.riskLevelCounts.low > 0 && (
                                                         <div
-                                                            className="h-full bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold"
+                                                            className="h-full bg-green-500 rounded flex items-center justify-center text-primary-foreground text-xs font-bold"
                                                             style={{ flex: riskMetrics.riskLevelCounts.low }}
                                                             title={`${riskMetrics.riskLevelCounts.low} Low`}
                                                         >
@@ -1707,7 +1707,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                                         {/* Visual Relationship Diagram */}
                                         {(riskMetrics || controlMetrics) && (
-                                            <div className="bg-gradient-to-r from-slate-50 via-white to-slate-50 rounded-xl p-6 border">
+                                            <div className="bg-gradient-to-r from-muted via-card to-muted rounded-xl p-6 border">
                                                 <h4 className="text-sm font-medium mb-4 text-center">Policy Relationship Map</h4>
                                                 <div className="flex items-center justify-center gap-4">
                                                     {/* Risks Side */}
@@ -1731,7 +1731,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                     </div>
 
                                                     {/* Policy (Center) */}
-                                                    <div className="bg-gradient-to-br from-blue-100 to-indigo-100 border-2 border-blue-400 rounded-xl p-4 flex flex-col items-center min-w-[140px] shadow-md">
+                                                    <div className="bg-gradient-to-br from-blue-100 to-primary/20 border-2 border-blue-400 rounded-xl p-4 flex flex-col items-center min-w-[140px] shadow-md">
                                                         <FileText className="h-8 w-8 text-blue-600 mb-2" />
                                                         <span className="text-sm font-bold text-blue-900">This Policy</span>
                                                         <span className="text-xs text-blue-700 mt-1 text-center truncate max-w-[120px]">{name?.substring(0, 20) || 'Untitled'}</span>
@@ -1895,7 +1895,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                                                     "mr-2 h-4 w-4 border rounded flex items-center justify-center",
                                                                                                     isSelected ? "bg-orange-500 border-orange-500" : "border-muted-foreground"
                                                                                                 )}>
-                                                                                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                                                                                    {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                                                                                                 </div>
                                                                                                 <div className="flex-1 truncate">
                                                                                                     <span>{risk.title}</span>
@@ -1939,26 +1939,26 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             const scoreColor = score >= 20 ? 'bg-red-500' : score >= 15 ? 'bg-orange-500' : score >= 9 ? 'bg-yellow-500' : 'bg-green-500';
                                                             const residualScore = item.risk.residualScore || item.risk.inherentScore || 0;
                                                             return (
-                                                                <div key={`linked-risk-${item.risk.id}`} className="group flex items-center justify-between p-4 border rounded-xl bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-orange-300 transition-all duration-300">
+                                                                <div key={`linked-risk-${item.risk.id}`} className="group flex items-center justify-between p-4 border rounded-xl bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-orange-300 transition-all duration-300">
                                                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                                                         {/* Risk Score Badge */}
-                                                                        <div className={`${scoreColor} text-white font-bold text-sm w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 group-hover:rotate-3`}>
+                                                                        <div className={`${scoreColor} text-primary-foreground font-bold text-sm w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 group-hover:rotate-3`}>
                                                                             {score}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <a
                                                                                 href="#"
                                                                                 onClick={(e) => { e.preventDefault(); setSelectedRisk(item.risk); }}
-                                                                                className="font-semibold text-sm text-slate-900 hover:text-orange-700 hover:underline flex items-center gap-1.5 truncate cursor-pointer transition-colors"
+                                                                                className="font-semibold text-sm text-foreground hover:text-orange-700 hover:underline flex items-center gap-1.5 truncate cursor-pointer transition-colors"
                                                                             >
                                                                                 {item.risk.title}
                                                                                 <ExternalLink className="h-3 w-3 opacity-40 group-hover:opacity-100 transition-opacity shrink-0" />
                                                                             </a>
-                                                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                                                                                <span className="flex items-center gap-1">Inherent: <strong className="text-slate-700 font-bold">{item.risk.inherentRisk || score}</strong></span>
+                                                                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                                                                <span className="flex items-center gap-1">Inherent: <strong className="text-foreground font-bold">{item.risk.inherentRisk || score}</strong></span>
                                                                                 {residualScore < score && (
                                                                                     <>
-                                                                                        <span className="text-slate-300">|</span>
+                                                                                        <span className="text-muted-foreground">|</span>
                                                                                         <span className="text-green-600 font-semibold flex items-center gap-1">
                                                                                             <TrendingDown className="h-3 w-3" />
                                                                                             Residual: {residualScore}
@@ -1971,7 +1971,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all opacity-0 group-hover:opacity-100"
+                                                                        className="h-9 w-9 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all opacity-0 group-hover:opacity-100"
                                                                         title="Unlink Risk"
                                                                         onClick={() => handleUnlinkRisk(item.risk.id)}
                                                                     >
@@ -1990,13 +1990,13 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             </p>
 
                                                             {suggestedRisks.length > 0 && (
-                                                                <div className="mb-6 bg-white/60 rounded-xl p-3 border border-orange-100 text-left max-w-sm mx-auto">
+                                                                <div className="mb-6 bg-card/60 rounded-xl p-3 border border-orange-100 text-left max-w-sm mx-auto">
                                                                     <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 mb-2 flex items-center gap-1">
                                                                         <Sparkles className="h-3 w-3" /> Suggested Risks
                                                                     </p>
                                                                     <div className="space-y-2">
                                                                         {suggestedRisks.map((risk: any) => (
-                                                                            <div key={`sug-risk-${risk.id}`} className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-orange-50 text-xs shadow-sm">
+                                                                            <div key={`sug-risk-${risk.id}`} className="flex items-center justify-between gap-2 p-2 bg-card rounded-lg border border-orange-50 text-xs shadow-sm">
                                                                                 <span className="truncate font-medium text-orange-950">{risk.title}</span>
                                                                                 <Button
                                                                                     size="sm"
@@ -2018,7 +2018,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                                                             <Button
                                                                 variant="outline"
-                                                                className="bg-white hover:bg-orange-100/50 border-orange-200 text-orange-700 shadow-sm hover:shadow-md transition-all font-medium"
+                                                                className="bg-card hover:bg-orange-100/50 border-orange-200 text-orange-700 shadow-sm hover:shadow-md transition-all font-medium"
                                                                 onClick={() => setOpenLinkRisk(true)}
                                                             >
                                                                 <LinkIcon className="h-4 w-4 mr-2" />
@@ -2153,7 +2153,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                                                     "mr-2 h-4 w-4 border rounded flex items-center justify-center shrink-0",
                                                                                                     isSelected ? "bg-emerald-500 border-emerald-500" : "border-muted-foreground"
                                                                                                 )}>
-                                                                                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                                                                                    {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                                                                                                 </div>
                                                                                                 <div className="flex-1 min-w-0">
                                                                                                     <span className="truncate block">
@@ -2202,22 +2202,22 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
                                                                 'implemented': { color: 'bg-green-500', icon: <CheckCircle2 className="h-3 w-3" />, label: 'Implemented' },
                                                                 'in_progress': { color: 'bg-blue-500', icon: <Clock className="h-3 w-3" />, label: 'In Progress' },
-                                                                'not_implemented': { color: 'bg-gray-400', icon: <Target className="h-3 w-3" />, label: 'Not Implemented' },
-                                                                'not_applicable': { color: 'bg-slate-500', icon: <AlertTriangle className="h-3 w-3" />, label: 'N/A' },
+                                                                'not_implemented': { color: 'bg-muted-foreground', icon: <Target className="h-3 w-3" />, label: 'Not Implemented' },
+                                                                'not_applicable': { color: 'bg-muted-foreground', icon: <AlertTriangle className="h-3 w-3" />, label: 'N/A' },
                                                             };
                                                             const config = statusConfig[status] || statusConfig['not_implemented'];
                                                             return (
-                                                                <div key={`linked-control-${item.clientControl.id}`} className="group flex items-center justify-between p-4 border rounded-xl bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-300">
+                                                                <div key={`linked-control-${item.clientControl.id}`} className="group flex items-center justify-between p-4 border rounded-xl bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-300">
                                                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                                                         {/* Status Badge */}
-                                                                        <div className={`${config.color} text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 group-hover:-rotate-3`}>
+                                                                        <div className={`${config.color} text-primary-foreground w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 group-hover:-rotate-3`}>
                                                                             {config.icon}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <a
                                                                                 href="#"
                                                                                 onClick={(e) => { e.preventDefault(); setSelectedControl(item); }}
-                                                                                className="font-semibold text-sm text-slate-900 hover:text-emerald-700 hover:underline flex items-center gap-1.5 cursor-pointer transition-colors"
+                                                                                className="font-semibold text-sm text-foreground hover:text-emerald-700 hover:underline flex items-center gap-1.5 cursor-pointer transition-colors"
                                                                             >
                                                                                 {item.clientControl.clientControlId && (
                                                                                     <span className="font-mono font-bold text-emerald-700">{item.clientControl.clientControlId}</span>
@@ -2230,7 +2230,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                                     {config.label}
                                                                                 </Badge>
                                                                                 {item.clientControl.owner && (
-                                                                                    <span className="text-xs text-slate-500">Owner: <span className="text-slate-700 font-medium">{item.clientControl.owner}</span></span>
+                                                                                    <span className="text-xs text-muted-foreground">Owner: <span className="text-foreground font-medium">{item.clientControl.owner}</span></span>
                                                                                 )}
                                                                             </div>
                                                                         </div>
@@ -2238,7 +2238,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all opacity-0 group-hover:opacity-100"
+                                                                        className="h-9 w-9 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-full shrink-0 transition-all opacity-0 group-hover:opacity-100"
                                                                         title="Unlink Control"
                                                                         onClick={() => handleUnlinkControl(item.clientControl.id)}
                                                                     >
@@ -2257,13 +2257,13 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                             </p>
 
                                                             {suggestedControls.length > 0 && (
-                                                                <div className="mb-6 bg-white/60 rounded-xl p-3 border border-emerald-100 text-left max-w-sm mx-auto">
+                                                                <div className="mb-6 bg-card/60 rounded-xl p-3 border border-emerald-100 text-left max-w-sm mx-auto">
                                                                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-2 flex items-center gap-1">
                                                                         <Sparkles className="h-3 w-3" /> Suggested Controls
                                                                     </p>
                                                                     <div className="space-y-2">
                                                                         {suggestedControls.map((item: any) => (
-                                                                            <div key={`sug-ctrl-${item.clientControl.id}`} className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-emerald-50 text-xs shadow-sm">
+                                                                            <div key={`sug-ctrl-${item.clientControl.id}`} className="flex items-center justify-between gap-2 p-2 bg-card rounded-lg border border-emerald-50 text-xs shadow-sm">
                                                                                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
                                                                                     <span className="font-mono font-bold text-emerald-700 shrink-0">{item.clientControl.clientControlId}</span>
                                                                                     <span className="truncate text-emerald-900">{item.control?.name}</span>
@@ -2288,7 +2288,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                                                             <Button
                                                                 variant="outline"
-                                                                className="bg-white hover:bg-emerald-100/50 border-emerald-200 text-emerald-700 shadow-sm hover:shadow-md transition-all font-medium"
+                                                                className="bg-card hover:bg-emerald-100/50 border-emerald-200 text-emerald-700 shadow-sm hover:shadow-md transition-all font-medium"
                                                                 onClick={() => setOpenLinkControl(true)}
                                                             >
                                                                 <LinkIcon className="h-4 w-4 mr-2" />
@@ -2453,7 +2453,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                             setSelectedReviewers(selectedReviewers.filter(r => r !== id));
                                                                         }
                                                                     }}
-                                                                    className="rounded border-gray-300"
+                                                                    className="rounded border-input"
                                                                 />
                                                                 <label htmlFor={`reviewer-${member.id}`} className="text-sm cursor-pointer select-none">
                                                                     {member.name || member.email}
@@ -2495,7 +2495,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     </DialogContent>
                                 </Dialog>
                                 <Button
-                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold mb-2"
+                                    className="w-full justify-start bg-brand text-primary-foreground hover:bg-brand-bright hover:text-primary-foreground transition-all font-bold mb-2"
                                     onClick={() => setShowReviewDialog(true)}
                                     disabled={(policy as any).approvalStatus === 'requested' || (policy as any).approvalStatus === 'approved'}
                                 >
@@ -2504,7 +2504,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Button>
 
                                 <Button
-                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold"
+                                    className="w-full justify-start bg-brand text-primary-foreground hover:bg-brand-bright hover:text-primary-foreground transition-all font-bold"
                                     onClick={() => setShowDistributionDialog(true)}
                                 >
                                     <Users className="mr-2 h-4 w-4" />
@@ -2512,7 +2512,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Button>
 
                                 <Button
-                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold"
+                                    className="w-full justify-start bg-brand text-primary-foreground hover:bg-brand-bright hover:text-primary-foreground transition-all font-bold"
                                     onClick={handleAiFixPlaceholders}
                                 >
                                     <Sparkles className="mr-2 h-4 w-4" />
@@ -2520,7 +2520,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Button>
 
                                 <Button
-                                    className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold"
+                                    className="w-full justify-start bg-brand text-primary-foreground hover:bg-brand-bright hover:text-primary-foreground transition-all font-bold"
                                     onClick={handleExportWord}
                                 >
                                     <FileText className="mr-2 h-4 w-4" />
@@ -2534,7 +2534,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         clientId,
                                         policyId,
                                         onRewrite: (html: string) => setContent(html),
-                                        className: "w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold",
+                                        className: "w-full justify-start bg-brand text-primary-foreground hover:bg-brand-bright hover:text-primary-foreground transition-all font-bold",
                                         variant: "ghost"
                                     }}
                                 />
@@ -2545,7 +2545,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 )}
                                 <div className="space-y-1">
                                     <Button
-                                        className="w-full justify-start bg-brand text-white hover:bg-brand-bright hover:text-white transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full justify-start bg-brand text-primary-foreground hover:bg-brand-bright hover:text-primary-foreground transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={() => setShowPublishDialog(true)}
                                         disabled={policy.status !== 'approved' && (policy as any).approvalStatus !== 'approved'}
                                     >

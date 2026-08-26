@@ -273,15 +273,15 @@ export default function Nist800171AssessmentPage() {
 
     const getStatusBadge = (controlId: string) => {
         const assessment = assessmentMap.get(controlId);
-        if (!assessment) return <Badge variant="outline" className="bg-slate-50 text-slate-400">Not Started</Badge>;
+        if (!assessment) return <Badge variant="outline" className="bg-muted text-muted-foreground">Not Started</Badge>;
 
         switch (assessment.complianceStatus) {
             case 'Compliant':
-                return <Badge className="bg-emerald-500 text-white border-none">Compliant</Badge>;
+                return <Badge className="bg-emerald-500 text-primary-foreground border-none">Compliant</Badge>;
             case 'Partial':
-                return <Badge className="bg-amber-500 text-white border-none">Partial</Badge>;
+                return <Badge className="bg-amber-500 text-primary-foreground border-none">Partial</Badge>;
             case 'Non-Compliant':
-                return <Badge className="bg-rose-500 text-white border-none">Non-Compliant</Badge>;
+                return <Badge className="bg-rose-500 text-primary-foreground border-none">Non-Compliant</Badge>;
             default:
                 return <Badge variant="outline">{assessment.complianceStatus}</Badge>;
         }
@@ -301,19 +301,19 @@ export default function Nist800171AssessmentPage() {
                     />
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-start lg:items-center justify-between gap-4 sticky top-0 z-40 bg-slate-50/90 backdrop-blur-xl py-4 px-6 border-b border-slate-200 shadow-sm mb-6">
+                <div className="flex flex-col md:flex-row md:items-start lg:items-center justify-between gap-4 sticky top-0 z-40 bg-muted/90 backdrop-blur-xl py-4 px-6 border-b border-border shadow-sm mb-6">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                        <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
                             <Target className="w-8 h-8 text-blue-600" />
                             NIST SP 800-171 Assessment
                         </h1>
-                        <p className="text-slate-500 mt-1 uppercase text-xs font-bold tracking-widest">
+                        <p className="text-muted-foreground mt-1 uppercase text-xs font-bold tracking-widest">
                             Protecting Controlled Unclassified Information (CUI)
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Link href={`/clients/${clientId}/federal/dfars`}>
-                            <Button variant="ghost" className="rounded-xl gap-2 text-slate-500 hover:text-slate-900">
+                            <Button variant="ghost" className="rounded-xl gap-2 text-muted-foreground hover:text-foreground">
                                 <ArrowLeft className="w-4 h-4" />
                                 Back to Assessments
                             </Button>
@@ -334,7 +334,7 @@ export default function Nist800171AssessmentPage() {
                 <div className="px-6 mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Score Gauge Card */}
-                        <div className="md:col-span-2 bg-white rounded-2xl border shadow-lg p-6 relative overflow-hidden">
+                        <div className="md:col-span-2 bg-card rounded-2xl border shadow-lg p-6 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-50 to-transparent rounded-full -mr-16 -mt-16" />
                             <div className="flex items-center gap-6 relative z-10">
                                 <div className="relative">
@@ -360,17 +360,17 @@ export default function Nist800171AssessmentPage() {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                                         <Calculator className="w-4 h-4" />
                                         SPRS Score
                                     </h3>
                                     <p className={`text-4xl font-black ${scoreColor}`}>{currentScore}</p>
-                                    <p className="text-xs text-slate-500 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         {currentScore >= 90 ? '🟢 Ready for submission' :
                                             currentScore >= 50 ? '🟡 Needs improvement' :
                                                 '🔴 Critical gaps remain'}
                                     </p>
-                                    <p className="text-xs text-slate-400 mt-0.5">
+                                    <p className="text-xs text-muted-foreground mt-0.5">
                                         DoD Assessment Methodology (Weighted)
                                     </p>
                                 </div>
@@ -378,48 +378,48 @@ export default function Nist800171AssessmentPage() {
                         </div>
 
                         {/* Weight-5 Card */}
-                        <div className="bg-white rounded-2xl border shadow-sm p-5">
+                        <div className="bg-card rounded-2xl border shadow-sm p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-xs font-bold uppercase tracking-wider text-rose-500">Weight 5 (Critical)</span>
                                 <AlertTriangle className="w-4 h-4 text-rose-400" />
                             </div>
-                            <div className="text-3xl font-black text-slate-900">
+                            <div className="text-3xl font-black text-foreground">
                                 {sprsResult.weightBreakdown.weight5.met}
-                                <span className="text-lg text-slate-400 font-normal">/{sprsResult.weightBreakdown.weight5.total}</span>
+                                <span className="text-lg text-muted-foreground font-normal">/{sprsResult.weightBreakdown.weight5.total}</span>
                             </div>
-                            <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-500"
                                     style={{ width: `${sprsResult.weightBreakdown.weight5.total > 0 ? (sprsResult.weightBreakdown.weight5.met / sprsResult.weightBreakdown.weight5.total) * 100 : 0}%` }}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500 mt-1.5">Max deduction: {sprsResult.weightBreakdown.weight5.total * 5} pts</p>
+                            <p className="text-xs text-muted-foreground mt-1.5">Max deduction: {sprsResult.weightBreakdown.weight5.total * 5} pts</p>
                         </div>
 
                         {/* Weight-3 and Weight-1 Stack */}
                         <div className="space-y-4">
-                            <div className="bg-white rounded-2xl border shadow-sm p-4">
+                            <div className="bg-card rounded-2xl border shadow-sm p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-bold uppercase tracking-wider text-amber-500">Weight 3</span>
-                                    <span className="text-lg font-black text-slate-900">
+                                    <span className="text-lg font-black text-foreground">
                                         {sprsResult.weightBreakdown.weight3.met}/{sprsResult.weightBreakdown.weight3.total}
                                     </span>
                                 </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
                                         style={{ width: `${sprsResult.weightBreakdown.weight3.total > 0 ? (sprsResult.weightBreakdown.weight3.met / sprsResult.weightBreakdown.weight3.total) * 100 : 0}%` }}
                                     />
                                 </div>
                             </div>
-                            <div className="bg-white rounded-2xl border shadow-sm p-4">
+                            <div className="bg-card rounded-2xl border shadow-sm p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-bold uppercase tracking-wider text-blue-500">Weight 1</span>
-                                    <span className="text-lg font-black text-slate-900">
+                                    <span className="text-lg font-black text-foreground">
                                         {sprsResult.weightBreakdown.weight1.met}/{sprsResult.weightBreakdown.weight1.total}
                                     </span>
                                 </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-500"
                                         style={{ width: `${sprsResult.weightBreakdown.weight1.total > 0 ? (sprsResult.weightBreakdown.weight1.met / sprsResult.weightBreakdown.weight1.total) * 100 : 0}%` }}
@@ -430,8 +430,8 @@ export default function Nist800171AssessmentPage() {
                     </div>
 
                     {/* Family Score Heatmap */}
-                    <div className="mt-4 bg-white rounded-2xl border shadow-sm p-5">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <div className="mt-4 bg-card rounded-2xl border shadow-sm p-5">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4" />
                             Score by Control Family
                         </h3>
@@ -462,9 +462,9 @@ export default function Nist800171AssessmentPage() {
                 <div className="px-6 grid grid-cols-1 lg:grid-cols-4 2xl:grid-cols-5 gap-6 xl:gap-8 items-start">
                     {/* Sidebar Filters */}
                     <div className="lg:col-span-1 space-y-6 sticky top-28 z-30">
-                        <Card className="border-none shadow-xl shadow-slate-200/40 bg-white/80 backdrop-blur-xl">
+                        <Card className="border-none shadow-xl shadow-primary/6 bg-card/80 backdrop-blur-xl">
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Control Families</CardTitle>
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Control Families</CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[calc(100vh-250px)] px-4 pb-4">
@@ -472,8 +472,8 @@ export default function Nist800171AssessmentPage() {
                                         <button
                                             onClick={() => setSelectedFamily("all")}
                                             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${selectedFamily === "all"
-                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                                : "text-slate-600 hover:bg-slate-100"
+                                                ? "bg-blue-600 text-primary-foreground shadow-lg shadow-blue-200"
+                                                : "text-muted-foreground hover:bg-accent"
                                                 }`}
                                         >
                                             All Families
@@ -483,8 +483,8 @@ export default function Nist800171AssessmentPage() {
                                                 key={family.id}
                                                 onClick={() => setSelectedFamily(family.id)}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all group ${selectedFamily === family.id
-                                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                                    : "text-slate-600 hover:bg-slate-100"
+                                                    ? "bg-blue-600 text-primary-foreground shadow-lg shadow-blue-200"
+                                                    : "text-muted-foreground hover:bg-accent"
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
@@ -503,12 +503,12 @@ export default function Nist800171AssessmentPage() {
 
                     {/* Main Content */}
                     <div className="lg:col-span-3 2xl:col-span-4 space-y-6">
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                        <div className="bg-card p-4 rounded-2xl shadow-sm border border-border space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input
-                                        className="pl-10 bg-slate-50 border-none rounded-xl focus-visible:ring-blue-500/20 transition-all font-medium"
+                                        className="pl-10 bg-muted border-none rounded-xl focus-visible:ring-blue-500/20 transition-all font-medium"
                                         placeholder="Search controls by ID or name..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -517,7 +517,7 @@ export default function Nist800171AssessmentPage() {
                                 <Button
                                     variant={showFilters ? "secondary" : "ghost"}
                                     onClick={() => setShowFilters(!showFilters)}
-                                    className="rounded-xl text-slate-500"
+                                    className="rounded-xl text-muted-foreground"
                                 >
                                     <Filter className="w-4 h-4 mr-2" />
                                     More Filters
@@ -526,11 +526,11 @@ export default function Nist800171AssessmentPage() {
 
                             {/* Additional Filters Area */}
                             {showFilters && (
-                                <div className="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="pt-4 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
                                     <div className="space-y-2">
-                                        <Label className="text-xs font-bold uppercase text-slate-400">Compliance Status</Label>
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground">Compliance Status</Label>
                                         <Select value={complianceFilter} onValueChange={setComplianceFilter}>
-                                            <SelectTrigger className="bg-slate-50 border-none rounded-xl">
+                                            <SelectTrigger className="bg-muted border-none rounded-xl">
                                                 <SelectValue placeholder="Filter by status" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -543,9 +543,9 @@ export default function Nist800171AssessmentPage() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-xs font-bold uppercase text-slate-400">Implementation Status</Label>
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground">Implementation Status</Label>
                                         <Select value={implFilter} onValueChange={setImplFilter}>
-                                            <SelectTrigger className="bg-slate-50 border-none rounded-xl">
+                                            <SelectTrigger className="bg-muted border-none rounded-xl">
                                                 <SelectValue placeholder="Filter by status" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -563,16 +563,16 @@ export default function Nist800171AssessmentPage() {
                         </div>
 
                         {loadingControls ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                                 <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4 mx-auto" />
-                                <p className="font-bold text-lg text-slate-900 animate-pulse">Synchronizing Assessment Data...</p>
-                                <p className="text-sm text-slate-500 mt-2">Loading the NIST 800-171 catalog and your responses.</p>
+                                <p className="font-bold text-lg text-foreground animate-pulse">Synchronizing Assessment Data...</p>
+                                <p className="text-sm text-muted-foreground mt-2">Loading the NIST 800-171 catalog and your responses.</p>
                             </div>
                         ) : filteredControls.length === 0 ? (
-                            <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100">
-                                <Shield className="w-16 h-16 text-slate-100 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900">No controls found</h3>
-                                <p className="text-slate-500">Try adjusting your search or family filter.</p>
+                            <div className="text-center py-20 bg-card rounded-3xl border-2 border-dashed border-border">
+                                <Shield className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-foreground">No controls found</h3>
+                                <p className="text-muted-foreground">Try adjusting your search or family filter.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
@@ -580,7 +580,7 @@ export default function Nist800171AssessmentPage() {
                                     <div
                                         key={control.id}
                                         onClick={() => handleOpenDetail(control)}
-                                        className="group bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-100 transition-all cursor-pointer relative overflow-hidden"
+                                        className="group bg-card p-5 rounded-3xl border border-border shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-100 transition-all cursor-pointer relative overflow-hidden"
                                     >
                                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform" />
 
@@ -595,19 +595,19 @@ export default function Nist800171AssessmentPage() {
                                                         if (!w) return null;
                                                         const wColor = w === 5 ? 'bg-rose-100 text-rose-700 border-rose-200' :
                                                             w === 3 ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                                                'bg-slate-100 text-slate-600 border-slate-200';
+                                                                'bg-muted text-muted-foreground border-border';
                                                         return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-bold ${wColor}`}>W{w}</Badge>;
                                                     })()}
                                                 </div>
-                                                <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight line-clamp-1">
+                                                <h3 className="font-bold text-foreground group-hover:text-blue-600 transition-colors uppercase tracking-tight line-clamp-1">
                                                     {control.name}
                                                 </h3>
-                                                <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed max-w-2xl">
+                                                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed max-w-2xl">
                                                     {control.description}
                                                 </p>
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
-                                                <Button size="icon" variant="ghost" className="rounded-full bg-slate-50 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                <Button size="icon" variant="ghost" className="rounded-full bg-muted group-hover:bg-blue-600 group-hover:text-primary-foreground transition-all shadow-sm">
                                                     <ChevronRight className="w-5 h-5" />
                                                 </Button>
                                             </div>
@@ -622,9 +622,9 @@ export default function Nist800171AssessmentPage() {
                 {/* Control Detail Dialog */}
                 <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                     <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[32px] shadow-2xl h-[90vh] flex flex-col">
-                        <DialogHeader className="p-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative shrink-0">
+                        <DialogHeader className="p-8 bg-gradient-to-br from-blue-600 to-sidebar-primary text-primary-foreground relative shrink-0">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                                <div className="p-2 bg-card/20 rounded-xl backdrop-blur-md">
                                     <Shield className="w-6 h-6" />
                                 </div>
                                 <span className="text-sm font-bold uppercase tracking-widest text-blue-100">Control Assessment</span>
@@ -632,7 +632,7 @@ export default function Nist800171AssessmentPage() {
                                     const w = SPRS_WEIGHT_MAP.get(selectedControl.controlId);
                                     if (!w) return null;
                                     return (
-                                        <span className="ml-auto px-3 py-1 rounded-lg bg-white/20 backdrop-blur text-white text-xs font-bold">
+                                        <span className="ml-auto px-3 py-1 rounded-lg bg-primary-foreground/20 backdrop-blur text-primary-foreground text-xs font-bold">
                                             Weight {w} · {w === 5 ? 'Critical' : w === 3 ? 'Important' : 'Supporting'} · −{w} pts if not met
                                         </span>
                                     );
@@ -646,13 +646,13 @@ export default function Nist800171AssessmentPage() {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="flex-1 overflow-y-auto bg-slate-50">
+                        <div className="flex-1 overflow-y-auto bg-muted">
                             <div className="p-8 space-y-8">
                                 {/* AI Guidance Section */}
-                                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                                <div className="bg-card rounded-3xl p-6 shadow-sm border border-border">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                            <Sparkles className="w-5 h-5 text-indigo-500" />
+                                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-primary" />
                                             AI Implementation Guidance
                                         </h3>
                                         {!generateGuidanceMutation.isPending && (
@@ -660,7 +660,7 @@ export default function Nist800171AssessmentPage() {
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={handleGenerateGuidance}
-                                                className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-all"
+                                                className="rounded-xl border-primary/30 text-primary hover:bg-accent transition-all"
                                             >
                                                 <Sparkles className="w-3 h-3 mr-2" />
                                                 {aiGuidance ? "Regenerate Guidance" : "Generate Guidance"}
@@ -674,21 +674,21 @@ export default function Nist800171AssessmentPage() {
                                             <p className="text-xs text-red-600 mb-4">{generateGuidanceMutation.error?.message}</p>
                                         </div>
                                     ) : generateGuidanceMutation.isPending ? (
-                                        <div className="py-12 px-4 text-center border-2 border-dashed border-indigo-100 rounded-xl bg-indigo-50/30">
+                                        <div className="py-12 px-4 text-center border-2 border-dashed border-primary/30 rounded-xl bg-primary/NaN">
                                             <div className="flex flex-col items-center justify-center gap-4">
-                                                <Sparkles className="w-6 h-6 text-indigo-500 animate-pulse" />
-                                                <p className="text-sm font-semibold text-slate-900">Generating AI Guidance...</p>
+                                                <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                                                <p className="text-sm font-semibold text-foreground">Generating AI Guidance...</p>
                                             </div>
                                         </div>
 
                                     ) : aiGuidance ? (
-                                        <div className="prose prose-sm prose-slate max-w-none bg-indigo-50/50 p-4 rounded-xl">
+                                        <div className="prose prose-sm prose-slate max-w-none bg-primary/NaN p-4 rounded-xl">
                                             <ReactMarkdown>{aiGuidance}</ReactMarkdown>
                                         </div>
                                     ) : (
                                         <div className="text-center py-8 px-4">
-                                            <Sparkles className="w-12 h-12 text-indigo-100 mx-auto mb-3" />
-                                            <p className="text-sm text-slate-500 italic mb-4">
+                                            <Sparkles className="w-12 h-12 text-primary/25 mx-auto mb-3" />
+                                            <p className="text-sm text-muted-foreground italic mb-4">
                                                 Click the button above to generate AI-powered implementation guidance.
                                             </p>
                                         </div>
@@ -697,12 +697,12 @@ export default function Nist800171AssessmentPage() {
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-3">
-                                        <Label className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                             <Activity className="w-4 h-4" />
                                             Implementation Status
                                         </Label>
                                         <Select value={implementationStatus} onValueChange={setImplementationStatus}>
-                                            <SelectTrigger className="rounded-2xl border-none shadow-sm h-12 bg-white font-medium">
+                                            <SelectTrigger className="rounded-2xl border-none shadow-sm h-12 bg-card font-medium">
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
                                             <SelectContent className="rounded-2xl border-none shadow-xl">
@@ -715,12 +715,12 @@ export default function Nist800171AssessmentPage() {
                                         </Select>
                                     </div>
                                     <div className="space-y-3">
-                                        <Label className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                             <CheckCircle2 className="w-4 h-4" />
                                             Compliance Result
                                         </Label>
                                         <Select value={complianceStatus} onValueChange={setComplianceStatus}>
-                                            <SelectTrigger className="rounded-2xl border-none shadow-sm h-12 bg-white font-medium">
+                                            <SelectTrigger className="rounded-2xl border-none shadow-sm h-12 bg-card font-medium">
                                                 <SelectValue placeholder="Select result" />
                                             </SelectTrigger>
                                             <SelectContent className="rounded-2xl border-none shadow-xl">
@@ -733,12 +733,12 @@ export default function Nist800171AssessmentPage() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                         <FileText className="w-4 h-4" />
                                         Implementation Description
                                     </Label>
                                     <Textarea
-                                        className="min-h-[120px] rounded-3xl border-none shadow-sm bg-white p-6 focus-visible:ring-blue-500/20 text-slate-700 leading-relaxed"
+                                        className="min-h-[120px] rounded-3xl border-none shadow-sm bg-card p-6 focus-visible:ring-blue-500/20 text-foreground leading-relaxed"
                                         placeholder="Describe how this control is implemented in the system..."
                                         value={implementationDescription}
                                         onChange={(e) => setImplementationDescription(e.target.value)}
@@ -746,12 +746,12 @@ export default function Nist800171AssessmentPage() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                         <Activity className="w-4 h-4" />
                                         Test Results & Assessment Observations
                                     </Label>
                                     <Textarea
-                                        className="min-h-[120px] rounded-3xl border-none shadow-sm bg-white p-6 focus-visible:ring-blue-500/20 text-slate-700 leading-relaxed font-mono text-sm"
+                                        className="min-h-[120px] rounded-3xl border-none shadow-sm bg-card p-6 focus-visible:ring-blue-500/20 text-foreground leading-relaxed font-mono text-sm"
                                         placeholder="Enter artifacts, test dates, and observations..."
                                         value={testResults}
                                         onChange={(e) => setTestResults(e.target.value)}
@@ -760,7 +760,7 @@ export default function Nist800171AssessmentPage() {
                             </div>
                         </div>
 
-                        <DialogFooter className="p-6 bg-white border-t border-slate-100 flex items-center justify-between sm:justify-between shrink-0">
+                        <DialogFooter className="p-6 bg-card border-t border-border flex items-center justify-between sm:justify-between shrink-0">
                             <div className="flex items-center gap-4">
                             </div>
                             <div className="flex gap-3">

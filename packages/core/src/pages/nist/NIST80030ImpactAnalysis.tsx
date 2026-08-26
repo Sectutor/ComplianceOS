@@ -64,9 +64,9 @@ const domainIcons: Record<string, any> = {
 const magnitudeColors: Record<string, { text: string; bg: string }> = {
     "Critical": { text: "text-rose-500", bg: "bg-rose-50" },
     "High": { text: "text-amber-500", bg: "bg-amber-50" },
-    "Moderate": { text: "text-indigo-500", bg: "bg-indigo-50" },
+    "Moderate": { text: "text-primary", bg: "bg-primary/undefined" },
     "Low": { text: "text-emerald-500", bg: "bg-emerald-50" },
-    "Very Low": { text: "text-slate-400", bg: "bg-slate-50" },
+    "Very Low": { text: "text-muted-foreground", bg: "bg-muted" },
 };
 
 export default function NIST80030ImpactAnalysis() {
@@ -149,7 +149,7 @@ export default function NIST80030ImpactAnalysis() {
         return Object.entries(summary).map(([label, data]) => ({
             label,
             val: data.count > 0 ? Math.round(data.score / data.count) : 0,
-            color: label === 'Confidentiality' ? 'bg-indigo-500' : label === 'Integrity' ? 'bg-emerald-500' : 'bg-amber-500',
+            color: label === 'Confidentiality' ? 'bg-primary' : label === 'Integrity' ? 'bg-emerald-500' : 'bg-amber-500',
             icon: label === 'Confidentiality' ? Lock : label === 'Integrity' ? Shield : Activity
         }));
     }, [impactAssessments]);
@@ -273,7 +273,7 @@ export default function NIST80030ImpactAnalysis() {
         <NIST80030Layout>
             <div className="space-y-8 w-full px-4 sm:px-6 lg:px-8 pb-20">
                 {/* Sticky Header */}
-                <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 border-b border-slate-100">
+                <div className="sticky top-0 z-20 bg-card/80 backdrop-blur-xl -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 border-b border-border">
                     <Breadcrumb
                         items={[
                             { label: "Dashboard", href: `/dashboard` },
@@ -287,22 +287,22 @@ export default function NIST80030ImpactAnalysis() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <Badge className="bg-indigo-600 text-white font-black px-3 tracking-widest uppercase text-[10px]">Step 3</Badge>
-                            <Badge variant="outline" className="border-indigo-200 text-indigo-700 font-bold uppercase tracking-widest text-[10px]">Harm Determination</Badge>
+                            <Badge className="bg-primary text-primary-foreground font-black px-3 tracking-widest uppercase text-[10px]">Step 3</Badge>
+                            <Badge variant="outline" className="border-primary/30 text-primary font-bold uppercase tracking-widest text-[10px]">Harm Determination</Badge>
                         </div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-4">
-                            <BarChart3 className="w-10 h-10 text-indigo-600" />
+                        <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-4">
+                            <BarChart3 className="w-10 h-10 text-primary" />
                             Impact Analysis
                         </h1>
-                        <p className="text-slate-500 text-lg font-medium max-w-3xl leading-relaxed">
+                        <p className="text-muted-foreground text-lg font-medium max-w-3xl leading-relaxed">
                             Determine the magnitude of harm that could result from the unauthorized disclosure, modification, or destruction of information.
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <Button onClick={openNewFactor} variant="outline" className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-100 hover:bg-slate-50 text-slate-600 gap-2">
+                        <Button onClick={openNewFactor} variant="outline" className="rounded-2xl h-14 px-6 font-bold border-2 border-border hover:bg-accent text-muted-foreground gap-2">
                             <Plus className="w-4 h-4" /> Add Factor
                         </Button>
-                        <Button onClick={openNewDomain} className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-14 px-8 shadow-xl shadow-indigo-200/50 font-black text-lg gap-2">
+                        <Button onClick={openNewDomain} className="bg-primary hover:bg-primary rounded-2xl h-14 px-8 shadow-xl shadow-primary/8 font-black text-lg gap-2">
                             <Plus className="w-5 h-5" /> Add Assessment
                         </Button>
                     </div>
@@ -311,78 +311,78 @@ export default function NIST80030ImpactAnalysis() {
                 <div className="grid grid-cols-1 lg:grid-cols-4 2xl:grid-cols-5 gap-8">
                     {/* CIA Sidebar */}
                     <div className="lg:col-span-1 2xl:col-span-1 space-y-6 lg:sticky lg:top-24 lg:self-start">
-                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white overflow-hidden">
+                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-card overflow-hidden">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Impact Summary (CIA)</CardTitle>
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Impact Summary (CIA)</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6 pt-4">
                                 {ciaSummary.map((cat, i) => (
                                     <div key={i} className="space-y-2">
                                         <div className="flex justify-between items-center">
                                             <div className="flex items-center gap-2">
-                                                <cat.icon className="w-4 h-4 text-slate-400" />
-                                                <span className="text-sm font-black text-slate-700">{cat.label}</span>
+                                                <cat.icon className="w-4 h-4 text-muted-foreground" />
+                                                <span className="text-sm font-black text-foreground">{cat.label}</span>
                                             </div>
                                             <Badge variant="secondary" className="font-black text-[10px]">
                                                 {cat.val > 80 ? "Critical" : cat.val > 60 ? "High" : cat.val > 40 ? "Moderate" : cat.val > 0 ? "Low" : "N/A"}
                                             </Badge>
                                         </div>
-                                        <Progress value={cat.val} className="h-1.5 bg-slate-100" indicatorClassName={cat.color} />
+                                        <Progress value={cat.val} className="h-1.5 bg-muted" indicatorClassName={cat.color} />
                                     </div>
                                 ))}
                                 <div className="pt-6 border-t">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Assessed Domains</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">Assessed Domains</p>
                                     <div className="flex flex-wrap gap-2">
                                         {domainAssessments.length > 0 ? (
                                             [...new Set(domainAssessments.map((a: any) => a.domain))].map((domain: any) => (
-                                                <Badge key={domain} className="bg-slate-900 text-white rounded-lg text-[10px]">{domain}</Badge>
+                                                <Badge key={domain} className="bg-foreground text-background rounded-lg text-[10px]">{domain}</Badge>
                                             ))
                                         ) : (
-                                            <p className="text-xs text-slate-400">No domains assessed yet</p>
+                                            <p className="text-xs text-muted-foreground">No domains assessed yet</p>
                                         )}
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-indigo-900 text-white overflow-hidden relative">
+                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-sidebar text-sidebar-foreground overflow-hidden relative">
                             <CardHeader>
-                                <CardTitle className="text-indigo-400 text-xs font-black uppercase tracking-widest">Economic Harm Predictor</CardTitle>
+                                <CardTitle className="text-primary text-xs font-black uppercase tracking-widest">Economic Harm Predictor</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4 relative z-10">
                                 <div className="text-center py-4">
                                     <p className="text-4xl font-black tracking-tighter">
                                         ${economicImpact.total > 0 ? (economicImpact.total / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
                                     </p>
-                                    <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em] mt-1">Est. Daily Impact</p>
+                                    <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Est. Daily Impact</p>
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-indigo-300">Revenue Loss</span>
+                                        <span className="text-primary">Revenue Loss</span>
                                         <span className="font-bold">{economicImpact.revLoss}%</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-indigo-300">Legal/Fines</span>
+                                        <span className="text-primary">Legal/Fines</span>
                                         <span className="font-bold">{economicImpact.legal}%</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-indigo-300">Brand Equity</span>
+                                        <span className="text-primary">Brand Equity</span>
                                         <span className="font-bold">{economicImpact.brand}%</span>
                                     </div>
                                 </div>
                             </CardContent>
-                            <Zap className="absolute -bottom-10 -left-10 w-48 h-48 text-white/5 -rotate-12" />
+                            <Zap className="absolute -bottom-10 -left-10 w-48 h-48 text-sidebar-foreground/5 -rotate-12" />
                         </Card>
                     </div>
 
-                    <Card className="lg:col-span-3 2xl:col-span-4 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2.5rem] overflow-hidden">
+                    <Card className="lg:col-span-3 2xl:col-span-4 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-card rounded-[2.5rem] overflow-hidden">
                         <Tabs defaultValue="magnitude" className="w-full">
-                            <div className="border-b px-8 bg-slate-50/50">
+                            <div className="border-b px-8 bg-muted/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
-                                    <TabsTrigger value="magnitude" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-100 data-[state=active]:text-indigo-700 rounded-t-lg font-bold text-xs uppercase tracking-widest px-6 py-3 transition-all -mb-[2px]">
+                                    <TabsTrigger value="magnitude" className="data-[state=active]:bg-card data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-lg data-[state=active]:shadow-primary/10 data-[state=active]:text-primary rounded-t-lg font-bold text-xs uppercase tracking-widest px-6 py-3 transition-all -mb-[2px]">
                                         Magnitude of Harm ({domainAssessments.length})
                                     </TabsTrigger>
-                                    <TabsTrigger value="factors" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-100 data-[state=active]:text-indigo-700 rounded-t-lg font-bold text-xs uppercase tracking-widest px-6 py-3 transition-all -mb-[2px]">
+                                    <TabsTrigger value="factors" className="data-[state=active]:bg-card data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-lg data-[state=active]:shadow-primary/10 data-[state=active]:text-primary rounded-t-lg font-bold text-xs uppercase tracking-widest px-6 py-3 transition-all -mb-[2px]">
                                         Impact Factors ({contributingFactors.length})
                                     </TabsTrigger>
                                 </TabsList>
@@ -391,24 +391,24 @@ export default function NIST80030ImpactAnalysis() {
                             <TabsContent value="magnitude" className="p-10 space-y-12 m-0">
                                 <div className="flex justify-between items-center">
                                     <div className="space-y-1">
-                                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Impact Determination (T-3)</h3>
-                                        <p className="text-sm text-slate-500 font-medium">Assessing the overall magnitude of harm across multiple domains.</p>
+                                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Impact Determination (T-3)</h3>
+                                        <p className="text-sm text-muted-foreground font-medium">Assessing the overall magnitude of harm across multiple domains.</p>
                                     </div>
-                                    <Button onClick={openNewDomain} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold h-10 px-4 gap-2">
+                                    <Button onClick={openNewDomain} className="bg-primary hover:bg-primary rounded-xl font-bold h-10 px-4 gap-2">
                                         <Plus className="w-4 h-4" /> Add Assessment
                                     </Button>
                                 </div>
 
                                 {isLoading ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-slate-50 rounded-[3rem] animate-pulse" />)}
+                                        {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-muted rounded-[3rem] animate-pulse" />)}
                                     </div>
                                 ) : domainAssessments.length === 0 ? (
-                                    <div className="text-center py-16 text-slate-400">
-                                        <BarChart3 className="w-12 h-12 mx-auto mb-4 text-slate-200" />
+                                    <div className="text-center py-16 text-muted-foreground">
+                                        <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                                         <p className="font-bold text-lg">No impact assessments yet</p>
                                         <p className="text-sm mt-1">Create your first domain impact assessment</p>
-                                        <Button onClick={openNewDomain} className="mt-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold gap-2">
+                                        <Button onClick={openNewDomain} className="mt-4 bg-primary hover:bg-primary rounded-xl font-bold gap-2">
                                             <Plus className="w-4 h-4" /> Add Assessment
                                         </Button>
                                     </div>
@@ -418,7 +418,7 @@ export default function NIST80030ImpactAnalysis() {
                                             const Icon = domainIcons[item.domain] || Building2;
                                             const colors = magnitudeColors[item.magnitude] || magnitudeColors["Moderate"];
                                             return (
-                                                <div key={item.id} className="p-8 bg-white border border-slate-100 rounded-[3rem] space-y-6 hover:shadow-xl transition-all group relative overflow-hidden">
+                                                <div key={item.id} className="p-8 bg-card border border-border rounded-[3rem] space-y-6 hover:shadow-xl transition-all group relative overflow-hidden">
                                                     <div className="flex items-center justify-between relative z-10">
                                                         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110", colors.bg, colors.text)}>
                                                             <Icon className="w-7 h-7" />
@@ -428,44 +428,44 @@ export default function NIST80030ImpactAnalysis() {
                                                                 {item.magnitude}
                                                             </Badge>
                                                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-indigo-600" onClick={() => openEditDomain(item)}>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEditDomain(item)}>
                                                                     <Pencil className="w-3.5 h-3.5" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-rose-600" onClick={() => deleteMutation.mutate({ clientId, id: item.id })}>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-rose-600" onClick={() => deleteMutation.mutate({ clientId, id: item.id })}>
                                                                     <Trash2 className="w-3.5 h-3.5" />
                                                                 </Button>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="relative z-10">
-                                                        <h4 className="text-xl font-black text-slate-900 tracking-tight">{item.domain}</h4>
+                                                        <h4 className="text-xl font-black text-foreground tracking-tight">{item.domain}</h4>
                                                         {item.ciaType && <Badge variant="secondary" className="mt-1 text-[9px]">{item.ciaType}</Badge>}
-                                                        <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">{item.description || 'No description provided.'}</p>
+                                                        <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">{item.description || 'No description provided.'}</p>
                                                     </div>
                                                     {item.rationale && (
                                                         <div className="pt-4 relative z-10">
-                                                            <Button variant="ghost" className="p-0 h-auto font-black text-[10px] uppercase tracking-widest text-indigo-600 hover:bg-transparent" onClick={() => openEditDomain(item)}>
+                                                            <Button variant="ghost" className="p-0 h-auto font-black text-[10px] uppercase tracking-widest text-primary hover:bg-transparent" onClick={() => openEditDomain(item)}>
                                                                 Edit Rationale <ArrowRight className="w-3 h-3 ml-1" />
                                                             </Button>
                                                         </div>
                                                     )}
-                                                    <Icon className="absolute -bottom-10 -right-10 w-40 h-40 text-slate-900/5 rotate-12" />
+                                                    <Icon className="absolute -bottom-10 -right-10 w-40 h-40 text-foreground rotate-12" />
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 )}
 
-                                <div className="p-10 bg-indigo-50 border border-indigo-100 rounded-[3.5rem] flex flex-col md:flex-row items-center gap-10">
-                                    <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-200 shrink-0">
+                                <div className="p-10 bg-primary/undefined border border-primary/30 rounded-[3.5rem] flex flex-col md:flex-row items-center gap-10">
+                                    <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/15 shrink-0">
                                         <Scale className="w-10 h-10" />
                                     </div>
                                     <div className="space-y-3">
-                                        <h4 className="text-2xl font-black text-indigo-950 italic">Harm Weighting Algorithm</h4>
-                                        <p className="text-indigo-700 text-sm font-medium leading-relaxed max-w-xl">
+                                        <h4 className="text-2xl font-black text-primary italic">Harm Weighting Algorithm</h4>
+                                        <p className="text-primary text-sm font-medium leading-relaxed max-w-xl">
                                             Our AI weighted impact model aggregates these {domainAssessments.length} assessments into a single residual impact value, adjusted for current control coverage and threat relevance.
                                         </p>
-                                        <Button className="bg-indigo-950 text-white rounded-xl px-6 h-10 text-xs font-black uppercase tracking-widest">
+                                        <Button className="bg-primary text-primary-foreground rounded-xl px-6 h-10 text-xs font-black uppercase tracking-widest">
                                             Adjust Weights
                                         </Button>
                                     </div>
@@ -475,39 +475,39 @@ export default function NIST80030ImpactAnalysis() {
                             <TabsContent value="factors" className="p-10 space-y-8 m-0">
                                 <div className="flex justify-between items-center">
                                     <div className="space-y-1">
-                                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Contributing Factors</h3>
-                                        <p className="text-sm text-slate-500 font-medium">Environmental and technical factors that amplify or diminish impact.</p>
+                                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Contributing Factors</h3>
+                                        <p className="text-sm text-muted-foreground font-medium">Environmental and technical factors that amplify or diminish impact.</p>
                                     </div>
-                                    <Button onClick={openNewFactor} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold h-10 px-4 gap-2">
+                                    <Button onClick={openNewFactor} className="bg-primary hover:bg-primary rounded-xl font-bold h-10 px-4 gap-2">
                                         <Plus className="w-4 h-4" /> Add Factor
                                     </Button>
                                 </div>
 
                                 {isLoading ? (
                                     <div className="space-y-6">
-                                        {[1, 2, 3].map(i => <div key={i} className="h-20 bg-slate-50 rounded-3xl animate-pulse" />)}
+                                        {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted rounded-3xl animate-pulse" />)}
                                     </div>
                                 ) : contributingFactors.length === 0 ? (
-                                    <div className="text-center py-16 text-slate-400">
-                                        <Scale className="w-12 h-12 mx-auto mb-4 text-slate-200" />
+                                    <div className="text-center py-16 text-muted-foreground">
+                                        <Scale className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                                         <p className="font-bold text-lg">No contributing factors yet</p>
                                         <p className="text-sm mt-1">Add amplifiers or dampeners that affect impact</p>
-                                        <Button onClick={openNewFactor} className="mt-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold gap-2">
+                                        <Button onClick={openNewFactor} className="mt-4 bg-primary hover:bg-primary rounded-xl font-bold gap-2">
                                             <Plus className="w-4 h-4" /> Add Factor
                                         </Button>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
                                         {contributingFactors.map((f: any) => (
-                                            <div key={f.id} className="p-6 bg-slate-50 border border-slate-100 rounded-3xl flex items-center justify-between group hover:shadow-lg transition-all">
+                                            <div key={f.id} className="p-6 bg-muted border border-border rounded-3xl flex items-center justify-between group hover:shadow-lg transition-all">
                                                 <div className="flex items-center gap-6">
                                                     <div className={cn(
                                                         "w-3 h-3 rounded-full",
                                                         f.factorType === 'Amplifier' ? "bg-rose-500" : "bg-emerald-500"
                                                     )} />
                                                     <div>
-                                                        <h4 className="text-lg font-black text-slate-900 leading-tight">{f.factorName}</h4>
-                                                        <p className="text-xs text-slate-500 mt-1">{f.factorDescription || 'No description'}</p>
+                                                        <h4 className="text-lg font-black text-foreground leading-tight">{f.factorName}</h4>
+                                                        <p className="text-xs text-muted-foreground mt-1">{f.factorDescription || 'No description'}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4">
@@ -516,13 +516,13 @@ export default function NIST80030ImpactAnalysis() {
                                                             "font-black text-[10px] px-3 py-1",
                                                             f.factorType === 'Amplifier' ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"
                                                         )}>{f.factorLevel}</Badge>
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{f.factorType}</p>
+                                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">{f.factorType}</p>
                                                     </div>
                                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-indigo-600" onClick={() => openEditFactor(f)}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEditFactor(f)}>
                                                             <Pencil className="w-3.5 h-3.5" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-rose-600" onClick={() => deleteMutation.mutate({ clientId, id: f.id })}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-rose-600" onClick={() => deleteMutation.mutate({ clientId, id: f.id })}>
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                         </Button>
                                                     </div>
@@ -532,16 +532,16 @@ export default function NIST80030ImpactAnalysis() {
                                     </div>
                                 )}
 
-                                <Card className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden">
+                                <Card className="bg-sidebar rounded-[2.5rem] p-10 text-sidebar-foreground relative overflow-hidden">
                                     <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-                                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-                                            <RotateCcw className="w-8 h-8 text-indigo-400" />
+                                        <div className="w-16 h-16 bg-sidebar-muted rounded-2xl flex items-center justify-center border border-sidebar-border">
+                                            <RotateCcw className="w-8 h-8 text-primary" />
                                         </div>
                                         <div className="space-y-2">
                                             <h4 className="text-xl font-black uppercase tracking-tight">Synchronize with Risk Register</h4>
-                                            <p className="text-indigo-200 text-sm font-medium">Push these impact determinations to the centralized organization risk repository.</p>
+                                            <p className="text-sidebar-foreground/80 text-sm font-medium">Push these impact determinations to the centralized organization risk repository.</p>
                                         </div>
-                                        <Button className="ml-auto bg-indigo-500 hover:bg-indigo-600 text-white font-black rounded-xl h-12 px-8">
+                                        <Button className="ml-auto bg-primary hover:bg-primary text-primary-foreground font-black rounded-xl h-12 px-8">
                                             Sync Now
                                         </Button>
                                     </div>
@@ -606,7 +606,7 @@ export default function NIST80030ImpactAnalysis() {
                                 <Textarea value={domainForm.rationale} onChange={(e) => setDomainForm(f => ({ ...f, rationale: e.target.value }))} placeholder="Explain the rationale for this assessment..." rows={2} />
                             </div>
                             <div className="border-t pt-4 space-y-4">
-                                <Label className="font-bold text-sm text-slate-500 uppercase tracking-wider">Economic Impact</Label>
+                                <Label className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Economic Impact</Label>
                                 <div className="space-y-2">
                                     <Label className="font-bold">Est. Daily Impact ($)</Label>
                                     <Input type="number" min={0} value={domainForm.estimatedDailyImpact / 100} onChange={(e) => setDomainForm(f => ({ ...f, estimatedDailyImpact: Math.round(parseFloat(e.target.value) * 100) || 0 }))} />
@@ -626,7 +626,7 @@ export default function NIST80030ImpactAnalysis() {
                                     </div>
                                 </div>
                             </div>
-                            <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl h-12 font-bold">
+                            <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full bg-primary hover:bg-primary rounded-xl h-12 font-bold">
                                 {saveMutation.isPending ? "Saving..." : (editing ? "Update Assessment" : "Create Assessment")}
                             </Button>
                         </div>
@@ -664,7 +664,7 @@ export default function NIST80030ImpactAnalysis() {
                                 <Label className="font-bold">Domain</Label>
                                 <Input value={factorForm.domain} onChange={(e) => setFactorForm(f => ({ ...f, domain: e.target.value }))} placeholder="e.g., General, Network Security" />
                             </div>
-                            <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl h-12 font-bold">
+                            <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full bg-primary hover:bg-primary rounded-xl h-12 font-bold">
                                 {saveMutation.isPending ? "Saving..." : (editing ? "Update Factor" : "Create Factor")}
                             </Button>
                         </div>

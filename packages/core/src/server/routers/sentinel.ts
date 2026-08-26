@@ -5,6 +5,7 @@
  */
 import { z } from "zod";
 import { sql } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 
 const log = (...a: any[]) => console.log("[sentinel-api]", ...a);
@@ -86,6 +87,15 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         if (!db) return { success: false };
         const reviewerId = ctx.user?.id ? Number(ctx.user.id) : null;
 
+        // Fetch the action row FIRST for both decisions: unknown ids must fail loudly
+        // instead of fabricating an empty row and marking a ghost action executed.
+        const rows = await db.execute(sql`
+          SELECT metadata, title, ai_rationale, priority FROM autopilot_actions WHERE id = ${input.actionId} LIMIT 1`).then((r: any) => r.rows ?? r);
+        if (!rows.length) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Sentinel action not found" });
+        }
+        const actionRow = rows[0];
+
         if (input.decision === "rejected") {
           await db.execute(sql`
             UPDATE autopilot_actions SET status = 'rejected', reviewed_by = ${reviewerId}, reviewed_at = now()
@@ -93,9 +103,6 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
           return { success: true, executed: false };
         }
         // approved → execute the proposed task creation with delegation
-        const rows = await db.execute(sql`
-          SELECT metadata, title, ai_rationale, priority FROM autopilot_actions WHERE id = ${input.actionId} LIMIT 1`).then((r: any) => r.rows ?? r);
-        const actionRow = rows[0] || {};
         const meta = actionRow?.metadata ? (typeof actionRow.metadata === "string" ? JSON.parse(actionRow.metadata) : actionRow.metadata) : {};
         const pa = meta.proposedAction || {};
 
@@ -110,7 +117,13 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         const dueDateIso = dueDate.toISOString();
         const title = actionRow?.title || "Bot finding";
         const rationale = actionRow?.ai_rationale || "";
-        const targetClientId = Number(meta.clientId ?? input.clientId ?? 0) || 0;
+        const targetClientId = Number(meta.clientId ?? input.clientId);
+        if (!Number.isInteger(targetClientId) || targetClientId <= 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Cannot execute sentinel action ${input.actionId}: no resolvable clientId. A valid clientId (from action metadata or the request) is required to execute this action.`,
+          });
+        }
 
         let delegationNote = "";
         if (input.assigneeType === "agent" && input.assignedAgent) {
