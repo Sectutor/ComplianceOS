@@ -84,8 +84,11 @@ SPRS_FAMILY_WEIGHTS rescales the register-bearing sections onto exactly 110 poin
 practices (remainder units to lexicographically-lowest ids), computeSprsPerPracticeDeduction(unmetIds) returns
 {deductedPoints, score floored at 0, unmetCount, unknownIdCount, familiesAffected, breakdown} - never throws,
 dedupe/case-insensitive/{id}-object tolerant, deterministic. 19 behavioral tests in cmmcSprsDeduction.test.ts.
-NOTE: getSprsBreakdown still uses the legacy family-weighted model (deliberate this cycle); rewiring it onto
-computeSprsPerPracticeDeduction is the next-cycle candidate.
+NOTE: getSprsBreakdown still used the legacy family-weighted model at GAP-21 landing time (deliberate that cycle).
+**RESOLVED 2026-08-26 (cycle 45, commit 78adb57):** getSprsBreakdown now resolves bare 800-171 control ids onto
+canonical register entries via getPracticesBy800171Id and delegates deductions to computeSprsPerPracticeDeduction;
+the response carries the per-practice breakdown + model marker ("per-practice-dod-assessment-methodology").
+Legacy family-weighted path and dead pseudo-practice ids ('3.16', '3.10.x') removed; router wiring pinned by tests.
 - **GAP-22**: No UI pages consume the new `federalWorkflows` procedures yet — backend only.
 **→ FIXED 2026-08-25 (cycle 42, commit 7bb070f):** pages/federal/federalWorkflowsApi.ts §16 typed contract layer
 (hooks/EMPTY_*/normalizers/META/demo builders/download helpers) + FederalWorkflowsPanels.tsx (SPRS card, DFARS/CIRCIA
