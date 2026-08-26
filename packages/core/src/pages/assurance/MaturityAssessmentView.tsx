@@ -347,7 +347,7 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                         )}>{parent.name}</span>
                                                         <span className={cn(
                                                             "text-[10px] font-bold mt-0.5",
-                                                            isExactlyActive ? "text-foreground/$1" : "text-muted-foreground"
+                                                            isExactlyActive ? "text-foreground" : "text-muted-foreground"
                                                         )}>
                                                             {parentAchieved} / {parentReqs.length} met
                                                         </span>

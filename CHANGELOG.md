@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 49 - Token-purity wave IV: assurance trio + FedRAMP detail + ISO doc tracker + client controls (2026-08-26)
+- style(ui): 499 raw slate/gray/white/indigo refs -> semantic tokens across the next 6 worst offender surfaces (assurance/SAMMV2View 92->0, assurance/EssentialEightView 83->0, assurance/MaturityAssessmentView 77->0, federal/FedRAMPPackageDetailPage 86->0, iso27001/ISODocumentTracker 79->0, ClientControlsPage 82->0); className-only diffs (net-zero line delta), zero logic/route/API changes; dark-band inverted-surface idiom + scoped dark-code-block mapping + indigo-button -> bg-primary idioms per UI-STANDARD sec.2.
+- test(qa): uiTokenPurity strict gate extended 37 -> 43 entries (cycle-49 wave surfaces pinned; absence-is-failure preserved).
+- review(server): no open P0 bugs or scorecard items at cycle start (GAP-16..23 closed; err-log spam verified stale) - static-review-only backend deviation documented per cycles 46/48 precedent.
+- Verify: vitest FULL suite 2785/2785 green across 113 files; tsc backlog EXACTLY 2012 lines = baseline, 0 new errors in touched files; npm run smoke green.
 ### Cycle 48 - Token-purity wave III: NIST 800-37 trio + ISO dashboard + compliance journey (2026-08-26)
 - style(ui): 498 raw slate/gray/white/indigo refs -> semantic tokens across the next 5 worst offender surfaces (nist/NIST80037Categorize 106->0, nist/NIST80037Implement 105->0, nist/NIST80037Authorize 89->0, iso27001/ISODashboard 100->0, ComplianceJourneyDashboard 98->0); className-only diffs (net-zero line delta), zero logic/route/API changes; dark-hero inverted-surface (bg-foreground/text-background) + bg-sidebar dark-card + indigo-button -> bg-primary idioms reused from the cycle-46 precedent.
 - test(qa): uiTokenPurity strict gate extended 32 -> 37 entries (cycle-48 wave surfaces pinned; absence-is-failure preserved).
