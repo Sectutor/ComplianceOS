@@ -1,8 +1,13 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 48 - Token-purity wave III: NIST 800-37 trio + ISO dashboard + compliance journey (2026-08-26)
+- style(ui): 498 raw slate/gray/white/indigo refs -> semantic tokens across the next 5 worst offender surfaces (nist/NIST80037Categorize 106->0, nist/NIST80037Implement 105->0, nist/NIST80037Authorize 89->0, iso27001/ISODashboard 100->0, ComplianceJourneyDashboard 98->0); className-only diffs (net-zero line delta), zero logic/route/API changes; dark-hero inverted-surface (bg-foreground/text-background) + bg-sidebar dark-card + indigo-button -> bg-primary idioms reused from the cycle-46 precedent.
+- test(qa): uiTokenPurity strict gate extended 32 -> 37 entries (cycle-48 wave surfaces pinned; absence-is-failure preserved).
+- review(server): AddonScheduler db.select log spam re-verified STALE via static review - warn-once incompatible-db-client guard already present (packages/addons/src/scheduler.ts), no code change.
+- Verify: vitest FULL suite 2779/2779 green across 113 files; tsc backlog EXACTLY 2012 lines = baseline, 0 new errors; npm run smoke green.
 ### Cycle 47 - Sentinel ghost-action guards + agent-runtime lifecycle contracts + token-purity wave II (2026-08-26)
 - fix(server): sentinel.reviewSentinelAction fails loudly instead of fabricating ghost actions - the autopilot_actions row is fetched BEFORE the approve/reject branch so unknown ids throw TRPCError NOT_FOUND ("Sentinel action not found") for BOTH decisions; an unresolvable clientId (no valid metadata.clientId and no input.clientId) throws BAD_REQUEST before any work_items insert; metadata clientId still wins over request input.
 - fix(server): agentRuntime.stopAgentRuntime() also clears the pending boot tick (bootTimer handle stored + cleared) - start->stop within the 15s boot delay no longer leaks a post-stop initial tick into a stopped runtime.
