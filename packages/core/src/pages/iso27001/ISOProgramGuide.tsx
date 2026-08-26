@@ -61,9 +61,9 @@ export default function ISOProgramGuide() {
             status: 'active',
             countLabel: 'Scope & Governance',
             icon: Target,
-            color: 'text-indigo-600',
-            bgLight: 'bg-indigo-50/70',
-            borderColor: 'border-indigo-200',
+            color: 'text-blue-600',
+            bgLight: 'bg-blue-50/70',
+            borderColor: 'border-blue-200',
             gradient: 'from-indigo-600 to-violet-600',
             summary: 'Define the boundary and applicability of the Information Security Management System (ISMS), identify interested parties, and formalize top management commitment.',
             whyItMatters: 'Lead auditors immediately review Clause 4.3 (Scope Statement) and Clause 5.2 (Information Security Policy). If your scope is ambiguous or lacks executive sign-off, the entire certification halts.',
@@ -247,21 +247,21 @@ export default function ISOProgramGuide() {
             <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-4 md:p-8">
                 {/* Hero Header */}
                 <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                     <div className="relative z-10 space-y-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-indigo-400">
-                                    <BookOpen className="w-8 h-8 text-indigo-400" />
+                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-blue-400">
+                                    <BookOpen className="w-8 h-8 text-blue-400" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h1 className="text-3xl lg:text-4xl font-black tracking-tight">ISO 27001 Operating Guide & Manual</h1>
-                                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-xs font-bold">
+                                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30 text-xs font-bold">
                                             ISO/IEC 27001:2022 ISMS
                                         </Badge>
                                     </div>
-                                    <p className="text-slate-300 text-base mt-1">
+                                    <p className="text-white/70 text-base mt-1">
                                         Complete implementation roadmap, Clauses 4–10 operational manual, and Annex A controls registry.
                                     </p>
                                 </div>
@@ -282,26 +282,26 @@ export default function ISOProgramGuide() {
                         {/* Progress Bar & Telemetry */}
                         <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <span className="text-sm font-bold text-white/80 flex items-center gap-2">
                                     <Shield className="w-4 h-4 text-emerald-400" />
                                     ISO 27001:2022 Implementation & Certification Maturity
                                 </span>
-                                <span className="text-sm font-black text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/50">
+                                <span className="text-sm font-black text-blue-300 bg-blue-950/60 px-3 py-1 rounded-full border border-blue-800/50">
                                     {progressPercentage}% Ready
                                 </span>
                             </div>
                             <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
-                                <div className="text-slate-300">
+                                <div className="text-white/70">
                                     <span className="font-bold text-white">{implementedSoaControls} / 93</span> Annex A Controls
                                 </div>
-                                <div className="text-slate-300">
+                                <div className="text-white/70">
                                     <span className="font-bold text-white">{totalRisks}</span> Assessed Risks
                                 </div>
-                                <div className="text-slate-300">
+                                <div className="text-white/70">
                                     <span className="font-bold text-white">{totalPolicies}</span> Documented Policies
                                 </div>
-                                <div className="text-slate-300">
+                                <div className="text-white/70">
                                     <span className="font-bold text-white">{approvedPolicies}</span> Approved Policies
                                 </div>
                             </div>
@@ -310,11 +310,11 @@ export default function ISOProgramGuide() {
                 </div>
 
                 {/* Navigation Tabs */}
-                <div className="flex gap-2 border-b border-slate-200 pb-2">
+                <div className="flex gap-2 border-b border-border pb-2">
                     <Button
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('tutorials')}
-                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <BookOpen className="w-4 h-4 mr-2" />
                         Step-by-Step Operating Manual
@@ -322,7 +322,7 @@ export default function ISOProgramGuide() {
                     <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('architecture')}
-                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <Layers className="w-4 h-4 mr-2" />
                         ISMS PDCA Architecture
@@ -330,7 +330,7 @@ export default function ISOProgramGuide() {
                     <Button
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('auditor')}
-                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
                         Auditor & Stage 1/2 Clean Room
@@ -346,9 +346,9 @@ export default function ISOProgramGuide() {
                                 return (
                                     <Card
                                         key={pillar.id}
-                                        className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white"
+                                        className="border-border shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card"
                                     >
-                                        <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-6`}>
+                                        <CardHeader className={`${pillar.bgLight} border-b border-border p-6`}>
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="flex items-center gap-4">
                                                     <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-white shadow-md bg-gradient-to-br", pillar.gradient)}>
@@ -356,26 +356,26 @@ export default function ISOProgramGuide() {
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <CardTitle className="text-xl font-bold text-slate-900">
+                                                            <CardTitle className="text-xl font-bold text-foreground">
                                                                 {pillar.title}
                                                             </CardTitle>
-                                                            <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold">
+                                                            <Badge className="bg-card border-border text-foreground/80 text-[10px] font-bold">
                                                                 {pillar.clauseRef}
                                                             </Badge>
                                                         </div>
-                                                        <CardDescription className="text-slate-600 text-sm font-medium mt-0.5">
+                                                        <CardDescription className="text-foreground/80 text-sm font-medium mt-0.5">
                                                             {pillar.summary}
                                                         </CardDescription>
                                                     </div>
                                                 </div>
 
                                                 <div className="flex items-center gap-3">
-                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
                                                         {pillar.countLabel}
                                                     </Badge>
                                                     <Button
                                                         onClick={() => setLocation(pillar.link)}
-                                                        className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-10 px-4 transition-all"
+                                                        className="bg-primary hover:bg-brand-bright text-primary-foreground font-bold rounded-xl h-10 px-4 transition-all"
                                                     >
                                                         {pillar.cta}
                                                         <ArrowRight className="w-4 h-4 ml-1.5" />
@@ -384,25 +384,25 @@ export default function ISOProgramGuide() {
                                             </div>
                                         </CardHeader>
                                         <CardContent className="p-6 grid md:grid-cols-2 gap-6">
-                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                                                    <Info className="w-3.5 h-3.5 text-indigo-600" />
+                                            <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                    <Info className="w-3.5 h-3.5 text-primary" />
                                                     Why This Step Is Mandatory for Certification
                                                 </h4>
-                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                <p className="text-sm text-foreground/80 leading-relaxed font-medium">
                                                     {pillar.whyItMatters}
                                                 </p>
                                             </div>
 
-                                            <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                            <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                     How to Execute in ComplianceOS
                                                 </h4>
-                                                <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                                <ul className="space-y-1.5 text-xs text-foreground/80 leading-relaxed font-medium">
                                                     {pillar.howToExecute.map((step, idx) => (
                                                         <li key={idx} className="flex items-start gap-2">
-                                                            <span className="text-indigo-600 font-bold shrink-0">•</span>
+                                                            <span className="text-primary font-bold shrink-0">•</span>
                                                             <span>{step}</span>
                                                         </li>
                                                     ))}
@@ -419,21 +419,21 @@ export default function ISOProgramGuide() {
                 {/* TAB 2: ISMS PDCA Architecture */}
                 {activeTab === 'architecture' && (
                     <div className="space-y-6">
-                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                        <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-bold text-slate-900">The ISO 27001:2022 PDCA Architecture</h3>
-                                <p className="text-slate-600">
+                                <h3 className="text-2xl font-bold text-foreground">The ISO 27001:2022 PDCA Architecture</h3>
+                                <p className="text-foreground/80">
                                     ISO 27001 is structured around the Plan-Do-Check-Act (PDCA) management system cycle to achieve continuous information security improvement.
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4">
-                                <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
-                                    <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                <div className="p-6 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                                         PLAN
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Clauses 4, 5, 6, 7</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Clauses 4, 5, 6, 7</h4>
+                                    <p className="text-xs text-foreground/80 leading-relaxed">
                                         Define ISMS Scope, Leadership Policy, ISO 27005 Risk Assessment, and Statement of Applicability (SoA).
                                     </p>
                                 </div>
@@ -442,8 +442,8 @@ export default function ISOProgramGuide() {
                                     <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                                         DO
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Clause 8 & Annex A</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Clause 8 & Annex A</h4>
+                                    <p className="text-xs text-foreground/80 leading-relaxed">
                                         Deploy the 93 Annex A technical, physical, people, and organizational security controls across all assets.
                                     </p>
                                 </div>
@@ -452,8 +452,8 @@ export default function ISOProgramGuide() {
                                     <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
                                         CHECK
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Clause 9</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Clause 9</h4>
+                                    <p className="text-xs text-foreground/80 leading-relaxed">
                                         Execute independent <strong>Internal Audits (9.2)</strong>, monitor security metrics, and hold <strong>Management Reviews (9.3)</strong>.
                                     </p>
                                 </div>
@@ -462,36 +462,36 @@ export default function ISOProgramGuide() {
                                     <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
                                         ACT
                                     </div>
-                                    <h4 className="font-bold text-slate-900 text-lg">Clause 10 & Cert</h4>
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <h4 className="font-bold text-foreground text-lg">Clause 10 & Cert</h4>
+                                    <p className="text-xs text-foreground/80 leading-relaxed">
                                         Implement Corrective Actions (CAPA), remediate non-conformities, and achieve Stage 1 & Stage 2 certification.
                                     </p>
                                 </div>
                             </div>
 
                             {/* 4 Annex A Themes Breakdown */}
-                            <div className="pt-6 border-t border-slate-100">
-                                <h4 className="font-bold text-slate-900 text-lg mb-4">ISO/IEC 27001:2022 Annex A Control Structure (93 Controls)</h4>
+                            <div className="pt-6 border-t border-border">
+                                <h4 className="font-bold text-foreground text-lg mb-4">ISO/IEC 27001:2022 Annex A Control Structure (93 Controls)</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 5: Organizational</div>
-                                        <p className="text-slate-500 font-semibold mb-2">37 Controls</p>
-                                        <p className="text-slate-600">Information security policies, asset management, cloud governance, supplier security, and incident management.</p>
+                                    <div className="p-4 rounded-xl bg-muted border border-border">
+                                        <div className="font-bold text-foreground mb-1 text-sm">Theme 5: Organizational</div>
+                                        <p className="text-muted-foreground font-semibold mb-2">37 Controls</p>
+                                        <p className="text-foreground/80">Information security policies, asset management, cloud governance, supplier security, and incident management.</p>
                                     </div>
-                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 6: People</div>
-                                        <p className="text-slate-500 font-semibold mb-2">8 Controls</p>
-                                        <p className="text-slate-600">Background screening, employment terms, security awareness training, disciplinary process, and remote working.</p>
+                                    <div className="p-4 rounded-xl bg-muted border border-border">
+                                        <div className="font-bold text-foreground mb-1 text-sm">Theme 6: People</div>
+                                        <p className="text-muted-foreground font-semibold mb-2">8 Controls</p>
+                                        <p className="text-foreground/80">Background screening, employment terms, security awareness training, disciplinary process, and remote working.</p>
                                     </div>
-                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 7: Physical</div>
-                                        <p className="text-slate-500 font-semibold mb-2">14 Controls</p>
-                                        <p className="text-slate-600">Physical security perimeters, entry controls, office security, equipment protection, clear desk/screen, and secure disposal.</p>
+                                    <div className="p-4 rounded-xl bg-muted border border-border">
+                                        <div className="font-bold text-foreground mb-1 text-sm">Theme 7: Physical</div>
+                                        <p className="text-muted-foreground font-semibold mb-2">14 Controls</p>
+                                        <p className="text-foreground/80">Physical security perimeters, entry controls, office security, equipment protection, clear desk/screen, and secure disposal.</p>
                                     </div>
-                                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                        <div className="font-bold text-slate-900 mb-1 text-sm">Theme 8: Technological</div>
-                                        <p className="text-slate-500 font-semibold mb-2">34 Controls</p>
-                                        <p className="text-slate-600">User endpoint security, privileged access, secure coding, cryptography, backup, network security, and vulnerability management.</p>
+                                    <div className="p-4 rounded-xl bg-muted border border-border">
+                                        <div className="font-bold text-foreground mb-1 text-sm">Theme 8: Technological</div>
+                                        <p className="text-muted-foreground font-semibold mb-2">34 Controls</p>
+                                        <p className="text-foreground/80">User endpoint security, privileged access, secure coding, cryptography, backup, network security, and vulnerability management.</p>
                                     </div>
                                 </div>
                             </div>
@@ -502,24 +502,24 @@ export default function ISOProgramGuide() {
                 {/* TAB 3: Auditor Clean Room */}
                 {activeTab === 'auditor' && (
                     <div className="space-y-6">
-                        <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                        <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-bold text-slate-900">Lead Auditor & Certification Body Clean Room</h3>
-                                <p className="text-slate-600">
+                                <h3 className="text-2xl font-bold text-foreground">Lead Auditor & Certification Body Clean Room</h3>
+                                <p className="text-foreground/80">
                                     Direct access to all mandatory ISMS records and verification deliverables required for Stage 1 (Documentation Review) and Stage 2 (On-Site Certification).
                                 </p>
                             </div>
 
-                            <div className="divide-y divide-slate-100">
+                            <div className="divide-y divide-border">
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Statement of Applicability (SoA)</h5>
-                                        <p className="text-xs text-slate-500">Formal document detailing the 93 Annex A controls, applicability justifications, and implementation evidence.</p>
+                                        <h5 className="font-bold text-foreground">Statement of Applicability (SoA)</h5>
+                                        <p className="text-xs text-muted-foreground">Formal document detailing the 93 Annex A controls, applicability justifications, and implementation evidence.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => setLocation(`/clients/${clientId}/iso27001/soa`)}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-border font-bold text-xs shrink-0"
                                     >
                                         View & Export SoA
                                     </Button>
@@ -527,13 +527,13 @@ export default function ISOProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">ISO 27005 Risk Assessment & Treatment Plan (RTP)</h5>
-                                        <p className="text-xs text-slate-500">Risk register, likelihood/impact scoring matrix, risk owners, and treatment action items.</p>
+                                        <h5 className="font-bold text-foreground">ISO 27005 Risk Assessment & Treatment Plan (RTP)</h5>
+                                        <p className="text-xs text-muted-foreground">Risk register, likelihood/impact scoring matrix, risk owners, and treatment action items.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => setLocation(`/clients/${clientId}/iso27001/risks`)}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-border font-bold text-xs shrink-0"
                                     >
                                         View Risk Register
                                     </Button>
@@ -541,13 +541,13 @@ export default function ISOProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Mandatory ISMS Policies & Procedures Binder</h5>
-                                        <p className="text-xs text-slate-500">Access Control, Cryptography, Incident Response, Supplier Security, and Data Classification policies.</p>
+                                        <h5 className="font-bold text-foreground">Mandatory ISMS Policies & Procedures Binder</h5>
+                                        <p className="text-xs text-muted-foreground">Access Control, Cryptography, Incident Response, Supplier Security, and Data Classification policies.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => setLocation(`/clients/${clientId}/iso27001/documents`)}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-border font-bold text-xs shrink-0"
                                     >
                                         View Document Binder
                                     </Button>
@@ -555,13 +555,13 @@ export default function ISOProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Internal Audit Reports & CAPA Log (Clause 9.2)</h5>
-                                        <p className="text-xs text-slate-500">Full audit trail of internal audits, non-conformity findings, root cause analyses, and verified remediations.</p>
+                                        <h5 className="font-bold text-foreground">Internal Audit Reports & CAPA Log (Clause 9.2)</h5>
+                                        <p className="text-xs text-muted-foreground">Full audit trail of internal audits, non-conformity findings, root cause analyses, and verified remediations.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => setLocation(`/clients/${clientId}/iso27001/audit`)}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-border font-bold text-xs shrink-0"
                                     >
                                         View Internal Audits
                                     </Button>
@@ -569,13 +569,13 @@ export default function ISOProgramGuide() {
 
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <h5 className="font-bold text-slate-900">Management Review Minutes (Clause 9.3)</h5>
-                                        <p className="text-xs text-slate-500">Signed executive meeting minutes approving ISMS performance, resources, and continual improvement.</p>
+                                        <h5 className="font-bold text-foreground">Management Review Minutes (Clause 9.3)</h5>
+                                        <p className="text-xs text-muted-foreground">Signed executive meeting minutes approving ISMS performance, resources, and continual improvement.</p>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={() => setLocation(`/clients/${clientId}/iso27001/management-review`)}
-                                        className="border-slate-300 font-bold text-xs shrink-0"
+                                        className="border-border font-bold text-xs shrink-0"
                                     >
                                         View Mgmt Review
                                     </Button>

@@ -38,6 +38,27 @@ const PAGES = [
   // live panels over the credentialVault.* tRPC procedures; enforced
   // strictly from landing.
   'packages/core/src/pages/security/CredentialVaultPanels.tsx',
+  // Token-purity hardening wave, cycle 46 — enforced strictly from landing.
+  // Each surface below was tokenized in cycle 46 by parallel UI agents;
+  // deliberately NOT listed in PARALLEL_BUILD_FILES: absence is a failure.
+  // Adversary intelligence panel (risk) — tokenized in cycle 46.
+  'packages/core/src/components/risk/AdversaryIntelPanel.tsx',
+  // NIST 800-37 Prepare step — tokenized in cycle 46.
+  'packages/core/src/pages/nist/NIST80037Prepare.tsx',
+  // NIST 800-37 Assess step — tokenized in cycle 46.
+  'packages/core/src/pages/nist/NIST80037Assess.tsx',
+  // NIST 800-37 Select step — tokenized in cycle 46.
+  'packages/core/src/pages/nist/NIST80037Select.tsx',
+  // Privacy program guide — tokenized in cycle 46.
+  'packages/core/src/pages/privacy/PrivacyProgramGuide.tsx',
+  // Cyber program guide — tokenized in cycle 46.
+  'packages/core/src/pages/cyber/CyberProgramGuide.tsx',
+  // ISO 27001 program guide — tokenized in cycle 46.
+  'packages/core/src/pages/iso27001/ISOProgramGuide.tsx',
+  // Board summary page — tokenized in cycle 46.
+  'packages/core/src/pages/BoardSummaryPage.tsx',
+  // Home / landing page — tokenized in cycle 46.
+  'packages/core/src/pages/Home.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing

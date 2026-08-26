@@ -276,17 +276,17 @@ export default function NIST80037Assess() {
                             <Badge className="bg-amber-600 text-white font-black px-3">STEP 4</Badge>
                             <Badge variant="outline" className="border-amber-200 text-amber-700 font-bold uppercase tracking-widest text-[10px]">Assessment Phase</Badge>
                         </div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-4">
+                        <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-4">
                             <ClipboardList className="w-10 h-10 text-amber-600" />
                             Control Assessment
                         </h1>
-                        <p className="text-slate-500 text-lg font-medium max-w-3xl leading-relaxed">
+                        <p className="text-muted-foreground text-lg font-medium max-w-3xl leading-relaxed">
                             Assess the controls to determine if the controls are implemented correctly, operating as intended, and producing the desired outcomes.
                         </p>
                     </div>
                     <div className="flex gap-4">
                         <Link href={`/clients/${clientId}/federal/sar`}>
-                            <Button variant="outline" className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-all">
+                            <Button variant="outline" className="rounded-2xl h-14 px-6 font-bold border-2 border-border hover:bg-muted/50 text-foreground/80 hover:text-foreground transition-all">
                                 View / Generate SAR
                             </Button>
                         </Link>
@@ -305,9 +305,9 @@ export default function NIST80037Assess() {
                     <div className="lg:col-span-1 space-y-6">
 
 
-                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-card">
                             <CardHeader>
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Findings Summary</CardTitle>
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Findings Summary</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {[
@@ -318,9 +318,9 @@ export default function NIST80037Assess() {
                                     <div key={i} className={cn("flex items-center justify-between p-3 rounded-xl", item.bg)}>
                                         <div className="flex items-center gap-3">
                                             <item.icon className={cn("w-4 h-4", item.color)} />
-                                            <span className="text-sm font-bold text-slate-600">{item.label}</span>
+                                            <span className="text-sm font-bold text-foreground/80">{item.label}</span>
                                         </div>
-                                        <Badge variant="secondary" className="font-black bg-white">{item.count}</Badge>
+                                        <Badge variant="secondary" className="font-black bg-card">{item.count}</Badge>
                                     </div>
                                 ))}
                             </CardContent>
@@ -329,7 +329,7 @@ export default function NIST80037Assess() {
 
                     <div className="lg:col-span-3">
                         <Tabs defaultValue="plan" className="w-full">
-                            <div className="border-b px-8 bg-slate-50/50">
+                            <div className="border-b px-8 bg-muted/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
                                     <TabsTrigger value="plan" className="data-[state=active]:bg-transparent data-[state=active]:text-amber-700 data-[state=active]:border-b-2 data-[state=active]:border-amber-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Assessment Plan
@@ -348,11 +348,11 @@ export default function NIST80037Assess() {
                                     <div className="space-y-6">
                                         <div className="flex justify-between items-center">
                                             <div className="space-y-1">
-                                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Assessment Planning</h3>
-                                                <p className="text-slate-500 font-medium">Select assessors and define the technical testing methodology.</p>
+                                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Assessment Planning</h3>
+                                                <p className="text-muted-foreground font-medium">Select assessors and define the technical testing methodology.</p>
                                             </div>
                                             <div className="flex gap-3">
-                                                <Button onClick={openEditPlan} variant="outline" className="rounded-xl border-slate-200 font-bold h-11 text-slate-600">
+                                                <Button onClick={openEditPlan} variant="outline" className="rounded-xl border-border font-bold h-11 text-foreground/80">
                                                     Configure Plan
                                                 </Button>
                                                 <Link href={`/clients/${clientId}/federal/sar`}>
@@ -364,50 +364,50 @@ export default function NIST80037Assess() {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <Card className="bg-slate-50 border-none rounded-[2rem] p-6 space-y-4">
+                                            <Card className="bg-muted border-none rounded-[2rem] p-6 space-y-4">
                                                 <div className="flex justify-between items-center">
-                                                    <h4 className="font-black text-slate-900 flex items-center gap-2">
-                                                        <Users className="w-5 h-5 text-indigo-500" />
+                                                    <h4 className="font-black text-foreground flex items-center gap-2">
+                                                        <Users className="w-5 h-5 text-primary" />
                                                         Assessment Team
                                                     </h4>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {assessmentTeam.length > 0 ? assessmentTeam.map((member: { name: string, role: string }, i: number) => (
-                                                        <div key={i} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
-                                                            <span className="text-sm font-bold text-slate-700">{member.name}</span>
-                                                            <Badge variant="outline" className="text-[10px] font-black border-slate-200 bg-slate-50">{member.role}</Badge>
+                                                        <div key={i} className="flex items-center justify-between p-3 bg-card rounded-xl border border-border shadow-sm">
+                                                            <span className="text-sm font-bold text-foreground/80">{member.name}</span>
+                                                            <Badge variant="outline" className="text-[10px] font-black border-border bg-muted">{member.role}</Badge>
                                                         </div>
                                                     )) : (
-                                                        <p className="text-sm text-slate-400 font-medium italic">No team members assigned.</p>
+                                                        <p className="text-sm text-muted-foreground font-medium italic">No team members assigned.</p>
                                                     )}
                                                 </div>
                                             </Card>
 
-                                            <Card className="bg-slate-50 border-none rounded-[2rem] p-6 space-y-4">
-                                                <h4 className="font-black text-slate-900 flex items-center gap-2">
+                                            <Card className="bg-muted border-none rounded-[2rem] p-6 space-y-4">
+                                                <h4 className="font-black text-foreground flex items-center gap-2">
                                                     <Activity className="w-5 h-5 text-emerald-500" />
                                                     Testing Scope
                                                 </h4>
                                                 <div className="flex flex-wrap gap-2">
                                                     {testingScope.length > 0 ? testingScope.map((t: string, i: number) => (
-                                                        <Badge key={i} className="bg-white text-slate-600 border border-slate-200 font-bold px-3 py-1.5 shadow-sm">
+                                                        <Badge key={i} className="bg-card text-foreground/80 border border-border font-bold px-3 py-1.5 shadow-sm">
                                                             {t}
                                                         </Badge>
                                                     )) : (
-                                                        <p className="text-sm text-slate-400 font-medium italic">No testing methodology defined.</p>
+                                                        <p className="text-sm text-muted-foreground font-medium italic">No testing methodology defined.</p>
                                                     )}
                                                 </div>
                                             </Card>
                                         </div>
 
-                                        <div className="p-8 bg-slate-900 rounded-[3rem] text-white space-y-6 relative overflow-hidden">
+                                        <div className="p-8 bg-foreground rounded-[3rem] text-background space-y-6 relative overflow-hidden">
                                             <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                                                <div className="w-16 h-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center border border-white/20">
+                                                <div className="w-16 h-16 bg-card/10 rounded-[1.5rem] flex items-center justify-center border border-white/20">
                                                     <Zap className="w-8 h-8 text-amber-400" />
                                                 </div>
                                                 <div className="flex-1 space-y-1">
                                                     <h4 className="text-xl font-black tracking-tight">AI Assessment Support</h4>
-                                                    <p className="text-slate-400 font-medium">Auto-generate assessment test cases based on control implementation narratives.</p>
+                                                    <p className="text-background/70 font-medium">Auto-generate assessment test cases based on control implementation narratives.</p>
                                                 </div>
                                                 <Button
                                                     onClick={() => {
@@ -426,35 +426,35 @@ export default function NIST80037Assess() {
                                 <TabsContent value="results" className="p-10 space-y-8 m-0">
                                     <div className="flex justify-between items-center">
                                         <div className="space-y-1">
-                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Verification Activities</h3>
-                                            <p className="text-sm text-slate-500 font-medium">Records and results for each control verification step.</p>
+                                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Verification Activities</h3>
+                                            <p className="text-sm text-muted-foreground font-medium">Records and results for each control verification step.</p>
                                         </div>
                                         <div className="flex gap-2">
                                             <Button onClick={() => setIsAddFindingOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold h-10 px-4">
                                                 <Plus className="w-4 h-4 mr-2" /> Log Finding
                                             </Button>
                                             <div className="relative">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <Input placeholder="Filter controls..." className="pl-9 h-10 w-64 rounded-xl border-slate-200" />
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                                <Input placeholder="Filter controls..." className="pl-9 h-10 w-64 rounded-xl border-border" />
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
                                         {(sarFindings && sarFindings.length > 0 ? sarFindings : []).map((ctrl: any, i: number) => (
-                                            <div key={i} className="p-6 bg-white border rounded-[2.5rem] flex items-center justify-between hover:shadow-lg transition-all group">
+                                            <div key={i} className="p-6 bg-card border rounded-[2.5rem] flex items-center justify-between hover:shadow-lg transition-all group">
                                                 <div className="flex items-center gap-5">
                                                     <div className={cn(
                                                         "w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all",
                                                         ctrl.result === 'Satisfied' || ctrl.result === 'Pass' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
                                                             ctrl.result === 'Other than Satisfied' || ctrl.result === 'Fail' ? "bg-rose-50 border-rose-100 text-rose-600" :
-                                                                "bg-slate-50 border-slate-100 text-slate-400"
+                                                                "bg-muted border-border text-muted-foreground"
                                                     )}>
                                                         <span className="font-black text-lg tracking-tighter">{ctrl.controlId}</span>
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-lg font-black text-slate-900">{ctrl.controlId} Verification</h4>
-                                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                        <h4 className="text-lg font-black text-foreground">{ctrl.controlId} Verification</h4>
+                                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                                                             {ctrl.observation || "No observation recorded."}
                                                         </p>
                                                     </div>
@@ -464,13 +464,13 @@ export default function NIST80037Assess() {
                                                         "font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest",
                                                         ctrl.result === 'Satisfied' || ctrl.result === 'Pass' ? "bg-emerald-500 text-white" :
                                                             ctrl.result === 'Other than Satisfied' || ctrl.result === 'Fail' ? "bg-rose-500 text-white" :
-                                                                "bg-slate-200 text-slate-500"
+                                                                "bg-muted text-muted-foreground"
                                                     )}>{ctrl.result}</Badge>
                                                     <Button
                                                         onClick={() => setLocation(`/clients/${clientId}/nist/rmf/assess/details/${ctrl.controlId}`)}
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="rounded-xl h-10 w-10 text-slate-300 hover:text-indigo-600"
+                                                        className="rounded-xl h-10 w-10 text-muted-foreground hover:text-primary"
                                                     >
                                                         <ArrowRight className="w-5 h-5" />
                                                     </Button>
@@ -483,24 +483,24 @@ export default function NIST80037Assess() {
                                 <TabsContent value="sar" className="p-10 space-y-10 m-0">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="md:col-span-2 space-y-6">
-                                            <div className="p-10 bg-slate-900 rounded-[3.5rem] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-10">
-                                                <div className="relative z-10 w-24 h-24 bg-white/10 rounded-[2.5rem] flex items-center justify-center border border-white/20">
+                                            <div className="p-10 bg-foreground rounded-[3.5rem] text-background relative overflow-hidden flex flex-col md:flex-row items-center gap-10">
+                                                <div className="relative z-10 w-24 h-24 bg-card/10 rounded-[2.5rem] flex items-center justify-center border border-white/20">
                                                     <FileCheck className="w-12 h-12 text-amber-400" />
                                                 </div>
                                                 <div className="relative z-10 space-y-4">
                                                     <h3 className="text-3xl font-black tracking-tighter">Security Assessment Report (SAR)</h3>
-                                                    <p className="text-slate-400 font-medium max-w-xl leading-relaxed">
+                                                    <p className="text-background/70 font-medium max-w-xl leading-relaxed">
                                                         The official record of assessment findings, risks, and recommendations. Finalization of the SAR initiates the authorization phase.
                                                     </p>
                                                     <div className="flex gap-4 pt-2">
                                                         <Link href={`/clients/${clientId}/federal/findings`}>
-                                                            <Button className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs border-none shadow-lg">
+                                                            <Button className="bg-background text-foreground hover:bg-background/90 rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs border-none shadow-lg">
                                                                 Review Findings
                                                             </Button>
                                                         </Link>
                                                         <Button
                                                             onClick={() => toast.success("Exporting SAR Document...")}
-                                                            className="bg-slate-800 text-white hover:bg-slate-700 border border-slate-700 rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs shadow-lg"
+                                                            className="bg-background/10 text-background hover:bg-background/20 border border-background/20 rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs shadow-lg"
                                                         >
                                                             Export SAR (DOCX)
                                                         </Button>
@@ -510,10 +510,10 @@ export default function NIST80037Assess() {
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 space-y-4">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Remediation Status (A-3)</Label>
+                                        <div className="bg-muted p-8 rounded-[3rem] border border-border space-y-4">
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Remediation Status (A-3)</Label>
                                             <div className="space-y-3">
-                                                <div className="p-4 bg-white rounded-2xl border border-slate-100 flex items-center justify-between">
+                                                <div className="p-4 bg-card rounded-2xl border border-border flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <Flag className="w-4 h-4 text-rose-500" />
                                                         <span className="text-sm font-bold">New Findings for POA&M</span>
@@ -521,25 +521,25 @@ export default function NIST80037Assess() {
                                                     <Badge className="bg-rose-500 text-white font-black">{openPoamItems} OPEN</Badge>
                                                 </div>
                                                 <Link href={`/clients/${clientId}/federal/poam`}>
-                                                    <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-xl h-12 font-bold gap-2 shadow-lg shadow-slate-200/50 transition-all">
+                                                    <Button className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-xl h-12 font-bold gap-2 shadow-lg shadow-muted/50 transition-all">
                                                         <Plus className="w-4 h-4" /> Manage POA&M Items
                                                     </Button>
                                                 </Link>
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 space-y-4">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Assessment Milestone</Label>
-                                            <div className="p-4 bg-white rounded-2xl border border-slate-100 space-y-4">
+                                        <div className="bg-muted p-8 rounded-[3rem] border border-border space-y-4">
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Assessment Milestone</Label>
+                                            <div className="p-4 bg-card rounded-2xl border border-border space-y-4">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-xs font-bold text-slate-500">SAR Finalized</span>
-                                                    <Badge variant="outline" className={cn("font-black border-slate-100", latestSAR?.status === 'finalized' ? "text-emerald-500" : "text-slate-400")}>
+                                                    <span className="text-xs font-bold text-muted-foreground">SAR Finalized</span>
+                                                    <Badge variant="outline" className={cn("font-black border-border", latestSAR?.status === 'finalized' ? "text-emerald-500" : "text-muted-foreground")}>
                                                         {latestSAR?.status === 'finalized' ? "COMPLETED" : "PENDING"}
                                                     </Badge>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-xs font-bold text-slate-500">Assessor Signature</span>
-                                                    <Badge variant="outline" className={cn("font-black border-slate-100", latestSAR?.assessorName ? "text-emerald-500" : "text-slate-400")}>
+                                                    <span className="text-xs font-bold text-muted-foreground">Assessor Signature</span>
+                                                    <Badge variant="outline" className={cn("font-black border-border", latestSAR?.assessorName ? "text-emerald-500" : "text-muted-foreground")}>
                                                         {latestSAR?.assessorName ? "COLLECTED" : "PENDING"}
                                                     </Badge>
                                                 </div>
@@ -556,34 +556,34 @@ export default function NIST80037Assess() {
                 {/* Edit Assessment Plan Dialog */}
                 <Dialog open={isEditPlanOpen} onOpenChange={setIsEditPlanOpen}>
                     <DialogContent className="max-w-3xl p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
-                        <DialogHeader className="p-8 pb-4 bg-slate-50 border-b border-slate-100">
-                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        <DialogHeader className="p-8 pb-4 bg-muted border-b border-border">
+                            <DialogTitle className="text-2xl font-black text-foreground tracking-tight flex items-center gap-3">
                                 <Users className="w-6 h-6 text-amber-600" />
                                 Configure Assessment Plan
                             </DialogTitle>
-                            <DialogDescription className="font-medium text-slate-500">
+                            <DialogDescription className="font-medium text-muted-foreground">
                                 Define the assessment team and the technical verification methodologies to be used.
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="p-8 space-y-8 bg-white">
+                        <div className="p-8 space-y-8 bg-card">
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Assessment Team</Label>
+                                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Assessment Team</Label>
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-8 rounded-xl border-slate-200 text-slate-600 shadow-sm"
+                                        className="h-8 rounded-xl border-border text-foreground/80 shadow-sm"
                                         onClick={() => setEditTeam([...editTeam, { name: "", role: "Assessor" }])}
                                     >
                                         <Plus className="w-3 h-3 mr-1" /> Add Member
                                     </Button>
                                 </div>
-                                <div className="space-y-3 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 placeholder:text-slate-400">
+                                <div className="space-y-3 p-4 bg-muted rounded-[1.5rem] border border-border placeholder:text-muted-foreground">
                                     {editTeam.length > 0 ? editTeam.map((member, i) => (
                                         <div key={i} className="flex items-center gap-3">
                                             <Input
-                                                className="bg-white border-slate-200 h-11 rounded-xl font-medium"
+                                                className="bg-card border-border h-11 rounded-xl font-medium"
                                                 placeholder="Member name..."
                                                 value={member.name}
                                                 onChange={(e) => {
@@ -593,7 +593,7 @@ export default function NIST80037Assess() {
                                                 }}
                                             />
                                             <Input
-                                                className="bg-white border-slate-200 h-11 rounded-xl font-medium w-1/3"
+                                                className="bg-card border-border h-11 rounded-xl font-medium w-1/3"
                                                 placeholder="Role (e.g., Lead Auditor)"
                                                 value={member.role}
                                                 onChange={(e) => {
@@ -605,37 +605,37 @@ export default function NIST80037Assess() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="text-slate-400 hover:text-rose-500 hover:bg-rose-50 shrink-0"
+                                                className="text-muted-foreground hover:text-rose-500 hover:bg-rose-50 shrink-0"
                                                 onClick={() => setEditTeam(editTeam.filter((_, idx) => idx !== i))}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
                                     )) : (
-                                        <p className="text-sm font-medium text-slate-500 text-center py-2">No team members added yet.</p>
+                                        <p className="text-sm font-medium text-muted-foreground text-center py-2">No team members added yet.</p>
                                     )}
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Testing Scope & Methodology</Label>
+                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Testing Scope & Methodology</Label>
                                 <Textarea
-                                    className="min-h-[100px] border-slate-200 rounded-[1.5rem] p-4 bg-slate-50 font-medium"
+                                    className="min-h-[100px] border-border rounded-[1.5rem] p-4 bg-muted font-medium"
                                     placeholder="e.g. Vulnerability Scan, Code Review, Interview, SOP Walkthrough (comma separated)"
                                     value={editScope}
                                     onChange={(e) => setEditScope(e.target.value)}
                                 />
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                     Separate methodologies with commas
                                 </p>
                             </div>
                         </div>
 
-                        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between sm:justify-between shrink-0">
+                        <DialogFooter className="p-6 bg-muted border-t border-border flex items-center justify-between sm:justify-between shrink-0">
                             <Button
                                 variant="ghost"
                                 onClick={() => setIsEditPlanOpen(false)}
-                                className="font-bold text-slate-500 hover:text-slate-900"
+                                className="font-bold text-muted-foreground hover:text-foreground"
                             >
                                 Cancel
                             </Button>
@@ -653,18 +653,18 @@ export default function NIST80037Assess() {
                 {/* Log Finding Dialog */}
                 <Dialog open={isAddFindingOpen} onOpenChange={setIsAddFindingOpen}>
                     <DialogContent className="max-w-xl p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
-                        <DialogHeader className="p-8 pb-4 bg-slate-50 border-b border-slate-100">
-                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        <DialogHeader className="p-8 pb-4 bg-muted border-b border-border">
+                            <DialogTitle className="text-2xl font-black text-foreground tracking-tight flex items-center gap-3">
                                 <Plus className="w-6 h-6 text-amber-600" />
                                 Log Assessment Finding
                             </DialogTitle>
                         </DialogHeader>
 
-                        <div className="p-8 space-y-6 bg-white">
+                        <div className="p-8 space-y-6 bg-card">
                             <div className="space-y-4">
-                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Control ID</Label>
+                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Control ID</Label>
                                 <Input
-                                    className="bg-slate-50 border-slate-200 h-11 rounded-xl font-medium"
+                                    className="bg-muted border-border h-11 rounded-xl font-medium"
                                     placeholder="e.g., AC-2"
                                     value={findingForm.controlId}
                                     onChange={(e) => setFindingForm({ ...findingForm, controlId: e.target.value })}
@@ -672,14 +672,14 @@ export default function NIST80037Assess() {
                             </div>
 
                             <div className="space-y-4">
-                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Result</Label>
+                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Result</Label>
                                 <div className="flex gap-4">
                                     <Button
                                         variant="outline"
                                         onClick={() => setFindingForm({ ...findingForm, result: 'Satisfied' })}
                                         className={cn(
                                             "flex-1 h-12 rounded-xl font-bold border-2 transition-all",
-                                            findingForm.result === 'Satisfied' ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "border-slate-200 text-slate-500 bg-white"
+                                            findingForm.result === 'Satisfied' ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "border-border text-muted-foreground bg-card"
                                         )}
                                     >
                                         Satisfied
@@ -689,7 +689,7 @@ export default function NIST80037Assess() {
                                         onClick={() => setFindingForm({ ...findingForm, result: 'Other than Satisfied' })}
                                         className={cn(
                                             "flex-1 h-12 rounded-xl font-bold border-2 transition-all",
-                                            findingForm.result === 'Other than Satisfied' ? "bg-rose-50 border-rose-500 text-rose-700" : "border-slate-200 text-slate-500 bg-white"
+                                            findingForm.result === 'Other than Satisfied' ? "bg-rose-50 border-rose-500 text-rose-700" : "border-border text-muted-foreground bg-card"
                                         )}
                                     >
                                         Other than Satisfied
@@ -698,7 +698,7 @@ export default function NIST80037Assess() {
                             </div>
 
                             <div className="space-y-4">
-                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Risk Level</Label>
+                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Risk Level</Label>
                                 <div className="flex gap-4">
                                     {['Low', 'Moderate', 'High'].map((level) => (
                                         <Button
@@ -709,7 +709,7 @@ export default function NIST80037Assess() {
                                                 "flex-1 h-12 rounded-xl font-bold border-2 transition-all",
                                                 findingForm.riskLevel === level
                                                     ? (level === 'High' ? "bg-rose-50 border-rose-500 text-rose-700" : level === 'Moderate' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-blue-50 border-blue-500 text-blue-700")
-                                                    : "border-slate-200 text-slate-500 bg-white"
+                                                    : "border-border text-muted-foreground bg-card"
                                             )}
                                         >
                                             {level}
@@ -719,9 +719,9 @@ export default function NIST80037Assess() {
                             </div>
 
                             <div className="space-y-4">
-                                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Observation</Label>
+                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Observation</Label>
                                 <Textarea
-                                    className="min-h-[100px] border-slate-200 rounded-[1.5rem] p-4 bg-slate-50 font-medium"
+                                    className="min-h-[100px] border-border rounded-[1.5rem] p-4 bg-muted font-medium"
                                     placeholder="Describe the assessment findings and testing details..."
                                     value={findingForm.observation}
                                     onChange={(e) => setFindingForm({ ...findingForm, observation: e.target.value })}
@@ -729,11 +729,11 @@ export default function NIST80037Assess() {
                             </div>
                         </div>
 
-                        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                        <DialogFooter className="p-6 bg-muted border-t border-border flex items-center justify-between shrink-0">
                             <Button
                                 variant="ghost"
                                 onClick={() => setIsAddFindingOpen(false)}
-                                className="font-bold text-slate-500 hover:text-slate-900"
+                                className="font-bold text-muted-foreground hover:text-foreground"
                             >
                                 Cancel
                             </Button>

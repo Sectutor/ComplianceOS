@@ -267,16 +267,16 @@ export default function NIST80037Select() {
                             <Badge className="bg-emerald-600 text-white font-black px-3">STEP 2</Badge>
                             <Badge variant="outline" className="border-emerald-200 text-emerald-700 font-bold uppercase tracking-widest text-[10px]">Selection & Tailoring</Badge>
                         </div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-4">
+                        <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-4">
                             <ShieldCheck className="w-10 h-10 text-emerald-600" />
                             Control Selection
                         </h1>
-                        <p className="text-slate-500 text-lg font-medium max-w-3xl leading-relaxed">
+                        <p className="text-muted-foreground text-lg font-medium max-w-3xl leading-relaxed">
                             Select an initial set of controls for the system and tailor the controls as needed to reduce risk to an acceptable level.
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <Button variant="outline" onClick={handleExportSSP} className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-100 hover:bg-slate-50 text-slate-600">
+                        <Button variant="outline" onClick={handleExportSSP} className="rounded-2xl h-14 px-6 font-bold border-2 border-border hover:bg-muted/50 text-foreground/80">
                             Export SSP Draft
                         </Button>
                         <Button
@@ -297,7 +297,7 @@ export default function NIST80037Select() {
                                 <CardTitle className="text-emerald-400 text-xs font-black uppercase tracking-widest">Baseline Posture</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6 relative z-10">
-                                <div className="text-center py-4 bg-white/10 rounded-[2rem] border border-white/10">
+                                <div className="text-center py-4 bg-card/10 rounded-[2rem] border border-white/10">
                                     <h2 className="text-4xl font-black text-white tracking-tighter">{baselineLevel.toUpperCase()}</h2>
                                     <p className="text-emerald-300 text-[10px] font-black uppercase tracking-widest mt-1">FIPS-199 Baseline</p>
                                 </div>
@@ -314,15 +314,15 @@ export default function NIST80037Select() {
                                         <span>Inherited (Common)</span>
                                         <span>{inheritedCount}</span>
                                     </div>
-                                    <Progress value={(inheritedCount / Math.max(controls.length, 1)) * 100} className="h-2 bg-emerald-800" indicatorClassName="bg-white" />
+                                    <Progress value={(inheritedCount / Math.max(controls.length, 1)) * 100} className="h-2 bg-emerald-800" indicatorClassName="bg-card" />
                                 </div>
                             </CardContent>
                             <ShieldCheck className="absolute -bottom-10 -left-10 w-48 h-48 text-white/5 -rotate-12" />
                         </Card>
 
-                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-card">
                             <CardHeader>
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Tailoring Summary</CardTitle>
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Tailoring Summary</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {[
@@ -330,10 +330,10 @@ export default function NIST80037Select() {
                                     { label: "Compensating Controls", count: compensatingCount, icon: ShieldAlert, color: "text-amber-500" },
                                     { label: "Parameter Updates", count: parameterCount, icon: Settings2, color: "text-emerald-500" }
                                 ].map((item, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted">
                                         <div className="flex items-center gap-3">
                                             <item.icon className={cn("w-4 h-4", item.color)} />
-                                            <span className="text-sm font-bold text-slate-600">{item.label}</span>
+                                            <span className="text-sm font-bold text-foreground/80">{item.label}</span>
                                         </div>
                                         <Badge variant="secondary" className="font-black">{item.count}</Badge>
                                     </div>
@@ -344,7 +344,7 @@ export default function NIST80037Select() {
 
                     <div className="lg:col-span-3">
                         <Tabs defaultValue="baseline" className="w-full">
-                            <div className="border-b px-8 bg-slate-50/50">
+                            <div className="border-b px-8 bg-muted/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
                                     <TabsTrigger value="baseline" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         Baseline Selection
@@ -362,8 +362,8 @@ export default function NIST80037Select() {
                                 <TabsContent value="baseline" className="p-10 space-y-10 m-0">
                                     <div className="space-y-6">
                                         <div className="space-y-1">
-                                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Select Security Baseline (SL-1)</h3>
-                                            <p className="text-slate-500 font-medium">Choose the starting set of controls based on your categorization results.</p>
+                                            <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Select Security Baseline (SL-1)</h3>
+                                            <p className="text-muted-foreground font-medium">Choose the starting set of controls based on your categorization results.</p>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -377,25 +377,25 @@ export default function NIST80037Select() {
                                                     onClick={() => setBaselineLevel(lvl.level)}
                                                     className={cn(
                                                         "p-8 rounded-[3rem] border transition-all cursor-pointer relative group select-none",
-                                                        baselineLevel === lvl.level ? `bg-${lvl.color}-50 border-${lvl.color}-200 shadow-xl shadow-${lvl.color}-500/10` : "bg-white border-slate-100 hover:border-slate-200"
+                                                        baselineLevel === lvl.level ? `bg-${lvl.color}-50 border-${lvl.color}-200 shadow-xl shadow-${lvl.color}-500/10` : "bg-card border-border hover:border-border"
                                                     )}>
-                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-6", baselineLevel === lvl.level ? `bg-${lvl.color}-500 text-white` : "bg-slate-100 text-slate-400 group-hover:bg-slate-200")}>
+                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-6", baselineLevel === lvl.level ? `bg-${lvl.color}-500 text-white` : "bg-muted text-muted-foreground group-hover:bg-border")}>
                                                         <ShieldCheck className="w-6 h-6" />
                                                     </div>
-                                                    <h4 className="text-xl font-black text-slate-900 mb-2">{lvl.level} Impact</h4>
-                                                    <p className="text-sm text-slate-500 font-medium mb-6">{lvl.description}</p>
-                                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-                                                        <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lvl.count} Controls</span>
+                                                    <h4 className="text-xl font-black text-foreground mb-2">{lvl.level} Impact</h4>
+                                                    <p className="text-sm text-muted-foreground font-medium mb-6">{lvl.description}</p>
+                                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+                                                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{lvl.count} Controls</span>
                                                         {baselineLevel === lvl.level && <CheckCircle2 className={`w-5 h-5 text-${lvl.color}-500`} />}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
 
-                                        <div className="p-8 bg-slate-900 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+                                        <div className="p-8 bg-foreground rounded-[3rem] text-background flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
                                             <div className="relative z-10 space-y-4 text-center md:text-left">
                                                 <h4 className="text-xl font-black tracking-tight">AI Assessment: Baseline Alignment</h4>
-                                                <p className="text-slate-400 font-medium max-w-lg leading-relaxed">
+                                                <p className="text-background/70 font-medium max-w-lg leading-relaxed">
                                                     {isAligned
                                                         ? `Our AI analysis confirms that your Categorization High-Water Mark (${highWaterMark}) matches the selected baseline. ${tailoredCount} tailoring actions identified.`
                                                         : `Warning: Your selected baseline (${baselineLevel.toUpperCase()}) does not match your Categorization High-Water Mark (${highWaterMark}). Consider adjusting to align with FIPS-199.`}
@@ -405,13 +405,13 @@ export default function NIST80037Select() {
                                                 </Button>
                                             </div>
                                             <div className="relative z-10 grid grid-cols-2 gap-4">
-                                                <div className="p-4 bg-white/5 rounded-2xl text-center border border-white/5">
+                                                <div className="p-4 bg-card/5 rounded-2xl text-center border border-white/5">
                                                     <p className="text-4xl font-black">{confidenceScore}%</p>
                                                     <p className="text-[10px] uppercase font-black tracking-widest text-emerald-400">Confidence</p>
                                                 </div>
-                                                <div className="p-4 bg-white/5 rounded-2xl text-center border border-white/5">
+                                                <div className="p-4 bg-card/5 rounded-2xl text-center border border-white/5">
                                                     <p className="text-4xl font-black">{inheritedCount}</p>
-                                                    <p className="text-[10px] uppercase font-black tracking-widest text-indigo-400">Inherited</p>
+                                                    <p className="text-[10px] uppercase font-black tracking-widest text-background/70">Inherited</p>
                                                 </div>
                                             </div>
                                             <Dna className="absolute -bottom-20 -right-20 w-80 h-80 text-white/5 rotate-12" />
@@ -422,30 +422,30 @@ export default function NIST80037Select() {
                                 <TabsContent value="list" className="p-10 space-y-8 m-0">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                         <div className="space-y-1">
-                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Control Scoping & Tailoring (SL-2)</h3>
-                                            <p className="text-sm text-slate-500 font-medium max-w-2xl">
+                                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Control Scoping & Tailoring (SL-2)</h3>
+                                            <p className="text-sm text-muted-foreground font-medium max-w-2xl">
                                                 Review the security controls in your selected baseline. Use this section to <strong>tailor</strong> controls (mark as N/A, modify, or add system-specific controls).
                                                 <br />
-                                                <span className="text-xs text-slate-400 italic">Currently showing {showAllControls ? "all baseline controls" : "only tailored/modified controls"}.</span>
+                                                <span className="text-xs text-muted-foreground italic">Currently showing {showAllControls ? "all baseline controls" : "only tailored/modified controls"}.</span>
                                             </p>
                                         </div>
-                                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                                        <div className="flex bg-muted p-1 rounded-xl">
                                             <button
                                                 onClick={() => setShowAllControls(false)}
-                                                className={cn("px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all", !showAllControls ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")}
+                                                className={cn("px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all", !showAllControls ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground/80")}
                                             >
                                                 Tailored Only
                                             </button>
                                             <button
                                                 onClick={() => setShowAllControls(true)}
-                                                className={cn("px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all", showAllControls ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")}
+                                                className={cn("px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all", showAllControls ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground/80")}
                                             >
                                                 All Controls
                                             </button>
                                         </div>
                                         <Link href={`/clients/${clientId}/federal/ssp`}>
-                                            <Button variant="outline" className="rounded-xl h-10 px-4 font-bold text-xs uppercase tracking-widest gap-2 bg-white">
-                                                <FileText className="w-4 h-4 text-indigo-600" /> Manage in SSP Editor
+                                            <Button variant="outline" className="rounded-xl h-10 px-4 font-bold text-xs uppercase tracking-widest gap-2 bg-card">
+                                                <FileText className="w-4 h-4 text-primary" /> Manage in SSP Editor
                                             </Button>
                                         </Link>
                                     </div>
@@ -459,26 +459,26 @@ export default function NIST80037Select() {
                                         { id: "AT-1", title: "Policy and Procedures", family: "Awareness and Training", tailoring: "Inherited (Common)", type: "Management" },
                                         { id: "AT-2", title: "Security Awareness Training", family: "Awareness and Training", tailoring: "Inherited (Common)", type: "Operational" },
                                         ] : controls).map((control, i) => (
-                                            <div key={i} className="p-6 bg-white border rounded-[2.5rem] hover:shadow-lg transition-all group">
+                                            <div key={i} className="p-6 bg-card border rounded-[2.5rem] hover:shadow-lg transition-all group">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                                     <div className="flex items-center gap-5">
-                                                        <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center border border-slate-100 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                                        <div className="w-16 h-16 bg-muted rounded-3xl flex items-center justify-center border border-border group-hover:bg-emerald-600 group-hover:text-white transition-all">
                                                             <span className="font-black text-xl tracking-tighter">{control.id}</span>
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2">
-                                                                <h4 className="text-lg font-black text-slate-900">{control.title}</h4>
-                                                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-slate-400">{control.family}</Badge>
+                                                                <h4 className="text-lg font-black text-foreground">{control.title}</h4>
+                                                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{control.family}</Badge>
                                                             </div>
                                                             <div className="flex items-center gap-4 mt-1">
-                                                                <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                                                                <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                                                                     <Target className="w-3 h-3" /> {control.type}
                                                                 </span>
                                                                 <span className={cn(
                                                                     "text-xs font-black uppercase tracking-widest flex items-center gap-1",
-                                                                    control.tailoring === 'Inherited (Common)' ? "text-indigo-500" :
+                                                                    control.tailoring === 'Inherited (Common)' ? "text-blue-600 dark:text-blue-400" :
                                                                         control.tailoring === 'Tailored (Modified)' ? "text-emerald-500" :
-                                                                            control.tailoring === 'Not Applicable' ? "text-rose-400" : "text-slate-400"
+                                                                            control.tailoring === 'Not Applicable' ? "text-rose-400" : "text-muted-foreground"
                                                                 )}>
                                                                     <Settings2 className="w-3 h-3" /> {control.tailoring}
                                                                 </span>
@@ -493,7 +493,7 @@ export default function NIST80037Select() {
                                                         >
                                                             <Settings2 className="w-4 h-4" /> Tailor
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-slate-300 hover:text-indigo-600">
+                                                        <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-muted-foreground hover:text-primary">
                                                             <ArrowRight className="w-5 h-5" />
                                                         </Button>
                                                     </div>
@@ -504,7 +504,7 @@ export default function NIST80037Select() {
 
                                     <Button
                                         onClick={handleAddControl}
-                                        className="w-full bg-slate-50 hover:bg-slate-100 border-2 border-dashed border-slate-200 text-slate-500 rounded-[2rem] h-20 text-lg font-black gap-3 mt-4"
+                                        className="w-full bg-muted hover:bg-muted border-2 border-dashed border-border text-muted-foreground rounded-[2rem] h-20 text-lg font-black gap-3 mt-4"
                                     >
                                         <Plus className="w-6 h-6" /> Add System-Specific Control
                                     </Button>
@@ -513,12 +513,12 @@ export default function NIST80037Select() {
                                 <TabsContent value="monitoring" className="p-10 space-y-8 m-0">
                                     <div className="space-y-8">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="p-8 bg-indigo-50 rounded-[3rem] border border-indigo-100 space-y-4">
-                                                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
+                                            <div className="p-8 bg-blue-500/10 rounded-[3rem] border border-blue-500/15 space-y-4">
+                                                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground">
                                                     <Eye className="w-6 h-6" />
                                                 </div>
-                                                <h3 className="text-2xl font-black text-indigo-900 tracking-tight">Continuous Monitoring Strategy (SL-4)</h3>
-                                                <p className="text-indigo-700 font-medium leading-relaxed font-serif">
+                                                <h3 className="text-2xl font-black text-blue-900 dark:text-blue-300 tracking-tight">Continuous Monitoring Strategy (SL-4)</h3>
+                                                <p className="text-blue-700 dark:text-blue-400 font-medium leading-relaxed font-serif">
                                                     Define the frequency and method for monitoring selected controls throughout the system lifecycle.
                                                 </p>
                                             </div>
@@ -527,15 +527,15 @@ export default function NIST80037Select() {
                                                 <div
                                                     onClick={() => setDiagnosticsEnabled(!diagnosticsEnabled)}
                                                     className={cn(
-                                                        "flex items-center justify-between p-4 bg-white border rounded-2xl cursor-pointer hover:bg-slate-50 transition-all select-none",
-                                                        diagnosticsEnabled ? "border-emerald-200 shadow-md shadow-emerald-100" : "border-slate-200"
+                                                        "flex items-center justify-between p-4 bg-card border rounded-2xl cursor-pointer hover:bg-muted/50 transition-all select-none",
+                                                        diagnosticsEnabled ? "border-emerald-200 shadow-md shadow-emerald-100" : "border-border"
                                                     )}
                                                 >
-                                                    <div className="flex items-center gap-3 font-bold text-slate-700">
-                                                        <ScrollText className={cn("w-5 h-5", diagnosticsEnabled ? "text-emerald-500" : "text-slate-400")} />
+                                                    <div className="flex items-center gap-3 font-bold text-foreground/80">
+                                                        <ScrollText className={cn("w-5 h-5", diagnosticsEnabled ? "text-emerald-500" : "text-muted-foreground")} />
                                                         Continuous Diagnostics
                                                     </div>
-                                                    <Badge className={cn("font-black", diagnosticsEnabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
+                                                    <Badge className={cn("font-black", diagnosticsEnabled ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground")}>
                                                         {diagnosticsEnabled ? "ACTIVE" : "INACTIVE"}
                                                     </Badge>
                                                 </div>
@@ -545,40 +545,40 @@ export default function NIST80037Select() {
                                                         const idx = freqs.indexOf(assessmentFrequency);
                                                         setAssessmentFrequency(freqs[(idx + 1) % freqs.length]);
                                                     }}
-                                                    className="flex items-center justify-between p-4 bg-white border rounded-2xl cursor-pointer hover:bg-slate-50 transition-all select-none"
+                                                    className="flex items-center justify-between p-4 bg-card border rounded-2xl cursor-pointer hover:bg-muted/50 transition-all select-none"
                                                 >
-                                                    <div className="flex items-center gap-3 font-bold text-slate-700">
-                                                        <Network className="w-5 h-5 text-indigo-500" /> Periodic Assessment
+                                                    <div className="flex items-center gap-3 font-bold text-foreground/80">
+                                                        <Network className="w-5 h-5 text-primary" /> Periodic Assessment
                                                     </div>
-                                                    <Badge variant="outline" className="text-slate-600 border-indigo-200 font-black bg-indigo-50">{assessmentFrequency}</Badge>
+                                                    <Badge variant="outline" className="text-foreground/80 border-blue-500/30 font-black bg-blue-500/10">{assessmentFrequency}</Badge>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-200 space-y-6">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Monitoring Plan Details</Label>
+                                        <div className="bg-muted rounded-[3rem] p-10 border border-border space-y-6">
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Monitoring Plan Details</Label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                 <div className="space-y-4">
-                                                    <div className="p-4 bg-white rounded-2xl border border-slate-100">
-                                                        <p className="text-xs font-black uppercase text-slate-400 mb-2">Automated Triggers</p>
+                                                    <div className="p-4 bg-card rounded-2xl border border-border">
+                                                        <p className="text-xs font-black uppercase text-muted-foreground mb-2">Automated Triggers</p>
                                                         <div className="flex flex-wrap gap-2">
-                                                            <Badge className="bg-indigo-100 text-indigo-700 font-bold">Config Drift</Badge>
-                                                            <Badge className="bg-indigo-100 text-indigo-700 font-bold">New Auth</Badge>
-                                                            <Badge className="bg-indigo-100 text-indigo-700 font-bold">API Failure</Badge>
+                                                            <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold">Config Drift</Badge>
+                                                            <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold">New Auth</Badge>
+                                                            <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold">API Failure</Badge>
                                                         </div>
                                                     </div>
-                                                    <div className="p-4 bg-white rounded-2xl border border-slate-100">
-                                                        <p className="text-xs font-black uppercase text-slate-400 mb-2">Compliance Reporters</p>
+                                                    <div className="p-4 bg-card rounded-2xl border border-border">
+                                                        <p className="text-xs font-black uppercase text-muted-foreground mb-2">Compliance Reporters</p>
                                                         <div className="flex flex-wrap gap-2">
-                                                            <Badge className="bg-slate-100 text-slate-600 font-bold">AWS Security Hub</Badge>
-                                                            <Badge className="bg-slate-100 text-slate-600 font-bold">Palo Alto XDR</Badge>
+                                                            <Badge className="bg-muted text-foreground/80 font-bold">AWS Security Hub</Badge>
+                                                            <Badge className="bg-muted text-foreground/80 font-bold">Palo Alto XDR</Badge>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-4">
                                                     <Textarea
                                                         placeholder="Describe the frequency and method of assessment for each control set..."
-                                                        className="h-full rounded-[2rem] bg-white border-slate-200"
+                                                        className="h-full rounded-[2rem] bg-card border-border"
                                                         value={monitoringPlan}
                                                         onChange={(e) => setMonitoringPlan(e.target.value)}
                                                     />

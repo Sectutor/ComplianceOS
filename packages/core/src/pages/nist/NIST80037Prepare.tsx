@@ -184,7 +184,7 @@ export default function NIST80037Prepare() {
             case 'mod': return "bg-amber-200 text-amber-900";
             case 'high': return "bg-rose-300 text-rose-900";
             case 'critical': return "bg-rose-600 text-white";
-            default: return "bg-slate-100 text-slate-500";
+            default: return "bg-muted text-muted-foreground";
         }
     };
 
@@ -461,11 +461,11 @@ export default function NIST80037Prepare() {
                             <Badge className="bg-emerald-600 text-white font-black px-3">STEP 0</Badge>
                             <Badge variant="outline" className="border-emerald-200 text-emerald-700 font-bold uppercase tracking-widest text-[10px]">Preparation Phase</Badge>
                         </div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-4">
+                        <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-4">
                             <Play className="w-10 h-10 text-emerald-600" />
                             Organization & System Preparation
                         </h1>
-                        <p className="text-slate-500 text-lg font-medium max-w-3xl">
+                        <p className="text-muted-foreground text-lg font-medium max-w-3xl">
                             Establish context and infrastructure for managing security and privacy risk before beginning the technical RMF steps.
                         </p>
                     </div>
@@ -473,9 +473,9 @@ export default function NIST80037Prepare() {
                         <Link href={`/clients/${clientId}/federal/ssp`}>
                             <Button
                                 variant="outline"
-                                className="rounded-2xl h-14 px-6 font-bold border-2 border-slate-100 hover:bg-slate-50 text-slate-600 gap-2"
+                                className="rounded-2xl h-14 px-6 font-bold border-2 border-border hover:bg-muted/50 text-foreground/80 gap-2"
                             >
-                                <FileText className="w-5 h-5 text-indigo-600" /> Manage System Package
+                                <FileText className="w-5 h-5 text-primary" /> Manage System Package
                             </Button>
                         </Link>
                         <Button
@@ -510,10 +510,10 @@ export default function NIST80037Prepare() {
                                 const status = getStatus(item.id);
                                 return (
                                     <div key={i} className="flex items-center gap-3 group cursor-pointer" onClick={() => toggleStatus(item.id, status)}>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${status === 'completed' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200'}`}>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${status === 'completed' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-border'}`}>
                                             {status === 'completed' && <CheckCircle2 className="w-4 h-4" />}
                                         </div>
-                                        <span className={`text-sm font-bold ${status === 'pending' ? 'text-slate-400 group-hover:text-slate-600' : 'text-slate-700'}`}>{item.task}</span>
+                                        <span className={`text-sm font-bold ${status === 'pending' ? 'text-muted-foreground group-hover:text-foreground/80' : 'text-foreground/80'}`}>{item.task}</span>
                                     </div>
                                 )
                             })}
@@ -522,7 +522,7 @@ export default function NIST80037Prepare() {
 
                     <div className="lg:col-span-3">
                         <Tabs defaultValue="identification" className="w-full">
-                            <div className="border-b px-8 bg-slate-50/50">
+                            <div className="border-b px-8 bg-muted/50">
                                 <TabsList className="h-16 bg-transparent gap-8">
                                     <TabsTrigger value="identification" className="data-[state=active]:bg-transparent data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:shadow-none rounded-none font-black text-xs uppercase tracking-widest">
                                         System Identification
@@ -543,40 +543,40 @@ export default function NIST80037Prepare() {
                                 <TabsContent value="identification" className="p-10 space-y-8 m-0">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-4 md:col-span-2">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">System Name & Purpose (S-1)</Label>
-                                            <Input placeholder="Enter official system name (e.g., Enterprise Cloud Operations)" className="h-14 rounded-2xl border-slate-200 focus:ring-emerald-500 text-lg font-bold" />
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">System Name & Purpose (S-1)</Label>
+                                            <Input placeholder="Enter official system name (e.g., Enterprise Cloud Operations)" className="h-14 rounded-2xl border-border focus:ring-emerald-500 text-lg font-bold" />
                                             <Textarea
                                                 placeholder="Describe the mission or business processes the system supports..."
-                                                className="min-h-[120px] rounded-2xl border-slate-200 focus:ring-emerald-500"
+                                                className="min-h-[120px] rounded-2xl border-border focus:ring-emerald-500"
                                             />
                                         </div>
 
                                         <div className="space-y-4">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">System Descriptor</Label>
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">System Descriptor</Label>
                                             <Input placeholder="Unique System ID (e.g., SYS-2026-001)" className="h-12 rounded-xl" />
                                         </div>
 
                                         <div className="space-y-4">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Registration Status (S-4)</Label>
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Registration Status (S-4)</Label>
                                             <div className="flex gap-2">
                                                 <Badge className="bg-emerald-100 text-emerald-700 py-2 px-4 rounded-xl font-bold cursor-pointer border-emerald-200">Registered</Badge>
-                                                <Badge variant="outline" className="py-2 px-4 rounded-xl font-bold cursor-pointer text-slate-400">Pending Review</Badge>
+                                                <Badge variant="outline" className="py-2 px-4 rounded-xl font-bold cursor-pointer text-muted-foreground">Pending Review</Badge>
                                             </div>
                                         </div>
 
                                         <div className="space-y-4 md:col-span-2">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Asset Inventory (S-6)</Label>
-                                            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center justify-between group hover:border-indigo-200 transition-colors cursor-pointer">
+                                            <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Asset Inventory (S-6)</Label>
+                                            <div className="p-6 bg-muted rounded-[2rem] border border-border flex items-center justify-between group hover:border-blue-500/30 transition-colors cursor-pointer">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600">
+                                                    <div className="w-12 h-12 bg-blue-500/15 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                                                         <Globe className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-bold text-slate-900">Link Global Asset Inventory</h4>
-                                                        <p className="text-xs text-slate-500 font-medium">Auto-import assets for this system boundary</p>
+                                                        <h4 className="font-bold text-foreground">Link Global Asset Inventory</h4>
+                                                        <p className="text-xs text-muted-foreground font-medium">Auto-import assets for this system boundary</p>
                                                     </div>
                                                 </div>
-                                                <Plus className="w-6 h-6 text-slate-300 group-hover:text-indigo-600" />
+                                                <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
                                             </div>
                                         </div>
                                     </div>
@@ -586,8 +586,8 @@ export default function NIST80037Prepare() {
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-1">
-                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Authorization Boundary (S-7)</h3>
-                                                <p className="text-sm text-slate-500 font-medium font-serif">Define the set of system components and data flows.</p>
+                                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Authorization Boundary (S-7)</h3>
+                                                <p className="text-sm text-muted-foreground font-medium font-serif">Define the set of system components and data flows.</p>
                                             </div>
 
                                             <Button variant="outline" onClick={() => handleImportClick('boundary')} className="rounded-xl border-dashed border-2 gap-2 h-12">
@@ -599,21 +599,21 @@ export default function NIST80037Prepare() {
                                             {uploadedFiles.length > 0 ? (
                                                 <div className="grid grid-cols-1 gap-3">
                                                     {uploadedFiles.map((file, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-shadow group">
+                                                        <div key={idx} className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:shadow-md transition-shadow group">
                                                             <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                                                                <div className="w-10 h-10 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
                                                                     <FileText className="w-5 h-5" />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold text-sm text-slate-800">{file.name}</p>
-                                                                    <a href={file.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 font-medium hover:underline">View Document</a>
+                                                                    <p className="font-bold text-sm text-foreground/80">{file.name}</p>
+                                                                    <a href={file.url} target="_blank" rel="noreferrer" className="text-xs text-primary font-medium hover:underline">View Document</a>
                                                                 </div>
                                                             </div>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={() => removeFile(idx)}
-                                                                className="text-slate-400 hover:text-rose-500 hover:bg-rose-50"
+                                                                className="text-muted-foreground hover:text-rose-500 hover:bg-rose-50"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
@@ -621,13 +621,13 @@ export default function NIST80037Prepare() {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
-                                                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 text-slate-400">
+                                                <div className="p-8 bg-muted rounded-[2rem] border-2 border-dashed border-border flex flex-col items-center justify-center text-center">
+                                                    <div className="w-16 h-16 bg-card rounded-2xl shadow-sm flex items-center justify-center mb-4 text-muted-foreground">
                                                         <FileText className="w-8 h-8" />
                                                     </div>
-                                                    <p className="font-bold text-slate-600">No documents uploaded</p>
-                                                    <p className="text-sm text-slate-500 max-w-sm mt-1 mb-4">Upload architecture diagrams, data flow charts, or network topology documents.</p>
-                                                    <Button variant="secondary" onClick={() => handleImportClick('boundary')} className="bg-white border hover:bg-slate-50">
+                                                    <p className="font-bold text-foreground/80">No documents uploaded</p>
+                                                    <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-4">Upload architecture diagrams, data flow charts, or network topology documents.</p>
+                                                    <Button variant="secondary" onClick={() => handleImportClick('boundary')} className="bg-card border hover:bg-muted/50">
                                                         Select Files
                                                     </Button>
                                                 </div>
@@ -636,11 +636,11 @@ export default function NIST80037Prepare() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-3">
-                                                <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Logical Boundary</Label>
+                                                <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Logical Boundary</Label>
                                                 <Textarea placeholder="VPCs, Subnets, Identity Providers..." className="rounded-2xl" />
                                             </div>
                                             <div className="space-y-3">
-                                                <Label className="text-sm font-black uppercase tracking-widest text-slate-500">Physical Boundary</Label>
+                                                <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Physical Boundary</Label>
                                                 <Textarea placeholder="Data Centers, Office Locations, Remote Access Points..." className="rounded-2xl" />
                                             </div>
                                         </div>
@@ -650,8 +650,8 @@ export default function NIST80037Prepare() {
                                 <TabsContent value="roles" className="p-10 space-y-8 m-0">
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Management Role Assignments (R-1)</h3>
-                                            <Button onClick={() => setIsAddRoleOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl gap-2">
+                                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Management Role Assignments (R-1)</h3>
+                                            <Button onClick={() => setIsAddRoleOpen(true)} className="bg-primary hover:bg-primary/90 rounded-xl gap-2">
                                                 <Plus className="w-4 h-4" /> Add RMF Role
                                             </Button>
                                         </div>
@@ -662,20 +662,20 @@ export default function NIST80037Prepare() {
                                                 const isCustom = role.id.startsWith('custom_');
 
                                                 return (
-                                                    <div key={role.id} className="p-6 bg-white border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-slate-900 group">
+                                                    <div key={role.id} className="p-6 bg-card border rounded-[2rem] flex items-center justify-between hover:shadow-md transition-all text-foreground group">
                                                         <div className="flex items-center gap-5">
-                                                            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-100 relative">
+                                                            <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center text-muted-foreground border border-border relative">
                                                                 <role.icon className="w-7 h-7" />
                                                                 {isCustom && (
-                                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border border-white" />
+                                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border border-white" />
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{role.title}</p>
+                                                                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{role.title}</p>
                                                                 {assignedEmployee ? (
-                                                                    <p className="text-lg font-bold text-slate-900">{assignedEmployee.firstName} {assignedEmployee.lastName}</p>
+                                                                    <p className="text-lg font-bold text-foreground">{assignedEmployee.firstName} {assignedEmployee.lastName}</p>
                                                                 ) : (
-                                                                    <p className="text-lg font-bold text-slate-300 italic">Unassigned</p>
+                                                                    <p className="text-lg font-bold text-muted-foreground italic">Unassigned</p>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -687,7 +687,7 @@ export default function NIST80037Prepare() {
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        className="text-slate-400 hover:text-rose-500"
+                                                                        className="text-muted-foreground hover:text-rose-500"
                                                                         onClick={() => handleRemoveAssignment(role.id)}
                                                                         title="Unassign User"
                                                                     >
@@ -697,7 +697,7 @@ export default function NIST80037Prepare() {
                                                             ) : (
                                                                 <div className="w-64">
                                                                     <Select onValueChange={(val) => handleAssignRole(role.id, val)}>
-                                                                        <SelectTrigger className="h-10 rounded-xl border-indigo-200 text-indigo-600 font-bold focus:ring-0">
+                                                                        <SelectTrigger className="h-10 rounded-xl border-blue-500/30 text-primary font-bold focus:ring-0">
                                                                             <SelectValue placeholder="Assign Employee..." />
                                                                         </SelectTrigger>
                                                                         <SelectContent>
@@ -714,7 +714,7 @@ export default function NIST80037Prepare() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200"
+                                                                className="text-muted-foreground hover:text-rose-500 bg-muted hover:bg-rose-50 border border-border hover:border-rose-200"
                                                                 onClick={() => handleDeleteRole(role.id)}
                                                                 title="Delete Role"
                                                             >
@@ -730,10 +730,10 @@ export default function NIST80037Prepare() {
 
                                 <TabsContent value="strategy" className="p-10 space-y-8 m-0">
                                     <div className="space-y-8">
-                                        <div className="p-8 bg-indigo-900 rounded-[3rem] text-white relative overflow-hidden">
+                                        <div className="p-8 bg-foreground rounded-[3rem] text-background relative overflow-hidden">
                                             <div className="relative z-10 space-y-4">
                                                 <h3 className="text-2xl font-black tracking-tight">Risk Management Strategy (R-2)</h3>
-                                                <p className="text-indigo-200 font-medium leading-relaxed max-w-2xl">
+                                                <p className="text-background/70 font-medium leading-relaxed max-w-2xl">
                                                     The broad objective of the RMF is to ensure that enterprise-level strategy guides system-level decisions.
                                                 </p>
 
@@ -743,26 +743,26 @@ export default function NIST80037Prepare() {
 
                                         <div className="space-y-8">
                                             {/* Risk Heatmap & Thresholds - Full Width */}
-                                            <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 w-full shadow-sm">
+                                            <div className="p-8 bg-muted rounded-[2.5rem] border border-border w-full shadow-sm">
                                                 <div className="flex flex-col md:flex-row gap-12 items-start">
                                                     {/* Heatmap Visualization */}
                                                     <div className="flex-1 w-full">
                                                         <div className="flex items-center justify-between mb-6">
-                                                            <h4 className="font-extrabold text-slate-900 flex items-center gap-2">
-                                                                <Activity className="w-5 h-5 text-indigo-600" />
+                                                            <h4 className="font-extrabold text-foreground flex items-center gap-2">
+                                                                <Activity className="w-5 h-5 text-primary" />
                                                                 Risk Assessment Matrix
                                                             </h4>
                                                             <div className="flex gap-2">
-                                                                <Badge variant="outline" className="bg-white">Dynamic 3x3</Badge>
+                                                                <Badge variant="outline" className="bg-card">Dynamic 3x3</Badge>
                                                                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setIsMatrixConfigOpen(true)}>
-                                                                    <Edit2 className="w-3 h-3 text-slate-500" />
+                                                                    <Edit2 className="w-3 h-3 text-muted-foreground" />
                                                                 </Button>
                                                             </div>
                                                         </div>
 
                                                         <div className="relative pl-8 pb-8">
                                                             {/* Y-Axis Label */}
-                                                            <div className="absolute -left-4 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-black text-slate-400 uppercase tracking-widest text-center w-32 origin-center transform">
+                                                            <div className="absolute -left-4 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-black text-muted-foreground uppercase tracking-widest text-center w-32 origin-center transform">
                                                                 Likelihood
                                                             </div>
 
@@ -779,10 +779,10 @@ export default function NIST80037Prepare() {
                                                             </div>
 
                                                             {/* X-Axis Label */}
-                                                            <div className="absolute bottom-0 left-8 right-0 text-center text-xs font-black text-slate-400 uppercase tracking-widest">
+                                                            <div className="absolute bottom-0 left-8 right-0 text-center text-xs font-black text-muted-foreground uppercase tracking-widest">
                                                                 Impact
                                                             </div>
-                                                            <div className="grid text-center text-[10px] font-bold text-slate-500 mt-2 ml-1" style={{ gridTemplateColumns: `repeat(${riskMatrix.length}, minmax(0, 1fr))` }}>
+                                                            <div className="grid text-center text-[10px] font-bold text-muted-foreground mt-2 ml-1" style={{ gridTemplateColumns: `repeat(${riskMatrix.length}, minmax(0, 1fr))` }}>
                                                                 {riskMatrix.length === 3 ? (
                                                                     <>
                                                                         <div>LOW</div>
@@ -802,23 +802,23 @@ export default function NIST80037Prepare() {
                                                     </div>
 
                                                     {/* Legend & Definitions */}
-                                                    <div className="w-full md:w-80 space-y-6 pt-2 border-l border-slate-200 pl-8 md:block flex flex-col items-start min-h-[250px] justify-center">
-                                                        <Label className="text-sm font-black uppercase tracking-widest text-slate-500 mb-4 block">Definition of Terms</Label>
+                                                    <div className="w-full md:w-80 space-y-6 pt-2 border-l border-border pl-8 md:block flex flex-col items-start min-h-[250px] justify-center">
+                                                        <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-4 block">Definition of Terms</Label>
 
                                                         <div className="space-y-4 w-full">
-                                                            <div className="flex justify-between items-center text-sm font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                            <div className="flex justify-between items-center text-sm font-bold text-foreground/80 bg-card p-3 rounded-xl border border-border shadow-sm">
                                                                 <span>Low Risk</span>
                                                                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-black">ACCEPTABLE</Badge>
                                                             </div>
-                                                            <div className="flex justify-between items-center text-sm font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                            <div className="flex justify-between items-center text-sm font-bold text-foreground/80 bg-card p-3 rounded-xl border border-border shadow-sm">
                                                                 <span>Moderate Risk</span>
                                                                 <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-black">MITIGATION REQ</Badge>
                                                             </div>
-                                                            <div className="flex justify-between items-center text-sm font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                            <div className="flex justify-between items-center text-sm font-bold text-foreground/80 bg-card p-3 rounded-xl border border-border shadow-sm">
                                                                 <span>High Risk</span>
                                                                 <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-black">AO REVIEW REQ</Badge>
                                                             </div>
-                                                            <div className="flex justify-between items-center text-sm font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                            <div className="flex justify-between items-center text-sm font-bold text-foreground/80 bg-card p-3 rounded-xl border border-border shadow-sm">
                                                                 <span>Critical Risk</span>
                                                                 <Badge className="bg-rose-600 text-white border-rose-700 font-black">IMMEDIATE ACTION</Badge>
                                                             </div>
@@ -832,36 +832,36 @@ export default function NIST80037Prepare() {
                                             </div>
 
                                             {/* Stakeholders Section (Reusing previous logic/state) */}
-                                            <div className="space-y-4 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex flex-col">
+                                            <div className="space-y-4 p-8 bg-muted rounded-[2.5rem] border border-border flex flex-col">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="bg-white p-2 rounded-xl shadow-sm text-indigo-600 border border-indigo-50">
+                                                        <div className="bg-card p-2 rounded-xl shadow-sm text-blue-600 dark:text-blue-400 border border-blue-500/10">
                                                             <Users className="w-6 h-6" />
                                                         </div>
                                                         <div>
-                                                            <h4 className="font-extrabold text-slate-900">Stakeholder Identification (S-5)</h4>
-                                                            <p className="text-xs text-slate-500 font-medium">Identify key stakeholders for security & privacy results</p>
+                                                            <h4 className="font-extrabold text-foreground">Stakeholder Identification (S-5)</h4>
+                                                            <p className="text-xs text-muted-foreground font-medium">Identify key stakeholders for security & privacy results</p>
                                                         </div>
                                                     </div>
-                                                    <Button size="sm" variant="ghost" className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg" onClick={() => setIsAddStakeholderOpen(true)}>
+                                                    <Button size="sm" variant="ghost" className="bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 rounded-lg" onClick={() => setIsAddStakeholderOpen(true)}>
                                                         <Plus className="w-4 h-4" /> Add
                                                     </Button>
                                                 </div>
 
                                                 {stakeholders.length === 0 ? (
-                                                    <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-2xl">
-                                                        <p className="text-sm text-slate-400 font-medium">No stakeholders identified.</p>
+                                                    <div className="text-center py-8 border-2 border-dashed border-border rounded-2xl">
+                                                        <p className="text-sm text-muted-foreground font-medium">No stakeholders identified.</p>
                                                     </div>
                                                 ) : (
                                                     <ScrollArea className="h-[200px] pr-4">
                                                         <div className="space-y-3">
                                                             {stakeholders.map(s => (
-                                                                <div key={s.id} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group">
+                                                                <div key={s.id} className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-sm group">
                                                                     <div>
-                                                                        <p className="font-bold text-slate-900 text-sm">{s.name}</p>
-                                                                        <p className="text-xs text-slate-500 uppercase tracking-wide font-bold">{s.title}</p>
+                                                                        <p className="font-bold text-foreground text-sm">{s.name}</p>
+                                                                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-bold">{s.title}</p>
                                                                     </div>
-                                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-slate-300 hover:text-rose-500" onClick={() => handleDeleteStakeholder(s.id)}>
+                                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-rose-500" onClick={() => handleDeleteStakeholder(s.id)}>
                                                                         <X className="w-4 h-4" />
                                                                     </Button>
                                                                 </div>
@@ -872,29 +872,29 @@ export default function NIST80037Prepare() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between p-6 bg-indigo-50 rounded-[2rem] border border-indigo-100">
+                                        <div className="flex items-center justify-between p-6 bg-blue-500/10 rounded-[2rem] border border-blue-500/15">
                                             <div className="flex items-center gap-4">
-                                                <div className="bg-indigo-100 p-3 rounded-xl text-indigo-600">
+                                                <div className="bg-blue-500/15 p-3 rounded-xl text-blue-600 dark:text-blue-400">
                                                     <Scale className="w-6 h-6" />
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-bold text-indigo-900">Governance & Strategy Documents</h4>
+                                                    <h4 className="font-bold text-blue-900 dark:text-blue-300">Governance & Strategy Documents</h4>
                                                     <div className="flex flex-col gap-1 mt-1">
                                                         {linkedPolicyId && policies.find((p: any) => p.id === linkedPolicyId) && (
-                                                            <p className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                                                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1">
                                                                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                                                                 Linked: <span className="font-semibold underline">{policies.find((p: any) => p.id === linkedPolicyId)?.name}</span>
                                                             </p>
                                                         )}
                                                         {uploadedPolicy && (
-                                                            <p className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                                                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1">
                                                                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                                                                 Uploaded: <span className="font-semibold underline">{uploadedPolicy.name}</span>
                                                             </p>
                                                         )}
                                                         {!linkedPolicyId && !uploadedPolicy && (
-                                                            <p className="text-xs text-indigo-600 font-medium">Manage your organization's risk strategy and custom policies.</p>
+                                                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Manage your organization's risk strategy and custom policies.</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -902,13 +902,13 @@ export default function NIST80037Prepare() {
                                             <div className="flex gap-3">
                                                 <Button
                                                     variant="ghost"
-                                                    className="text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 font-bold"
+                                                    className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 hover:bg-blue-500/20 font-bold"
                                                     onClick={() => linkedPolicyId ? setIsViewPolicyOpen(true) : setIsLinkPolicyOpen(true)}
                                                 >
                                                     {linkedPolicyId ? "View Strategy Policy" : "Link Strategy Policy"}
                                                 </Button>
                                                 <Button
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm gap-2 font-bold rounded-xl"
+                                                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm gap-2 font-bold rounded-xl"
                                                     onClick={() => handleImportClick('policy')}
                                                 >
                                                     <Upload className="w-4 h-4" /> Upload Custom Policy
@@ -948,7 +948,7 @@ export default function NIST80037Prepare() {
                             </Select>
                             <div className="flex justify-end">
                                 <Link href={`/clients/${clientId}/people?tab=stakeholders`}>
-                                    <Button variant="link" size="sm" className="h-auto p-0 text-indigo-600 text-xs">
+                                    <Button variant="link" size="sm" className="h-auto p-0 text-primary text-xs">
                                         + Add new to Registry
                                     </Button>
                                 </Link>
@@ -957,10 +957,10 @@ export default function NIST80037Prepare() {
 
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-slate-200" />
+                                <span className="w-full border-t border-border" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-slate-500">Or Manual Entry</span>
+                                <span className="bg-card px-2 text-muted-foreground">Or Manual Entry</span>
                             </div>
                         </div>
 
@@ -1009,7 +1009,7 @@ export default function NIST80037Prepare() {
                                     <Select
                                         onValueChange={(val) => setNewRoleData(prev => ({ ...prev, roleTitle: val }))}
                                     >
-                                        <SelectTrigger className="h-8 text-xs bg-slate-50">
+                                        <SelectTrigger className="h-8 text-xs bg-muted">
                                             <SelectValue placeholder="Or select from standard roles..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1087,7 +1087,7 @@ export default function NIST80037Prepare() {
 
                             <div className="relative pl-8 pb-8">
                                 {/* Y-Axis Label */}
-                                <div className="absolute -left-4 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-black text-slate-400 uppercase tracking-widest text-center w-32 origin-center transform">
+                                <div className="absolute -left-4 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-black text-muted-foreground uppercase tracking-widest text-center w-32 origin-center transform">
                                     Likelihood
                                 </div>
 
@@ -1098,7 +1098,7 @@ export default function NIST80037Prepare() {
                                                 <div
                                                     key={`edit-${rowIndex}-${colIndex}`}
                                                     onClick={() => handleMatrixCellClick(rowIndex, colIndex)}
-                                                    className={`w-16 h-16 rounded-md flex items-center justify-center font-bold text-sm cursor-pointer hover:opacity-80 transition-all shadow-sm active:scale-95 select-none ring-2 ring-transparent hover:ring-indigo-200 ${getRiskStyle(val)}`}
+                                                    className={`w-16 h-16 rounded-md flex items-center justify-center font-bold text-sm cursor-pointer hover:opacity-80 transition-all shadow-sm active:scale-95 select-none ring-2 ring-transparent hover:ring-blue-500/30 ${getRiskStyle(val)}`}
                                                 >
                                                     {getRiskLabel(val)}
                                                 </div>
@@ -1108,10 +1108,10 @@ export default function NIST80037Prepare() {
                                 </div>
 
                                 {/* X-Axis Label */}
-                                <div className="absolute bottom-0 left-8 right-0 text-center text-xs font-black text-slate-400 uppercase tracking-widest">
+                                <div className="absolute bottom-0 left-8 right-0 text-center text-xs font-black text-muted-foreground uppercase tracking-widest">
                                     Impact
                                 </div>
-                                <div className="grid text-center text-[10px] font-bold text-slate-500 mt-2 ml-2" style={{ gridTemplateColumns: `repeat(${riskMatrix.length}, minmax(0, 1fr))` }}>
+                                <div className="grid text-center text-[10px] font-bold text-muted-foreground mt-2 ml-2" style={{ gridTemplateColumns: `repeat(${riskMatrix.length}, minmax(0, 1fr))` }}>
                                     {riskMatrix.length === 3 ? (
                                         <>
                                             <div>LOW</div>
@@ -1162,7 +1162,7 @@ export default function NIST80037Prepare() {
                         </Select>
                         <div className="mt-4 flex justify-end">
                             <Link href={`/clients/${clientId}/policies`}>
-                                <Button variant="link" className="text-indigo-600 text-xs p-0 h-auto">
+                                <Button variant="link" className="text-primary text-xs p-0 h-auto">
                                     + Create New Policy
                                 </Button>
                             </Link>
@@ -1179,12 +1179,12 @@ export default function NIST80037Prepare() {
                             Current active policy for risk strategy.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex-1 overflow-hidden bg-slate-50 rounded-md border border-slate-200 p-4">
+                    <div className="flex-1 overflow-hidden bg-muted rounded-md border border-border p-4">
                         <ScrollArea className="h-full">
                             {linkedPolicyData ? (
                                 <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: linkedPolicyData.clientPolicy?.content || "<p>No content available.</p>" }} />
                             ) : (
-                                <div className="flex items-center justify-center h-full text-slate-400">Loading policy content...</div>
+                                <div className="flex items-center justify-center h-full text-muted-foreground">Loading policy content...</div>
                             )}
                         </ScrollArea>
                     </div>

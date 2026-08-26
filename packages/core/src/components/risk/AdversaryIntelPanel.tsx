@@ -354,9 +354,9 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
         switch (severity) {
             case 'critical': return 'bg-red-600 text-white';
             case 'high': return 'bg-orange-500 text-white';
-            case 'medium': return 'bg-yellow-500 text-black';
+            case 'medium': return 'bg-yellow-500 text-foreground';
             case 'low': return 'bg-blue-500 text-white';
-            default: return 'bg-slate-500 text-white';
+            default: return 'bg-secondary text-secondary-foreground';
         }
     };
 
@@ -427,16 +427,16 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
     };
 
     return (
-        <Card className="border border-slate-200 shadow-xl bg-white text-slate-900 overflow-hidden">
-            <CardHeader className="pb-4 border-b border-slate-100">
+        <Card className="border border-border shadow-xl bg-card text-foreground overflow-hidden">
+            <CardHeader className="pb-4 border-b border-border">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg">
                             <Radar className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <CardTitle className="text-xl font-bold text-slate-900">Adversary Intelligence</CardTitle>
-                            <CardDescription className="text-slate-500">
+                            <CardTitle className="text-xl font-bold text-foreground">Adversary Intelligence</CardTitle>
+                            <CardDescription className="text-muted-foreground">
                                 Live threat feeds & MITRE ATT&CK framework
                             </CardDescription>
                         </div>
@@ -451,20 +451,20 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 <div className="flex gap-6 mt-4 text-sm">
                     <div className="flex items-center gap-2">
                         <Newspaper className="w-4 h-4 text-blue-500" />
-                        <span className="text-slate-500">Feeds:</span>
-                        <span className="font-semibold text-slate-900">{feedsData?.items?.length || 0}</span>
+                        <span className="text-muted-foreground">Feeds:</span>
+                        <span className="font-semibold text-foreground">{feedsData?.items?.length || 0}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-red-500" />
-                        <span className="text-slate-500">Critical:</span>
+                        <span className="text-muted-foreground">Critical:</span>
                         <span className="font-semibold text-red-600">
                             {feedsData?.items?.filter((f: SecurityFeedItem) => f.severity === 'critical').length || 0}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Target className="w-4 h-4 text-purple-500" />
-                        <span className="text-slate-500">Techniques:</span>
-                        <span className="font-semibold text-slate-900">{mitreData?.techniques?.length || 0}</span>
+                        <span className="text-muted-foreground">Techniques:</span>
+                        <span className="font-semibold text-foreground">{mitreData?.techniques?.length || 0}</span>
                     </div>
                 </div>
             </CardHeader>
@@ -472,7 +472,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
             <CardContent className="p-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <div className="px-6 pt-4 flex items-center justify-between gap-4">
-                        <TabsList className="bg-slate-50 border border-slate-200 p-1 grid grid-cols-6">
+                        <TabsList className="bg-muted border border-border p-1 grid grid-cols-6">
                             <TabsTrigger
                                 value="briefing"
                                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-orange-600 data-[state=active]:text-white"
@@ -551,10 +551,10 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                             {briefingLoading ? (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
-                                    <span className="ml-2 text-slate-400">Analyzing latest threats...</span>
+                                    <span className="ml-2 text-muted-foreground">Analyzing latest threats...</span>
                                 </div>
                             ) : !briefing ? (
-                                <div className="text-center py-12 text-slate-400">
+                                <div className="text-center py-12 text-muted-foreground">
                                     <Zap className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     <p>No briefing data available</p>
                                 </div>
@@ -578,10 +578,10 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                 High Priority
                                             </div>
                                         </div>
-                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                                            <div className="text-slate-600 text-xs font-semibold uppercase tracking-wider mb-1">Assets Scanned</div>
-                                            <div className="text-3xl font-bold text-slate-900">{briefing.summary.totalScanned}</div>
-                                            <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                                        <div className="bg-muted rounded-xl p-4 border border-border">
+                                            <div className="text-foreground/80 text-xs font-semibold uppercase tracking-wider mb-1">Assets Scanned</div>
+                                            <div className="text-3xl font-bold text-foreground">{briefing.summary.totalScanned}</div>
+                                            <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                                                 <Clock className="w-3 h-3" />
                                                 Last 24 Hours
                                             </div>
@@ -597,7 +597,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                     <Zap className="w-5 h-5 text-amber-400" />
                                                     Daily Action Required
                                                 </h4>
-                                                <p className="text-slate-300 text-sm max-w-md">
+                                                <p className="text-white/70 text-sm max-w-md">
                                                     Review and resolve {briefing.summary.newCriticalVulns} new critical vulnerabilities discovered in your environment today.
                                                 </p>
                                             </div>
@@ -613,20 +613,20 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                     {/* Critical Vulns List */}
                                     {briefing.criticalVulns.length > 0 && (
                                         <div className="space-y-3">
-                                            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                            <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                                                 <Shield className="w-4 h-4 text-red-500" />
                                                 Impacted Internal Assets
                                             </h4>
                                             <div className="space-y-2">
                                                 {briefing.criticalVulns.map((v: any, idx: number) => (
-                                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-white hover:border-red-200 transition-colors">
+                                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-red-200 transition-colors">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-8 h-8 rounded bg-red-50 flex items-center justify-center text-red-600 font-bold text-xs">
                                                                 !
                                                             </div>
                                                             <div>
-                                                                <div className="text-sm font-semibold text-slate-900">{v.id}</div>
-                                                                <div className="text-xs text-slate-500">{v.asset}</div>
+                                                                <div className="text-sm font-semibold text-foreground">{v.id}</div>
+                                                                <div className="text-xs text-muted-foreground">{v.asset}</div>
                                                             </div>
                                                         </div>
                                                         <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px]">
@@ -641,7 +641,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                     {/* Urgent News List */}
                                     {briefing.urgentNews.length > 0 && (
                                         <div className="space-y-3">
-                                            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                            <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                                                 <Newspaper className="w-4 h-4 text-orange-500" />
                                                 Urgent Intelligence Alerts
                                             </h4>
@@ -649,14 +649,14 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                 {briefing.urgentNews.map((n: any, idx: number) => (
                                                     <div
                                                         key={idx}
-                                                        className="p-3 rounded-lg border border-slate-100 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                                                        className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
                                                         onClick={() => window.open(n.link, '_blank')}
                                                     >
                                                         <div className="flex items-start justify-between gap-4">
-                                                            <div className="text-sm font-semibold text-slate-900 leading-snug">{n.title}</div>
-                                                            <ExternalLink className="w-3 h-3 text-slate-300 shrink-0" />
+                                                            <div className="text-sm font-semibold text-foreground leading-snug">{n.title}</div>
+                                                            <ExternalLink className="w-3 h-3 text-muted-foreground/60 shrink-0" />
                                                         </div>
-                                                        <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tight">{n.source}</div>
+                                                        <div className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tight">{n.source}</div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -668,12 +668,12 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                     </TabsContent>
                     <div className="px-6 py-4 flex gap-2 flex-wrap">
                         <div className="relative flex-1 min-w-[200px]">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 placeholder={activeTab === 'feeds' ? 'Search feeds, CVEs, tags...' : activeTab === 'groups' ? 'Search threat groups...' : 'Search techniques (e.g., T1566, Phishing)...'}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500"
+                                className="pl-10 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
                             />
                         </div>
                         {activeTab === 'feeds' && (
@@ -682,7 +682,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                     <select
                                         value={categoryFilter}
                                         onChange={(e) => setCategoryFilter(e.target.value)}
-                                        className="h-10 px-3 pr-8 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
+                                        className="h-10 px-3 pr-8 rounded-md border border-border bg-muted text-sm text-foreground focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
                                     >
                                         {categories.map(cat => (
                                             <option key={cat} value={cat}>
@@ -690,7 +690,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                             </option>
                                         ))}
                                     </select>
-                                    <Filter className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <Filter className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                                 </div>
                                 <Button
                                     variant="outline"
@@ -698,7 +698,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                     onClick={() => setSortBy(prev => prev === 'date' ? 'severity' : 'date')}
                                     className={`shrink-0 transition-all duration-200 ${sortBy === 'severity'
                                         ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-                                        : 'text-slate-500 border-slate-200 hover:bg-slate-50'
+                                        : 'text-muted-foreground border-border hover:bg-muted/50'
                                         }`}
                                     title={sortBy === 'severity' ? "Sorted by Criticality" : "Sorted by Date"}
                                 >
@@ -714,19 +714,19 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                             {feedsLoading ? (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-                                    <span className="ml-2 text-slate-400">Loading security feeds...</span>
+                                    <span className="ml-2 text-muted-foreground">Loading security feeds...</span>
                                 </div>
                             ) : filteredFeeds.length === 0 ? (
-                                <div className="text-center py-12 text-slate-400">
+                                <div className="text-center py-12 text-muted-foreground">
                                     <Newspaper className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     <p>No feed items found</p>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div className="divide-y divide-border">
                                     {filteredFeeds.map((item: SecurityFeedItem) => (
                                         <div
                                             key={item.id}
-                                            className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer relative"
+                                            className="p-4 hover:bg-muted/50 transition-colors group cursor-pointer relative"
                                             onClick={() => setSelectedFeedItem(item)}
                                         >
                                             <Button
@@ -742,7 +742,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                 {bookmarks.has(item.id) ? (
                                                     <BookmarkCheck className="w-4 h-4 text-amber-500 fill-amber-500" />
                                                 ) : (
-                                                    <Bookmark className="w-4 h-4 text-slate-400" />
+                                                    <Bookmark className="w-4 h-4 text-muted-foreground" />
                                                 )}
                                             </Button>
                                             <div className="flex items-start justify-between gap-4">
@@ -752,15 +752,15 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                             {getSeverityIcon(item.severity)}
                                                             <span className="ml-1">{item.severity?.toUpperCase() || 'INFO'}</span>
                                                         </Badge>
-                                                        <span className="text-xs text-slate-500">{item.sourceName}</span>
-                                                        <span className="text-xs text-slate-600">•</span>
-                                                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                        <span className="text-xs text-muted-foreground">{item.sourceName}</span>
+                                                        <span className="text-xs text-foreground/80">•</span>
+                                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                             <Clock className="w-3 h-3" />
                                                             {formatTimeAgo(item.pubDate)}
                                                         </span>
                                                         {item.relevanceScore && item.relevanceScore > 10 && (
                                                             <>
-                                                                <span className="text-xs text-slate-600">•</span>
+                                                                <span className="text-xs text-foreground/80">•</span>
                                                                 <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] flex items-center gap-1">
                                                                     <Zap className="w-3 h-3" />
                                                                     Relevant match
@@ -768,10 +768,10 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                             </>
                                                         )}
                                                     </div>
-                                                    <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                                    <h4 className="font-medium text-foreground group-hover:text-blue-600 transition-colors line-clamp-2">
                                                         {item.title}
                                                     </h4>
-                                                    <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                                         {item.description}
                                                     </p>
 
@@ -788,7 +788,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                                         <Badge
                                                                             key={asset.id}
                                                                             variant="outline"
-                                                                            className="text-[10px] bg-white border-red-200 text-red-700 hover:bg-red-50"
+                                                                            className="text-[10px] bg-card border-red-200 text-red-700 hover:bg-red-50"
                                                                         >
                                                                             {asset.name}
                                                                         </Badge>
@@ -828,13 +828,13 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                             );
                                                         })}
                                                         {item.tags?.slice(0, 3).map((tag: string) => (
-                                                            <Badge key={tag} variant="outline" className="text-[10px] border-slate-200 text-slate-500">
+                                                            <Badge key={tag} variant="outline" className="text-[10px] border-border text-muted-foreground">
                                                                 <Tag className="w-2.5 h-2.5 mr-1" />
                                                                 {tag}
                                                             </Badge>
                                                         ))}
                                                         {item.techStack?.map((tech: string) => (
-                                                            <Badge key={tech} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 font-mono">
+                                                            <Badge key={tech} variant="secondary" className="text-[10px] bg-muted text-foreground/80 font-mono">
                                                                 #{tech}
                                                             </Badge>
                                                         ))}
@@ -861,13 +861,13 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                         </ScrollArea>
 
                         {/* Refresh Button */}
-                        <div className="px-6 py-4 border-t border-slate-100">
+                        <div className="px-6 py-4 border-t border-border">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => refreshFeedsMutation.mutate({ clientId })}
                                 disabled={refreshFeedsMutation.isPending}
-                                className="w-full border-slate-200 text-slate-600 hover:bg-slate-50"
+                                className="w-full border-border text-foreground/80 hover:bg-muted/50"
                             >
                                 <RefreshCw className={`w-4 h-4 mr-2 ${refreshFeedsMutation.isPending ? 'animate-spin' : ''}`} />
                                 {refreshFeedsMutation.isPending ? 'Refreshing...' : 'Refresh Feeds'}
@@ -879,9 +879,9 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                     <TabsContent value="mitre" className="m-0">
                         <div className="flex">
                             {/* Tactics Sidebar */}
-                            <div className="w-48 border-r border-slate-100 shrink-0">
-                                <div className="p-3 border-b border-slate-100">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tactics</span>
+                            <div className="w-48 border-r border-border shrink-0">
+                                <div className="p-3 border-b border-border">
+                                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tactics</span>
                                 </div>
                                 <ScrollArea className="h-[440px]">
                                     <div className="p-2 space-y-1">
@@ -889,7 +889,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                             onClick={() => setSelectedTactic(null)}
                                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!selectedTactic
                                                 ? 'bg-purple-600 text-white shadow-sm'
-                                                : 'text-slate-600 hover:bg-slate-50'
+                                                : 'text-foreground/80 hover:bg-muted/50'
                                                 }`}
                                         >
                                             All Techniques
@@ -900,10 +900,10 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                 onClick={() => setSelectedTactic(tactic.id)}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedTactic === tactic.id
                                                     ? 'bg-purple-600 text-white shadow-sm'
-                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                    : 'text-foreground/80 hover:bg-muted/50'
                                                     }`}
                                             >
-                                                <span className={`font-mono text-[10px] mr-1 ${selectedTactic === tactic.id ? 'text-purple-200' : 'text-slate-400'}`}>{tactic.id}</span>
+                                                <span className={`font-mono text-[10px] mr-1 ${selectedTactic === tactic.id ? 'text-purple-200' : 'text-muted-foreground'}`}>{tactic.id}</span>
                                                 <br />
                                                 {tactic.name}
                                             </button>
@@ -918,19 +918,19 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                     {mitreLoading ? (
                                         <div className="flex items-center justify-center py-12">
                                             <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
-                                            <span className="ml-2 text-slate-400">Loading MITRE ATT&CK data...</span>
+                                            <span className="ml-2 text-muted-foreground">Loading MITRE ATT&CK data...</span>
                                         </div>
                                     ) : filteredTechniques.length === 0 ? (
-                                        <div className="text-center py-12 text-slate-400">
+                                        <div className="text-center py-12 text-muted-foreground">
                                             <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                             <p>No techniques found</p>
                                         </div>
                                     ) : (
-                                        <div className="divide-y divide-slate-100">
+                                        <div className="divide-y divide-border">
                                             {filteredTechniques.map((technique: MitreTechnique) => (
                                                 <div
                                                     key={technique.id}
-                                                    className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer"
+                                                    className="p-4 hover:bg-muted/50 transition-colors group cursor-pointer"
                                                     onClick={() => setSelectedTechnique(technique)}
                                                 >
                                                     <div className="flex items-start justify-between gap-4">
@@ -939,7 +939,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                                 <Badge className="bg-purple-100 text-purple-700 border-purple-200 font-mono">
                                                                     {technique.id}
                                                                 </Badge>
-                                                                <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-500">
+                                                                <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
                                                                     {technique.tacticName}
                                                                 </Badge>
                                                                 {technique.isSubtechnique && (
@@ -948,15 +948,15 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                                     </Badge>
                                                                 )}
                                                             </div>
-                                                            <h4 className="font-medium text-slate-900 group-hover:text-purple-600 transition-colors">
+                                                            <h4 className="font-medium text-foreground group-hover:text-purple-600 transition-colors">
                                                                 {technique.name}
                                                             </h4>
-                                                            <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                                                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                                                 {technique.description.slice(0, 150)}...
                                                             </p>
                                                             <div className="flex items-center gap-2 mt-2">
                                                                 {technique.platforms.slice(0, 3).map((platform: string) => (
-                                                                    <Badge key={platform} variant="outline" className="text-[10px] border-white/20 text-slate-500">
+                                                                    <Badge key={platform} variant="outline" className="text-[10px] border-white/20 text-muted-foreground">
                                                                         {platform}
                                                                     </Badge>
                                                                 ))}
@@ -996,7 +996,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                 variant="outline"
                                 size="sm"
                                 onClick={() => refetchMitre()}
-                                className="w-full border-white/20 text-slate-300 hover:bg-white/5"
+                                className="w-full border-white/20 text-white/70 hover:bg-white/5"
                             >
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Refresh MITRE Data
@@ -1010,19 +1010,19 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                             {groupsLoading ? (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-red-400" />
-                                    <span className="ml-2 text-slate-400">Loading threat groups...</span>
+                                    <span className="ml-2 text-muted-foreground">Loading threat groups...</span>
                                 </div>
                             ) : filteredGroups.length === 0 ? (
-                                <div className="text-center py-12 text-slate-400">
+                                <div className="text-center py-12 text-muted-foreground">
                                     <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     <p>No threat groups found</p>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div className="divide-y divide-border">
                                     {filteredGroups.map((group: MitreGroup) => (
                                         <div
                                             key={group.id}
-                                            className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer"
+                                            className="p-4 hover:bg-muted/50 transition-colors group cursor-pointer"
                                             onClick={() => setSelectedGroup(group)}
                                         >
                                             <div className="flex items-start justify-between gap-4">
@@ -1032,24 +1032,24 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                             {group.id}
                                                         </Badge>
                                                         {group.alias && group.alias.length > 0 && (
-                                                            <span className="text-xs text-slate-500">
+                                                            <span className="text-xs text-muted-foreground">
                                                                 aka {group.alias.slice(0, 2).join(', ')}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <h4 className="font-semibold text-slate-900 group-hover:text-red-600 transition-colors">
+                                                    <h4 className="font-semibold text-foreground group-hover:text-red-600 transition-colors">
                                                         {group.name}
                                                     </h4>
-                                                    <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                                         {group.description}
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                                        <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-500">
+                                                        <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
                                                             <Target className="w-3 h-3 mr-1" />
                                                             {group.techniques.length} techniques
                                                         </Badge>
                                                         {group.software && group.software.length > 0 && (
-                                                            <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-500">
+                                                            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
                                                                 <Swords className="w-3 h-3 mr-1" />
                                                                 {group.software.length} tools
                                                             </Badge>
@@ -1079,7 +1079,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
 
                     {/* IOCs Tab */}
                     <TabsContent value="iocs" className="m-0">
-                        <div className="p-4 border-b border-slate-100">
+                        <div className="p-4 border-b border-border">
                             <div className="flex items-center justify-between gap-4 mb-4">
                                 <div className="flex items-center gap-2 flex-1">
                                     <Input
@@ -1089,7 +1089,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                         className="max-w-sm"
                                     />
                                     <select
-                                        className="border border-slate-200 rounded-md px-3 py-2 text-sm"
+                                        className="border border-border rounded-md px-3 py-2 text-sm"
                                         value={categoryFilter}
                                         onChange={(e) => setCategoryFilter(e.target.value)}
                                     >
@@ -1126,13 +1126,13 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                     </Button>
                                 </div>
                             </div>
-                            <div className="text-sm text-slate-500">
-                                <span className="font-semibold text-slate-900">{feedsData?.items?.length || 0}</span> IOCs from feeds +
-                                <span className="font-semibold text-slate-900"> 0</span> manually added
+                            <div className="text-sm text-muted-foreground">
+                                <span className="font-semibold text-foreground">{feedsData?.items?.length || 0}</span> IOCs from feeds +
+                                <span className="font-semibold text-foreground"> 0</span> manually added
                             </div>
                         </div>
                         <ScrollArea className="h-[500px]">
-                            <div className="p-4 text-center text-slate-400">
+                            <div className="p-4 text-center text-muted-foreground">
                                 <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p>IOC Management</p>
                                 <p className="text-xs mt-2">Extract, track, and export Indicators of Compromise</p>
@@ -1142,24 +1142,24 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                  * And use iocStats?.byType to display actual counts
                                  */}
                                 <div className="mt-4 grid grid-cols-2 gap-4 max-w-md mx-auto">
-                                    <div className="p-3 bg-slate-50 rounded-lg text-left">
-                                        <div className="text-lg font-bold text-slate-900">-</div>
-                                        <div className="text-xs text-slate-500">IP Addresses</div>
+                                    <div className="p-3 bg-muted rounded-lg text-left">
+                                        <div className="text-lg font-bold text-foreground">-</div>
+                                        <div className="text-xs text-muted-foreground">IP Addresses</div>
                                     </div>
-                                    <div className="p-3 bg-slate-50 rounded-lg text-left">
-                                        <div className="text-lg font-bold text-slate-900">-</div>
-                                        <div className="text-xs text-slate-500">Domains</div>
+                                    <div className="p-3 bg-muted rounded-lg text-left">
+                                        <div className="text-lg font-bold text-foreground">-</div>
+                                        <div className="text-xs text-muted-foreground">Domains</div>
                                     </div>
-                                    <div className="p-3 bg-slate-50 rounded-lg text-left">
-                                        <div className="text-lg font-bold text-slate-900">-</div>
-                                        <div className="text-xs text-slate-500">Hashes</div>
+                                    <div className="p-3 bg-muted rounded-lg text-left">
+                                        <div className="text-lg font-bold text-foreground">-</div>
+                                        <div className="text-xs text-muted-foreground">Hashes</div>
                                     </div>
-                                    <div className="p-3 bg-slate-50 rounded-lg text-left">
-                                        <div className="text-lg font-bold text-slate-900">-</div>
-                                        <div className="text-xs text-slate-500">URLs</div>
+                                    <div className="p-3 bg-muted rounded-lg text-left">
+                                        <div className="text-lg font-bold text-foreground">-</div>
+                                        <div className="text-xs text-muted-foreground">URLs</div>
                                     </div>
                                 </div>
-                                <p className="text-xs mt-4 text-slate-400">
+                                <p className="text-xs mt-4 text-muted-foreground">
                                     Enable IOC extraction from threat feeds to see statistics
                                 </p>
                                 <Button
@@ -1177,17 +1177,17 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 <TabsContent value="bookmarks" className="m-0">
                     <ScrollArea className="h-[600px]">
                         {bookmarkedFeeds.length === 0 ? (
-                            <div className="text-center py-12 text-slate-400">
+                            <div className="text-center py-12 text-muted-foreground">
                                 <Bookmark className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p>No saved items</p>
                                 <p className="text-xs mt-2">Click the bookmark icon on any feed item to save it here</p>
                             </div>
                         ) : (
-                            <div className="divide-y divide-slate-100">
+                            <div className="divide-y divide-border">
                                 {bookmarkedFeeds.map((item: SecurityFeedItem) => (
                                     <div
                                         key={item.id}
-                                        className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer"
+                                        className="p-4 hover:bg-muted/50 transition-colors group cursor-pointer"
                                         onClick={() => setSelectedFeedItem(item)}
                                     >
                                         <div className="flex items-start justify-between gap-4">
@@ -1196,13 +1196,13 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                                                     <Badge className={`text-[10px] ${getSeverityColor(item.severity)}`}>
                                                         {item.severity?.toUpperCase() || 'INFO'}
                                                     </Badge>
-                                                    <span className="text-xs text-slate-500">{item.sourceName}</span>
-                                                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                    <span className="text-xs text-muted-foreground">{item.sourceName}</span>
+                                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                         <Clock className="w-3 h-3" />
                                                         {formatTimeAgo(item.pubDate)}
                                                     </span>
                                                 </div>
-                                                <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                                <h4 className="font-medium text-foreground group-hover:text-blue-600 transition-colors line-clamp-2">
                                                     {item.title}
                                                 </h4>
                                             </div>
@@ -1229,25 +1229,25 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
 
             {/* Feed Item Detail Dialog */ }
     <Dialog open={!!selectedFeedItem && !createThreatDialog.open} onOpenChange={(open) => !open && setSelectedFeedItem(null)}>
-        <DialogContent className="max-w-2xl bg-white border-slate-200 text-slate-900">
+        <DialogContent className="max-w-2xl bg-card border-border text-foreground">
             <DialogHeader>
                 <div className="flex items-center gap-2 mb-2">
                     <Badge className={`${getSeverityColor(selectedFeedItem?.severity)}`}>
                         {selectedFeedItem?.severity?.toUpperCase() || 'INFO'}
                     </Badge>
-                    <span className="text-sm text-slate-500">{selectedFeedItem?.sourceName}</span>
+                    <span className="text-sm text-muted-foreground">{selectedFeedItem?.sourceName}</span>
                 </div>
-                <DialogTitle className="text-xl text-slate-900">{selectedFeedItem?.title}</DialogTitle>
-                <DialogDescription className="text-slate-500">
+                <DialogTitle className="text-xl text-foreground">{selectedFeedItem?.title}</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
                     Published {selectedFeedItem?.pubDate && new Date(selectedFeedItem.pubDate).toLocaleString()}
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-                <p className="text-slate-600">{selectedFeedItem?.description}</p>
+                <p className="text-foreground/80">{selectedFeedItem?.description}</p>
 
                 {selectedFeedItem?.cveIds && selectedFeedItem.cveIds.length > 0 && (
                     <div>
-                        <span className="text-xs font-semibold text-slate-500 uppercase">Related CVEs</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">Related CVEs</span>
                         <div className="flex flex-wrap gap-2 mt-1">
                             {selectedFeedItem.cveIds.map((cve: string) => (
                                 <a
@@ -1269,10 +1269,10 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
 
                 {selectedFeedItem?.tags && selectedFeedItem.tags.length > 0 && (
                     <div>
-                        <span className="text-xs font-semibold text-slate-500 uppercase">Tags</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">Tags</span>
                         <div className="flex flex-wrap gap-2 mt-1">
                             {selectedFeedItem.tags.map((tag: string) => (
-                                <Badge key={tag} variant="outline" className="border-slate-200 text-slate-600">
+                                <Badge key={tag} variant="outline" className="border-border text-foreground/80">
                                     <Tag className="w-3 h-3 mr-1" />
                                     {tag}
                                 </Badge>
@@ -1285,7 +1285,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 <Button
                     variant="outline"
                     onClick={() => window.open(selectedFeedItem?.link, '_blank')}
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                    className="border-border text-foreground/80 hover:bg-muted/50"
                 >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Read Full Article
@@ -1303,13 +1303,13 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
 
     {/* Technique Detail Dialog */ }
     <Dialog open={!!selectedTechnique && !createThreatDialog.open} onOpenChange={(open) => !open && setSelectedTechnique(null)}>
-        <DialogContent className="max-w-2xl bg-white border-slate-200 text-slate-900 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-card border-border text-foreground max-h-[80vh] overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-2 mb-2">
                     <Badge className="bg-purple-100 text-purple-700 border-purple-200 font-mono">
                         {selectedTechnique?.id}
                     </Badge>
-                    <Badge variant="outline" className="border-slate-200 text-slate-500">
+                    <Badge variant="outline" className="border-border text-muted-foreground">
                         {selectedTechnique?.tacticName}
                     </Badge>
                 </div>
@@ -1317,15 +1317,15 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
             </DialogHeader>
             <div className="space-y-4">
                 <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Description</span>
-                    <p className="text-slate-600 mt-1 whitespace-pre-wrap text-sm">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase">Description</span>
+                    <p className="text-foreground/80 mt-1 whitespace-pre-wrap text-sm">
                         {selectedTechnique?.description}
                     </p>
                 </div>
 
                 {selectedTechnique?.platforms && selectedTechnique.platforms.length > 0 && (
                     <div>
-                        <span className="text-xs font-semibold text-slate-400 uppercase">Platforms</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">Platforms</span>
                         <div className="flex flex-wrap gap-2 mt-1">
                             {selectedTechnique.platforms.map((platform: string) => (
                                 <Badge key={platform} variant="outline" className="border-blue-500/30 text-blue-400">
@@ -1338,20 +1338,20 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
 
                 {selectedTechnique?.mitigations && selectedTechnique.mitigations.length > 0 && (
                     <div>
-                        <span className="text-xs font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
                             <ShieldCheck className="w-3 h-3" />
                             Mitigations ({selectedTechnique.mitigations.length})
                         </span>
                         <div className="space-y-2 mt-2">
                             {selectedTechnique.mitigations.slice(0, 5).map((mitigation: { id: string; name: string; description: string }) => (
-                                <div key={mitigation.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <div key={mitigation.id} className="p-3 bg-muted rounded-lg border border-border">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Badge className="bg-green-100 text-green-700 border-green-200 font-mono text-[10px]">
                                             {mitigation.id}
                                         </Badge>
-                                        <span className="font-medium text-sm text-slate-900">{mitigation.name}</span>
+                                        <span className="font-medium text-sm text-foreground">{mitigation.name}</span>
                                     </div>
-                                    <p className="text-xs text-slate-500 line-clamp-2">{mitigation.description}</p>
+                                    <p className="text-xs text-muted-foreground line-clamp-2">{mitigation.description}</p>
                                 </div>
                             ))}
                         </div>
@@ -1362,7 +1362,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 <Button
                     variant="outline"
                     onClick={() => window.open(selectedTechnique?.url, '_blank')}
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                    className="border-border text-foreground/80 hover:bg-muted/50"
                 >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     View on MITRE
@@ -1380,27 +1380,27 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
 
     {/* Create Risk Confirmation Dialog */ }
     <Dialog open={createThreatDialog.open} onOpenChange={(open) => setCreateThreatDialog({ ...createThreatDialog, open })}>
-        <DialogContent className="bg-white border-slate-200 text-slate-900">
+        <DialogContent className="bg-card border-border text-foreground">
             <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-900">
+                <DialogTitle className="flex items-center gap-2 text-foreground">
                     <Plus className="w-5 h-5 text-green-600" />
                     Create Threat from Intelligence
                 </DialogTitle>
-                <DialogDescription className="text-slate-500">
+                <DialogDescription className="text-muted-foreground">
                     This will create a new threat entry in your Threat Library based on the selected {createThreatDialog.type === 'feed' ? 'security alert' : 'MITRE ATT&CK technique'}.
                 </DialogDescription>
             </DialogHeader>
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+            <div className="p-4 bg-muted rounded-lg border border-border">
                 {createThreatDialog.type === 'feed' && selectedFeedItem && (
                     <>
-                        <p className="font-medium text-slate-900">[Threat Intel] {selectedFeedItem.title.slice(0, 80)}</p>
-                        <p className="text-sm text-slate-500 mt-1">From: {selectedFeedItem.sourceName}</p>
+                        <p className="font-medium text-foreground">[Threat Intel] {selectedFeedItem.title.slice(0, 80)}</p>
+                        <p className="text-sm text-muted-foreground mt-1">From: {selectedFeedItem.sourceName}</p>
                     </>
                 )}
                 {createThreatDialog.type === 'technique' && selectedTechnique && (
                     <>
-                        <p className="font-medium text-slate-900">[{selectedTechnique.id}] {selectedTechnique.name}</p>
-                        <p className="text-sm text-slate-500 mt-1">Tactic: {selectedTechnique.tacticName}</p>
+                        <p className="font-medium text-foreground">[{selectedTechnique.id}] {selectedTechnique.name}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Tactic: {selectedTechnique.tacticName}</p>
                     </>
                 )}
             </div>
@@ -1408,7 +1408,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 <Button
                     variant="outline"
                     onClick={() => setCreateThreatDialog({ open: false, type: 'feed' })}
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                    className="border-border text-foreground/80 hover:bg-muted/50"
                 >
                     Cancel
                 </Button>
@@ -1592,11 +1592,11 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 <div className="space-y-2">
                     <h4 className="text-sm font-semibold">CVSS Score Threshold</h4>
                     <div className="flex items-center gap-3">
-                        <span className="text-sm text-slate-500">Alert on CVSS ≥</span>
+                        <span className="text-sm text-muted-foreground">Alert on CVSS ≥</span>
                         <select
                             value={alertSettings?.cvssThreshold ?? 7}
                             onChange={(e) => saveAlertSettingsMutation.mutate({ clientId, cvssThreshold: parseInt(e.target.value) })}
-                            className="px-3 py-1.5 rounded border border-slate-200 text-sm"
+                            className="px-3 py-1.5 rounded border border-border text-sm"
                         >
                             <option value={9}>9.0 (Critical)</option>
                             <option value={7}>7.0 (High)</option>

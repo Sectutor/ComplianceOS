@@ -83,9 +83,9 @@ export default function PrivacyProgramGuide() {
             countLabel: `${ropaCount} Activities Logged`,
             isCompleted: ropaCount > 0,
             icon: FileText,
-            color: 'text-indigo-600',
-            bgLight: 'bg-indigo-50',
-            borderColor: 'border-indigo-200',
+            color: 'text-blue-600',
+            bgLight: 'bg-blue-50',
+            borderColor: 'border-blue-200',
             gradient: 'from-indigo-500 to-purple-600',
             summary: 'Document every business activity that processes personal data, including the legal basis, purpose, and retention.',
             whyItMatters: 'Mandated by European DPAs. In an audit, you must present an up-to-date Article 30 record within 48–72 hours or face fines up to €10M.',
@@ -245,7 +245,7 @@ export default function PrivacyProgramGuide() {
                                         GDPR • CCPA • ISO 27701
                                     </Badge>
                                 </div>
-                                <p className="text-slate-300 text-base mt-1">
+                                <p className="text-white/70 text-base mt-1">
                                     Complete operational playbook, step-by-step tutorials, and cross-module workflow engine.
                                 </p>
                             </div>
@@ -266,7 +266,7 @@ export default function PrivacyProgramGuide() {
                     {/* Progress Bar & Telemetry */}
                     <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <span className="text-sm font-bold text-white/80 flex items-center gap-2">
                                 <Shield className="w-4 h-4 text-emerald-400" />
                                 Privacy Program Maturity & Implementation
                             </span>
@@ -276,19 +276,19 @@ export default function PrivacyProgramGuide() {
                         </div>
                         <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 text-xs">
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{inventoryCount}</span> PII Assets
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{ropaCount}</span> ROPA Processes
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{dpiaCount}</span> DPIAs Conducted
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{tiaCount}</span> Schrems II TIAs
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{dsarCount}</span> DSARs Processed
                             </div>
                         </div>
@@ -297,11 +297,11 @@ export default function PrivacyProgramGuide() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 border-b border-slate-200 pb-2">
+            <div className="flex gap-2 border-b border-border pb-2">
                 <Button
                     variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('tutorials')}
-                    className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Step-by-Step Operating Manual
@@ -309,7 +309,7 @@ export default function PrivacyProgramGuide() {
                 <Button
                     variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('architecture')}
-                    className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <Globe className="w-4 h-4 mr-2" />
                     Architecture & Data Flow
@@ -317,7 +317,7 @@ export default function PrivacyProgramGuide() {
                 <Button
                     variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('auditor')}
-                    className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Auditor & Board Clean Room
@@ -332,14 +332,14 @@ export default function PrivacyProgramGuide() {
                     <div className="xl:col-span-4 2xl:col-span-3.5 space-y-6 xl:sticky xl:top-24">
                         
                         {/* 1. Framework Focus Selector */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="bg-muted border-b border-border p-4">
+                                <CardTitle className="text-sm font-bold text-foreground flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
                                         <Globe className="w-4 h-4 text-sky-600" />
                                         Framework Lens
                                     </span>
-                                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-500">
+                                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground">
                                         Standard
                                     </Badge>
                                 </CardTitle>
@@ -351,12 +351,12 @@ export default function PrivacyProgramGuide() {
                                         "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
                                         selectedFramework === 'gdpr'
                                             ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
-                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                            : "border-border hover:bg-muted/50 text-foreground/80 font-medium"
                                     )}
                                 >
                                     <div>
                                         <div className="text-sm font-bold">GDPR (EU 2016/679)</div>
-                                        <div className="text-xs text-slate-500">Global Privacy Benchmark</div>
+                                        <div className="text-xs text-muted-foreground">Global Privacy Benchmark</div>
                                     </div>
                                     {selectedFramework === 'gdpr' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
                                 </button>
@@ -367,12 +367,12 @@ export default function PrivacyProgramGuide() {
                                         "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
                                         selectedFramework === 'ccpa'
                                             ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
-                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                            : "border-border hover:bg-muted/50 text-foreground/80 font-medium"
                                     )}
                                 >
                                     <div>
                                         <div className="text-sm font-bold">CCPA / CPRA (California)</div>
-                                        <div className="text-xs text-slate-500">Consumer Rights & "Do Not Sell"</div>
+                                        <div className="text-xs text-muted-foreground">Consumer Rights & "Do Not Sell"</div>
                                     </div>
                                     {selectedFramework === 'ccpa' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
                                 </button>
@@ -383,12 +383,12 @@ export default function PrivacyProgramGuide() {
                                         "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
                                         selectedFramework === 'iso27701'
                                             ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
-                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                            : "border-border hover:bg-muted/50 text-foreground/80 font-medium"
                                     )}
                                 >
                                     <div>
                                         <div className="text-sm font-bold">ISO/IEC 27701 (PIMS)</div>
-                                        <div className="text-xs text-slate-500">Privacy Management Extension</div>
+                                        <div className="text-xs text-muted-foreground">Privacy Management Extension</div>
                                     </div>
                                     {selectedFramework === 'iso27701' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
                                 </button>
@@ -396,14 +396,14 @@ export default function PrivacyProgramGuide() {
                         </Card>
 
                         {/* 2. Pillars Quick Navigator */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="bg-muted border-b border-border p-4">
+                                <CardTitle className="text-sm font-bold text-foreground flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
-                                        <Layers className="w-4 h-4 text-indigo-600" />
+                                        <Layers className="w-4 h-4 text-primary" />
                                         Program Pillars
                                     </span>
-                                    <span className="text-xs text-slate-500 font-medium">{completedPillars} of 5 Ready</span>
+                                    <span className="text-xs text-muted-foreground font-medium">{completedPillars} of 5 Ready</span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-3 space-y-1.5">
@@ -417,14 +417,14 @@ export default function PrivacyProgramGuide() {
                                             className={cn(
                                                 "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between text-xs group",
                                                 isCurrent
-                                                    ? "bg-slate-900 text-white font-bold shadow-md"
-                                                    : "text-slate-700 hover:bg-slate-100 font-medium"
+                                                    ? "bg-primary text-primary-foreground font-bold shadow-md"
+                                                    : "text-foreground/80 hover:bg-muted/50 font-medium"
                                             )}
                                         >
                                             <div className="flex items-center gap-2.5 overflow-hidden">
                                                 <div className={cn(
                                                     "w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] shrink-0",
-                                                    isCurrent ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                                                    isCurrent ? "bg-white/20 text-white" : "bg-muted text-foreground/80"
                                                 )}>
                                                     {p.number}
                                                 </div>
@@ -433,7 +433,7 @@ export default function PrivacyProgramGuide() {
                                             {p.isCompleted ? (
                                                 <CheckCircle2 className={cn("w-4 h-4 shrink-0", isCurrent ? "text-emerald-300" : "text-emerald-600")} />
                                             ) : (
-                                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0", isCurrent ? "bg-white/10 text-white" : "bg-slate-100 text-slate-500")}>
+                                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0", isCurrent ? "bg-white/10 text-white" : "bg-muted text-muted-foreground")}>
                                                     Pending
                                                 </span>
                                             )}
@@ -444,7 +444,7 @@ export default function PrivacyProgramGuide() {
                         </Card>
 
                         {/* 3. Regulatory Enforcement & Deadlines */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
                             <CardHeader className="bg-rose-50/70 border-b border-rose-100 p-4">
                                 <CardTitle className="text-sm font-bold text-rose-950 flex items-center gap-1.5">
                                     <Clock className="w-4 h-4 text-rose-600" />
@@ -452,36 +452,36 @@ export default function PrivacyProgramGuide() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 space-y-3 text-xs">
-                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                <div className="p-2.5 rounded-xl bg-muted border border-border space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-foreground">
                                         <span>72 Hours</span>
                                         <Badge variant="outline" className="text-[9px] bg-rose-100 text-rose-800 border-none font-bold">Art. 33</Badge>
                                     </div>
-                                    <p className="text-slate-600 text-[11px]">Mandatory DPA breach notification upon incident detection.</p>
+                                    <p className="text-foreground/80 text-[11px]">Mandatory DPA breach notification upon incident detection.</p>
                                 </div>
 
-                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                <div className="p-2.5 rounded-xl bg-muted border border-border space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-foreground">
                                         <span>30 Days</span>
                                         <Badge variant="outline" className="text-[9px] bg-amber-100 text-amber-800 border-none font-bold">Art. 12(3)</Badge>
                                     </div>
-                                    <p className="text-slate-600 text-[11px]">Data subject access/erasure (DSAR) fulfillment window.</p>
+                                    <p className="text-foreground/80 text-[11px]">Data subject access/erasure (DSAR) fulfillment window.</p>
                                 </div>
 
-                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                <div className="p-2.5 rounded-xl bg-muted border border-border space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-foreground">
                                         <span>48–72 Hours</span>
                                         <Badge variant="outline" className="text-[9px] bg-blue-100 text-blue-800 border-none font-bold">Art. 30</Badge>
                                     </div>
-                                    <p className="text-slate-600 text-[11px]">ROPA register presentation to supervisory authorities.</p>
+                                    <p className="text-foreground/80 text-[11px]">ROPA register presentation to supervisory authorities.</p>
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* 4. Quick Action Downloads */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="bg-muted border-b border-border p-4">
+                                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-1.5">
                                     <Sparkles className="w-4 h-4 text-amber-500" />
                                     Quick Clean-Room Tools
                                 </CardTitle>
@@ -491,16 +491,16 @@ export default function PrivacyProgramGuide() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/ropa`)}
-                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
-                                    <FileText className="w-3.5 h-3.5 mr-2 text-indigo-600" />
+                                    <FileText className="w-3.5 h-3.5 mr-2 text-primary" />
                                     Export Article 30 ROPA (CSV)
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/inventory`)}
-                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
                                     <Database className="w-3.5 h-3.5 mr-2 text-sky-600" />
                                     Open Data Inventory Map
@@ -509,7 +509,7 @@ export default function PrivacyProgramGuide() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
-                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
                                     <Scale className="w-3.5 h-3.5 mr-2 text-emerald-600" />
                                     Launch High-Risk DPIA
@@ -527,9 +527,9 @@ export default function PrivacyProgramGuide() {
                                 <Card
                                     key={pillar.id}
                                     id={`pillar-${pillar.id}`}
-                                    className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white scroll-mt-24"
+                                    className="border-border shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card scroll-mt-24"
                                 >
-                                    <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-5 sm:p-6`}>
+                                    <CardHeader className={`${pillar.bgLight} border-b border-border p-5 sm:p-6`}>
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                                                 <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md bg-gradient-to-br shrink-0", pillar.gradient)}>
@@ -537,26 +537,26 @@ export default function PrivacyProgramGuide() {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <CardTitle className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
+                                                        <CardTitle className="text-lg sm:text-xl font-bold text-foreground leading-snug">
                                                             {pillar.title}
                                                         </CardTitle>
-                                                        <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold shrink-0">
+                                                        <Badge className="bg-card border-border text-foreground/80 text-[10px] font-bold shrink-0">
                                                             {pillar.legalRef}
                                                         </Badge>
                                                     </div>
-                                                    <CardDescription className="text-slate-600 text-xs sm:text-sm font-medium mt-0.5">
+                                                    <CardDescription className="text-foreground/80 text-xs sm:text-sm font-medium mt-0.5">
                                                         {pillar.summary}
                                                     </CardDescription>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
-                                                <Badge className={cn("font-bold text-[11px] sm:text-xs px-2.5 py-1 border-none shrink-0 whitespace-nowrap", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                                                <Badge className={cn("font-bold text-[11px] sm:text-xs px-2.5 py-1 border-none shrink-0 whitespace-nowrap", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
                                                     {pillar.countLabel}
                                                 </Badge>
                                                 <Button
                                                     onClick={() => setLocation(pillar.link)}
-                                                    className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-all shadow-sm flex items-center"
+                                                    className="bg-primary hover:bg-brand-bright text-primary-foreground font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-all shadow-sm flex items-center"
                                                 >
                                                     <span>{pillar.cta}</span>
                                                     <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 shrink-0" />
@@ -565,22 +565,22 @@ export default function PrivacyProgramGuide() {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-6 grid md:grid-cols-2 gap-6">
-                                        <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                 <Info className="w-3.5 h-3.5 text-brand-bright" />
                                                 Why This Step Is Critical
                                             </h4>
-                                            <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                            <p className="text-sm text-foreground/80 leading-relaxed font-medium">
                                                 {pillar.whyItMatters}
                                             </p>
                                         </div>
 
-                                        <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                 How to Execute in ComplianceOS
                                             </h4>
-                                            <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                            <ul className="space-y-1.5 text-xs text-foreground/80 leading-relaxed font-medium">
                                                 {pillar.howToExecute.map((step, idx) => (
                                                     <li key={idx} className="flex items-start gap-2">
                                                         <span className="text-brand-bright font-bold shrink-0">•</span>
@@ -601,10 +601,10 @@ export default function PrivacyProgramGuide() {
             {/* TAB 2: Architecture & Data Flow */}
             {activeTab === 'architecture' && (
                 <div className="space-y-6">
-                    <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                    <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                         <div className="space-y-2">
-                            <h3 className="text-2xl font-bold text-slate-900">The Connected Privacy Ecosystem</h3>
-                            <p className="text-slate-600">
+                            <h3 className="text-2xl font-bold text-foreground">The Connected Privacy Ecosystem</h3>
+                            <p className="text-foreground/80">
                                 ComplianceOS integrates technical asset discovery, legal activity records, cross-border risk assessments, and subject rights into a single automated pipeline.
                             </p>
                         </div>
@@ -614,18 +614,18 @@ export default function PrivacyProgramGuide() {
                                 <div className="h-10 w-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
                                     1
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-lg">Discovery & Mapping</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <h4 className="font-bold text-foreground text-lg">Discovery & Mapping</h4>
+                                <p className="text-xs text-foreground/80 leading-relaxed">
                                     Technical data stores in <strong>Data Inventory</strong> feed into business activities in <strong>ROPA</strong>.
                                 </p>
                             </div>
 
-                            <div className="p-6 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-3">
-                                <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                            <div className="p-6 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-3">
+                                <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                                     2
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-lg">Risk & Transfer Evaluation</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <h4 className="font-bold text-foreground text-lg">Risk & Transfer Evaluation</h4>
+                                <p className="text-xs text-foreground/80 leading-relaxed">
                                     High-risk processes trigger <strong>DPIAs</strong>; non-EEA subprocessors trigger <strong>Schrems II TIAs</strong>.
                                 </p>
                             </div>
@@ -634,8 +634,8 @@ export default function PrivacyProgramGuide() {
                                 <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
                                     3
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-lg">Rights & Emergency Response</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <h4 className="font-bold text-foreground text-lg">Rights & Emergency Response</h4>
+                                <p className="text-xs text-foreground/80 leading-relaxed">
                                     <strong>DSARs</strong> purge data across discovered assets; <strong>Breach Register</strong> executes 72h notifications.
                                 </p>
                             </div>
@@ -647,24 +647,24 @@ export default function PrivacyProgramGuide() {
             {/* TAB 3: Auditor Clean Room */}
             {activeTab === 'auditor' && (
                 <div className="space-y-6">
-                    <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                    <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                         <div className="space-y-2">
-                            <h3 className="text-2xl font-bold text-slate-900">Auditor & Board Executive Summary</h3>
-                            <p className="text-slate-600">
+                            <h3 className="text-2xl font-bold text-foreground">Auditor & Board Executive Summary</h3>
+                            <p className="text-foreground/80">
                                 Deliverables and verification records available for ISO 27701 certifiers, DPA supervisory authorities, and enterprise security questionnaires.
                             </p>
                         </div>
 
-                        <div className="divide-y divide-slate-100">
+                        <div className="divide-y divide-border">
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">Article 30 ROPA Compliance Register</h5>
-                                    <p className="text-xs text-slate-500">Official tabular record of all processing activities, legal bases, and retention.</p>
+                                    <h5 className="font-bold text-foreground">Article 30 ROPA Compliance Register</h5>
+                                    <p className="text-xs text-muted-foreground">Official tabular record of all processing activities, legal bases, and retention.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/ropa`)}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     Export CSV / View
                                 </Button>
@@ -672,13 +672,13 @@ export default function PrivacyProgramGuide() {
 
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">Schrems II Transfer Impact Assessment Dossier</h5>
-                                    <p className="text-xs text-slate-500">Legal evaluation of US/offshore cloud data hosting with supplementary safeguards.</p>
+                                    <h5 className="font-bold text-foreground">Schrems II Transfer Impact Assessment Dossier</h5>
+                                    <p className="text-xs text-muted-foreground">Legal evaluation of US/offshore cloud data hosting with supplementary safeguards.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/transfers`)}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     View TIA Workspace
                                 </Button>
@@ -686,13 +686,13 @@ export default function PrivacyProgramGuide() {
 
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">DPIA Risk Certifications & DPO Sign-Offs</h5>
-                                    <p className="text-xs text-slate-500">Formal Article 35 high-risk impact analyses for AI governance and customer data.</p>
+                                    <h5 className="font-bold text-foreground">DPIA Risk Certifications & DPO Sign-Offs</h5>
+                                    <p className="text-xs text-muted-foreground">Formal Article 35 high-risk impact analyses for AI governance and customer data.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/dpia`)}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     View DPIA Reports
                                 </Button>
@@ -700,13 +700,13 @@ export default function PrivacyProgramGuide() {
 
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">Data Subject Rights (DSAR) Audit Logs</h5>
-                                    <p className="text-xs text-slate-500">Time-stamped audit certificates proving erasure across all organizational databases.</p>
+                                    <h5 className="font-bold text-foreground">Data Subject Rights (DSAR) Audit Logs</h5>
+                                    <p className="text-xs text-muted-foreground">Time-stamped audit certificates proving erasure across all organizational databases.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => setLocation(`/clients/${clientId}/privacy/dsar`)}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     View DSAR Portal
                                 </Button>

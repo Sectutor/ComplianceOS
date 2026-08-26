@@ -140,9 +140,9 @@ export default function CyberProgramGuide() {
             countLabel: `${implementedControls} / ${totalControls} Controls Deployed`,
             isCompleted: implementedControls > 0,
             icon: ShieldCheck,
-            color: 'text-indigo-600',
-            bgLight: 'bg-indigo-50',
-            borderColor: 'border-indigo-200',
+            color: 'text-blue-600',
+            bgLight: 'bg-blue-50',
+            borderColor: 'border-blue-200',
             gradient: 'from-indigo-500 to-purple-600',
             summary: 'Deploy the 10 core cybersecurity safeguards (MFA, Zero Trust, Cryptography, Incident Handling, and Air-Gapped Backups).',
             whyItMatters: 'Article 21 mandates that entities take "appropriate and proportionate technical, operational and organizational measures" to manage risks.',
@@ -307,7 +307,7 @@ export default function CyberProgramGuide() {
                                         EU NIS2 • NIST CSF 2.0 • DORA
                                     </Badge>
                                 </div>
-                                <p className="text-slate-300 text-base mt-1">
+                                <p className="text-white/70 text-base mt-1">
                                     Systemic cyber resilience strategy, Article 21 technical measures, 24h CSIRT notification workflow, and board governance.
                                 </p>
                             </div>
@@ -328,7 +328,7 @@ export default function CyberProgramGuide() {
                     {/* Progress Bar & Telemetry */}
                     <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <span className="text-sm font-bold text-white/80 flex items-center gap-2">
                                 <Activity className="w-4 h-4 text-emerald-400" />
                                 Cyber Resilience & NIS2 Maturity
                             </span>
@@ -338,16 +338,16 @@ export default function CyberProgramGuide() {
                         </div>
                         <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{implementedControls} / {totalControls}</span> Safeguards Active
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{totalRisks}</span> Cyber Risks Tracked
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{treatedRisks}</span> Mitigations Deployed
                             </div>
-                            <div className="text-slate-300">
+                            <div className="text-white/70">
                                 <span className="font-bold text-white">{scenarioCount}</span> Threat Scenarios Tested
                             </div>
                         </div>
@@ -356,11 +356,11 @@ export default function CyberProgramGuide() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 border-b border-slate-200 pb-2">
+            <div className="flex gap-2 border-b border-border pb-2">
                 <Button
                     variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('tutorials')}
-                    className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Step-by-Step Operating Manual
@@ -368,7 +368,7 @@ export default function CyberProgramGuide() {
                 <Button
                     variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('architecture')}
-                    className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <Layers className="w-4 h-4 mr-2" />
                     NIS2 Architecture & Threat Loop
@@ -376,7 +376,7 @@ export default function CyberProgramGuide() {
                 <Button
                     variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('auditor')}
-                    className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white" : "text-slate-600")}
+                    className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Auditor & CSIRT Clean Room
@@ -391,14 +391,14 @@ export default function CyberProgramGuide() {
                     <div className="xl:col-span-4 2xl:col-span-3.5 space-y-6 xl:sticky xl:top-24">
                         
                         {/* 1. Framework Focus Selector */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="bg-muted border-b border-border p-4">
+                                <CardTitle className="text-sm font-bold text-foreground flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
                                         <Globe className="w-4 h-4 text-sky-600" />
                                         Framework Lens
                                     </span>
-                                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-500">
+                                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground">
                                         Standard
                                     </Badge>
                                 </CardTitle>
@@ -410,12 +410,12 @@ export default function CyberProgramGuide() {
                                         "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
                                         selectedFramework === 'nis2'
                                             ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
-                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                            : "border-border hover:bg-muted/50 text-foreground/80 font-medium"
                                     )}
                                 >
                                     <div>
                                         <div className="text-sm font-bold">NIS2 Directive (EU 2022/2555)</div>
-                                        <div className="text-xs text-slate-500">EU Essential & Important Sectors</div>
+                                        <div className="text-xs text-muted-foreground">EU Essential & Important Sectors</div>
                                     </div>
                                     {selectedFramework === 'nis2' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
                                 </button>
@@ -426,12 +426,12 @@ export default function CyberProgramGuide() {
                                         "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
                                         selectedFramework === 'nist_csf'
                                             ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
-                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                            : "border-border hover:bg-muted/50 text-foreground/80 font-medium"
                                     )}
                                 >
                                     <div>
                                         <div className="text-sm font-bold">NIST CSF 2.0</div>
-                                        <div className="text-xs text-slate-500">Govern • Protect • Respond</div>
+                                        <div className="text-xs text-muted-foreground">Govern • Protect • Respond</div>
                                     </div>
                                     {selectedFramework === 'nist_csf' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
                                 </button>
@@ -442,12 +442,12 @@ export default function CyberProgramGuide() {
                                         "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between border",
                                         selectedFramework === 'dora'
                                             ? "bg-sky-50 border-sky-300 text-sky-950 font-bold shadow-sm"
-                                            : "border-slate-100 hover:bg-slate-50 text-slate-700 font-medium"
+                                            : "border-border hover:bg-muted/50 text-foreground/80 font-medium"
                                     )}
                                 >
                                     <div>
                                         <div className="text-sm font-bold">DORA (Financial ICT)</div>
-                                        <div className="text-xs text-slate-500">Digital Operational Resilience</div>
+                                        <div className="text-xs text-muted-foreground">Digital Operational Resilience</div>
                                     </div>
                                     {selectedFramework === 'dora' && <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />}
                                 </button>
@@ -455,14 +455,14 @@ export default function CyberProgramGuide() {
                         </Card>
 
                         {/* 2. Pillars Quick Navigator */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="bg-muted border-b border-border p-4">
+                                <CardTitle className="text-sm font-bold text-foreground flex items-center justify-between">
                                     <span className="flex items-center gap-1.5">
-                                        <Layers className="w-4 h-4 text-indigo-600" />
+                                        <Layers className="w-4 h-4 text-primary" />
                                         Program Pillars
                                     </span>
-                                    <span className="text-xs text-slate-500 font-medium">{completedPillars} of 5 Ready</span>
+                                    <span className="text-xs text-muted-foreground font-medium">{completedPillars} of 5 Ready</span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-3 space-y-1.5">
@@ -475,14 +475,14 @@ export default function CyberProgramGuide() {
                                             className={cn(
                                                 "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between text-xs group",
                                                 isCurrent
-                                                    ? "bg-slate-900 text-white font-bold shadow-md"
-                                                    : "text-slate-700 hover:bg-slate-100 font-medium"
+                                                    ? "bg-primary text-primary-foreground font-bold shadow-md"
+                                                    : "text-foreground/80 hover:bg-muted/50 font-medium"
                                             )}
                                         >
                                             <div className="flex items-center gap-2.5 overflow-hidden">
                                                 <div className={cn(
                                                     "w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] shrink-0",
-                                                    isCurrent ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                                                    isCurrent ? "bg-white/20 text-white" : "bg-muted text-foreground/80"
                                                 )}>
                                                     {p.number}
                                                 </div>
@@ -491,7 +491,7 @@ export default function CyberProgramGuide() {
                                             {p.isCompleted ? (
                                                 <CheckCircle2 className={cn("w-4 h-4 shrink-0", isCurrent ? "text-emerald-300" : "text-emerald-600")} />
                                             ) : (
-                                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0", isCurrent ? "bg-white/10 text-white" : "bg-slate-100 text-slate-500")}>
+                                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0", isCurrent ? "bg-white/10 text-white" : "bg-muted text-muted-foreground")}>
                                                     Pending
                                                 </span>
                                             )}
@@ -502,7 +502,7 @@ export default function CyberProgramGuide() {
                         </Card>
 
                         {/* 3. Statutory Deadlines */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
                             <CardHeader className="bg-rose-50/70 border-b border-rose-100 p-4">
                                 <CardTitle className="text-sm font-bold text-rose-950 flex items-center gap-1.5">
                                     <Clock className="w-4 h-4 text-rose-600" />
@@ -510,36 +510,36 @@ export default function CyberProgramGuide() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 space-y-3 text-xs">
-                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                <div className="p-2.5 rounded-xl bg-muted border border-border space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-foreground">
                                         <span>24 Hours</span>
                                         <Badge variant="outline" className="text-[9px] bg-rose-100 text-rose-800 border-none font-bold">Art. 23(4)(a)</Badge>
                                     </div>
-                                    <p className="text-slate-600 text-[11px]">Mandatory Early Warning to national CSIRT upon incident detection.</p>
+                                    <p className="text-foreground/80 text-[11px]">Mandatory Early Warning to national CSIRT upon incident detection.</p>
                                 </div>
 
-                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                <div className="p-2.5 rounded-xl bg-muted border border-border space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-foreground">
                                         <span>72 Hours</span>
                                         <Badge variant="outline" className="text-[9px] bg-amber-100 text-amber-800 border-none font-bold">Art. 23(4)(b)</Badge>
                                     </div>
-                                    <p className="text-slate-600 text-[11px]">Formal incident notification with initial severity assessment and IoCs.</p>
+                                    <p className="text-foreground/80 text-[11px]">Formal incident notification with initial severity assessment and IoCs.</p>
                                 </div>
 
-                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                                    <div className="flex items-center justify-between font-bold text-slate-900">
+                                <div className="p-2.5 rounded-xl bg-muted border border-border space-y-1">
+                                    <div className="flex items-center justify-between font-bold text-foreground">
                                         <span>1 Month</span>
                                         <Badge variant="outline" className="text-[9px] bg-blue-100 text-blue-800 border-none font-bold">Art. 23(4)(e)</Badge>
                                     </div>
-                                    <p className="text-slate-600 text-[11px]">Final comprehensive incident report with root cause analysis.</p>
+                                    <p className="text-foreground/80 text-[11px]">Final comprehensive incident report with root cause analysis.</p>
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* 4. Quick Action Downloads */}
-                        <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden bg-white">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
-                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="bg-muted border-b border-border p-4">
+                                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-1.5">
                                     <Sparkles className="w-4 h-4 text-amber-500" />
                                     Quick Clean-Room Tools
                                 </CardTitle>
@@ -549,7 +549,7 @@ export default function CyberProgramGuide() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => downloadFile('nis2-early-warning-template.md', NIS2_EARLY_WARNING_MD, 'text/markdown;charset=utf-8')}
-                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
                                     <Zap className="w-3.5 h-3.5 mr-2 text-rose-600" />
                                     Download 24h CSIRT Template
@@ -558,16 +558,16 @@ export default function CyberProgramGuide() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => downloadFile('nis2-controls-matrix.csv', NIS2_CONTROLS_MATRIX_CSV, 'text/csv;charset=utf-8')}
-                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
-                                    <FileText className="w-3.5 h-3.5 mr-2 text-indigo-600" />
+                                    <FileText className="w-3.5 h-3.5 mr-2 text-primary" />
                                     Export Article 21 Matrix (CSV)
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => downloadFile('supply-chain-due-diligence.csv', SUPPLY_CHAIN_DUE_DILIGENCE_CSV, 'text/csv;charset=utf-8')}
-                                    className="w-full justify-start text-xs font-bold text-slate-700"
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
                                     <Lock className="w-3.5 h-3.5 mr-2 text-amber-600" />
                                     Supply Chain Audit Form
@@ -584,9 +584,9 @@ export default function CyberProgramGuide() {
                                 <Card
                                     key={pillar.id}
                                     id={`pillar-${pillar.id}`}
-                                    className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-white scroll-mt-24"
+                                    className="border-border shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card scroll-mt-24"
                                 >
-                                    <CardHeader className={`${pillar.bgLight} border-b border-slate-100 p-5 sm:p-6`}>
+                                    <CardHeader className={`${pillar.bgLight} border-b border-border p-5 sm:p-6`}>
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                                                 <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md bg-gradient-to-br shrink-0", pillar.gradient)}>
@@ -594,26 +594,26 @@ export default function CyberProgramGuide() {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <CardTitle className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
+                                                        <CardTitle className="text-lg sm:text-xl font-bold text-foreground leading-snug">
                                                             {pillar.title}
                                                         </CardTitle>
-                                                        <Badge className="bg-white border-slate-200 text-slate-700 text-[10px] font-bold shrink-0">
+                                                        <Badge className="bg-card border-border text-foreground/80 text-[10px] font-bold shrink-0">
                                                             {pillar.legalRef}
                                                         </Badge>
                                                     </div>
-                                                    <CardDescription className="text-slate-600 text-xs sm:text-sm font-medium mt-0.5">
+                                                    <CardDescription className="text-foreground/80 text-xs sm:text-sm font-medium mt-0.5">
                                                         {pillar.summary}
                                                     </CardDescription>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
-                                                <Badge className={cn("font-bold text-[11px] sm:text-xs px-2.5 py-1 border-none shrink-0 whitespace-nowrap", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600")}>
+                                            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                                                <Badge className={cn("font-bold text-[11px] sm:text-xs px-2.5 py-1 border-none shrink-0 whitespace-nowrap", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
                                                     {pillar.countLabel}
                                                 </Badge>
                                                 <Button
                                                     onClick={() => setLocation(pillar.link)}
-                                                    className="bg-slate-900 hover:bg-brand-bright text-white font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-all shadow-sm flex items-center"
+                                                    className="bg-primary hover:bg-brand-bright text-primary-foreground font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-all shadow-sm flex items-center"
                                                 >
                                                     <span>{pillar.cta}</span>
                                                     <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 shrink-0" />
@@ -622,22 +622,22 @@ export default function CyberProgramGuide() {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-6 grid md:grid-cols-2 gap-6">
-                                        <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                 <Info className="w-3.5 h-3.5 text-brand-bright" />
                                                 Why This Step Is Critical
                                             </h4>
-                                            <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                            <p className="text-sm text-foreground/80 leading-relaxed font-medium">
                                                 {pillar.whyItMatters}
                                             </p>
                                         </div>
 
-                                        <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                 How to Execute in ComplianceOS
                                             </h4>
-                                            <ul className="space-y-1.5 text-xs text-slate-600 leading-relaxed font-medium">
+                                            <ul className="space-y-1.5 text-xs text-foreground/80 leading-relaxed font-medium">
                                                 {pillar.howToExecute.map((step, idx) => (
                                                     <li key={idx} className="flex items-start gap-2">
                                                         <span className="text-brand-bright font-bold shrink-0">•</span>
@@ -646,7 +646,7 @@ export default function CyberProgramGuide() {
                                                 ))}
                                             </ul>
                                             {pillar.downloadAction && (
-                                                <div className="pt-2 border-t border-slate-200">
+                                                <div className="pt-2 border-t border-border">
                                                     <Button
                                                         variant="link"
                                                         className="text-xs font-bold text-sky-600 p-0 h-auto hover:text-sky-800"
@@ -670,10 +670,10 @@ export default function CyberProgramGuide() {
             {/* TAB 2: Architecture & Threat Loop */}
             {activeTab === 'architecture' && (
                 <div className="space-y-6">
-                    <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                    <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                         <div className="space-y-2">
-                            <h3 className="text-2xl font-bold text-slate-900">The Connected Cyber Resilience Loop</h3>
-                            <p className="text-slate-600">
+                            <h3 className="text-2xl font-bold text-foreground">The Connected Cyber Resilience Loop</h3>
+                            <p className="text-foreground/80">
                                 NIS2 compliance requires an active continuous feedback loop integrating threat intelligence, vulnerability remediation, supply chain audits, and incident containment.
                             </p>
                         </div>
@@ -683,18 +683,18 @@ export default function CyberProgramGuide() {
                                 <div className="h-10 w-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
                                     1
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-lg">Predict & Protect</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <h4 className="font-bold text-foreground text-lg">Predict & Protect</h4>
+                                <p className="text-xs text-foreground/80 leading-relaxed">
                                     <strong>Threat Intelligence</strong> feeds into <strong>Article 21 Safeguards</strong> (MFA, Zero Trust, Network Segmentation).
                                 </p>
                             </div>
 
-                            <div className="p-6 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
-                                <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                            <div className="p-6 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-3">
+                                <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                                     2
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-lg">Detect & Triage</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <h4 className="font-bold text-foreground text-lg">Detect & Triage</h4>
+                                <p className="text-xs text-foreground/80 leading-relaxed">
                                     <strong>Continuous Monitoring</strong> detects anomalous behavior; <strong>Incident Reporting</strong> triggers 24h Early Warnings.
                                 </p>
                             </div>
@@ -703,8 +703,8 @@ export default function CyberProgramGuide() {
                                 <div className="h-10 w-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold">
                                     3
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-lg">Recover & Oversee</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <h4 className="font-bold text-foreground text-lg">Recover & Oversee</h4>
+                                <p className="text-xs text-foreground/80 leading-relaxed">
                                     <strong>Business Continuity</strong> executes recovery; <strong>Board Governance</strong> reviews root causes and risk budgets.
                                 </p>
                             </div>
@@ -716,24 +716,24 @@ export default function CyberProgramGuide() {
             {/* TAB 3: Auditor & CSIRT Clean Room */}
             {activeTab === 'auditor' && (
                 <div className="space-y-6">
-                    <Card className="border-slate-200 shadow-xl rounded-2xl p-8 bg-white space-y-6">
+                    <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
                         <div className="space-y-2">
-                            <h3 className="text-2xl font-bold text-slate-900">Auditor & National CSIRT Clean Room</h3>
-                            <p className="text-slate-600">
+                            <h3 className="text-2xl font-bold text-foreground">Auditor & National CSIRT Clean Room</h3>
+                            <p className="text-foreground/80">
                                 Direct export package of technical measures, incident response runbooks, and supply chain certifications for supervisory authorities.
                             </p>
                         </div>
 
-                        <div className="divide-y divide-slate-100">
+                        <div className="divide-y divide-border">
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">NIS2 Article 21 Controls Matrix (CSV)</h5>
-                                    <p className="text-xs text-slate-500">Official technical mapping of all 10 minimum security measures with verification proof.</p>
+                                    <h5 className="font-bold text-foreground">NIS2 Article 21 Controls Matrix (CSV)</h5>
+                                    <p className="text-xs text-muted-foreground">Official technical mapping of all 10 minimum security measures with verification proof.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => downloadFile('nis2-controls-matrix.csv', NIS2_CONTROLS_MATRIX_CSV, 'text/csv;charset=utf-8')}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     <Download className="w-3.5 h-3.5 mr-1.5" />
                                     Export Controls (CSV)
@@ -742,13 +742,13 @@ export default function CyberProgramGuide() {
 
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">24-Hour CSIRT Early Warning Form (Markdown)</h5>
-                                    <p className="text-xs text-slate-500">Statutory notification draft for national CSIRTs and competent authorities.</p>
+                                    <h5 className="font-bold text-foreground">24-Hour CSIRT Early Warning Form (Markdown)</h5>
+                                    <p className="text-xs text-muted-foreground">Statutory notification draft for national CSIRTs and competent authorities.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => downloadFile('nis2-early-warning-template.md', NIS2_EARLY_WARNING_MD, 'text/markdown;charset=utf-8')}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     <Download className="w-3.5 h-3.5 mr-1.5" />
                                     Download 24h Template
@@ -757,13 +757,13 @@ export default function CyberProgramGuide() {
 
                             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
-                                    <h5 className="font-bold text-slate-900">Supply Chain Due Diligence Register (CSV)</h5>
-                                    <p className="text-xs text-slate-500">Tier 1 critical vendor assessments, cloud SLAs, and contractual security clauses.</p>
+                                    <h5 className="font-bold text-foreground">Supply Chain Due Diligence Register (CSV)</h5>
+                                    <p className="text-xs text-muted-foreground">Tier 1 critical vendor assessments, cloud SLAs, and contractual security clauses.</p>
                                 </div>
                                 <Button
                                     variant="outline"
                                     onClick={() => downloadFile('supply-chain-due-diligence.csv', SUPPLY_CHAIN_DUE_DILIGENCE_CSV, 'text/csv;charset=utf-8')}
-                                    className="border-slate-300 font-bold text-xs"
+                                    className="border-border font-bold text-xs"
                                 >
                                     <Download className="w-3.5 h-3.5 mr-1.5" />
                                     Download Vendor Register
