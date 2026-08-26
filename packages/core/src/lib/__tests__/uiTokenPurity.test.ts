@@ -91,6 +91,21 @@ const PAGES = [
   'packages/core/src/pages/iso27001/ISODashboard.tsx',
   // Compliance journey dashboard — tokenized in cycle 48.
   'packages/core/src/pages/ComplianceJourneyDashboard.tsx',
+  // Cycle 49 tokenization wave - enforced strictly from landing; the UI agent
+  // tokenizes these in parallel within cycle 49. Deliberately NOT listed in
+  // PARALLEL_BUILD_FILES: absence is a failure.
+  // Assurance SAML v2 view - tokenized in cycle 49.
+  'packages/core/src/pages/assurance/SAMMV2View.tsx',
+  // Essential Eight view - tokenized in cycle 49.
+  'packages/core/src/pages/assurance/EssentialEightView.tsx',
+  // Maturity assessment view - tokenized in cycle 49.
+  'packages/core/src/pages/assurance/MaturityAssessmentView.tsx',
+  // FedRAMP package detail page - tokenized in cycle 49.
+  'packages/core/src/pages/federal/FedRAMPPackageDetailPage.tsx',
+  // ISO 27001 document tracker - tokenized in cycle 49.
+  'packages/core/src/pages/iso27001/ISODocumentTracker.tsx',
+  // Client controls page - tokenized in cycle 49.
+  'packages/core/src/pages/ClientControlsPage.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing

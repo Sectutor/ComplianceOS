@@ -56,7 +56,7 @@ export default function FedRAMPPackageDetailPage() {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="animate-pulse text-slate-400">Loading package details...</div>
+                    <div className="animate-pulse text-muted-foreground">Loading package details...</div>
                 </div>
             </DashboardLayout>
         );
@@ -251,14 +251,14 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                     <ArrowLeft className="w-5 h-5" />
                                 </Button>
                             </Link>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                            <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
                                 {pkg.title}
                             </h1>
                             <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-200 border-sky-200 px-3 py-1">
                                 {pkg.impactLevel} Baseline
                             </Badge>
                         </div>
-                        <p className="text-slate-500 text-lg flex items-center gap-2 ml-12">
+                        <p className="text-muted-foreground text-lg flex items-center gap-2 ml-12">
                             <Building2 className="w-4 h-4" />
                             {pkg.agencyName} • {pkg.authorizationType} Authorization
                         </p>
@@ -266,14 +266,14 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                     <div className="flex gap-3 ml-12 md:ml-0">
                         <Button
                             variant="outline"
-                            className="rounded-xl border-slate-200 shadow-sm gap-2 active:scale-95 transition-all"
+                            className="rounded-xl border-border shadow-sm gap-2 active:scale-95 transition-all"
                             onClick={() => setShowSettingsDialog(true)}
                         >
                             <Settings className="w-4 h-4" />
                             Package Settings
                         </Button>
                         <Button
-                            className="bg-slate-900 text-white hover:bg-black rounded-xl shadow-lg gap-2 active:scale-95 transition-all"
+                            className="bg-foreground text-background hover:bg-foreground/90 rounded-xl shadow-lg gap-2 active:scale-95 transition-all"
                             onClick={() => setShowExportDialog(true)}
                         >
                             <Download className="w-4 h-4" />
@@ -284,7 +284,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
 
                 {/* Status Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <Card className="border-0 shadow-md bg-white overflow-hidden group">
+                    <Card className="border-0 shadow-md bg-card overflow-hidden group">
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2 bg-sky-50 rounded-xl text-sky-600 group-hover:scale-110 transition-transform">
@@ -296,15 +296,15 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                             </div>
                             <div className="space-y-3">
                                 <div className="flex justify-between items-end">
-                                    <span className="text-3xl font-black text-slate-900">{progress}%</span>
-                                    <span className="text-slate-400 text-xs font-medium mb-1">{completedControls} / {totalControls} Controls</span>
+                                    <span className="text-3xl font-black text-foreground">{progress}%</span>
+                                    <span className="text-muted-foreground text-xs font-medium mb-1">{completedControls} / {totalControls} Controls</span>
                                 </div>
-                                <Progress value={progress} className="h-2 bg-slate-100" />
+                                <Progress value={progress} className="h-2 bg-muted" />
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-md bg-white overflow-hidden group">
+                    <Card className="border-0 shadow-md bg-card overflow-hidden group">
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2 bg-amber-50 rounded-xl text-amber-600 group-hover:scale-110 transition-transform">
@@ -315,16 +315,16 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 </Badge>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-3xl font-black text-slate-900">{metrics?.totalWeaknesses || 0}</span>
-                                <p className="text-slate-500 text-xs font-medium">Remediation actions required</p>
+                                <span className="text-3xl font-black text-foreground">{metrics?.totalWeaknesses || 0}</span>
+                                <p className="text-muted-foreground text-xs font-medium">Remediation actions required</p>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-md bg-white overflow-hidden group">
+                    <Card className="border-0 shadow-md bg-card overflow-hidden group">
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 group-hover:scale-110 transition-transform">
+                                <div className="p-2 bg-primary/10 rounded-xl text-primary group-hover:scale-110 transition-transform">
                                     <Clock className="w-6 h-6" />
                                 </div>
                                 <Badge variant="outline" className="text-[10px] font-bold uppercase">
@@ -332,13 +332,13 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 </Badge>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-3xl font-black text-slate-900">{pkg.provisioningStatus}</span>
-                                <p className="text-slate-500 text-xs font-medium">Current authorization phase</p>
+                                <span className="text-3xl font-black text-foreground">{pkg.provisioningStatus}</span>
+                                <p className="text-muted-foreground text-xs font-medium">Current authorization phase</p>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-md bg-white overflow-hidden group">
+                    <Card className="border-0 shadow-md bg-card overflow-hidden group">
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600 group-hover:scale-110 transition-transform">
@@ -349,8 +349,8 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 </Badge>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-xl font-black text-slate-900 line-clamp-1">SSP Finalization</span>
-                                <p className="text-slate-500 text-xs font-medium">Target: Q3 2026</p>
+                                <span className="text-xl font-black text-foreground line-clamp-1">SSP Finalization</span>
+                                <p className="text-muted-foreground text-xs font-medium">Target: Q3 2026</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -361,11 +361,11 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                     {/* Main Column */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Control Assessment Section */}
-                        <Card className="border-0 shadow-lg bg-white overflow-hidden">
-                            <CardHeader className="bg-slate-50 border-b border-slate-100 p-8">
+                        <Card className="border-0 shadow-lg bg-card overflow-hidden">
+                            <CardHeader className="bg-muted border-b border-border p-8">
                                 <div className="flex justify-between items-center">
                                     <div className="space-y-1">
-                                        <CardTitle className="text-2xl font-black text-slate-900">Control Implementation</CardTitle>
+                                        <CardTitle className="text-2xl font-black text-foreground">Control Implementation</CardTitle>
                                         <CardDescription>Assess and document your {pkg.impactLevel} baseline controls.</CardDescription>
                                     </div>
                                     <Link href={`/clients/${clientId}/federal/assessment?packageId=${pkg.id}&impact=${pkg.impactLevel}`}>
@@ -378,26 +378,26 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                             </CardHeader>
                             <CardContent className="p-8">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+                                    <div className="p-6 rounded-2xl bg-muted border border-border space-y-4">
                                         <div className="flex items-center gap-2 text-emerald-600">
                                             <ShieldCheck className="w-5 h-5" />
                                             <span className="font-bold text-sm uppercase tracking-wider">Compliant</span>
                                         </div>
-                                        <div className="text-3xl font-black text-slate-900">{metrics?.compliantItems || 0}</div>
+                                        <div className="text-3xl font-black text-foreground">{metrics?.compliantItems || 0}</div>
                                     </div>
-                                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+                                    <div className="p-6 rounded-2xl bg-muted border border-border space-y-4">
                                         <div className="flex items-center gap-2 text-amber-500">
                                             <Clock className="w-5 h-5" />
                                             <span className="font-bold text-sm uppercase tracking-wider">Partial</span>
                                         </div>
-                                        <div className="text-3xl font-black text-slate-900">{metrics?.partialItems || 0}</div>
+                                        <div className="text-3xl font-black text-foreground">{metrics?.partialItems || 0}</div>
                                     </div>
-                                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+                                    <div className="p-6 rounded-2xl bg-muted border border-border space-y-4">
                                         <div className="flex items-center gap-2 text-rose-500">
                                             <AlertTriangle className="w-5 h-5" />
                                             <span className="font-bold text-sm uppercase tracking-wider">Non-Compliant</span>
                                         </div>
-                                        <div className="text-3xl font-black text-slate-900">{metrics?.nonCompliantItems || 0}</div>
+                                        <div className="text-3xl font-black text-foreground">{metrics?.nonCompliantItems || 0}</div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -405,23 +405,23 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
 
                         {/* Artifact Management */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <Card className="border-0 shadow-lg bg-white overflow-hidden group hover:scale-[1.02] transition-transform">
+                            <Card className="border-0 shadow-lg bg-card overflow-hidden group hover:scale-[1.02] transition-transform">
                                 <CardContent className="p-8 space-y-6">
                                     <div className="flex justify-between items-center">
-                                        <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
+                                        <div className="p-3 bg-primary/10 rounded-2xl text-primary">
                                             <FileText className="w-8 h-8" />
                                         </div>
-                                        <Badge variant="secondary" className="bg-indigo-50 text-indigo-700">Ready for Export</Badge>
+                                        <Badge variant="secondary" className="bg-primary/10 text-primary">Ready for Export</Badge>
                                     </div>
                                     <div className="space-y-2">
-                                        <h3 className="text-xl font-bold text-slate-900">System Security Plan (SSP)</h3>
-                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                        <h3 className="text-xl font-bold text-foreground">System Security Plan (SSP)</h3>
+                                        <p className="text-muted-foreground text-sm leading-relaxed">
                                             Comprehensive documentation of all management, operational, and technical controls.
                                         </p>
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="w-full rounded-xl border-indigo-100 text-indigo-700 hover:bg-indigo-50 gap-2 active:scale-95 transition-all"
+                                        className="w-full rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 active:scale-95 transition-all"
                                         onClick={() => setShowExportDialog(true)}
                                     >
                                         <Download className="w-4 h-4" />
@@ -430,7 +430,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 </CardContent>
                             </Card>
 
-                            <Card className="border-0 shadow-lg bg-white overflow-hidden group hover:scale-[1.02] transition-transform">
+                            <Card className="border-0 shadow-lg bg-card overflow-hidden group hover:scale-[1.02] transition-transform">
                                 <CardContent className="p-8 space-y-6">
                                     <div className="flex justify-between items-center">
                                         <div className="p-3 bg-rose-50 rounded-2xl text-rose-600">
@@ -439,8 +439,8 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                         <Badge variant="secondary" className="bg-rose-50 text-rose-700">In-Process</Badge>
                                     </div>
                                     <div className="space-y-2">
-                                        <h3 className="text-xl font-bold text-slate-900">Security Assessment Report (SAR)</h3>
-                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                        <h3 className="text-xl font-bold text-foreground">Security Assessment Report (SAR)</h3>
+                                        <p className="text-muted-foreground text-sm leading-relaxed">
                                             Results of the 3PAO assessment, documenting control testing and vulnerability findings.
                                         </p>
                                     </div>
@@ -459,7 +459,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
 
                     {/* Sidebar Column */}
                     <div className="space-y-8">
-                        <Card className="border-0 shadow-lg bg-slate-900 text-white overflow-hidden">
+                        <Card className="border-0 shadow-lg bg-foreground text-background overflow-hidden">
                             <CardContent className="p-8 space-y-6">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white/10 rounded-xl">
@@ -470,7 +470,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 <div className="space-y-4">
                                     <div className="pb-4 border-b border-white/10">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Weakness Status</span>
+                                            <span className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Weakness Status</span>
                                             <span className="text-xs font-mono text-amber-400">24 Items</span>
                                         </div>
                                         <div className="flex gap-1 h-3 mt-3">
@@ -480,7 +480,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                         </div>
                                     </div>
                                     <Button
-                                        className="w-full bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold gap-2 active:scale-95 transition-all"
+                                        className="w-full bg-card text-foreground hover:bg-muted rounded-xl font-bold gap-2 active:scale-95 transition-all"
                                         onClick={() => setShowPoamDialog(true)}
                                     >
                                         Manage POA&M
@@ -490,23 +490,23 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                             </CardContent>
                         </Card>
 
-                        <Card className="border-0 shadow-lg bg-white overflow-hidden">
+                        <Card className="border-0 shadow-lg bg-card overflow-hidden">
                             <CardHeader className="pb-4">
                                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                                    <Layers className="w-5 h-5 text-indigo-600" />
+                                    <Layers className="w-5 h-5 text-primary" />
                                     Inheritance Management
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6 space-y-4">
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
                                         <div className="flex items-center gap-3">
                                             <Cloud className="w-4 h-4 text-sky-500" />
                                             <span className="text-sm font-bold">AWS (PaS)</span>
                                         </div>
                                         <Badge variant="outline" className="text-[10px]">128 Controls</Badge>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
                                         <div className="flex items-center gap-3">
                                             <Shield className="w-4 h-4 text-emerald-500" />
                                             <span className="text-sm font-bold">Azure Government</span>
@@ -516,7 +516,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 </div>
                                 <Button
                                     variant="outline"
-                                    className="w-full rounded-xl gap-2 font-bold text-slate-600 active:scale-95 transition-all"
+                                    className="w-full rounded-xl gap-2 font-bold text-muted-foreground active:scale-95 transition-all"
                                     onClick={() => setShowInheritanceDialog(true)}
                                 >
                                     Configure Partners
@@ -535,9 +535,9 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                     description="Review vulnerabilities and significant findings identified by the 3PAO."
                     size="3xl"
                 >
-                    <div className="border rounded-xl bg-white overflow-hidden">
+                    <div className="border rounded-xl bg-card overflow-hidden">
                         <Table>
-                            <TableHeader className="bg-slate-50">
+                            <TableHeader className="bg-muted">
                                 <TableRow>
                                     <TableHead>Finding ID</TableHead>
                                     <TableHead>Description</TableHead>
@@ -548,7 +548,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                             <TableBody>
                                 {sarFindings?.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center text-slate-500">
+                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                                             No findings recorded yet.
                                         </TableCell>
                                     </TableRow>
@@ -562,7 +562,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                                     className={
                                                         f.riskLevel === 'High' ? 'bg-rose-100 text-rose-700 border-rose-200' :
                                                             f.riskLevel === 'Moderate' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                                                'bg-slate-100 text-slate-700'
+                                                                'bg-muted text-foreground'
                                                     }
                                                 >
                                                     {f.riskLevel}
@@ -584,9 +584,9 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                     description="Track remediation progress for identified weaknesses."
                     size="3xl"
                 >
-                    <div className="border rounded-xl bg-white overflow-hidden">
+                    <div className="border rounded-xl bg-card overflow-hidden">
                         <Table>
-                            <TableHeader className="bg-slate-50">
+                            <TableHeader className="bg-muted">
                                 <TableRow>
                                     <TableHead>Weakness ID</TableHead>
                                     <TableHead>Description</TableHead>
@@ -597,22 +597,22 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                             <TableBody>
                                 {poams?.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center text-slate-500">
+                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                                             No open POA&Ms.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     poams?.map((p: any) => (
                                         <TableRow key={p.id}>
-                                            <TableCell className="font-mono font-bold text-slate-700">{p.weaknessId}</TableCell>
+                                            <TableCell className="font-mono font-bold text-foreground">{p.weaknessId}</TableCell>
                                             <TableCell>{p.weaknessDescription}</TableCell>
-                                            <TableCell className="text-slate-500">
+                                            <TableCell className="text-muted-foreground">
                                                 {p.scheduledCompletionDate ? new Date(p.scheduledCompletionDate).toLocaleDateString() : 'TBD'}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge
                                                     variant="outline"
-                                                    className={p.status === 'Ongoing' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : ''}
+                                                    className={p.status === 'Ongoing' ? 'bg-primary/10 text-primary border-primary/20' : ''}
                                                 >
                                                     {p.status}
                                                 </Badge>
@@ -633,8 +633,8 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                     size="3xl"
                 >
                     <div className="space-y-6 py-4">
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                            <h3 className="text-sm font-bold text-slate-900 mb-3">Add New Inheritance</h3>
+                        <div className="p-4 bg-muted rounded-xl border border-border">
+                            <h3 className="text-sm font-bold text-foreground mb-3">Add New Inheritance</h3>
                             <form onSubmit={handleAddInheritance} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div className="space-y-1 md:col-span-1">
                                     <Label htmlFor="inh-partner" className="text-xs">Partner / CSP</Label>
@@ -666,16 +666,16 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 <Button
                                     type="submit"
                                     disabled={createInheritanceMutation.isPending}
-                                    className="bg-indigo-600 text-white hover:bg-indigo-700"
+                                    className="bg-primary text-white hover:bg-primary"
                                 >
                                     {createInheritanceMutation.isPending ? "Adding..." : "Add"}
                                 </Button>
                             </form>
                         </div>
 
-                        <div className="border rounded-xl bg-white overflow-hidden">
+                        <div className="border rounded-xl bg-card overflow-hidden">
                             <Table>
-                                <TableHeader className="bg-slate-50">
+                                <TableHeader className="bg-muted">
                                     <TableRow>
                                         <TableHead>Control ID</TableHead>
                                         <TableHead>Partner</TableHead>
@@ -687,7 +687,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                 <TableBody>
                                     {!inheritances || inheritances.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center text-slate-500">
+                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                                                 No inherited controls configured.
                                             </TableCell>
                                         </TableRow>
@@ -701,7 +701,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                                         {i.partnerName}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-sm text-slate-600 max-w-[200px] truncate" title={i.description}>
+                                                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate" title={i.description}>
                                                     {i.description || '-'}
                                                 </TableCell>
                                                 <TableCell>
@@ -791,7 +791,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                     footer={
                         <div className="flex justify-end gap-2 w-full">
                             <Button variant="ghost" onClick={() => setShowExportDialog(false)}>Cancel</Button>
-                            <Button onClick={handleExport} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <Button onClick={handleExport} className="bg-primary hover:bg-primary/90 text-white">
                                 Start Export Job
                             </Button>
                         </div>
@@ -829,7 +829,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                             <h3 className="text-sm font-medium">Format Options</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div
-                                    className={`border rounded-xl p-4 cursor-pointer hover:bg-slate-50 relative ${exportFormat.oscal ? 'border-indigo-500 bg-indigo-50/10' : ''}`}
+                                    className={`border rounded-xl p-4 cursor-pointer hover:bg-muted relative ${exportFormat.oscal ? 'border-primary bg-primary/10' : ''}`}
                                     onClick={() => setExportFormat(prev => ({ ...prev, oscal: !prev.oscal }))}
                                 >
                                     <Checkbox
@@ -839,7 +839,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                         onCheckedChange={(c) => setExportFormat(prev => ({ ...prev, oscal: !!c }))}
                                     />
                                     <div className="space-y-2">
-                                        <div className="p-2 w-fit rounded-lg bg-indigo-100 text-indigo-700">
+                                        <div className="p-2 w-fit rounded-lg bg-primary/20 text-primary">
                                             <FileText className="w-5 h-5" />
                                         </div>
                                         <div>
@@ -849,7 +849,7 @@ function PackageDetailView({ pkg, clientId, metrics }: { pkg: any, clientId: num
                                     </div>
                                 </div>
                                 <div
-                                    className={`border rounded-xl p-4 cursor-pointer hover:bg-slate-50 relative ${exportFormat.docx ? 'border-indigo-500 bg-indigo-50/10' : ''}`}
+                                    className={`border rounded-xl p-4 cursor-pointer hover:bg-muted relative ${exportFormat.docx ? 'border-primary bg-primary/10' : ''}`}
                                     onClick={() => setExportFormat(prev => ({ ...prev, docx: !prev.docx }))}
                                 >
                                     <Checkbox

@@ -175,11 +175,11 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
 
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                        <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
                             <Shield className="w-10 h-10 text-primary" />
                             {activeFramework.name}
                         </h1>
-                        <p className="text-slate-500 font-medium max-w-2xl">
+                        <p className="text-muted-foreground font-medium max-w-2xl">
                             {activeFramework.description}
                         </p>
                     </div>
@@ -236,7 +236,7 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
 
                 {/* Stats Dashboard */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                    <Card className="rounded-3xl border-border shadow-sm overflow-hidden bg-card">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="p-2 bg-blue-50 rounded-xl">
@@ -248,15 +248,15 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-3xl font-black text-slate-900">{Math.round((stats.achieved / stats.total) * 100) || 0}%</span>
-                                    <span className="text-sm font-bold text-slate-400">achieved</span>
+                                    <span className="text-3xl font-black text-foreground">{Math.round((stats.achieved / stats.total) * 100) || 0}%</span>
+                                    <span className="text-sm font-bold text-muted-foreground">achieved</span>
                                 </div>
-                                <Progress value={(stats.achieved / stats.total) * 100} className="h-2 bg-slate-100" />
+                                <Progress value={(stats.achieved / stats.total) * 100} className="h-2 bg-muted" />
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                    <Card className="rounded-3xl border-border shadow-sm overflow-hidden bg-card">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="p-2 bg-emerald-50 rounded-xl">
@@ -267,13 +267,13 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                 </Badge>
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-3xl font-black text-slate-900">{stats.achieved}</span>
-                                <span className="text-sm font-bold text-slate-400">/ {stats.total} total</span>
+                                <span className="text-3xl font-black text-foreground">{stats.achieved}</span>
+                                <span className="text-sm font-bold text-muted-foreground">/ {stats.total} total</span>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                    <Card className="rounded-3xl border-border shadow-sm overflow-hidden bg-card">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="p-2 bg-orange-50 rounded-xl">
@@ -284,8 +284,8 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                 </Badge>
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-3xl font-black text-slate-900">{stats.target - stats.achieved > 0 ? stats.target - stats.achieved : 0}</span>
-                                <span className="text-sm font-bold text-slate-400">remaining to target</span>
+                                <span className="text-3xl font-black text-foreground">{stats.target - stats.achieved > 0 ? stats.target - stats.achieved : 0}</span>
+                                <span className="text-sm font-bold text-muted-foreground">remaining to target</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -294,10 +294,10 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                 <div className="grid grid-cols-12 gap-8">
                     {/* Sidebar Navigation */}
                     <div className="col-span-12 lg:col-span-3 space-y-4">
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-2">
-                            <div className="p-4 border-b border-slate-100 mb-2">
-                                <h3 className="font-bold text-slate-900">Categories</h3>
-                                <p className="text-xs text-slate-500">Framework structure</p>
+                        <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden p-2">
+                            <div className="p-4 border-b border-border mb-2">
+                                <h3 className="font-bold text-foreground">Categories</h3>
+                                <p className="text-xs text-muted-foreground">Framework structure</p>
                             </div>
                             <div className="space-y-4 px-2">
                                 {nestedCategories.map((parent) => {
@@ -318,7 +318,7 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                 className={cn(
                                                     "w-full text-left p-2.5 rounded-2xl transition-all flex items-center justify-between group relative overflow-hidden mb-1",
                                                     isExactlyActive ? "shadow-xl shadow-slate-200/50 scale-[1.02]" :
-                                                        hasActiveChild ? "bg-slate-50 border border-slate-100" : "hover:bg-slate-50"
+                                                        hasActiveChild ? "bg-muted border border-border" : "hover:bg-muted"
                                                 )}
                                                 style={isExactlyActive ? {
                                                     backgroundColor: categoryColors[parent.code] || "#0f172a", // Default to slate-900 if no color mapped
@@ -332,10 +332,10 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                     <div className={cn(
                                                         "w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all duration-300 border",
                                                         isExactlyActive
-                                                            ? "bg-black/10 border-black/20 text-black shadow-inner"
-                                                            : "bg-white border-slate-100 text-slate-400 group-hover:border-slate-200 group-hover:shadow-sm"
+                                                            ? "bg-black/10 border-black/20 text-foreground shadow-inner"
+                                                            : "bg-card border-border text-muted-foreground group-hover:border-border group-hover:shadow-sm"
                                                     )}>
-                                                        <CategoryIcon className={cn("w-5 h-5 mb-0.5", isExactlyActive ? "text-black" : "text-slate-400 group-hover:text-primary")} />
+                                                        <CategoryIcon className={cn("w-5 h-5 mb-0.5", isExactlyActive ? "text-foreground" : "text-muted-foreground group-hover:text-primary")} />
                                                         <span className="text-[7.5px] font-black uppercase tracking-tighter opacity-70">
                                                             {parent.code.length > 6 ? parent.code.substring(0, 5) + '..' : parent.code}
                                                         </span>
@@ -343,11 +343,11 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                     <div className="flex flex-col min-w-0">
                                                         <span className={cn(
                                                             "text-sm font-black leading-tight truncate",
-                                                            isExactlyActive ? "text-black" : "text-slate-700"
+                                                            isExactlyActive ? "text-foreground" : "text-muted-foreground"
                                                         )}>{parent.name}</span>
                                                         <span className={cn(
                                                             "text-[10px] font-bold mt-0.5",
-                                                            isExactlyActive ? "text-black/60" : "text-slate-400"
+                                                            isExactlyActive ? "text-foreground/$1" : "text-muted-foreground"
                                                         )}>
                                                             {parentAchieved} / {parentReqs.length} met
                                                         </span>
@@ -355,14 +355,14 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                 </div>
                                                 <ChevronRight className={cn(
                                                     "w-4 h-4 transition-transform duration-300",
-                                                    isExactlyActive ? "text-black rotate-90" :
-                                                        parentActive ? "rotate-90 text-primary" : "text-slate-200 group-hover:text-slate-400"
+                                                    isExactlyActive ? "text-foreground rotate-90" :
+                                                        parentActive ? "rotate-90 text-primary" : "text-muted-foreground group-hover:text-foreground"
                                                 )} />
                                             </button>
 
                                             {/* Children Categories */}
                                             {parent.children.length > 0 && parentActive && (
-                                                <div className="ml-5 pl-4 border-l-2 border-slate-100 space-y-1 mt-1 pb-2">
+                                                <div className="ml-5 pl-4 border-l-2 border-border space-y-1 mt-1 pb-2">
                                                     {parent.children.map(child => {
                                                         const isChildActive = activeCategoryId === child.id;
                                                         const childReqs = frameworkData.requirements.filter(r => r.categoryId === child.id);
@@ -374,7 +374,7 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                                 onClick={() => setActiveCategoryId(child.id)}
                                                                 className={cn(
                                                                     "w-full text-left p-2 rounded-xl transition-all flex items-center justify-between group",
-                                                                    isChildActive ? "bg-slate-100 text-slate-900 font-bold shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                                                                    isChildActive ? "bg-muted text-foreground font-bold shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                                                 )}
                                                             >
                                                                 <div className="flex flex-col overflow-hidden">
@@ -401,13 +401,13 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                         {activeCategory && (() => {
                             const ActiveCategoryIcon = categoryIcons[activeCategory.code] || Shield;
                             return (
-                                <div className="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm mb-8">
+                                <div className="bg-card rounded-[2rem] p-8 border border-border/60 shadow-sm mb-8">
                                     <div className="flex items-center gap-5 mb-4">
                                         <div
                                             className="p-4 rounded-[1.25rem] shadow-xl shadow-slate-200"
                                             style={{ backgroundColor: categoryColors[activeCategory.code] || "#0f172a" }}
                                         >
-                                            <ActiveCategoryIcon className="w-8 h-8 text-black" />
+                                            <ActiveCategoryIcon className="w-8 h-8 text-foreground" />
                                         </div>
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
@@ -418,10 +418,10 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                                     {activeCategory.code}
                                                 </span>
                                             </div>
-                                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{activeCategory.name}</h2>
+                                            <h2 className="text-3xl font-black text-foreground tracking-tight">{activeCategory.name}</h2>
                                         </div>
                                     </div>
-                                    <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-3xl">
+                                    <p className="text-muted-foreground font-medium text-lg leading-relaxed max-w-3xl">
                                         {activeCategory.description}
                                     </p>
                                 </div>
@@ -430,10 +430,10 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
 
                         <div id="requirements-table" className="space-y-4">
                             {filteredRequirements.length === 0 && activeCategoryId && (
-                                <div className="p-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                                    <Info className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                                    <h3 className="text-lg font-bold text-slate-400">Select a sub-category to view requirements</h3>
-                                    <p className="text-slate-400 text-sm">This high-level function contains multiple sub-categories.</p>
+                                <div className="p-12 text-center bg-card rounded-3xl border border-dashed border-border">
+                                    <Info className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                    <h3 className="text-lg font-bold text-muted-foreground">Select a sub-category to view requirements</h3>
+                                    <p className="text-muted-foreground text-sm">This high-level function contains multiple sub-categories.</p>
                                 </div>
                             )}
                             {filteredRequirements.map((req) => (
@@ -502,27 +502,27 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
     const levelInfo = levels.find((l: any) => l.level === requirement.level);
 
     return (
-        <Card className="rounded-3xl border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden bg-white">
+        <Card className="rounded-3xl border-border shadow-sm hover:shadow-md transition-all overflow-hidden bg-card">
             <CardContent className="p-0">
                 <div className="p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="font-mono text-[10px] font-bold text-slate-400 border-slate-200 px-2 py-0 h-5">
+                                <Badge variant="outline" className="font-mono text-[10px] font-bold text-muted-foreground border-border px-2 py-0 h-5">
                                     {requirement.code}
                                 </Badge>
                                 {levelInfo && (
                                     <Badge className={cn(
                                         "border-none text-[10px] font-black px-2 py-0 h-5 tracking-tight uppercase",
                                         requirement.level === 1 ? "bg-blue-50 text-blue-600" :
-                                            requirement.level === 2 ? "bg-indigo-50 text-indigo-600" :
+                                            requirement.level === 2 ? "bg-primary/10 text-primary" :
                                                 "bg-purple-50 text-purple-600"
                                     )}>
                                         MIL {requirement.level}: {levelInfo.name}
                                     </Badge>
                                 )}
                             </div>
-                            <h3 className="text-xl font-black text-slate-900 leading-tight">
+                            <h3 className="text-xl font-black text-foreground leading-tight">
                                 {requirement.title}
                             </h3>
                         </div>
@@ -533,7 +533,7 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                                 variant={isTarget ? "default" : "outline"}
                                 className={cn(
                                     "rounded-xl font-bold text-xs gap-2 transition-all",
-                                    isTarget ? "bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-200" : "text-slate-400"
+                                    isTarget ? "bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-200" : "text-muted-foreground"
                                 )}
                                 onClick={() => setIsTarget(!isTarget)}
                             >
@@ -545,7 +545,7 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                                 variant={isAchieved ? "default" : "outline"}
                                 className={cn(
                                     "rounded-xl font-bold text-xs gap-2 transition-all",
-                                    isAchieved ? "bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200" : "text-slate-400"
+                                    isAchieved ? "bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200" : "text-muted-foreground"
                                 )}
                                 onClick={() => setIsAchieved(!isAchieved)}
                             >
@@ -555,18 +555,18 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                         </div>
                     </div>
 
-                    <p className="text-slate-500 font-medium text-sm mb-6 leading-relaxed">
+                    <p className="text-muted-foreground font-medium text-sm mb-6 leading-relaxed">
                         {requirement.description}
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                 <FileText className="w-3 h-3" />
                                 Implementation Notes
                             </label>
                             <textarea
-                                className="w-full min-h-[100px] bg-slate-50 border-none rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-300"
+                                className="w-full min-h-[100px] bg-muted border-none rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground"
                                 placeholder="Describe how this requirement is met or any gaps..."
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
@@ -575,7 +575,7 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                     <ClipboardCheck className="w-3 h-3" />
                                     Supporting Evidence
                                 </label>
@@ -589,22 +589,22 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                                 </Button>
                             </div>
 
-                            <div className="bg-slate-50 rounded-2xl p-4 min-h-[100px] space-y-2">
+                            <div className="bg-muted rounded-2xl p-4 min-h-[100px] space-y-2">
                                 {evidence.length > 0 ? (
                                     evidence.map((url, i) => (
-                                        <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-slate-100 shadow-sm group">
+                                        <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-card border border-border shadow-sm group">
                                             <a
                                                 href={url}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="flex items-center gap-2 text-xs font-medium text-slate-700 hover:text-primary truncate"
+                                                className="flex items-center gap-2 text-xs font-medium text-foreground hover:text-primary truncate"
                                             >
-                                                <ExternalLink className="w-3 h-3 text-slate-400" />
+                                                <ExternalLink className="w-3 h-3 text-muted-foreground" />
                                                 <span className="truncate max-w-[200px]">{url.split('/').pop()}</span>
                                             </a>
                                             <button
                                                 type="button"
-                                                className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                className="text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                                                 onClick={() => setEvidence(prev => prev.filter((_, idx) => idx !== i))}
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -613,7 +613,7 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                                     ))
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full py-4 text-center">
-                                        <p className="text-[11px] text-slate-400 font-medium">No evidence linked yet.</p>
+                                        <p className="text-[11px] text-muted-foreground font-medium">No evidence linked yet.</p>
                                         <Button
                                             variant="link"
                                             className="text-[10px] text-primary h-auto p-0"
@@ -629,9 +629,9 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                 </div>
 
                 {updateMutation.isLoading && (
-                    <div className="px-6 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                    <div className="px-6 py-2 bg-muted border-t border-border flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saving...</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Saving...</span>
                     </div>
                 )}
 

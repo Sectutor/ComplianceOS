@@ -57,11 +57,11 @@ export default function EssentialEightView() {
 
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+            <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
               <Shield className="w-10 h-10 text-emerald-600" />
               Essential Eight
             </h1>
-            <p className="text-slate-500 font-medium max-w-2xl">
+            <p className="text-muted-foreground font-medium max-w-2xl">
               Assess maturity across eight prioritized mitigation strategies and generate improvement plans.
             </p>
           </div>
@@ -113,7 +113,7 @@ export default function EssentialEightView() {
                 </svg>
                 <div className="absolute flex flex-col items-center">
                   <span className="text-5xl font-black text-white">{(overall?.overallScore || 0).toFixed(1)}</span>
-                  <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Maturity Level</span>
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Maturity Level</span>
                 </div>
               </div>
               <Badge variant="outline" className="bg-white/10 text-emerald-300 border-white/20 px-3 py-1">
@@ -127,7 +127,7 @@ export default function EssentialEightView() {
                 return (
                   <div key={cid} className="space-y-2 group cursor-pointer" onClick={() => setActiveControlId(cid)}>
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${activeControlId === cid ? 'text-white' : 'text-slate-400'}`}>
+                      <span className={`text-xs font-bold uppercase tracking-wider ${activeControlId === cid ? 'text-white' : 'text-muted-foreground'}`}>
                         {cid}
                       </span>
                       <span className="text-lg font-bold">{(a?.maturityLevel || 0).toFixed(1)}</span>
@@ -139,7 +139,7 @@ export default function EssentialEightView() {
                       ></div>
                     </div>
                     <div className="flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] text-slate-400">Target: {(a?.targetLevel || 1).toFixed(1)}</span>
+                      <span className="text-[10px] text-muted-foreground">Target: {(a?.targetLevel || 1).toFixed(1)}</span>
                     </div>
                   </div>
                 );
@@ -153,7 +153,7 @@ export default function EssentialEightView() {
           <div className="col-span-12 lg:col-span-4 xl:col-span-3 space-y-6">
             {/* Removed redundant 'Essential Eight Page' card */}
 
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-2">
+            <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden p-2">
               <div className="space-y-1">
                 {E8_CONTROLS.map((cid) => {
                   const isActive = activeControlId === cid;
@@ -164,18 +164,18 @@ export default function EssentialEightView() {
                       key={cid}
                       onClick={() => setActiveControlId(cid)}
                       className={`w-full text-left p-4 rounded-2xl transition-all flex items-center justify-between group ${isActive
-                        ? "bg-slate-900 text-white shadow-xl"
-                        : "hover:bg-slate-50"
+                        ? "bg-foreground text-background shadow-xl"
+                        : "hover:bg-muted"
                         }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${isActive ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${isActive ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground group-hover:bg-border"
                           }`}>
                           {cid.slice(0,3).toUpperCase()}
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-bold truncate max-w-[180px]">{cid}</span>
-                          <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
                             {achieved}/3 Levels
                           </span>
                         </div>
@@ -197,7 +197,7 @@ export default function EssentialEightView() {
               <CardContent className="space-y-4">
                 {MATURITY_LEVELS.map(l => (
                   <div key={l.level} className="flex gap-4">
-                    <div className="min-w-[40px] h-10 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-600">
+                    <div className="min-w-[40px] h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-muted-foreground">
                       L{l.level}
                     </div>
                     <div>
@@ -251,11 +251,11 @@ export default function EssentialEightView() {
                 onUpdate={refetchAssessments}
               />
             ) : (
-              <div className="h-full flex flex-col items-center justify-center space-y-4 p-12 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
-                <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center animate-pulse">
-                  <Info className="w-8 h-8 text-slate-400" />
+              <div className="h-full flex flex-col items-center justify-center space-y-4 p-12 bg-muted rounded-3xl border border-dashed border-border">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center animate-pulse">
+                  <Info className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-slate-400 font-medium">Select a control to begin assessment</p>
+                <p className="text-muted-foreground font-medium">Select a control to begin assessment</p>
               </div>
             )}
           </div>
@@ -374,27 +374,27 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-100">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border">
         <div className="space-y-2 max-w-2xl">
           <Badge className="bg-emerald-600/10 text-emerald-700 border-emerald-600/20 font-black px-3 py-1">
             Essential Eight
           </Badge>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">{controlId}</h2>
-          <p className="text-slate-500 font-medium leading-relaxed">
+          <h2 className="text-4xl font-black text-foreground tracking-tight">{controlId}</h2>
+          <p className="text-muted-foreground font-medium leading-relaxed">
             {official?.fullDescription}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-8 px-10">
+        <div className="bg-card p-6 rounded-3xl border border-border shadow-sm flex items-center gap-8 px-10">
           <div className="flex flex-col items-center">
-            <span className="text-xs uppercase tracking-widest font-black text-slate-400 mb-1">Maturity</span>
+            <span className="text-xs uppercase tracking-widest font-black text-muted-foreground mb-1">Maturity</span>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-emerald-700">{calculatedMaturity.toFixed(1)}</span>
-              <span className="text-sm text-slate-400 font-bold">/ 3.0</span>
+              <span className="text-sm text-muted-foreground font-bold">/ 3.0</span>
             </div>
           </div>
-          <div className="h-10 w-px bg-slate-100"></div>
+          <div className="h-10 w-px bg-muted"></div>
           <div className="flex flex-col items-center">
-            <span className="text-xs uppercase tracking-widest font-black text-slate-400 mb-1">Status</span>
+            <span className="text-xs uppercase tracking-widest font-black text-muted-foreground mb-1">Status</span>
             <Badge variant={calculatedMaturity > 1.5 ? "success" : calculatedMaturity > 0.5 ? "warning" : "default"} className="font-bold text-sm px-3 py-1">
               {statusLabel}
             </Badge>
@@ -403,33 +403,33 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
       </div>
 
       <div className="flex items-center gap-3 justify-end">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Target Level</span>
-        <div className="flex bg-slate-100 p-1 rounded-xl">
+        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Target Level</span>
+        <div className="flex bg-muted p-1 rounded-xl">
           {[1, 2, 3].map(i => (
             <button
               key={i}
               onClick={() => { setTarget(i); setDirty(true); }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${target === i ? "bg-white shadow-sm text-emerald-700" : "text-slate-400 hover:text-slate-600"
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${target === i ? "bg-card shadow-sm text-emerald-700" : "text-muted-foreground hover:text-foreground"
                 }`}
             >
               L{i}
             </button>
           ))}
         </div>
-        <div className="h-10 w-px bg-slate-100 mx-4"></div>
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Assessment Outcome</span>
-        <div className="flex bg-slate-100 p-1 rounded-xl">
+        <div className="h-10 w-px bg-muted mx-4"></div>
+        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Assessment Outcome</span>
+        <div className="flex bg-muted p-1 rounded-xl">
           {["not_assessed","effective","alternate_control","ineffective","no_visibility","not_implemented","not_applicable"].map((o) => (
             <button
               key={o}
               onClick={() => { setOutcome(o); setDirty(true); }}
-              className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${outcome === o ? "bg-white shadow-sm text-emerald-700" : "text-slate-400 hover:text-slate-600"}`}
+              className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${outcome === o ? "bg-card shadow-sm text-emerald-700" : "text-muted-foreground hover:text-foreground"}`}
             >
               {o.replace(/_/g, " ")}
             </button>
           ))}
         </div>
-        <div className="ml-4 text-xs font-medium text-slate-500">
+        <div className="ml-4 text-xs font-medium text-muted-foreground">
           {isSaving ? "Saving..." : dirty ? "Unsaved changes" : "All changes saved"}
         </div>
       </div>
@@ -439,10 +439,10 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
           const levelDetail = official?.levels.find(l => l.level === level);
           const isAchieved = answers[String(level)];
           return (
-            <Card key={`${controlId}-L${level}`} className={`border-none shadow-none overflow-hidden rounded-3xl transition-all ${isAchieved ? "bg-white ring-2 ring-emerald-200" : "bg-white border border-slate-100"
+            <Card key={`${controlId}-L${level}`} className={`border-none shadow-none overflow-hidden rounded-3xl transition-all ${isAchieved ? "bg-card ring-2 ring-emerald-200" : "bg-card border border-border"
               }`}>
               <div className="grid md:grid-cols-12">
-                <div className={`md:col-span-1 p-4 flex flex-col items-center justify-center border-r border-slate-50 transition-colors ${isAchieved ? "bg-emerald-600 text-white" : "bg-slate-50 text-slate-400"
+                <div className={`md:col-span-1 p-4 flex flex-col items-center justify-center border-r border-border transition-colors ${isAchieved ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"
                   }`}>
                   <span className="text-sm font-black italic">LVL</span>
                   <span className="text-3xl font-black">{level}</span>
@@ -452,7 +452,7 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
                     <div className="space-y-3 flex-1">
                       <div className="flex items-center gap-3">
-                        <Badge variant="outline" className={`${isAchieved ? "border-emerald-300 text-emerald-700 bg-emerald-50" : "text-slate-400"}`}>
+                        <Badge variant="outline" className={`${isAchieved ? "border-emerald-300 text-emerald-700 bg-emerald-50" : "text-muted-foreground"}`}>
                           Level {level}
                         </Badge>
                         {level === target && (
@@ -461,7 +461,7 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
                           </Badge>
                         )}
                       </div>
-                      <h4 className="text-xl font-bold text-slate-900 leading-tight">
+                      <h4 className="text-xl font-bold text-foreground leading-tight">
                         {levelDetail?.description}
                       </h4>
                     </div>
@@ -500,14 +500,14 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
                     onClick={() => toggleQuality(level, idx, !isChecked)}
                     className={`flex gap-4 items-start p-4 rounded-2xl transition-all cursor-pointer border ${isChecked
                       ? "bg-emerald-50/50 border-emerald-100"
-                      : "bg-white border-slate-100 hover:border-slate-200"
+                      : "bg-card border-border hover:border-border"
                       }`}
                   >
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20" : "bg-slate-100 text-slate-300"
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20" : "bg-muted text-muted-foreground"
                       }`}>
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
-                    <span className={`text-sm font-medium leading-relaxed ${isChecked ? "text-slate-800" : "text-slate-500"}`}>
+                    <span className={`text-sm font-medium leading-relaxed ${isChecked ? "text-foreground" : "text-muted-foreground"}`}>
                       {criterion}
                     </span>
                   </div>
@@ -516,12 +516,12 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
             </div>
             <div className="space-y-3">
               <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Evidence Quality (Level {level})</h5>
-              <div className="flex bg-slate-100 p-1 rounded-xl">
+              <div className="flex bg-muted p-1 rounded-xl">
                 {["excellent","good","fair","poor"].map(q => (
                   <button
                     key={q}
                     onClick={() => { setEvidenceQualityByLevel(prev => ({ ...prev, [String(level)]: q })); setDirty(true); }}
-                    className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${evidenceQualityByLevel[String(level)] === q ? "bg-white shadow-sm text-emerald-700" : "text-slate-400 hover:text-slate-600"}`}
+                    className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${evidenceQualityByLevel[String(level)] === q ? "bg-card shadow-sm text-emerald-700" : "text-muted-foreground hover:text-foreground"}`}
                   >
                     {q}
                   </button>
@@ -531,8 +531,8 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
           </div>
 
                     <div className="space-y-6">
-                      <div className="bg-slate-50 p-6 rounded-3xl space-y-4">
-                        <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                      <div className="bg-muted p-6 rounded-3xl space-y-4">
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                           <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
                           Next Steps
                         </h5>
@@ -540,7 +540,7 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
                           {levelDetail?.nextSteps.map((s, i) => (
                             <div key={i} className="flex gap-2 items-start">
                               <span className="text-xs font-black text-emerald-700">#{i + 1}</span>
-                              <p className="text-sm text-slate-600 font-medium">{s}</p>
+                              <p className="text-sm text-muted-foreground font-medium">{s}</p>
                             </div>
                           ))}
                         </div>
@@ -549,8 +549,8 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
                   </div>
 
                   <div className="mt-10 -mx-8 -mb-8">
-                    <div className="px-8 py-3 bg-slate-50 border-t border-b border-slate-100 flex items-center justify-between">
-                      <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <div className="px-8 py-3 bg-muted border-t border-b border-border flex items-center justify-between">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                         <ClipboardCheck className="w-3.5 h-3.5" />
                         Implementation Findings & Evidence (Level {level})
                       </h5>
@@ -559,7 +559,7 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
                       value={levelNotes[String(level)] || ""}
                       onChange={(e) => setLevelNotes(prev => ({ ...prev, [String(level)]: e.target.value }))}
                       placeholder={`Document how your organization satisfies the requirements for Level ${level}...`}
-                      className="w-full min-h-[100px] p-8 bg-white text-sm text-slate-600 placeholder:text-slate-300 transition-all outline-none resize-none"
+                      className="w-full min-h-[100px] p-8 bg-card text-sm text-muted-foreground placeholder:text-muted-foreground transition-all outline-none resize-none"
                     />
                   </div>
                 </div>
@@ -569,9 +569,9 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
         })}
       </div>
 
-      <Card className="rounded-3xl border-none bg-white p-8 space-y-6 shadow-sm border border-slate-100">
+      <Card className="rounded-3xl border-none bg-card p-8 space-y-6 shadow-sm border border-border">
         <div className="flex items-center justify-between">
-          <h4 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <h4 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Info className="w-5 h-5 text-emerald-700" />
             Assessment Notes & Evidence
           </h4>
@@ -587,13 +587,13 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
         </div>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Overall Evidence Quality</p>
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Overall Evidence Quality</p>
+            <div className="flex bg-muted p-1 rounded-xl">
               {["excellent","good","fair","poor"].map(q => (
                 <button
                   key={q}
                   onClick={() => { setEvidenceQualityOverall(q); setDirty(true); }}
-                  className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${evidenceQualityOverall === q ? "bg-white shadow-sm text-emerald-700" : "text-slate-400 hover:text-slate-600"}`}
+                  className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${evidenceQualityOverall === q ? "bg-card shadow-sm text-emerald-700" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   {q}
                 </button>
@@ -601,7 +601,7 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Sample Coverage</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sample Coverage</p>
             <div className="grid grid-cols-3 gap-2">
               <Input placeholder="Workstations" type="number" value={coverage.workstations || 0} onChange={(e) => { setCoverage(prev => ({ ...prev, workstations: parseInt(e.target.value || "0") })); setDirty(true); }} />
               <Input placeholder="Servers" type="number" value={coverage.servers || 0} onChange={(e) => { setCoverage(prev => ({ ...prev, servers: parseInt(e.target.value || "0") })); setDirty(true); }} />
@@ -613,9 +613,9 @@ function ControlAssessment({ controlId, clientId, assessment, onUpdate }: {
           value={notes}
           onChange={(e) => { setNotes(e.target.value); setDirty(true); }}
           placeholder="Add supporting evidence, notes on gaps, or internal discussions here..."
-          className="w-full min-h-[150px] p-6 rounded-2xl bg-slate-50 border border-slate-100 text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-600/20 transition-all outline-none font-medium"
+          className="w-full min-h-[150px] p-6 rounded-2xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-600/20 transition-all outline-none font-medium"
         />
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button
             variant="outline"
             className="px-8 rounded-xl font-bold h-12"

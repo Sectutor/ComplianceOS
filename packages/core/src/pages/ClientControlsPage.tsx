@@ -269,7 +269,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                     {new URLSearchParams(window.location.search).get('from') === 'nis2-mapping' && (
                         <button
                             onClick={() => setLocation(`/clients/${clientId}/cyber/mapping`)}
-                            className="flex items-center text-sm font-bold text-slate-500 hover:text-sky-600 transition-colors mb-4 group"
+                            className="flex items-center text-sm font-bold text-muted-foreground hover:text-sky-600 transition-colors mb-4 group"
                         >
                             <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                             Back to NIS2 Mapping Hub
@@ -280,8 +280,8 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         { label: "Controls", active: true }
                     ]} />
                     <div className="mt-2 flex items-center gap-4">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Control Implementation</h1>
-                        <Badge variant="outline" className="h-6 px-3 py-1 font-mono text-xs border-slate-200 text-slate-500 bg-slate-50">
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Control Implementation</h1>
+                        <Badge variant="outline" className="h-6 px-3 py-1 font-mono text-xs border-border text-muted-foreground bg-muted">
                             {client?.organizationId || "ORG-000"}
                         </Badge>
                     </div>
@@ -289,15 +289,15 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
 
                 {/* Professional Metrics Dashboard */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200 overflow-hidden relative group">
+                    <Card className="bg-card border text-foreground shadow-sm border-border overflow-hidden relative group">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
-                            <Shield className="h-16 w-16 text-slate-900" />
+                            <Shield className="h-16 w-16 text-foreground" />
                         </div>
                         <CardContent className="p-6">
-                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Total Coverage</p>
+                            <p className="text-muted-foreground text-sm font-medium mb-1 uppercase tracking-wider">Total Coverage</p>
                             <h3 className="text-4xl font-bold">{stats.total}</h3>
                             <div className="mt-4 flex items-center gap-2">
-                                <span className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                <span className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
                                     <span
                                         className="h-full bg-blue-500 transition-all duration-1000"
                                         style={{ width: `${stats.total > 0 ? 100 : 0}%` }}
@@ -307,18 +307,18 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200">
+                    <Card className="bg-card border text-foreground shadow-sm border-border">
                         <CardContent className="p-6">
-                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Implementation Progress</p>
+                            <p className="text-muted-foreground text-sm font-medium mb-1 uppercase tracking-wider">Implementation Progress</p>
                             <div className="flex items-baseline justify-between">
                                 <h3 className="text-4xl font-bold text-green-600">{stats.implemented}</h3>
-                                <span className="text-slate-400 font-medium font-mono text-sm">/ {stats.total}</span>
+                                <span className="text-muted-foreground font-medium font-mono text-sm">/ {stats.total}</span>
                             </div>
                             <div className="mt-4">
-                                <p className="text-xs text-slate-500 flex justify-between mb-1 text-center">
+                                <p className="text-xs text-muted-foreground flex justify-between mb-1 text-center">
                                     <span>{Math.round((stats.implemented / (stats.total || 1)) * 100)}% Complete</span>
                                 </p>
-                                <span className="h-1.5 block w-full bg-slate-100 rounded-full overflow-hidden">
+                                <span className="h-1.5 block w-full bg-muted rounded-full overflow-hidden">
                                     <span
                                         className="h-full bg-green-500 transition-all duration-1000"
                                         style={{ width: `${(stats.implemented / (stats.total || 1)) * 100}%` }}
@@ -328,33 +328,33 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200">
+                    <Card className="bg-card border text-foreground shadow-sm border-border">
                         <CardContent className="p-6">
-                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Action Needed</p>
+                            <p className="text-muted-foreground text-sm font-medium mb-1 uppercase tracking-wider">Action Needed</p>
                             <div className="flex items-baseline justify-between">
                                 <h3 className="text-4xl font-bold text-amber-600">{stats.inProgress + stats.notImplemented}</h3>
                                 <div className="flex flex-col items-end">
                                     <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">PENDING REVIEW</span>
                                 </div>
                             </div>
-                            <p className="mt-4 text-xs text-slate-500">
+                            <p className="mt-4 text-xs text-muted-foreground">
                                 {stats.inProgress} in progress, {stats.notImplemented} not started
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-white border text-slate-900 shadow-sm border-slate-200">
+                    <Card className="bg-card border text-foreground shadow-sm border-border">
                         <CardContent className="p-6">
-                            <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wider">Evidence Gaps</p>
+                            <p className="text-muted-foreground text-sm font-medium mb-1 uppercase tracking-wider">Evidence Gaps</p>
                             <div className="flex items-baseline justify-between">
-                                <h3 className={`text-4xl font-bold ${stats.missingEvidence > 0 ? 'text-red-500' : 'text-slate-300'}`}>
+                                <h3 className={`text-4xl font-bold ${stats.missingEvidence > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
                                     {stats.missingEvidence}
                                 </h3>
                                 {stats.missingEvidence > 0 && (
                                     <AlertCircle className="h-5 w-5 text-red-500 animate-pulse" />
                                 )}
                             </div>
-                            <p className="mt-4 text-xs text-slate-500 uppercase tracking-tighter">
+                            <p className="mt-4 text-xs text-muted-foreground uppercase tracking-tighter">
                                 Critical for readiness score
                             </p>
                         </CardContent>
@@ -363,8 +363,8 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-bold text-slate-800">Assigned Controls</h2>
-                        <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-bold bg-slate-100 text-slate-600 border-slate-200">
+                        <h2 className="text-xl font-bold text-foreground">Assigned Controls</h2>
+                        <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-bold bg-muted text-muted-foreground border-border">
                             {filteredClientControls.length} displayed
                         </Badge>
                         <PageGuide
@@ -817,11 +817,11 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-slate-200 shadow-xl overflow-hidden bg-white">
+                        <div className="rounded-xl border border-border shadow-xl overflow-hidden bg-card">
                             <div className="overflow-x-auto">
                                 <Table className="table-fancy w-full">
                                     <TableHeader>
-                                        <TableRow className="border-none hover:bg-transparent bg-slate-50">
+                                        <TableRow className="border-none hover:bg-transparent bg-muted">
                                             <TableHead className="w-10 py-3">
                                                 <Checkbox
                                                     checked={isBulkMode && paginatedControls.length > 0 && bulkSelectedIds.size === paginatedControls.length}
@@ -835,19 +835,19 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                     }}
                                                 />
                                             </TableHead>
-                                            <TableHead className="w-[100px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Control ID</TableHead>
-                                            <TableHead className="w-[200px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Name</TableHead>
-                                            <TableHead className="w-[120px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Framework</TableHead>
-                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Status</TableHead>
-                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Applicability</TableHead>
-                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Implementation Date</TableHead>
-                                            <TableHead className="w-[140px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Owner (RACI)</TableHead>
-                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">Last Updated</TableHead>
+                                            <TableHead className="w-[100px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Control ID</TableHead>
+                                            <TableHead className="w-[200px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Name</TableHead>
+                                            <TableHead className="w-[120px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Framework</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Applicability</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Implementation Date</TableHead>
+                                            <TableHead className="w-[140px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Owner (RACI)</TableHead>
+                                            <TableHead className="w-[130px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Last Updated</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedControls.map((item: any) => (
-                                            <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
+                                            <TableRow key={item.clientControl.id} className="bg-card border-b border-border transition-all duration-200 hover:bg-muted hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
                                                 <TableCell className="w-10 py-3">
                                                     <Checkbox
                                                         checked={bulkSelectedIds.has(item.clientControl.id)}
@@ -859,10 +859,10 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                         }}
                                                     />
                                                 </TableCell>
-                                                <TableCell className="font-mono text-xs font-medium text-slate-700 py-3">
+                                                <TableCell className="font-mono text-xs font-medium text-foreground py-3">
                                                     {item.clientControl.clientControlId}
                                                 </TableCell>
-                                                <TableCell className="font-medium text-sm text-slate-900 py-3">
+                                                <TableCell className="font-medium text-sm text-foreground py-3">
                                                     <EvidenceSuggestionsPopover
                                                         controlId={item.clientControl.clientControlId}
                                                         controlName={item.control?.name || ''}
@@ -871,12 +871,12 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                     >
                                                         <span className="hover:text-blue-600 hover:underline">{item.control?.name}</span>
                                                     </EvidenceSuggestionsPopover>
-                                                    <div className="text-[10px] text-gray-400 line-clamp-1 mt-0.5" title={item.control?.description || ""}>
+                                                    <div className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5" title={item.control?.description || ""}>
                                                         {item.control?.description}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-xs text-slate-600 py-3">
-                                                    <Badge variant="outline" className="text-xs font-medium bg-slate-50 border-slate-200">
+                                                <TableCell className="text-xs text-muted-foreground py-3">
+                                                    <Badge variant="outline" className="text-xs font-medium bg-muted border-border">
                                                         {item.control?.framework}
                                                     </Badge>
                                                 </TableCell>
@@ -921,7 +921,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                             });
                                                         }}
                                                     >
-                                                        <SelectTrigger className={`h-8 w-[120px] text-xs bg-white ${item.clientControl.applicability === 'not_applicable' ? 'text-gray-500' : 'text-slate-700 font-medium'}`}>
+                                                        <SelectTrigger className={`h-8 w-[120px] text-xs bg-card ${item.clientControl.applicability === 'not_applicable' ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -930,10 +930,10 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                         </SelectContent>
                                                     </Select>
                                                 </TableCell>
-                                                <TableCell className="text-xs text-slate-600 py-3">
+                                                <TableCell className="text-xs text-muted-foreground py-3">
                                                     {item.clientControl.implementationDate
                                                         ? new Date(item.clientControl.implementationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                                                        : <span className="text-slate-400 italic">Not set</span>
+                                                        : <span className="text-muted-foreground italic">Not set</span>
                                                     }
                                                 </TableCell>
                                                 <TableCell className="py-3">
@@ -945,7 +945,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="h-6 text-xs text-slate-400 hover:text-slate-600"
+                                                            className="h-6 text-xs text-muted-foreground hover:text-muted-foreground"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setSelectedControl(item);
@@ -956,10 +956,10 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                         </Button>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-xs text-slate-500 py-3">
+                                                <TableCell className="text-xs text-muted-foreground py-3">
                                                     {item.clientControl.updatedAt
                                                         ? new Date(item.clientControl.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                                                        : <span className="text-slate-400 italic">Unknown</span>
+                                                        : <span className="text-muted-foreground italic">Unknown</span>
                                                     }
                                                 </TableCell>
                                             </TableRow>
@@ -970,8 +970,8 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
 
                             {/* Pagination Controls */}
                             {viewMode === 'table' && totalPages > 1 && (
-                                <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
-                                    <div className="text-sm text-slate-600">
+                                <div className="flex items-center justify-between px-4 py-3 bg-card border-t border-border">
+                                    <div className="text-sm text-muted-foreground">
                                         Showing {(currentPage - 1) * PAGE_SIZE + 1} to {Math.min(currentPage * PAGE_SIZE, filteredClientControls.length)} of {filteredClientControls.length} controls
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -1022,44 +1022,44 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         </div>
                     )
                 ) : (
-                    <div className="py-12 px-6 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                    <div className="py-12 px-6 border-2 border-dashed border-border rounded-3xl bg-muted/50">
                         <div className="max-w-2xl mx-auto text-center">
                             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#0B1120] text-white shadow-xl mb-8 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
                                 <Shield className="h-10 w-10 text-blue-400" />
                             </div>
-                            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-4 text-center">Your Compliance Command Center is Empty</h2>
-                            <p className="text-lg text-slate-600 mb-12">
+                            <h2 className="text-3xl font-extrabold text-foreground tracking-tight mb-4 text-center">Your Compliance Command Center is Empty</h2>
+                            <p className="text-lg text-muted-foreground mb-12">
                                 You haven't assigned any security controls to this client yet. Security controls are the building blocks of your compliance posture—track implementation, collect evidence, and prove readiness.
                             </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-12">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md transition-shadow">
                                     <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-4">
                                         <Plus className="h-5 w-5" />
                                     </div>
-                                    <h4 className="font-bold text-slate-900 mb-2">Assign Controls</h4>
-                                    <p className="text-sm text-slate-500 leading-relaxed">Choose specific controls from our master library to match your requirements.</p>
+                                    <h4 className="font-bold text-foreground mb-2">Assign Controls</h4>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">Choose specific controls from our master library to match your requirements.</p>
                                 </div>
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md transition-shadow">
                                     <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
                                         <Shield className="h-5 w-5" />
                                     </div>
-                                    <h4 className="font-bold text-slate-900 mb-2">Use Baseline Wizard</h4>
-                                    <p className="text-sm text-slate-500 leading-relaxed">Quickly setup standard frameworks like NIST or SOC 2 using our guided wizard.</p>
+                                    <h4 className="font-bold text-foreground mb-2">Use Baseline Wizard</h4>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">Quickly setup standard frameworks like NIST or SOC 2 using our guided wizard.</p>
                                 </div>
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                <div className="bg-card p-6 rounded-2xl shadow-sm border border-border hover:shadow-md transition-shadow">
                                     <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
                                         <Download className="h-5 w-5" />
                                     </div>
-                                    <h4 className="font-bold text-slate-900 mb-2">Import from SoA</h4>
-                                    <p className="text-sm text-slate-500 leading-relaxed">Bring in your existing Statement of Applicability for instant tracking.</p>
+                                    <h4 className="font-bold text-foreground mb-2">Import from SoA</h4>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">Bring in your existing Statement of Applicability for instant tracking.</p>
                                 </div>
                             </div>
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                                 <Button
                                     size="lg"
-                                    className="h-12 px-8 text-lg font-semibold bg-[#0B1120] hover:bg-slate-800"
+                                    className="h-12 px-8 text-lg font-semibold bg-[#0B1120] hover:bg-foreground/90"
                                     onClick={() => setIsBaselineWizardOpen(true)}
                                 >
                                     <Shield className="mr-2 h-5 w-5" />

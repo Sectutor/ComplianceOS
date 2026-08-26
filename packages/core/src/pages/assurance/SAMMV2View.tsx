@@ -74,8 +74,8 @@ export default function SAMMV2View() {
             <DashboardLayout>
                 <div className="flex h-screen items-center justify-center flex-col gap-4 text-center">
                     <h2 className="text-xl font-bold text-red-600">API Error</h2>
-                    <p className="text-slate-500 max-w-md">{practicesError.message}</p>
-                    <p className="text-xs text-slate-400 font-mono bg-slate-100 p-2 rounded">{JSON.stringify(practicesError.shape?.message || practicesError)}</p>
+                    <p className="text-muted-foreground max-w-md">{practicesError.message}</p>
+                    <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">{JSON.stringify(practicesError.shape?.message || practicesError)}</p>
                     <Button onClick={() => window.location.reload()}>Retry</Button>
                 </div>
             </DashboardLayout>
@@ -86,8 +86,8 @@ export default function SAMMV2View() {
         return (
             <DashboardLayout>
                 <div className="flex h-screen items-center justify-center flex-col gap-4">
-                    <h2 className="text-xl font-bold text-slate-900">Unable to load SAMM Practices</h2>
-                    <p className="text-slate-500">The database appears to be empty or the API is failing.</p>
+                    <h2 className="text-xl font-bold text-foreground">Unable to load SAMM Practices</h2>
+                    <p className="text-muted-foreground">The database appears to be empty or the API is failing.</p>
                     <Button onClick={() => window.location.reload()}>Retry</Button>
                 </div>
             </DashboardLayout>
@@ -118,11 +118,11 @@ export default function SAMMV2View() {
 
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                        <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
                             <Shield className="w-10 h-10 text-primary" />
                             OWASP SAMM <span className="text-primary">v2</span>
                         </h1>
-                        <p className="text-slate-500 font-medium max-w-2xl">
+                        <p className="text-muted-foreground font-medium max-w-2xl">
                             Comprehensive Software Assurance Maturity Model assessment.
                             Measure your AppSec program across 15 practices and 30 maturity streams.
                         </p>
@@ -180,10 +180,10 @@ export default function SAMMV2View() {
                 <div className="grid grid-cols-12 gap-8">
                     {/* Sidebar Navigation */}
                     <div className="col-span-12 lg:col-span-3 space-y-4">
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-2">
-                            <div className="p-4 border-b border-slate-100 mb-2">
-                                <h3 className="font-bold text-slate-900">Business Functions</h3>
-                                <p className="text-xs text-slate-500">Global AppSec strategy</p>
+                        <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden p-2">
+                            <div className="p-4 border-b border-border mb-2">
+                                <h3 className="font-bold text-foreground">Business Functions</h3>
+                                <p className="text-xs text-muted-foreground">Global AppSec strategy</p>
                             </div>
                             <div className="grid grid-cols-5 gap-1 p-1 mb-2">
                                 {BUSINESS_FUNCTIONS.map((f) => {
@@ -195,7 +195,7 @@ export default function SAMMV2View() {
                                             onClick={() => setActiveFunction(f.id)}
                                             className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all ${isActive
                                                 ? "bg-primary text-white shadow-lg shadow-primary/20"
-                                                : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                                 }`}
                                             title={f.name}
                                         >
@@ -215,12 +215,12 @@ export default function SAMMV2View() {
                                             key={p.practiceId}
                                             onClick={() => setActivePracticeId(p.practiceId)}
                                             className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group ${isActive
-                                                ? "bg-slate-900 text-white shadow-lg"
-                                                : "hover:bg-slate-50"
+                                                ? "bg-foreground text-background shadow-lg"
+                                                : "hover:bg-muted"
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isActive ? "bg-primary text-white" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isActive ? "bg-primary text-white" : "bg-muted text-muted-foreground group-hover:bg-border"
                                                     }`}>
                                                     {p.practiceId.split('-').pop()}
                                                 </div>
@@ -240,53 +240,53 @@ export default function SAMMV2View() {
                     <div className="col-span-12 lg:col-span-9 space-y-6">
                         {/* Stats Dashboard */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="p-4 rounded-3xl border border-slate-200 bg-white text-left group">
+                            <div className="p-4 rounded-3xl border border-border bg-card text-left group">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="p-2 rounded-xl bg-blue-100">
                                         <TrendingUp className="w-5 h-5 text-blue-600" />
                                     </div>
-                                    <span className="text-2xl font-black text-slate-900">{(overallScore?.overallScore || 0).toFixed(1)}</span>
+                                    <span className="text-2xl font-black text-foreground">{(overallScore?.overallScore || 0).toFixed(1)}</span>
                                 </div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Maturity</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Maturity</p>
                             </div>
 
-                            <div className="p-4 rounded-3xl border border-slate-200 bg-white text-left group">
+                            <div className="p-4 rounded-3xl border border-border bg-card text-left group">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="p-2 rounded-xl bg-purple-100">
                                         <Target className="w-5 h-5 text-purple-600" />
                                     </div>
-                                    <span className="text-2xl font-black text-slate-900">{(businessFunctionScore?.score || 0).toFixed(1)}</span>
+                                    <span className="text-2xl font-black text-foreground">{(businessFunctionScore?.score || 0).toFixed(1)}</span>
                                 </div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{activeFunction} Score</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{activeFunction} Score</p>
                             </div>
 
-                            <div className="p-4 rounded-3xl border border-slate-200 bg-white text-left group">
+                            <div className="p-4 rounded-3xl border border-border bg-card text-left group">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="p-2 rounded-xl bg-emerald-100">
                                         <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                                     </div>
-                                    <span className="text-2xl font-black text-slate-900">
+                                    <span className="text-2xl font-black text-foreground">
                                         {assessments?.length || 0}
                                     </span>
                                 </div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Streams Assessed</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Streams Assessed</p>
                             </div>
 
-                            <div className="p-4 rounded-3xl border border-slate-200 bg-white text-left group">
+                            <div className="p-4 rounded-3xl border border-border bg-card text-left group">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="p-2 rounded-xl bg-orange-100">
                                         <Activity className="w-5 h-5 text-orange-600" />
                                     </div>
-                                    <span className="text-2xl font-black text-slate-900">
+                                    <span className="text-2xl font-black text-foreground">
                                         {30 - (assessments?.length || 0)}
                                     </span>
                                 </div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Streams Pending</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Streams Pending</p>
                             </div>
                         </div>
 
                         {activePractice && (
-                            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div className="bg-card rounded-3xl border border-border shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <PracticeAssessment
                                     practice={activePractice}
                                     clientId={clientId}
@@ -343,17 +343,17 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
                     <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-3 py-1">
                         {practice.businessFunction}
                     </Badge>
-                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">{practice.practiceName}</h2>
-                    <p className="text-slate-500 font-medium leading-relaxed max-w-2xl">
+                    <h2 className="text-3xl font-black text-foreground tracking-tight">{practice.practiceName}</h2>
+                    <p className="text-muted-foreground font-medium leading-relaxed max-w-2xl">
                         {practice.description}
                     </p>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-6 px-8">
+                <div className="bg-muted p-4 rounded-2xl border border-border flex items-center gap-6 px-8">
                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Practice Maturity</span>
+                        <span className="text-[10px] uppercase tracking-widest font-black text-muted-foreground mb-1">Practice Maturity</span>
                         <div className="flex items-baseline gap-1">
                             <span className="text-3xl font-black text-primary">{score.toFixed(1)}</span>
-                            <span className="text-xs text-slate-400 font-bold">/ 3.0</span>
+                            <span className="text-xs text-muted-foreground font-bold">/ 3.0</span>
                         </div>
                     </div>
                 </div>
@@ -380,7 +380,7 @@ function PracticeAssessment({ practice, clientId, onUpdate, existingAssessments 
             </div>
 
             {/* Stream Assessment Area */}
-            <div className="pt-6 border-t border-slate-100">
+            <div className="pt-6 border-t border-border">
                 <StreamAssessmentPanel
                     clientId={clientId}
                     practiceId={practice.practiceId}
@@ -401,21 +401,21 @@ function StreamCard({ streamId, name, description, active, onClick, maturity }: 
             onClick={onClick}
             className={`relative p-5 rounded-3xl border transition-all text-left overflow-hidden group ${active
                 ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                : "border-slate-100 bg-white hover:border-slate-200"
+                : "border-border bg-card hover:border-border"
                 }`}
         >
             <div className="flex items-center justify-between mb-2">
-                <Badge variant="outline" className={`${active ? "border-primary text-primary" : "text-slate-400 border-slate-200"} font-black text-[10px]`}>
+                <Badge variant="outline" className={`${active ? "border-primary text-primary" : "text-muted-foreground border-border"} font-black text-[10px]`}>
                     Stream {streamId}
                 </Badge>
                 <div className="flex items-center gap-1">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= maturity ? "bg-primary" : "bg-slate-200"}`}></div>
+                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= maturity ? "bg-primary" : "bg-muted"}`}></div>
                     ))}
                 </div>
             </div>
-            <h4 className={`text-lg font-black mb-1 ${active ? "text-slate-900" : "text-slate-700"}`}>{name}</h4>
-            <p className="text-[11px] text-slate-500 font-medium line-clamp-1">{description}</p>
+            <h4 className={`text-lg font-black mb-1 ${active ? "text-foreground" : "text-muted-foreground"}`}>{name}</h4>
+            <p className="text-[11px] text-muted-foreground font-medium line-clamp-1">{description}</p>
         </button>
     );
 }
@@ -524,19 +524,19 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-black text-slate-800">
+                    <h3 className="text-xl font-black text-foreground">
                         {streamName}
                     </h3>
                     {saving && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>}
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Roadmap Target</span>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Roadmap Target</span>
+                    <div className="flex bg-muted p-1 rounded-xl">
                         {[1, 2, 3].map(i => (
                             <button
                                 key={i}
                                 onClick={() => setTarget(i)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${target === i ? "bg-white shadow-sm text-primary" : "text-slate-400 hover:text-slate-600"
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${target === i ? "bg-card shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
                                     }`}
                             >
                                 L{i}
@@ -552,12 +552,12 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                     const isTarget = q.level === target;
 
                     return (
-                        <div key={q.id} className={`rounded-3xl border transition-all duration-300 ${isAchieved ? "border-primary/30 bg-white shadow-sm ring-1 ring-primary/10" : "border-slate-100 bg-white"}`}>
+                        <div key={q.id} className={`rounded-3xl border transition-all duration-300 ${isAchieved ? "border-primary/30 bg-card shadow-sm ring-1 ring-primary/10" : "border-border bg-card"}`}>
                             <div className="p-8">
                                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 mb-8">
                                     <div className="space-y-3 flex-1">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isAchieved ? "bg-primary text-white" : "bg-slate-100 text-slate-400"}`}>
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isAchieved ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
                                                 L{q.level}
                                             </div>
                                             {isTarget && (
@@ -566,7 +566,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                                 </Badge>
                                             )}
                                         </div>
-                                        <h4 className="text-lg font-bold text-slate-900 leading-tight">
+                                        <h4 className="text-lg font-bold text-foreground leading-tight">
                                             {q.question}
                                         </h4>
                                     </div>
@@ -600,20 +600,20 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                                         onClick={() => handleToggleQuality(q.level, idx, !isChecked)}
                                                         className={`flex gap-3 items-start p-3 rounded-2xl transition-all cursor-pointer border ${isChecked
                                                             ? "bg-sky-50/50 border-sky-100"
-                                                            : "bg-white border-slate-50 hover:border-slate-100"
+                                                            : "bg-card border-border hover:border-border"
                                                             }`}
                                                     >
-                                                        <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? "bg-sky-500 text-white shadow-sm" : "bg-slate-100 text-slate-300"}`}>
+                                                        <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? "bg-sky-500 text-white shadow-sm" : "bg-muted text-muted-foreground"}`}>
                                                             <CheckCircle2 className="w-3 h-3" />
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex items-start justify-between gap-3">
-                                                                <span className={`text-[13px] font-medium leading-relaxed ${isChecked ? "text-slate-800" : "text-slate-500"}`}>
+                                                                <span className={`text-[13px] font-medium leading-relaxed ${isChecked ? "text-foreground" : "text-muted-foreground"}`}>
                                                                     {criterion}
                                                                 </span>
                                                                 <button
                                                                     type="button"
-                                                                    className="text-slate-300 hover:text-slate-500"
+                                                                    className="text-muted-foreground hover:text-foreground"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         setOpenNoteKeys(prev => ({ ...prev, [noteKey]: !prev[noteKey] }));
@@ -634,7 +634,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                                                             }));
                                                                         }}
                                                                         placeholder="Implementation notes..."
-                                                                        className="w-full p-2 rounded-xl border border-slate-100 text-xs text-slate-700 bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                                                                        className="w-full p-2 rounded-xl border border-border text-xs text-foreground bg-card outline-none focus:ring-1 focus:ring-primary/20"
                                                                     />
                                                                 </div>
                                                             )}
@@ -646,16 +646,16 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                     </div>
 
                                     <div className="space-y-6">
-                                        <div className="bg-slate-50 p-6 rounded-2xl space-y-3">
-                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Benefits</h5>
-                                            <p className="text-xs text-slate-600 font-medium italic leading-relaxed">
+                                        <div className="bg-muted p-6 rounded-2xl space-y-3">
+                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Benefits</h5>
+                                            <p className="text-xs text-muted-foreground font-medium italic leading-relaxed">
                                                 "{q.benefits}"
                                             </p>
                                         </div>
 
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Linked Evidence</h5>
+                                                <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Linked Evidence</h5>
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
@@ -668,14 +668,14 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                             <div className="flex flex-wrap gap-2">
                                                 {linkedEvidence.length > 0 ? (
                                                     linkedEvidence.map((url, i) => (
-                                                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 group">
+                                                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border group">
                                                             <a href={url} target="_blank" rel="noreferrer" className="text-[10px] font-medium text-primary truncate max-w-[150px] flex items-center gap-2">
-                                                                <ExternalLink className="w-3 h-3 text-slate-400" />
+                                                                <ExternalLink className="w-3 h-3 text-muted-foreground" />
                                                                 {url.split('/').pop()}
                                                             </a>
                                                             <button
                                                                 type="button"
-                                                                className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                 onClick={() => setLinkedEvidence(prev => prev.filter((_, idx) => idx !== i))}
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
@@ -683,7 +683,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <p className="text-[11px] text-slate-400 font-medium">No evidence linked yet.</p>
+                                                    <p className="text-[11px] text-muted-foreground font-medium">No evidence linked yet.</p>
                                                 )}
                                             </div>
                                         </div>
@@ -696,8 +696,8 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
             </div>
 
             {/* General Assessment Notes */}
-            <div className="pt-8 border-t border-slate-50">
-                <h4 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <div className="pt-8 border-t border-border">
+                <h4 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
                     General Assessment Notes
                 </h4>
@@ -705,7 +705,7 @@ function StreamAssessmentPanel({ clientId, practiceId, streamId, streamName, onU
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Capture overall implementation findings, gaps, or internal discussions for this stream..."
-                    className="w-full min-h-[120px] p-4 rounded-3xl bg-slate-50 border-none text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 outline-none font-medium"
+                    className="w-full min-h-[120px] p-4 rounded-3xl bg-muted border-none text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 outline-none font-medium"
                 />
             </div>
 
