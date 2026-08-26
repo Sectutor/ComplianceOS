@@ -89,7 +89,7 @@ export default function ComplianceJourneyDashboard() {
             icon: Flag,
             path: `/clients/${clientId}/readiness/wizard`,
             color: "text-blue-500",
-            bgGradient: "from-blue-500/10 to-indigo-500/10",
+            bgGradient: "from-blue-500/10 to-blue-400/5",
             glowColor: "shadow-blue-500/20",
             buttonText: "Resume Assessment",
             progress: readinessScore,
@@ -136,8 +136,8 @@ export default function ComplianceJourneyDashboard() {
     if (readinessLoading || statsLoading) {
         return (
             <DashboardLayout>
-                <div className="flex items-center justify-center min-h-screen bg-slate-50/50">
-                    <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+                <div className="flex items-center justify-center min-h-screen bg-muted/50">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
             </DashboardLayout>
         );
@@ -145,11 +145,11 @@ export default function ComplianceJourneyDashboard() {
 
     return (
         <DashboardLayout>
-            <div className="min-h-screen bg-slate-50/50 pb-20 overflow-hidden">
+            <div className="min-h-screen bg-muted/50 pb-20 overflow-hidden">
                 {/* Premium Header / Hero */}
-                <div id="journey-hero" className="relative bg-white border-b border-slate-200 pt-10 pb-16 px-4 md:px-20 overflow-hidden">
+                <div id="journey-hero" className="relative bg-card border-b border-border pt-10 pb-16 px-4 md:px-20 overflow-hidden">
                     {/* Background glow effects */}
-                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 blur-3xl opacity-50 z-0 pointer-events-none" />
+                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-primary/5 blur-3xl opacity-50 z-0 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-100 to-emerald-100 blur-3xl opacity-50 z-0 pointer-events-none" />
 
                     <div className="w-full relative z-10 max-w-7xl mx-auto">
@@ -209,16 +209,16 @@ export default function ComplianceJourneyDashboard() {
                                     transition={{ duration: 0.5 }}
                                     className="flex items-center gap-3 mb-4"
                                 >
-                                    <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-200">
+                                    <div className="p-3 bg-primary rounded-xl text-primary-foreground shadow-lg shadow-primary/20">
                                         <Map className="w-6 h-6" />
                                     </div>
-                                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Compliance Journey</h1>
+                                    <h1 className="text-4xl font-extrabold text-foreground tracking-tight">Compliance Journey</h1>
                                 </motion.div>
                                 <motion.p
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     transition={{ duration: 0.5, delay: 0.2 }}
-                                    className="text-lg text-slate-600 leading-relaxed"
+                                    className="text-lg text-muted-foreground leading-relaxed"
                                 >
                                     Your roadmap to certification. Complete each phase to unlock the next level.
                                     We've combined AI predictions with task routing to keep you moving fast.
@@ -232,33 +232,33 @@ export default function ComplianceJourneyDashboard() {
                                 transition={{ duration: 0.5, delay: 0.3 }}
                                 className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch gap-4"
                             >
-                                <div id="journey-ai-prediction" className="bg-white/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 min-w-[280px] flex-1">
+                                <div id="journey-ai-prediction" className="bg-card/80 backdrop-blur-md p-5 rounded-2xl border border-border shadow-xl min-w-[280px] flex-1">
                                     <div className="flex justify-between items-center mb-4">
-                                        <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm">
+                                        <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                                             <BrainCircuit className="w-4 h-4" />
                                             <span>AI Prediction</span>
                                         </div>
-                                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                                             On Track
                                         </Badge>
                                     </div>
                                     <div className="flex items-baseline gap-3 mb-1">
-                                        <span className="text-3xl font-extrabold text-slate-900">{formattedDate}</span>
+                                        <span className="text-3xl font-extrabold text-foreground">{formattedDate}</span>
                                     </div>
-                                    <p className="text-sm text-slate-500 flex items-center gap-1.5">
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                                         <Calendar className="w-3.5 h-3.5" /> Estimated Audit Readiness
                                     </p>
                                 </div>
 
-                                <div id="journey-overall-progress" className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl min-w-[240px] flex-1 relative overflow-hidden text-white flex flex-col justify-center">
-                                    <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10" />
+                                <div id="journey-overall-progress" className="bg-sidebar p-5 rounded-2xl border border-sidebar-border shadow-xl min-w-[240px] flex-1 relative overflow-hidden text-sidebar-foreground flex flex-col justify-center">
+                                    <div className="absolute right-0 top-0 w-32 h-32 bg-sidebar-foreground/5 rounded-full blur-2xl -mr-10 -mt-10" />
                                     <div className="relative z-10">
-                                        <div className="flex justify-between text-sm font-medium mb-3 text-slate-300">
+                                        <div className="flex justify-between text-sm font-medium mb-3 text-sidebar-foreground/70">
                                             <span>Overall Progress</span>
-                                            <span className="text-white font-bold">{overallProgress}%</span>
+                                            <span className="text-sidebar-foreground font-bold">{overallProgress}%</span>
                                         </div>
-                                        <Progress value={overallProgress} className="h-2.5 bg-slate-700 [&>div]:bg-gradient-to-r [&>div]:from-blue-400 [&>div]:to-indigo-400" />
-                                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                                        <Progress value={overallProgress} className="h-2.5 bg-sidebar-foreground/20 [&>div]:bg-gradient-to-r [&>div]:from-blue-400 [&>div]:to-blue-300" />
+                                        <div className="mt-3 flex items-center gap-2 text-xs text-sidebar-foreground/60">
                                             <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                                             Top 15% pace in your industry
                                         </div>
@@ -277,26 +277,26 @@ export default function ComplianceJourneyDashboard() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.4 }}
-                            className="mb-12 bg-white border border-indigo-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden"
+                            className="mb-12 bg-card border border-primary/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden"
                             id="journey-next-action"
                         >
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                                    <Target className="w-6 h-6 text-indigo-600" />
+                                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <Target className="w-6 h-6 text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                                         Next Best Action
                                     </h3>
-                                    <p className="text-sm text-slate-600 mt-1">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         To maximize velocity, {readinessScore < 100 ? "continue mapping your current posture in the Readiness Assessment." : "focus on collecting evidence for high-impact controls."}
                                     </p>
                                 </div>
                             </div>
                             <Button
                                 onClick={() => setLocation(readinessScore < 100 ? `/clients/${clientId}/readiness/wizard` : `/clients/${clientId}/evidence`)}
-                                className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl px-6 py-5 whitespace-nowrap"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-5 whitespace-nowrap"
                             >
                                 Take Action <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
@@ -306,7 +306,7 @@ export default function ComplianceJourneyDashboard() {
                     {/* Journey Map */}
                     <div className="relative mt-8">
                         {/* Connecting Line (Animated) */}
-                        <div className="hidden lg:block absolute top-[130px] left-[10%] right-[10%] h-1 bg-slate-200 -z-0 rounded-full overflow-hidden">
+                        <div className="hidden lg:block absolute top-[130px] left-[10%] right-[10%] h-1 bg-muted -z-0 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${overallProgress}%` }}
@@ -330,20 +330,20 @@ export default function ComplianceJourneyDashboard() {
                                     <motion.div variants={itemVariants} key={stage.id} className="relative group z-10 h-full">
 
                                         {/* Level Node Connector */}
-                                        <div className="hidden lg:flex absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white border-4 border-slate-50 items-center justify-center z-30 pointer-events-none">
+                                        <div className="hidden lg:flex absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-card border-4 border-background items-center justify-center z-30 pointer-events-none">
                                             <div className={cn(
                                                 "w-4 h-4 rounded-full transition-colors duration-500",
-                                                isCompleted ? "bg-emerald-500" : isLocked ? "bg-slate-300" : "bg-indigo-500 animate-pulse"
+                                                isCompleted ? "bg-emerald-500" : isLocked ? "bg-muted-foreground/30" : "bg-primary animate-pulse"
                                             )} />
                                         </div>
 
                                         <div className={cn(
                                             "h-full flex flex-col p-1 rounded-3xl transition-all duration-500 mt-4",
-                                            isLocked ? "bg-slate-100" : `bg-white border border-slate-200 hover:border-indigo-200 hover:shadow-2xl ${stage.glowColor} hover:-translate-y-1`
+                                            isLocked ? "bg-muted" : `bg-card border border-border hover:border-primary/20 hover:shadow-2xl ${stage.glowColor} hover:-translate-y-1`
                                         )}>
                                             <div className={cn(
                                                 "h-full rounded-[1.4rem] p-6 lg:p-8 flex flex-col relative overflow-hidden",
-                                                isLocked ? "opacity-80" : "bg-white"
+                                                isLocked ? "opacity-80" : "bg-card"
                                             )}>
                                                 {/* Subtle gradient background for active cards */}
                                                 {!isLocked && (
@@ -354,7 +354,7 @@ export default function ComplianceJourneyDashboard() {
                                                 <div className="flex justify-between items-start mb-6 relative z-10">
                                                     <div className={cn(
                                                         "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-110",
-                                                        isLocked ? "bg-slate-200 text-slate-400" : `bg-white shadow-md border border-slate-100 ${stage.color}`
+                                                        isLocked ? "bg-muted text-muted-foreground" : `bg-card shadow-md border border-border ${stage.color}`
                                                     )}>
                                                         <stage.icon className="w-7 h-7" />
                                                     </div>
@@ -364,11 +364,11 @@ export default function ComplianceJourneyDashboard() {
                                                             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Completed
                                                         </Badge>
                                                     ) : isLocked ? (
-                                                        <div className="bg-slate-200 p-2.5 rounded-full">
-                                                            <Lock className="w-4 h-4 text-slate-500" />
+                                                        <div className="bg-muted p-2.5 rounded-full">
+                                                            <Lock className="w-4 h-4 text-muted-foreground" />
                                                         </div>
                                                     ) : (
-                                                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200 px-3 py-1 font-semibold animate-pulse">
+                                                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 font-semibold animate-pulse">
                                                             Active
                                                         </Badge>
                                                     )}
@@ -379,15 +379,15 @@ export default function ComplianceJourneyDashboard() {
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <Badge variant="outline" className={cn(
                                                             "text-[10px] uppercase tracking-wider font-bold",
-                                                            isLocked ? "border-slate-300 text-slate-400" : "border-slate-800 text-slate-800"
+                                                            isLocked ? "border-border text-muted-foreground" : "border-foreground text-foreground"
                                                         )}>
                                                             Level {stage.level}
                                                         </Badge>
                                                     </div>
-                                                    <h2 className={cn("text-2xl font-bold mb-2 tracking-tight", isLocked ? "text-slate-500" : "text-slate-900")}>
+                                                    <h2 className={cn("text-2xl font-bold mb-2 tracking-tight", isLocked ? "text-muted-foreground" : "text-foreground")}>
                                                         {stage.title}
                                                     </h2>
-                                                    <p className={cn("text-sm leading-relaxed", isLocked ? "text-slate-400" : "text-slate-600")}>
+                                                    <p className={cn("text-sm leading-relaxed", isLocked ? "text-muted-foreground" : "text-muted-foreground")}>
                                                         {stage.description}
                                                     </p>
                                                 </div>
@@ -396,7 +396,7 @@ export default function ComplianceJourneyDashboard() {
                                                 <div className="mt-auto relative z-10 relative">
                                                     {!isLocked && (
                                                         <div className="space-y-3 mb-6">
-                                                            <div className="flex justify-between text-sm font-semibold text-slate-700">
+                                                            <div className="flex justify-between text-sm font-semibold text-foreground">
                                                                 <span>Phase Progress</span>
                                                                 <span className={stage.color}>{stage.progress}%</span>
                                                             </div>
@@ -406,11 +406,11 @@ export default function ComplianceJourneyDashboard() {
 
                                                     {isLocked ? (
                                                         <div className="space-y-4">
-                                                            <div className="bg-slate-200/50 rounded-xl p-4 border border-slate-200 border-dashed flex gap-3 text-sm text-slate-600">
-                                                                <Lock className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                                            <div className="bg-muted/50 rounded-xl p-4 border border-border border-dashed flex gap-3 text-sm text-muted-foreground">
+                                                                <Lock className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                                                                 <p>{stage.unlockCriteria}</p>
                                                             </div>
-                                                            <Button disabled className="w-full bg-slate-200 hover:bg-slate-200 text-slate-400 font-semibold h-12 rounded-xl">
+                                                            <Button disabled className="w-full bg-muted hover:bg-muted text-muted-foreground font-semibold h-12 rounded-xl">
                                                                 Locked
                                                             </Button>
                                                         </div>
@@ -420,8 +420,8 @@ export default function ComplianceJourneyDashboard() {
                                                             className={cn(
                                                                 "w-full h-12 rounded-xl font-bold text-sm transition-all group-hover:shadow-lg focus:ring-4",
                                                                 isCompleted
-                                                                    ? "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 hover:border-slate-400"
-                                                                    : "bg-slate-900 hover:bg-slate-800 text-white shadow-md"
+                                                                    ? "bg-card text-foreground border border-border hover:bg-muted hover:border-muted-foreground/40"
+                                                                    : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
                                                             )}
                                                         >
                                                             {stage.buttonText}
@@ -445,31 +445,31 @@ export default function ComplianceJourneyDashboard() {
                         transition={{ delay: 0.6 }}
                         className="mt-20 grid md:grid-cols-3 gap-6"
                     >
-                        <div className="group p-5 bg-white border border-slate-200 hover:border-indigo-200 rounded-2xl flex gap-4 items-start transition-colors">
-                            <div className="bg-indigo-50 group-hover:bg-indigo-100 p-2.5 rounded-xl text-indigo-600 transition-colors">
+                        <div className="group p-5 bg-card border border-border hover:border-primary/20 rounded-2xl flex gap-4 items-start transition-colors">
+                            <div className="bg-primary/10 group-hover:bg-primary/20 p-2.5 rounded-xl text-primary transition-colors">
                                 <Flag className="w-5 h-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-slate-900">Guided Progression</h4>
-                                <p className="text-sm text-slate-500 mt-1 leading-relaxed">Completing one phase unlocks the next, preventing context switching and reducing noise.</p>
+                                <h4 className="font-bold text-foreground">Guided Progression</h4>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">Completing one phase unlocks the next, preventing context switching and reducing noise.</p>
                             </div>
                         </div>
-                        <div className="group p-5 bg-white border border-slate-200 hover:border-purple-200 rounded-2xl flex gap-4 items-start transition-colors">
+                        <div className="group p-5 bg-card border border-border hover:border-purple-200 rounded-2xl flex gap-4 items-start transition-colors">
                             <div className="bg-purple-50 group-hover:bg-purple-100 p-2.5 rounded-xl text-purple-600 transition-colors">
                                 <ShieldCheck className="w-5 h-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-slate-900">Evidence Gating</h4>
-                                <p className="text-sm text-slate-500 mt-1 leading-relaxed">Evidence collection only starts after you define your controls properly in the Readiness phase.</p>
+                                <h4 className="font-bold text-foreground">Evidence Gating</h4>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">Evidence collection only starts after you define your controls properly in the Readiness phase.</p>
                             </div>
                         </div>
-                        <div className="group p-5 bg-white border border-slate-200 hover:border-emerald-200 rounded-2xl flex gap-4 items-start transition-colors">
+                        <div className="group p-5 bg-card border border-border hover:border-emerald-200 rounded-2xl flex gap-4 items-start transition-colors">
                             <div className="bg-emerald-50 group-hover:bg-emerald-100 p-2.5 rounded-xl text-emerald-600 transition-colors">
                                 <CheckCircle2 className="w-5 h-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-slate-900">Always Audit-Ready</h4>
-                                <p className="text-sm text-slate-500 mt-1 leading-relaxed">The secure Audit Hub opens only when you are mathematically ready, saving you high auditor fees.</p>
+                                <h4 className="font-bold text-foreground">Always Audit-Ready</h4>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">The secure Audit Hub opens only when you are mathematically ready, saving you high auditor fees.</p>
                             </div>
                         </div>
                     </motion.div>

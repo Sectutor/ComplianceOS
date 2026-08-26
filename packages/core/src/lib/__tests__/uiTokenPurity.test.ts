@@ -78,6 +78,19 @@ const PAGES = [
   'packages/core/src/pages/nist/NIST80030ImpactAnalysis.tsx',
   // NIST 800-171 assessment page (federal) — tokenized in cycle 47.
   'packages/core/src/pages/federal/Nist800171AssessmentPage.tsx',
+  // Cycle 48 tokenization wave — enforced strictly from landing; the UI agent
+  // tokenizes these in parallel within cycle 48. Deliberately NOT listed in
+  // PARALLEL_BUILD_FILES: absence is a failure.
+  // NIST 800-37 Categorize step — tokenized in cycle 48.
+  'packages/core/src/pages/nist/NIST80037Categorize.tsx',
+  // NIST 800-37 Implement step — tokenized in cycle 48.
+  'packages/core/src/pages/nist/NIST80037Implement.tsx',
+  // NIST 800-37 Authorize step — tokenized in cycle 48.
+  'packages/core/src/pages/nist/NIST80037Authorize.tsx',
+  // ISO 27001 dashboard — tokenized in cycle 48.
+  'packages/core/src/pages/iso27001/ISODashboard.tsx',
+  // Compliance journey dashboard — tokenized in cycle 48.
+  'packages/core/src/pages/ComplianceJourneyDashboard.tsx',
 ];
 
 // Files owned by other agents in the current parallel build cycle. Existing
