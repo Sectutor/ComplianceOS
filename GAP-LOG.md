@@ -63,8 +63,29 @@ normalized} out; invalid-json issue list instead of throw; no DB on path). 31 en
 to the exact 9-route surface.
 - **GAP-20**: CMMC readiness uses SSP controls as proxy for 800-171 practices; a proper
   practice-level register (110 rows with objectives per CMMC assessment guide) is future work.
+**FIXED (2026-08-26, cycle 44, commit b19069a):** lib/federal/cmmcRegister.ts landed (8af570b) and is now
+wired end-to-end - new federalWorkflows.cmmcPractices pure query (family/level/search filters,
+full-register rollup invariant) + FederalCmmcPanels live panels; getCmmcReadiness can bind to the
+practice-level backbone instead of SSP-proxy scoring.
+**✅ FIXED 2026-08-26 (cycle 44, commit b19069a):** register engine landed (lib/federal/cmmcRegister.ts, 110 practices,
+L1=17 basic / L2=93 derived, family rollup + id lookup) and is reachable via the new federalWorkflows.cmmcPractices
+pure clientProcedure query (all-optional family trim+uppercase / level literal 1|2|3 / search filters; FULL-register
+families rollup invariant under filters; zero DB access). Register integrity + query contracts pinned in
+cmmcRegister.test.ts and federalWorkflowsRouter.test.ts; FederalCmmcPanels UI resolves its endpoint.
 - **GAP-21**: SPRS deduction model is family-weighted approximation, not per-practice DoD
   point values; replace when full 800-171 register exists (see GAP-20).
+**FIXED (2026-08-26, cycle 44, commit b19069a):** computeSprsPerPracticeDeduction(unmetIds) in
+cmmcRegister.ts - SPRS_FAMILY_WEIGHTS rescales the router's raw FAMILY_WEIGHTS_171 (157 -> exactly 110)
+onto per-practice largest-remainder point shares; every family sums EXACTLY to its weight; tolerant id
+coercion, deterministic sorted breakdown, malformed input zeroed (never throws).
+**✅ FIXED 2026-08-26 (cycle 44, commit b19069a):** per-practice deductions shipped in lib/federal/cmmcRegister.ts -
+SPRS_FAMILY_WEIGHTS rescales the register-bearing sections onto exactly 110 points (integer largest-remainder,
+Σ=110 verified), static practice-id -> fixed-points index distributes each family weight EXACTLY across its
+practices (remainder units to lexicographically-lowest ids), computeSprsPerPracticeDeduction(unmetIds) returns
+{deductedPoints, score floored at 0, unmetCount, unknownIdCount, familiesAffected, breakdown} - never throws,
+dedupe/case-insensitive/{id}-object tolerant, deterministic. 19 behavioral tests in cmmcSprsDeduction.test.ts.
+NOTE: getSprsBreakdown still uses the legacy family-weighted model (deliberate this cycle); rewiring it onto
+computeSprsPerPracticeDeduction is the next-cycle candidate.
 - **GAP-22**: No UI pages consume the new `federalWorkflows` procedures yet — backend only.
 **→ FIXED 2026-08-25 (cycle 42, commit 7bb070f):** pages/federal/federalWorkflowsApi.ts §16 typed contract layer
 (hooks/EMPTY_*/normalizers/META/demo builders/download helpers) + FederalWorkflowsPanels.tsx (SPRS card, DFARS/CIRCIA
