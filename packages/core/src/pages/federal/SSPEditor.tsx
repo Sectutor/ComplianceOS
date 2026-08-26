@@ -709,26 +709,26 @@ export default function SSPEditor() {
                     />
                 </div>
 
-                <div className="sticky top-0 z-40 bg-slate-50/90 backdrop-blur-xl py-4 px-6 border-b border-slate-200 shadow-sm mb-6">
+                <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl py-4 px-6 border-b border-border shadow-sm mb-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                            <h1 className="text-4xl font-black text-foreground tracking-tight">
                                 System Security Plan Editor
                             </h1>
-                            <p className="text-slate-600 mt-2">
+                            <p className="text-muted-foreground mt-2">
                                 {frameworkLabel} - {sectionData['overview']?.systemName || currentSSP.systemName || "Unnamed System"}
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <Button variant="outline" onClick={() => setIsGuideOpen(true)} className="border-slate-300">
+                            <Button variant="outline" onClick={() => setIsGuideOpen(true)} className="border-border">
                                 <HelpCircle className="h-4 w-4 mr-2" />
                                 Guide
                             </Button>
-                            <Button variant="outline" className="border-slate-300">
+                            <Button variant="outline" className="border-border">
                                 <Printer className="h-4 w-4 mr-2" />
                                 Print
                             </Button>
-                            <Button variant="outline" className="border-slate-300">
+                            <Button variant="outline" className="border-border">
                                 <Share2 className="h-4 w-4 mr-2" />
                                 Share
                             </Button>
@@ -763,28 +763,28 @@ export default function SSPEditor() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div className="space-y-4">
                                 <section className="space-y-2">
-                                    <h4 className="font-bold text-slate-900 border-b pb-1">1. System Overview & Identification</h4>
-                                    <p className="text-sm text-slate-600">
+                                    <h4 className="font-bold text-foreground border-b pb-1">1. System Overview & Identification</h4>
+                                    <p className="text-sm text-muted-foreground">
                                         Define the <strong>System Under Consideration</strong>. Use the <strong>Sync from Categorization</strong> button to pull High-Water Mark levels and rationales directly from your FIPS 199 analysis.
                                     </p>
                                 </section>
                                 <section className="space-y-2">
-                                    <h4 className="font-bold text-slate-900 border-b pb-1">2. System Boundary & Environment</h4>
-                                    <p className="text-sm text-slate-600">
+                                    <h4 className="font-bold text-foreground border-b pb-1">2. System Boundary & Environment</h4>
+                                    <p className="text-sm text-muted-foreground">
                                         Describe hardware, software, and data flows. Provide a URL to architecture diagrams for visual reference. Document physical/cloud locations and personnel access.
                                     </p>
                                 </section>
                             </div>
                             <div className="space-y-4">
                                 <section className="space-y-2">
-                                    <h4 className="font-bold text-slate-900 border-b pb-1">3. Security Requirements</h4>
-                                    <p className="text-sm text-slate-600">
+                                    <h4 className="font-bold text-foreground border-b pb-1">3. Security Requirements</h4>
+                                    <p className="text-sm text-muted-foreground">
                                         Document <strong>how</strong> every security control is met. Use the "Wand" icon on cryptographic controls to pull FIPS 140 module inventories. Link evidence artifacts directly to each control.
                                     </p>
                                 </section>
                                 <section className="space-y-2">
-                                    <h4 className="font-bold text-slate-900 border-b pb-1">4. POA&M Integration</h4>
-                                    <p className="text-sm text-slate-600">
+                                    <h4 className="font-bold text-foreground border-b pb-1">4. POA&M Integration</h4>
+                                    <p className="text-sm text-muted-foreground">
                                         Controls marked as "Planned" or "Partial" represent security gaps. Use the <strong>Generate POA&M</strong> button to turn these gaps into an actionable Plan of Action and Milestones task list.
                                     </p>
                                 </section>
@@ -800,9 +800,9 @@ export default function SSPEditor() {
                     <div className="grid grid-cols-1 lg:grid-cols-4 2xl:grid-cols-5 gap-8 items-start">
                         {/* Left sidebar - Navigation */}
                         <div className="lg:col-span-1 sticky top-28 z-30">
-                            <Card className="border-slate-200 shadow-xl shadow-slate-200/40 bg-white/80 backdrop-blur-xl">
+                            <Card className="border-border shadow-xl shadow-black/5 bg-card/80 backdrop-blur-xl">
                                 <CardHeader className="pb-3">
-                                    <CardTitle className="text-lg font-bold text-slate-900">Sections</CardTitle>
+                                    <CardTitle className="text-lg font-bold text-foreground">Sections</CardTitle>
                                     <CardDescription>Complete all sections for a comprehensive SSP</CardDescription>
                                 </CardHeader>
                                 <CardContent className="p-0">
@@ -821,7 +821,7 @@ export default function SSPEditor() {
                                                 <button
                                                     key={section.id}
                                                     onClick={() => setActiveTab(section.id)}
-                                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${activeTab === section.id ? 'bg-blue-50 text-blue-700 border-l-4 border-l-blue-600' : 'hover:bg-slate-50 text-slate-700'}`}
+                                                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${activeTab === section.id ? 'bg-blue-50 text-blue-700 border-l-4 border-l-blue-600' : 'hover:bg-muted text-foreground'}`}
                                                 >
                                                     <Icon className="h-5 w-5" />
                                                     <div className="flex-1">
@@ -834,7 +834,7 @@ export default function SSPEditor() {
                                                         <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">In Progress</Badge>
                                                     )}
                                                     {status === "empty" && (
-                                                        <Badge variant="outline" className="text-slate-500">Empty</Badge>
+                                                        <Badge variant="outline" className="text-muted-foreground">Empty</Badge>
                                                     )}
                                                 </button>
                                             );
@@ -844,9 +844,9 @@ export default function SSPEditor() {
                             </Card>
 
                             {/* Progress Summary */}
-                            <Card className="border-slate-200 shadow-sm mt-6">
+                            <Card className="border-border shadow-sm mt-6">
                                 <CardContent className="p-6">
-                                    <h3 className="font-bold text-slate-900 mb-4">Progress Summary</h3>
+                                    <h3 className="font-bold text-foreground mb-4">Progress Summary</h3>
                                     <div className="space-y-3">
                                         {["overview", "boundary", "environment", "controls", "roles", "attachments"].map((section) => {
                                             const status = getSectionStatus(section);
@@ -860,7 +860,7 @@ export default function SSPEditor() {
                                             };
                                             return (
                                                 <div key={section} className="flex items-center justify-between">
-                                                    <span className="text-sm text-slate-700">{labels[section as keyof typeof labels]}</span>
+                                                    <span className="text-sm text-foreground">{labels[section as keyof typeof labels]}</span>
                                                     <div className="flex items-center gap-2">
                                                         {status === "complete" && (
                                                             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -869,7 +869,7 @@ export default function SSPEditor() {
                                                             <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
                                                         )}
                                                         {status === "empty" && (
-                                                            <div className="h-2 w-2 rounded-full bg-slate-300" />
+                                                            <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
                                                         )}
                                                     </div>
                                                 </div>
@@ -895,59 +895,59 @@ export default function SSPEditor() {
                                 {/* System Overview */}
                                 <TabsContent value="overview" className="space-y-6">
                                     <div className="space-y-2 mb-8">
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">1. System Overview</h2>
-                                        <p className="text-slate-500">Basic information about the system and its purpose.</p>
+                                        <h2 className="text-3xl font-black text-foreground tracking-tight">1. System Overview</h2>
+                                        <p className="text-muted-foreground">Basic information about the system and its purpose.</p>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Card className="border-slate-200 shadow-sm">
+                                        <Card className="border-border shadow-sm">
                                             <CardHeader className="pb-3">
-                                                <CardTitle className="text-lg font-bold text-slate-900">System Identification</CardTitle>
+                                                <CardTitle className="text-lg font-bold text-foreground">System Identification</CardTitle>
                                                 <CardDescription>Unique identifiers for the system</CardDescription>
                                             </CardHeader>
                                             <CardContent className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">System Name (System Under Consideration)</label>
+                                                    <label className="text-sm font-bold text-foreground">System Name (System Under Consideration)</label>
                                                     <Input
                                                         placeholder="Enter system name (e.g., 'Enterprise Resource Planning System')"
                                                         value={sectionData['overview']?.systemName || ''}
                                                         onChange={(e) => updateField('overview', 'systemName', e.target.value)}
-                                                        className="border-slate-200 focus:ring-blue-500"
+                                                        className="border-border focus:ring-blue-500"
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">System Identifier</label>
+                                                    <label className="text-sm font-bold text-foreground">System Identifier</label>
                                                     <Input
                                                         placeholder="Enter system ID (e.g., 'ERP-001')"
                                                         value={sectionData['overview']?.systemId || ''}
                                                         onChange={(e) => updateField('overview', 'systemId', e.target.value)}
-                                                        className="border-slate-200 focus:ring-blue-500"
+                                                        className="border-border focus:ring-blue-500"
                                                     />
                                                 </div>
                                             </CardContent>
                                         </Card>
 
-                                        <Card className="border-slate-200 shadow-sm">
+                                        <Card className="border-border shadow-sm">
                                             <CardHeader className="pb-3">
-                                                <CardTitle className="text-lg font-bold text-slate-900">System Purpose & Classification</CardTitle>
+                                                <CardTitle className="text-lg font-bold text-foreground">System Purpose & Classification</CardTitle>
                                                 <CardDescription>Mission and security classification</CardDescription>
                                             </CardHeader>
                                             <CardContent className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">System Purpose</label>
+                                                    <label className="text-sm font-bold text-foreground">System Purpose</label>
                                                     <Textarea
                                                         placeholder="Describe the system's mission, functions, and business value..."
                                                         value={sectionData['overview']?.systemPurpose || ''}
                                                         onChange={(e) => updateField('overview', 'systemPurpose', e.target.value)}
-                                                        className="min-h-[120px] border-slate-200 focus:ring-blue-500"
+                                                        className="min-h-[120px] border-border focus:ring-blue-500"
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">Security Impact Level</label>
+                                                    <label className="text-sm font-bold text-foreground">Security Impact Level</label>
                                                     <select
                                                         value={sectionData['overview']?.securityLevel || ''}
                                                         onChange={(e) => updateField('overview', 'securityLevel', e.target.value)}
-                                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                     >
                                                         <option value="">Select impact level</option>
                                                         <option value="low">Low Impact</option>
@@ -963,22 +963,22 @@ export default function SSPEditor() {
                                     {/* FIPS 199 Categorization */}
                                     <div className="mt-8">
                                         <div className="space-y-2 mb-4">
-                                            <h3 className="text-xl font-bold text-slate-900">FIPS 199 Security Categorization</h3>
-                                            <p className="text-slate-500">Determine the security category of the system based on the potential impact of loss.</p>
+                                            <h3 className="text-xl font-bold text-foreground">FIPS 199 Security Categorization</h3>
+                                            <p className="text-muted-foreground">Determine the security category of the system based on the potential impact of loss.</p>
                                         </div>
 
-                                        <Card className="border-slate-200 shadow-sm">
+                                        <Card className="border-border shadow-sm">
                                             <CardHeader className="pb-3">
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <CardTitle className="text-lg font-bold text-slate-900">Security Objectives</CardTitle>
+                                                        <CardTitle className="text-lg font-bold text-foreground">Security Objectives</CardTitle>
                                                         <CardDescription>Select the potential impact level for each security objective.</CardDescription>
                                                     </div>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={handleSyncFips}
-                                                        className="border-slate-300 h-8"
+                                                        className="border-border h-8"
                                                     >
                                                         <Zap className="h-3 w-3 mr-2 text-amber-500" />
                                                         Sync from Categorization
@@ -987,18 +987,18 @@ export default function SSPEditor() {
                                             </CardHeader>
                                             <CardContent className="space-y-6">
                                                 {/* Confidentiality */}
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pb-6 border-b border-slate-100 last:border-0 last:pb-0">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pb-6 border-b border-border last:border-0 last:pb-0">
                                                     <div className="md:col-span-1">
-                                                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                                        <h4 className="font-bold text-foreground flex items-center gap-2">
                                                             <Lock className="h-4 w-4 text-blue-600" />
                                                             Confidentiality
                                                         </h4>
-                                                        <p className="text-sm text-slate-500 mt-1">Preserving authorized restrictions on information access and disclosure.</p>
+                                                        <p className="text-sm text-muted-foreground mt-1">Preserving authorized restrictions on information access and disclosure.</p>
                                                     </div>
                                                     <div className="md:col-span-2 space-y-3">
                                                         <div className="flex gap-4">
                                                             {['low', 'moderate', 'high'].map((level) => (
-                                                                <label key={level} className={`flex-1 border rounded-lg p-3 cursor-pointer transition-all ${sectionData['overview']?.securityObjectiveConfidentiality === level ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'hover:bg-slate-50 border-slate-200'}`}>
+                                                                <label key={level} className={`flex-1 border rounded-lg p-3 cursor-pointer transition-all ${sectionData['overview']?.securityObjectiveConfidentiality === level ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'hover:bg-muted border-border'}`}>
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <input
                                                                             type="radio"
@@ -1008,9 +1008,9 @@ export default function SSPEditor() {
                                                                             onChange={(e) => updateField('overview', 'securityObjectiveConfidentiality', e.target.value)}
                                                                             className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                                                                         />
-                                                                        <span className="font-bold text-slate-900 capitalize">{level}</span>
+                                                                        <span className="font-bold text-foreground capitalize">{level}</span>
                                                                     </div>
-                                                                    <p className="text-xs text-slate-500">
+                                                                    <p className="text-xs text-muted-foreground">
                                                                         {level === 'low' && "Limited adverse effect"}
                                                                         {level === 'moderate' && "Serious adverse effect"}
                                                                         {level === 'high' && "Severe/catastrophic adverse effect"}
@@ -1022,24 +1022,24 @@ export default function SSPEditor() {
                                                             placeholder="Justification for Confidentiality impact level..."
                                                             value={sectionData['overview']?.rationaleConfidentiality || ''}
                                                             onChange={(e) => updateField('overview', 'rationaleConfidentiality', e.target.value)}
-                                                            className="min-h-[80px] border-slate-200 focus:ring-blue-500 text-sm"
+                                                            className="min-h-[80px] border-border focus:ring-blue-500 text-sm"
                                                         />
                                                     </div>
                                                 </div>
 
                                                 {/* Integrity */}
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pb-6 border-b border-slate-100 last:border-0 last:pb-0">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pb-6 border-b border-border last:border-0 last:pb-0">
                                                     <div className="md:col-span-1">
-                                                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                                        <h4 className="font-bold text-foreground flex items-center gap-2">
                                                             <Shield className="h-4 w-4 text-green-600" />
                                                             Integrity
                                                         </h4>
-                                                        <p className="text-sm text-slate-500 mt-1">Guarding against improper information modification or destruction.</p>
+                                                        <p className="text-sm text-muted-foreground mt-1">Guarding against improper information modification or destruction.</p>
                                                     </div>
                                                     <div className="md:col-span-2 space-y-3">
                                                         <div className="flex gap-4">
                                                             {['low', 'moderate', 'high'].map((level) => (
-                                                                <label key={level} className={`flex-1 border rounded-lg p-3 cursor-pointer transition-all ${sectionData['overview']?.securityObjectiveIntegrity === level ? 'bg-green-50 border-green-500 ring-1 ring-green-500' : 'hover:bg-slate-50 border-slate-200'}`}>
+                                                                <label key={level} className={`flex-1 border rounded-lg p-3 cursor-pointer transition-all ${sectionData['overview']?.securityObjectiveIntegrity === level ? 'bg-green-50 border-green-500 ring-1 ring-green-500' : 'hover:bg-muted border-border'}`}>
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <input
                                                                             type="radio"
@@ -1049,9 +1049,9 @@ export default function SSPEditor() {
                                                                             onChange={(e) => updateField('overview', 'securityObjectiveIntegrity', e.target.value)}
                                                                             className="h-4 w-4 text-green-600 focus:ring-green-500"
                                                                         />
-                                                                        <span className="font-bold text-slate-900 capitalize">{level}</span>
+                                                                        <span className="font-bold text-foreground capitalize">{level}</span>
                                                                     </div>
-                                                                    <p className="text-xs text-slate-500">
+                                                                    <p className="text-xs text-muted-foreground">
                                                                         {level === 'low' && "Limited adverse effect"}
                                                                         {level === 'moderate' && "Serious adverse effect"}
                                                                         {level === 'high' && "Severe/catastrophic adverse effect"}
@@ -1063,24 +1063,24 @@ export default function SSPEditor() {
                                                             placeholder="Justification for Integrity impact level..."
                                                             value={sectionData['overview']?.rationaleIntegrity || ''}
                                                             onChange={(e) => updateField('overview', 'rationaleIntegrity', e.target.value)}
-                                                            className="min-h-[80px] border-slate-200 focus:ring-green-500 text-sm"
+                                                            className="min-h-[80px] border-border focus:ring-green-500 text-sm"
                                                         />
                                                     </div>
                                                 </div>
 
                                                 {/* Availability */}
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pb-6 border-b border-slate-100 last:border-0 last:pb-0">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pb-6 border-b border-border last:border-0 last:pb-0">
                                                     <div className="md:col-span-1">
-                                                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                                        <h4 className="font-bold text-foreground flex items-center gap-2">
                                                             <Clock className="h-4 w-4 text-orange-600" />
                                                             Availability
                                                         </h4>
-                                                        <p className="text-sm text-slate-500 mt-1">Ensuring timely and reliable access to and use of information.</p>
+                                                        <p className="text-sm text-muted-foreground mt-1">Ensuring timely and reliable access to and use of information.</p>
                                                     </div>
                                                     <div className="md:col-span-2 space-y-3">
                                                         <div className="flex gap-4">
                                                             {['low', 'moderate', 'high'].map((level) => (
-                                                                <label key={level} className={`flex-1 border rounded-lg p-3 cursor-pointer transition-all ${sectionData['overview']?.securityObjectiveAvailability === level ? 'bg-orange-50 border-orange-500 ring-1 ring-orange-500' : 'hover:bg-slate-50 border-slate-200'}`}>
+                                                                <label key={level} className={`flex-1 border rounded-lg p-3 cursor-pointer transition-all ${sectionData['overview']?.securityObjectiveAvailability === level ? 'bg-orange-50 border-orange-500 ring-1 ring-orange-500' : 'hover:bg-muted border-border'}`}>
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <input
                                                                             type="radio"
@@ -1090,9 +1090,9 @@ export default function SSPEditor() {
                                                                             onChange={(e) => updateField('overview', 'securityObjectiveAvailability', e.target.value)}
                                                                             className="h-4 w-4 text-orange-600 focus:ring-orange-500"
                                                                         />
-                                                                        <span className="font-bold text-slate-900 capitalize">{level}</span>
+                                                                        <span className="font-bold text-foreground capitalize">{level}</span>
                                                                     </div>
-                                                                    <p className="text-xs text-slate-500">
+                                                                    <p className="text-xs text-muted-foreground">
                                                                         {level === 'low' && "Limited adverse effect"}
                                                                         {level === 'moderate' && "Serious adverse effect"}
                                                                         {level === 'high' && "Severe/catastrophic adverse effect"}
@@ -1104,7 +1104,7 @@ export default function SSPEditor() {
                                                             placeholder="Justification for Availability impact level..."
                                                             value={sectionData['overview']?.rationaleAvailability || ''}
                                                             onChange={(e) => updateField('overview', 'rationaleAvailability', e.target.value)}
-                                                            className="min-h-[80px] border-slate-200 focus:ring-orange-500 text-sm"
+                                                            className="min-h-[80px] border-border focus:ring-orange-500 text-sm"
                                                         />
                                                     </div>
                                                 </div>
@@ -1131,35 +1131,35 @@ export default function SSPEditor() {
                                 {/* System Boundary */}
                                 <TabsContent value="boundary" className="space-y-6">
                                     <div className="space-y-2 mb-8">
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">2. System Boundary</h2>
-                                        <p className="text-slate-500">Define what's included in and excluded from the system.</p>
+                                        <h2 className="text-3xl font-black text-foreground tracking-tight">2. System Boundary</h2>
+                                        <p className="text-muted-foreground">Define what's included in and excluded from the system.</p>
                                     </div>
 
-                                    <Card className="border-slate-200 shadow-sm">
+                                    <Card className="border-border shadow-sm">
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-lg font-bold text-slate-900">Boundary Description</CardTitle>
+                                            <CardTitle className="text-lg font-bold text-foreground">Boundary Description</CardTitle>
                                             <CardDescription>Components, interfaces, and data flows within the system boundary</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">Boundary Definition</label>
+                                                    <label className="text-sm font-bold text-foreground">Boundary Definition</label>
                                                     <Textarea
                                                         placeholder="Describe system components, hardware, software, interfaces, and data flows..."
                                                         value={sectionData['boundary']?.boundaryDescription || ''}
                                                         onChange={(e) => updateField('boundary', 'boundaryDescription', e.target.value)}
-                                                        className="min-h-[200px] border-slate-200 focus:ring-blue-500 leading-relaxed py-4"
+                                                        className="min-h-[200px] border-border focus:ring-blue-500 leading-relaxed py-4"
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">Architecture Diagram URL</label>
+                                                    <label className="text-sm font-bold text-foreground">Architecture Diagram URL</label>
                                                     <Input
                                                         placeholder="Enter URL to system architecture diagram (e.g., Lucidchart, Draw.io)"
                                                         value={sectionData['boundary']?.diagramUrl || ''}
                                                         onChange={(e) => updateField('boundary', 'diagramUrl', e.target.value)}
-                                                        className="border-slate-200 focus:ring-blue-500"
+                                                        className="border-border focus:ring-blue-500"
                                                     />
-                                                    <p className="text-sm text-slate-500">Provide a link to your system architecture diagram for visual reference</p>
+                                                    <p className="text-sm text-muted-foreground">Provide a link to your system architecture diagram for visual reference</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -1184,24 +1184,24 @@ export default function SSPEditor() {
                                 {/* Operational Environment */}
                                 <TabsContent value="environment" className="space-y-6">
                                     <div className="space-y-2 mb-8">
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">3. Operational Environment</h2>
-                                        <p className="text-slate-500">Describe where and how the system operates.</p>
+                                        <h2 className="text-3xl font-black text-foreground tracking-tight">3. Operational Environment</h2>
+                                        <p className="text-muted-foreground">Describe where and how the system operates.</p>
                                     </div>
 
-                                    <Card className="border-slate-200 shadow-sm">
+                                    <Card className="border-border shadow-sm">
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-lg font-bold text-slate-900">Environment Details</CardTitle>
+                                            <CardTitle className="text-lg font-bold text-foreground">Environment Details</CardTitle>
                                             <CardDescription>Physical, technical, and personnel environment</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">Environment Description</label>
+                                                    <label className="text-sm font-bold text-foreground">Environment Description</label>
                                                     <Textarea
                                                         placeholder="Describe cloud providers, data centers, personnel access controls..."
                                                         value={sectionData['environment']?.environmentDescription || ''}
                                                         onChange={(e) => updateField('environment', 'environmentDescription', e.target.value)}
-                                                        className="min-h-[200px] border-slate-200 focus:ring-blue-500 leading-relaxed py-4"
+                                                        className="min-h-[200px] border-border focus:ring-blue-500 leading-relaxed py-4"
                                                     />
                                                 </div>
                                             </div>
@@ -1227,23 +1227,23 @@ export default function SSPEditor() {
                                 {/* Security Requirements */}
                                 <TabsContent value="controls" className="space-y-6">
                                     <div className="space-y-2 mb-8">
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">4. Security Requirements</h2>
-                                        <p className="text-slate-500">Document the implementation status of NIST 800-172 Enhanced security controls.</p>
+                                        <h2 className="text-3xl font-black text-foreground tracking-tight">4. Security Requirements</h2>
+                                        <p className="text-muted-foreground">Document the implementation status of NIST 800-172 Enhanced security controls.</p>
                                     </div>
 
                                     {/* Controls Selection & Implementation */}
                                     <div className="space-y-8">
-                                        <Card className="border-slate-200 shadow-sm">
+                                        <Card className="border-border shadow-sm">
                                             <CardHeader className="pb-3">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
                                                         <Shield className="h-6 w-6 text-blue-600" />
-                                                        <CardTitle className="text-lg font-bold text-slate-900">NIST 800-172 Controls</CardTitle>
+                                                        <CardTitle className="text-lg font-bold text-foreground">NIST 800-172 Controls</CardTitle>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <Button
                                                             variant="outline"
-                                                            className="border-slate-300"
+                                                            className="border-border"
                                                             onClick={handleSyncPoam}
                                                             disabled={syncPoamMutation.isPending}
                                                         >
@@ -1256,7 +1256,7 @@ export default function SSPEditor() {
                                                         </Button>
                                                         <Button
                                                             variant="outline"
-                                                            className="border-slate-300"
+                                                            className="border-border"
                                                             onClick={() => setShowCustomControlForm(!showCustomControlForm)}
                                                         >
                                                             <Plus className="h-4 w-4 mr-2" />
@@ -1286,14 +1286,14 @@ export default function SSPEditor() {
                                                             placeholder="Search controls by ID or name..."
                                                             value={searchQuery}
                                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                                            className="border-slate-200 focus:ring-blue-500"
+                                                            className="border-border focus:ring-blue-500"
                                                         />
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <select
                                                             value={selectedCategory}
                                                             onChange={(e) => setSelectedCategory(e.target.value)}
-                                                            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            className="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                         >
                                                             <option value="">All Categories</option>
                                                             <option value="apt">APT Protection</option>
@@ -1304,7 +1304,7 @@ export default function SSPEditor() {
                                                         <select
                                                             value={selectedStatus}
                                                             onChange={(e) => setSelectedStatus(e.target.value)}
-                                                            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            className="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                         >
                                                             <option value="">All Status</option>
                                                             <option value="implemented">Implemented</option>
@@ -1317,7 +1317,7 @@ export default function SSPEditor() {
 
                                                 {/* Custom Control Form */}
                                                 {showCustomControlForm && (
-                                                    <Card className="border-blue-200 bg-blue-50/50 mb-6">
+                                                    <Card className="border-blue-200 bg-blue-500/10 mb-6">
                                                         <CardContent className="p-6">
                                                             <div className="space-y-4">
                                                                 <div className="flex items-center gap-3 mb-4">
@@ -1326,30 +1326,30 @@ export default function SSPEditor() {
                                                                 </div>
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                     <div className="space-y-2">
-                                                                        <label className="text-sm font-bold text-slate-900">Control Name *</label>
+                                                                        <label className="text-sm font-bold text-foreground">Control Name *</label>
                                                                         <Input
                                                                             value={newControl.name}
                                                                             onChange={(e) => handleNewControlChange('name', e.target.value)}
                                                                             placeholder="Enter control name"
-                                                                            className="border-slate-200 focus:ring-blue-500"
+                                                                            className="border-border focus:ring-blue-500"
                                                                         />
                                                                     </div>
                                                                     <div className="space-y-2">
-                                                                        <label className="text-sm font-bold text-slate-900">Category</label>
+                                                                        <label className="text-sm font-bold text-foreground">Category</label>
                                                                         <Input
                                                                             value={newControl.category}
                                                                             onChange={(e) => handleNewControlChange('category', e.target.value)}
                                                                             placeholder="e.g., Custom, APT Protection, etc."
-                                                                            className="border-slate-200 focus:ring-blue-500"
+                                                                            className="border-border focus:ring-blue-500"
                                                                         />
                                                                     </div>
                                                                     <div className="md:col-span-2 space-y-2">
-                                                                        <label className="text-sm font-bold text-slate-900">Description</label>
+                                                                        <label className="text-sm font-bold text-foreground">Description</label>
                                                                         <Textarea
                                                                             value={newControl.description}
                                                                             onChange={(e) => handleNewControlChange('description', e.target.value)}
                                                                             placeholder="Describe the control requirements and purpose..."
-                                                                            className="min-h-[100px] border-slate-200 focus:ring-blue-500"
+                                                                            className="min-h-[100px] border-border focus:ring-blue-500"
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -1357,7 +1357,7 @@ export default function SSPEditor() {
                                                                     <Button
                                                                         variant="outline"
                                                                         onClick={() => setShowCustomControlForm(false)}
-                                                                        className="border-slate-300"
+                                                                        className="border-border"
                                                                     >
                                                                         Cancel
                                                                     </Button>
@@ -1384,14 +1384,14 @@ export default function SSPEditor() {
                                                     {loadingControls || loadingSspControls ? (
                                                         <div className="text-center py-12">
                                                             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-                                                            <p className="text-slate-600">Loading controls...</p>
+                                                            <p className="text-muted-foreground">Loading controls...</p>
                                                         </div>
                                                     ) : controls && controls.length > 0 ? (
                                                         controls.map((control) => {
                                                             const sspControl = sspControls?.find(sc => sc.controlId === control.controlId);
                                                             const isSelected = !!sspControl;
                                                             return (
-                                                                <div key={control.id} className="border border-slate-200 rounded-lg p-4 space-y-4">
+                                                                <div key={control.id} className="border border-border rounded-lg p-4 space-y-4">
                                                                     <div className="flex items-start justify-between">
                                                                         <div className="space-y-1">
                                                                             <div className="flex items-center gap-2">
@@ -1399,9 +1399,9 @@ export default function SSPEditor() {
                                                                                     type="checkbox"
                                                                                     checked={isSelected}
                                                                                     onChange={(e) => handleControlToggle(control.controlId, e.target.checked)}
-                                                                                    className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                                                                                    className="h-4 w-4 text-blue-600 border-border rounded focus:ring-blue-500"
                                                                                 />
-                                                                                <label className="font-bold text-slate-900 cursor-pointer">
+                                                                                <label className="font-bold text-foreground cursor-pointer">
                                                                                     {control.controlId} - {control.name}
                                                                                 </label>
                                                                                 {control.category && (
@@ -1410,14 +1410,14 @@ export default function SSPEditor() {
                                                                                     </Badge>
                                                                                 )}
                                                                             </div>
-                                                                            <p className="text-sm text-slate-600 ml-6">
+                                                                            <p className="text-sm text-muted-foreground ml-6">
                                                                                 {control.description || 'No description available.'}
                                                                             </p>
                                                                         </div>
                                                                         <select
                                                                             value={sspControl?.implementationStatus || ''}
                                                                             onChange={(e) => handleControlStatusChange(control.controlId, e.target.value)}
-                                                                            className="border border-slate-200 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                            className="border border-border rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                                         >
                                                                             <option value="">Select status</option>
                                                                             <option value="implemented">Implemented</option>
@@ -1431,7 +1431,7 @@ export default function SSPEditor() {
                                                                         <div className="ml-6 space-y-3">
                                                                             <div className="space-y-2">
                                                                                 <div className="flex justify-between items-center">
-                                                                                    <label className="text-sm font-bold text-slate-900">Implementation Details</label>
+                                                                                    <label className="text-sm font-bold text-foreground">Implementation Details</label>
                                                                                     {['SC-13', '3.13.11'].includes(control.controlId) && (
                                                                                         <Button
                                                                                             size="sm"
@@ -1448,23 +1448,23 @@ export default function SSPEditor() {
                                                                                     value={sspControl?.implementationDescription || ''}
                                                                                     onChange={(e) => handleControlDetailsChange(control.controlId, 'implementationDescription', e.target.value)}
                                                                                     placeholder="Describe how this control is implemented, including tools, processes, and configuration details..."
-                                                                                    className="min-h-[100px] border-slate-200 focus:ring-blue-500 text-sm"
+                                                                                    className="min-h-[100px] border-border focus:ring-blue-500 text-sm"
                                                                                 />
                                                                             </div>
                                                                             <div className="space-y-2">
-                                                                                <label className="text-sm font-bold text-slate-900">Responsible Role</label>
+                                                                                <label className="text-sm font-bold text-foreground">Responsible Role</label>
                                                                                 <Input
                                                                                     value={sspControl?.responsibleRole || ''}
                                                                                     onChange={(e) => handleControlDetailsChange(control.controlId, 'responsibleRole', e.target.value)}
                                                                                     placeholder="e.g., Security Operations Team, System Administrator"
-                                                                                    className="border-slate-200 focus:ring-blue-500"
+                                                                                    className="border-border focus:ring-blue-500"
                                                                                 />
                                                                             </div>
 
                                                                             {/* Evidence Section */}
-                                                                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                                                                                <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                                                                    <LinkIcon className="h-4 w-4 text-slate-500" />
+                                                                            <div className="space-y-2 pt-2 border-t border-border">
+                                                                                <label className="text-sm font-bold text-foreground flex items-center gap-2">
+                                                                                    <LinkIcon className="h-4 w-4 text-muted-foreground" />
                                                                                     Evidence & Artifacts
                                                                                 </label>
 
@@ -1472,7 +1472,7 @@ export default function SSPEditor() {
                                                                                 {sspControl?.evidenceLinks && (sspControl.evidenceLinks as any[]).length > 0 && (
                                                                                     <div className="space-y-2 mb-3">
                                                                                         {(sspControl.evidenceLinks as any[]).map((evidence: any) => (
-                                                                                            <div key={evidence.id} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded text-sm group">
+                                                                                            <div key={evidence.id} className="flex items-center justify-between bg-muted px-3 py-2 rounded text-sm group">
                                                                                                 <div className="flex items-center gap-2 overflow-hidden">
                                                                                                     <ExternalLink className="h-3 w-3 text-blue-500 flex-shrink-0" />
                                                                                                     <a href={evidence.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate">
@@ -1481,7 +1481,7 @@ export default function SSPEditor() {
                                                                                                 </div>
                                                                                                 <button
                                                                                                     onClick={() => handleRemoveEvidence(control.controlId, evidence.id)}
-                                                                                                    className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                                    className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                                                 >
                                                                                                     <Trash2 className="h-4 w-4" />
                                                                                                 </button>
@@ -1527,12 +1527,12 @@ export default function SSPEditor() {
                                                             );
                                                         })
                                                     ) : (
-                                                        <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
+                                                        <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
                                                             <div className="bg-blue-50 p-4 rounded-full w-fit mx-auto mb-4">
                                                                 <Shield className="h-10 w-10 text-blue-600" />
                                                             </div>
-                                                            <h3 className="font-bold text-slate-900 mb-2">No Controls Found</h3>
-                                                            <p className="text-slate-600 max-w-md mx-auto">
+                                                            <h3 className="font-bold text-foreground mb-2">No Controls Found</h3>
+                                                            <p className="text-muted-foreground max-w-md mx-auto">
                                                                 No NIST 800-172 controls found in the database. You can add custom controls using the button above.
                                                             </p>
                                                         </div>
@@ -1540,7 +1540,7 @@ export default function SSPEditor() {
                                                 </div>
 
                                                 {/* Implementation Summary */}
-                                                <Card className="border-slate-200 bg-blue-50/50 border-l-4 border-l-blue-600">
+                                                <Card className="border-border bg-blue-500/10 border-l-4 border-l-blue-600">
                                                     <CardContent className="p-6">
                                                         <div className="space-y-4">
                                                             <div className="flex items-center gap-3">
@@ -1549,7 +1549,7 @@ export default function SSPEditor() {
                                                             </div>
                                                             <Textarea
                                                                 placeholder="Provide an overall summary of security controls implementation, including any gaps, compensating controls, or future enhancement plans..."
-                                                                className="min-h-[120px] border-blue-200 focus:ring-blue-500 bg-white"
+                                                                className="min-h-[120px] border-blue-200 focus:ring-blue-500 bg-background"
                                                             />
                                                         </div>
                                                     </CardContent>
@@ -1562,24 +1562,24 @@ export default function SSPEditor() {
                                 {/* Roles & Responsibilities */}
                                 <TabsContent value="roles" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     <div className="space-y-2 mb-8">
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">5. Roles & Responsibilities</h2>
-                                        <p className="text-slate-500">Define who is responsible for system security.</p>
+                                        <h2 className="text-3xl font-black text-foreground tracking-tight">5. Roles & Responsibilities</h2>
+                                        <p className="text-muted-foreground">Define who is responsible for system security.</p>
                                     </div>
 
-                                    <Card className="border-slate-200 shadow-sm">
+                                    <Card className="border-border shadow-sm">
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-lg font-bold text-slate-900">Security Roles</CardTitle>
+                                            <CardTitle className="text-lg font-bold text-foreground">Security Roles</CardTitle>
                                             <CardDescription>Personnel responsible for system security</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">Roles Description</label>
+                                                    <label className="text-sm font-bold text-foreground">Roles Description</label>
                                                     <Textarea
                                                         placeholder="Describe system owner, ISSO, administrators, users, and their responsibilities..."
                                                         value={sectionData['roles']?.rolesDescription || ''}
                                                         onChange={(e) => updateField('roles', 'rolesDescription', e.target.value)}
-                                                        className="min-h-[200px] border-slate-200 focus:ring-blue-500 leading-relaxed py-4"
+                                                        className="min-h-[200px] border-border focus:ring-blue-500 leading-relaxed py-4"
                                                     />
                                                 </div>
                                             </div>
@@ -1605,24 +1605,24 @@ export default function SSPEditor() {
                                 {/* Attachments & References */}
                                 <TabsContent value="attachments" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     <div className="space-y-2 mb-8">
-                                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">6. Attachments & References</h2>
-                                        <p className="text-slate-500">Supporting documentation and references.</p>
+                                        <h2 className="text-3xl font-black text-foreground tracking-tight">6. Attachments & References</h2>
+                                        <p className="text-muted-foreground">Supporting documentation and references.</p>
                                     </div>
 
-                                    <Card className="border-slate-200 shadow-sm">
+                                    <Card className="border-border shadow-sm">
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-lg font-bold text-slate-900">Supporting Documentation</CardTitle>
+                                            <CardTitle className="text-lg font-bold text-foreground">Supporting Documentation</CardTitle>
                                             <CardDescription>References, policies, and additional documentation</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-bold text-slate-900">Attachments & Notes</label>
+                                                    <label className="text-sm font-bold text-foreground">Attachments & Notes</label>
                                                     <Textarea
                                                         placeholder="List supporting documents, policies, procedures, and any additional notes..."
                                                         value={sectionData['attachments']?.attachmentsNotes || ''}
                                                         onChange={(e) => updateField('attachments', 'attachmentsNotes', e.target.value)}
-                                                        className="min-h-[200px] border-slate-200 focus:ring-blue-500 leading-relaxed py-4"
+                                                        className="min-h-[200px] border-border focus:ring-blue-500 leading-relaxed py-4"
                                                     />
                                                 </div>
                                             </div>

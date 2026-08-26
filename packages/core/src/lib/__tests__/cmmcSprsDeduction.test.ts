@@ -31,6 +31,7 @@ import {
   computeSprsPerPracticeDeduction,
   getCmmcPracticeById,
   getCmmcPracticeRegister,
+  getPracticesBy800171Id,
 } from "../../lib/federal/cmmcRegister";
 import type { SprsPracticeDeductionResult } from "../../lib/federal/cmmcRegister";
 
@@ -288,5 +289,87 @@ describe("cmmcRegister GAP-21 — computeSprsPerPracticeDeduction behaviour", ()
     expect(res.score).toBe(0); // ...so the floor is exact, not negative
     expect(res.score).toBeGreaterThanOrEqual(0);
     expect(res.unmetCount).toBe(110);
+  });
+});
+
+// ===== getPracticesBy800171Id - bare 800-171 id -> canonical register entries =====
+//
+// GAP-21 wiring bridge consumed by server/routers/federal-workflows.ts
+// (getSprsBreakdown): legacy control_id -> bare-number maps (e.g. "3.1.1")
+// resolve onto their canonical CMMC_PRACTICES entries (e.g. "AC-L1-3.1.1")
+// via a trimmed, case-folded SUFFIX match ("-3.1.1"), returned in
+// deterministic register order; [] on no match or malformed input.
+
+describe("cmmcRegister - getPracticesBy800171Id (bare-id bridge)", () => {
+  /** Independent spec mirror of the suffix rule, rebuilt in register order. */
+  const expectedFor = (bare: string) =>
+    register.practices.filter((p) =>
+      p.id.toLowerCase().endsWith("-" + bare.trim().toLowerCase())
+    );
+
+  it('resolves a bare id ("3.1.1") to exactly its canonical register entry', () => {
+    const res = getPracticesBy800171Id("3.1.1");
+    expect(res).toHaveLength(1);
+    // Same object as the register itself (no cloning), full CmmcPractice shape.
+    expect(res[0]).toBe(getCmmcPracticeById("AC-L1-3.1.1"));
+    expect(res[0]).toMatchObject({ id: "AC-L1-3.1.1", family: "AC", level: 1 });
+  });
+
+  it("every canonical id resolves to ITSELF alone (suffix precision: no lookalike bleed across sections/levels)", () => {
+    for (const id of ALL_IDS) {
+      const bare = id.split("-")[2]!; // e.g. "AC-L2-3.13.16" -> "3.13.16"
+      const res = getPracticesBy800171Id(bare);
+      // Matches the independently rebuilt register-order expectation...
+      expect(res, `bare ${bare}`).toEqual(expectedFor(bare));
+      // ...and is a singleton carrying exactly the requested practice.
+      expect(res.map((p) => p.id), `bare ${bare} unique`).toEqual([id]);
+    }
+  });
+
+  it("input is trimmed and case-folded; fully-qualified ids are NOT bare and resolve to []", () => {
+    const plain = getPracticesBy800171Id("3.1.1");
+    expect(getPracticesBy800171Id("  3.1.1")).toEqual(plain);
+    expect(getPracticesBy800171Id("3.1.1  ")).toEqual(plain);
+    expect(getPracticesBy800171Id("\t3.1.1\n")).toEqual(plain);
+    // Bare ids only: a fully-qualified register id has no "-" + value suffix
+    // form in the register, so it deliberately resolves to nothing.
+    expect(getPracticesBy800171Id("AC-L1-3.1.1")).toEqual([]);
+    expect(getPracticesBy800171Id("ac-l1-3.1.1")).toEqual([]);
+  });
+
+  it("unknown / malformed / non-string input yields [] and never throws", () => {
+    for (const bad of [
+      "",
+      "   ",
+      "\t\n",
+      "not-a-practice",
+      "3.",
+      ".3.1.1",
+      "x3.1.1",
+      "3.999.999",
+      "3.1", // section-only number matches no FULL id suffix
+      null,
+      undefined,
+      42,
+      NaN,
+      true,
+      {},
+      [],
+      ["3.1.1"], // arrays are entries for the DEDUCTION engine, not here
+      () => "3.1.1",
+    ] as unknown[]) {
+      expect(() => getPracticesBy800171Id(bad), `input ${String(bad)}`).not.toThrow();
+      expect(getPracticesBy800171Id(bad), `input ${String(bad)}`).toEqual([]);
+    }
+  });
+
+  it("repeat calls are deterministic: stable register order, fresh array instances", () => {
+    for (const bare of ["3.1.1", "3.4.2", "3.11.2", "3.13.16"]) {
+      const a = getPracticesBy800171Id(bare);
+      const b = getPracticesBy800171Id(bare);
+      expect(a).toEqual(b); // deep-equal across calls
+      expect(a).toEqual(expectedFor(bare)); // expectation built in REGISTER scan order
+      expect(a).not.toBe(b); // fresh arrays each call, contents stable
+    }
   });
 });

@@ -47,10 +47,10 @@ const TIME_OPTIONS = [
 ];
 
 const CRITICALITY_COLOR: Record<string, string> = {
-    tier1: "bg-red-100 text-red-700 border-red-200",
-    tier2: "bg-orange-100 text-orange-700 border-orange-200",
-    tier3: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    tier4: "bg-green-100 text-green-700 border-green-200",
+    tier1: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30",
+    tier2: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-400 dark:border-orange-500/30",
+    tier3: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-400 dark:border-yellow-500/30",
+    tier4: "bg-green-100 text-green-700 border-green-200 dark:bg-green-500/15 dark:text-green-400 dark:border-green-500/30",
 };
 
 const CRITICALITY_LABEL: Record<string, string> = {
@@ -278,10 +278,10 @@ export default function ROPADashboard() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
                         Records of Processing Activities (ROPA)
                     </h1>
-                    <p className="text-slate-500 text-lg">
+                    <p className="text-muted-foreground text-lg">
                         Maintain a comprehensive inventory of your business processes and their data flows (Article 30).
                     </p>
                 </div>
@@ -305,7 +305,7 @@ export default function ROPADashboard() {
                             document.body.removeChild(link);
                             toast.success("Article 30 ROPA CSV exported successfully!");
                         }}
-                        className="border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold h-11 px-4 rounded-xl"
+                        className="border-border text-foreground hover:bg-muted font-semibold h-11 px-4 rounded-xl"
                     >
                         <FileText className="mr-2 h-4 w-4 text-brand-bright" />
                         Export Article 30 Register (CSV)
@@ -331,10 +331,10 @@ export default function ROPADashboard() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
                     <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
-                    <p className="text-slate-400 font-medium animate-pulse">Loading ROPA registry...</p>
+                    <p className="text-muted-foreground font-medium animate-pulse">Loading ROPA registry...</p>
                 </div>
             ) : (
-                <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                <div className="rounded-xl border border-border shadow-lg overflow-hidden bg-card">
                     <div className="bg-brand px-6 py-4">
                         <h3 className="text-lg font-semibold text-white">Processing Activities</h3>
                         <p className="text-white/70 text-sm">Manage your ROPA registry (Article 30 GDPR)</p>
@@ -363,9 +363,9 @@ export default function ROPADashboard() {
                                                     {proc.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-slate-900">{proc.name}</p>
+                                                    <p className="font-semibold text-foreground">{proc.name}</p>
                                                     {proc.description && (
-                                                        <p className="text-xs text-slate-400 truncate max-w-[220px]" title={proc.description}>
+                                                        <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={proc.description}>
                                                             {proc.description}
                                                         </p>
                                                     )}
@@ -373,31 +373,31 @@ export default function ROPADashboard() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="py-4">
-                                            <Badge className="bg-slate-100 text-slate-600 border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1">
+                                            <Badge className="bg-muted text-muted-foreground border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1">
                                                 {proc.department || 'General'}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="py-4">
                                             {proc.criticalityTier ? (
-                                                <Badge className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 border ${CRITICALITY_COLOR[proc.criticalityTier] || 'bg-slate-100 text-slate-600'}`}>
+                                                <Badge className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 border ${CRITICALITY_COLOR[proc.criticalityTier] || 'bg-muted text-muted-foreground'}`}>
                                                     {CRITICALITY_LABEL[proc.criticalityTier] || proc.criticalityTier}
                                                 </Badge>
                                             ) : (
-                                                <span className="text-slate-300 text-sm italic">—</span>
+                                                <span className="text-muted-foreground/70 text-sm italic">—</span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="py-4 text-slate-600 text-sm">
-                                            {proc.rto || <span className="text-slate-300 italic">—</span>}
+                                        <TableCell className="py-4 text-muted-foreground text-sm">
+                                            {proc.rto || <span className="text-muted-foreground/70 italic">—</span>}
                                         </TableCell>
-                                        <TableCell className="py-4 text-slate-600 text-sm">
-                                            {proc.rpo || <span className="text-slate-300 italic">—</span>}
+                                        <TableCell className="py-4 text-muted-foreground text-sm">
+                                            {proc.rpo || <span className="text-muted-foreground/70 italic">—</span>}
                                         </TableCell>
                                         <TableCell className="text-right py-4 px-6">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 px-2 text-xs font-semibold text-slate-600 hover:text-brand-bright hover:bg-sky-50"
+                                                    className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-brand-bright hover:bg-sky-50"
                                                     title="Launch DPIA for this activity"
                                                     onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new`)}
                                                 >
@@ -433,13 +433,13 @@ export default function ROPADashboard() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-72 text-center text-slate-400">
+                                    <TableCell colSpan={6} className="h-72 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center space-y-4">
-                                            <div className="p-6 bg-slate-50 rounded-2xl">
-                                                <Database className="h-12 w-12 text-slate-300" />
+                                            <div className="p-6 bg-muted rounded-2xl">
+                                                <Database className="h-12 w-12 text-muted-foreground/70" />
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="font-bold text-slate-900 text-lg">No processes found</p>
+                                                <p className="font-bold text-foreground text-lg">No processes found</p>
                                                 <p className="max-w-xs mx-auto">
                                                     Start by defining your business processes to begin mapping data flows.
                                                 </p>
@@ -447,7 +447,7 @@ export default function ROPADashboard() {
                                             <Button
                                                 variant="outline"
                                                 onClick={() => setCreateOpen(true)}
-                                                className="border-slate-200 hover:bg-slate-50 font-bold rounded-xl"
+                                                className="border-border hover:bg-muted font-bold rounded-xl"
                                             >
                                                 Initialize ROPA Registry
                                             </Button>
@@ -477,7 +477,7 @@ export default function ROPADashboard() {
                         <Button
                             variant="outline"
                             onClick={() => setCreateOpen(false)}
-                            className="rounded-xl border-slate-200 font-semibold"
+                            className="rounded-xl border-border font-semibold"
                         >
                             Cancel
                         </Button>
@@ -498,25 +498,25 @@ export default function ROPADashboard() {
                 <div className="grid gap-5 py-2">
                     {/* --- Core Info --- */}
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                             Process Name <span className="text-red-500">*</span>
                         </Label>
                         <Input
                             value={form.name}
                             onChange={e => setField("name", e.target.value)}
                             placeholder="e.g. Employee Onboarding, Marketing Analytics"
-                            className="h-11 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                            className="h-11 rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
 
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                             Department
                         </Label>
                         <Select value={form.department} onValueChange={(v) => setField("department", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
+                            <SelectTrigger className="h-11 rounded-xl border-border focus:border-brand-bright">
                                 <SelectValue placeholder="Select department..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -528,12 +528,12 @@ export default function ROPADashboard() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <Shield className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <Shield className="h-3.5 w-3.5 text-muted-foreground" />
                             Criticality Tier
                         </Label>
                         <Select value={form.criticalityTier} onValueChange={(v) => setField("criticalityTier", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
+                            <SelectTrigger className="h-11 rounded-xl border-border focus:border-brand-bright">
                                 <SelectValue placeholder="Select criticality..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -545,15 +545,15 @@ export default function ROPADashboard() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                             Description / Purpose
                         </Label>
                         <Textarea
                             value={form.description}
                             onChange={e => setField("description", e.target.value)}
                             placeholder="Describe this processing activity, its purpose and legal basis under GDPR..."
-                            className="rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 resize-none min-h-[80px]"
+                            className="rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20 resize-none min-h-[80px]"
                         />
                     </div>
 
@@ -561,25 +561,25 @@ export default function ROPADashboard() {
                     <button
                         type="button"
                         onClick={() => setShowAdvanced(prev => !prev)}
-                        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-bright transition-colors w-fit"
+                        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-brand-bright transition-colors w-fit"
                     >
                         {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         {showAdvanced ? "Hide" : "Show"} Recovery Objectives &amp; Advanced Settings
                     </button>
 
                     {showAdvanced && (
-                        <div className="grid gap-5 p-4 bg-slate-50/70 rounded-xl border border-slate-200">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Recovery Objectives (BIA)</p>
+                        <div className="grid gap-5 p-4 bg-muted/70 rounded-xl border border-border">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Recovery Objectives (BIA)</p>
 
                             {/* RTO / RPO / MTPD */}
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1">
-                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                         RTO
                                     </Label>
                                     <Select value={form.rto} onValueChange={(v) => setField("rto", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Recover by..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -588,16 +588,16 @@ export default function ROPADashboard() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-slate-400">Recovery Time Objective</p>
+                                    <p className="text-xs text-muted-foreground">Recovery Time Objective</p>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1">
-                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                         RPO
                                     </Label>
                                     <Select value={form.rpo} onValueChange={(v) => setField("rpo", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Data back to..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -606,16 +606,16 @@ export default function ROPADashboard() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-slate-400">Recovery Point Objective</p>
+                                    <p className="text-xs text-muted-foreground">Recovery Point Objective</p>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1">
-                                        <AlertTriangle className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1">
+                                        <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
                                         MTPD
                                     </Label>
                                     <Select value={form.mtpd} onValueChange={(v) => setField("mtpd", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Max downtime..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -624,24 +624,24 @@ export default function ROPADashboard() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-slate-400">Max Tolerable Period of Disruption</p>
+                                    <p className="text-xs text-muted-foreground">Max Tolerable Period of Disruption</p>
                                 </div>
                             </div>
 
                             <Separator />
 
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Organisation</p>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Organisation</p>
 
 
 
                             {processes && processes.length > 0 && (
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
-                                        <GitBranch className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1.5">
+                                        <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
                                         Parent Process (for sub-processes)
                                     </Label>
                                     <Select value={form.parentId} onValueChange={(v) => setField("parentId", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="None (top-level)" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -678,7 +678,7 @@ export default function ROPADashboard() {
                         <Button
                             variant="outline"
                             onClick={() => setEditOpen(false)}
-                            className="rounded-xl border-slate-200 font-semibold"
+                            className="rounded-xl border-border font-semibold"
                         >
                             Cancel
                         </Button>
@@ -699,25 +699,25 @@ export default function ROPADashboard() {
                 <div className="grid gap-5 py-2">
                     {/* --- Core Info --- */}
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                             Process Name <span className="text-red-500">*</span>
                         </Label>
                         <Input
                             value={form.name}
                             onChange={e => setField("name", e.target.value)}
                             placeholder="e.g. Employee Onboarding, Marketing Analytics"
-                            className="h-11 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                            className="h-11 rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20"
                         />
                     </div>
 
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                             Department
                         </Label>
                         <Select value={form.department} onValueChange={(v) => setField("department", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
+                            <SelectTrigger className="h-11 rounded-xl border-border focus:border-brand-bright">
                                 <SelectValue placeholder="Select department..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -729,12 +729,12 @@ export default function ROPADashboard() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <Shield className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <Shield className="h-3.5 w-3.5 text-muted-foreground" />
                             Criticality Tier
                         </Label>
                         <Select value={form.criticalityTier} onValueChange={(v) => setField("criticalityTier", v)}>
-                            <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-brand-bright">
+                            <SelectTrigger className="h-11 rounded-xl border-border focus:border-brand-bright">
                                 <SelectValue placeholder="Select criticality..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -746,15 +746,15 @@ export default function ROPADashboard() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                        <Label className="text-foreground font-semibold flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                             Description / Purpose
                         </Label>
                         <Textarea
                             value={form.description}
                             onChange={e => setField("description", e.target.value)}
                             placeholder="Describe this processing activity, its purpose and legal basis under GDPR..."
-                            className="rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20 resize-none min-h-[80px]"
+                            className="rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20 resize-none min-h-[80px]"
                         />
                     </div>
 
@@ -762,25 +762,25 @@ export default function ROPADashboard() {
                     <button
                         type="button"
                         onClick={() => setShowAdvanced(prev => !prev)}
-                        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-bright transition-colors w-fit"
+                        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-brand-bright transition-colors w-fit"
                     >
                         {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         {showAdvanced ? "Hide" : "Show"} Recovery Objectives &amp; Advanced Settings
                     </button>
 
                     {showAdvanced && (
-                        <div className="grid gap-5 p-4 bg-slate-50/70 rounded-xl border border-slate-200">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Recovery Objectives (BIA)</p>
+                        <div className="grid gap-5 p-4 bg-muted/70 rounded-xl border border-border">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Recovery Objectives (BIA)</p>
 
                             {/* RTO / RPO / MTPD */}
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1">
-                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                         RTO
                                     </Label>
                                     <Select value={form.rto} onValueChange={(v) => setField("rto", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Recover by..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -789,16 +789,16 @@ export default function ROPADashboard() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-slate-400">Recovery Time Objective</p>
+                                    <p className="text-xs text-muted-foreground">Recovery Time Objective</p>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1">
-                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                         RPO
                                     </Label>
                                     <Select value={form.rpo} onValueChange={(v) => setField("rpo", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Data back to..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -807,16 +807,16 @@ export default function ROPADashboard() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-slate-400">Recovery Point Objective</p>
+                                    <p className="text-xs text-muted-foreground">Recovery Point Objective</p>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1">
-                                        <AlertTriangle className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1">
+                                        <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
                                         MTPD
                                     </Label>
                                     <Select value={form.mtpd} onValueChange={(v) => setField("mtpd", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Max downtime..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -825,22 +825,22 @@ export default function ROPADashboard() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-slate-400">Max Tolerable Period of Disruption</p>
+                                    <p className="text-xs text-muted-foreground">Max Tolerable Period of Disruption</p>
                                 </div>
                             </div>
 
                             <Separator />
 
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Organisation</p>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Organisation</p>
 
                             {processes && processes.length > 0 && (
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
-                                        <GitBranch className="h-3.5 w-3.5 text-slate-400" />
+                                    <Label className="text-foreground font-semibold text-sm flex items-center gap-1.5">
+                                        <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
                                         Parent Process (for sub-processes)
                                     </Label>
                                     <Select value={form.parentId} onValueChange={(v) => setField("parentId", v)}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="None (top-level)" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -930,13 +930,13 @@ export default function ROPADashboard() {
                     {/* Existing Data Flows */}
                     {processFlows && processFlows.length > 0 && (
                         <div className="space-y-3">
-                            <p className="font-semibold text-sm text-slate-700">Linked Data Assets</p>
+                            <p className="font-semibold text-sm text-foreground">Linked Data Assets</p>
                             <div className="max-h-48 overflow-y-auto space-y-2">
                                 {processFlows.map((item: any) => (
-                                    <div key={item.flow.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                    <div key={item.flow.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
                                         <div className="flex-1">
                                             <p className="font-medium text-sm">{item.assetName || 'Unknown Asset'}</p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {item.flow.dataElements || 'No data elements specified'}
                                                 {item.flow.interactionType && ` • ${item.flow.interactionType}`}
                                             </p>
@@ -957,14 +957,14 @@ export default function ROPADashboard() {
                     )}
 
                     {/* Add New Data Flow Form */}
-                    <div className="space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <p className="font-semibold text-sm text-slate-700">Add New Data Flow</p>
+                    <div className="space-y-4 p-4 bg-muted rounded-xl border border-border">
+                        <p className="font-semibold text-sm text-foreground">Add New Data Flow</p>
 
                         <div className="grid gap-3">
                             <div className="grid gap-2">
-                                <Label className="text-slate-700 font-semibold text-sm">Data Asset *</Label>
+                                <Label className="text-foreground font-semibold text-sm">Data Asset *</Label>
                                 <Select value={flowAssetId} onValueChange={setFlowAssetId}>
-                                    <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                    <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                         <SelectValue placeholder="Select a personal data asset..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -979,9 +979,9 @@ export default function ROPADashboard() {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm">Interaction Type</Label>
+                                    <Label className="text-foreground font-semibold text-sm">Interaction Type</Label>
                                     <Select value={flowInteractionType} onValueChange={setFlowInteractionType}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -996,9 +996,9 @@ export default function ROPADashboard() {
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm">Legal Basis</Label>
+                                    <Label className="text-foreground font-semibold text-sm">Legal Basis</Label>
                                     <Select value={flowLegalBasis} onValueChange={setFlowLegalBasis}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1014,62 +1014,62 @@ export default function ROPADashboard() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label className="text-slate-700 font-semibold text-sm">Data Elements</Label>
+                                <Label className="text-foreground font-semibold text-sm">Data Elements</Label>
                                 <Input
                                     value={flowDataElements}
                                     onChange={(e) => setFlowDataElements(e.target.value)}
                                     placeholder="e.g., Name, Email, Phone, Address..."
-                                    className="rounded-lg border-slate-200 text-sm"
+                                    className="rounded-lg border-border text-sm"
                                 />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label className="text-slate-700 font-semibold text-sm">Purpose</Label>
+                                <Label className="text-foreground font-semibold text-sm">Purpose</Label>
                                 <Input
                                     value={flowPurpose}
                                     onChange={(e) => setFlowPurpose(e.target.value)}
                                     placeholder="Why is this data processed?"
-                                    className="rounded-lg border-slate-200 text-sm"
+                                    className="rounded-lg border-border text-sm"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm">Data Subjects</Label>
+                                    <Label className="text-foreground font-semibold text-sm">Data Subjects</Label>
                                     <Input
                                         value={flowDataSubjectType}
                                         onChange={(e) => setFlowDataSubjectType(e.target.value)}
                                         placeholder="e.g., Employees, Customers..."
-                                        className="rounded-lg border-slate-200 text-sm"
+                                        className="rounded-lg border-border text-sm"
                                     />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm">Recipients</Label>
+                                    <Label className="text-foreground font-semibold text-sm">Recipients</Label>
                                     <Input
                                         value={flowRecipients}
                                         onChange={(e) => setFlowRecipients(e.target.value)}
                                         placeholder="Who receives this data?"
-                                        className="rounded-lg border-slate-200 text-sm"
+                                        className="rounded-lg border-border text-sm"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm">Retention Period</Label>
+                                    <Label className="text-foreground font-semibold text-sm">Retention Period</Label>
                                     <Input
                                         value={flowRetentionPeriod}
                                         onChange={(e) => setFlowRetentionPeriod(e.target.value)}
                                         placeholder="e.g., 7 years, 1 year..."
-                                        className="rounded-lg border-slate-200 text-sm"
+                                        className="rounded-lg border-border text-sm"
                                     />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="text-slate-700 font-semibold text-sm">Transfer Mechanism</Label>
+                                    <Label className="text-foreground font-semibold text-sm">Transfer Mechanism</Label>
                                     <Select value={flowTransferMechanism} onValueChange={setFlowTransferMechanism}>
-                                        <SelectTrigger className="h-10 rounded-lg border-slate-200 text-sm">
+                                        <SelectTrigger className="h-10 rounded-lg border-border text-sm">
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1088,9 +1088,9 @@ export default function ROPADashboard() {
                                     id="crossBorder"
                                     checked={flowIsCrossBorder}
                                     onChange={(e) => setFlowIsCrossBorder(e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-300 text-brand-bright focus:ring-brand-bright"
+                                    className="h-4 w-4 rounded border-border text-brand-bright focus:ring-brand-bright"
                                 />
-                                <Label htmlFor="crossBorder" className="text-sm font-medium text-slate-700 cursor-pointer">
+                                <Label htmlFor="crossBorder" className="text-sm font-medium text-foreground cursor-pointer">
                                     Cross-border transfer outside EEA
                                 </Label>
                             </div>
@@ -1104,7 +1104,7 @@ export default function ROPADashboard() {
                             setFlowsOpen(false);
                             setLocation(`/clients/${clientId}/privacy/inventory`);
                         }}
-                        className="w-full rounded-xl border-slate-200 hover:bg-slate-50"
+                        className="w-full rounded-xl border-border hover:bg-muted"
                     >
                         <Database className="mr-2 h-4 w-4" />
                         Manage Data Assets in Inventory

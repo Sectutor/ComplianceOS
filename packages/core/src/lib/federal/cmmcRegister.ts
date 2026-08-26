@@ -484,6 +484,21 @@ export function getCmmcPracticeById(id: unknown): CmmcPractice | null {
   return CMMC_PRACTICES.find((p) => p.id.toUpperCase() === wanted) ?? null;
 }
 
+/**
+ * GAP-21 wiring — bridges 800-53-style control maps onto register ids: bare
+ * NIST SP 800-171 practice numbers (e.g. "3.1.1", as carried by legacy
+ * control_id -> bare-id maps) resolve to their canonical CMMC_PRACTICES
+ * entries (e.g. "AC-L1-3.1.1"). Tolerant coercion: non-string input becomes
+ * "", input is trimmed and matched case-insensitively as the suffix "-" +
+ * normalized id of a canonical id. Returns matches in deterministic register
+ * order; empty array on no match or malformed input. Never throws.
+ */
+export function getPracticesBy800171Id(bareId: unknown): readonly CmmcPractice[] {
+  const wanted = typeof bareId === "string" ? bareId.trim().toLowerCase() : "";
+  if (!wanted) return [];
+  return CMMC_PRACTICES.filter((p) => p.id.toLowerCase().endsWith("-" + wanted));
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // GAP-21 — per-practice SPRS deduction distribution (DoD Assessment Methodology)
 // ═════════════════════════════════════════════════════════════════════════════

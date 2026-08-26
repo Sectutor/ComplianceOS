@@ -3,7 +3,11 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import { validateOscalDocument, normalizeOscalDocument, oscalUuidFromSeed } from "../../lib/federal/oscalImport";
-import { getCmmcPracticeRegister } from "../../lib/federal/cmmcRegister";
+import {
+  computeSprsPerPracticeDeduction,
+  getCmmcPracticeRegister,
+  getPracticesBy800171Id,
+} from "../../lib/federal/cmmcRegister";
 
 /**
  * Federal Workflow Intelligence Router (Phase 2)
@@ -21,7 +25,9 @@ import { getCmmcPracticeRegister } from "../../lib/federal/cmmcRegister";
  *   External OSCAL import + validation  (importOscal)
  *
  * NIST SP 800-171 DoD Assessment Methodology deduction values are used for
- * SPRS scoring: each unmet practice deducts its assigned point value from 110.
+ * SPRS scoring (GAP-21): each unmet practice deducts its fixed per-practice
+ * point value from 110 via lib/federal/cmmcRegister.ts — the single source of
+ * truth for register practice ids and their deduction points.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,11 +69,6 @@ const DOD_171_DEDUCTIONS: Record<string, number> = {
 
 // Full 320-objective → practice rollup uses these base deductions; partial credit is not
 // allowed in basic assessments (objective met or not), so we score per-practice.
-const FAMILY_WEIGHTS_171: Record<string, number> = {
-  "3.1": 32, "3.2": 3, "3.3": 12, "3.4": 7, "3.5": 9,
-  "3.6": 9, "3.7": 4, "3.8": 9, "3.9": 3, "3.10": 6,
-  "3.11": 6, "3.12": 5, "3.13": 44, "3.14": 8,
-};
 
 export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -147,9 +148,9 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
             }),
 
         // ────────────────────────────────────────────────────────────────
-        // P0-2: SPRS score breakdown computed live from POA&M state.
+        // P0-2 / GAP-21: SPRS score breakdown computed live from POA&M state.
         // Score starts at 110; each open/ongoing POA&M item mapped to an
-        // 800-171 practice subtracts its family-weighted deduction.
+        // 800-171 practice subtracts its fixed per-practice DoD deduction.
         // ────────────────────────────────────────────────────────────────
         getSprsBreakdown: clientProcedure
             .input(z.object({ clientId: z.number() }))
@@ -173,26 +174,22 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
                         "AC-6": ["3.1.5"], "AT-3": ["3.2.2"], "AU-2": ["3.3.1"], "AU-6": ["3.3.9"],
                         "CA-5": ["3.11.2"], "CA-7": ["3.11.3"], "CM-6": ["3.4.1"], "CM-7": ["3.4.2"],
                         "IA-2": ["3.5.1"], "IA-5": ["3.5.7"], "IR-8": ["3.6.2", "3.6.3"],
-                        "MA-4": ["3.7.4"], "RA-5": ["3.11.2"], "SA-9": ["3.14.3", "3.16"],
+                        "MA-4": ["3.7.4"], "RA-5": ["3.11.2"], "SA-9": ["3.14.3"],
                         "SC-8": ["3.13.8"], "SC-28": ["3.13.16"], "SI-2": ["3.14.1"], "SR-6": ["3.14.3"],
                     };
                     for (const p of map[cid.split("(")[0]] || []) unmetPractices.add(p);
-                    if (cid.startsWith("PE-")) unmetPractices.add("3.10.x");
                 }
 
-                // Deduction: sum of family weights containing unmet practices (capped so score >= 0)
-                const familiesHit = new Set<string>();
-                for (const p of unmetPractices) familiesHit.add(p.split(".").slice(0, 2).join("."));
-                let deduction = 0;
-                for (const fam of familiesHit) {
-                    // Proportional deduction within family based on distinct unmet practices
-                    const total = FAMILY_WEIGHTS_171[fam] || 0;
-                    if (!total) continue;
-                    const unmetInFam = [...unmetPractices].filter(p => p.startsWith(fam + ".")).length;
-                    const approxPerPractice = Math.max(1, Math.round(total / 12));
-                    deduction += Math.min(total, approxPerPractice * unmetInFam);
-                }
-                const score = Math.max(0, 110 - deduction);
+                // GAP-21: true per-practice DoD Assessment Methodology deductions.
+                // Bare 800-171 ids from the control map resolve onto canonical
+                // CMMC register practice ids; every unmet practice then deducts
+                // its fixed whole-point share of the 110-point scale (pure lib
+                // engine — never throws, deterministic ordering).
+                const unmetPracticeIds = [...unmetPractices].flatMap(
+                    (bareId) => getPracticesBy800171Id(bareId),
+                );
+                const result = computeSprsPerPracticeDeduction(unmetPracticeIds);
+                const score = result.score;
 
                 // Persist latest computed score as an assessment snapshot
                 const existing = await dbConn.select().from(schema.federalSprsAssessments)
@@ -205,9 +202,9 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
                 } else {
                     await dbConn.insert(schema.federalSprsAssessments).values({
                         clientId: input.clientId,
-                        title: "SPRS Score — Computed from Open POA&Ms",
+                        title: "SPRS Score — Computed from Open POA&Ms (per-practice DoD Assessment Methodology deductions)",
                         score,
-                        scopeDescription: "Auto-computed from open POA&M items using DoD Assessment Methodology family-weighted deductions.",
+                        scopeDescription: "Auto-computed from open POA&M items using per-practice DoD Assessment Methodology deductions.",
                         status: "computed",
                         updatedAt: new Date(),
                     });
@@ -215,12 +212,15 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
 
                 return {
                     startingScore: 110,
-                    deduction,
-                    score,
-                    unmetPracticeCount: unmetPractices.size,
-                    familiesAffected: [...familiesHit],
+                    deduction: result.deductedPoints,
+                    score: result.score,
+                    unmetPracticeCount: result.unmetCount,
+                    unknownIdCount: result.unknownIdCount,
+                    familiesAffected: result.familiesAffected,
                     openPoamItems: (openItems.rows || []).length,
-                    note: "Basic self-assessment model per DFARS 252.204-7019/7020. Closing the associated POA&M items raises this score.",
+                    breakdown: result.breakdown,
+                    model: "per-practice-dod-assessment-methodology",
+                    note: "Basic self-assessment model per DFARS 252.204-7019/7020 with per-practice DoD Assessment Methodology deductions. Closing the associated POA&M items raises this score.",
                 };
             }),
 

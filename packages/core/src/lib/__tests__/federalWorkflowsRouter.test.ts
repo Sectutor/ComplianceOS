@@ -29,10 +29,14 @@ import { TRPCError } from "@trpc/server";
  * TRPCError. These tests assert that actual behaviour rather than demanding
  * specific TRPC error codes.
  *
- * SPRS scoring model exercised behaviourally over mocked db.execute rows:
- * score starts at 110; each family containing unmet practices deducts
- * min(familyWeight, max(1, round(weight/12)) * unmetPracticesInFamily),
- * floored at 0 (NIST SP 800-171 DoD Assessment Methodology proxy).
+ * SPRS scoring model exercised behaviourally over mocked db.execute rows +
+ * mocked lib/federal/cmmcRegister engine spies (cycle 45, GAP-21 rewiring):
+ * open POA&M controls map onto bare NIST SP 800-171 practice ids,
+ * getPracticesBy800171Id resolves them onto canonical register entries, and
+ * computeSprsPerPracticeDeduction returns the per-practice DoD Assessment
+ * Methodology deductions from a 110-point start. These tests pin the ROUTER
+ * WIRING; the exact per-practice point math is pinned against the real
+ * engine in cmmcSprsDeduction.test.ts.
  */
 
 const dbMocks = vi.hoisted(() => ({
@@ -51,10 +55,18 @@ vi.mock("../../db", () => ({
  */
 const cmmcRegisterMocks = vi.hoisted(() => ({
   getCmmcPracticeRegister: vi.fn(),
+  // Cycle 45 (GAP-21 rewiring): getSprsBreakdown now resolves bare 800-171
+  // ids onto canonical register entries and delegates the per-practice DoD
+  // Assessment Methodology math to the engine, so both exports must exist on
+  // the mock or the module import itself fails.
+  getPracticesBy800171Id: vi.fn(),
+  computeSprsPerPracticeDeduction: vi.fn(),
 }));
 
 vi.mock("../../lib/federal/cmmcRegister", () => ({
   getCmmcPracticeRegister: cmmcRegisterMocks.getCmmcPracticeRegister,
+  getPracticesBy800171Id: cmmcRegisterMocks.getPracticesBy800171Id,
+  computeSprsPerPracticeDeduction: cmmcRegisterMocks.computeSprsPerPracticeDeduction,
 }));
 
 import {
@@ -242,6 +254,10 @@ function mockDb(selectResults: unknown[][] = [], execRows: unknown[][] = []) {
 
 beforeEach(() => {
   dbMocks.getDb.mockReset();
+  // Engine spies must not leak stubs between test cases (house pattern:
+  // per-suite hygiene in one place instead of sprinkled mockReset() calls).
+  cmmcRegisterMocks.getPracticesBy800171Id.mockReset();
+  cmmcRegisterMocks.computeSprsPerPracticeDeduction.mockReset();
 });
 
 // ── Route shape ──────────────────────────────────────────────────────────────
@@ -426,9 +442,49 @@ describe("federal-workflows router — cmmcPractices (GAP-20 pure passthrough)",
   });
 });
 
-describe("federal-workflows router — getSprsBreakdown (SPRS math)", () => {
-  it("deducts the 800-171 family-weighted amount for open POA&M items (AC-2 ⇒ 107)", async () => {
-    mockDb([[]], [[{ control_id: "AC-2", status: "open", original_risk_rating: "high" }]]);
+// NOTE (cycle 45, GAP-21 rewiring): getSprsBreakdown no longer computes an
+// inline family-weighted approximation. It maps open POA&M controls onto bare
+// NIST SP 800-171 practice ids, resolves them onto canonical CMMC register
+// entries via getPracticesBy800171Id, and delegates to
+// computeSprsPerPracticeDeduction (per-practice DoD Assessment Methodology
+// deductions). Both engine functions are SPIES here: these tests pin the
+// ROUTER WIRING (bare ids in, canonical entries flowing into the engine,
+// engine envelope projected verbatim onto the response + snapshot upsert),
+// while the exact per-practice point math is pinned against the REAL engine
+// in cmmcSprsDeduction.test.ts.
+describe("federal-workflows router - getSprsBreakdown (SPRS math, GAP-21 engine delegation)", () => {
+  /** Canonical register entry stub as produced by getPracticesBy800171Id. */
+  const practice = (id: string, family: string, level: 1 | 2 | 3) => ({ id, family, level });
+
+  it("maps an open POA&M control to its bare 800-171 id, resolves it on the register and projects the engine result verbatim (insert path)", async () => {
+    const resolveSpy = cmmcRegisterMocks.getPracticesBy800171Id;
+    const deductionSpy = cmmcRegisterMocks.computeSprsPerPracticeDeduction;
+
+    const acL111 = practice("AC-L1-3.1.1", "AC", 1);
+    // The bare id emitted by the router's AC-2 -> ["3.1.1"] control map
+    // resolves onto its canonical register entry; anything else resolves to
+    // nothing.
+    resolveSpy.mockImplementation((bareId: unknown) =>
+      bareId === "3.1.1" ? [acL111] : []
+    );
+
+    // Per-practice DoD Assessment Methodology result shaped exactly like the
+    // real engine output (values stubbed - real point math lives in
+    // cmmcSprsDeduction.test.ts).
+    const engineResult = {
+      deductedPoints: 2,
+      score: 108,
+      unmetCount: 1,
+      unknownIdCount: 0,
+      familiesAffected: ["AC"],
+      breakdown: [{ id: "AC-L1-3.1.1", family: "AC", points: 2 }],
+    };
+    deductionSpy.mockReturnValue(engineResult);
+
+    const { calls } = mockDb(
+      [[]],
+      [[{ control_id: "AC-2", status: "open", original_risk_rating: "high" }]]
+    );
     const router = buildRouter();
 
     const result = await (router as any).getSprsBreakdown.handler({
@@ -436,20 +492,64 @@ describe("federal-workflows router — getSprsBreakdown (SPRS math)", () => {
       ctx: { user: { id: 1 } },
     });
 
-    // AC-2 → practice 3.1.1 → family "3.1" weight 32 → per-practice round(32/12)=3
+    // Wiring: bare id IN, resolved canonical entry flowing INTO the engine.
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+    expect(resolveSpy).toHaveBeenCalledWith("3.1.1");
+    expect(deductionSpy).toHaveBeenCalledTimes(1);
+    expect(deductionSpy).toHaveBeenCalledWith([acL111]);
+
+    // Response contract: engine envelope projected onto the router shape.
     expect(result).toMatchObject({
       startingScore: 110,
-      deduction: 3,
-      score: 107, // max(0, 110 - 3)
+      deduction: 2,
+      score: 108,
       unmetPracticeCount: 1,
+      unknownIdCount: 0,
+      familiesAffected: ["AC"],
       openPoamItems: 1,
+      model: "per-practice-dod-assessment-methodology",
     });
-    expect(result.familiesAffected).toContain("3.1");
-    // No prior snapshot existed → persisted as a new computed assessment
     expect(result.score).toBe(Math.max(0, 110 - result.deduction));
+    expect(result.breakdown).toBe(engineResult.breakdown); // passthrough identity
+    // No prior snapshot existed -> persisted as a NEW computed assessment.
+    expect(calls.inserts).toHaveLength(1);
+    expect(calls.inserts[0]).toMatchObject({ clientId: 7, score: 108, status: "computed" });
+    expect(calls.updates).toHaveLength(0);
   });
 
-  it("sums deductions across families (AC-2 + IR-8 + PE control ⇒ 104) and dedupes shared practices", async () => {
+  it("fans every open control out through the resolver, deduping shared practices before resolution while unmapped controls contribute nothing", async () => {
+    const resolveSpy = cmmcRegisterMocks.getPracticesBy800171Id;
+    const deductionSpy = cmmcRegisterMocks.computeSprsPerPracticeDeduction;
+
+    const acL111 = practice("AC-L1-3.1.1", "AC", 1);
+    const ir622 = practice("IR-L2-3.6.2", "IR", 2);
+    const ir633 = practice("IR-L2-3.6.3", "IR", 2);
+    const ps1122 = practice("PS-L2-3.11.2", "PS", 2);
+    const registry: Record<string, unknown[]> = {
+      "3.1.1": [acL111],
+      "3.6.2": [ir622],
+      "3.6.3": [ir633],
+      "3.11.2": [ps1122],
+    };
+    resolveSpy.mockImplementation((bareId: unknown) => registry[bareId as string] ?? []);
+
+    const engineResult = {
+      deductedPoints: 12,
+      score: 98,
+      unmetCount: 4,
+      unknownIdCount: 0,
+      familiesAffected: ["AC", "IR", "PS"],
+      breakdown: [
+        { id: "AC-L1-3.1.1", family: "AC", points: 2 },
+        { id: "IR-L2-3.6.2", family: "IR", points: 3 },
+        { id: "IR-L2-3.6.3", family: "IR", points: 3 },
+        { id: "PS-L2-3.11.2", family: "PS", points: 4 },
+      ],
+    };
+    deductionSpy.mockReturnValue(engineResult);
+
+    // CA-5 and RA-5 share practice 3.11.2 (collapsed by the bare-id Set);
+    // PE-2 has NO entry in the router's control map -> contributes nothing.
     mockDb(
       [[]],
       [
@@ -457,8 +557,8 @@ describe("federal-workflows router — getSprsBreakdown (SPRS math)", () => {
           { control_id: "AC-2", status: "open", original_risk_rating: "high" },
           { control_id: "IR-8", status: "open", original_risk_rating: "moderate" },
           { control_id: "CA-5", status: "ongoing", original_risk_rating: "low" },
-          { control_id: "RA-5", status: "ongoing", original_risk_rating: "low" }, // same practice as CA-5 → counted once
-          { control_id: "PE-2", status: "open", original_risk_rating: "low" },
+          { control_id: "RA-5", status: "ongoing", original_risk_rating: "low" }, // same practice as CA-5 -> counted once
+          { control_id: "PE-2", status: "open", original_risk_rating: "low" }, // unmapped -> ignored
         ],
       ]
     );
@@ -469,15 +569,43 @@ describe("federal-workflows router — getSprsBreakdown (SPRS math)", () => {
       ctx: { user: { id: 1 } },
     });
 
-    // 3.1 → 3 · 3.6 (weight 9, two practices) → 2 · 3.11 (weight 6, deduped to one) → 1 · 3.10.x → 1
-    expect(result.unmetPracticeCount).toBe(5); // 3.1.1, 3.6.2, 3.6.3, 3.11.2, 3.10.x
-    expect(result.deduction).toBe(7);
-    expect(result.score).toBe(103); // 110 - 7
-    expect(result.openPoamItems).toBe(5);
-    expect([...result.familiesAffected].sort()).toEqual(["3.1", "3.10", "3.11", "3.6"]);
+    // Exactly the 4 DISTINCT bare ids were resolved, one call each.
+    expect(resolveSpy).toHaveBeenCalledTimes(4);
+    for (const bare of ["3.1.1", "3.6.2", "3.6.3", "3.11.2"]) {
+      expect(resolveSpy).toHaveBeenCalledWith(bare);
+    }
+    // Resolved canonical entries (first-seen order) feed the engine as ONE batch.
+    expect(deductionSpy).toHaveBeenCalledTimes(1);
+    expect(deductionSpy).toHaveBeenCalledWith([acL111, ir622, ir633, ps1122]);
+
+    expect(result).toMatchObject({
+      startingScore: 110,
+      deduction: 12,
+      score: 98,
+      unmetPracticeCount: 4,
+      unknownIdCount: 0,
+      familiesAffected: ["AC", "IR", "PS"],
+      openPoamItems: 5, // 5 open ROWS even though only 4 distinct practices map
+    });
+    expect(result.breakdown).toBe(engineResult.breakdown);
+    expect(result.score).toBe(Math.max(0, 110 - result.deduction));
   });
 
   it("scores a clean 110 with zero deduction when nothing is open, updating the existing snapshot", async () => {
+    const resolveSpy = cmmcRegisterMocks.getPracticesBy800171Id;
+    const deductionSpy = cmmcRegisterMocks.computeSprsPerPracticeDeduction;
+
+    // Zeroed engine shape for an empty resolution batch.
+    const engineResult = {
+      deductedPoints: 0,
+      score: 110,
+      unmetCount: 0,
+      unknownIdCount: 0,
+      familiesAffected: [],
+      breakdown: [],
+    };
+    deductionSpy.mockReturnValue(engineResult);
+
     const { calls } = mockDb([[{ id: 77, clientId: 7, status: "computed" }]], [[]]);
     const router = buildRouter();
 
@@ -486,10 +614,26 @@ describe("federal-workflows router — getSprsBreakdown (SPRS math)", () => {
       ctx: { user: { id: 1 } },
     });
 
-    expect(result).toMatchObject({ startingScore: 110, deduction: 0, score: 110, unmetPracticeCount: 0, openPoamItems: 0 });
+    // No open items -> NO bare ids reach the resolver; the engine still runs,
+    // but over an empty batch.
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(deductionSpy).toHaveBeenCalledTimes(1);
+    expect(deductionSpy).toHaveBeenCalledWith([]);
+
+    expect(result).toMatchObject({
+      startingScore: 110,
+      deduction: 0,
+      score: 110,
+      unmetPracticeCount: 0,
+      unknownIdCount: 0,
+      openPoamItems: 0,
+    });
+    expect(result.familiesAffected).toEqual([]);
+    expect(result.breakdown).toEqual([]);
+    // Existing snapshot UPDATED in place, never duplicated.
     expect(calls.updates).toHaveLength(1);
     expect(calls.updates[0]).toMatchObject({ score: 110 });
-    expect(calls.inserts).toHaveLength(0); // existing snapshot updated, not duplicated
+    expect(calls.inserts).toHaveLength(0);
   });
 });
 
