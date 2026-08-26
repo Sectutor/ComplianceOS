@@ -413,6 +413,7 @@ export function FederalCmmcPanels({ clientId }: { clientId: number }) {
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="cmmc-register-search"
+                      aria-label="Search CMMC practice register"
                       type="search"
                       placeholder="Search title or requirement…"
                       value={searchText}

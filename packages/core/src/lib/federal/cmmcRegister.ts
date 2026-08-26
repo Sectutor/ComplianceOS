@@ -10,6 +10,9 @@
  *   getCmmcPracticeRegister(f?) -> filtered view + full-register family rollup
  *   getCmmcRegisterSummary()    -> full-register level/family rollup
  *   getCmmcPracticeById(id)     -> ci/trim lookup or null
+ *   SPRS_FAMILY_WEIGHTS         -> 110-pt family weights (GAP-21)
+ *   SPRS_MAX_SCORE              -> starting score constant (110, GAP-21)
+ *   computeSprsPerPracticeDeduction(unmetIds) -> per-practice SPRS deduction (GAP-21)
  *
  * ⚠ Assessment-guide-aligned SUMMARY register — requirements/objectives are
  * concise paraphrases for product use, not verbatim 800-171 text. Practice ids
@@ -237,7 +240,7 @@ export const CMMC_PRACTICES: readonly CmmcPractice[] = [
     ["Masking verified on all entry paths"]),
 
   // ─── IR — Incident Response (6) ──────────────────────────────────────────
-  P("IR-L2-3.6.1", "IR", 2, "Incident-handling capability",
+  P("IR-L1-3.6.1", "IR", 1, "Incident-handling capability",
     "Establish an operational incident-handling capability for organizational systems that includes adequate preparation, detection, analysis, containment, recovery, and user-response activities.",
     ["IR plan operational", "Roles staffed"]),
   P("IR-L2-3.6.2", "IR", 2, "Track, document, report incidents",
@@ -257,7 +260,7 @@ export const CMMC_PRACTICES: readonly CmmcPractice[] = [
     ["Forensic readiness demonstrated"]),
 
   // ─── MA — Maintenance (6) ────────────────────────────────────────────────
-  P("MA-L2-3.7.1", "MA", 2, "Approved maintenance tools",
+  P("MA-L1-3.7.1", "MA", 1, "Approved maintenance tools",
     "Perform maintenance on organizational systems using approved and controlled tools.",
     ["Tool allowlist enforced"]),
   P("MA-L2-3.7.2", "MA", 2, "Supervised maintenance personnel",
@@ -273,7 +276,7 @@ export const CMMC_PRACTICES: readonly CmmcPractice[] = [
     "Require approvals for maintenance personnel and maintain complete records of maintenance activities.",
     ["Records complete and retained"]),
   P("MA-L2-3.7.6", "MA", 2, "Verifier on maintenance return",
-    "Require personnel to? — require verification upon return of maintained equipment.",
+    "Require verification upon return and reinstallation of equipment removed for maintenance.",
     ["Integrity verification on reinstall"]),
 
   // ─── MP — Media Protection (9) ───────────────────────────────────────────
@@ -333,7 +336,7 @@ export const CMMC_PRACTICES: readonly CmmcPractice[] = [
     "Ensure that organizational systems containing CUI are protected during and after personnel actions such as terminations and transfers.",
     ["Access revoked on effective date"]),
   P("PS-L2-3.11.3", "PS", 2, "Termination process",
-    "Establish personnel-security requirements including termination responsibilities? — enforce documented termination criteria returning all assets and revoking access.",
+    "Establish personnel-security requirements and enforce documented termination criteria, including return of assets and revocation of access.",
     ["Checklist evidence retained"]),
 
   // ─── SC — System & Communications Protection (13) ────────────────────────
@@ -359,7 +362,7 @@ export const CMMC_PRACTICES: readonly CmmcPractice[] = [
     "Prevent unauthorized information transfer via collaborative computing devices (microphones, cameras).",
     ["Device use policy enforced"]),
   P("SC-L2-3.13.8", "SC", 2, "Integrity cryptography",
-    "Implement cryptographic mechanisms to detect and protect the integrity of CUI in transit? — detect/protect integrity of CUI.",
+    "Implement cryptographic mechanisms to detect and protect the integrity of CUI in transit.",
     ["Signing/HMAC applied where required"]),
   P("SC-L2-3.13.9", "SC", 2, "Communications authenticity",
     "Validate the authenticity of communications channels via cryptographic mechanisms.",
@@ -384,11 +387,11 @@ export const CMMC_PRACTICES: readonly CmmcPractice[] = [
   P("SI-L1-3.14.2", "SI", 1, "Malicious-code protection",
     "Provide protection from malicious code at appropriate locations within organizational systems.",
     ["AV/EDR deployed at entry points"]),
-  P("SI-L1-3.14.3", "SI", 1, "Update malicious-code mechanisms",
+  P("SI-L2-3.14.3", "SI", 2, "Update malicious-code mechanisms",
     "Update malicious-code protection mechanisms when new releases are available.",
     ["Signature/engine currency monitored"]),
   P("SI-L2-3.14.4", "SI", 2, "Alerts & advisories",
-    "Configure malicious-code protection to perform periodic scans and receive updates? — monitor security alerts/advisories and act on them.",
+    "Configure malicious-code protection to perform periodic scans, and monitor security alerts/advisories and act on them.",
     ["Advisory intake processed"]),
   P("SI-L2-3.14.5", "SI", 2, "Periodic vulnerability scans",
     "Perform periodic scans of organizational systems and applications and remediate findings.",
@@ -479,4 +482,189 @@ export function getCmmcPracticeById(id: unknown): CmmcPractice | null {
   const wanted = id.trim().toUpperCase();
   if (!wanted) return null;
   return CMMC_PRACTICES.find((p) => p.id.toUpperCase() === wanted) ?? null;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// GAP-21 — per-practice SPRS deduction distribution (DoD Assessment Methodology)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * SPRS family weights on the canonical 110-point scale, keyed by 800-171
+ * assessment section ("3.1".."3.14"). Mirrors the relative proportions of
+ * FAMILY_WEIGHTS_171 in server/routers/federal-workflows.ts (getSprsBreakdown),
+ * whose raw values sum to 157 and include a "3.9" section with no Rev 2
+ * register family; the register-bearing sections (raw Σ = 154) are therefore
+ * proportionally rescaled onto exactly 110 via integer largest-remainder
+ * rounding (raw × 5⁄7). Static deterministic content — zero deps, no DB.
+ */
+export const SPRS_FAMILY_WEIGHTS: Readonly<Record<string, number>> = {
+  "3.1": 23, // AC — Access Control (22 practices)
+  "3.2": 2,  // AT — Awareness & Training (3)
+  "3.3": 9,  // AU — Audit & Accountability (9)
+  "3.4": 5,  // CM — Configuration Management (9)
+  "3.5": 7,  // IA — Identification & Authentication (11)
+  "3.6": 6,  // IR — Incident Response (6)
+  "3.7": 3,  // MA — Maintenance (6)
+  "3.8": 6,  // MP — Media Protection (9)
+  "3.10": 4, // PE — Physical Protection (6)
+  "3.11": 4, // PS — Personnel Security (3)
+  "3.12": 4, // CA — Security Assessment (6)
+  "3.13": 31, // SC — System & Communications Protection (13)
+  "3.14": 6, // SI — System & Information Integrity (7)
+}; // Σ = 110 exactly
+
+/** Register family code -> 800-171 assessment section number. */
+const FAMILY_TO_SECTION_171: Readonly<Record<string, string>> = {
+  AC: "3.1", AT: "3.2", AU: "3.3", CM: "3.4", IA: "3.5", IR: "3.6",
+  MA: "3.7", MP: "3.8", PE: "3.10", PS: "3.11", CA: "3.12", SC: "3.13", SI: "3.14",
+};
+
+/** Starting SPRS score under the DoD Assessment Methodology (whole points). */
+export const SPRS_MAX_SCORE = 110;
+
+/**
+ * Static practice-id -> fixed SPRS deduction-points index (GAP-21). Each
+ * family's SPRS_FAMILY_WEIGHTS entry is spread equally across its register
+ * practices using integer largest-remainder rounding, so every family's
+ * per-practice deductions sum EXACTLY to its weight (110 overall). Remainder
+ * units go to lexicographically-lowest practice ids — fully deterministic.
+ */
+const SPRS_POINTS_BY_PRACTICE_ID: ReadonlyMap<string, number> = (() => {
+  const byFamily = new Map<string, CmmcPractice[]>();
+  for (const practice of CMMC_PRACTICES) {
+    const bucket = byFamily.get(practice.family);
+    if (bucket) bucket.push(practice);
+    else byFamily.set(practice.family, [practice]);
+  }
+  const points = new Map<string, number>();
+  for (const [family, practices] of byFamily) {
+    const weight = SPRS_FAMILY_WEIGHTS[FAMILY_TO_SECTION_171[family] ?? ""] ?? 0;
+    const ordered = [...practices].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    if (ordered.length === 0 || weight <= 0) continue;
+    const base = Math.floor(weight / ordered.length);
+    let remainder = weight - base * ordered.length;
+    for (const practice of ordered) {
+      if (remainder > 0) {
+        points.set(practice.id, base + 1);
+        remainder -= 1;
+      } else if (base > 0) {
+        points.set(practice.id, base);
+      }
+    }
+  }
+  return points;
+})();
+
+/** One per-practice SPRS deduction row (GAP-21 breakdown entry). */
+export interface SprsPracticeDeductionRow {
+  /** Canonical register practice id, e.g. "AC-L1-3.1.1" */
+  id: string;
+  /** Two-letter 800-171 family code, e.g. "AC" */
+  family: string;
+  /** Fixed whole-point SPRS deduction carried by this practice */
+  points: number;
+}
+
+/** Result shape of {@link computeSprsPerPracticeDeduction}. Never throws. */
+export interface SprsPracticeDeductionResult {
+  /** Total SPRS points deducted for the recognized unmet practices */
+  deductedPoints: number;
+  /** SPRS_MAX_SCORE minus deductedPoints, floored at 0 */
+  score: number;
+  /** Distinct recognized unmet practices (duplicate ids collapse) */
+  unmetCount: number;
+  /** Entries that did not resolve to a known practice id (garbage included) */
+  unknownIdCount: number;
+  /** Family codes having ≥1 recognized unmet practice, sorted ascending */
+  familiesAffected: string[];
+  /** Per-practice rows sorted by family asc, then id asc */
+  breakdown: SprsPracticeDeductionRow[];
+}
+
+const zeroedSprsDeduction = (): SprsPracticeDeductionResult => ({
+  deductedPoints: 0,
+  score: SPRS_MAX_SCORE,
+  unmetCount: 0,
+  unknownIdCount: 0,
+  familiesAffected: [],
+  breakdown: [],
+});
+
+/**
+ * GAP-21 closure — deterministic per-practice SPRS deduction.
+ *
+ * Replaces the family-weighted approximation flagged in GAP-LOG.md GAP-21
+ * ("family-weighted approximation, not per-practice DoD point values") with
+ * true per-practice deductions: every register practice carries a fixed
+ * whole-point share of its family's SPRS_FAMILY_WEIGHTS weight (integer
+ * largest-remainder rounded; each family sums EXACTLY to its weight, 110
+ * points overall — see the static index above).
+ *
+ * Input is tolerated liberally and NEVER throws:
+ *   - array (or iterable collection) of practice-id strings and/or `{ id }`
+ *     objects; ids are trimmed + case-insensitive via getCmmcPracticeById
+ *   - duplicate ids collapse into a single deduction
+ *   - unknown/malformed entries are ignored but counted (unknownIdCount)
+ *   - malformed containers (null, scalars, non-iterables) yield the zeroed
+ *     shape: deductedPoints 0, score 110, empty breakdown/families
+ * Pure: no DB access, no Math.random, no injectable state, stable ordering.
+ */
+export function computeSprsPerPracticeDeduction(
+  unmetPracticeIds: unknown,
+): SprsPracticeDeductionResult {
+  try {
+    let entries: unknown[];
+    if (Array.isArray(unmetPracticeIds)) {
+      entries = unmetPracticeIds;
+    } else if (
+      unmetPracticeIds !== null &&
+      typeof unmetPracticeIds === "object" &&
+      typeof (unmetPracticeIds as Iterable<unknown>)[Symbol.iterator] === "function"
+    ) {
+      entries = Array.from(unmetPracticeIds as Iterable<unknown>);
+    } else {
+      return zeroedSprsDeduction();
+    }
+
+    const resolved = new Map<string, CmmcPractice>();
+    let unknownIdCount = 0;
+    for (const entry of entries) {
+      const candidate =
+        typeof entry === "string"
+          ? entry
+          : entry !== null &&
+              typeof entry === "object" &&
+              typeof (entry as { id?: unknown }).id === "string"
+            ? (entry as { id: string }).id
+            : "";
+      const practice = getCmmcPracticeById(candidate);
+      if (!practice) {
+        unknownIdCount += 1;
+        continue;
+      }
+      if (!resolved.has(practice.id)) resolved.set(practice.id, practice);
+    }
+
+    const breakdown = [...resolved.values()]
+      .map((practice) => ({
+        id: practice.id,
+        family: practice.family,
+        points: SPRS_POINTS_BY_PRACTICE_ID.get(practice.id) ?? 0,
+      }))
+      .sort((a, b) =>
+        a.family < b.family ? -1 : a.family > b.family ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+      );
+    const deductedPoints = breakdown.reduce((sum, row) => sum + row.points, 0);
+
+    return {
+      deductedPoints,
+      score: Math.max(0, SPRS_MAX_SCORE - deductedPoints),
+      unmetCount: resolved.size,
+      unknownIdCount,
+      familiesAffected: [...new Set(breakdown.map((row) => row.family))].sort(),
+      breakdown,
+    };
+  } catch {
+    return zeroedSprsDeduction();
+  }
 }

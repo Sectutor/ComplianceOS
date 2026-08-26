@@ -10,15 +10,18 @@ import { TRPCError } from "@trpc/server";
  * a factory `createFederalWorkflowRouter(t, clientProcedure)` tested with a
  * tiny fake tRPC builder — no tRPC server, no DB (`../../db` is mocked).
  *
- * Contract under test — exactly these 9 procedures (all registered through
+ * Contract under test — exactly these 10 procedures (all registered through
  * clientProcedure, per routers.ts line "federalWorkflows:
  * createFederalWorkflowRouter(t, clientProcedure)"):
  *   queries   : getSprsBreakdown, getCmmcReadiness, getReportingClocks,
- *               getConMonDashboard
+ *               getConMonDashboard, cmmcPractices (cycle 44, GAP-20 — CMMC
+ *               800-171 practice register query; pure passthrough over
+ *               lib/federal/cmmcRegister, NO DB access)
  *   mutations : syncSarToPoam, exportSspOscal, exportPoamOscal,
  *               exportPoamEmassCsv, importOscal (cycle 41, GAP-19)
- * Every input schema requires numeric `clientId`; syncSarToPoam additionally
- * requires `sarId`; the three exports require `sspId`/`poamId`.
+ * Every input schema requires numeric `clientId` except cmmcPractices
+ * (family/level/search all optional); syncSarToPoam additionally requires
+ * `sarId`; the three exports require `sspId`/`poamId`.
  *
  * IMPORTANT behavioural note (asserted as-implemented, deliberately):
  * the handlers throw PLAIN `new Error("SAR not found")` /
@@ -38,6 +41,20 @@ const dbMocks = vi.hoisted(() => ({
 
 vi.mock("../../db", () => ({
   getDb: dbMocks.getDb,
+}));
+
+/**
+ * Cycle-44 pinning: cmmcPractices is a PURE passthrough over
+ * lib/federal/cmmcRegister. The register engine is replaced by this spy so
+ * handler tests can assert wiring + zero DB access without coupling to the
+ * static register content (covered by cmmcSprsDeduction.test.ts).
+ */
+const cmmcRegisterMocks = vi.hoisted(() => ({
+  getCmmcPracticeRegister: vi.fn(),
+}));
+
+vi.mock("../../lib/federal/cmmcRegister", () => ({
+  getCmmcPracticeRegister: cmmcRegisterMocks.getCmmcPracticeRegister,
 }));
 
 import {
@@ -127,7 +144,7 @@ function buildRouter() {
   );
 }
 
-const QUERIES = ["getSprsBreakdown", "getCmmcReadiness", "getReportingClocks", "getConMonDashboard"];
+const QUERIES = ["getSprsBreakdown", "getCmmcReadiness", "getReportingClocks", "getConMonDashboard", "cmmcPractices"];
 const MUTATIONS = ["syncSarToPoam", "exportSspOscal", "exportPoamOscal", "exportPoamEmassCsv", "importOscal"];
 const ALL_ROUTES = [...QUERIES, ...MUTATIONS].sort();
 
@@ -142,6 +159,7 @@ const MIN_INPUT: Record<string, any> = {
   getConMonDashboard: { clientId: 1 },
   exportPoamEmassCsv: { clientId: 1, poamId: 1 },
   importOscal: { content: "{}" },
+  cmmcPractices: {}, // all filter fields optional
 };
 
 // ── Mocked drizzle connection ────────────────────────────────────────────────
@@ -229,7 +247,7 @@ beforeEach(() => {
 // ── Route shape ──────────────────────────────────────────────────────────────
 
 describe("federal-workflows router — route shape", () => {
-  it("exposes exactly the 9 documented procedures, each with a callable handler", () => {
+  it("exposes exactly the 10 documented procedures, each with a callable handler", () => {
     const router = buildRouter();
     expect(Object.keys(router).sort()).toEqual(ALL_ROUTES);
     for (const name of Object.keys(router)) {
@@ -237,7 +255,7 @@ describe("federal-workflows router — route shape", () => {
     }
   });
 
-  it("registers the four intelligence surfaces as queries and the five artifact operations as mutations", () => {
+  it("registers the five intelligence surfaces as queries and the five artifact operations as mutations", () => {
     const router = buildRouter();
     for (const name of QUERIES) {
       expect((router as any)[name].type, `"${name}" kind`).toBe("query");
@@ -259,6 +277,14 @@ describe("federal-workflows router — route shape", () => {
         expect(() => schema.parse(MIN_INPUT[name])).not.toThrow();
         continue;
       }
+      if (name === "cmmcPractices") {
+        // cmmcPractices carries NO clientId — family/level/search are all
+        // optional, so an empty object parses; its edges are covered in the
+        // dedicated describe below.
+        expect(() => schema.parse({})).not.toThrow();
+        expect(() => schema.parse(MIN_INPUT[name])).not.toThrow();
+        continue;
+      }
       expect(() => schema.parse({}), `"${name}" without clientId`).toThrow(ZodError);
       expect(
         () => schema.parse({ ...MIN_INPUT[name], clientId: "5" }),
@@ -272,7 +298,7 @@ describe("federal-workflows router — route shape", () => {
 // ── Auth gate ────────────────────────────────────────────────────────────────
 
 describe("federal-workflows router — authentication gate", () => {
-  it("all 9 procedures reject a missing user with TRPCError UNAUTHORIZED before touching the DB", async () => {
+  it("all 10 procedures reject a missing user with TRPCError UNAUTHORIZED before touching the DB", async () => {
     dbMocks.getDb.mockResolvedValue(null);
     const router = buildRouter();
     const calls = ALL_ROUTES.map((name) =>
@@ -331,6 +357,74 @@ describe("federal-workflows router — zod BAD_REQUEST edges", () => {
 });
 
 // ── getSprsBreakdown ─────────────────────────────────────────────────────────
+
+// ———— GAP-20: cmmcPractices — pure register passthrough (cycle 44) ————
+
+describe("federal-workflows router — cmmcPractices (GAP-20 pure passthrough)", () => {
+  it("calls getCmmcPracticeRegister with the PARSED input and returns its result by identity", async () => {
+    const sentinel = {
+      total: 2,
+      families: [],
+      practices: [
+        { id: "AC-L1-3.1.1", family: "AC", level: 1 },
+        { id: "SC-L2-3.13.1", family: "SC", level: 2 },
+      ],
+    };
+    const spy = cmmcRegisterMocks.getCmmcPracticeRegister;
+    spy.mockReset();
+    spy.mockReturnValue(sentinel);
+    const out = await (buildRouter() as any).cmmcPractices.handler({
+      input: { family: " ac ", level: 2, search: "Encrypt" },
+      ctx: { user: { id: 1 } },
+    });
+    // Passthrough identity: the handler returns the engine result object
+    // itself, with no cloning, re-shaping or envelope.
+    expect(out).toBe(sentinel);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith({ family: "AC", level: 2, search: "Encrypt" });
+  });
+
+  it("input schema: family normalizes trim+uppercase; search passes through; empty object parses", () => {
+    const schema = (buildRouter() as any).cmmcPractices.schema;
+    expect(schema.parse({ family: " ac " })).toEqual({ family: "AC" });
+    expect(schema.parse({ family: "\tsc\n" })).toEqual({ family: "SC" });
+    expect(schema.parse({ search: "  Encrypt CUI  " })).toEqual({ search: "  Encrypt CUI  " });
+    // All fields optional: an empty filter parses to the empty object.
+    expect(schema.parse({})).toEqual({});
+    // Unknown keys are stripped by default z.object behaviour (as-implemented).
+    expect(schema.parse({ rogue: "x", clientId: 7 })).toEqual({});
+  });
+
+  it("input schema: level accepts only literal 1|2|3 and rejects 4 / \"2\" / 0 / true with ZodError", () => {
+    const schema = (buildRouter() as any).cmmcPractices.schema;
+    for (const ok of [1, 2, 3]) {
+      expect(() => schema.parse({ level: ok }), `level=${ok} accepted`).not.toThrow();
+    }
+    for (const bad of [4, "2", 0, true]) {
+      let caught: unknown;
+      try {
+        schema.parse({ level: bad });
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught, `level=${JSON.stringify(String(bad))} must be rejected`).toBeInstanceOf(ZodError);
+    }
+  });
+
+  it("is pure: invoking the handler never touches the DB layer (getDb receives ZERO calls)", async () => {
+    dbMocks.getDb.mockResolvedValue(null); // poisoned conn — must never even be fetched
+    const spy = cmmcRegisterMocks.getCmmcPracticeRegister;
+    spy.mockReset();
+    spy.mockReturnValue({ total: 0, families: [], practices: [] });
+    await expect(
+      (buildRouter() as any).cmmcPractices.handler({
+        input: { family: "ac", level: 3 },
+        ctx: { user: { id: 1 } },
+      })
+    ).resolves.toEqual({ total: 0, families: [], practices: [] });
+    expect(dbMocks.getDb).not.toHaveBeenCalled();
+  });
+});
 
 describe("federal-workflows router — getSprsBreakdown (SPRS math)", () => {
   it("deducts the 800-171 family-weighted amount for open POA&M items (AC-2 ⇒ 107)", async () => {

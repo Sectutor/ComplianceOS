@@ -3,6 +3,7 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import { validateOscalDocument, normalizeOscalDocument, oscalUuidFromSeed } from "../../lib/federal/oscalImport";
+import { getCmmcPracticeRegister } from "../../lib/federal/cmmcRegister";
 
 /**
  * Federal Workflow Intelligence Router (Phase 2)
@@ -13,6 +14,7 @@ import { validateOscalDocument, normalizeOscalDocument, oscalUuidFromSeed } from
  *   SSP → OSCAL export  (exportSspOscal)
  *   POA&M → OSCAL export  (exportPoamOscal)
  *   CMMC L2 practice scoring + readiness  (getCmmcReadiness)
+ *   CMMC 800-171 practice register query  (cmmcPractices — GAP-20)
  *   DFARS/CIRCIA incident reporting clocks  (getReportingClocks, checkIncidentReportingDeadlines)
  *   Continuous Monitoring dashboard  (getConMonDashboard, incl. ATO expiry tracking)
  *   eMASS-compatible CSV export  (exportPoamEmassCsv)
@@ -29,6 +31,25 @@ import { validateOscalDocument, normalizeOscalDocument, oscalUuidFromSeed } from
 // ─────────────────────────────────────────────────────────────────────────────
 export const oscalImportInputSchema = z.object({ content: z.string() });
 export type OscalImportInput = z.infer<typeof oscalImportInputSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAP-20: CMMC practice register — single-source-of-truth input schema for
+// cmmcPractices. All fields optional: family (normalized trim+uppercase),
+// level (literal 1|2|3 — out-of-range values like 4 or string "2" fail
+// BAD_REQUEST at the boundary), search (case-insensitive substring). Pure
+// passthrough over lib/federal/cmmcRegister — NO DB access, deterministic.
+// ─────────────────────────────────────────────────────────────────────────────
+export const cmmcPracticesInputShape = {
+    /** 800-171 family code (e.g. "AC"); normalized via trim + uppercase */
+    family: z.string().transform((v) => v.trim().toUpperCase()).optional(),
+    /** CMMC maturity level; literal union rejects e.g. 4 or "2" */
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    /** Case-insensitive substring over id + title + requirement */
+    search: z.string().optional(),
+};
+
+export const cmmcPracticesInputSchema = z.object(cmmcPracticesInputShape);
+export type CmmcPracticesInput = z.infer<typeof cmmcPracticesInputSchema>;
 
 // Standard DoD assessment deductions by 800-171 control family weight.
 // Simplified mapping per DoD Assessment Methodology v1.2.1 (basic self-assessment):
@@ -353,6 +374,17 @@ export const createFederalWorkflowRouter = (t: any, clientProcedure: any) => {
                     ],
                 };
             }),
+
+        // ────────────────────────────────────────────────────────────────
+        // GAP-20: CMMC practice register (NIST SP 800-171 Rev 2) — pure,
+        // deterministic reference query over lib/federal/cmmcRegister.
+        // NO DB access on this path. practices/total honor the optional
+        // family/level/search filter; families ALWAYS describes the full
+        // 110-practice register rollup.
+        // ────────────────────────────────────────────────────────────────
+        cmmcPractices: clientProcedure
+            .input(cmmcPracticesInputSchema)
+            .query(({ input }: any) => getCmmcPracticeRegister(input)),
 
         // ────────────────────────────────────────────────────────────────
         // P2-1: Federal incident reporting clocks (DFARS 252.204-7012 72h
