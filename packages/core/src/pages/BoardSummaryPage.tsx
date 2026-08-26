@@ -424,7 +424,7 @@ export default function BoardSummaryPage() {
                                         type="text"
                                         value={reportTitle}
                                         onChange={(e) => setReportTitle(e.target.value)}
-                                        className="w-full text-base font-bold text-foreground px-4 py-2.5 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-full text-base font-bold text-foreground px-4 py-2.5 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-ring"
                                         placeholder="e.g. Executive Compliance & Cyber Posture Briefing"
                                     />
                                 </div>
@@ -478,7 +478,7 @@ export default function BoardSummaryPage() {
                                             CONFIDENTIAL
                                         </Badge>
                                     </div>
-                                    <h2 className="text-xl sm:text-2xl font-black text-white mt-2">
+                                    <h2 className="text-xl sm:text-2xl font-black text-primary-foreground mt-2">
                                         {reportTitle}
                                     </h2>
                                     <p className="text-xs text-muted-foreground font-mono mt-1">
