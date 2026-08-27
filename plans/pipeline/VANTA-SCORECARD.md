@@ -2,7 +2,7 @@
 
 > Definition of done for the continuous build pipeline. Source: `docs/vanta-feature-map.md`.
 > Status: ⬜ Not started | 🟨 In progress | 🟩 Done | 🔒 Blocked
-> Last updated: 2026-08-27 (cycle 52 complete - security testing surface refactor: removed standalone SecurityTesting.tsx page, renamed startDate/endDate to startAt/endAt in router; vitest 2802/2802 across 114 files; tsc backlog exactly 2012 = baseline, 0 new errors)
+> Last updated: 2026-08-27 (cycle 54 verification - security testing surface refactor: removed standalone SecurityTesting.tsx page, renamed startDate/endDate to startAt/endAt in router; vitest 2802/2802 across 114 files; tsc backlog exactly 2012 = baseline, 0 new errors)
 
 - **Cycle 52** (0ed5a13): Refactor of the security testing surface — removed the standalone `SecurityTesting.tsx` page (route `/clients/:id/cyber/testing`, 285 lines) while keeping the `SecurityTestingPanels` component embedded in `CyberMonitoring.tsx`; renamed `startDate`/`endDate` → `startAt`/`endAt` in the securityTesting router for field-name consistency with other NIS2 routers. No orphaned references (App.tsx route + import removed; panels still used by CyberMonitoring). DIAGNOSE: vitest 2802/2802 across 114 files (up from 2785/113 in cycle 51); tsc backlog 2012 = baseline (0 new in touched files); smoke green. REVIEW: no .env/secrets/out-of-scope paths. VERIFY: suite green + tsc clean + smoke green. Pushed to origin/dev.
 - **Cycle 51** (899722e): NIS2 Security Testing (Art. 21(2)(e) / ENISA Measure 6.2) — closes the last NIS2 gap. DIAGNOSE: vitest 2785/2785; smoke green; tsc backlog 2012 = baseline. BUILD (3 parallel file-partitioned async agents): BACKEND created lib/nis2/securityTesting.ts (4 pure deterministic functions: planPenetrationTest, runRedTeamExercise, assessSecurityBenchmarks, trackScanCoverage — zero deps, never throws, injectable clock) + server/routers/securityTesting.ts (createSecurityTestingRouter factory: protected pure planTest/redTeam/benchmarks/scanCoverage queries, exported zod schemas, no DB access). UI created pages/securityTestingNis2Api.ts (UI-STANDARD sec.16 contract layer: EMPTY shapes, retry:false hooks, META maps, demo builders) + pages/cyber/SecurityTestingPanels.tsx (4 sections: penetration test scheduler, red team exercise tracker, benchmark compliance, scan coverage — Skeleton/EmptyState degradation, token-only, dark-mode safe). QA created 73 engine tests (boundaries/malformed/determinism/never-throws) + 17 router contract tests (route shape/auth/zod/bad-request/no-DB). Wiring: routers.ts (securityTesting: mount) + CyberMonitoring.tsx (additive embed). REVIEW: no .env/secrets/out-of-scope paths. VERIFY: vitest 2802/2802 green (114 files, +90 tests); tsc backlog exactly 2012 = baseline, 0 new errors in touched files; smoke green; pushed to origin/dev.
@@ -93,3 +93,6 @@
 1. `npx vitest run` green (no regressions)
 2. `npx tsc -p packages/core/tsconfig.json --noEmit` clean for touched files
 3. Scorecard status updated, commits on `dev`, changelog line added
+
+
+
