@@ -6,6 +6,8 @@ describe("VfsMemoryEngine — Unit & Integration Test Suite", () => {
 
   beforeEach(() => {
     engine = new VfsMemoryEngine();
+    // Mock ensureTables to avoid DB connectivity hangs in test environment
+    vi.spyOn(engine, "ensureTables").mockResolvedValue(undefined);
   });
 
   describe("Path Normalization & Parent Path Derivation", () => {
