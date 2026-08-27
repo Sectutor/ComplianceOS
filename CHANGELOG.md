@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 57 - Verification: stable state confirmed, no regressions (2026-08-28)
+- verify: vitest 2802/2802 across 114 files, all green.
+- verify: tsc check 0 errors (tsconfig.check.json + ui/tsconfig.json).
+- verify: smoke green (Phase 2 ready); no regressions detected.
+
+### Cycle 58 - Verification: stable state confirmed, no regressions (2026-08-28)
+- verify: vitest 2802/2802 across 114 files, all green.
+- verify: tsc check 0 errors (tsconfig.check.json + ui/tsconfig.json).
+- verify: smoke green (Phase 2 ready); no regressions detected.
+
 
 ### Cycle 56 — Test stability: vfsMemoryEngine timeout fix (2026-08-28)
 - fix(test): mock ensureTables in vfsMemoryEngine tests to prevent DB-hang timeouts (2 tests fixed: extractAndSaveFacts suite).
