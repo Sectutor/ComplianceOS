@@ -2,7 +2,7 @@
 
 > Definition of done for the continuous build pipeline. Source: `docs/vanta-feature-map.md`.
 > Status: ⬜ Not started | 🟨 In progress | 🟩 Done | 🔒 Blocked
-> Last updated: 2026-08-27 (cycle 54 verification - security testing surface refactor: removed standalone SecurityTesting.tsx page, renamed startDate/endDate to startAt/endAt in router; vitest 2802/2802 across 114 files; tsc backlog exactly 2012 = baseline, 0 new errors)
+> Last updated: 2026-08-27 (cycle 55 verification - stable state confirmed, pushed to origin/dev; vitest 2802/2802 across 114 files; tsc backlog 2012 = baseline, 0 new errors)
 
 - **Cycle 52** (0ed5a13): Refactor of the security testing surface — removed the standalone `SecurityTesting.tsx` page (route `/clients/:id/cyber/testing`, 285 lines) while keeping the `SecurityTestingPanels` component embedded in `CyberMonitoring.tsx`; renamed `startDate`/`endDate` → `startAt`/`endAt` in the securityTesting router for field-name consistency with other NIS2 routers. No orphaned references (App.tsx route + import removed; panels still used by CyberMonitoring). DIAGNOSE: vitest 2802/2802 across 114 files (up from 2785/113 in cycle 51); tsc backlog 2012 = baseline (0 new in touched files); smoke green. REVIEW: no .env/secrets/out-of-scope paths. VERIFY: suite green + tsc clean + smoke green. Pushed to origin/dev.
 - **Cycle 54** (d6f06b3): tsc backlog reduction — fixed 18 type errors across routers, scripts, and bots. management-and-readiness.ts: added missing `const db = await getDb()` in submitApproval + processApproval mutations (TS2304 Cannot find name 'db'). dashboard.ts: annotated `months[]` with explicit type (TS2345 not assignable to never). privacyEnhancements.ts: annotated `created[]` + fixed AuditAction enum (TS2345 + TS2820). import_asvs.ts: annotated `levelTags[]` with string[] (TS2345). seed-assets-client-3.ts: annotated `technologies[]` with string[] (TS2345). roster.ts: `riskAssessments.ownerId` → `riskAssessments.riskOwner` (TS2339 property does not exist). routers.ts: added `ilike` to drizzle-orm import + fixed SecurityFeedItem/MitreGroup property access (TS2552 + TS2339). tsc: 2030 → 2012 (packages/core/tsconfig.json). vitest: 2802/2802 across 114 files, all green. Pushed to origin/dev.
@@ -84,7 +84,7 @@
 
 ## Health (runtime)
 - [x] App boots (Vite dev server, port 5173)
-- [x] Unit suite green (cycle 54: FULL suite 2802/2802 across 114 files; coverage 100% on all 5 targets — Statements/Branches/Functions/Lines) | tsc backlog 2012 errors in packages/core/tsconfig.json (cycle 54: -18 from cycle 53's 2030; 0 new in touched files) | all 15 Vanta scorecard features complete (P0–P3) | all GAP-LOG items (GAP-16–GAP-23) resolved | NIS2 Implementation Plan all 6 phases complete | API-FIRST security checklist (credential crypto/audit/rotation/expiry/IP allowlisting/rate limit/2FA) checked off | smoke green; local Supabase running (health 200 on :3005)
+- [x] Unit suite green (cycle 54: FULL suite 2802/2802 across 114 files; coverage 100% on all 5 targets — Statements/Branches/Functions/Lines) | tsc backlog 2012 errors in packages/core/tsconfig.json (cycle 55: stable, 0 new in touched files) | all 15 Vanta scorecard features complete (P0–P3) | all GAP-LOG items (GAP-16–GAP-23) resolved | NIS2 Implementation Plan all 6 phases complete | API-FIRST security checklist (credential crypto/audit/rotation/expiry/IP allowlisting/rate limit/2FA) checked off | smoke green; local Supabase running (health 200 on :3005)
 - [x] Smoke test green (`npm run smoke`)
 - [x] Local Supabase running (DB connected, health 200 on :3005, Studio on :54323)
 - [x] AddonScheduler `db.select` + Date-binding bugs fixed
@@ -94,6 +94,8 @@
 1. `npx vitest run` green (no regressions)
 2. `npx tsc -p packages/core/tsconfig.json --noEmit` clean for touched files
 3. Scorecard status updated, commits on `dev`, changelog line added
+
+
 
 
 
