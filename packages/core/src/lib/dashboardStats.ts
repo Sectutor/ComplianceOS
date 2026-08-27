@@ -102,7 +102,7 @@ export const OPEN_RISK_STATUSES = ["identified", "analyzed"] as const;
 // ---------------------------------------------------------------------------
 
 function pct(passing: number, total: number): number {
-  return total > 0 ? Math.round((passing / total) * 100) : 100;
+  return total > 0 ? Math.round((passing / total) * 100) : 0;
 }
 
 /** Compliance score: implemented controls / applicable controls (excl. N/A). */

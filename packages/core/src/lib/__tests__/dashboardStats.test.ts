@@ -105,8 +105,8 @@ describe("computeComplianceScore", () => {
     expect(stats.computeComplianceScore(rows)).toEqual({ passing: 2, total: 4, scorePct: 50 });
   });
 
-  it("returns 100 for an empty set", () => {
-    expect(stats.computeComplianceScore([])).toEqual({ passing: 0, total: 0, scorePct: 100 });
+  it("returns 0 for an empty set", () => {
+    expect(stats.computeComplianceScore([])).toEqual({ passing: 0, total: 0, scorePct: 0 });
   });
 });
 
@@ -174,8 +174,8 @@ describe("computeEvidenceCoverage", () => {
     expect(result).toEqual({ covered: 1, total: 3, coveragePct: 33 });
   });
 
-  it("returns 100 coverage when there are no controls", () => {
-    expect(stats.computeEvidenceCoverage([], [])).toEqual({ covered: 0, total: 0, coveragePct: 100 });
+  it("returns 0 coverage when there are no controls", () => {
+    expect(stats.computeEvidenceCoverage([], [])).toEqual({ covered: 0, total: 0, coveragePct: 0 });
   });
 });
 
@@ -204,7 +204,7 @@ describe("computeTrend", () => {
     const trend = stats.computeTrend([
       { snapshotDate: new Date(), complianceScore: null, riskScore: null, implementedControls: null, totalControls: null },
     ]);
-    expect(trend[0]).toMatchObject({ complianceScore: 0, riskScore: 0, controlsImplementedPct: 100 });
+    expect(trend[0]).toMatchObject({ complianceScore: 0, riskScore: 0, controlsImplementedPct: 0 });
   });
 });
 

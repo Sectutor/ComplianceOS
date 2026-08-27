@@ -247,9 +247,9 @@ export default function Dashboard() {
     Math.round(((status.implemented || 0) / totalControlsAssigned) * 100) : 0;
 
   const statsQuery = useDashboardStats(effectiveClientId, framework, !!user);
-  const livePostureScore = (statsQuery.data && typeof statsQuery.data.postureScore === 'number' && statsQuery.data.postureScore > 0)
+  const livePostureScore = (statsQuery.data && typeof statsQuery.data.postureScore === 'number' && !statsQuery.isError)
     ? statsQuery.data.postureScore
-    : (calculatedComplianceRate > 0 ? calculatedComplianceRate : (overview.controlsImplemented > 0 && overview.totalControls > 0 ? Math.round((overview.controlsImplemented / overview.totalControls) * 100) : 0));
+    : calculatedComplianceRate;
   const overallComplianceRate = livePostureScore;
 
   // Show onboarding only if: no clients, not loading, and hasn't been shown this session
