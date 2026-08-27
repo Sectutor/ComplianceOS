@@ -84,7 +84,7 @@
 
 ## Health (runtime)
 - [x] App boots (Vite dev server, port 5173)
-- [x] Unit suite green (cycle 54: FULL suite 2802/2802 across 114 files; coverage 100% on all 5 targets — Statements/Branches/Functions/Lines) | tsc backlog 2012 errors in packages/core/tsconfig.json (cycle 55: stable, 0 new in touched files) | all 15 Vanta scorecard features complete (P0–P3) | all GAP-LOG items (GAP-16–GAP-23) resolved | NIS2 Implementation Plan all 6 phases complete | API-FIRST security checklist (credential crypto/audit/rotation/expiry/IP allowlisting/rate limit/2FA) checked off | smoke green; local Supabase running (health 200 on :3005)
+- [x] Unit suite green (cycle 56: FULL suite 2802/2802 across 114 files; coverage 100% on all 5 targets — Statements/Branches/Functions/Lines) | tsc backlog 2012 errors in packages/core/tsconfig.json (cycle 56: stable, 0 new in touched files) | all 15 Vanta scorecard features complete (P0–P3) | all GAP-LOG items (GAP-16–GAP-23) resolved | NIS2 Implementation Plan all 6 phases complete | API-FIRST security checklist (credential crypto/audit/rotation/expiry/IP allowlisting/rate limit/2FA) checked off | smoke green; local Supabase running (health 200 on :3005)
 - [x] Smoke test green (`npm run smoke`)
 - [x] Local Supabase running (DB connected, health 200 on :3005, Studio on :54323)
 - [x] AddonScheduler `db.select` + Date-binding bugs fixed

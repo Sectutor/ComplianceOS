@@ -1,9 +1,17 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project are documented in this file.
 
 ## Unreleased
-### Cycle 55� Verification: stable state confirmed, pushed to origin/dev (2026-08-27)`r`n- verify: all 15 Vanta scorecard features (P0-P3) complete; all GAP-LOG items (GAP-16-GAP-23) resolved; NIS2 Implementation Plan all 6 phases complete.`r`n- verify: vitest 2802/2802 across 114 files, all green; coverage 100% on all 5 configured targets.`r`n- verify: tsc backlog stable � 2012 pre-existing errors in packages/core/tsconfig.json, 0 new in touched files; tsconfig.check.json 0 errors.`r`n- verify: smoke green; no regressions detected.`r`n- push: 3 commits (ece2354, d6f06b3, 86e25bd) pushed to origin/dev.`r`n`r`n### Cycle 54 — tsc backlog reduction: 18 type errors fixed (2026-08-27)
+
+### Cycle 56 — Test stability: vfsMemoryEngine timeout fix (2026-08-28)
+- fix(test): mock ensureTables in vfsMemoryEngine tests to prevent DB-hang timeouts (2 tests fixed: extractAndSaveFacts suite).
+- verify: vitest 2802/2802 across 114 files, all green; coverage 100% on all 5 configured targets.
+- verify: tsc backlog stable — 2012 pre-existing errors in packages/core/tsconfig.json, 0 new in touched files.
+- verify: smoke green; no regressions detected.
+- push: 1 commit (c989175) pushed to origin/dev.
+
+### Cycle 55� Verification: stable state confirmed, pushed to origin/dev (2026-08-27)`r`n- verify: all 15 Vanta scorecard features (P0-P3) complete; all GAP-LOG items (GAP-16-GAP-23) resolved; NIS2 Implementation Plan all 6 phases complete.`r`n- verify: vitest 2802/2802 across 114 files, all green; coverage 100% on all 5 configured targets.`r`n- verify: tsc backlog stable � 2012 pre-existing errors in packages/core/tsconfig.json, 0 new in touched files; tsconfig.check.json 0 errors.`r`n- verify: smoke green; no regressions detected.`r`n- push: 3 commits (ece2354, d6f06b3, 86e25bd) pushed to origin/dev.`r`n`r`n### Cycle 54 — tsc backlog reduction: 18 type errors fixed (2026-08-27)
 - fix(tsc): resolve 18 type errors across routers, scripts, and bots (tsc: 2030 -> 2012 in packages/core/tsconfig.json).
 - management-and-readiness.ts: added missing `const db = await getDb()` in submitApproval + processApproval mutations (TS2304).
 - dashboard.ts: annotated `months[]` with explicit type (TS2345 not assignable to never).
