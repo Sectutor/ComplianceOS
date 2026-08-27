@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 50 - Dashboard posture score fix: pct() empty-set semantics (2026-08-27)
+- fix(dashboard): pct() helper in dashboardStats.ts returns 0 for empty/zero denominators instead of 100 — an empty compliance/evidence set now correctly scores 0 (nothing passing) rather than 100 (everything passing); Dashboard.tsx posture score fallback logic simplified to match.
+- test(qa): dashboardStats.test.ts assertions updated to expect 0 for empty set; all 2785 tests pass across 113 files.
+- Verify: vitest 2785/2785 green; tsc backlog exactly 2012 = baseline, 0 new errors in touched files; smoke green; pushed to origin/dev.
 ### Cycle 49 - Token-purity wave IV: assurance trio + FedRAMP detail + ISO doc tracker + client controls (2026-08-26)
 - style(ui): 499 raw slate/gray/white/indigo refs -> semantic tokens across the next 6 worst offender surfaces (assurance/SAMMV2View 92->0, assurance/EssentialEightView 83->0, assurance/MaturityAssessmentView 77->0, federal/FedRAMPPackageDetailPage 86->0, iso27001/ISODocumentTracker 79->0, ClientControlsPage 82->0); className-only diffs (net-zero line delta), zero logic/route/API changes; dark-band inverted-surface idiom + scoped dark-code-block mapping + indigo-button -> bg-primary idioms per UI-STANDARD sec.2.
 - test(qa): uiTokenPurity strict gate extended 37 -> 43 entries (cycle-49 wave surfaces pinned; absence-is-failure preserved).
