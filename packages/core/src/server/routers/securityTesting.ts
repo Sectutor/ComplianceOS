@@ -1,151 +1,166 @@
+/**
+ * Security Testing Router — tRPC facade over the pure NIS2 security testing
+ * engine (lib/nis2/securityTesting.ts).
+ *
+ * Cycle 51 (NIS2 Implementation Plan — ENISA Measure 6.2 "Security Testing",
+ * NIS2 Article 21(2)(e)): exposes penetration-test planning, red-team exercise
+ * tracking, security-benchmark assessment and scan-coverage measurement as
+ * protected query procedures.
+ *
+ * The engine is pure — no database access, no side effects, no LLM calls.
+ * Handlers never throw for valid input; the only intentional errors are zod
+ * BAD_REQUEST failures from input validation (zod rejects malformed input
+ * automatically). No secrets are ever echoed or logged.
+ */
+
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
-import { eq, and, desc, sql } from "drizzle-orm";
-import * as schema from "../../schema";
-import { securityTests, securityTestFindings } from "../../schema";
-import { logActivity } from "../../lib/audit";
+import {
+  planPenetrationTest,
+  runRedTeamExercise,
+  assessSecurityBenchmarks,
+  trackScanCoverage,
+} from "../../lib/nis2/securityTesting";
 
-export const createSecurityTestingRouter = (t: any, procedure: any, editorProcedure: any) => {
-  return t.router({
-    getTests: procedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }: any) => {
-        const { getDb } = await import("../../db");
-        const db = await getDb();
-        return db.select()
-          .from(securityTests)
-          .where(eq(securityTests.clientId, input.clientId))
-          .orderBy(desc(securityTests.scheduledDate));
-      }),
-
-    getTestDetails: procedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input }: any) => {
-        const { getDb } = await import("../../db");
-        const db = await getDb();
-        const [test] = await db.select().from(securityTests).where(eq(securityTests.id, input.id));
-        if (!test) throw new TRPCError({ code: "NOT_FOUND", message: "Test not found" });
-
-        const findings = await db.select()
-          .from(securityTestFindings)
-          .where(eq(securityTestFindings.testId, input.id));
-
-        return { ...test, findings };
-      }),
-
-    scheduleTest: editorProcedure
-      .input(z.object({
-        clientId: z.number(),
-        title: z.string(),
-        type: z.string(),
-        frequency: z.string().optional(),
-        scheduledDate: z.string().optional(),
-        notes: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }: any) => {
-        const { getDb } = await import("../../db");
-        const db = await getDb();
-        const [test] = await db.insert(securityTests).values({
-          clientId: input.clientId,
-          title: input.title,
-          type: input.type,
-          frequency: input.frequency,
-          scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : null,
-          notes: input.notes,
-          status: "scheduled",
-        }).returning();
-
-        await logActivity({
-          userId: ctx.user.id,
-          clientId: input.clientId,
-          action: "create",
-          entityType: "security_test",
-          entityId: test.id,
-          details: { title: test.title, type: test.type }
-        });
-
-        return test;
-      }),
-
-    updateTestStatus: editorProcedure
-      .input(z.object({
-        id: z.number(),
-        status: z.string(),
-        completionDate: z.string().optional(),
-        reportUrl: z.string().optional(),
-      }))
-      .mutation(async ({ input }: any) => {
-        const { getDb } = await import("../../db");
-        const db = await getDb();
-        const [updated] = await db.update(securityTests)
-          .set({
-            status: input.status,
-            completionDate: input.completionDate ? new Date(input.completionDate) : null,
-            reportUrl: input.reportUrl,
-            updatedAt: new Date(),
-          })
-          .where(eq(securityTests.id, input.id))
-          .returning();
-        return updated;
-      }),
-
-    addFinding: editorProcedure
-      .input(z.object({
-        clientId: z.number(),
-        testId: z.number(),
-        title: z.string(),
-        severity: z.string(),
-        description: z.string().optional(),
-        targetAssetId: z.number().optional(),
-      }))
-      .mutation(async ({ input }: any) => {
-        const { getDb } = await import("../../db");
-        const db = await getDb();
-        const [finding] = await db.insert(securityTestFindings).values({
-          clientId: input.clientId,
-          testId: input.testId,
-          title: input.title,
-          severity: input.severity,
-          description: input.description,
-          targetAssetId: input.targetAssetId,
-        }).returning();
-
-        // Update findings count on the test
-        await db.update(securityTests)
-          .set({
-            findingsCount: sql`findings_count + 1`,
-            updatedAt: new Date(),
-          })
-          .where(eq(securityTests.id, input.testId));
-
-        return finding;
-      }),
-
-    getComplianceHealth: procedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }: any) => {
-        const { getDb } = await import("../../db");
-        const db = await getDb();
-        
-        // Logic for "Compliance Health" (simplified for now)
-        // Ratio of resolved vs unresolved findings weighted by severity
-        const findings = await db.select().from(securityTestFindings).where(eq(securityTestFindings.clientId, input.clientId));
-        
-        if (findings.length === 0) return { score: 100, status: 'Healthy' };
-        
-        const unresolved = findings.filter(f => f.remediationStatus !== 'resolved');
-        const critCount = unresolved.filter(f => f.severity === 'critical').length;
-        const highCount = unresolved.filter(f => f.severity === 'high').length;
-        
-        let score = 100 - (critCount * 15) - (highCount * 5);
-        score = Math.max(0, score);
-        
-        return {
-            score,
-            status: score > 80 ? 'Healthy' : score > 50 ? 'Warning' : 'Critical',
-            findingsCount: findings.length,
-            unresolvedCount: unresolved.length
-        };
-      })
-  });
+/** Injectable clock pin (Date, epoch-ms number, or ISO-8601 string). */
+const clockOptionSchema = {
+  now: z.union([z.string(), z.number()]).nullish(),
+  clock: z.function().returns(z.date()).nullish(),
 };
+
+/** One penetration-test row for planning. */
+export const securityTestingPenTestSchema = z.object({
+  id: z.union([z.string(), z.number()]).nullish(),
+  testType: z.string().nullish(),
+  status: z.string().nullish(),
+  scope: z.string().nullish(),
+  frequency: z.string().nullish(),
+  lastTestDate: z.union([z.string(), z.number()]).nullish(),
+  nextTestDate: z.union([z.string(), z.number()]).nullish(),
+  findings: z.number().nullish(),
+  riskTier: z.string().nullish(),
+});
+
+/** Input schema for `planTest` (exported for tests / UI / QA). */
+export const securityTestingPlanTestInputSchema = z.object({
+  tests: z.array(securityTestingPenTestSchema).nullish(),
+  ...clockOptionSchema,
+});
+
+/** One red-team phase input. */
+export const securityTestingRedTeamPhaseSchema = z.object({
+  id: z.union([z.string(), z.number()]).nullish(),
+  name: z.string().nullish(),
+  status: z.string().nullish(),
+  startDate: z.union([z.string(), z.number()]).nullish(),
+  endDate: z.union([z.string(), z.number()]).nullish(),
+});
+
+/** One red-team participant input. */
+export const securityTestingRedTeamParticipantSchema = z.object({
+  id: z.union([z.string(), z.number()]).nullish(),
+  name: z.string().nullish(),
+  role: z.string().nullish(),
+});
+
+/** Input schema for `redTeam` (exported for tests / UI / QA). */
+export const securityTestingRedTeamInputSchema = z.object({
+  name: z.string().nullish(),
+  status: z.string().nullish(),
+  startDate: z.union([z.string(), z.number()]).nullish(),
+  endDate: z.union([z.string(), z.number()]).nullish(),
+  phases: z.array(securityTestingRedTeamPhaseSchema).nullish(),
+  participants: z.array(securityTestingRedTeamParticipantSchema).nullish(),
+  ...clockOptionSchema,
+});
+
+/** One benchmark assessment row. */
+export const securityTestingBenchmarkSchema = z.object({
+  benchmark: z.string().nullish(),
+  category: z.string().nullish(),
+  controlId: z.union([z.string(), z.number()]).nullish(),
+  status: z.string().nullish(),
+});
+
+/** Input schema for `benchmarks` (exported for tests / UI / QA). */
+export const securityTestingBenchmarksInputSchema = z.object({
+  assessments: z.array(securityTestingBenchmarkSchema).nullish(),
+  ...clockOptionSchema,
+});
+
+/** One scan-coverage asset row. */
+export const securityTestingScanAssetSchema = z.object({
+  id: z.union([z.string(), z.number()]).nullish(),
+  assetName: z.string().nullish(),
+  assetClass: z.string().nullish(),
+  lastScanDate: z.union([z.string(), z.number()]).nullish(),
+  scanStatus: z.string().nullish(),
+});
+
+/** Input schema for `scanCoverage` (exported for tests / UI / QA). */
+export const securityTestingScanCoverageInputSchema = z.object({
+  assets: z.array(securityTestingScanAssetSchema).nullish(),
+  ...clockOptionSchema,
+});
+
+/**
+ * Factory: creates the security-testing router.
+ *
+ * @param t — the tRPC init object
+ * @param protectedProcedure — protected query procedure (auth-gated)
+ * @param _editorProcedure — (unused) editor procedure for compatibility
+ */
+export const createSecurityTestingRouter = (
+  t: any,
+  protectedProcedure: any,
+  _editorProcedure?: any
+) => ({
+  /** Plan / schedule penetration tests. */
+  planTest: protectedProcedure
+    .input(securityTestingPlanTestInputSchema)
+    .query(({ input }: { input: any }) => {
+      return planPenetrationTest(input?.tests, {
+        now: input?.now ?? undefined,
+        clock: input?.clock ?? undefined,
+      });
+    }),
+
+  /** Track a red-team exercise. */
+  redTeam: protectedProcedure
+    .input(securityTestingRedTeamInputSchema)
+    .query(({ input }: { input: any }) => {
+      return runRedTeamExercise(
+        {
+          name: input?.name ?? null,
+          status: input?.status ?? null,
+          startDate: input?.startDate ?? null,
+          endDate: input?.endDate ?? null,
+          phases: input?.phases ?? null,
+          participants: input?.participants ?? null,
+        },
+        {
+          now: input?.now ?? undefined,
+          clock: input?.clock ?? undefined,
+        }
+      );
+    }),
+
+  /** Assess security-benchmark compliance. */
+  benchmarks: protectedProcedure
+    .input(securityTestingBenchmarksInputSchema)
+    .query(({ input }: { input: any }) => {
+      return assessSecurityBenchmarks(input?.assessments, {
+        now: input?.now ?? undefined,
+        clock: input?.clock ?? undefined,
+      });
+    }),
+
+  /** Track scan coverage across assets. */
+  scanCoverage: protectedProcedure
+    .input(securityTestingScanCoverageInputSchema)
+    .query(({ input }: { input: any }) => {
+      return trackScanCoverage(input?.assets, {
+        now: input?.now ?? undefined,
+        clock: input?.clock ?? undefined,
+      });
+    }),
+});

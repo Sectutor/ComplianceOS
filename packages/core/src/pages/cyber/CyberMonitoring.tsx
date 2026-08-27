@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { useClientContext } from "@/contexts/ClientContext";
 import { Link } from "wouter";
 import { SecurityMetricsPanels } from "@/pages/cyber/SecurityMetricsPanels";
+import { SecurityTestingPanels } from "@/pages/cyber/SecurityTestingPanels";
 
 export default function CyberMonitoring() {
     const { selectedClientId } = useClientContext();
@@ -236,6 +237,11 @@ export default function CyberMonitoring() {
                 {/* NIS2 Security Metrics & Reporting - Phase 4 Task 4.2 / ENISA Measure 7.1 */}
                 <div className="pt-8">
                     <SecurityMetricsPanels clientId={selectedClientId ?? 0} />
+                </div>
+
+                {/* NIS2 Security Testing - Article 21(2)(e) / ENISA Measure 6.2 */}
+                <div className="pt-8">
+                    <SecurityTestingPanels clientId={selectedClientId ?? 0} />
                 </div>
             </div>
         </DashboardLayout>
