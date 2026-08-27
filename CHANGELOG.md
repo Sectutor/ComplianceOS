@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Build Loop c47 — Verification: no regressions, test suite growth (2026-08-27)
+- verify: smoke green (Phase 2 ready); tsc check clean; vitest 2802/2802 across 114 files (up from 2785/113 in c46).
+- verify: tsc-full backlog stable — same 9 non-production files as baseline (scripts/test/*, server-enterprise.ts, server_entry.ts, src/test/utils.tsx, test/utils.ts), 0 new regressions.
+
 ### Cycle 51 - NIS2 Security Testing: pen test scheduler, red team tracker, benchmarks, scan coverage (2026-08-27)
 - feat(nis2): new pure deterministic engine lib/nis2/securityTesting.ts (4 functions: planPenetrationTest, runRedTeamExercise, assessSecurityBenchmarks, trackScanCoverage) — zero deps, never throws, injectable clock; covers NIS2 Art. 21(2)(e) / ENISA Measure 6.2 (security testing, red team exercises, benchmark compliance, scan coverage).
 - feat(api): new tRPC factory server/routers/securityTesting.ts (createSecurityTestingRouter: protected pure planTest/redTeam/benchmarks/scanCoverage queries, exported zod schemas, no DB access) wired as securityTesting: in routers.ts.

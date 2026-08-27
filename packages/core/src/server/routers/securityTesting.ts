@@ -132,8 +132,8 @@ export const createSecurityTestingRouter = (
         {
           name: input?.name ?? null,
           status: input?.status ?? null,
-          startDate: input?.startDate ?? null,
-          endDate: input?.endDate ?? null,
+          startAt: input?.startDate ?? null,
+          endAt: input?.endDate ?? null,
           phases: input?.phases ?? null,
           participants: input?.participants ?? null,
         },

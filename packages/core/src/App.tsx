@@ -340,7 +340,6 @@ const SupplyChainRisk = lazyLoad(() => import("./pages/cyber/SupplyChainRisk"));
 const CyberMonitoring = lazyLoad(() => import("./pages/cyber/CyberMonitoring"));
 const VulnerabilityManagement = lazyLoad(() => import("./pages/cyber/VulnerabilityManagement"));
 const AssetCriticalityMatrix = lazyLoad(() => import("./pages/cyber/AssetCriticalityMatrix"));
-const SecurityTesting = lazyLoad(() => import("./pages/cyber/SecurityTesting"));
 const ISODashboard = lazyLoad(() => import("./pages/iso27001/ISODashboard"));
 const StatementOfApplicability = lazyLoad(() => import("./pages/iso27001/StatementOfApplicability"));
 const ISOPlaceholder = lazyLoad(() => import("./pages/iso27001/ISOPlaceholder"));
@@ -1835,9 +1834,6 @@ function Router() {
         </Route>
         <Route path="/clients/:id/cyber/assets">
           {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><AssetCriticalityMatrix /></UnifiedClientGuard></CyberLayout>}
-        </Route>
-        <Route path="/clients/:id/cyber/testing">
-          {(_params) => <CyberLayout><UnifiedClientGuard requirePremium><SecurityTesting /></UnifiedClientGuard></CyberLayout>}
         </Route>
         <Route path="/clients/:id/cyber/monitoring">
           {(_params) => (
