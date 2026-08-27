@@ -3,6 +3,12 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 51 - NIS2 Security Testing: pen test scheduler, red team tracker, benchmarks, scan coverage (2026-08-27)
+- feat(nis2): new pure deterministic engine lib/nis2/securityTesting.ts (4 functions: planPenetrationTest, runRedTeamExercise, assessSecurityBenchmarks, trackScanCoverage) — zero deps, never throws, injectable clock; covers NIS2 Art. 21(2)(e) / ENISA Measure 6.2 (security testing, red team exercises, benchmark compliance, scan coverage).
+- feat(api): new tRPC factory server/routers/securityTesting.ts (createSecurityTestingRouter: protected pure planTest/redTeam/benchmarks/scanCoverage queries, exported zod schemas, no DB access) wired as securityTesting: in routers.ts.
+- feat(ui): pages/securityTestingNis2Api.ts contract layer (UI-STANDARD sec.16 cast pattern, EMPTY shapes, retry:false hooks, META maps, demo builders) + pages/cyber/SecurityTestingPanels.tsx (4 sections: penetration test scheduler, red team exercise tracker, benchmark compliance, scan coverage) with Skeleton/EmptyState degradation, token-only, dark-mode safe; additive embed in CyberMonitoring.tsx.
+- test(qa): +90 tests (73 engine incl. boundaries/malformed/determinism/never-throws; 17 router contract incl. route shape/auth/zod/bad-request/no-DB) — suite 2802/2802 across 114 files, all green.
+- Verify: vitest 2802/2802 green; tsc backlog exactly 2012 = baseline, 0 new errors in touched files; smoke green; pushed to origin/dev.
 ### Cycle 50 - Dashboard posture score fix: pct() empty-set semantics (2026-08-27)
 - fix(dashboard): pct() helper in dashboardStats.ts returns 0 for empty/zero denominators instead of 100 — an empty compliance/evidence set now correctly scores 0 (nothing passing) rather than 100 (everything passing); Dashboard.tsx posture score fallback logic simplified to match.
 - test(qa): dashboardStats.test.ts assertions updated to expect 0 for empty set; all 2785 tests pass across 113 files.
