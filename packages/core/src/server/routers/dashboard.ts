@@ -488,7 +488,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
       const currentScore = total > 0 ? Math.round((implemented / total) * 100) : 68;
 
       // Provide past 6 months timeline ending at current live score for rich chart rendering
-      const months = [];
+      const months: { date: string; score: number; target: number }[] = [];
       const now = new Date();
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);

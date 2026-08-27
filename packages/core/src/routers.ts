@@ -35,7 +35,7 @@ import * as schema from "./schema";
 import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrategies, bcPlans, disruptiveScenarios } from "./schema";
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
 import { logActivity } from "./lib/audit";
-import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
+import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like, ilike } from "drizzle-orm";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
 import {
@@ -3670,7 +3670,7 @@ ONLY return the JSON. No Markdown formatting.
           <span>${f.title}</span>
           <span class="badge badge-${f.severity || 'medium'}">${f.severity || 'info'}</span>
         </div>
-        <div class="desc">${f.summary || ''}</div>
+        <div class="desc">${f.description || ''}</div>
         <div class="meta">Source: ${f.sourceName} • Published: ${new Date(f.pubDate).toLocaleDateString()}</div>
       </div>
     `).join('')}
@@ -3697,7 +3697,7 @@ ONLY return the JSON. No Markdown formatting.
           <span>${g.id}: ${g.name}</span>
         </div>
         <div class="desc">${(g.description || '').slice(0, 200)}...</div>
-        ${g.aliases && g.aliases.length > 0 ? `<div class="meta">Aliases: ${g.aliases.join(', ')}</div>` : ''}
+        ${g.alias ? `<div class="meta">Alias: ${g.alias}</div>` : ''}
       </div>
     `).join('')}
   ` : ''}

@@ -447,7 +447,7 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
         .input(z.object({ clientId: z.number() }))
         .mutation(async ({ input, ctx }: any) => {
           const dbConn = await getDb();
-          const created = [];
+          const created: any[] = [];
           for (const tpl of STANDARD_DPIA_TEMPLATES) {
             const [newTemplate] = await dbConn.insert(dpiaTemplates).values({
               clientId: input.clientId,
@@ -463,7 +463,7 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
           await logActivity({
             clientId: input.clientId,
             userId: ctx.user?.id,
-            action: 'dpia_templates_seeded',
+            action: 'dpia_template_created',
             entityType: 'dpia_template',
             details: `Seeded ${created.length} standard DPIA templates`,
           });

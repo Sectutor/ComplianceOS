@@ -151,7 +151,7 @@ async function processFile(db: any, frameworkId: number, order: number, content:
             // Clean description (remove links like [C6](...))
             description = description.replace(/\[C\d+\]\(https?:\/\/[^\s\)]+\)/g, '').trim();
 
-            const levelTags = [];
+            const levelTags: string[] = [];
             // parts[2] is L1, parts[3] is L2, parts[4] is L3
             if (parts[2] && parts[2].includes('✓')) levelTags.push("L1");
             if (parts[3] && (parts[3].includes('✓') || parts[3].includes('OS assisted'))) levelTags.push("L2");

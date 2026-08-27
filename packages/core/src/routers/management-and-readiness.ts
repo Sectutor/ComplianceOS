@@ -96,6 +96,7 @@ export const createManagementRouter = (t: any, protectedProcedure: any) => {
         // TODO: Get real user ID from context. Assuming 1 for now if not available
         const submitterId = 1;
 
+        const db = await getDb();
         const [newRequest] = await db.insert(approvalRequests).values({
           clientId,
           title,
@@ -125,6 +126,7 @@ export const createManagementRouter = (t: any, protectedProcedure: any) => {
         const { approvalId, action, comment, signature } = input;
         const userId = 1; // TODO: Get from context
 
+        const db = await getDb();
         // 1. Add signature record
         await db.insert(approvalSignatures).values({
           requestId: parseInt(approvalId),

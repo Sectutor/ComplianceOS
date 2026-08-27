@@ -119,7 +119,7 @@ export const riskWatchdog: SentinelBot = {
         .where(and(
           eq(riskAssessments.clientId, ctx.clientId),
           sql`${riskAssessments.inherentScore} >= 12`,
-          or(isNull(riskAssessments.ownerId), eq(riskAssessments.status, "draft"))
+          or(isNull(riskAssessments.riskOwner), eq(riskAssessments.status, "draft"))
         ));
 
       for (const u of unassignedRisks.slice(0, 10)) {
