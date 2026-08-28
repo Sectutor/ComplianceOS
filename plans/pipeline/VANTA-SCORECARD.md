@@ -1,4 +1,4 @@
-﻿# VANTA-SCORECARD — ComplianceOS Parity Tracker
+# VANTA-SCORECARD — ComplianceOS Parity Tracker
 
 > Definition of done for the continuous build pipeline. Source: `docs/vanta-feature-map.md`.
 > Status: ⬜ Not started | 🟨 In progress | 🟩 Done | 🔒 Blocked
@@ -83,6 +83,8 @@
 | 13 | Integrations & API | REST API, marketplace, webhooks, SSO | REST API (api-v1) + webhooks (cycle 8) + integrations router + addon registry + addon marketplace (pages/addons) + Enterprise SSO (cycle 9: OIDC auth-code flow w/ JWKS verification + reverse-proxy header auth) | P2 | 🟩 |
 | 14 | Evidence expiration & renewal | Expiry tracking + auto-remediation | evidenceExpirationScheduler + renewal loop (getSummary/runNow, auto-remediation with remediation notes, UI panel) | P1 | 🟩 |
 | 15 | Webhook system | Events out | Events out: registry w/ HMAC-SHA256 signatures, bounded retries/backoff (4xx not retried), subscription lifecycle (create/update/delete/enable-disable), event catalog (single source of truth), recursive secret scrubbing, delivery logs, graceful DB degradation; wired events (evidence.expired, control.autotest.failed, policy.ack.overdue, risk.created high/critical); Webhooks page + /webhooks route + nav (cycle 8) | P2 | 🟩 |
+
+- **Cycle 61** (d8cbdf8): API-FIRST Phase 1.2 — RFC 7807 Problem Details (lib/api/problem-details.ts: createProblemDetail, badRequest/notFound/unauthorized/forbidden/internal/conflict/unprocessableEntity/tooManyRequests, isProblemDetail type guard — zero deps, never throws), cursor pagination (lib/api/pagination.ts: parsePaginationParams, encodeCursor/decodeCursor base64url, createPaginatedResponse envelope with nextCursor/hasMore/total), rate limiting middleware (lib/api/rate-limit-headers.ts: in-memory token bucket, X-RateLimit-Limit/Remaining/Reset headers, 429 + Problem Detail on exceed, per-client buckets by IP/API key, 5-min cleanup). api-v1.ts wired with rate-limit middleware (100 req/min) + Problem Details + pagination imports (additive, no behavior change). QA: +105 tests (41 problem-details + 46 pagination + 18 rate-limit) — suite 2826 → 2931 (119 files), all green; tsc check clean; smoke green; pushed to origin/dev.
 
 ## Health (runtime)
 - [x] App boots (Vite dev server, port 5173)

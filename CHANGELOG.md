@@ -1,8 +1,15 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 61 - API-FIRST Phase 1.2: RESTful Standardization (RFC 7807 + pagination + rate limiting) (2026-08-28)
+- feat(api): RFC 7807 Problem Details helpers (lib/api/problem-details.ts) — createProblemDetail, badRequest/notFound/unauthorized/forbidden/internal/conflict/unprocessableEntity/tooManyRequests, isProblemDetail type guard.
+- feat(api): cursor-based pagination helpers (lib/api/pagination.ts) — parsePaginationParams (default 20, max 100), base64url encodeCursor/decodeCursor, createPaginatedResponse envelope (data/nextCursor/hasMore/total).
+- feat(api): rate limiting middleware (lib/api/rate-limit-headers.ts) — in-memory token bucket, X-RateLimit-Limit/Remaining/Reset headers, 429 + Problem Detail on exceed, per-client buckets by IP/API key.
+- feat(api): api-v1.ts wired with rate-limit middleware (100 req/min) + Problem Details + pagination imports (additive, no behavior change).
+- test: +105 tests (problem-details.unit.test.ts + pagination.unit.test.ts + rate-limit-headers.unit.test.ts).
+- verify: full suite 2931/2931 (119 files), tsc check clean, smoke green.
 ### Cycle 60 - API-FIRST Phase 1.1 (OpenAPI spec layer) + UI token polish (2026-08-28)
 - feat(openapi): OpenAPI 3.0 spec (openapi/api-v1.yaml) documenting all 50 REST endpoints with schemas, tags, security.
 - feat(openapi): reusable component schemas (openapi/schemas.yaml) for 20+ entities.
