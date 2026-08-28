@@ -271,7 +271,7 @@ export const appRouter = router({
   frameworkHarmonization: createFrameworkHarmonizationRouter(t, clientProcedure),
   controlMesh: createControlMeshRouter(t, premiumClientProcedure),
   evidenceReport: createEvidenceReportRouter(t, premiumClientProcedure, clientEditorProcedure),
-  audit: createAuditRouter(t, clientProcedure, adminProcedure),
+  audit: createAuditRouter(t, clientProcedure),
   findings: createFindingsRouter(t, protectedProcedure),
 
   waitlist: createWaitlistRouter(t, publicProcedure, adminProcedure),
@@ -618,7 +618,7 @@ export const appRouter = router({
         }
 
         await logActivity({
-          userId: ctx.user.id,
+          userId: ctx.user!.id,
           clientId: input.clientId,
           action: "create",
           entityType: "remediation_task",
@@ -1203,7 +1203,7 @@ export const appRouter = router({
 
         if (input?.clientId) {
           // If specific clientId provided, check access
-          const membership = ctx.user.role === 'admin' || ctx.user.role === 'owner' ? [true] :
+          const membership = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' ? [true] :
             await db.select().from(schema.userClients)
               .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)))
               .limit(1);
@@ -1212,7 +1212,7 @@ export const appRouter = router({
             throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client' });
           }
           conditions.push(eq(schema.vendors.clientId, input.clientId));
-        } else if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+        } else if (ctx.user!.role !== 'admin' && ctx.user!.role !== 'owner') {
           // For non-admins calling globally, filter by their clients
           const userClientIds = await db.select({ id: schema.userClients.clientId })
             .from(schema.userClients)
@@ -1349,7 +1349,7 @@ export const appRouter = router({
 
         // Log to notification_log
         await db.insert(schema.notificationLog).values({
-          userId: ctx.session?.user?.id || 0, // 0 = System
+          userId: ctx.user?.id || 0, // 0 = System
           type: input.templateKey,
           channel: 'email',
           title: subject,
@@ -1488,7 +1488,7 @@ export const appRouter = router({
 
         const [draft] = await db.insert(schema.emailMessages).values({
           clientId: input.clientId,
-          userId: ctx.session?.user?.id || 0,
+          userId: ctx.user?.id || 0,
           folder: 'drafts',
           status: 'draft',
           subject: input.subject,
@@ -1497,7 +1497,7 @@ export const appRouter = router({
           cc: input.cc,
           bcc: input.bcc,
           isRead: true, // Own drafts are read
-          from: ctx.session?.user?.email || "user@example.com"
+          from: ctx.user?.email || "user@example.com"
         }).returning();
 
         return draft;
@@ -1516,7 +1516,7 @@ export const appRouter = router({
         const db = await getDb();
 
         // Create the sent email record
-        const userEmail = ctx.session?.user?.email;
+        const userEmail = ctx.user?.email;
         if (!userEmail) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
@@ -1526,7 +1526,7 @@ export const appRouter = router({
 
         const [sent] = await db.insert(schema.emailMessages).values({
           clientId: input.clientId,
-          userId: ctx.session?.user?.id || 0,
+          userId: ctx.user?.id || 0,
           folder: 'sent',
           status: 'sent',
           subject: input.subject,
@@ -2517,7 +2517,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         let clientsList;
-        if (ctx.user.role === 'super_admin') {
+        if (ctx.user!.role === 'super_admin') {
           clientsList = await dbConn.select().from(schema.clients);
         } else {
           // Regular user/consultant: only get clients they are a member of
@@ -2586,8 +2586,8 @@ ONLY return the JSON. No Markdown formatting.
         action: z.string()
       }))
       .mutation(async ({ input, ctx }) => {
-        if (input.clientId > 0 && ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin') {
-          const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
+        if (input.clientId > 0 && ctx.user!.role !== 'admin' && ctx.user!.role !== 'owner' && ctx.user!.role !== 'super_admin') {
+          const hasAccess = await db.isUserAllowedForClient(ctx.user!.id, input.clientId);
           if (!hasAccess) {
             throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this client.' });
           }
@@ -2727,12 +2727,12 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Security Check
-        const isSuperAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+        const isSuperAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' || ctx.user!.role === 'super_admin';
 
         // If filtering by client, ensure user has access to THAT client
         if (input.clientId) {
           if (!isSuperAdmin) {
-            const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
+            const hasAccess = await db.isUserAllowedForClient(ctx.user!.id, input.clientId);
             if (!hasAccess) throw new TRPCError({ code: "FORBIDDEN", message: "No access to this client's logs" });
           }
         } else {
@@ -2905,7 +2905,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Access Control Logic
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+        const isGlobalAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' || ctx.user!.role === 'super_admin';
         const isClientAdmin = ['owner', 'admin'].includes(ctx.clientRole || '');
         const hasFullAccess = isGlobalAdmin || isClientAdmin;
 
@@ -2918,7 +2918,7 @@ ONLY return the JSON. No Markdown formatting.
           const employee = await dbConn.query.employees.findFirst({
             where: and(
               eq(employees.clientId, input.clientId),
-              eq(employees.email, ctx.user.email)
+              eq(employees.email, ctx.user!.email)
             )
           });
           filterEmployeeId = employee?.id;
