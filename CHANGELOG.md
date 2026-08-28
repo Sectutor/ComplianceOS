@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+### Cycle 60 - API-FIRST Phase 1.1 (OpenAPI spec layer) + UI token polish (2026-08-28)
+- feat(openapi): OpenAPI 3.0 spec (openapi/api-v1.yaml) documenting all 50 REST endpoints with schemas, tags, security.
+- feat(openapi): reusable component schemas (openapi/schemas.yaml) for 20+ entities.
+- feat(server): /api/docs (Swagger UI via CDN) and /api/spec (raw YAML) endpoints wired into server_entry.ts.
+- fix(ui): CyberIncidentsPage.tsx token-only polish - 7 hardcoded color violations replaced with design tokens (bg-card, text-foreground, border-border, bg-destructive, dark: variants).
+- test: +24 tests (openapi.unit.test.ts + swagger-endpoint.unit.test.ts) - spec validation, endpoint coverage, file existence.
+- verify: full suite 2826/2826 (116 files), tsc 0 errors, smoke green.
+### Cycle 59 - Verification: stable state confirmed, no regressions (2026-08-28)
+- verify: vitest 2802/2802 across 114 files, all green.
+- verify: tsc check 0 errors (tsconfig.check.json + ui/tsconfig.json).
+- verify: smoke green (Phase 2 ready); no regressions detected.
 ### Cycle 57 - Verification: stable state confirmed, no regressions (2026-08-28)
 - verify: vitest 2802/2802 across 114 files, all green.
 - verify: tsc check 0 errors (tsconfig.check.json + ui/tsconfig.json).

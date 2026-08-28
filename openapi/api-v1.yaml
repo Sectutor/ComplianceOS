@@ -1,0 +1,1337 @@
+# ComplianceOS REST API v1
+# OpenAPI 3.0.3 specification — auto-generated from api-v1.ts routes
+openapi: 3.0.3
+info:
+  title: ComplianceOS API v1
+  description: |
+    REST API for ComplianceOS — GRC platform for compliance automation.
+    
+    All endpoints require an API key via the `x-api-key` header (unless running in open-dev mode).
+    
+    Base URL: `/api/v1`
+  version: 1.0.0
+  contact:
+    name: ComplianceOS Support
+  license:
+    name: Commercial
+
+servers:
+  - url: /api/v1
+    description: Current server
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: System
+    description: Health and system status
+  - name: Controls
+    description: Compliance controls management
+  - name: Evidence
+    description: Evidence collection and management
+  - name: Risks
+    description: Risk register and treatment
+  - name: Vendors
+    description: Third-party vendor management
+  - name: Assets
+    description: Asset inventory
+  - name: Clients
+    description: Client management
+  - name: Policies
+    description: Policy management and attestations
+  - name: Tasks
+    description: Task management
+  - name: Audits
+    description: Audit management and findings
+  - name: Privacy
+    description: GDPR DSAR and DPIA
+  - name: Employees
+    description: Employee management
+  - name: Governance
+    description: Governance workflows and autopilot
+  - name: Incidents
+    description: Security incident management
+  - name: Frameworks
+    description: Compliance frameworks
+  - name: Reports
+    description: Compliance reporting
+
+paths:
+  # ── System ─────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: Returns system health including database connectivity and latency.
+      security: []  # No auth required
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Database unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # ── Controls ───────────────────────────────────────────────────────────────
+
+  /controls:
+    get:
+      tags: [Controls]
+      summary: List controls
+      description: Returns all compliance controls, optionally filtered by framework.
+      parameters:
+        - name: framework
+          in: query
+          required: false
+          schema:
+            type: string
+          example: "SOC 2"
+      responses:
+        '200':
+          description: List of controls
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Control'
+                  total:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /controls/{id}:
+    get:
+      tags: [Controls]
+      summary: Get control by ID
+      description: Returns a single control with its linked evidence count.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 101
+      responses:
+        '200':
+          description: Control details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Control'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Evidence ───────────────────────────────────────────────────────────────
+
+  /evidence:
+    get:
+      tags: [Evidence]
+      summary: List evidence
+      description: Returns all evidence records.
+      responses:
+        '200':
+          description: List of evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Evidence]
+      summary: Create evidence
+      description: Creates a new evidence record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, clientControlId, evidenceId]
+              properties:
+                clientId:
+                  type: integer
+                clientControlId:
+                  type: integer
+                evidenceId:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                framework:
+                  type: string
+                  nullable: true
+                type:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum: [pending, approved, rejected, expired]
+                dueDate:
+                  type: string
+                  format: date-time
+                  nullable: true
+                fileCount:
+                  type: integer
+      responses:
+        '200':
+          description: Created evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evidence'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /evidence/{id}:
+    delete:
+      tags: [Evidence]
+      summary: Delete evidence
+      description: Deletes an evidence record by ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deletion result
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /evidence/requests:
+    get:
+      tags: [Evidence]
+      summary: List evidence requests
+      description: Returns all evidence requests.
+      responses:
+        '200':
+          description: List of evidence requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Evidence]
+      summary: Create evidence request
+      description: Creates a new evidence request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                controlId:
+                  type: string
+                description:
+                  type: string
+                clientId:
+                  type: integer
+      responses:
+        '200':
+          description: Created evidence request
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /evidence/{id}/files:
+    post:
+      tags: [Evidence]
+      summary: Upload evidence file
+      description: Uploads a file for an evidence record.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload result
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Risks ──────────────────────────────────────────────────────────────────
+
+  /risks:
+    get:
+      tags: [Risks]
+      summary: List risks
+      description: Returns all risk scenarios.
+      responses:
+        '200':
+          description: List of risks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Risks]
+      summary: Create risk
+      description: Creates a new risk scenario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, clientId]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                likelihood:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                impact:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                owner:
+                  type: string
+                  nullable: true
+                clientId:
+                  type: integer
+      responses:
+        '200':
+          description: Created risk
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Risk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /risks/{id}:
+    get:
+      tags: [Risks]
+      summary: Get risk by ID
+      description: Returns a single risk scenario.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Risk details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Risk'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags: [Risks]
+      summary: Update risk
+      description: Partially updates a risk scenario.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Risk'
+      responses:
+        '200':
+          description: Updated risk
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Risks]
+      summary: Delete risk
+      description: Deletes a risk scenario.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deletion result
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /risks/appetite:
+    get:
+      tags: [Risks]
+      summary: Get risk appetite
+      description: Returns risk appetite thresholds and current scores.
+      responses:
+        '200':
+          description: Risk appetite data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RiskAppetite'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /risks/assessments:
+    post:
+      tags: [Risks]
+      summary: Create risk assessment
+      description: Creates a new risk assessment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskAssessment'
+      responses:
+        '200':
+          description: Created assessment
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /treatments:
+    get:
+      tags: [Risks]
+      summary: List risk treatments
+      description: Returns all risk treatment plans.
+      responses:
+        '200':
+          description: List of treatments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Risks]
+      summary: Create risk treatment
+      description: Creates a new risk treatment plan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [riskId, title]
+              properties:
+                riskId:
+                  type: integer
+                title:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum: [planned, in_progress, completed]
+                priority:
+                  type: string
+                  enum: [high, medium, low]
+                dueDate:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '200':
+          description: Created treatment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskTreatment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Frameworks ─────────────────────────────────────────────────────────────
+
+  /frameworks:
+    get:
+      tags: [Frameworks]
+      summary: List frameworks
+      description: Returns all available compliance frameworks.
+      responses:
+        '200':
+          description: List of frameworks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Framework'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /gaps:
+    get:
+      tags: [Frameworks]
+      summary: List compliance gaps
+      description: Returns compliance gaps, optionally filtered by framework.
+      parameters:
+        - name: framework
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of gaps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /checklists:
+    get:
+      tags: [Frameworks]
+      summary: List checklists
+      description: Returns all assessment checklists.
+      responses:
+        '200':
+          description: List of checklists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Checklist'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auditor-questions:
+    get:
+      tags: [Frameworks]
+      summary: List auditor questions
+      description: Returns auditor questions, optionally filtered by framework.
+      parameters:
+        - name: framework
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of auditor questions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Reports ────────────────────────────────────────────────────────────────
+
+  /report:
+    get:
+      tags: [Reports]
+      summary: Get compliance report
+      description: Returns a compliance report for a client/framework.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: framework
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Compliance report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSummary'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /summary:
+    get:
+      tags: [Reports]
+      summary: Get compliance summary
+      description: Returns a high-level compliance summary.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Compliance summary
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Clients ────────────────────────────────────────────────────────────────
+
+  /clients:
+    get:
+      tags: [Clients]
+      summary: List clients
+      description: Returns all clients.
+      responses:
+        '200':
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Clients]
+      summary: Create client
+      description: Creates a new client.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                industry:
+                  type: string
+                  nullable: true
+                framework:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Created client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /clients/{id}:
+    get:
+      tags: [Clients]
+      summary: Get client by ID
+      description: Returns a single client.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Client details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Assets ─────────────────────────────────────────────────────────────────
+
+  /assets:
+    get:
+      tags: [Assets]
+      summary: List assets
+      description: Returns all assets.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /assets/{id}:
+    get:
+      tags: [Assets]
+      summary: Get asset by ID
+      description: Returns a single asset.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Vendors ────────────────────────────────────────────────────────────────
+
+  /vendors:
+    get:
+      tags: [Vendors]
+      summary: List vendors
+      description: Returns all vendors.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /vendors/{id}:
+    get:
+      tags: [Vendors]
+      summary: Get vendor by ID
+      description: Returns a single vendor.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vendor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Policies ───────────────────────────────────────────────────────────────
+
+  /policies:
+    get:
+      tags: [Policies]
+      summary: List policies
+      description: Returns all policies.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /policies/attestations:
+    get:
+      tags: [Policies]
+      summary: List policy attestations
+      description: Returns all policy attestation records.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of attestations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PolicyAttestation'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Tasks ──────────────────────────────────────────────────────────────────
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      description: Returns all tasks.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, in_progress, completed, overdue]
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Tasks]
+      summary: Create task
+      description: Creates a new task.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, clientId]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum: [pending, in_progress, completed, overdue]
+                priority:
+                  type: string
+                  enum: [high, medium, low]
+                dueDate:
+                  type: string
+                  format: date-time
+                  nullable: true
+                assigneeId:
+                  type: integer
+                  nullable: true
+                clientId:
+                  type: integer
+      responses:
+        '200':
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Audits ─────────────────────────────────────────────────────────────────
+
+  /audits:
+    get:
+      tags: [Audits]
+      summary: List audits
+      description: Returns all audits.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of audits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /audits/findings:
+    get:
+      tags: [Audits]
+      summary: List audit findings
+      description: Returns all audit findings.
+      parameters:
+        - name: auditId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of findings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditFinding'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Audits]
+      summary: Create audit finding
+      description: Creates a new audit finding.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [auditId, controlId, severity, description]
+              properties:
+                auditId:
+                  type: integer
+                controlId:
+                  type: string
+                severity:
+                  type: string
+                  enum: [high, medium, low]
+                description:
+                  type: string
+                status:
+                  type: string
+                  enum: [open, resolved]
+      responses:
+        '200':
+          description: Created finding
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Privacy (GDPR) ─────────────────────────────────────────────────────────
+
+  /privacy/dsar:
+    get:
+      tags: [Privacy]
+      summary: List DSAR requests
+      description: Returns all Data Subject Access Requests.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of DSAR requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DsarRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Privacy]
+      summary: Create DSAR request
+      description: Creates a new Data Subject Access Request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requesterEmail, requestType, clientId]
+              properties:
+                requesterEmail:
+                  type: string
+                  format: email
+                requestType:
+                  type: string
+                  enum: [access, deletion, portability]
+                clientId:
+                  type: integer
+      responses:
+        '200':
+          description: Created DSAR
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /privacy/dpia:
+    get:
+      tags: [Privacy]
+      summary: List DPIAs
+      description: Returns all Data Protection Impact Assessments.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of DPIAs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dpia'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Employees ──────────────────────────────────────────────────────────────
+
+  /employees:
+    get:
+      tags: [Employees]
+      summary: List employees
+      description: Returns all employees.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /employees/{id}/acknowledgments:
+    get:
+      tags: [Employees]
+      summary: Get employee acknowledgments
+      description: Returns policy acknowledgment records for an employee.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of acknowledgments
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Governance ─────────────────────────────────────────────────────────────
+
+  /governance/tasks:
+    get:
+      tags: [Governance]
+      summary: List governance tasks
+      description: Returns all governance tasks.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of governance tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GovernanceTask'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Governance]
+      summary: Create governance task
+      description: Creates a new governance task.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, clientId]
+              properties:
+                title:
+                  type: string
+                status:
+                  type: string
+                  enum: [pending, in_progress, completed, overdue]
+                priority:
+                  type: string
+                  enum: [high, medium, low]
+                clientId:
+                  type: integer
+      responses:
+        '200':
+          description: Created governance task
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /governance/tasks/{id}:
+    patch:
+      tags: [Governance]
+      summary: Update governance task
+      description: Partially updates a governance task.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernanceTask'
+      responses:
+        '200':
+          description: Updated task
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /governance/summary:
+    get:
+      tags: [Governance]
+      summary: Get governance summary
+      description: Returns governance task statistics.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Governance summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GovernanceSummary'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /governance/autopilot:
+    post:
+      tags: [Governance]
+      summary: Run autopilot
+      description: Triggers the autopilot engine to auto-generate governance tasks.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                clientId:
+                  type: integer
+      responses:
+        '200':
+          description: Autopilot result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutopilotResult'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /governance/program-guide/{clientId}:
+    get:
+      tags: [Governance]
+      summary: Get program guide
+      description: Returns the governance program guide for a client.
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Program guide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramGuide'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ── Incidents ──────────────────────────────────────────────────────────────
+
+  /incidents:
+    get:
+      tags: [Incidents]
+      summary: List incidents
+      description: Returns all security incidents.
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [open, investigating, contained, closed]
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [critical, high, medium, low]
+      responses:
+        '200':
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /incidents/{id}:
+    get:
+      tags: [Incidents]
+      summary: Get incident by ID
+      description: Returns a single security incident.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Incident details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+# ── Reusable Responses ──────────────────────────────────────────────────────
+
+components:
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Invalid control id"
+            code: "BAD_REQUEST"
+
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Invalid API key"
+            code: "UNAUTHORIZED"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Database connection failed"
+            code: "INTERNAL_ERROR"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key

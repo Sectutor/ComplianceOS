@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
@@ -23,10 +23,10 @@ export default function CyberIncidentsPage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "resolved": return "bg-green-50 text-green-700 ring-1 ring-green-600/20";
-            case "mitigated": return "bg-blue-50 text-blue-700 ring-1 ring-blue-600/20";
-            case "investigating": return "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20";
-            default: return "bg-slate-50 text-slate-700 ring-1 ring-slate-600/20";
+            case "resolved": return "bg-green-500/10 text-foreground dark:text-green-400 ring-1 ring-green-500/20";
+            case "mitigated": return "bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20";
+            case "investigating": return "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20";
+            default: return "bg-muted text-muted-foreground ring-1 ring-border";
         }
     };
 
@@ -46,7 +46,7 @@ export default function CyberIncidentsPage() {
                 />
                 <Button
                     onClick={() => setLocation(`/clients/${selectedClientId}/cyber/incidents/new`)}
-                    className="bg-red-500 hover:bg-red-600 text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-red-100 transition-all active:scale-95 flex-shrink-0"
+                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold h-12 px-6 rounded-xl shadow-lg transition-all active:scale-95 flex-shrink-0"
                 >
                     <Plus className="mr-2 h-5 w-5" /> Report New Incident
                 </Button>
@@ -54,49 +54,49 @@ export default function CyberIncidentsPage() {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+                <Card className="border-border shadow-lg rounded-2xl bg-card overflow-hidden ring-1 ring-border">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-sky-50 text-brand-bright flex items-center justify-center">
+                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                                 <AlertTriangle className="h-6 w-6" />
                             </div>
                             <div>
-                                <div className="text-3xl font-black text-slate-900 leading-none">
+                                <div className="text-3xl font-black text-foreground leading-none">
                                     {incidents?.filter(i => i.status === 'open' || i.status === 'investigating').length || 0}
                                 </div>
-                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Open Incidents</div>
+                                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">Open Incidents</div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+                <Card className="border-border shadow-lg rounded-2xl bg-card overflow-hidden ring-1 ring-border">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                            <div className="h-12 w-12 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
                                 <AlertTriangle className="h-6 w-6" />
                             </div>
                             <div>
-                                <div className="text-3xl font-black text-red-600 leading-none">
+                                <div className="text-3xl font-black text-destructive leading-none">
                                     {incidents?.filter(i => i.severity === 'critical' && i.status !== 'resolved').length || 0}
                                 </div>
-                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Critical (Active)</div>
+                                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">Critical (Active)</div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+                <Card className="border-border shadow-lg rounded-2xl bg-card overflow-hidden ring-1 ring-border">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
+                            <div className="h-12 w-12 rounded-xl bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center">
                                 <CheckCircle2 className="h-6 w-6" />
                             </div>
                             <div>
-                                <div className="text-3xl font-black text-green-600 leading-none">
+                                <div className="text-3xl font-black text-foreground leading-none">
                                     {incidents?.filter(i => i.status === 'resolved').length || 0}
                                 </div>
-                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Resolved (All Time)</div>
+                                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">Resolved (All Time)</div>
                             </div>
                         </div>
                     </CardContent>
@@ -104,26 +104,26 @@ export default function CyberIncidentsPage() {
             </div>
 
             {/* List */}
-            <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl bg-white overflow-hidden ring-1 ring-slate-200/50">
+            <Card className="border-border shadow-lg rounded-2xl bg-card overflow-hidden ring-1 ring-border">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <CardTitle className="text-xl font-bold text-slate-900">Incident Registry</CardTitle>
+                        <CardTitle className="text-xl font-bold text-foreground">Incident Registry</CardTitle>
                         <div className="flex gap-3 w-full md:w-auto">
                             <div className="relative flex-1 md:w-64">
-                                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search incidents..."
-                                    className="pl-9 h-10 rounded-xl border-slate-200 focus:border-brand-bright focus:ring-brand-bright/20"
+                                    className="pl-9 h-10 rounded-xl border-border focus:border-brand-bright focus:ring-brand-bright/20"
                                 />
                             </div>
-                            <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-200">
-                                <Filter className="h-4 w-4 text-slate-500" />
+                            <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-border">
+                                <Filter className="h-4 w-4 text-muted-foreground" />
                             </Button>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                    <div className="rounded-xl border border-border shadow-lg overflow-hidden bg-white">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-brand hover:bg-brand border-0">
@@ -141,14 +141,14 @@ export default function CyberIncidentsPage() {
                                         <TableCell colSpan={6} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
                                                 <Loader2 className="h-8 w-8 text-brand-bright animate-spin" />
-                                                <p className="text-sm font-bold text-slate-500">Retrieving incident logs...</p>
+                                                <p className="text-sm font-bold text-muted-foreground">Retrieving incident logs...</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ) : incidents?.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center py-12">
-                                            <p className="text-sm font-bold text-slate-400">No security incidents recorded.</p>
+                                            <p className="text-sm font-bold text-muted-foreground">No security incidents recorded.</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -161,21 +161,21 @@ export default function CyberIncidentsPage() {
                                             <TableCell className="pl-6 font-medium">
                                             <Badge className={cn(
                                                 "font-bold px-3 py-1 rounded-full uppercase tracking-widest text-[10px]",
-                                                incident.severity === 'critical' ? "bg-red-500 text-white" :
-                                                    incident.severity === 'high' ? "bg-orange-500 text-white" :
-                                                        incident.severity === 'medium' ? "bg-amber-500 text-white" : "bg-sky-500 text-white"
+                                                incident.severity === 'critical' ? "bg-destructive text-destructive-foreground" :
+                                                    incident.severity === 'high' ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-1 ring-orange-500/20" :
+                                                        incident.severity === 'medium' ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20"
                                             )}>
                                                 {incident.severity}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <div className="font-bold text-slate-900">{incident.title}</div>
+                                                <div className="font-bold text-foreground">{incident.title}</div>
                                                 {incident.isSignificant && (
-                                                    <Badge className="bg-red-50 text-red-600 border-red-100 font-bold px-2 py-0 text-[10px] uppercase">Significant</Badge>
+                                                    <Badge className="bg-destructive/10 text-destructive border-destructive/20 font-bold px-2 py-0 text-[10px] uppercase">Significant</Badge>
                                                 )}
                                             </div>
-                                            <div className="text-xs font-bold text-brand/60 mt-0.5 uppercase tracking-widest">ID-INC-{incident.id}</div>
+                                            <div className="text-xs font-bold text-muted-foreground mt-0.5 uppercase tracking-widest">ID-INC-{incident.id}</div>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className={cn(

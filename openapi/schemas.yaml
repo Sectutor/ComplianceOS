@@ -1,0 +1,642 @@
+# ComplianceOS API v1 — Reusable Component Schemas
+# OpenAPI 3.0.3
+
+components:
+  schemas:
+    # ── Core Entities ──────────────────────────────────────────────────────────
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Acme Corporation"
+        industry:
+          type: string
+          nullable: true
+          example: "Technology"
+        framework:
+          type: string
+          nullable: true
+          example: "SOC 2"
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          example: "active"
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Control:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        controlId:
+          type: string
+          example: "CC6.1"
+        framework:
+          type: string
+          example: "SOC 2"
+        title:
+          type: string
+          example: "Logical access controls"
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [implemented, partially_implemented, not_implemented, not_applicable]
+          example: "implemented"
+        evidenceCount:
+          type: integer
+          description: "Computed field — only present on detail endpoint"
+          example: 3
+
+    Evidence:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 501
+        clientId:
+          type: integer
+          example: 1
+        clientControlId:
+          type: integer
+          example: 201
+        evidenceId:
+          type: string
+          example: "EV-2024-001"
+        description:
+          type: string
+          nullable: true
+        framework:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, approved, rejected, expired]
+          example: "pending"
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        fileCount:
+          type: integer
+          example: 0
+
+    Risk:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 301
+        title:
+          type: string
+          example: "Unauthorized data access"
+        description:
+          type: string
+          nullable: true
+        likelihood:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 3
+        impact:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        score:
+          type: integer
+          description: "likelihood x impact"
+          example: 12
+        status:
+          type: string
+          enum: [open, accepted, mitigated, transferred, avoided]
+          example: "open"
+        owner:
+          type: string
+          nullable: true
+        clientId:
+          type: integer
+          example: 1
+
+    RiskTreatment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 401
+        riskId:
+          type: integer
+          example: 301
+        title:
+          type: string
+          example: "Implement MFA"
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [planned, in_progress, completed]
+          example: "planned"
+        priority:
+          type: string
+          enum: [high, medium, low]
+          example: "high"
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+
+    RiskAppetite:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        category:
+          type: string
+        threshold:
+          type: integer
+        currentScore:
+          type: integer
+        status:
+          type: string
+          enum: [within, exceeded]
+
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 601
+        name:
+          type: string
+          example: "CloudHost Inc"
+        category:
+          type: string
+          nullable: true
+        riskTier:
+          type: string
+          enum: [1, 2, 3]
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        criticality:
+          type: string
+          enum: [critical, high, medium, low]
+          nullable: true
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 701
+        name:
+          type: string
+          example: "Production Database"
+        type:
+          type: string
+          nullable: true
+        classification:
+          type: string
+          enum: [public, internal, confidential, restricted]
+          nullable: true
+        clientId:
+          type: integer
+          example: 1
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 801
+        title:
+          type: string
+          example: "Review access logs"
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, in_progress, completed, overdue]
+          example: "pending"
+        priority:
+          type: string
+          enum: [high, medium, low]
+          example: "medium"
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        assigneeId:
+          type: integer
+          nullable: true
+        clientId:
+          type: integer
+          example: 1
+
+    Audit:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 901
+        title:
+          type: string
+          example: "SOC 2 Type II 2024"
+        framework:
+          type: string
+          example: "SOC 2"
+        status:
+          type: string
+          enum: [planned, in_progress, completed]
+          example: "in_progress"
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        clientId:
+          type: integer
+          example: 1
+
+    AuditFinding:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1001
+        auditId:
+          type: integer
+          example: 901
+        controlId:
+          type: string
+          example: "CC6.1"
+        severity:
+          type: string
+          enum: [high, medium, low]
+          example: "high"
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, resolved]
+          example: "open"
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1101
+        title:
+          type: string
+          example: "Phishing campaign detected"
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+          example: "high"
+        status:
+          type: string
+          enum: [open, investigating, contained, closed]
+          example: "investigating"
+        clientId:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1201
+        name:
+          type: string
+          example: "Jane Doe"
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          nullable: true
+        clientId:
+          type: integer
+          example: 1
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1301
+        title:
+          type: string
+          example: "Information Security Policy"
+        version:
+          type: string
+          example: "1.0"
+        status:
+          type: string
+          enum: [draft, published, archived]
+          example: "published"
+        framework:
+          type: string
+          nullable: true
+        clientId:
+          type: integer
+          example: 1
+
+    Framework:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1401
+        name:
+          type: string
+          example: "SOC 2"
+        version:
+          type: string
+          example: "2017"
+        controlCount:
+          type: integer
+          example: 64
+
+    DsarRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1501
+        requesterEmail:
+          type: string
+          format: email
+        requestType:
+          type: string
+          enum: [access, deletion, portability]
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+          example: "pending"
+        deadline:
+          type: string
+          format: date-time
+        clientId:
+          type: integer
+          example: 1
+
+    Dpia:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1601
+        title:
+          type: string
+          example: "CRM Data Processing Assessment"
+        status:
+          type: string
+          enum: [draft, completed]
+          example: "draft"
+        clientId:
+          type: integer
+          example: 1
+
+    EvidenceRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1701
+        controlId:
+          type: string
+          example: "CC6.1"
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, fulfilled]
+          example: "pending"
+        clientId:
+          type: integer
+          example: 1
+
+    Gap:
+      type: object
+      properties:
+        id:
+          type: integer
+        controlId:
+          type: string
+        framework:
+          type: string
+        status:
+          type: string
+        description:
+          type: string
+
+    Checklist:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        framework:
+          type: string
+        questionCount:
+          type: integer
+
+    AuditorQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        controlId:
+          type: string
+        framework:
+          type: string
+
+    GovernanceTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed, overdue]
+        priority:
+          type: string
+          enum: [high, medium, low]
+        clientId:
+          type: integer
+
+    ProgramGuide:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        clientId:
+          type: integer
+
+    AutopilotResult:
+      type: object
+      properties:
+        created:
+          type: integer
+          example: 5
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+
+    GovernanceSummary:
+      type: object
+      properties:
+        totalTasks:
+          type: integer
+        completedTasks:
+          type: integer
+        overdueTasks:
+          type: integer
+        complianceScore:
+          type: integer
+
+    ReportSummary:
+      type: object
+      properties:
+        framework:
+          type: string
+        totalControls:
+          type: integer
+        passedControls:
+          type: integer
+        failedControls:
+          type: integer
+        compliancePercentage:
+          type: number
+
+    PolicyAttestation:
+      type: object
+      properties:
+        id:
+          type: integer
+        policyId:
+          type: integer
+        userId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, acknowledged]
+        acknowledgedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    RiskAssessment:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        framework:
+          type: string
+        status:
+          type: string
+          enum: [draft, in_progress, completed]
+        score:
+          type: integer
+        clientId:
+          type: integer
+
+    # ── Response Envelopes ────────────────────────────────────────────────────
+
+    CollectionResponse:
+      type: object
+      description: "Standard collection response envelope"
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+          example: 42
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+          example: "ok"
+        database:
+          type: object
+          properties:
+            connected:
+              type: boolean
+              example: true
+            latencyMs:
+              type: integer
+              example: 12
+        uptime:
+          type: number
+          example: 3600
+        version:
+          type: string
+          example: "1.0.0"
+        authMode:
+          type: string
+          enum: [api-key, open-dev]
+          example: "api-key"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Resource not found"
+        code:
+          type: string
+          example: "NOT_FOUND"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
