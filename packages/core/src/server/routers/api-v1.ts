@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { getDb, onboardClient } from '../../db';
 import { sql, eq } from 'drizzle-orm';
+import { createRateLimitMiddleware } from '../../lib/api/rate-limit-headers';
+import { badRequest, notFound, internal } from '../../lib/api/problem-details';
+import { parsePaginationParams, createPaginatedResponse, encodeCursor } from '../../lib/api/pagination';
 import {
   controls,
   evidence,
@@ -64,6 +67,10 @@ function parseDurationToInterval(duration: string): string {
 const apiV1Router = Router();
 
 // Apply API key auth to every route in this router
+// Rate limiting: 100 req/min per client (configurable via RATE_LIMIT_RPS)
+apiV1Router.use(createRateLimitMiddleware({ maxRequests: 100, windowMs: 60_000 }));
+
+// API key auth: gates all /api/v1/* endpoints
 apiV1Router.use(apiKeyMiddleware);
 
 // ── GET /api/v1/health ──────────────────────────────────────────────────────
