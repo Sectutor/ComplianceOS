@@ -9,7 +9,7 @@
  *   provisionLaTorreDemo(newClientId, dbConnection)
  */
 
-import { getDb } from './db';
+import { getDb } from '../db';
 import { 
   clientFrameworks, clientControls, vendors, vendorAssessments,
   evidence, incidents, riskTreatments, complianceCertificates,
