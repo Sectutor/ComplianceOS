@@ -91,6 +91,16 @@ All changes are demo-enabling fixes; merge to `main` is recommended:
 7. drizzle-kit (pinned version) hangs on `/dev/tty` prompts in containers — use the generated DDL approach (`schema-init.sql`).
 8. Deploy queue is shared: concurrent builds of other apps on this box cause transient `npm ci` (esbuild postinstall) failures — retry the deploy.
 
+## Demo mode: single shared workspace (updated 2026-09-03, commit `1c056e8`)
+
+The demo runs with **`DEMO_SHARED_WORKSPACE=true`** (env on the app). In this mode:
+
+- A new signup does **not** create its own client. `clients.create` attaches the user as a member (owner role) of the shared **LaTorre LTD** workspace (id 7, `DEMO_SHARED_CLIENT_ID`) and returns it. Every visitor sees exactly one workspace: **LaTorre LTD**, fully populated.
+- On every boot, `bootstrap-db.ts` resets the demo: deletes every client except 7 (with their data), stale memberships, and non-admin user rows. Test clutter cannot accumulate.
+- Verified live: admin `clients.list` → 1 client (`7 LaTorre LTD`); fresh signup → attached to LaTorre LTD, `clients.list` → only LaTorre LTD.
+- To go back to per-signup sandboxed workspaces (each visitor gets their own provisioned copy, named by them): remove the `DEMO_SHARED_WORKSPACE` env in Coolify and redeploy. The per-signup provisioning path (`provisionLaTorreDemo`) stays intact.
+- Trade-off to be aware of: all visitors share the one LaTorre workspace, so data mutations by one visitor are visible to the next; the boot reset on each redeploy restores a clean state.
+
 ## Visitor verification checklist (hand to a non-technical visitor)
 
 1. Open **https://wcdytco2dxbwxeu5bezprwor.169.58.9.191.sslip.io** — the ComplianceOS app loads over HTTPS (padlock in the address bar).
