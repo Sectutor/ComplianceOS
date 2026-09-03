@@ -62,9 +62,15 @@ COPY --from=builder /app/env-loader.ts ./
 COPY --from=builder /app/addon-init.ts ./
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/scripts/seed-latorre-demo.ts ./scripts/
 
 # Expose the port
 EXPOSE 3001
 
-# Start the server
-CMD ["npx", "tsx", "server_entry.ts"]
+# Start the server:
+# 1. drizzle-kit push creates/updates the database schema from packages/core/src/schema.ts
+#    (fresh deployments start with an empty database; --force skips interactive prompts)
+# 2. seed-latorre-demo.ts creates the LaTorre LTD source dataset (idempotent; skipped
+#    once client 7 exists) so provisionLaTorreDemo can copy it into every new signup
+# 3. tsx server_entry.ts starts the API + static server
+CMD ["sh", "-c", "npx drizzle-kit push --force && npx tsx scripts/seed-latorre-demo.ts && npx tsx server_entry.ts"]
