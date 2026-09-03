@@ -459,6 +459,30 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found in context' });
                     }
 
+                    // DEMO SHARED WORKSPACE MODE: attach the user to the shared LaTorre LTD
+                    // workspace instead of creating a new organization (mirrors clients.create).
+                    if (process.env.DEMO_SHARED_WORKSPACE === 'true') {
+                        const demoDb = await db.getDb();
+                        const demoClientId = Number(process.env.DEMO_SHARED_CLIENT_ID || '7');
+                        const demoClient = await demoDb.select().from(schema.clients).where(eq(schema.clients.id, demoClientId)).limit(1);
+                        if (demoClient.length === 0) {
+                            throw new TRPCError({ code: 'NOT_FOUND', message: `Demo workspace ${demoClientId} not found` });
+                        }
+                        const existingMembership = await demoDb.select()
+                            .from(schema.userClients)
+                            .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, demoClientId)))
+                            .limit(1);
+                        if (existingMembership.length === 0) {
+                            await demoDb.insert(schema.userClients).values({
+                                userId: ctx.user.id,
+                                clientId: demoClientId,
+                                role: 'owner',
+                            });
+                            console.log(`[Clients] Demo mode (autoSetup): attached user ${ctx.user.id} to shared workspace ${demoClientId}`);
+                        }
+                        return demoClient[0];
+                    }
+
                     const d = await db.getDb();
                     const fullUser = await db.getUserById(ctx.user.id);
                     const userOrgs = await d.select({ count: sql<number>`count(*)` })

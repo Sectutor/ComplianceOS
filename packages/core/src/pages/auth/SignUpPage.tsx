@@ -40,110 +40,52 @@ export default function SignUpPage() {
         setLoading(true);
 
         try {
-            // Step 1: Create Supabase auth user
-            const searchParams = new URLSearchParams(window.location.search);
-            const tier = (searchParams.get('tier') || 'startup') as 'startup' | 'pro' | 'guided' | 'enterprise';
-            const interval = (searchParams.get('interval') || 'month') as 'month' | 'year';
+            // Optional invite link (?invite=... or ?token=...); empty on the public demo
+            const inviteToken = new URLSearchParams(window.location.search).get('invite')
+                || new URLSearchParams(window.location.search).get('token')
+                || '';
 
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        organization_name: organizationName,
-                        plan_tier: tier,
-                        billing_interval: interval
-                    }
-                }
+            // LOCAL AUTH MODE (self-hosted / demo build): register against the app's
+            // own endpoint, then sign in via AuthContext so session state is set
+            // exactly like a normal login. No Supabase required.
+            const registerRes = await fetch('/api/auth/local-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, name: fullName || email.split('@')[0] }),
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Failed to create user account");
+            const registerData = await registerRes.json().catch(() => ({}));
 
-            // Step 2: Auto-Login & Payment Redirect
-            // If email confirmation is disabled (as requested), we get a session immediately.
-            if (!authData.session) {
-                // If no session, try explicit sign in (handling race conditions or specific Supabase configs)
-                const { error: signInError } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (signInError) throw signInError;
-            }
-
-            const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            if (aal?.currentLevel !== 'aal2') {
-                const { data: lf } = await supabase.auth.mfa.listFactors();
-                const totpVerified = lf?.factors?.find((f: any) => f.factor_type === 'totp' && f.status === 'verified');
-                const totpAny = totpVerified || lf?.factors?.find((f: any) => f.factor_type === 'totp');
-                if (totpAny?.id) {
-                    setFactorId(totpAny.id);
-                    setShowMFAModal(true);
-                    setMfaRequired(true);
-                    setLoading(false);
-                    toast.message('Enter the 6‑digit code to continue');
+            if (registerRes.ok) {
+                await signIn(email, password);
+                if (inviteToken) {
+                    toast.success("Account created! Redirecting to redeem your invitation...");
+                    setLocation(`/auth/redeem-link?token=${inviteToken}`);
                     return;
                 }
-            }
-
-            if (inviteToken) {
-                toast.success("Account created! Redirecting to redeem your invitation...");
-                setLocation(`/auth/redeem-link?token=${inviteToken}`);
+                toast.success("Account created! Welcome to ComplianceOS.");
+                setLocation('/dashboard?onboarding=true');
                 return;
             }
 
-            toast.success("Account created! Welcome to ComplianceOS.");
-            setLocation('/dashboard?onboarding=true');
-
-        } catch (error: any) {
-            console.error("Signup flow error:", error);
-
-            // Handle "User already registered" specifically
-            if (error.message?.includes("User already registered") || error.message?.includes("already registered")) {
+            // Account already exists — fall back to signing in
+            if (/already|exists/i.test(registerData.error || '')) {
                 toast.info("User already exists. Attempting to log in...");
-
-                try {
-                    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                        email,
-                        password,
-                    });
-
-                    if (signInError) throw signInError;
-                    if (signInData.session) {
-                        const { data: aal2 } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                        if (aal2?.currentLevel !== 'aal2') {
-                            const { data: lf } = await supabase.auth.mfa.listFactors();
-                            const totpVerified = lf?.factors?.find((f: any) => f.factor_type === 'totp' && f.status === 'verified');
-                            const totpAny = totpVerified || lf?.factors?.find((f: any) => f.factor_type === 'totp');
-                            if (totpAny?.id) {
-                                setFactorId(totpAny.id);
-                                setShowMFAModal(true);
-                                setMfaRequired(true);
-                                setLoading(false);
-                                toast.message('Enter the 6‑digit code to continue');
-                                return;
-                            }
-                        }
-                        if (inviteToken) {
-                            toast.success("Logged in successfully! Redirecting to redeem your invitation...");
-                            setLocation(`/auth/redeem-link?token=${inviteToken}`);
-                            return;
-                        }
-
-                        toast.success("Logged in successfully! Welcome back.");
-                        setLocation('/dashboard');
-                        return;
-                    }
-                } catch (loginErr: any) {
-                    console.error("Auto-login failed:", loginErr);
-                    toast.error("Account exists but login failed. Please check your password or Sign In manually.");
-                    setLoading(false);
+                await signIn(email, password);
+                if (inviteToken) {
+                    toast.success("Logged in successfully! Redirecting to redeem your invitation...");
+                    setLocation(`/auth/redeem-link?token=${inviteToken}`);
                     return;
                 }
-            } else {
-                toast.error(error.message || 'Failed to complete signup');
+                toast.success("Logged in successfully! Welcome back.");
+                setLocation('/dashboard');
+                return;
             }
+
+            throw new Error(registerData.error || 'Failed to complete signup');
+        } catch (error: any) {
+            console.error("Signup flow error:", error);
+            toast.error(error.message || 'Failed to complete signup');
             setLoading(false);
         }
     };
