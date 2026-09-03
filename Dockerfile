@@ -14,7 +14,11 @@ COPY packages/landing/package.json ./packages/landing/
 COPY packages/mcp-server/package.json ./packages/mcp-server/
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps
+# NODE_ENV=development is pinned because CI platforms (e.g. Coolify) inject
+# NODE_ENV=production at build time, which makes npm ci skip devDependencies
+# (vite, typescript) and breaks the frontend build.
+ENV NODE_ENV=development
+RUN npm ci --legacy-peer-deps --include=dev
 
 # Copy source code
 COPY . .

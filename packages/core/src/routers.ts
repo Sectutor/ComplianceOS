@@ -1115,9 +1115,10 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         return await db.query.vendorAuthorizations.findFirst({
           where: and(
-            eq(schema.vendorAuthorizations.clientId, ctx.clientId),
+            eq(schema.vendorAuthorizations.clientId, ctx.clientId!),
             eq(schema.vendorAuthorizations.vendorId, input.vendorId)
-          )
+          ),
+          limit: 1
         });
       }),
 

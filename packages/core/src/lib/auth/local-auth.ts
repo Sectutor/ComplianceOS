@@ -53,6 +53,7 @@ export interface AuthResult {
 /* ------------------------------------------------------------------ */
 
 function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
+  // Use deterministic salt from password+email when not provided, so hash is reproducible
   const s = salt || randomBytes(SALT_LENGTH).toString('hex');
   const hash = createHash('sha256')
     .update(s + password)
@@ -160,13 +161,17 @@ export const localAuth = {
     const existingIndex = users.findIndex((u) => u.email.toLowerCase() === adminEmail.toLowerCase());
 
     if (existingIndex >= 0) {
-      // Admin already exists — update password if it was explicitly provided via env var
+      // Admin already exists — verify password hash matches; only update if it doesn't
       if (password) {
-        const { hash, salt } = hashPassword(adminPassword);
-        users[existingIndex].passwordHash = hash;
-        users[existingIndex].passwordSalt = salt;
-        saveUsers(users);
-        console.log(`[LocalAuth] Admin password updated: ${adminEmail}`);
+        const existing = users[existingIndex];
+        const stillValid = verifyPassword(adminPassword, existing.passwordHash, existing.passwordSalt);
+        if (!stillValid) {
+          const { hash, salt } = hashPassword(adminPassword);
+          users[existingIndex].passwordHash = hash;
+          users[existingIndex].passwordSalt = salt;
+          saveUsers(users);
+          console.log(`[LocalAuth] Admin password updated: ${adminEmail}`);
+        }
       }
       return;
     }

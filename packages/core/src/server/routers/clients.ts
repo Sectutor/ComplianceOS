@@ -320,7 +320,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                                         <strong>Organization:</strong> ${input.name}<br/>
                                         <strong>Role:</strong> Owner
                                     </div>
-
+                                    
                                     ${isNewUser ? `<p>Your account has been created. Please use the "Forgot Password" function to set your password.</p>` : ''}
                                     
                                     <div style="margin: 24px 0;">
@@ -332,6 +332,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                             `
                         });
                         console.log(`[Clients] Email sent to ${targetEmail}`);
+                    }
+
+                    // 7. Provision LaTorre demo data for the new client
+                    try {
+                        const { provisionLaTorreDemo } = await import('../../lib/demo-provisioning');
+                        await provisionLaTorreDemo(result.id);
+                    } catch (provErr) {
+                        console.error('[Clients] LaTorre provisioning failed (non-fatal):', provErr);
                     }
 
                     console.log(`[Clients] Created client ID: ${result.id}`);

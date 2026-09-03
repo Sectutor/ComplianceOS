@@ -557,7 +557,7 @@ if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
 }
 
 // Local login endpoint (used when Supabase is not configured)
-app.post('/api/auth/local-login', express.json(), (req: any, res) => {
+app.post('/api/auth/local-login', express.json(), async (req: any, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
@@ -568,10 +568,49 @@ app.post('/api/auth/local-login', express.json(), (req: any, res) => {
     return res.status(401).json({ error: result.error || 'Invalid credentials' });
   }
 
-  res.json({
-    user: result.user,
-    token: result.token,
-  });
+  // Sync user to database
+  try {
+    const { getDb } = await import('./db');
+    const { users } = await import('./schema');
+    const { eq } = await import('drizzle-orm');
+    const dbConn = await getDb();
+    
+    // Check if user exists in database
+    let dbUser = await dbConn.query.users.findFirst({
+      where: eq(users.email, email)
+    });
+    
+    if (!dbUser) {
+      // Create user in database
+      const [newUser] = await dbConn.insert(users).values({
+        email,
+        name: result.user?.name || email.split('@')[0],
+        role: result.user?.role === 'admin' ? 'owner' : 'editor',
+        openId: `local-${result.user?.id || Date.now()}`,
+        loginMethod: 'local',
+        lastSignedIn: new Date(),
+      }).returning();
+      dbUser = newUser;
+    }
+    
+    // Return user with database ID
+    res.json({
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        role: dbUser.role,
+      },
+      token: result.token,
+    });
+  } catch (dbErr) {
+    console.error('[LocalLogin] DB sync error:', dbErr);
+    // Fallback to local auth response
+    res.json({
+      user: result.user,
+      token: result.token,
+    });
+  }
 });
 
 // Local registration endpoint (creates new users)

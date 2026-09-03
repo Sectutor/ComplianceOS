@@ -92,9 +92,32 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
                 authInfo.hasAuthHeader = false;
                 return next();
             }
-            // Use decoded token info directly (avoids Drizzle schema/DB column mismatch)
+            // Look up actual user ID from database
+            let userId = 0;
+            try {
+                const dbConn = await getDb();
+                const dbUser = await dbConn.query.users.findFirst({
+                    where: eq(users.email, decoded.email)
+                });
+                if (dbUser) {
+                    userId = dbUser.id;
+                } else {
+                    // Auto-create user in database on first login
+                    const [newUser] = await dbConn.insert(users).values({
+                        email: decoded.email,
+                        name: decoded.email.split('@')[0],
+                        role: 'owner',
+                        openId: `local-${Date.now()}`,
+                        loginMethod: 'local',
+                        lastSignedIn: new Date(),
+                    }).returning();
+                    userId = newUser.id;
+                }
+            } catch {
+                userId = decoded.email === 'admin@complianceos.local' ? 1 : 0;
+            }
             req.user = {
-                id: decoded.email === 'admin@complianceos.local' ? 1 : 0,
+                id: userId,
                 email: decoded.email,
                 role: decoded.role === 'admin' ? 'owner' : (decoded.role as any),
                 name: decoded.email?.split('@')[0] || 'User',
