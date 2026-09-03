@@ -14,7 +14,7 @@ import {
   clientFrameworks, clientControls, vendors, vendorAssessments,
   evidence, incidents, riskTreatments, complianceCertificates,
   assets, riskScenarios, clientPolicies
-} from './schema';
+} from '../schema';
 import { eq, sql } from 'drizzle-orm';
 
 const LATORRE_CLIENT_ID = 7;
