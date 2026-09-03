@@ -19,7 +19,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import {
     clients,
     controls,
@@ -32,6 +32,8 @@ import {
     riskTreatments,
     complianceCertificates,
     complianceFrameworks,
+    userClients,
+    users,
 } from "../packages/core/src/schema";
 
 const LATORRE_CLIENT_ID = 7;
@@ -90,6 +92,49 @@ async function applySchema(sql: postgres.Sql) {
     console.log(`[BootstrapDB] Schema applied (${applied} statements, ${skipped} already-exists skipped).`);
 }
 
+
+/**
+ * DEMO SHARED WORKSPACE mode (DEMO_SHARED_WORKSPACE=true): the demo exposes a
+ * single shared workspace (LaTorre LTD, clientId 7) that every signup joins.
+ * On boot, remove everything else: any other client + its data, and any user
+ * account other than the configured admin — keeping the demo pristine and
+ * clearing visitor test workspaces.
+ */
+async function demoReset(sql: postgres.Sql, db: ReturnType<typeof drizzle>) {
+    if (process.env.DEMO_SHARED_WORKSPACE !== "true") return;
+    console.log("[BootstrapDB] DEMO_SHARED_WORKSPACE=true — resetting to a single shared workspace...");
+
+    const adminEmail = (process.env.COMPLIANCE_ADMIN_EMAIL || "admin@complianceos.local").toLowerCase();
+
+    // 1. user_memberships for non-LaTorre clients, and for non-admin users
+    await sql.unsafe(`DELETE FROM user_clients WHERE client_id <> ${LATORRE_CLIENT_ID}`);
+    await sql.unsafe(`DELETE FROM user_clients WHERE user_id IN (SELECT id FROM users WHERE lower(email) <> '${adminEmail}')`);
+
+    // 2. per-client data for every client except LaTorre
+    const dataTables = [
+        "vendor_assessments", "evidence", "client_controls", "client_frameworks",
+        "incidents", "risk_treatments", "compliance_certificates", "vendors",
+        "client_policies", "assets", "risk_scenarios", "risk_assessments",
+    ];
+    for (const t of dataTables) {
+        try {
+            await sql.unsafe(`DELETE FROM ${t} WHERE client_id <> ${LATORRE_CLIENT_ID}`);
+        } catch (err: any) {
+            // table may not exist in this schema build; non-fatal
+            if (!/does not exist/i.test(err?.message || "")) throw err;
+        }
+    }
+
+    // 3. non-LaTorre clients
+    await sql.unsafe(`DELETE FROM clients WHERE id <> ${LATORRE_CLIENT_ID}`);
+
+    // 4. non-admin users (auth store re-creates rows on next login)
+    await sql.unsafe(`DELETE FROM users WHERE lower(email) <> '${adminEmail}'`);
+
+    const remaining = await db.select({ id: clients.id, name: clients.name }).from(clients);
+    console.log(`[BootstrapDB] Demo reset complete. Remaining clients:`, remaining.map((c) => `${c.id}:${c.name}`).join(", ") || "(none)");
+}
+
 async function main() {
     const connectionString = process.env.DATABASE_URL || "";
     if (!connectionString) {
@@ -101,6 +146,7 @@ async function main() {
     const db = drizzle(sql);
 
     await applySchema(sql);
+    await demoReset(sql, db);
 
     const existing = await db.select().from(clients).where(eq(clients.id, LATORRE_CLIENT_ID));
     if (existing.length > 0) {

@@ -231,6 +231,33 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .mutation(async ({ input, ctx }: any) => {
                 try {
                     console.log(`[Clients] Creating client (Enhanced): ${input.name} (Admin: ${ctx.user?.id})`);
+
+                    // DEMO SHARED WORKSPACE MODE: instead of creating a new client per signup,
+                    // attach the user as a member of the shared LaTorre LTD demo workspace
+                    // (DEMO_SHARED_CLIENT_ID, default 7). New users then see exactly one
+                    // fully-populated workspace and cannot mutate the source dataset of others.
+                    if (process.env.DEMO_SHARED_WORKSPACE === 'true') {
+                        const demoDb = await db.getDb();
+                        const demoClientId = Number(process.env.DEMO_SHARED_CLIENT_ID || '7');
+                        const demoClient = await demoDb.select().from(schema.clients).where(eq(schema.clients.id, demoClientId)).limit(1);
+                        if (demoClient.length === 0) {
+                            throw new TRPCError({ code: 'NOT_FOUND', message: `Demo workspace ${demoClientId} not found` });
+                        }
+                        const existingMembership = await demoDb.select()
+                            .from(schema.userClients)
+                            .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, demoClientId)))
+                            .limit(1);
+                        if (existingMembership.length === 0) {
+                            await demoDb.insert(schema.userClients).values({
+                                userId: ctx.user.id,
+                                clientId: demoClientId,
+                                role: 'owner',
+                            });
+                            console.log(`[Clients] Demo mode: attached user ${ctx.user.id} to shared workspace ${demoClientId}`);
+                        }
+                        return demoClient[0];
+                    }
+
                     const fullUser = await db.getUserById(ctx.user.id);
 
                     // 1. Check Limits for the Creator (if not admin)
