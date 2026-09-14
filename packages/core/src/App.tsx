@@ -67,7 +67,7 @@ const AuditLogs = lazyLoad(() => import("./pages/admin/AuditLogs"));
 // const CloudIntegrations = lazyLoad(() => import("./pages/admin/CloudIntegrations"));
 const AddonManager = lazyLoad(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazyLoad(() => import("./pages/admin/AdminBilling"));
-const LicenseManagement = lazyLoad(() => import("./pages/admin/LicenseManagement"));
+const LicenseManagement = lazyLoad(() => import("./pages/LicenseManagement"));
 const SystemFeedbackPage = lazyLoad(() => import("./pages/admin/SystemFeedbackPage"));
 const AgentPage = lazyLoad(() => import("./pages/agent/AgentPage").then(m => ({ default: m.AgentPage })));
 const AgentReports = lazyLoad(() => import("./pages/agent/AgentPage").then(m => ({ default: m.AgentReportsPage })));
@@ -785,9 +785,24 @@ function Router() {
         {/* Domain-Aware Root Route */}
         <Route path="/" component={RootHub} />
 
-        {/* License Test Page - For testing license validation system */}
+        {/* License & Commercial Activation Routes */}
         <Route path="/license-test">
           <ProtectedRoute component={LicenseTestPage} />
+        </Route>
+        <Route path="/settings/license">
+          <ProtectedRoute component={LicenseManagement} />
+        </Route>
+        <Route path="/admin/license">
+          <ProtectedRoute component={LicenseManagement} />
+        </Route>
+        <Route path="/license">
+          <ProtectedRoute component={LicenseManagement} />
+        </Route>
+        <Route path="/clients/:id/license">
+          {(_params) => <ProtectedRoute component={LicenseManagement} />}
+        </Route>
+        <Route path="/clients/:id/settings/license">
+          {(_params) => <ProtectedRoute component={LicenseManagement} />}
         </Route>
 
         <Route path="/dashboard">

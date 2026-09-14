@@ -645,6 +645,7 @@ function DashboardLayoutContent({
         { icon: Bot, label: "Agent", path: "/agent" },
         { icon: Users, label: "Clients", path: "/clients" },
         { icon: Settings, label: "Settings", path: "/settings" },
+        { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
         ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
         { icon: GraduationCap, label: "User Onboarding", path: "/onboarding" },
       ]
@@ -1366,6 +1367,13 @@ function DashboardLayoutContent({
                 >
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setLocation('/settings/license')}
+                  className="cursor-pointer"
+                >
+                  <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                  <span>License & Plans</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async () => {
