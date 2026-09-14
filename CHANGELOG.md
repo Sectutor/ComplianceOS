@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 ## Unreleased
+
+### Cycle 61 — API-FIRST Phase 1.2 + routers.ts BOM fix (2026-08-28)
+- **API-FIRST Phase 1.2 shipped**: three new REST API helper modules committed:
+  - `lib/api/pagination.ts` — cursor-based pagination (parsePaginationParams, encodeCursor/decodeCursor, createPaginatedResponse; base64url encoding, limit clamping 1-100)
+  - `lib/api/problem-details.ts` — RFC 7807 Problem Details (createProblemDetail + typed factories: badRequest, unauthorized, forbidden, notFound, conflict, unprocessableEntity, tooManyRequests, internal; isProblemDetail type guard)
+  - `lib/api/rate-limit-headers.ts` — rate limiting middleware (createRateLimitMiddleware with X-RateLimit-Limit/Remaining/Reset headers, per-client buckets by IP/API-key/X-Forwarded-For, 429 + Problem Detail on exceed, periodic bucket cleanup)
+  - `server/routers/api-v1.ts` wired to use the new modules (rate limit 100 req/min, problem-detail error helpers, pagination parsing)
+- **105 new unit tests** (pagination 46, problem-details 41, rate-limit-headers 18) — all green
+- **Full suite: 2931/2931 across 119 files**, 100% pass
+- **routers.ts**: removed UTF-8 BOM (was causing tsc parse cascade), migrated email router `ctx.session` → `ctx.user` (5 sites), fixed audit router signature (dropped unused `adminProcedure` arg)
+- **tsc**: 0 new errors in touched files (3590 pre-existing backlog unchanged)
+- Scorecard: all 15 Vanta features remain complete (P0–P3); API-FIRST Phase 1.2 (new modules)
 ### Cycle 61 - API-FIRST Phase 1.2: RESTful Standardization (RFC 7807 + pagination + rate limiting) (2026-08-28)
 - feat(api): RFC 7807 Problem Details helpers (lib/api/problem-details.ts) — createProblemDetail, badRequest/notFound/unauthorized/forbidden/internal/conflict/unprocessableEntity/tooManyRequests, isProblemDetail type guard.
 - feat(api): cursor-based pagination helpers (lib/api/pagination.ts) — parsePaginationParams (default 20, max 100), base64url encodeCursor/decodeCursor, createPaginatedResponse envelope (data/nextCursor/hasMore/total).

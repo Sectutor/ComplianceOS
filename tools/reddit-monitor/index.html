@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Lead Monitor</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --yellow: #d29922;
+            --red: #f85149;
+            --purple: #bc8cff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        header h1 span {
+            color: var(--accent);
+        }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 8px 16px;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            background: #21262d;
+            border-color: #8b949e;
+        }
+
+        .btn-primary {
+            background: #238636;
+            border-color: #2ea043;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+
+        .btn-active {
+            background: #1f6feb22;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .keywords-section {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .keywords-section h3 {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .keyword-tag {
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: #1f6feb22;
+            border: 1px solid #1f6feb44;
+            font-size: 12px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .keyword-tag .remove {
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .keyword-tag .remove:hover {
+            opacity: 1;
+        }
+
+        .add-keyword {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .add-keyword input {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 12px;
+            width: 200px;
+        }
+
+        .add-keyword button {
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .posts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .post-card {
+            padding: 16px;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.15s;
+        }
+
+        .post-card:hover {
+            border-color: #8b949e;
+        }
+
+        .post-card.status-contacted {
+            border-left: 3px solid var(--yellow);
+        }
+
+        .post-card.status-booked {
+            border-left: 3px solid var(--accent);
+        }
+
+        .post-card.status-converted {
+            border-left: 3px solid var(--green);
+        }
+
+        .post-card.status-irrelevant {
+            opacity: 0.5;
+            border-left: 3px solid var(--text-muted);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .subreddit {
+            color: var(--purple);
+            font-weight: 600;
+        }
+
+        .post-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .post-title a {
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .post-title a:hover {
+            color: var(--accent);
+        }
+
+        .post-body {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            max-height: 60px;
+            overflow: hidden;
+        }
+
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .post-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .status-select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .action-btn {
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .action-btn:hover {
+            background: #21262d;
+        }
+
+        .action-btn.open {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .last-scan {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .notes-area {
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 12px;
+            margin-top: 8px;
+            resize: vertical;
+            min-height: 30px;
+        }
+
+        .notes-area:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .stats {
+                flex-wrap: wrap;
+            }
+            .post-footer {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Compliance <span>Lead Monitor</span></h1>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">Found</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-new">0</div>
+                    <div class="stat-label">New</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-contacted">0</div>
+                    <div class="stat-label">Contacted</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-booked">0</div>
+                    <div class="stat-label">Booked</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-converted">0</div>
+                    <div class="stat-label">Converted</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="btn-scan" onclick="scanReddit()">
+                Scan Reddit
+            </button>
+            <button class="btn" id="btn-refresh" onclick="loadPosts()">
+                Refresh
+            </button>
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+                <button class="filter-btn" data-filter="new" onclick="setFilter('new')">New</button>
+                <button class="filter-btn" data-filter="contacted" onclick="setFilter('contacted')">Contacted</button>
+                <button class="filter-btn" data-filter="booked" onclick="setFilter('booked')">Booked</button>
+                <button class="filter-btn" data-filter="converted" onclick="setFilter('converted')">Converted</button>
+                <button class="filter-btn" data-filter="irrelevant" onclick="setFilter('irrelevant')">Not Relevant</button>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search within results..." oninput="filterBySearch()">
+        </div>
+
+        <div class="keywords-section">
+            <h3>Monitored Keywords</h3>
+            <div class="keywords-list" id="keywords-list"></div>
+            <div class="add-keyword">
+                <input type="text" id="new-keyword" placeholder="Add keyword..." onkeydown="if(event.key==='Enter')addKeyword()">
+                <button onclick="addKeyword()">Add</button>
+            </div>
+        </div>
+
+        <div class="last-scan" id="last-scan"></div>
+
+        <div id="posts-container">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Click "Scan Reddit" to find compliance leads...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_KEYWORDS = [
+            'security questionnaire',
+            'SOC 2 help',
+            'SOC 2 audit',
+            'compliance help',
+            'compliance startup',
+            'vendor assessment',
+            'vendor risk',
+            'information security policy',
+            'audit prep',
+            'GDPR help',
+            'compliance small business',
+            'SOC 2 small business'
+        ];
+
+        const SUBREDDITS = [
+            'cybersecurity',
+            'smallbusiness',
+            'SaaS',
+            'startups',
+            'consulting',
+            'msp'
+        ];
+
+        let posts = [];
+        let keywords = [];
+        let currentFilter = 'all';
+
+        // Initialize
+        function init() {
+            loadKeywords();
+            loadPosts();
+            renderKeywords();
+            updateStats();
+        }
+
+        // Keywords management
+        function loadKeywords() {
+            const saved = localStorage.getItem('compliance-monitor-keywords');
+            keywords = saved ? JSON.parse(saved) : [...DEFAULT_KEYWORDS];
+        }
+
+        function saveKeywords() {
+            localStorage.setItem('compliance-monitor-keywords', JSON.stringify(keywords));
+        }
+
+        function renderKeywords() {
+            const container = document.getElementById('keywords-list');
+            container.innerHTML = keywords.map(kw => `
+                <span class="keyword-tag">
+                    ${kw}
+                    <span class="remove" onclick="removeKeyword('${kw.replace(/'/g, "\\'")}')">&times;</span>
+                </span>
+            `).join('');
+        }
+
+        function addKeyword() {
+            const input = document.getElementById('new-keyword');
+            const value = input.value.trim().toLowerCase();
+            if (value && !keywords.includes(value)) {
+                keywords.push(value);
+                saveKeywords();
+                renderKeywords();
+                input.value = '';
+            }
+        }
+
+        function removeKeyword(keyword) {
+            keywords = keywords.filter(k => k !== keyword);
+            saveKeywords();
+            renderKeywords();
+        }
+
+        // Posts management
+        function loadPosts() {
+            const saved = localStorage.getItem('compliance-monitor-posts');
+            posts = saved ? JSON.parse(saved) : [];
+            renderPosts();
+            updateStats();
+        }
+
+        function savePosts() {
+            localStorage.setItem('compliance-monitor-posts', JSON.stringify(posts));
+        }
+
+        // Scan Reddit
+        async function scanReddit() {
+            const btn = document.getElementById('btn-scan');
+            const container = document.getElementById('posts-container');
+
+            btn.disabled = true;
+            btn.textContent = 'Scanning...';
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Scanning ${SUBREDDITS.length} subreddits for ${keywords.length} keywords...</p>
+                </div>
+            `;
+
+            const newPosts = [];
+            const seenIds = new Set(posts.map(p => p.id));
+
+            for (const subreddit of SUBREDDITS) {
+                for (const keyword of keywords) {
+                    try {
+                        const url = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(keyword)}&sort=new&restrict_sr=on&t=week`;
+                        const response = await fetch(url);
+                        const data = await response.json();
+
+                        if (data.data && data.data.children) {
+                            for (const child of data.data.children) {
+                                const post = child.data;
+                                if (!seenIds.has(post.id)) {
+                                    seenIds.add(post.id);
+                                    newPosts.push({
+                                        id: post.id,
+                                        title: post.title,
+                                        body: post.selftext ? post.selftext.substring(0, 300) : '',
+                                        author: post.author,
+                                        subreddit: post.subreddit,
+                                        url: `https://reddit.com${post.permalink}`,
+                                        created: post.created_utc,
+                                        score: post.score,
+                                        comments: post.num_comments,
+                                        keyword: keyword,
+                                        status: 'new',
+                                        notes: '',
+                                        foundAt: Date.now()
+                                    });
+                                }
+                            }
+                        }
+
+                        // Small delay to be respectful
+                        await new Promise(r => setTimeout(r, 500));
+                    } catch (e) {
+                        console.warn(`Failed: r/${subreddit} - ${keyword}`, e);
+                    }
+                }
+            }
+
+            // Merge new posts with existing
+            posts = [...newPosts, ...posts];
+            savePosts();
+
+            document.getElementById('last-scan').textContent = `Last scan: ${new Date().toLocaleString()} — Found ${newPosts.length} new posts`;
+
+            btn.disabled = false;
+            btn.textContent = 'Scan Reddit';
+            renderPosts();
+            updateStats();
+        }
+
+        // Render posts
+        function renderPosts() {
+            const container = document.getElementById('posts-container');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            let filtered = posts;
+
+            // Status filter
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(p => p.status === currentFilter);
+            }
+
+            // Search filter
+            if (searchTerm) {
+                filtered = filtered.filter(p =>
+                    p.title.toLowerCase().includes(searchTerm) ||
+                    p.body.toLowerCase().includes(searchTerm) ||
+                    p.author.toLowerCase().includes(searchTerm) ||
+                    p.subreddit.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No posts found</h3>
+                        <p>${posts.length === 0 ? 'Click "Scan Reddit" to start finding leads.' : 'Try changing your filters.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="posts-list">
+                    ${filtered.map(post => `
+                        <div class="post-card status-${post.status}" data-id="${post.id}">
+                            <div class="post-header">
+                                <div class="post-meta">
+                                    <span class="subreddit">r/${post.subreddit}</span>
+                                    <span>u/${post.author}</span>
+                                    <span>${timeAgo(post.created)}</span>
+                                </div>
+                                <span style="font-size:11px;color:var(--purple);">${post.keyword}</span>
+                            </div>
+                            <div class="post-title">
+                                <a href="${post.url}" target="_blank" rel="noopener">${post.title}</a>
+                            </div>
+                            ${post.body ? `<div class="post-body">${post.body}</div>` : ''}
+                            <div class="post-footer">
+                                <div class="post-stats">
+                                    <span>⬆ ${post.score}</span>
+                                    <span>💬 ${post.comments}</span>
+                                </div>
+                                <div class="post-actions">
+                                    <select class="status-select" onchange="updateStatus('${post.id}', this.value)">
+                                        <option value="new" ${post.status === 'new' ? 'selected' : ''}>New</option>
+                                        <option value="contacted" ${post.status === 'contacted' ? 'selected' : ''}>Contacted</option>
+                                        <option value="booked" ${post.status === 'booked' ? 'selected' : ''}>Booked</option>
+                                        <option value="converted" ${post.status === 'converted' ? 'selected' : ''}>Converted</option>
+                                        <option value="irrelevant" ${post.status === 'irrelevant' ? 'selected' : ''}>Not Relevant</option>
+                                    </select>
+                                    <a class="action-btn open" href="${post.url}" target="_blank" rel="noopener">Open</a>
+                                </div>
+                            </div>
+                            <textarea class="notes-area" placeholder="Notes..." 
+                                onchange="updateNotes('${post.id}', this.value)">${post.notes || ''}</textarea>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Update post status
+        function updateStatus(id, status) {
+            const post = posts.find(p => p.id === id);
+            if (post) {
+                post.status = status;
+                savePosts();
+                renderPosts();
+                updateStats();
+            }
+        }
+
+        // Update notes
+        function updateNotes(id, notes) {
+            const post = posts.find(p => p.id === id);
+            if (post) {
+                post.notes = notes;
+                savePosts();
+            }
+        }
+
+        // Filter
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            renderPosts();
+        }
+
+        // Search
+        function filterBySearch() {
+            renderPosts();
+        }
+
+        // Stats
+        function updateStats() {
+            document.getElementById('stat-total').textContent = posts.length;
+            document.getElementById('stat-new').textContent = posts.filter(p => p.status === 'new').length;
+            document.getElementById('stat-contacted').textContent = posts.filter(p => p.status === 'contacted').length;
+            document.getElementById('stat-booked').textContent = posts.filter(p => p.status === 'booked').length;
+            document.getElementById('stat-converted').textContent = posts.filter(p => p.status === 'converted').length;
+        }
+
+        // Time ago
+        function timeAgo(timestamp) {
+            const seconds = Math.floor(Date.now() / 1000 - timestamp);
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

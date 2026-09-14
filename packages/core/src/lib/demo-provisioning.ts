@@ -16,7 +16,9 @@
 import { getDb } from '../db';
 import {
   clientFrameworks, clientControls, vendors, vendorAssessments,
-  evidence, incidents, riskTreatments, complianceCertificates
+  evidence, incidents, riskTreatments, complianceCertificates,
+  clientPolicies, assets, riskScenarios, processingActivities,
+  dsarRequests, businessProcesses, reportLogs
 } from '../schema';
 import { eq, asc } from 'drizzle-orm';
 
@@ -72,7 +74,185 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     if (newControls[i]) controlIdMap.set(c.id, newControls[i].id);
   });
 
-  // 3. Vendors
+  // 3. Enterprise Policies
+  const srcPolicies = await db
+    .select()
+    .from(clientPolicies)
+    .where(eq(clientPolicies.clientId, LATORRE_CLIENT_ID));
+  if (srcPolicies.length > 0) {
+    await db.insert(clientPolicies).values(
+      srcPolicies.map((p) => ({
+        clientId: newClientId,
+        clientPolicyId: p.clientPolicyId,
+        name: p.name,
+        content: p.content,
+        status: p.status,
+        approvalStatus: p.approvalStatus,
+        version: p.version,
+        owner: p.owner,
+        module: p.module,
+        isAiGenerated: p.isAiGenerated,
+        nextReviewDate: p.nextReviewDate,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      }))
+    );
+  }
+
+  // 4. Assets
+  const srcAssets = await db
+    .select()
+    .from(assets)
+    .where(eq(assets.clientId, LATORRE_CLIENT_ID));
+  if (srcAssets.length > 0) {
+    await db.insert(assets).values(
+      srcAssets.map((a) => ({
+        clientId: newClientId,
+        name: a.name,
+        type: a.type,
+        owner: a.owner,
+        vendor: a.vendor,
+        productName: a.productName,
+        version: a.version,
+        valuationC: a.valuationC,
+        valuationI: a.valuationI,
+        valuationA: a.valuationA,
+        description: a.description,
+        location: a.location,
+        department: a.department,
+        status: a.status,
+        category: a.category,
+        criticality: a.criticality,
+        isPersonalData: a.isPersonalData,
+        dataSensitivity: a.dataSensitivity,
+      }))
+    );
+  }
+
+  // 5. Quantified Risk Scenarios
+  const srcRisks = await db
+    .select()
+    .from(riskScenarios)
+    .where(eq(riskScenarios.clientId, LATORRE_CLIENT_ID));
+  if (srcRisks.length > 0) {
+    await db.insert(riskScenarios).values(
+      srcRisks.map((r) => ({
+        clientId: newClientId,
+        title: r.title,
+        description: r.description,
+        category: r.category,
+        assessmentType: r.assessmentType,
+        likelihood: r.likelihood,
+        impact: r.impact,
+        inherentScore: r.inherentScore,
+        inherentRisk: r.inherentRisk,
+        residualLikelihood: r.residualLikelihood,
+        residualImpact: r.residualImpact,
+        residualScore: r.residualScore,
+        residualRisk: r.residualRisk,
+        inherentRiskScore: r.inherentRiskScore,
+        status: r.status,
+        owner: r.owner,
+        customMitigationPlan: r.customMitigationPlan,
+      }))
+    );
+  }
+
+  // 6. RoPA Processing Activities
+  const srcRopa = await db
+    .select()
+    .from(processingActivities)
+    .where(eq(processingActivities.clientId, LATORRE_CLIENT_ID));
+  if (srcRopa.length > 0) {
+    await db.insert(processingActivities).values(
+      srcRopa.map((ro) => ({
+        clientId: newClientId,
+        activityId: ro.activityId,
+        activityName: ro.activityName,
+        description: ro.description,
+        role: ro.role,
+        controllerName: ro.controllerName,
+        controllerContact: ro.controllerContact,
+        dpoName: ro.dpoName,
+        dpoContact: ro.dpoContact,
+        purposes: ro.purposes,
+        legalBasis: ro.legalBasis,
+        dataCategories: ro.dataCategories,
+        dataSubjectCategories: ro.dataSubjectCategories,
+        recipients: ro.recipients,
+        hasInternationalTransfers: ro.hasInternationalTransfers,
+        transferCountries: ro.transferCountries,
+        transferSafeguards: ro.transferSafeguards,
+        retentionPeriod: ro.retentionPeriod,
+        status: ro.status,
+      }))
+    );
+  }
+
+  // 7. DSARs
+  const srcDsar = await db
+    .select()
+    .from(dsarRequests)
+    .where(eq(dsarRequests.clientId, LATORRE_CLIENT_ID));
+  if (srcDsar.length > 0) {
+    await db.insert(dsarRequests).values(
+      srcDsar.map((d) => ({
+        clientId: newClientId,
+        requestId: d.requestId,
+        requestType: d.requestType,
+        status: d.status,
+        priority: d.priority,
+        subjectName: d.subjectName,
+        subjectEmail: d.subjectEmail,
+        verificationStatus: d.verificationStatus,
+        verificationMethod: d.verificationMethod,
+        submissionMethod: d.submissionMethod,
+        requestDate: d.requestDate,
+        dueDate: d.dueDate,
+        completedDate: d.completedDate,
+        resolutionNotes: d.resolutionNotes,
+      }))
+    );
+  }
+
+  // 8. Business Processes (BIA)
+  const srcProcesses = await db
+    .select()
+    .from(businessProcesses)
+    .where(eq(businessProcesses.clientId, LATORRE_CLIENT_ID));
+  if (srcProcesses.length > 0) {
+    await db.insert(businessProcesses).values(
+      srcProcesses.map((bp) => ({
+        clientId: newClientId,
+        name: bp.name,
+        description: bp.description,
+        department: bp.department,
+        criticalityTier: bp.criticalityTier,
+        rto: bp.rto,
+        rpo: bp.rpo,
+        mtpd: bp.mtpd,
+      }))
+    );
+  }
+
+  // 9. Report Logs (Pre-compiled summaries)
+  const srcReports = await db
+    .select()
+    .from(reportLogs)
+    .where(eq(reportLogs.clientId, LATORRE_CLIENT_ID));
+  if (srcReports.length > 0) {
+    await db.insert(reportLogs).values(
+      srcReports.map((rep) => ({
+        clientId: newClientId,
+        reportType: rep.reportType,
+        format: rep.format,
+        timestamp: rep.timestamp,
+        metadata: rep.metadata,
+      }))
+    );
+  }
+
+  // 10. Vendors
   const srcVendors = await db.select().from(vendors).where(eq(vendors.clientId, LATORRE_CLIENT_ID));
   let insertedVendorIds: number[] = [];
   if (srcVendors.length > 0) {
@@ -91,7 +271,7 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     insertedVendorIds = inserted.map((v) => v.id);
   }
 
-  // 4. Vendor assessments (remapped to the new vendor ids, position-matched)
+  // 11. Vendor assessments (remapped to the new vendor ids, position-matched)
   if (insertedVendorIds.length > 0) {
     const srcAssessments = await db
       .select()
@@ -110,7 +290,7 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     }
   }
 
-  // 5. Evidence (clientControlId remapped to the new client's control rows)
+  // 12. Evidence (clientControlId remapped to the new client's control rows)
   const srcEvidence = await db.select().from(evidence).where(eq(evidence.clientId, LATORRE_CLIENT_ID));
   const remappableEvidence = srcEvidence.filter((e) => e.clientControlId == null || controlIdMap.has(e.clientControlId));
   if (remappableEvidence.length > 0) {
@@ -129,7 +309,7 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     );
   }
 
-  // 6. Incidents
+  // 13. Incidents
   const srcIncidents = await db.select().from(incidents).where(eq(incidents.clientId, LATORRE_CLIENT_ID));
   if (srcIncidents.length > 0) {
     await db.insert(incidents).values(
@@ -144,7 +324,7 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     );
   }
 
-  // 7. Risk treatments
+  // 14. Risk treatments
   const srcTreatments = await db
     .select()
     .from(riskTreatments)
@@ -161,7 +341,7 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     );
   }
 
-  // 8. Compliance certificates (certificateNumber suffixed to avoid collisions)
+  // 15. Compliance certificates (certificateNumber suffixed to avoid collisions)
   const srcCerts = await db
     .select()
     .from(complianceCertificates)
@@ -179,5 +359,6 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
     );
   }
 
-  console.log(`[LaTorreDemo] ✅ Client ${newClientId} provisioned with complete demo data`);
+  console.log(`[LaTorreDemo] ✅ Client ${newClientId} provisioned with complete enriched demo data`);
 }
+

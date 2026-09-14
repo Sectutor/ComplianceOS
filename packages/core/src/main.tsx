@@ -223,12 +223,16 @@ const trpcClient = trpc.createClient({
           'x-request-id': reqId,
         };
 
-        if (session?.access_token) {
-          headers.Authorization = `Bearer ${session.access_token}`;
-          console.log(`[TRPC Client] Sending request with Supabase auth token`);
-        } else if (localToken) {
+        if (localToken) {
           headers.Authorization = `Bearer ${localToken}`;
-          console.log(`[TRPC Client] Sending request with local auth token`);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[TRPC Client] Sending request with local auth token`);
+          }
+        } else if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[TRPC Client] Sending request with Supabase auth token`);
+          }
         } else {
           console.warn(`[TRPC Client] Sending request WITHOUT auth token`);
         }

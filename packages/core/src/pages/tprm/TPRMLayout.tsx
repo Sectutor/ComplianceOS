@@ -128,7 +128,8 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    <nav className="flex space-x-2 overflow-x-auto no-scrollbar py-1" aria-label="TPRM Navigation">
+                    {/* Navigation Pills */}
+                    <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 py-1" aria-label="TPRM Navigation">
                         {navItems.map((item) => {
                             const active = isActive(item.href);
                             return (
@@ -136,20 +137,23 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center whitespace-nowrap shrink-0 min-w-max px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer shadow-sm border",
+                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0 cursor-pointer",
                                         active
-                                            ? "bg-brand-bright text-white border-brand-bright"
-                                            : "bg-brand text-white border-brand hover:bg-brand-bright hover:border-brand-bright"
+                                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 ring-1 ring-primary/20 font-bold"
+                                            : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 font-medium"
                                     )}
                                 >
-                                    <item.icon className="mr-2.5 h-4 w-4" />
-                                    {item.label}
+                                    <item.icon className={cn(
+                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-200",
+                                        active ? "scale-105 text-primary-foreground" : "text-muted-foreground"
+                                    )} />
+                                    <span>{item.label}</span>
                                     {!!item.badge && (
                                         <span className={cn(
-                                            "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md",
+                                            "ml-2 px-1.5 py-0.2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md border shrink-0",
                                             active
-                                                ? "bg-blue-500/20 text-white border-blue-500/30"
-                                                : "bg-brand-bright/20 text-white border-brand-bright/30"
+                                                ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
+                                                : "bg-muted text-muted-foreground border-border"
                                         )}>
                                             {item.badge}
                                         </span>
@@ -159,7 +163,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full py-8">
+                <div className="flex-1 w-full py-2">
                     {children}
                 </div>
             </div>

@@ -1396,34 +1396,34 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div className="flex border-b h-14 items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-4 md:px-8">
-          <div className="flex items-center gap-3">
-            {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background shadow-sm border" />}
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-1 bg-primary rounded-full hidden md:block" />
-              <span className="tracking-tight text-slate-900 font-bold text-sm md:text-base">
+        <div className="flex border-b border-border/80 h-14 items-center justify-between bg-background/80 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-4 md:px-8">
+          <div className="flex items-center gap-3 min-w-0">
+            {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background shadow-sm border border-border shrink-0" />}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-6 w-1 bg-primary rounded-full hidden md:block shrink-0" />
+              <span className="tracking-tight text-foreground font-bold text-sm md:text-base truncate">
                 {activeMenuItem?.label ?? "Dashboard"}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Topbar Right-side Client Switcher */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3 gap-2 bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800 font-semibold text-xs rounded-lg shadow-sm"
+                  className="h-9 px-2.5 sm:px-3 gap-1.5 sm:gap-2 bg-card hover:bg-muted border-border text-foreground font-semibold text-xs rounded-lg shadow-sm"
                 >
-                  <Building2 className="h-4 w-4 text-blue-600 shrink-0" />
-                  <span className="max-w-[150px] truncate hidden sm:inline-block">
+                  <Building2 className="h-4 w-4 text-primary shrink-0" />
+                  <span className="max-w-[120px] sm:max-w-[160px] truncate hidden xs:inline-block">
                     {clientInfo?.portalTitle || clientInfo?.name || (persistentClientId ? `Client #${persistentClientId}` : "Select Client")}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1 shadow-xl rounded-xl border border-slate-200 bg-white z-50">
-                <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+              <DropdownMenuContent align="end" className="w-64 p-1 shadow-xl rounded-xl border border-border bg-popover z-50">
+                <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
                   Switch Client Organization
                 </div>
                 {availableClientsList.map((c: any) => (

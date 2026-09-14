@@ -122,23 +122,23 @@ export default function CyberLayout({ children, fullWidth = false, clientId: pro
                                     key={tab.path}
                                     href={tab.path}
                                     className={cn(
-                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0",
+                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0 cursor-pointer",
                                         active
-                                            ? "bg-brand-bright text-white shadow-md shadow-brand-bright/20 ring-1 ring-white/20"
-                                            : "bg-brand text-white hover:bg-brand-bright/90"
+                                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 ring-1 ring-primary/20 font-bold"
+                                            : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 font-medium"
                                     )}
                                 >
-                                    <tab.icon className={cn(
-                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300",
-                                        active ? "scale-105" : "opacity-80"
+                                    <item.icon className={cn(
+                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-200",
+                                        active ? "scale-105 text-primary-foreground" : "text-muted-foreground"
                                     )} />
-                                    <span className="whitespace-nowrap">{tab.name}</span>
+                                    <span>{tab.name}</span>
                                     {!!tab.badge && (
                                         <span className={cn(
-                                            "ml-2 rounded-full py-0.2 px-1.5 text-[9px] sm:text-[10px] font-bold border backdrop-blur-md shrink-0 whitespace-nowrap",
+                                            "ml-2 px-1.5 py-0.2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md border shrink-0",
                                             active
-                                                ? "bg-white/25 text-white border-white/30"
-                                                : "bg-brand-bright/30 text-white border-brand-bright/40"
+                                                ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
+                                                : "bg-muted text-muted-foreground border-border"
                                         )}>
                                             {tab.badge}
                                         </span>

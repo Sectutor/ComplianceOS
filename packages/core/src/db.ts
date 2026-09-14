@@ -435,7 +435,7 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
         prepare: false,
         idle_timeout: 30,
         max_lifetime: 300,
-        connect_timeout: 2,
+        connect_timeout: 10,
         max: 20,
         connection: {
           statement_timeout: 15000,
@@ -445,10 +445,10 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
         },
       });
 
-      // Test the connection fast (2s timeout)
+      // Test the connection (10s timeout for WSL2/Docker port forward latency)
       const testPromise = _sql`SELECT 1 as test`;
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('DB connection test timed out after 2s')), 2000)
+        setTimeout(() => reject(new Error('DB connection test timed out after 10s')), 10000)
       );
       await Promise.race([testPromise, timeoutPromise]);
       logger.info({ message: "[DB] Connection test OK" });

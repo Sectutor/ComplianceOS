@@ -587,16 +587,13 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
 
                 try {
-                    console.log(`Starting demo data import for client ${input.clientId} (${client.name})`);
-                    const result = await db.seedSampleData(ctx.user.id, {
-                        name: client.name,
-                        industry: input.industry || client.industry || 'Technology',
-                        clientId: input.clientId
-                    });
-                    console.log(`Demo data import completed for client ${input.clientId}`);
-                    return result;
+                    console.log(`[Clients] Starting LaTorre demo data import for client ${input.clientId} (${client.name})`);
+                    const { provisionLaTorreDemo } = await import('../../lib/demo-provisioning');
+                    await provisionLaTorreDemo(input.clientId);
+                    console.log(`[Clients] Demo data import completed for client ${input.clientId}`);
+                    return { success: true, clientId: input.clientId };
                 } catch (error: any) {
-                    console.error(`Demo data import failed for client ${input.clientId}:`, error);
+                    console.error(`[Clients] Demo data import failed for client ${input.clientId}:`, error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
                         message: `Import failed: ${error.message || 'Unknown error'}`

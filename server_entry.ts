@@ -570,8 +570,8 @@ app.post('/api/auth/local-login', express.json(), async (req: any, res) => {
 
   // Sync user to database
   try {
-    const { getDb } = await import('./db');
-    const { users } = await import('./schema');
+    const { getDb } = await import('./packages/core/src/db');
+    const { users } = await import('./packages/core/src/schema');
     const { eq } = await import('drizzle-orm');
     const dbConn = await getDb();
     
