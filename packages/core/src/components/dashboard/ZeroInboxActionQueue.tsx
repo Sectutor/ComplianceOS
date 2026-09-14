@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert,
@@ -14,6 +14,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 export interface ActionItem {
   id: string;
@@ -21,14 +22,14 @@ export interface ActionItem {
   description: string;
   severity: "critical" | "warning" | "info";
   frameworks: string[];
-  category: "cloud" | "policy" | "vendor" | "evidence" | "access";
+  category: "cloud" | "policy" | "vendor" | "evidence" | "access" | "risk";
   source: string;
   dueDate: string;
   actionLabel: string;
   targetRoute?: string;
 }
 
-const INITIAL_ITEMS: ActionItem[] = [
+const FALLBACK_ITEMS: ActionItem[] = [
   {
     id: "act-1",
     title: "AWS S3 Public Read Access Detected in Production",
@@ -93,10 +94,36 @@ const INITIAL_ITEMS: ActionItem[] = [
 
 export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
   const [, setLocation] = useLocation();
-  const [items, setItems] = useState<ActionItem[]>(INITIAL_ITEMS);
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | "critical" | "warning" | "info">("all");
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+
+  const parsedClientId = clientId ? parseInt(clientId, 10) : undefined;
+  const { data: dbActions, refetch } = trpc.actionCenter.getActions.useQuery(
+    { clientId: parsedClientId! },
+    { enabled: !!parsedClientId && parsedClientId > 0 }
+  );
+
+  const dismissMutation = trpc.actionCenter.dismissAction.useMutation();
+
+  // Map live DB actions or use fallback
+  const items: ActionItem[] = useMemo(() => {
+    if (dbActions && dbActions.length > 0) {
+      return dbActions.map((a: any) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        severity: a.priority === 'critical' ? 'critical' : a.priority === 'high' ? 'warning' : 'info',
+        frameworks: a.frameworks || ['SOC 2', 'ISO 27001'],
+        category: a.module ? (a.module.toLowerCase() as any) : 'evidence',
+        source: `${a.module} Subsystem`,
+        dueDate: a.daysUntilDue !== undefined ? (a.daysUntilDue <= 0 ? 'Overdue' : `${a.daysUntilDue} days left`) : 'Scheduled',
+        actionLabel: a.actionLabel || 'Remediate',
+        targetRoute: a.actionUrl || '/evidence',
+      }));
+    }
+    return FALLBACK_ITEMS;
+  }, [dbActions]);
 
   const activeItems = items.filter((item) => !resolvedIds.has(item.id));
   const filteredItems = activeItems.filter(
@@ -105,29 +132,31 @@ export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
 
   const criticalCount = activeItems.filter((i) => i.severity === "critical").length;
   const warningCount = activeItems.filter((i) => i.severity === "warning").length;
-  const totalCount = INITIAL_ITEMS.length;
+  const totalCount = items.length;
   const completedCount = resolvedIds.size;
-  const progressPercentage = Math.round((completedCount / totalCount) * 100);
+  const progressPercentage = Math.round((completedCount / (totalCount || 1)) * 100);
 
   const handleResolve = (item: ActionItem) => {
     setIsProcessing(item.id);
+    dismissMutation.mutate({ actionId: item.id, actionType: item.category });
     setTimeout(() => {
       setResolvedIds((prev) => new Set([...prev, item.id]));
       setIsProcessing(null);
       toast.success(`Action Completed: ${item.title}`, {
         description: `Satisfied requirements across: ${item.frameworks.join(", ")}`,
       });
-    }, 600);
+    }, 500);
   };
 
   const handleNavigate = (route?: string) => {
     if (route) {
-      setLocation(clientId ? `/clients/${clientId}${route}` : route);
+      setLocation(clientId ? `/clients/${clientId}${route.startsWith('/') ? route : '/' + route}` : route);
     }
   };
 
   const handleSnooze = (item: ActionItem) => {
     setResolvedIds((prev) => new Set([...prev, item.id]));
+    dismissMutation.mutate({ actionId: item.id, actionType: item.category });
     toast.info("Item Snoozed / Risk Accepted", {
       description: "Added to the audit trail as an accepted operational exception (14 days).",
     });
@@ -225,12 +254,13 @@ export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
               variant="outline"
               onClick={() => {
                 setResolvedIds(new Set());
-                toast.info("Action queue reset to initial state");
+                refetch();
+                toast.info("Action queue refreshed");
               }}
               className="text-xs"
             >
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Reset Demo Queue
+              Refresh Action Queue
             </Button>
           </motion.div>
         ) : (
