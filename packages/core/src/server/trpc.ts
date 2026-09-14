@@ -272,9 +272,11 @@ export const checkPremiumAccess = middleware(async (opts) => {
     const input = rawInput as { clientId?: number };
     const clientId = input?.clientId || ctx.clientId;
 
-    // Allow global admins or client admins/owners to bypass all checks including environment flags
+    const isDev = process.env.NODE_ENV === 'development' || process.env.AUTH_MODE === 'local';
+
+    // In local development mode ONLY, allow dev admins or workspace owners to test premium features
     const clientRole = (ctx as unknown as { clientRole?: string }).clientRole;
-    if (PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '') || clientRole === 'owner' || clientRole === 'admin') {
+    if (isDev && (PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '') || clientRole === 'owner' || clientRole === 'admin')) {
         return next({ ctx: { ...ctx, isPremium: true } });
     }
 
@@ -289,7 +291,7 @@ export const checkPremiumAccess = middleware(async (opts) => {
 
     // Hybrid license enforcement (Phase 1.1): check local cache + offline grace
     const enforcement = enforceLicense();
-    if (enforcement.restrictToCommunity) {
+    if (enforcement.restrictToCommunity && !isDev) {
         throw new TRPCError({
             code: 'PRECONDITION_FAILED',
             message: enforcement.reason === 'expired'
@@ -315,7 +317,7 @@ export const checkPremiumAccess = middleware(async (opts) => {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
         }
 
-        const isPremium = client.planTier === 'consultant' || client.planTier === 'enterprise';
+        const isPremium = isDev || client.planTier === 'consultant' || client.planTier === 'enterprise';
         if (!isPremium) {
             throw new TRPCError({
                 code: 'PRECONDITION_FAILED',
@@ -468,3 +470,5 @@ export const adminProcedure = protectedProcedure.use(requiresMFA).use(isAdmin);
 export const clientProcedure = protectedProcedure.use(requiresMFA).use(checkClientAccess);
 export const clientEditorProcedure = clientProcedure.use(checkClientEditor);
 export const premiumClientProcedure = clientProcedure.use(checkPremiumAccess);
+export const enterpriseProcedure = premiumClientProcedure;
+export const premiumProcedure = premiumClientProcedure;

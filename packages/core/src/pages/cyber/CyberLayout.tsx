@@ -117,6 +117,7 @@ export default function CyberLayout({ children, fullWidth = false, clientId: pro
                     <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 py-1" aria-label="Tabs">
                         {tabs.map((tab) => {
                             const active = isActive(tab.path);
+                            const Icon = tab.icon;
                             return (
                                 <Link
                                     key={tab.path}
@@ -128,7 +129,7 @@ export default function CyberLayout({ children, fullWidth = false, clientId: pro
                                             : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 font-medium"
                                     )}
                                 >
-                                    <item.icon className={cn(
+                                    <Icon className={cn(
                                         "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-200",
                                         active ? "scale-105 text-primary-foreground" : "text-muted-foreground"
                                     )} />

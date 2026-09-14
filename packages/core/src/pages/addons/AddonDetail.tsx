@@ -255,7 +255,7 @@ export default function AddonDetail() {
                       <div className="text-xs text-orange-500/70">High</div>
                     </div>
                     <div className="p-3 rounded-lg bg-amber-500/10 text-center">
-                      <div className="text-2xl font-bold text-amber-500">{scanResult.summary?.total - scanResult.summary?.failed - scanResult.summary?.errors ?? 0}</div>
+                      <div className="text-2xl font-bold text-amber-500">{((scanResult.summary?.total ?? 0) - (scanResult.summary?.failed ?? 0) - (scanResult.summary?.errors ?? 0))}</div>
                       <div className="text-xs text-amber-500/70">Medium/Low</div>
                     </div>
                   </div>

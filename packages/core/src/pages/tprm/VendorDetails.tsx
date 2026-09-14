@@ -28,7 +28,7 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { VendorTrustCenter } from "@/components/tprm/VendorTrustCenter";
 import { RequestItemsDialog } from "@/components/tprm/RequestItemsDialog";
-import VendorMitigationPlanViewer from "@complianceos/premium/components/advisor/VendorMitigationPlanViewer";
+import { ExtensionSlot } from "@/registry/extensionRegistry";
 import GenericFileUploader from "@/components/GenericFileUploader";
 import { EmptyState } from "@complianceos/ui/ui/EmptyState";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
@@ -1415,11 +1415,14 @@ export default function VendorDetails() {
 
                             <div className="flex justify-end pt-4">
                                 <div className="w-full md:w-auto">
-                                    <VendorMitigationPlanViewer
-                                        clientId={clientId}
-                                        vendorId={vId}
-                                        vendorName={vendor.name}
-                                        hasScanData={true}
+                                    <ExtensionSlot
+                                        name="tprm.mitigation-viewer"
+                                        props={{
+                                            clientId,
+                                            vendorId: vId,
+                                            vendorName: vendor.name,
+                                            hasScanData: true
+                                        }}
                                     />
                                 </div>
                             </div>

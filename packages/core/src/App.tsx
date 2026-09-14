@@ -10,7 +10,6 @@ import { BrandingProvider, useBranding } from "./config/branding";
 import { TooltipProvider } from "@complianceos/ui/ui/tooltip";
 import GDPRBanner from "@/components/GDPRBanner";
 import { GlobalCommandPalette } from "./components/common/GlobalCommandPalette";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch, Redirect, useLocation, useParams } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
@@ -23,12 +22,13 @@ import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SystemFeedbackModal } from "@/components/SystemFeedbackModal";
-import { HarmonizationView } from "@/components/controls/HarmonizationView";
 import { ChatWidget } from "@/components/ChatWidget";
 
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { lazyLoad } from "@/lib/lazyLoad";
 import { trpc } from "@/lib/trpc";
+
+const NotFound = lazyLoad(() => import("@/pages/NotFound"));
 
 // Lazy Imports
 const Home = lazyLoad(() => import("./pages/Home"));
@@ -97,10 +97,11 @@ const NIS2ManagementLiability = lazyLoad(() => import("./pages/nis2/NIS2Manageme
 const NIS2CrossBorderCompliance = lazyLoad(() => import("./pages/nis2/NIS2CrossBorderCompliance"));
 const NIS2AuditBundle = lazyLoad(() => import("./pages/nis2/NIS2AuditBundle"));
 
+const HarmonizationViewLazy = lazyLoad(() => import("@/components/controls/HarmonizationView").then(m => ({ default: m.HarmonizationView })));
 const HarmonizationStudio = () => (
   <DashboardLayout>
     <div className="p-6">
-      <HarmonizationView />
+      <HarmonizationViewLazy />
     </div>
   </DashboardLayout>
 );
@@ -466,40 +467,46 @@ function UnifiedClientGuard({
     if (userMe?.planTier && !client) setPlanTier(userMe.planTier);
   }, [userMe, setPlanTier, client]);
 
+  const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
   const tier = client?.planTier || userMe?.planTier;
   const clientRole = client?.userRole || contextRole;
   const globalRole = userMe?.role;
   const isGlobalAdmin = ['admin', 'owner', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
   const isAdminOrOwner = isGlobalAdmin || clientRole === 'owner' || clientRole === 'admin';
-  const isPremiumContext = tier === 'consultant' || tier === 'enterprise' || isAdminOrOwner || clientRole === 'owner' || clientRole === 'admin';
+  const isPremiumTier = tier === 'consultant' || tier === 'enterprise';
+  const isPremiumContext = isDev ? true : isPremiumTier;
 
   useEffect(() => {
     setIsPremiumStatus(isPremiumContext);
   }, [isPremiumContext, setIsPremiumStatus]);
+
+  if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
   if (error?.data?.code === 'PRECONDITION_FAILED') {
     const message = error.message?.toLowerCase() || '';
     if (message.includes('mfa') || message.includes('multi-factor')) {
       return <Redirect to="/settings/security" />;
     }
-    return <Redirect to="/upgrade-required" />;
+    if (!isDev) {
+      return <Redirect to="/upgrade-required" />;
+    }
   }
 
   if (error?.data?.code === 'FORBIDDEN' || error?.data?.code === 'NOT_FOUND') {
     return <Redirect to="/clients" />;
   }
 
-  if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
-
   if (requirePremium) {
     const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
     const isPremium = isPremiumContext;
 
-    if (!enabledInBuild && !isGlobalAdmin && clientRole !== 'owner' && clientRole !== 'admin') {
-      return <Redirect to="/upgrade-required" />;
-    }
-    if (!isPremium) {
-      return <Redirect to="/upgrade-required" />;
+    if (!isDev) {
+      if (!enabledInBuild) {
+        return <Redirect to="/upgrade-required" />;
+      }
+      if (!isPremium) {
+        return <Redirect to="/upgrade-required" />;
+      }
     }
   }
 
@@ -2326,7 +2333,8 @@ function App() {
                   <GDPRBanner />
                   <Router />
                   <ChatWidget />
-                </TooltipProvider>\r\n                </MUIThemeBridge>
+                </TooltipProvider>
+              </MUIThemeBridge>
               </ThemeProvider>
             </AdvisorProvider>
           </BrandingProvider>

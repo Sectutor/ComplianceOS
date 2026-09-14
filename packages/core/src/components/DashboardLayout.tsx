@@ -41,10 +41,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { GlobalNotificationCenter } from "./common/GlobalNotificationCenter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
-import { CopilotButton } from "@complianceos/premium/components/advisor/CopilotButton";
-import { CopilotPanel } from "@complianceos/premium/components/advisor/CopilotPanel";
-
-import { CopilotHelpTrigger } from "@complianceos/premium/components/advisor/CopilotHelpTrigger";
+import { ExtensionSlot } from "@/registry/extensionRegistry";
 import { TourProvider } from "./TourProvider";
 import { useBranding, BrandLogo, CURATED_FONTS, getContrastColor } from "@/config/branding";
 import {
@@ -1462,15 +1459,15 @@ function DashboardLayoutContent({
             {/* Language switcher: hidden pending full i18n page coverage */}
             {/* <LanguageSwitcher compact /> */}
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
-            <CopilotHelpTrigger />
+            <ExtensionSlot name="topbar.copilot-help" />
             <GlobalNotificationCenter />
           </div>
         </div>
         <div className={`flex-1 bg-background w-full max-w-full ${fullWidth ? "px-4 md:px-8 py-4" : "px-4 md:px-8 py-8"}`}>{children}</div>
 
-        {/* AI Copilot Button - Global Access */}
-        <CopilotButton clientId={persistentClientId || undefined} />
-        <CopilotPanel />
+        {/* AI Copilot Extension Slots - Decoupled from Core */}
+        <ExtensionSlot name="global.copilot" props={{ clientId: persistentClientId || undefined }} />
+        <ExtensionSlot name="global.copilot-panel" />
       </SidebarInset>
     </div>
   );

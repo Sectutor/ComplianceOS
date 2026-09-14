@@ -46,8 +46,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes fresh cache for instant navigation
-      gcTime: 15 * 60 * 1000, // Keep cached data in memory for 15 minutes
+      gcTime: 30 * 60 * 1000, // Keep cached data in memory for 30 minutes
       refetchOnWindowFocus: false, // Prevent layout flashes on tab switches
+      refetchOnMount: false, // Instant zero-delay cached render when returning to visited views
+      refetchOnReconnect: 'always',
       retry: 1, // Single fast retry before error boundary fallback
     },
   },

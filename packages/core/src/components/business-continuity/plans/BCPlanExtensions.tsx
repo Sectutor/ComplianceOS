@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Save, Plus, Trash2, FileText, Link as LinkIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { AIEnhanceButton } from "@complianceos/premium/components/advisor/AIEnhanceButton";
+import { ExtensionSlot } from "@/registry/extensionRegistry";
 
 // --- Introduction Editor (Purpose, Scope, Assumptions) ---
 export function PlanIntroductionEditor({ planId, clientId }: { planId: number, clientId: number }) {
@@ -47,14 +47,17 @@ export function PlanIntroductionEditor({ planId, clientId }: { planId: number, c
                         <CardTitle>Plan Introduction</CardTitle>
                         <CardDescription>Define the purpose and objectives of this recovery plan.</CardDescription>
                     </div>
-                    <AIEnhanceButton
-                        clientId={clientId}
-                        planId={planId}
-                        sectionKey="intro"
-                        currentContent={content.intro}
-                        onApply={(val) => {
-                            setContent(prev => ({ ...prev, intro: val }));
-                            handleSave('intro', val);
+                    <ExtensionSlot
+                        name="ai.enhance-button"
+                        props={{
+                            clientId,
+                            planId,
+                            sectionKey: "intro",
+                            currentContent: content.intro,
+                            onApply: (val: string) => {
+                                setContent(prev => ({ ...prev, intro: val }));
+                                handleSave('intro', val);
+                            }
                         }}
                     />
                 </CardHeader>
@@ -78,14 +81,17 @@ export function PlanIntroductionEditor({ planId, clientId }: { planId: number, c
                         <CardTitle>Scope</CardTitle>
                         <CardDescription>What is covered by this plan, and what is excluded?</CardDescription>
                     </div>
-                    <AIEnhanceButton
-                        clientId={clientId}
-                        planId={planId}
-                        sectionKey="scope"
-                        currentContent={content.scope}
-                        onApply={(val) => {
-                            setContent(prev => ({ ...prev, scope: val }));
-                            handleSave('scope', val);
+                    <ExtensionSlot
+                        name="ai.enhance-button"
+                        props={{
+                            clientId,
+                            planId,
+                            sectionKey: "scope",
+                            currentContent: content.scope,
+                            onApply: (val: string) => {
+                                setContent(prev => ({ ...prev, scope: val }));
+                                handleSave('scope', val);
+                            }
                         }}
                     />
                 </CardHeader>
@@ -109,14 +115,17 @@ export function PlanIntroductionEditor({ planId, clientId }: { planId: number, c
                         <CardTitle>Assumptions & Dependencies</CardTitle>
                         <CardDescription>External factors or conditions assumed to be true.</CardDescription>
                     </div>
-                    <AIEnhanceButton
-                        clientId={clientId}
-                        planId={planId}
-                        sectionKey="assumptions"
-                        currentContent={content.assumptions}
-                        onApply={(val) => {
-                            setContent(prev => ({ ...prev, assumptions: val }));
-                            handleSave('assumptions', val);
+                    <ExtensionSlot
+                        name="ai.enhance-button"
+                        props={{
+                            clientId,
+                            planId,
+                            sectionKey: "assumptions",
+                            currentContent: content.assumptions,
+                            onApply: (val: string) => {
+                                setContent(prev => ({ ...prev, assumptions: val }));
+                                handleSave('assumptions', val);
+                            }
                         }}
                     />
                 </CardHeader>
@@ -167,14 +176,17 @@ export function PlanActivationEditor({ planId, clientId }: { planId: number, cli
                         <CardTitle>Activation Criteria</CardTitle>
                         <CardDescription>When should this plan be invoked?</CardDescription>
                     </div>
-                    <AIEnhanceButton
-                        clientId={clientId}
-                        planId={planId}
-                        sectionKey="activation"
-                        currentContent={criteria}
-                        onApply={(val) => {
-                            setCriteria(val);
-                            handleSave('activation_criteria', val);
+                    <ExtensionSlot
+                        name="ai.enhance-button"
+                        props={{
+                            clientId,
+                            planId,
+                            sectionKey: "activation",
+                            currentContent: criteria,
+                            onApply: (val: string) => {
+                                setCriteria(val);
+                                handleSave('activation_criteria', val);
+                            }
                         }}
                     />
                 </CardHeader>
@@ -198,15 +210,18 @@ export function PlanActivationEditor({ planId, clientId }: { planId: number, cli
                         <CardTitle>Escalation Procedures</CardTitle>
                         <CardDescription>How to escalate an incident to full crisis mode.</CardDescription>
                     </div>
-                    <AIEnhanceButton
-                        clientId={clientId}
-                        planId={planId}
-                        sectionKey="activation" // Reusing activation key or could add new one
-                        currentContent={escalation}
-                        label="AI Assist (Escalation)"
-                        onApply={(val) => {
-                            setEscalation(val);
-                            handleSave('escalation_procedures', val);
+                    <ExtensionSlot
+                        name="ai.enhance-button"
+                        props={{
+                            clientId,
+                            planId,
+                            sectionKey: "activation",
+                            currentContent: escalation,
+                            label: "AI Assist (Escalation)",
+                            onApply: (val: string) => {
+                                setEscalation(val);
+                                handleSave('escalation_procedures', val);
+                            }
                         }}
                     />
                 </CardHeader>

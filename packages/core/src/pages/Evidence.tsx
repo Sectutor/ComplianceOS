@@ -11,6 +11,7 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
+import { PageHeader } from "@complianceos/ui/ui/PageHeader";
 import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid, Pencil } from "lucide-react";
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
@@ -425,73 +426,81 @@ export default function Evidence() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 w-full max-w-full p-6 pb-10">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Button variant="ghost" size="sm" onClick={() => setLocation(`/clients/${clientId}`)} className="h-8 w-8 p-0">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Evidence & Documents</h1>
-            </div>
-            <p className="text-muted-foreground ml-10">{client?.name} &bull; Phase 2: Implementation</p>
-          </div>
-          {/* Automated evidence sources (scorecard P0 #1 - collector connections) */}
-          <CollectorConnectionsPanel clientId={clientId} />
-
-
-          <PageGuide
-            title="Evidence Command Center"
-            description="Manage your compliance implementation through structured evidence collection."
-            rationale="An auditor doesn't take your word for it—they need proof. This screen allows you to map documents (SOPs, screenshots, logs) to specific master controls, proving your security posture."
-            howToUse={[
-              {
-                step: "Framework Selection",
-                description: "Filter by framework (e.g., NIST 800-53) to see which controls are missing evidence.",
-                targetId: "evidence-framework-selector"
-              },
-              {
-                step: "Search Controls",
-                description: "Quickly find a specific control by its ID or keyword to review its existing evidence.",
-                targetId: "evidence-search"
-              },
-              {
-                step: "Upload Documents",
-                description: "Click 'Add document' to link a new piece of evidence to a control. You can upload files or link external URLs.",
-                targetId: "evidence-add-document"
-              },
-              {
-                step: "Monitor Status",
-                description: "Track 'Verified OK' vs 'Missing Docs' to see where remediation resources are needed most.",
-                targetId: "evidence-stats-summary"
-              },
-              {
-                step: "Bulk Export",
-                description: "Use the 'Export all' button to generate a ZIP file of all evidence for your auditor.",
-                targetId: "evidence-export-all"
-              }
-            ]}
-            scenarios={[
-              {
-                title: "Preparing for Stage 2 Audit",
-                example: "The auditor is arriving tomorrow and you need to ensure every 'Implemented' control has a 'Verified' document.",
-                auditTip: "Set the Status filter to 'Needs Documents'. This will highlight the 'Empty' controls. Every control marked as 'Implemented' in Phase 1 MUST have at least one verified document in Phase 2."
-              },
-              {
-                title: "Handling Multi-Framework Audits",
-                example: "You are being audited for both SOC 2 and ISO 27001 at the same time.",
-                auditTip: "Use the 'Framework Filter'. ComplianceOS uses 'Evidence Inheritance'—if you upload a password policy for SOC 2, it automatically maps to the equivalent ISO 27001 control to save you dual-work."
-              }
+      <div className="space-y-6 w-full max-w-full">
+        {/* Navigation & Breadcrumb */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation(`/clients/${clientId}`)}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Client
+          </Button>
+          <Breadcrumb
+            items={[
+              { label: client?.name || "Client", href: `/clients/${clientId}` },
+              { label: "Evidence & Documents" },
             ]}
           />
+        </div>
 
-          <div className="flex items-center gap-3">
-            <Button 
+        {/* Standard Page Header */}
+        <PageHeader
+          title="Evidence & Documents"
+          subtitle={`${client?.name || "Client"} • Continuous Evidence Collection, Verification & Audit Readiness`}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <PageGuide
+                title="Evidence Command Center"
+                description="Manage your compliance implementation through structured evidence collection."
+                rationale="An auditor doesn't take your word for it—they need proof. This screen allows you to map documents (SOPs, screenshots, logs) to specific master controls, proving your security posture."
+                howToUse={[
+                  {
+                    step: "Framework Selection",
+                    description: "Filter by framework (e.g., NIST 800-53) to see which controls are missing evidence.",
+                    targetId: "evidence-framework-selector"
+                  },
+                  {
+                    step: "Search Controls",
+                    description: "Quickly find a specific control by its ID or keyword to review its existing evidence.",
+                    targetId: "evidence-search"
+                  },
+                  {
+                    step: "Upload Documents",
+                    description: "Click 'Add document' to link a new piece of evidence to a control. You can upload files or link external URLs.",
+                    targetId: "evidence-add-document"
+                  },
+                  {
+                    step: "Monitor Status",
+                    description: "Track 'Verified OK' vs 'Missing Docs' to see where remediation resources are needed most.",
+                    targetId: "evidence-stats-summary"
+                  },
+                  {
+                    step: "Bulk Export",
+                    description: "Use the 'Export all' button to generate a ZIP file of all evidence for your auditor.",
+                    targetId: "evidence-export-all"
+                  }
+                ]}
+                scenarios={[
+                  {
+                    title: "Preparing for Stage 2 Audit",
+                    example: "The auditor is arriving tomorrow and you need to ensure every 'Implemented' control has a 'Verified' document.",
+                    auditTip: "Set the Status filter to 'Needs Documents'. This will highlight the 'Empty' controls. Every control marked as 'Implemented' in Phase 1 MUST have at least one verified document in Phase 2."
+                  },
+                  {
+                    title: "Handling Multi-Framework Audits",
+                    example: "You are being audited for both SOC 2 and ISO 27001 at the same time.",
+                    auditTip: "Use the 'Framework Filter'. ComplianceOS uses 'Evidence Inheritance'—if you upload a password policy for SOC 2, it automatically maps to the equivalent ISO 27001 control to save you dual-work."
+                  }
+                ]}
+              />
+
+              <Button 
                 id="evidence-export-all" 
                 variant="outline" 
                 size="sm" 
-                className="hidden sm:flex border-[#5844ED]/20 text-[#5844ED] hover:bg-[#5844ED]/5"
                 onClick={async () => {
                   const promise = packMutation.mutateAsync({ clientId, framework: frameworkFilter === 'all' ? undefined : frameworkFilter });
                   toast.promise(promise, {
@@ -504,12 +513,12 @@ export default function Evidence() {
                   });
                 }}
               >
-              <Shield className="mr-2 h-4 w-4" /> Sealed Pack
-            </Button>
-            <Button 
+                <Shield className="mr-2 h-4 w-4" /> Sealed Pack
+              </Button>
+              <Button 
                 variant="outline" 
                 size="sm" 
-                className="hidden sm:flex border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100/50"
+                className="border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100/50 dark:border-amber-900/50 dark:text-amber-300 dark:bg-amber-950/30"
                 onClick={() => {
                   const promise = checkExpirationsMutation.mutateAsync({ clientId });
                   toast.promise(promise, {
@@ -518,269 +527,198 @@ export default function Evidence() {
                     error: 'Failed to synchronize staleness'
                   });
                 }}
-            >
-              <Clock className="mr-2 h-4 w-4" /> Sync Staleness
-            </Button>
-            <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => setLocation(`/clients/${clientId}/evidence/overview`)}>
-              <BookOpen className="mr-2 h-4 w-4" /> Usage Guide
-            </Button>
-            <EnhancedDialog
-              open={isAddOpen}
-              onOpenChange={setIsAddOpen}
-              trigger={
-                <Button className="font-semibold" id="evidence-add-document">
-                  <Plus className="mr-2 h-4 w-4" /> Add document
-                </Button>
-              }
-              title="Add Evidence"
-              description="Track evidence for a control."
-              footer={
-                <div className="flex justify-end gap-2 w-full">
-                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                    Cancel
+              >
+                <Clock className="mr-2 h-4 w-4" /> Sync Staleness
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setLocation(`/clients/${clientId}/evidence/overview`)}>
+                <BookOpen className="mr-2 h-4 w-4" /> Usage Guide
+              </Button>
+              <EnhancedDialog
+                open={isAddOpen}
+                onOpenChange={setIsAddOpen}
+                trigger={
+                  <Button size="sm" className="font-semibold gap-1.5" id="evidence-add-document">
+                    <Plus className="h-4 w-4" /> Add Document
                   </Button>
-                  <Button
-                    
-                    onClick={(e) => {
-                      const form = document.getElementById('add-evidence-form') as HTMLFormElement;
-                      if (form) form.requestSubmit();
-                    }}
-                    disabled={createMutation.isPending || isUploading}
-                  >
-                    {createMutation.isPending || isUploading ? "Adding & Uploading..." : "Add Evidence"}
-                  </Button>
-                </div>
-              }
-              size="lg"
-            >
-              <form id="add-evidence-form" onSubmit={handleCreate} onReset={() => {
-                setSelectedClientControlId("");
-                setSelectedOwner("");
-                setSelectedRaci("R");
-              }}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label>Evidence ID</Label>
-                      <Input name="evidenceId" defaultValue={getNextEvidenceId()} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Control *</Label>
-                      <Select value={selectedClientControlId} onValueChange={setSelectedClientControlId}>
-                        <SelectTrigger className={!selectedClientControlId ? "border-red-500" : ""}>
-                          <SelectValue placeholder="Select control" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {clientControls?.map((item) => (
-                            <SelectItem key={item.clientControl.id} value={item.clientControl.id.toString()}>
-                              {item.clientControl.clientControlId} - {item.control?.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Description</Label>
-                    <Textarea name="description" placeholder="Describe the evidence..." className="min-h-[100px]" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label>Type</Label>
-                      <Select name="type" defaultValue="Document">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Document">Document</SelectItem>
-                          <SelectItem value="Screenshot">Screenshot</SelectItem>
-                          <SelectItem value="Log">Log</SelectItem>
-                          <SelectItem value="Report">Report</SelectItem>
-                          <SelectItem value="Configuration">Configuration</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Status</Label>
-                      <Select name="status" defaultValue="pending">
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="verified">Verified</SelectItem>
-                          <SelectItem value="expired">Expired</SelectItem>
-                          <SelectItem value="not_applicable">Not Applicable</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                       <Label>Verification Interval (Days)</Label>
-                       <Input name="intervalDays" type="number" defaultValue="365" />
-                    </div>
-                    <div className="grid gap-2">
-                       <Label>Expiration Date (Optional)</Label>
-                       <Input name="expirationDate" type="date" />
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Location</Label>
-                    <Input name="location" placeholder="URL, file path, or system name..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label>Owner</Label>
-                      <Select value={selectedOwner} onValueChange={setSelectedOwner}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select employee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {employees?.map((emp) => (
-                            <SelectItem key={emp.id} value={emp.id.toString()}>
-                              {emp.firstName} {emp.lastName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>RACI Role</Label>
-                      <Select value={selectedRaci} onValueChange={setSelectedRaci}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="R">Responsible</SelectItem>
-                          <SelectItem value="A">Accountable</SelectItem>
-                          <SelectItem value="C">Consulted</SelectItem>
-                          <SelectItem value="I">Informed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2 mt-4">
-                    <Label>Attachments</Label>
-                    <div
-                      title={EVIDENCE_FILES_LIVE ? undefined : "Evidence file uploads aren't available in this deployment"}
-                      onClick={() => EVIDENCE_FILES_LIVE ? document.getElementById('evidence-file-upload')?.click() : toast.info("Evidence file uploads aren't available in this deployment.")}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (!EVIDENCE_FILES_LIVE) { toast.info("Evidence file uploads aren't available in this deployment."); } else if (e.dataTransfer.files) {
-                          setSelectedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-                        }
+                }
+                title="Add Evidence"
+                description="Track evidence for a control."
+                footer={
+                  <div className="flex justify-end gap-2 w-full">
+                    <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const form = document.getElementById('add-evidence-form') as HTMLFormElement;
+                        if (form) form.requestSubmit();
                       }}
+                      disabled={createMutation.isPending || isUploading}
                     >
-                      <input id="evidence-file-upload" type="file" className="hidden" multiple onChange={(e) => {
-                        if (!EVIDENCE_FILES_LIVE) { toast.info("Evidence file uploads aren't available in this deployment."); e.target.value = ""; } else if (e.target.files) setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
-                      }} />
-                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-sm font-medium text-foreground/80">Drag & drop files here, or click to select</p>
-                      <p className="text-xs text-muted-foreground mt-1">Supports PDF, PNG, JPG, DOCX</p>
-                    </div>
-                    {selectedFiles.length > 0 && (
-                      <div className="space-y-2 mt-2">
-                        {selectedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-muted/50 p-2 rounded-md border border-border text-sm">
-                            <span className="truncate max-w-[200px] flex items-center gap-2">
-                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                              {file.name}
-                            </span>
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-                            }}>
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                      {createMutation.isPending || isUploading ? "Adding & Uploading..." : "Add Evidence"}
+                    </Button>
                   </div>
-                </div>
-              </form>
-            </EnhancedDialog>
-          </div>
-        </div>
+                }
+                size="lg"
+              >
+                <form id="add-evidence-form" onSubmit={handleCreate} onReset={() => {
+                  setSelectedClientControlId("");
+                  setSelectedOwner("");
+                  setSelectedRaci("R");
+                }}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Evidence ID</Label>
+                        <Input name="evidenceId" defaultValue={getNextEvidenceId()} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Control *</Label>
+                        <Select value={selectedClientControlId} onValueChange={setSelectedClientControlId}>
+                          <SelectTrigger className={!selectedClientControlId ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select control" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {clientControls?.map((item) => (
+                              <SelectItem key={item.clientControl.id} value={item.clientControl.id.toString()}>
+                                {item.clientControl.clientControlId} - {item.control?.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Description</Label>
+                      <Textarea name="description" placeholder="Describe the evidence..." className="min-h-[100px]" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Type</Label>
+                        <Select name="type" defaultValue="Document">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Document">Document</SelectItem>
+                            <SelectItem value="Screenshot">Screenshot</SelectItem>
+                            <SelectItem value="Log">Log</SelectItem>
+                            <SelectItem value="Report">Report</SelectItem>
+                            <SelectItem value="Configuration">Configuration</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Status</Label>
+                        <Select name="status" defaultValue="pending">
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="verified">Verified</SelectItem>
+                            <SelectItem value="expired">Expired</SelectItem>
+                            <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                         <Label>Verification Interval (Days)</Label>
+                         <Input name="intervalDays" type="number" defaultValue="365" />
+                      </div>
+                      <div className="grid gap-2">
+                         <Label>Expiration Date (Optional)</Label>
+                         <Input name="expirationDate" type="date" />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Location</Label>
+                      <Input name="location" placeholder="URL, file path, or system name..." />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Owner</Label>
+                        <Select value={selectedOwner} onValueChange={setSelectedOwner}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select employee" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {employees?.map((emp) => (
+                              <SelectItem key={emp.id} value={emp.id.toString()}>
+                                {emp.firstName} {emp.lastName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>RACI Role</Label>
+                        <Select value={selectedRaci} onValueChange={setSelectedRaci}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="R">Responsible</SelectItem>
+                            <SelectItem value="A">Accountable</SelectItem>
+                            <SelectItem value="C">Consulted</SelectItem>
+                            <SelectItem value="I">Informed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-        {/* Framework Selector - High Assurance Implementation */}
-        <div className="bg-card/60 backdrop-blur-xl rounded-2xl border border-border shadow-sm p-6 mb-8 relative overflow-hidden" id="evidence-framework-selector">
-          <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-[#5844ED] to-blue-600 text-white shadow-lg shadow-[#5844ED]/20 hover:scale-105 transition-transform duration-300">
-                <Shield className="h-8 w-8" />
-              </div>
-              <div>
-                <Label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#5844ED]/70 mb-2 block leading-none">Compliance Identity</Label>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-3xl font-black text-foreground tracking-tight leading-none">
-                    {frameworkFilter === 'all' ? 'Consolidated Frameworks' : frameworkFilter}
-                  </h2>
-                  <Badge className="bg-[#5844ED]/10 text-[#5844ED] border-[#5844ED]/20 shadow-none h-6 px-3 text-[10px] font-black tracking-wider animate-pulse uppercase">LIVE VIEW</Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 bg-card/80 p-1.5 rounded-2xl border border-border shadow-sm backdrop-blur-sm">
-                <div className="relative group ml-1">
-                  <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-[#5844ED] transition-colors" />
-                  <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
-                    <SelectTrigger className="w-[320px] h-11 pl-10 bg-card border-transparent hover:bg-muted/50 transition-all rounded-xl font-bold text-foreground/80 shadow-sm focus:ring-[#5844ED]/20 relative">
-                      <SelectValue placeholder="Switch Framework..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-lg">
-                      <SelectItem value="all" className="font-bold text-[#5844ED]">
-                        <div className="flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4" /> All Frameworks (Consolidated)
+                    <div className="grid gap-2 mt-4">
+                      <Label>Attachments</Label>
+                      <div
+                        className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-muted/40 transition-colors cursor-pointer"
+                        title={EVIDENCE_FILES_LIVE ? undefined : "Evidence file uploads aren't available in this deployment"}
+                        onClick={() => EVIDENCE_FILES_LIVE ? document.getElementById('evidence-file-upload')?.click() : toast.info("Evidence file uploads aren't available in this deployment.")}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (!EVIDENCE_FILES_LIVE) { toast.info("Evidence file uploads aren't available in this deployment."); } else if (e.dataTransfer.files) {
+                            setSelectedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+                          }
+                        }}
+                      >
+                        <input id="evidence-file-upload" type="file" className="hidden" multiple onChange={(e) => {
+                          if (!EVIDENCE_FILES_LIVE) { toast.info("Evidence file uploads aren't available in this deployment."); e.target.value = ""; } else if (e.target.files) setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                        }} />
+                        <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm font-medium text-foreground">Drag & drop files here, or click to select</p>
+                        <p className="text-xs text-muted-foreground mt-1">Supports PDF, PNG, JPG, DOCX</p>
+                      </div>
+                      {selectedFiles.length > 0 && (
+                        <div className="space-y-2 mt-2">
+                          {selectedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between bg-muted/50 p-2 rounded-md border border-border text-sm">
+                              <span className="truncate max-w-[200px] flex items-center gap-2">
+                                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                                {file.name}
+                              </span>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+                              }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      </SelectItem>
-                      <Separator className="my-2" />
-                      {uniqueFrameworks.map(fw => (
-                        <SelectItem key={fw} value={fw} className="rounded-lg mb-1 focus:bg-[#5844ED]/5 focus:text-[#5844ED] font-medium">
-                          {fw}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="h-7 w-[1px] bg-border mx-1" />
-
-                <Select id="evidence-filter-status" value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px] h-11 bg-transparent border-transparent hover:bg-card transition-all rounded-xl font-bold text-muted-foreground gap-2">
-                    <Filter className="h-4 w-4 opacity-50" />
-                    <SelectValue placeholder="Filter" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl shadow-xl">
-                    <SelectItem value="all" className="font-medium">All Documents</SelectItem>
-                    <SelectItem value="need_documents" className="font-medium">Need Docs</SelectItem>
-                    <SelectItem value="ok" className="font-medium">Verified OK</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="relative group w-full md:w-72">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-[#5844ED] transition-colors" />
-                <Input
-                  id="evidence-search"
-                  placeholder="Search in view..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-14 md:h-11 pl-11 border-border bg-card/80 backdrop-blur-sm rounded-2xl shadow-sm focus:ring-[#5844ED]/20 focus:border-[#5844ED]/30 transition-all font-medium"
-                />
-              </div>
+                      )}
+                    </div>
+                  </div>
+                </form>
+              </EnhancedDialog>
             </div>
-          </div>
-        </div>
+          }
+        />
 
-                {/* Global Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="evidence-stats-summary">
+        {/* Global Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="evidence-stats-summary">
           <StatCard
             label="Total Controls"
             value={groupedData.reduce((acc, cat) => acc + cat.totalItems, 0)}
@@ -812,13 +750,73 @@ export default function Evidence() {
             tone="brand"
           />
         </div>
+
+        {/* Automated evidence sources (scorecard P0 #1 - collector connections) */}
+        <CollectorConnectionsPanel clientId={clientId} />
+
+        {/* Framework & Status Filter Bar */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card shadow-xs" id="evidence-framework-selector">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Framework:</span>
+              <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
+                <SelectTrigger className="w-[240px] h-9">
+                  <SelectValue placeholder="Select Framework..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2 font-medium">
+                      <BarChart3 className="h-4 w-4 text-primary" /> All Frameworks (Consolidated)
+                    </div>
+                  </SelectItem>
+                  <Separator className="my-1" />
+                  {uniqueFrameworks.map(fw => (
+                    <SelectItem key={fw} value={fw}>
+                      {fw}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="h-5 w-px bg-border hidden sm:block" />
+
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Status:</span>
+              <Select id="evidence-filter-status" value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px] h-9">
+                  <SelectValue placeholder="All Documents" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Documents</SelectItem>
+                  <SelectItem value="need_documents">Need Docs</SelectItem>
+                  <SelectItem value="ok">Verified OK</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="evidence-search"
+              placeholder="Search controls or evidence..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        </div>
+
         {/* Expiring & Renewal (evidenceRenewal.* endpoints; graceful fallback) */}
         <EvidenceRenewalPanel clientId={clientId} />
 
         {/* NIS2 Evidence Repository (evidenceRepository.* endpoints; graceful fallback) */}
         <EvidenceRepositoryPanels clientId={clientId} />
 
-{/* Main Content - Categories */}
+        {/* Main Content - Categories */}
         {
           isLoading ? (
             <div className="space-y-4">
@@ -826,52 +824,52 @@ export default function Evidence() {
               <Skeleton className="h-40 w-full rounded-xl" />
             </div>
           ) : groupedData.length > 0 ? (
-            <div className="space-y-8" id="evidence-domain-list">
+            <div className="space-y-6" id="evidence-domain-list">
               {groupedData.map((category) => (
-                <div key={category.name} className="space-y-4">
-                  <div className="flex items-center justify-between px-2">
-                    <h2 className="text-xl font-bold text-foreground">{category.name}</h2>
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-card px-3 py-1 rounded-full border border-border">
-                      <div className={`h-2.5 w-2.5 rounded-full border ${category.okItems === category.totalItems ? 'bg-green-500 border-green-200' : 'bg-amber-400 border-amber-200'}`} />
+                <div key={category.name} className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h2 className="text-lg font-bold text-foreground">{category.name}</h2>
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-card px-3 py-1 rounded-full border border-border">
+                      <div className={`h-2 w-2 rounded-full ${category.okItems === category.totalItems ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                       {category.okItems} / {category.totalItems} OK
                     </div>
                   </div>
 
-                  <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                  <div className="bg-card rounded-xl border border-border shadow-xs overflow-hidden">
                     <Accordion type="multiple" defaultValue={Object.keys(category.subgroups)} className="divide-y divide-border">
                       {Object.values(category.subgroups).map((subgroup: any) => (
                         <AccordionItem key={subgroup.name} value={subgroup.name} className="border-none">
-                          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-all group border-b border-transparent data-[state=open]:border-border">
-                            <div className="flex items-center justify-between w-full pr-6">
+                          <AccordionTrigger className="px-5 py-3.5 hover:no-underline hover:bg-muted/40 transition-all group border-b border-transparent data-[state=open]:border-border">
+                            <div className="flex items-center justify-between w-full pr-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted group-data-[state=open]:bg-[#5844ED]/10 group-data-[state=open]:text-[#5844ED] transition-colors">
+                                <div className="flex items-center justify-center h-6 w-6 rounded-md bg-muted group-data-[state=open]:bg-primary/10 group-data-[state=open]:text-primary transition-colors">
                                   <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
                                 </div>
-                                <span className="font-bold text-foreground/80 tracking-tight">{subgroup.name}</span>
+                                <span className="font-semibold text-foreground tracking-tight">{subgroup.name}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 {subgroup.items.some((i: any) => i.evidence.length === 0) && (
-                                  <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold px-2 py-0 h-6 border-amber-100 border shadow-sm">
+                                  <Badge variant="secondary" className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 font-semibold px-2 py-0.5 h-6 border-amber-200 dark:border-amber-800 border">
                                     {subgroup.items.filter((i: any) => i.evidence.length === 0).length} Action Required
                                   </Badge>
                                 )}
-                                <Badge className="bg-muted/50 text-muted-foreground font-medium px-2 py-0 h-6 border-border border shadow-none">
+                                <Badge variant="outline" className="text-muted-foreground font-medium px-2 py-0.5 h-6">
                                   {subgroup.items.length} Controls
                                 </Badge>
                               </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            <div className="border-t border-border bg-muted/30">
+                            <div className="border-t border-border bg-muted/20">
                               <Table>
                                 <TableBody>
                                   {subgroup.items.map((item: any) => (
-                                    <TableRow key={item.clientControl.id} className="hover:bg-card group/row border-b border-border last:border-0 transition-colors">
-                                      <TableCell className="w-12 text-center text-muted-foreground font-mono text-[10px] opacity-50 group-hover/row:opacity-100">
+                                    <TableRow key={item.clientControl.id} className="hover:bg-card/80 group/row border-b border-border last:border-0 transition-colors">
+                                      <TableCell className="w-16 text-center text-muted-foreground font-mono text-xs opacity-60 group-hover/row:opacity-100">
                                         {item.clientControl.clientControlId}
                                       </TableCell>
-                                      <TableCell className="max-w-[300px]">
-                                        <div className="font-semibold text-foreground">{item.control?.name}</div>
+                                      <TableCell className="max-w-[320px]">
+                                        <div className="font-medium text-foreground text-sm">{item.control?.name}</div>
                                         <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.control?.description}</div>
                                       </TableCell>
                                       <TableCell>
@@ -879,11 +877,11 @@ export default function Evidence() {
                                           <div className="flex flex-wrap gap-2">
                                             {item.evidence.map((ev: any) => (
                                               <div key={ev.evidence.id} className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2 bg-card px-2 py-1 rounded-md border border-border text-xs shadow-sm group/ev">
-                                                  <span className="font-medium text-foreground/80">{ev.evidence.evidenceId}</span>
-                                                  <span className={`h-1.5 w-1.5 rounded-full ${ev.evidence.status === 'verified' ? 'bg-green-500' :
-                                                    ev.evidence.status === 'pending' ? 'bg-blue-400' :
-                                                      ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-muted'
+                                                <div className="flex items-center gap-2 bg-card px-2.5 py-1 rounded-md border border-border text-xs shadow-2xs group/ev">
+                                                  <span className="font-medium text-foreground">{ev.evidence.evidenceId}</span>
+                                                  <span className={`h-1.5 w-1.5 rounded-full ${ev.evidence.status === 'verified' ? 'bg-emerald-500' :
+                                                    ev.evidence.status === 'pending' ? 'bg-blue-500' :
+                                                      ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-muted-foreground'
                                                     }`} />
 
                                                   {ev.isInherited && (
@@ -893,13 +891,13 @@ export default function Evidence() {
                                                   )}
 
                                                   <div className="flex items-center gap-1 ml-1 opacity-0 group-hover/ev:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-indigo-500" onClick={() => setEditingEvidence(ev.evidence.id)}>
-                                                      <Plus className="h-3 w-3" /> {/* Using Plus as a quick pencil substitute if Pencil is missing, but Pencil is better */}
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => setEditingEvidence(ev.evidence.id)} title="Edit Evidence">
+                                                      <Pencil className="h-3 w-3" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setViewingFiles(ev.evidence.id)}>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => setViewingFiles(ev.evidence.id)} title="View & Attach Files">
                                                       <Paperclip className="h-3 w-3" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={() => handleDelete(ev.evidence)}>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive/80 hover:text-destructive" onClick={() => handleDelete(ev.evidence)} title="Delete Evidence">
                                                       <Trash2 className="h-3 w-3" />
                                                     </Button>
                                                   </div>
@@ -912,18 +910,18 @@ export default function Evidence() {
                                                 )}
                                               </div>
                                             ))}
-                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full border border-dashed border-border" onClick={() => {
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full border border-dashed border-border hover:bg-muted" onClick={() => {
                                               setSelectedClientControlId(item.clientControl.id.toString());
                                               setIsAddOpen(true);
-                                            }}>
+                                            }} title="Add another document">
                                               <Plus className="h-3 w-3" />
                                             </Button>
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-2 text-muted-foreground italic text-sm">
-                                            <AlertCircle className="h-3.5 w-3.5" />
-                                            No evidence provided
-                                            <Button variant="link" size="sm" className="h-fit p-0 ml-1 text-[#5844ED] font-semibold" onClick={() => {
+                                          <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                                            <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                                            <span>No evidence provided</span>
+                                            <Button variant="link" size="sm" className="h-auto p-0 text-primary font-medium hover:underline text-xs" onClick={() => {
                                               setSelectedClientControlId(item.clientControl.id.toString());
                                               setIsAddOpen(true);
                                             }}>
@@ -933,16 +931,16 @@ export default function Evidence() {
                                         )}
                                       </TableCell>
                                       <TableCell className="w-40">
-                                        <div className="flex items-center gap-2 text-foreground/70 text-xs">
-                                          <User className="h-3 w-3 text-muted-foreground" />
-                                          {item.clientControl.owner || "Unassigned"}
+                                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                                          <User className="h-3 w-3" />
+                                          <span className="truncate">{item.clientControl.owner || "Unassigned"}</span>
                                         </div>
                                       </TableCell>
-                                      <TableCell className="w-10">
+                                      <TableCell className="w-10 text-right">
                                         <EnhancedDialog
-                                          open={viewingFiles === item.evidence[0]?.evidence.id} // Simple shim for view
+                                          open={viewingFiles === item.evidence[0]?.evidence.id}
                                           onOpenChange={(open) => !open && setViewingFiles(null)}
-                                          trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Info className="h-4 w-4" /></Button>}
+                                          trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"><Info className="h-4 w-4" /></Button>}
                                           title="Control Details"
                                           size="lg"
                                         >
@@ -950,16 +948,16 @@ export default function Evidence() {
                                             <div className="grid grid-cols-2 gap-4">
                                               <div>
                                                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Framework</Label>
-                                                <div className="font-medium">{item.control?.framework}</div>
+                                                <div className="font-medium mt-1">{item.control?.framework}</div>
                                               </div>
                                               <div>
                                                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Frequency</Label>
-                                                <div className="font-medium">{item.control?.frequency || "Continuous"}</div>
+                                                <div className="font-medium mt-1">{item.control?.frequency || "Continuous"}</div>
                                               </div>
                                             </div>
                                             <div>
                                               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Implementation Guidance</Label>
-                                              <p className="text-sm text-foreground/70 mt-1">{item.control?.implementationGuidance || "No guidance available"}</p>
+                                              <p className="text-sm text-foreground/80 mt-1">{item.control?.implementationGuidance || "No guidance available"}</p>
                                             </div>
                                           </div>
                                         </EnhancedDialog>
@@ -978,7 +976,7 @@ export default function Evidence() {
               ))}
             </div>
           ) : (
-                        <EmptyState
+            <EmptyState
               icon={Search}
               title="No documents found"
               description="Try adjusting your search or filters to find what you're looking for."
@@ -1035,7 +1033,7 @@ export default function Evidence() {
               footer={
                 <div className="flex justify-end gap-2 w-full">
                   <Button variant="outline" onClick={() => setEditingEvidence(null)}>Cancel</Button>
-                  <Button  onClick={() => (document.getElementById('edit-evidence-form') as HTMLFormElement)?.requestSubmit()}>
+                  <Button onClick={() => (document.getElementById('edit-evidence-form') as HTMLFormElement)?.requestSubmit()}>
                     Update Evidence
                   </Button>
                 </div>
@@ -1085,7 +1083,7 @@ export default function Evidence() {
                             <SelectContent>
                               <SelectItem value="pending">Pending</SelectItem>
                               <SelectItem value="verified">Verified</SelectItem>
-                               <SelectItem value="expired">Expired</SelectItem>
+                              <SelectItem value="expired">Expired</SelectItem>
                               <SelectItem value="not_applicable">Not Applicable</SelectItem>
                             </SelectContent>
                           </Select>

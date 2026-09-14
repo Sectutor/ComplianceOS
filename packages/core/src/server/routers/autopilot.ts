@@ -5,15 +5,16 @@ import { getDb } from "../../db";
 import { autopilotRuns, autopilotActions } from "../../schema_autopilot";
 import { eq, desc } from "drizzle-orm";
 
-export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedure: any) => {
+export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedure: any, premiumClientProcedure?: any) => {
+  const pProc = premiumClientProcedure || clientProcedure;
   return t.router({
     /** Get autopilot configuration for the client */
-    getConfig: clientProcedure
+    getConfig: pProc
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }) => AutopilotEngine.getConfig(input.clientId)),
 
     /** Update autopilot configuration */
-    updateConfig: clientProcedure
+    updateConfig: pProc
       .input(z.object({
         clientId: z.number(),
         enabled: z.boolean().optional(),
@@ -46,22 +47,22 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
       }),
 
     /** Run autopilot now */
-    runNow: clientProcedure
+    runNow: pProc
       .input(z.object({ clientId: z.number() }))
       .mutation(async ({ input }) => AutopilotEngine.run(input.clientId)),
 
     /** Get run history */
-    getRunHistory: clientProcedure
+    getRunHistory: pProc
       .input(z.object({ clientId: z.number(), limit: z.number().default(10) }))
       .query(async ({ input }) => AutopilotEngine.getRunHistory(input.clientId, input.limit)),
 
     /** Get pending actions requiring review */
-    getPendingActions: clientProcedure
+    getPendingActions: pProc
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }) => AutopilotEngine.getPendingActions(input.clientId)),
 
     /** Approve or reject an action */
-    reviewAction: clientProcedure
+    reviewAction: pProc
       .input(z.object({
         actionId: z.number(),
         status: z.enum(['approved', 'rejected']),
@@ -78,7 +79,7 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
      * They are thin wrappers over reviewAction so the review logic lives in one
      * place. actionId is coerced because the UI passes it as a string.
      */
-    approveAction: clientProcedure
+    approveAction: pProc
       .input(z.object({
         clientId: z.number().optional(),
         actionId: z.coerce.number(),
@@ -88,7 +89,7 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
         return { success: true, actionId: input.actionId, status: 'approved' as const };
       }),
 
-    rejectAction: clientProcedure
+    rejectAction: pProc
       .input(z.object({
         clientId: z.number().optional(),
         actionId: z.coerce.number(),
@@ -119,7 +120,7 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
       }),
 
     /** Get the last autopilot run for a client */
-    getLastRun: clientProcedure
+    getLastRun: pProc
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }) => {
         await ensureAutopilotTablesExist();
@@ -141,7 +142,7 @@ export const createAutopilotRouter = (t: any, clientProcedure: any, adminProcedu
       }),
 
     /** Trigger autopilot run manually */
-    trigger: clientProcedure
+    trigger: pProc
       .input(z.object({ clientId: z.number() }))
       .mutation(async ({ input }) => {
         // Run the autopilot orchestrator

@@ -81,9 +81,21 @@ const APP_VERSION = (() => {
     } catch {
         return '0.0.0';
     }
-})();
+import compression from 'compression';
 
 export const app = express();
+
+// High-Performance Gzip/Deflate compression for all API payloads and static transfers
+app.use(compression({
+    level: 6,
+    threshold: 1024, // Compress any response larger than 1KB
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 
 // Health Check - Moving to top to bypass potential middleware issues
 app.get(['/health', '/api/health'], async (req, res) => {

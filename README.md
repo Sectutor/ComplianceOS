@@ -133,55 +133,45 @@ GRCompliance is built with a modern, type-safe stack designed for performance an
 
 ## 🚀 Getting Started
 
-### Docker (Recommended) — One Command
+### ⚡ One-Command Install (Production Docker Stack)
 
+**Linux & macOS:**
 ```bash
-curl -fsSL https://grcompliance.com/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash
 ```
 
-This clones the repo, builds the image, and starts PostgreSQL + Redis + ComplianceOS on port 3002.
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.ps1 | iex
+```
 
-**Visit http://localhost:3002** to log in. Local auth is seeded on first boot:
-- Email: `admin@complianceos.local`
-- Password: the value of `COMPLIANCE_ADMIN_PASSWORD`, or a random password generated and **printed once in the server startup log** (look for the `🔑 Admin login:` box). Set `COMPLIANCE_ADMIN_EMAIL` to override the email.
+This starts PostgreSQL, Redis, and ComplianceOS on port `3002`, auto-generates your production encryption keys, and initializes your admin account.
 
-> Supabase is optional — local auth works out of the box for self-hosted deployments.
+**Visit http://localhost:3002** to log in:
+- **Email:** `admin@complianceos.local`
+- **Password:** Printed in your terminal during install (or the value set in `.env`)
 
-### Manual Setup (Development)
+---
 
-| Prerequisite  | Version   |
-|---------------|-----------|
-| Node.js       | 20+       |
-| PostgreSQL    | 15+       |
+### 💻 Developer & Bare-Metal Setup (Node.js)
 
 ```bash
-# Clone
+# 1. Clone repository
 git clone https://github.com/sectutor/ComplianceOS.git
 cd ComplianceOS
 
-# Install
+# 2. Install dependencies
 npm install
 
-# Configure
-cp .env.example .env
-# Edit .env: set DATABASE_URL and PORT (default 3002; this repo's dev setup uses 3005)
-
-# Initialize database schema
-npm run db:push
-
-# Start both servers (frontend on 5173, API on your PORT):
-npm run dev:full
-# ...or run them separately:
-npm run dev        # Vite frontend  -> http://localhost:5173
-npm run server     # API backend    -> http://localhost:<PORT>
+# 3. Launch 60-second Quickstart
+npm run quickstart
 ```
 
-Visit `http://localhost:5173` to start using GRCompliance. With local auth
-(`AUTH_MODE=local`), the first boot seeds `admin@complianceos.local` and prints
-the generated password in the server log — see the note above.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-> **Note:** the API server does **not** hot-reload. After editing backend files,
-> restart `npm run server`.
+See the complete [**60-Second Onboarding Guide**](./docs/QUICKSTART.md) for step-by-step framework configuration.
+
+---
 
 ### Production Deployment (canonical path)
 

@@ -20,6 +20,10 @@ export const supabase = (!useLocalAuth && supabaseUrl && supabaseKey)
     ? createClient(supabaseUrl, supabaseKey)
     : (null as unknown as ReturnType<typeof createClient>);
 
+// Fast in-memory cache for user sessions to eliminate redundant DB hits on concurrent batch requests
+const authUserCache = new Map<string, { user: any; expiresAt: number }>();
+const AUTH_CACHE_TTL_MS = 30 * 1000; // 30 seconds TTL
+
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const authInfo: any = { hasAuthHeader: false, supabaseUser: false, dbUser: false };
     (req as any).authInfo = authInfo;
@@ -35,11 +39,16 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         const authHeader = req.headers.authorization;
         if (!authHeader) {
             // Enterprise SSO (cycle 9, scorecard #13): reverse-proxy header auth.
-            // The edge proxy (Traefik/Nginx/Authentik) authenticates the user and
-            // forwards the principal via SSO_PROXY_AUTH_HEADER (default X-Forwarded-User).
             const proxyUser = resolveProxyUser(req.headers as any);
             if (proxyUser) {
                 try {
+                    const cached = authUserCache.get(`sso:${proxyUser.openId}`);
+                    if (cached && cached.expiresAt > Date.now()) {
+                        authInfo.dbUser = true;
+                        authInfo.proxySso = true;
+                        req.user = cached.user;
+                        return next();
+                    }
                     await upsertUser({
                         openId: proxyUser.openId,
                         email: proxyUser.email,
@@ -52,6 +61,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
                         authInfo.dbUser = true;
                         authInfo.proxySso = true;
                         req.user = dbUser;
+                        authUserCache.set(`sso:${proxyUser.openId}`, { user: dbUser, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
                     }
                 } catch (err) {
                     console.error('[AuthMiddleware] Proxy SSO upsert failed:', err instanceof Error ? err.message : String(err));
@@ -64,6 +74,14 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
         // Personal Access Tokens (PATs) — work the same regardless of auth mode
         if (token.startsWith('cos_')) {
+            const cached = authUserCache.get(`pat:${token}`);
+            if (cached && cached.expiresAt > Date.now()) {
+                authInfo.dbUser = true;
+                authInfo.isPat = true;
+                req.user = cached.user;
+                return next();
+            }
+
             const dbConn = await getDb();
             const [pat] = await dbConn.select()
                 .from(personalAccessTokens)
@@ -81,6 +99,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             authInfo.dbUser = true;
             authInfo.isPat = true;
             req.user = dbUser;
+            authUserCache.set(`pat:${token}`, { user: dbUser, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
             return next();
         }
 
@@ -88,10 +107,18 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         if (useLocalAuth) {
             const decoded = localAuth.validateToken(token);
             if (!decoded) {
-                console.log('[Auth] Local auth token validation FAILED');
                 authInfo.hasAuthHeader = false;
                 return next();
             }
+
+            const cached = authUserCache.get(`local:${decoded.email}`);
+            if (cached && cached.expiresAt > Date.now()) {
+                req.user = cached.user;
+                authInfo.dbUser = true;
+                authInfo.hasAuthHeader = true;
+                return next();
+            }
+
             // Look up actual user ID from database
             let userId = 0;
             try {
@@ -122,10 +149,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
                 role: decoded.role === 'admin' ? 'owner' : (decoded.role as any),
                 name: decoded.email?.split('@')[0] || 'User',
             } as any;
-            (req as any).authInfo = (req as any).authInfo || {};
-            (req as any).authInfo.dbUser = true;
-            (req as any).authInfo.hasAuthHeader = true;
-            console.log('[Auth] Local auth validated:', decoded.email, 'role:', (req.user as any).role);
+            authUserCache.set(`local:${decoded.email}`, { user: req.user, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
+            authInfo.dbUser = true;
+            authInfo.hasAuthHeader = true;
             return next();
         }
 
@@ -133,6 +159,15 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         if (!supabase) {
             return next();
         }
+
+        const cached = authUserCache.get(`supabase:${token}`);
+        if (cached && cached.expiresAt > Date.now()) {
+            authInfo.supabaseUser = true;
+            authInfo.dbUser = true;
+            req.user = cached.user;
+            return next();
+        }
+
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (error || !user) {
             return next();
@@ -148,6 +183,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         }
         authInfo.dbUser = true;
         req.user = dbUser;
+        authUserCache.set(`supabase:${token}`, { user: dbUser, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
         next();
 
     } catch (error: any) {

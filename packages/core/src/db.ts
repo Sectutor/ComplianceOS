@@ -432,13 +432,13 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
       const useSsl = !databaseUrl.includes('@db:') && !databaseUrl.includes('@localhost:') && !databaseUrl.includes('@127.0.0.1:');
       _sql = postgres(databaseUrl, {
         ssl: useSsl ? { rejectUnauthorized: false } : false,
-        prepare: false,
-        idle_timeout: 30,
-        max_lifetime: 300,
+        prepare: false, // Safe for PgBouncer/Supabase transaction pooler while maintaining connection reuse
+        idle_timeout: 60,
+        max_lifetime: 1800,
         connect_timeout: 10,
-        max: 20,
+        max: 25,
         connection: {
-          statement_timeout: 15000,
+          statement_timeout: 30000,
         },
         onnotice: (notice) => {
           logger.debug({ message: "[DB Notice]", notice });

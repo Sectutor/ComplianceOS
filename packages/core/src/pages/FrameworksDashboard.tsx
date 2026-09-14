@@ -20,8 +20,7 @@ import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { PageGuide } from "@/components/PageGuide";
 
-// Premium Feature: Custom Framework Import
-import { CustomFrameworkImportDialog } from "@complianceos/premium/components/frameworks/CustomFrameworkImportDialog";
+import { ExtensionSlot } from "@/registry/extensionRegistry";
 
 const FrameworkCard = ({ fw, stats, onClick }: { fw: any, stats: any, onClick: () => void }) => {
     const [imageError, setImageError] = useState(false);
@@ -238,13 +237,14 @@ export default function FrameworksDashboard() {
                     clientId={clientId}
                 />
 
-                {/* Premium: Custom Framework Import - only render if premium */}
-                {isPremium && (
-                    <CustomFrameworkImportDialog
-                        open={isCustomImportOpen}
-                        onOpenChange={setIsCustomImportOpen}
-                        clientId={clientId}
-                        onImport={async (data: any) => {
+                {/* Decoupled Custom Framework Import Extension Slot */}
+                <ExtensionSlot
+                    name="frameworks.custom-import"
+                    props={{
+                        open: isCustomImportOpen,
+                        onOpenChange: setIsCustomImportOpen,
+                        clientId,
+                        onImport: async (data: any) => {
                             const result = await trpc.frameworkImports.importCustomFramework.mutate({
                                 clientId,
                                 ...data
@@ -253,9 +253,9 @@ export default function FrameworksDashboard() {
                                 toast.success(`Imported ${result.count} controls!`);
                             }
                             return result;
-                        }}
-                    />
-                )}
+                        }
+                    }}
+                />
 
                 <div id="fw-grid-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredFrameworks.map((fw) => (

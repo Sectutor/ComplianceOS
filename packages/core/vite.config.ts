@@ -9,14 +9,12 @@ import tailwindcss from '@tailwindcss/vite';
 const buildType = process.env.BUILD_TYPE || 'AGPLv3';
 const forceDisablePremium = process.env.VITE_ENABLE_PREMIUM === 'false';
 
-// For commercial builds, check if premium package exists
+// Check if premium package exists on disk and is enabled
 const premiumPath = path.resolve(__dirname, "../premium/src");
-const hasPremium = (buildType === 'COMMERCIAL' || buildType === 'TRIAL') &&
-    !forceDisablePremium &&
-    fs.existsSync(premiumPath);
+const hasPremium = !forceDisablePremium && fs.existsSync(premiumPath);
 
 // Set license type for the build
-const licenseType = buildType === 'AGPLv3' ? 'AGPLv3 Community' :
+const licenseType = !hasPremium ? 'AGPLv3 Community (Standalone)' :
     buildType === 'TRIAL' ? 'Commercial Trial' :
         'Commercial Enterprise';
 
@@ -104,7 +102,109 @@ export default defineConfig({
             '@dnd-kit/core',
             '@dnd-kit/sortable',
             '@dnd-kit/utilities',
-            'date-fns'
-        ]
+            'date-fns',
+            'wouter',
+            '@tanstack/react-query',
+            '@trpc/client',
+            '@trpc/react-query',
+            'superjson',
+            'clsx',
+            'tailwind-merge',
+            'lucide-react',
+            'sonner',
+            'input-otp',
+            'react-hook-form',
+            'zod'
+        ],
+        esbuildOptions: {
+            target: 'esnext',
+        }
+    },
+    esbuild: {
+        legalComments: 'none',
+        treeShaking: true,
+    },
+    build: {
+        target: 'esnext',
+        chunkSizeWarningLimit: 1200,
+        reportCompressedSize: false, // Saves 30-50s on build by skipping unnecessary gzip computation
+        cssCodeSplit: true,
+        sourcemap: false,
+        minify: 'esbuild',
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    const normId = id.replace(/\\/g, '/');
+                    if (normId.includes('/node_modules/')) {
+                        // Core React & Data Layer
+                        if (
+                            normId.includes('/node_modules/react/') || 
+                            normId.includes('/node_modules/react-dom/') || 
+                            normId.includes('/node_modules/scheduler/') ||
+                            normId.includes('/node_modules/wouter/') ||
+                            normId.includes('/node_modules/@tanstack/') ||
+                            normId.includes('/node_modules/@trpc/') ||
+                            normId.includes('/node_modules/superjson/')
+                        ) {
+                            return 'vendor-core';
+                        }
+                        // Material UI & Emotion
+                        if (normId.includes('/node_modules/@mui/') || normId.includes('/node_modules/@emotion/')) {
+                            return 'vendor-mui';
+                        }
+                        // Data Visualization
+                        if (
+                            normId.includes('/node_modules/recharts/') || 
+                            normId.includes('/node_modules/d3-') || 
+                            normId.includes('/node_modules/d3/') || 
+                            normId.includes('/node_modules/chart.js/')
+                        ) {
+                            return 'vendor-charts';
+                        }
+                        // Heavy Export & Document Processing Split
+                        if (
+                            normId.includes('/node_modules/jspdf/') || 
+                            normId.includes('/node_modules/html2canvas/') || 
+                            normId.includes('/node_modules/html2pdf.js/') || 
+                            normId.includes('/node_modules/pdfkit/')
+                        ) {
+                            return 'vendor-pdf';
+                        }
+                        if (
+                            normId.includes('/node_modules/docx/') || 
+                            normId.includes('/node_modules/xlsx/') || 
+                            normId.includes('/node_modules/archiver/') || 
+                            normId.includes('/node_modules/file-saver/')
+                        ) {
+                            return 'vendor-office';
+                        }
+                        // UI Component Kits & Icons
+                        if (
+                            normId.includes('/node_modules/lucide-react/') || 
+                            normId.includes('/node_modules/framer-motion/')
+                        ) {
+                            return 'vendor-ui-icons';
+                        }
+                        if (normId.includes('/node_modules/@radix-ui/')) {
+                            return 'vendor-radix';
+                        }
+                        // Rich Text Editors & Markdown
+                        if (
+                            normId.includes('/node_modules/quill/') || 
+                            normId.includes('/node_modules/react-quill-new/') || 
+                            normId.includes('/node_modules/react-markdown/') || 
+                            normId.includes('/node_modules/marked/') || 
+                            normId.includes('/node_modules/turndown/')
+                        ) {
+                            return 'vendor-editor';
+                        }
+                        // Drag and Drop
+                        if (normId.includes('/node_modules/@dnd-kit/')) {
+                            return 'vendor-dnd';
+                        }
+                    }
+                }
+            }
+        }
     }
 });

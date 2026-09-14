@@ -13,7 +13,7 @@
 
 services:
   complianceos:
-    image: ghcr.io/sectutor/complianceos-self-hosted:dev
+    image: ghcr.io/sectutor/complianceos-self-hosted:latest
     build:
       context: .
       dockerfile: Dockerfile.selfhost

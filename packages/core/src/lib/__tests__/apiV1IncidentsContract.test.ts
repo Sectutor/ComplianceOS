@@ -166,7 +166,14 @@ describe('incidents v1 gate -- schema contract (cycle 39)', () => {
     'reported',
   ] as const;
 
-  const schemaSrc = readSrc(SCHEMA_PATH);
+  const readFullSchemaSrc = () => {
+    const schemaDir = path.resolve('packages/core/src/schema');
+    if (fs.existsSync(schemaDir) && fs.statSync(schemaDir).isDirectory()) {
+      return fs.readdirSync(schemaDir).map(f => fs.readFileSync(path.join(schemaDir, f), 'utf8')).join('\n');
+    }
+    return readSrc(SCHEMA_PATH);
+  };
+  const schemaSrc = readFullSchemaSrc();
 
   it('schema source is readable and declares both incident enums as pgEnum', () => {
     expect(schemaSrc.length).toBeGreaterThan(10000);

@@ -296,11 +296,11 @@ export const appRouter = router({
 
   // Same story: imported but never registered, so the Autopilot dashboard and
   // Gap Analysis pages were calling endpoints that did not exist.
-  autopilot: createAutopilotRouter(t, clientProcedure, adminProcedure),
-  sentinel: createSentinelRouter(t, clientProcedure, adminProcedure),
+  autopilot: createAutopilotRouter(t, clientProcedure, adminProcedure, premiumClientProcedure),
+  sentinel: createSentinelRouter(t, premiumClientProcedure, adminProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
   programGuides: createProgramGuidesRouter(t, clientProcedure),
-  auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
+  auditors: createAuditorsRouter(t, adminProcedure, premiumClientProcedure),
   policyReview: createPolicyReviewRouter(t, clientProcedure, protectedProcedure),
   requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
 
@@ -349,7 +349,7 @@ export const appRouter = router({
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
   llm: createLlmRouter(t, premiumClientProcedure, isAuthed, adminProcedure),
-  aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure),
+  aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure, premiumClientProcedure),
   incidentClassifier: createIncidentClassifierRouter(t, protectedProcedure),
   incidentTimeline: createIncidentTimelineRouter(t, protectedProcedure),
   securityMetrics: createSecurityMetricsRouter(t, protectedProcedure),
@@ -359,11 +359,11 @@ export const appRouter = router({
   thirdPartyRisk: createThirdPartyRiskRouter(t, protectedProcedure),
   vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
   securityTestingNis2: createSecurityTestingNis2Router(t, protectedProcedure),
-  complianceMonitor: createComplianceMonitorRouter(t, protectedProcedure),
+  complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure),
   policyTemplatesNis2: createPolicyTemplatesNis2Router(t, protectedProcedure),
   evidenceRepository: createEvidenceRepositoryRouter(t, protectedProcedure),
   threatLandscape: createThreatLandscapeRouter(t, protectedProcedure),
-  riskQuantification: createRiskQuantificationRouter(t, protectedProcedure),
+  riskQuantification: createRiskQuantificationRouter(t, premiumClientProcedure),
   mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
   tokens: createTokensRouter(t, protectedProcedure),
 

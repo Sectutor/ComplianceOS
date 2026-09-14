@@ -41,6 +41,6 @@ export function registerPremium() {
     
     // Dashboard
     registry.register(SlotNames.DASHBOARD_WIDGETS, SecurityAdvisorStatus);
-    
+
     console.log('[Registry] Premium AI components registered.');
 }

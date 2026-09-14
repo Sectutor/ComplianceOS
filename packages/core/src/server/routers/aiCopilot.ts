@@ -19,13 +19,14 @@ import {
   autoMapRequirement,
 } from "../../lib/ai/copilot";
 
-export const createAiCopilotRouter = (t: any, protectedProcedure: any, publicProcedure: any) => {
+export const createAiCopilotRouter = (t: any, protectedProcedure: any, publicProcedure: any, premiumClientProcedure?: any) => {
+  const pProc = premiumClientProcedure || protectedProcedure;
   return t.router({
     /**
      * Draft a policy document from a topic (plus optional framework/org).
      * Deterministic engine output; safe shape on any empty input.
      */
-    draftPolicy: protectedProcedure
+    draftPolicy: pProc
       .input(
         z.object({
           topic: z.string().min(1),
@@ -46,7 +47,7 @@ export const createAiCopilotRouter = (t: any, protectedProcedure: any, publicPro
      * Suggest evidence artifacts for a given control.
      * Returns built-in catalog suggestions with freshness hints.
      */
-    suggestEvidence: protectedProcedure
+    suggestEvidence: pProc
       .input(
         z.object({
           controlTitle: z.string().min(1),
@@ -65,7 +66,7 @@ export const createAiCopilotRouter = (t: any, protectedProcedure: any, publicPro
      * Map a free-text requirement onto the built-in control KB.
      * Returns 0-100 scored matches plus the best match (or null).
      */
-    autoMap: protectedProcedure
+    autoMap: pProc
       .input(
         z.object({
           requirement: z.string().min(1),
