@@ -122,7 +122,9 @@ const FORBIDDEN =
 
 describe('UI token purity (UI-STANDARD §2)', () => {
   it.each(PAGES)('%s contains no hard-coded slate/gray/white/indigo surface tokens', (file) => {
-    const abs = path.join(process.cwd(), file);
+    const rootPath = path.join(process.cwd(), file);
+    const subPath = path.join(process.cwd(), file.replace(/^packages[\\/]core[\\/]/, ''));
+    const abs = fs.existsSync(rootPath) ? rootPath : subPath;
     if (PARALLEL_BUILD_FILES.has(file) && !fs.existsSync(abs)) {
       return; // parallel-build guard: UI agent lands the file later this cycle
     }
