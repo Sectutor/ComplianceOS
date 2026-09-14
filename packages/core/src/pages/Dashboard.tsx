@@ -34,6 +34,10 @@ import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
 import { useDashboardStats } from "@/pages/dashboard/postureStatsApi";
 import { Nis2DashboardPanels } from "@/pages/cyber/Nis2DashboardPanels";
+import { ZeroInboxActionQueue } from "@/components/dashboard/ZeroInboxActionQueue";
+import { ContinuousCompliancePulse } from "@/components/dashboard/ContinuousCompliancePulse";
+import { HarmonizationMeshWidget } from "@/components/dashboard/HarmonizationMeshWidget";
+
 import { useTranslation } from "@/hooks/useTranslation";
 import {
   PieChart as RechartsPie,
@@ -115,7 +119,7 @@ export default function Dashboard() {
   const [framework, setFramework] = useState<string | undefined>();
   const [clientId, setClientId] = useState<string | undefined>();
   const [hasSeenOnboardingThisSession, setHasSeenOnboardingThisSession] = useState(false);
-  const [viewMode, setViewMode] = useState<'executive' | 'full'>('executive');
+  const [viewMode, setViewMode] = useState<'operator' | 'executive' | 'full'>('operator');
   const utils = trpc.useUtils();
   const { selectedClientId } = useClientContext();
   const effectiveClientId = clientId || (selectedClientId ? String(selectedClientId) : undefined);
@@ -517,7 +521,49 @@ export default function Dashboard() {
 
           {/* Metrics & Command View Content */}
           <AnimatePresence mode="wait">
-            {viewMode === 'executive' ? (
+            {viewMode === 'operator' ? (
+              <motion.div
+                key="operator-mode"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
+                {/* 1. Continuous Compliance Pulse Telemetry */}
+                <ContinuousCompliancePulse />
+
+                {/* 2. Zero-Inbox Action Queue */}
+                <ZeroInboxActionQueue clientId={effectiveClientId} />
+
+                {/* 3. Multi-Framework Harmonization Mesh */}
+                <HarmonizationMeshWidget clientId={effectiveClientId} />
+
+                {/* 4. Quick Metrics Snapshot */}
+                <div className="grid gap-6 md:grid-cols-3">
+                  <AnimatedMetricCard
+                    title={t("dashboard.complianceScore", "Overall Compliance")}
+                    value={`${overallComplianceRate}%`}
+                    icon={<Shield className="w-5 h-5" />}
+                    trend="up"
+                    trendLabel="12%"
+                    variant="success"
+                  />
+                  <AnimatedMetricCard
+                    title={t("dashboard.riskProfile", "Risk Profile")}
+                    value={overview?.highRisks || 0}
+                    icon={<AlertTriangle className="w-5 h-5" />}
+                    variant="error"
+                  />
+                  <AnimatedMetricCard
+                    title={t("dashboard.portfolioReach", "Portfolio Reach")}
+                    value={overview?.totalClients || 0}
+                    icon={<Users className="w-5 h-5" />}
+                    variant="info"
+                  />
+                </div>
+              </motion.div>
+            ) : viewMode === 'executive' ? (
               <motion.div
                 key="executive-mode"
                 initial={{ opacity: 0, y: 10 }}
