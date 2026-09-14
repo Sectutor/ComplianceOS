@@ -31,6 +31,7 @@ import { createEvidenceCollectorsRouter } from "./routers/evidenceCollectors";
 import { createEvidenceRenewalRouter } from "./routers/evidenceRenewal";
 import { createRiskHeatmapRouter } from "./routers/riskHeatmap";
 import { createPolicyAckRouter } from "./routers/policyAck";
+import { createLicenseActivationRouter } from "./server/routers/licenseActivation";
 import * as schema from "./schema";
 import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrategies, bcPlans, disruptiveScenarios } from "./schema";
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
@@ -4728,6 +4729,7 @@ ONLY return the JSON. No Markdown formatting.
   auditorPortal: createAuditorPortalRouter(t, premiumClientProcedure, adminProcedure, publicProcedure),
   webhooks: createWebhooksRouter(t, clientProcedure),
   sso: createSsoRouter(t, publicProcedure),
+  licenses: createLicenseActivationRouter(t, protectedProcedure, publicProcedure, adminProcedure),
 });
 
 
