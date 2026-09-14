@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import BoardDashboard from '@/components/admin/BoardDashboard';
 import { trpc } from '@/lib/trpc';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
@@ -134,6 +134,7 @@ const AVAILABLE_SECTIONS = [
 
 export default function BoardSummaryPage() {
     const { id } = useParams<{ id: string }>();
+    const [, setLocation] = useLocation();
     const clientId = parseInt(id || '0', 10);
 
     const [activeTab, setActiveTab] = useState<'dashboard' | 'studio' | 'history'>('dashboard');
@@ -302,7 +303,13 @@ export default function BoardSummaryPage() {
                 {/* TAB 1: LIVE BOARD DASHBOARD */}
                 {activeTab === 'dashboard' && (
                     <div className="space-y-6">
-                        <BoardDashboard data={metrics} clientName={client.name} />
+                        <BoardDashboard 
+                            data={metrics} 
+                            clientName={client.name} 
+                            clientId={clientId}
+                            onViewRemediation={() => setLocation(`/clients/${clientId}/implementation`)}
+                            onDownloadReport={() => setActiveTab('studio')}
+                        />
                     </div>
                 )}
 

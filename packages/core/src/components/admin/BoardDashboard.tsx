@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
+import { useLocation } from "wouter";
+import { useClientContext } from "@/contexts/ClientContext";
+import { toast } from "sonner";
 
 interface BoardDashboardProps {
     data: {
@@ -23,10 +26,41 @@ interface BoardDashboardProps {
         frameworkPostures: Array<{ name: string; score: number }>;
     };
     clientName: string;
+    clientId?: number;
+    onViewRemediation?: () => void;
+    onDownloadReport?: () => void;
 }
 
-export default function BoardDashboard({ data, clientName }: BoardDashboardProps) {
+export default function BoardDashboard({
+    data,
+    clientName,
+    clientId,
+    onViewRemediation,
+    onDownloadReport,
+}: BoardDashboardProps) {
+    const [, setLocation] = useLocation();
+    const { selectedClientId } = useClientContext();
+    const effectiveClientId = clientId || selectedClientId;
     const COLORS = ['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b'];
+
+    const handleRemediationClick = () => {
+        if (onViewRemediation) {
+            onViewRemediation();
+        } else if (effectiveClientId) {
+            setLocation(`/clients/${effectiveClientId}/implementation`);
+        } else {
+            setLocation('/implementation');
+        }
+    };
+
+    const handleShareClick = () => {
+        if (typeof window !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(window.location.href);
+            toast.success("Board Summary presentation link copied to clipboard!");
+        } else {
+            toast.success("Link ready to share with the Board");
+        }
+    };
 
     return (
         <div className="space-y-8 p-6 bg-slate-50/30 rounded-xl border border-slate-200">
@@ -40,10 +74,23 @@ export default function BoardDashboard({ data, clientName }: BoardDashboardProps
                     <p className="text-slate-500 font-medium">Reporting for: <span className="text-indigo-600 font-bold">{clientName}</span></p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="bg-white hover:bg-slate-50 border-slate-200">
+                    <Button
+                        variant="outline"
+                        className="bg-white hover:bg-slate-50 border-slate-200"
+                        onClick={() => {
+                            if (onDownloadReport) {
+                                onDownloadReport();
+                            } else {
+                                toast.info("Opening Report Studio...");
+                            }
+                        }}
+                    >
                         <FileText className="mr-2 h-4 w-4" /> Download Report
                     </Button>
-                    <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200">
+                    <Button
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
+                        onClick={handleShareClick}
+                    >
                         Share with Board <ArrowUpRight className="ml-2 h-4 w-4" />
                     </Button>
                 </div>
@@ -147,7 +194,12 @@ export default function BoardDashboard({ data, clientName }: BoardDashboardProps
                         <h3 className="text-2xl font-bold mb-2">Audit-Ready in 14 Days</h3>
                         <p className="text-indigo-200 max-w-md">Your system is 78% of the way to SOC2 Type II certification. Complete the remaining critical gaps to schedule your audit.</p>
                     </div>
-                    <Button variant="secondary" className="bg-white text-indigo-900 hover:bg-indigo-50 font-bold px-8">
+                    <Button 
+                        variant="secondary" 
+                        className="bg-white text-indigo-900 hover:bg-indigo-50 font-bold px-8 cursor-pointer"
+                        onClick={handleRemediationClick}
+                        id="board-view-remediation-btn"
+                    >
                         View Remediation Plan
                     </Button>
                 </CardContent>
