@@ -46,6 +46,7 @@ import { EmailTemplatesTab } from "@/components/settings/EmailTemplatesTab";
 import { PersonalizationReference } from "@/components/settings/PersonalizationReference";
 import { ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
+import { BillingTab } from "@/components/settings/BillingTab";
 
 interface ClientSettingsProps {
     id?: string;
@@ -120,7 +121,14 @@ export default function ClientSettings(props?: ClientSettingsProps) {
     }
 
     const queryParams = new URLSearchParams(window.location.search);
-    const initialTab = queryParams.get("tab") || "general";
+    const [activeTab, setActiveTab] = useState(queryParams.get("tab") || "general");
+
+    const handleTabChange = (val: string) => {
+        setActiveTab(val);
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", val);
+        window.history.replaceState({}, "", url.toString());
+    };
 
     return (
         <DashboardLayout>
@@ -134,50 +142,55 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                 />
 
                 {/* Hero Header */}
-                <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-xl overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 p-24 bg-indigo-500/10 rounded-full blur-2xl -ml-12 -mb-12 pointer-events-none"></div>
+                <Card className="border border-border/80 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 p-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
 
-                    <CardContent className="p-8 relative z-10">
+                    <CardContent className="p-6 sm:p-8 relative z-10">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                            <div className="flex items-start gap-5">
-                                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
+                            <div className="flex items-start gap-4">
+                                <div className="h-14 w-14 rounded-2xl bg-muted/80 border border-border/80 shadow-xs flex items-center justify-center overflow-hidden shrink-0">
                                     {client.logoUrl ? (
-                                        <img src={client.logoUrl} alt={client.name} className="h-12 w-12 object-contain" />
+                                        <img src={client.logoUrl} alt={client.name} className="h-10 w-10 object-contain p-1" />
                                     ) : (
-                                        <Settings className="h-12 w-12 text-blue-200" />
+                                        <Building2 className="h-7 w-7 text-primary" />
                                     )}
                                 </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <h1 className="text-3xl font-bold tracking-tight text-white">{client.name}</h1>
-                                        <Badge variant="secondary" className="bg-primary/20 text-primary-foreground hover:bg-primary/30 border-none">
-                                            Settings
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2.5 flex-wrap">
+                                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">{client.name}</h1>
+                                        <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold px-2.5 py-0.5">
+                                            Client Settings
                                         </Badge>
+                                        {client.planTier && (
+                                            <Badge variant="outline" className="text-xs font-semibold border-border uppercase">
+                                                {client.planTier}
+                                            </Badge>
+                                        )}
                                     </div>
-                                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-300">
+                                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
                                         <div className="flex items-center gap-1.5">
-                                            <Building2 className="w-4 h-4 text-slate-400" />
+                                            <Briefcase className="w-3.5 h-3.5 text-muted-foreground/80" />
                                             {client.industry || "Industry not set"}
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <Users className="w-4 h-4 text-slate-400" />
+                                            <Users className="w-3.5 h-3.5 text-muted-foreground/80" />
                                             {client.size || "Size not set"}
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <MapPin className="w-4 h-4 text-slate-400" />
+                                            <MapPin className="w-3.5 h-3.5 text-muted-foreground/80" />
                                             {client.headquarters || "HQ not set"}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2.5 shrink-0">
                                 <Button
                                     variant="outline"
-                                    className="bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white"
+                                    className="border-border text-xs font-semibold h-9 px-4 rounded-xl gap-2 hover:bg-muted"
                                     onClick={() => setLocation(`/clients/${clientId}`)}
                                 >
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    <ArrowLeft className="h-3.5 w-3.5" />
                                     Back to Dashboard
                                 </Button>
                             </div>
@@ -185,91 +198,98 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                     </CardContent>
                 </Card>
 
-                <Tabs defaultValue={initialTab} className="space-y-8">
-                    <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
+                    <TabsList className="bg-muted/50 p-1.5 h-auto flex flex-wrap justify-start gap-1.5 w-full border border-border/70 rounded-2xl">
                         <TabsTrigger
                             value="general"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Building2 className="mr-2 h-4 w-4" />
+                            <Building2 className="mr-2 h-3.5 w-3.5" />
                             General
                         </TabsTrigger>
                         <TabsTrigger
-                            value="policy"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            value="billing"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <FileText className="mr-2 h-4 w-4" />
+                            <CreditCard className="mr-2 h-3.5 w-3.5 text-primary" />
+                            Subscription & Billing
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="policy"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
+                        >
+                            <FileText className="mr-2 h-3.5 w-3.5" />
                             Policy Settings
                         </TabsTrigger>
                         <TabsTrigger
                             value="team"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Users className="mr-2 h-4 w-4" />
+                            <Users className="mr-2 h-3.5 w-3.5" />
                             Team
                         </TabsTrigger>
                         <TabsTrigger
                             value="branding"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Image className="mr-2 h-4 w-4" />
+                            <Image className="mr-2 h-3.5 w-3.5" />
                             Branding
                         </TabsTrigger>
                         <TabsTrigger
                             value="license"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Shield className="mr-2 h-4 w-4" />
+                            <Shield className="mr-2 h-3.5 w-3.5" />
                             License
                         </TabsTrigger>
                         <TabsTrigger
                             value="integrations"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Server className="mr-2 h-4 w-4" />
+                            <Server className="mr-2 h-3.5 w-3.5" />
                             Integrations
                         </TabsTrigger>
                         {canAccessBackupRestore && (
                             <TabsTrigger
                                 value="backup-restore"
-                                className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                                className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                             >
-                                <History className="mr-2 h-4 w-4" />
+                                <History className="mr-2 h-3.5 w-3.5" />
                                 Backup / Restore
                             </TabsTrigger>
                         )}
                         <TabsTrigger
                             value="frameworks"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Shield className="mr-2 h-4 w-4" />
+                            <Shield className="mr-2 h-3.5 w-3.5" />
                             Frameworks
                         </TabsTrigger>
                         <TabsTrigger
                             value="data"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Database className="mr-2 h-4 w-4" />
+                            <Database className="mr-2 h-3.5 w-3.5" />
                             Demo Data
                         </TabsTrigger>
                         <TabsTrigger
                             value="automation"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Bot className="mr-2 h-4 w-4" />
+                            <Bot className="mr-2 h-3.5 w-3.5" />
                             Automation
                         </TabsTrigger>
                         <TabsTrigger
                             value="email-templates"
-                            className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
                         >
-                            <Mail className="mr-2 h-4 w-4" />
+                            <Mail className="mr-2 h-3.5 w-3.5" />
                             Emails
                         </TabsTrigger>
                     </TabsList>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                        <div className={activeTab === "billing" ? "lg:col-span-3 space-y-8" : "lg:col-span-2 space-y-8"}>
                             {/* General Tab */}
                             <TabsContent value="general" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
                                 <Card>
@@ -354,7 +374,10 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                                 />
                             </TabsContent>
 
-                            {/* Billing tab removed — self-hosted, no SaaS billing */}
+                                                        {/* Billing Tab */}
+                            <TabsContent value="billing" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
+                                <BillingTab clientId={clientId} clientName={client.name} />
+                            </TabsContent>
 
                             {/* License Tab */}
                             <TabsContent value="license" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
@@ -512,6 +535,7 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                             </TabsContent>
                         </div>
 
+                        {activeTab !== "billing" && (
                         <div className="space-y-6">
                             {/* Tips / Info Side Panel */}
                             <Card className="bg-slate-50/50 border-slate-200 shadow-sm">
@@ -588,6 +612,7 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                                 </Card>
                             )}
                         </div>
+                        )}
                     </div>
                 </Tabs>
             </div>
