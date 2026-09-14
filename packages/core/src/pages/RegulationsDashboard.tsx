@@ -3,306 +3,447 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { regulations } from "@/data/regulations";
 import { frameworks } from "@/data/frameworks";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
+import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@complianceos/ui/ui/select";
-import { ArrowRight, Scale, Shield, Target, Rocket, Activity, AlertCircle, Search, ChevronDown, ChevronRight as ChevronRightIcon, FileText, ClipboardCheck, LayoutList, Database, FileCheck } from "lucide-react";
+  ArrowRight,
+  Scale,
+  Shield,
+  Target,
+  Rocket,
+  Activity,
+  Search,
+  BookOpen,
+  FileDown,
+  Sparkles,
+  Layers,
+  Globe2,
+} from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
-
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from 'sonner';
 import { CircularProgress } from "@complianceos/ui/ui/circular-progress";
 import { PageGuide } from "@/components/PageGuide";
 
-function RegulationLogo({ logo, name }: { logo?: string; name: string }) {
-    const [error, setError] = useState(false);
+interface ObligationItem {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  category: "regulation" | "framework";
+  logo?: string;
+}
 
-    if (logo && !error) {
-        return (
-            <div className="h-12 w-16 min-w-[4rem] rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center group-hover:shadow-md transition-shadow overflow-hidden">
+function ObligationCard({
+  item,
+  stats,
+  onClick,
+}: {
+  item: ObligationItem;
+  stats: { percentage: number; total?: number; implemented?: number };
+  onClick: () => void;
+}) {
+  const [imageError, setImageError] = useState(false);
+
+  const progressColor = (percentage: number) => {
+    if (percentage === 0) return "text-muted-foreground/30";
+    if (percentage < 30) return "#ef4444";
+    if (percentage < 70) return "#f59e0b";
+    return "#10b981";
+  };
+
+  const acronym = item.name.split(' ')[0].substring(0, 4).toUpperCase();
+
+  return (
+    <Card
+      className="group hover:border-primary/40 bg-card/70 backdrop-blur-xl border border-border/70 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden rounded-3xl relative flex flex-col h-full"
+      onClick={onClick}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="p-6 flex h-full gap-6 relative z-10">
+        {/* Left Side: Info */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-start justify-between mb-4">
+            <div className="h-12 w-16 min-w-[4rem] rounded-xl bg-background border border-border shadow-xs flex items-center justify-center group-hover:shadow-sm transition-shadow overflow-hidden">
+              {!imageError && item.logo ? (
                 <img
-                    src={logo}
-                    alt={name}
-                    className="w-full h-full object-contain p-1"
-                    onError={() => setError(true)}
+                  src={item.logo}
+                  alt={item.name}
+                  className="w-full h-full object-contain p-1"
+                  onError={() => setImageError(true)}
                 />
+              ) : (
+                <div className="text-sm font-black text-foreground/80 flex items-center gap-1">
+                  <Scale className="h-4 w-4 text-primary" />
+                  <span>{acronym}</span>
+                </div>
+              )}
             </div>
-        );
-    }
+            <Badge
+              variant="secondary"
+              className="bg-muted/80 border border-border text-foreground font-semibold shadow-xs hover:bg-muted px-3 py-1 text-xs uppercase tracking-wider ml-2 whitespace-nowrap"
+            >
+              {item.type}
+            </Badge>
+          </div>
 
-    return (
-        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center text-primary shadow-sm group-hover:shadow-md transition-shadow">
-            <Scale className="h-6 w-6 text-primary drop-shadow-sm" />
+          <div className="mb-auto">
+            <h3
+              className="font-black text-xl text-foreground group-hover:text-primary transition-colors leading-tight mb-2 truncate tracking-tight"
+              title={item.name}
+            >
+              {item.name}
+            </h3>
+            <p className="text-sm text-muted-foreground font-medium line-clamp-3 leading-relaxed">
+              {item.description}
+            </p>
+          </div>
+
+          <div className="mt-5 pt-3 border-t border-border/70 flex items-center text-sm font-bold text-primary group-hover:translate-x-1 transition-transform">
+            View Requirements & Articles <ArrowRight className="ml-1.5 h-4 w-4" />
+          </div>
         </div>
-    );
+
+        {/* Right Side: Progress */}
+        <div className="flex flex-col items-center justify-center border-l border-dashed border-border/70 pl-6 min-w-[120px]">
+          <CircularProgress
+            value={stats.percentage}
+            size={100}
+            strokeWidth={10}
+            color={progressColor(stats.percentage)}
+          />
+          <span
+            className={`mt-3 text-[10px] font-black uppercase tracking-wider text-center ${
+              stats.percentage > 0 ? 'text-foreground' : 'text-muted-foreground'
+            }`}
+          >
+            {stats.percentage > 0 ? `${stats.percentage}% Done` : 'Not Started'}
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export default function RegulationsDashboard() {
-    const [location, setLocation] = useLocation();
-    const { t } = useTranslation('dashboard');
-    const params = useParams<{ id: string }>();
-    const generateReport = trpc.regulations.generateReport.useMutation();
-    const { selectedClientId } = useClientContext();
+  const [, setLocation] = useLocation();
+  const { t } = useTranslation('dashboard');
+  const params = useParams<{ id: string }>();
+  const generateReport = trpc.regulations.generateReport.useMutation();
+  const { selectedClientId } = useClientContext();
 
-    // Prefer URL param, then context, then fallback
-    const clientId = params.id ? parseInt(params.id) : (selectedClientId || 1);
+  const clientId = params.id ? parseInt(params.id, 10) : (selectedClientId || 1);
 
-    // Fetch Stats for progress
-    const { data: stats } = trpc.compliance.frameworkStats.list.useQuery(
-        { clientId },
-        { enabled: !!clientId }
-    );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<"all" | "statutory" | "standards">("all");
 
-    const getStats = (regName: string) => {
-        if (!stats || !Array.isArray(stats)) return { percentage: 0 };
-        // Fuzzy match: check if name matches or is contained
-        const exact = stats.find(s => s.framework === regName);
-        if (exact) return exact;
+  const { data: client } = trpc.clients.get.useQuery(
+    { id: clientId },
+    { enabled: !!clientId }
+  );
 
-        return stats.find(s => regName.includes(s.framework) || s.framework.includes(regName)) || { percentage: 0 };
-    };
+  const { data: stats } = trpc.compliance.frameworkStats.list.useQuery(
+    { clientId },
+    { enabled: !!clientId }
+  );
 
-    const getProgressColor = (percentage: number) => {
-        if (percentage === 0) return "text-slate-200";
-        if (percentage < 30) return "text-red-500";
-        if (percentage < 70) return "text-amber-500";
-        return "text-emerald-500";
-    };
+  const getStats = (regName: string) => {
+    if (!stats || !Array.isArray(stats)) return { percentage: 0 };
+    const exact = stats.find((s: any) => s.framework === regName);
+    if (exact) return exact;
 
-    return (
-        <DashboardLayout>
-            <div className="space-y-6">
-                <Breadcrumb items={[{ label: "Compliance Obligations" }]} />
+    return stats.find((s: any) => regName.includes(s.framework) || s.framework.includes(regName)) || { percentage: 0 };
+  };
 
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-bold">Compliance Obligations</h1>
-                        <p className="text-muted-foreground">Manage your mandatory regulatory requirements distinct from voluntary frameworks.</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <PageGuide
-                            title="Compliance Obligations"
-                            description="Manage mandatory regulatory requirements and statutory obligations."
-                            rationale="Regulatory compliance is not optional. Unlike voluntary frameworks, these are legal requirements based on your jurisdiction and industry. This dashboard helps you track the 'must-haves' to avoid legal and financial penalties."
-                            howToUse={[
-                                {
-                                    step: "Gap Analysis",
-                                    description: "Download a comprehensive report showing exactly where you stand against legal requirements.",
-                                    targetId: "reg-gap-analysis-btn"
-                                },
-                                {
-                                    step: "Domain Links",
-                                    description: "Quickly navigate to Risk, Controls, or Implementation to address specific gaps.",
-                                    targetId: "reg-quick-links"
-                                },
-                                {
-                                    step: "Track Mandates",
-                                    description: "Monitor progress of GDPR, HIPAA, or other mandatory regulations relevant to your business.",
-                                    targetId: "reg-grid-container"
-                                }
-                            ]}
-                            scenarios={[
-                                {
-                                    title: "Responding to a Legal Inquiry",
-                                    example: "Your legal department asks for a status update on GDPR compliance for a new region.",
-                                    auditTip: "Use 'Download Gap Analysis'. It produces an executive-ready PDF that shows exactly which regulatory articles are implemented and where the remaining risks lie."
-                                },
-                                {
-                                    title: "Prioritizing Mandatory Work",
-                                    example: "You have limited resources and need to decide between working on SOC 2 (voluntary) or HIPAA (mandatory).",
-                                    auditTip: "Mandatory regulations in this dashboard usually carry higher legal risk. Focus on any regulation in the 'Red' (<30%) zone here first before voluntary standards."
-                                }
-                            ]}
-                            integrations={[
-                                { name: "Internal Controls", description: "Satisfying a regulation automatically updates linked internal controls." },
-                                { name: "Risk Register", description: "Regulatory failures are flagged as high-impact risks." }
-                            ]}
-                        />
-                        <Button
-                            id="reg-gap-analysis-btn"
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                toast.promise(generateReport.mutateAsync({ clientId }), {
-                                    loading: 'Generating Report...',
-                                    success: (data) => {
-                                        const link = document.createElement('a');
-                                        link.href = `data:application/pdf;base64,${data.pdfBase64}`;
-                                        link.download = data.filename;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        return 'Report downloaded successfully';
-                                    },
-                                    error: 'Failed to generate report'
-                                });
-                            }}
-                        >
-                            Download Gap Analysis
-                        </Button>
-                    </div>
-                </div>
+  // Combine regulations and obligatory frameworks
+  const allObligations: ObligationItem[] = useMemo(() => {
+    const regList: ObligationItem[] = regulations.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      type: r.type || "Statutory Law",
+      category: "regulation",
+      logo: r.logo,
+    }));
 
-                <div id="reg-quick-links" className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
-                    <Card
-                        className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white border border-white/40 bg-white/60 backdrop-blur-xl shadow-premium rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                        onClick={() => setLocation(`/clients/${clientId}/roadmap`)}
-                    >
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-300">
-                            <Rocket className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-800 tracking-tight">Compliance Roadmap</p>
-                            <p className="text-xs font-medium text-slate-500">Strategic milestones</p>
-                        </div>
-                    </Card>
+    const fwList: ObligationItem[] = frameworks
+      .filter((f) => f.isObligation)
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        description: f.description,
+        type: f.type || "Mandatory Standard",
+        category: "framework",
+        logo: f.logo,
+      }));
 
-                    <Card
-                        className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white border border-white/40 bg-white/60 backdrop-blur-xl shadow-premium rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                        onClick={() => setLocation(`/clients/${clientId}/risks`)}
-                    >
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 group-hover:scale-110 transition-transform duration-300">
-                            <Target className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-800 tracking-tight">Risk Register</p>
-                            <p className="text-xs font-medium text-slate-500">High-impact threats</p>
-                        </div>
-                    </Card>
+    return [...regList, ...fwList];
+  }, []);
 
-                    <Card
-                        className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white border border-white/40 bg-white/60 backdrop-blur-xl shadow-premium rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                        onClick={() => setLocation(`/clients/${clientId}/controls`)}
-                    >
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
-                            <Shield className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-800 tracking-tight">Internal Controls</p>
-                            <p className="text-xs font-medium text-slate-500">Satisfying obligations</p>
-                        </div>
-                    </Card>
+  const filteredObligations = useMemo(() => {
+    return allObligations.filter((item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.type.toLowerCase().includes(searchQuery.toLowerCase());
 
-                    <Card
-                        className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white border border-white/40 bg-white/60 backdrop-blur-xl shadow-premium rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                        onClick={() => setLocation(`/clients/${clientId}/implementation`)}
-                    >
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform duration-300">
-                            <Activity className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-800 tracking-tight">Implementation</p>
-                            <p className="text-xs font-medium text-slate-500">Remediation progress</p>
-                        </div>
-                    </Card>
-                </div>
+      if (!matchesSearch) return false;
 
-                <div id="reg-grid-container" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {/* Regulations */}
-                    {regulations.map((reg) => {
-                        const regStats = getStats(reg.name);
-                        const progressColor = getProgressColor(regStats.percentage);
+      if (selectedCategory === "statutory") return item.category === "regulation";
+      if (selectedCategory === "standards") return item.category === "framework";
+      return true;
+    });
+  }, [allObligations, searchQuery, selectedCategory]);
 
-                        return (
-                            <Card key={reg.id} className="group hover:border-white/60 bg-white/60 backdrop-blur-xl border border-white/40 shadow-premium transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden rounded-3xl relative" onClick={() => setLocation(`/clients/${clientId}/compliance-obligations/${reg.id}`)}>
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                                <div className="p-6 flex h-full gap-6 relative z-10">
-                                    {/* Left Side: Info */}
-                                    <div className="flex-1 flex flex-col min-w-0">
-                                        <div className="flex items-start justify-between mb-4">
-                                            <RegulationLogo logo={reg.logo} name={reg.name} />
-                                            <Badge variant="secondary" className="bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 px-3 py-1 text-xs uppercase tracking-wider">{reg.type}</Badge>
-                                        </div>
+  const statutoryCount = allObligations.filter((o) => o.category === "regulation").length;
+  const standardsCount = allObligations.filter((o) => o.category === "framework").length;
 
-                                        <div className="mb-auto">
-                                            <h3 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors leading-tight mb-2 tracking-tight">
-                                                {reg.name}
-                                            </h3>
-                                            <p className="text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
-                                                {reg.description}
-                                            </p>
-                                        </div>
+  const handleDownloadGapAnalysis = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast.promise(generateReport.mutateAsync({ clientId }), {
+      loading: 'Generating Comprehensive Regulatory Gap Analysis...',
+      success: (data) => {
+        const link = document.createElement('a');
+        link.href = `data:application/pdf;base64,${data.pdfBase64}`;
+        link.download = data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return 'Regulatory Gap Analysis downloaded successfully!';
+      },
+      error: 'Failed to generate report',
+    });
+  };
 
-                                        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center text-sm font-bold text-primary group-hover:translate-x-1 transition-transform">
-                                            View Details <ArrowRight className="ml-1.5 h-4 w-4" />
-                                        </div>
-                                    </div>
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <Breadcrumb
+          items={[
+            { label: client?.name || "Client Workspace", href: `/clients/${clientId}` },
+            { label: "Compliance Obligations" },
+          ]}
+        />
 
-                                    {/* Right Side: Progress */}
-                                    <div className="flex flex-col items-center justify-center border-l dashed border-slate-200/50 pl-6 min-w-[120px]">
-                                        <CircularProgress
-                                            value={regStats.percentage}
-                                            size={100}
-                                            strokeWidth={10}
-                                            color={progressColor}
-                                        />
-                                        <span className={`mt-3 text-xs font-black uppercase tracking-wider ${regStats.percentage > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
-                                            {regStats.percentage > 0 ? `${regStats.percentage}% Done` : 'Not Started'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </Card>
-                        );
-                    })}
-
-                    {/* Standard Frameworks & Obligatory Certifications */}
-                    {frameworks.filter(f => f.isObligation).map((fw) => {
-                        const fwStats = getStats(fw.name);
-                        const progressColor = getProgressColor(fwStats.percentage);
-
-                        return (
-                            <Card key={fw.id} className="group hover:border-white/60 bg-white/60 backdrop-blur-xl border border-white/40 shadow-premium transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden rounded-3xl relative" onClick={() => setLocation(`/clients/${clientId}/compliance-obligations/${fw.id}`)}>
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                                <div className="p-6 flex h-full gap-6 relative z-10">
-                                    {/* Left Side: Info */}
-                                    <div className="flex-1 flex flex-col min-w-0">
-                                        <div className="flex items-start justify-between mb-4">
-                                            <RegulationLogo logo={fw.logo} name={fw.name} />
-                                            <Badge variant="secondary" className="bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm hover:bg-blue-50 px-3 py-1 text-xs uppercase tracking-wider">{fw.type}</Badge>
-                                        </div>
-
-                                        <div className="mb-auto">
-                                            <h3 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors leading-tight mb-2 tracking-tight">
-                                                {fw.name}
-                                            </h3>
-                                            <p className="text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
-                                                {fw.description}
-                                            </p>
-                                        </div>
-
-                                        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center text-sm font-bold text-primary group-hover:translate-x-1 transition-transform">
-                                            View Details <ArrowRight className="ml-1.5 h-4 w-4" />
-                                        </div>
-                                    </div>
-
-                                    {/* Right Side: Progress */}
-                                    <div className="flex flex-col items-center justify-center border-l dashed border-slate-200/50 pl-6 min-w-[120px]">
-                                        <CircularProgress
-                                            value={fwStats.percentage}
-                                            size={100}
-                                            strokeWidth={10}
-                                            color={progressColor}
-                                        />
-                                        <span className={`mt-3 text-xs font-black uppercase tracking-wider ${fwStats.percentage > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
-                                            {fwStats.percentage > 0 ? `${fwStats.percentage}% Done` : 'Not Started'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </Card>
-                        );
-                    })}
-                </div>
+        {/* Sleek Page Header matching FrameworksDashboard */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
+                <Scale className="h-6 w-6" />
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                Compliance Obligations
+              </h1>
             </div>
-        </DashboardLayout>
-    );
+            <p className="text-muted-foreground text-sm">
+              Manage statutory legal mandates, regional privacy laws, and mandatory certification requirements.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <PageGuide
+              title="Compliance Obligations"
+              description="Manage mandatory regulatory requirements and statutory obligations."
+              rationale="Regulatory compliance is not optional. Unlike voluntary frameworks, these are legal requirements based on your jurisdiction and industry. This dashboard tracks your legal must-haves to avoid statutory liabilities."
+              howToUse={[
+                {
+                  step: "Gap Analysis",
+                  description: "Download a comprehensive audit report showing legal posture across all statutory obligations.",
+                  targetId: "reg-gap-analysis-btn",
+                },
+                {
+                  step: "Filter by Category",
+                  description: "Switch between Statutory Directives (GDPR, HIPAA, NIS2) and Mandatory Standards (PCI-DSS).",
+                  targetId: "reg-category-filters",
+                },
+                {
+                  step: "Search Regulations",
+                  description: "Quickly locate specific national or regional frameworks using the search filter.",
+                  targetId: "reg-search-bar",
+                },
+                {
+                  step: "Domain Alignment",
+                  description: "Navigate to Risk, Controls, or Roadmap to resolve legal gaps.",
+                  targetId: "reg-quick-links",
+                },
+              ]}
+              scenarios={[
+                {
+                  title: "Executive Audit & Board Reporting",
+                  example: "General Counsel requests an executive summary of current GDPR, HIPAA, and CCPA exposure.",
+                  auditTip: "Use 'Download Gap Analysis' to produce an executive-ready PDF report highlighting implemented articles and open risks.",
+                },
+                {
+                  title: "Cross-Border Expansion",
+                  example: "Expanding into Brazil, Canada, or Japan requires immediate LGPD, PIPEDA, and APPI alignment.",
+                  auditTip: "Select the regulation to view pre-mapped internal controls, reducing duplicate engineering work.",
+                },
+              ]}
+              integrations={[
+                { name: "Internal Controls", description: "Linked internal controls automatically satisfy statutory requirements." },
+                { name: "Risk Register", description: "Unmet legal obligations auto-populate the high-impact risk register." },
+              ]}
+            />
+
+            <Button
+              id="reg-gap-analysis-btn"
+              onClick={handleDownloadGapAnalysis}
+              variant="outline"
+              className="gap-2 text-xs font-semibold shadow-xs hover:bg-muted/60"
+            >
+              <FileDown className="h-4 w-4 text-primary" />
+              Download Gap Analysis
+            </Button>
+          </div>
+        </div>
+
+        {/* Quick Domain Navigation Cards */}
+        <div id="reg-quick-links" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card
+            className="p-4 flex items-center gap-4 cursor-pointer hover:bg-card border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-sm"
+            onClick={() => setLocation(`/clients/${clientId}/roadmap`)}
+          >
+            <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
+              <Rocket className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground tracking-tight">Compliance Roadmap</p>
+              <p className="text-xs text-muted-foreground">Strategic milestones</p>
+            </div>
+          </Card>
+
+          <Card
+            className="p-4 flex items-center gap-4 cursor-pointer hover:bg-card border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:border-rose-500/40 hover:shadow-sm"
+            onClick={() => setLocation(`/clients/${clientId}/risks`)}
+          >
+            <div className="h-12 w-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">
+              <Target className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground tracking-tight">Risk Register</p>
+              <p className="text-xs text-muted-foreground">High-impact threats</p>
+            </div>
+          </Card>
+
+          <Card
+            className="p-4 flex items-center gap-4 cursor-pointer hover:bg-card border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-sm"
+            onClick={() => setLocation(`/clients/${clientId}/controls`)}
+          >
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground tracking-tight">Internal Controls</p>
+              <p className="text-xs text-muted-foreground">Satisfying obligations</p>
+            </div>
+          </Card>
+
+          <Card
+            className="p-4 flex items-center gap-4 cursor-pointer hover:bg-card border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/40 hover:shadow-sm"
+            onClick={() => setLocation(`/clients/${clientId}/implementation`)}
+          >
+            <div className="h-12 w-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+              <Activity className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground tracking-tight">Implementation</p>
+              <p className="text-xs text-muted-foreground">Remediation velocity</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Sleek Search & Category Filter Bar matching FrameworksDashboard */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div
+            id="reg-search-bar"
+            className="flex items-center space-x-2 bg-card p-2 rounded-xl border border-border shadow-xs flex-1 max-w-md"
+          >
+            <Search className="h-4 w-4 text-muted-foreground ml-2" />
+            <Input
+              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-sm placeholder:text-muted-foreground"
+              placeholder="Search compliance obligations, laws, regulations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div
+            id="reg-category-filters"
+            className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-xl border border-border text-xs"
+          >
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                selectedCategory === "all"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All Obligations ({allObligations.length})
+            </button>
+            <button
+              onClick={() => setSelectedCategory("statutory")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                selectedCategory === "statutory"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Statutory Laws ({statutoryCount})
+            </button>
+            <button
+              onClick={() => setSelectedCategory("standards")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                selectedCategory === "standards"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Mandatory Standards ({standardsCount})
+            </button>
+          </div>
+        </div>
+
+        {/* Obligation Cards Grid matching FrameworksDashboard layout & feel */}
+        <div id="reg-grid-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredObligations.map((item) => {
+            const itemStats = getStats(item.name);
+            return (
+              <ObligationCard
+                key={item.id}
+                item={item}
+                stats={itemStats}
+                onClick={() => setLocation(`/clients/${clientId}/compliance-obligations/${item.id}`)}
+              />
+            );
+          })}
+
+          {filteredObligations.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl bg-muted/10">
+              <BookOpen className="h-12 w-12 text-muted-foreground/40 mb-3" />
+              <h3 className="text-base font-semibold text-foreground">No compliance obligations found</h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                No matching regulations or standards for "{searchQuery}". Try adjusting your search query or switching filters.
+              </p>
+              {searchQuery && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSearchQuery("")}
+                  className="mt-4 text-xs"
+                >
+                  Clear Search
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 }
