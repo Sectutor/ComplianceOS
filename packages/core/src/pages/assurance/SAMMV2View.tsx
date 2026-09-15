@@ -252,8 +252,8 @@ export default function SAMMV2View() {
 
                             <div className="p-4 rounded-3xl border border-border bg-card text-left group">
                                 <div className="flex justify-between items-start mb-2">
-                                    <div className="p-2 rounded-xl bg-indigo-100">
-                                        <Target className="w-5 h-5 text-indigo-600" />
+                                    <div className="p-2 rounded-xl bg-teal-100">
+                                        <Target className="w-5 h-5 text-teal-600" />
                                     </div>
                                     <span className="text-2xl font-black text-foreground">{(businessFunctionScore?.score || 0).toFixed(1)}</span>
                                 </div>
