@@ -34,7 +34,6 @@ interface BillingTabProps {
 
 export function BillingTab({ clientId, clientName }: BillingTabProps) {
   const [, setLocation] = useLocation();
-  const [billingPeriod, setBillingPeriod] = useState<'month' | 'year'>('month');
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
   const { data: client, isLoading, refetch } = trpc.clients.get.useQuery(
@@ -57,7 +56,7 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
       const { url } = await createCheckout.mutateAsync({
         clientId,
         tier,
-        interval: billingPeriod,
+        interval: 'month',
         successUrl: `${window.location.origin}/clients/${clientId}/settings?tab=billing&checkout=success`,
         cancelUrl: `${window.location.origin}/clients/${clientId}/settings?tab=billing&checkout=cancel`,
       });
@@ -195,42 +194,13 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
 
       {/* Plan Selection Matrix */}
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl font-bold tracking-tight text-foreground">
-              Select or Upgrade Your Plan
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Scale compliance capabilities as your audit requirements and customer RFPs increase.
-            </p>
-          </div>
-
-          {/* Monthly / Annual Billing Toggle */}
-          <div className="inline-flex items-center p-1 bg-muted/60 rounded-xl border border-border/70 shadow-2xs self-start sm:self-auto">
-            <button
-              onClick={() => setBillingPeriod('month')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                billingPeriod === 'month'
-                  ? 'bg-card text-foreground shadow-2xs border border-border/50'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Monthly Billing
-            </button>
-            <button
-              onClick={() => setBillingPeriod('year')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                billingPeriod === 'year'
-                  ? 'bg-card text-foreground shadow-2xs border border-border/50'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <span>Annual Billing</span>
-              <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.2 rounded-md">
-                Save 20%
-              </span>
-            </button>
-          </div>
+        <div>
+          <h3 className="text-xl font-bold tracking-tight text-foreground">
+            Available Plans & Capabilities
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Scale compliance capabilities as your audit requirements and customer RFPs increase.
+          </p>
         </div>
 
         {/* Pricing Cards Grid */}
@@ -256,17 +226,6 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               <CardDescription className="text-xs text-muted-foreground mt-1">
                 Foundational automated compliance for startups preparing for their first audit.
               </CardDescription>
-
-              <div className="mt-4 pt-4 border-t border-border/50">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black tracking-tight text-foreground">
-                    ${billingPeriod === 'month' ? '29' : '19'}
-                  </span>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    / month {billingPeriod === 'year' ? '(billed annually)' : ''}
-                  </span>
-                </div>
-              </div>
             </CardHeader>
 
             <CardContent className="p-6 pt-2 space-y-3 flex-1">
@@ -324,17 +283,6 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               <CardDescription className="text-xs text-muted-foreground mt-1">
                 Guided compliance with AI Copilot automation and weekly security advisory roadmap.
               </CardDescription>
-
-              <div className="mt-4 pt-4 border-t border-border/50">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black tracking-tight text-foreground">
-                    ${billingPeriod === 'month' ? '69' : '49'}
-                  </span>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    / month {billingPeriod === 'year' ? '(billed annually)' : ''}
-                  </span>
-                </div>
-              </div>
             </CardHeader>
 
             <CardContent className="p-6 pt-2 space-y-3 flex-1">
@@ -393,13 +341,6 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               <CardDescription className="text-xs text-muted-foreground mt-1">
                 Full white-glove compliance outsourcing, dedicated compliance officer, and audit liaison.
               </CardDescription>
-
-              <div className="mt-4 pt-4 border-t border-border/50">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black tracking-tight text-foreground">Custom</span>
-                  <span className="text-xs font-medium text-muted-foreground">/ annual agreement</span>
-                </div>
-              </div>
             </CardHeader>
 
             <CardContent className="p-6 pt-2 space-y-3 flex-1">
