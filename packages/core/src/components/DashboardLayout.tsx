@@ -925,21 +925,21 @@ function DashboardLayoutContent({
       }
     );
 
-    // Add addon marketplace + active addon subscriptions
-    const activeAddons = (addonSubscriptions || []).filter(
-      (s: any) => s.status === 'active' || s.status === 'trial'
-    );
-    groups.push({
-      label: "Addons",
-      items: [
-        { icon: ShoppingBag, label: "Marketplace", path: "/addons" },
-        ...activeAddons.map((sub: any) => ({
-          icon: Cloud,
-          label: sub.manifest?.name || sub.addon_slug,
-          path: `/addons/${sub.addon_slug}`,
-        })),
-      ]
-    });
+    // Addon menu and sub menus hidden for now
+    // const activeAddons = (addonSubscriptions || []).filter(
+    //   (s: any) => s.status === 'active' || s.status === 'trial'
+    // );
+    // groups.push({
+    //   label: "Addons",
+    //   items: [
+    //     { icon: ShoppingBag, label: "Marketplace", path: "/addons" },
+    //     ...activeAddons.map((sub: any) => ({
+    //       icon: Cloud,
+    //       label: sub.manifest?.name || sub.addon_slug,
+    //       path: `/addons/${sub.addon_slug}`,
+    //     })),
+    //   ]
+    // });
 
     // Add dynamic plugin groups if any are enabled
     if (installedPlugins && installedPlugins.length > 0) {
