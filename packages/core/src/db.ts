@@ -1882,88 +1882,143 @@ export async function ensureDefaultDataSeeded() {
 
 
 
-  // Seed Policy Templates if empty
-
+  // Seed Policy Templates if empty or minimal
   const [templateCount] = await db.select({ count: sql<number>`count(*)` }).from(policyTemplates);
+  if (!templateCount?.count || Number(templateCount.count) < 10) {
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const sqlPath = path.resolve(__dirname, "../../scripts/seed-demo-full.sql");
+      if (fs.existsSync(sqlPath)) {
+        const content = fs.readFileSync(sqlPath, "utf-8");
+        const lines = content.split("\n");
+        let inPt = false;
+        const rawBlock: string[] = [];
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.includes('COPY "policy_templates"')) {
+            inPt = true;
+            continue;
+          }
+          if (inPt) {
+            if (line.trim() === "\\.") {
+              inPt = false;
+              break;
+            }
+            rawBlock.push(line);
+          }
+        }
 
-  if (!templateCount?.count) {
+        const parseCsvRow = (text: string): string[] => {
+          const fields: string[] = [];
+          let cur = '';
+          let inQuotes = false;
+          let i = 0;
+          while (i < text.length) {
+            const ch = text[i];
+            if (inQuotes) {
+              if (ch === '"') {
+                if (i + 1 < text.length && text[i + 1] === '"') {
+                  cur += '"';
+                  i += 2;
+                  continue;
+                } else {
+                  inQuotes = false;
+                  i++;
+                  continue;
+                }
+              } else {
+                cur += ch;
+                i++;
+                continue;
+              }
+            } else {
+              if (ch === '"') {
+                inQuotes = true;
+                i++;
+                continue;
+              } else if (ch === ',') {
+                fields.push(cur);
+                cur = '';
+                i++;
+                continue;
+              } else {
+                cur += ch;
+                i++;
+                continue;
+              }
+            }
+          }
+          fields.push(cur);
+          return fields;
+        };
 
-    const defaultTemplates: InsertPolicyTemplate[] = [
+        const recordStartRegex = /^\d+,/;
+        const records: string[] = [];
+        let currentRecord = '';
+        for (const line of rawBlock) {
+          if (recordStartRegex.test(line)) {
+            if (currentRecord) records.push(currentRecord);
+            currentRecord = line;
+          } else {
+            currentRecord += "\n" + line;
+          }
+        }
+        if (currentRecord) records.push(currentRecord);
 
-      {
+        let insertedCount = 0;
+        for (const rec of records) {
+          const f = parseCsvRow(rec.trim());
+          const id = parseInt(f[0]);
+          const templateId = f[1];
+          const name = f[2];
+          const contentVal = f[3] === "NULL" ? null : f[3];
+          let sectionsVal = null;
+          if (f[4] && f[4] !== "NULL") {
+            try { sectionsVal = JSON.parse(f[4]); } catch (e) {}
+          }
+          let frameworksVal: string[] = [];
+          if (f[6] && f[6] !== "NULL") {
+            try { frameworksVal = JSON.parse(f[6]); } catch (e) { frameworksVal = [f[6]]; }
+          }
+          let tailoringVal = null;
+          if (f[11] && f[11] !== "NULL") {
+            try { tailoringVal = JSON.parse(f[11]); } catch (e) {}
+          }
 
-        templateId: "POL-001",
-
-        name: "Information Security Policy",
-
-        frameworks: ["ISO 27001"],
-
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "roles", title: "Roles & Responsibilities", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-
-        content: "[COMPANY NAME] establishes an Information Security Policy to protect information assets.",
-
-      },
-
-      {
-
-        templateId: "POL-002",
-
-        name: "Access Control Policy",
-
-        frameworks: ["ISO 27001"],
-
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-
-        content: "Access to systems and data is granted based on least privilege and business need.",
-
-      },
-
-      {
-        templateId: "POL-003",
-        name: "Incident Response Policy",
-        frameworks: ["SOC 2"],
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-        content: "Defines processes to respond to and recover from security incidents.",
-      },
-      {
-        templateId: "POL-004",
-        name: "Vendor Risk Management Policy",
-        frameworks: ["SOC 2"],
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-        content: "Establishes due diligence and monitoring of third-party service providers.",
-      },
-
-    ];
-
-    await db.insert(policyTemplates).values(defaultTemplates);
-
-    logger.info(`[Seed] Inserted ${defaultTemplates.length} default policy templates`);
-
+          try {
+            await db.insert(policyTemplates).values({
+              id,
+              templateId,
+              name,
+              content: contentVal,
+              sections: sectionsVal,
+              frameworks: frameworksVal,
+              isPublic: true,
+              ownerId: null,
+              clientId: null,
+              tailoringQuestions: tailoringVal
+            }).onConflictDoUpdate({
+              target: policyTemplates.templateId,
+              set: {
+                name,
+                content: contentVal,
+                sections: sectionsVal,
+                frameworks: frameworksVal,
+                isPublic: true,
+                tailoringQuestions: tailoringVal
+              }
+            });
+            insertedCount++;
+          } catch (e: any) {
+            // ignore individual duplicate error
+          }
+        }
+        logger.info(`[Seed] Seeded ${insertedCount} comprehensive policy templates from seed-demo-full.sql`);
+      }
+    } catch (err: any) {
+      logger.warn(`[Seed] Failed to auto-seed comprehensive policy templates: ${err.message}`);
+    }
   }
 
 }

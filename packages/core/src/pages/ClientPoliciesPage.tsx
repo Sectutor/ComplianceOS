@@ -12,7 +12,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, FileText, Plus, Trash2, Edit, Sparkles, FileSearch, Send, Loader2, Layers } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Trash2, Edit, Sparkles, FileSearch, Send, Loader2, Layers, Search, Filter, Check, Eye } from "lucide-react";
 import { BulkGenerateDialog } from "@/components/policy/BulkGenerateDialog";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import PolicyReviewDialog from "@/components/PolicyReviewDialog";
@@ -60,6 +60,9 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     const [deletePolicyId, setDeletePolicyId] = useState<number | null>(null);
     const [distributionPolicyId, setDistributionPolicyId] = useState<number | null>(null);
     const [isBulkGenerateOpen, setIsBulkGenerateOpen] = useState(false);
+    const [templateSearch, setTemplateSearch] = useState("");
+    const [templateFrameworkFilter, setTemplateFrameworkFilter] = useState("all");
+    const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
 
     useEffect(() => {
         const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -250,70 +253,213 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     : 'Customize your policy settings and AI instructions.'}
                 size="xl"
                 footer={
-                    <div className="flex justify-end gap-2 w-full">
-                        <Button type="button" variant="outline" onClick={() => setIsAddPolicyOpen(false)}>
-                            Cancel
-                        </Button>
-                        {creationStep === 'config' && (
-                            <Button
-                                onClick={() => {
-                                    const form = document.getElementById('add-policy-form') as HTMLFormElement;
-                                    if (form) form.requestSubmit();
-                                }}
-                                disabled={addPolicyMutation.isPending}
-                                className="transition-all font-semibold min-w-[160px]"
-                            >
-                                {addPolicyMutation.isPending ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Generating Policy...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Create Policy
-                                    </>
-                                )}
+                    <div className="flex justify-between items-center w-full">
+                        <div>
+                            {creationStep === 'config' && (
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setCreationStep('select')}>
+                                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Back to Templates
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsAddPolicyOpen(false)}>
+                                Cancel
                             </Button>
-                        )}
+                            {creationStep === 'config' && (
+                                <Button
+                                    onClick={() => {
+                                        const form = document.getElementById('add-policy-form') as HTMLFormElement;
+                                        if (form) form.requestSubmit();
+                                    }}
+                                    disabled={addPolicyMutation.isPending}
+                                    className="transition-all font-semibold min-w-[160px]"
+                                >
+                                    {addPolicyMutation.isPending ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Generating Policy...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Create Policy
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 }
             >
                 {creationStep === 'select' && (
                     <div className="space-y-4">
-                        <div className="grid gap-3 max-h-[350px] overflow-y-auto pr-2">
-                            <div
-                                className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedTemplateId === undefined ? 'border-primary ring-2 ring-primary/30' : 'hover:border-muted-foreground/50'
-                                    }`}
-                                onClick={() => setSelectedTemplateId(undefined)}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <FileText className="h-6 w-6 text-muted-foreground" />
-                                    <div>
-                                        <p className="font-medium">Blank Policy</p>
-                                        <p className="text-sm text-muted-foreground">Start from scratch with AI assistance</p>
-                                    </div>
-                                </div>
+                        {/* Search & Framework Filter */}
+                        <div className="space-y-3">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search 60+ policy templates by name or keyword..."
+                                    value={templateSearch}
+                                    onChange={(e) => setTemplateSearch(e.target.value)}
+                                    className="pl-9 text-sm"
+                                />
+                                {templateSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setTemplateSearch("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
                             </div>
-                            {policyTemplates?.map((template) => (
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                                {['all', 'ISO 27001', 'SOC 2', 'GDPR', 'NIS2', 'PCI DSS', 'NIST'].map((fw) => {
+                                    const active = templateFrameworkFilter.toLowerCase() === fw.toLowerCase();
+                                    return (
+                                        <button
+                                            key={fw}
+                                            type="button"
+                                            onClick={() => setTemplateFrameworkFilter(fw)}
+                                            className={`px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap ${
+                                                active
+                                                    ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                                    : 'bg-muted/40 text-muted-foreground hover:bg-muted border-border'
+                                            }`}
+                                        >
+                                            {fw === 'all' ? 'All Frameworks' : fw}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Templates List */}
+                        <div className="grid gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+                            {/* Blank Policy Option */}
+                            {(!templateSearch || 'blank policy'.includes(templateSearch.toLowerCase())) && (
                                 <div
-                                    key={template.id}
-                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedTemplateId === template.id.toString() ? 'border-primary ring-2 ring-primary/30' : 'hover:border-muted-foreground/50'
-                                        }`}
-                                    onClick={() => setSelectedTemplateId(template.id.toString())}
+                                    className={`border rounded-lg p-3.5 cursor-pointer transition-all ${
+                                        selectedTemplateId === undefined
+                                            ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
+                                            : 'hover:border-muted-foreground/50 hover:bg-muted/30'
+                                    }`}
+                                    onClick={() => setSelectedTemplateId(undefined)}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="h-6 w-6 text-primary" />
-                                        <div>
-                                            <p className="font-medium">{template.name}</p>
-                                            <p className="text-sm text-muted-foreground">{template.framework}</p>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-md bg-muted text-muted-foreground">
+                                                <FileText className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium text-sm">Blank Policy</p>
+                                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">Custom</Badge>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">Start from scratch with AI assistance</p>
+                                            </div>
                                         </div>
+                                        {selectedTemplateId === undefined && (
+                                            <Check className="h-4 w-4 text-primary shrink-0" />
+                                        )}
                                     </div>
                                 </div>
-                            ))}
+                            )}
+
+                            {/* Filtered Policy Templates */}
+                            {policyTemplates
+                                ?.filter((template: any) => {
+                                    const matchesSearch = !templateSearch ||
+                                        template.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+                                        template.templateId?.toLowerCase().includes(templateSearch.toLowerCase());
+
+                                    if (!matchesSearch) return false;
+
+                                    if (templateFrameworkFilter === 'all') return true;
+
+                                    const fwList: string[] = Array.isArray(template.frameworks)
+                                        ? template.frameworks
+                                        : typeof template.framework === 'string'
+                                        ? [template.framework]
+                                        : [];
+
+                                    return fwList.some((f) =>
+                                        f.toLowerCase().includes(templateFrameworkFilter.toLowerCase())
+                                    );
+                                })
+                                .map((template: any) => {
+                                    const isSelected = selectedTemplateId === template.id.toString();
+                                    const frameworks: string[] = Array.isArray(template.frameworks)
+                                        ? template.frameworks
+                                        : template.framework
+                                        ? [template.framework]
+                                        : [];
+
+                                    return (
+                                        <div
+                                            key={template.id}
+                                            className={`border rounded-lg p-3.5 cursor-pointer transition-all ${
+                                                isSelected
+                                                    ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
+                                                    : 'hover:border-muted-foreground/50 hover:bg-muted/30'
+                                            }`}
+                                            onClick={() => setSelectedTemplateId(template.id.toString())}
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className={`p-2 rounded-md shrink-0 ${isSelected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                                        <FileText className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium text-sm truncate">{template.name}</p>
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                            {frameworks.length > 0 ? (
+                                                                frameworks.map((fw, i) => (
+                                                                    <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
+                                                                        {fw}
+                                                                    </Badge>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-xs text-muted-foreground">Standard Policy</span>
+                                                            )}
+                                                            {template.sections && Array.isArray(template.sections) && (
+                                                                <span className="text-[11px] text-muted-foreground">
+                                                                    • {template.sections.length} sections
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                                        title="Preview template content"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPreviewTemplate(template);
+                                                        }}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                            {policyTemplates && policyTemplates.length === 0 && (
+                                <div className="text-center py-8 text-sm text-muted-foreground">
+                                    No templates found.
+                                </div>
+                            )}
                         </div>
+
                         <Button className="w-full" onClick={() => setCreationStep('config')}>
-                            Continue
+                            Continue with {selectedTemplateId ? (policyTemplates?.find((t: any) => t.id.toString() === selectedTemplateId)?.name || 'Template') : 'Blank Policy'}
                         </Button>
                     </div>
                 )}
@@ -394,6 +540,80 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             )}
                         </div>
                     </form>
+                )}
+            </EnhancedDialog>
+
+            {/* Template Preview Dialog */}
+            <EnhancedDialog
+                open={!!previewTemplate}
+                onOpenChange={(open) => !open && setPreviewTemplate(null)}
+                title={previewTemplate?.name || "Template Preview"}
+                description={`Previewing policy structure and sections for ${previewTemplate?.name || ''}`}
+                size="xl"
+                footer={
+                    <div className="flex justify-between items-center w-full">
+                        <div className="flex items-center gap-1.5">
+                            {(Array.isArray(previewTemplate?.frameworks)
+                                ? previewTemplate.frameworks
+                                : previewTemplate?.framework
+                                ? [previewTemplate.framework]
+                                : []
+                            ).map((fw: string, i: number) => (
+                                <Badge key={i} variant="secondary" className="text-xs">
+                                    {fw}
+                                </Badge>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" onClick={() => setPreviewTemplate(null)}>
+                                Close
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    if (previewTemplate) {
+                                        setSelectedTemplateId(previewTemplate.id.toString());
+                                        setPreviewTemplate(null);
+                                        setCreationStep('config');
+                                    }
+                                }}
+                            >
+                                Use This Template
+                            </Button>
+                        </div>
+                    </div>
+                }
+            >
+                {previewTemplate && (
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                        {previewTemplate.sections && Array.isArray(previewTemplate.sections) && previewTemplate.sections.length > 0 ? (
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Sections ({previewTemplate.sections.length})
+                                </h4>
+                                <div className="space-y-2.5">
+                                    {previewTemplate.sections.map((sec: any, i: number) => (
+                                        <div key={i} className="border rounded-md p-3 bg-muted/20">
+                                            <p className="text-sm font-medium text-foreground">{sec.title || `Section ${i + 1}`}</p>
+                                            {sec.content && (
+                                                <div
+                                                    className="text-xs text-muted-foreground mt-1 line-clamp-3 prose dark:prose-invert max-w-none"
+                                                    dangerouslySetInnerHTML={{ __html: sec.content }}
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : previewTemplate.content ? (
+                            <div className="prose dark:prose-invert max-w-none text-sm border rounded-md p-4 bg-muted/20">
+                                <div dangerouslySetInnerHTML={{ __html: previewTemplate.content }} />
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground py-6 text-center">
+                                Standard template with default ISO/SOC 2 governance sections.
+                            </div>
+                        )}
+                    </div>
                 )}
             </EnhancedDialog>
 
