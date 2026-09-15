@@ -260,7 +260,7 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               <div className="mt-4 pt-4 border-t border-border/50">
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-black tracking-tight text-foreground">
-                    ${billingPeriod === 'month' ? '199' : '159'}
+                    ${billingPeriod === 'month' ? '29' : '19'}
                   </span>
                   <span className="text-xs font-medium text-muted-foreground">
                     / month {billingPeriod === 'year' ? '(billed annually)' : ''}
@@ -328,7 +328,7 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               <div className="mt-4 pt-4 border-t border-border/50">
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-black tracking-tight text-foreground">
-                    ${billingPeriod === 'month' ? '299' : '239'}
+                    ${billingPeriod === 'month' ? '69' : '49'}
                   </span>
                   <span className="text-xs font-medium text-muted-foreground">
                     / month {billingPeriod === 'year' ? '(billed annually)' : ''}
