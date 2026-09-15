@@ -311,38 +311,38 @@ export default function Mappings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mappings.map((item) => {
-                    const controlCode = item.clientControl?.clientControlId ||
-                      item.control?.controlId ||
-                      (item.control?.id ? `CTL-${item.control.id}` : '-');
-                    const policyCode = item.clientPolicy?.clientPolicyId ||
-                      (item.clientPolicy?.id ? `POL-${item.clientPolicy.id}` : '-');
-
-                    return (
-                      <TableRow
-                        key={`mapping-${item.mapping.id}`}
-                        className="bg-white border-b border-slate-200 cursor-pointer transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group"
-                        onDoubleClick={() => setEditingMapping(item)}
-                      >
-                        <TableCell className="py-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-mono text-sm text-black">{controlCode}</p>
-                              {(item.mapping as any).isAiGenerated && (
-                                <div className="p-0.5 rounded bg-teal-100 text-cyan-600" title="AI Suggested Mapping">
-                                  <Sparkles className="h-3 w-3" />
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500">{item.control?.name}</p>
+                  {mappings.map((item) => (
+                    <TableRow
+                      key={`mapping-${item.mapping.id}`}
+                      className="bg-white border-b border-slate-200 cursor-pointer transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group"
+                      onDoubleClick={() => setEditingMapping(item)}
+                    >
+                      <TableCell className="py-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-sm text-black">
+                              {item.clientControl?.clientControlId ||
+                                item.control?.controlId ||
+                                (item.control?.id ? `CTL-${item.control.id}` : '-')}
+                            </p>
+                            {(item.mapping as any).isAiGenerated && (
+                              <div className="p-0.5 rounded bg-teal-100 text-cyan-600" title="AI Suggested Mapping">
+                                <Sparkles className="h-3 w-3" />
+                              </div>
+                            )}
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div>
-                            <p className="font-mono text-sm text-black">{policyCode}</p>
-                            <p className="text-sm text-gray-500">{item.clientPolicy?.name}</p>
-                          </div>
-                        </TableCell>
+                          <p className="text-sm text-gray-500">{item.control?.name}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div>
+                          <p className="font-mono text-sm text-black">
+                            {item.clientPolicy?.clientPolicyId ||
+                              (item.clientPolicy?.id ? `POL-${item.clientPolicy.id}` : '-')}
+                          </p>
+                          <p className="text-sm text-gray-500">{item.clientPolicy?.name}</p>
+                        </div>
+                      </TableCell>
                       <TableCell className="max-w-xs truncate text-gray-600 py-4">
                         {item.mapping.evidenceReference || '-'}
                       </TableCell>
@@ -350,7 +350,6 @@ export default function Mappings() {
                         {item.mapping.notes || '-'}
                       </TableCell>
                       <TableCell className="py-4">
-
                         <div className="flex gap-2 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
                           <Button
                             variant="ghost"
