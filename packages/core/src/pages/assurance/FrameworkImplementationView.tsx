@@ -483,8 +483,8 @@ const FrameworkImplementationView: React.FC = () => {
                                                                 variant="ghost"
                                                                 className={`w-full rounded-2xl font-bold text-[11px] uppercase tracking-wider h-11 border transition-all duration-300 shadow-sm
                                                                 ${getGuidanceMutation.isLoading && guidanceControl?.id === control.id
-                                                                        ? "bg-purple-100/50 text-purple-600 border-purple-200 cursor-wait"
-                                                                        : "bg-gradient-to-r hover:from-purple-50 hover:to-fuchsia-50 text-purple-600 border-purple-100 hover:border-purple-300"
+                                                                        ? "bg-indigo-100/50 text-indigo-600 border-indigo-200 cursor-wait"
+                                                                        : "bg-gradient-to-r hover:from-indigo-50 hover:to-cyan-50 text-indigo-600 border-indigo-100 hover:border-indigo-300"
                                                                     }`}
                                                                 onClick={() => handleOpenGuidance(control)}
                                                                 disabled={getGuidanceMutation.isLoading}
@@ -496,7 +496,7 @@ const FrameworkImplementationView: React.FC = () => {
                                                                     </>
                                                                 ) : (
                                                                     <>
-                                                                        <Sparkles className="w-3.5 h-3.5 mr-2 text-purple-500" />
+                                                                        <Sparkles className="w-3.5 h-3.5 mr-2 text-indigo-500" />
                                                                         AI Guidance
                                                                     </>
                                                                 )}
@@ -526,7 +526,7 @@ const FrameworkImplementationView: React.FC = () => {
                     <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white/95 backdrop-blur-3xl border-white/50 shadow-2xl rounded-3xl p-8">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-3 text-2xl font-black">
-                                <div className="p-3 bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-2xl shadow-lg shadow-purple-500/20">
+                                <div className="p-3 bg-gradient-to-br from-indigo-500 to-cyan-600 rounded-2xl shadow-lg shadow-indigo-500/20">
                                     <Sparkles className="w-6 h-6 text-white" />
                                 </div>
                                 Implementation Guide
@@ -545,13 +545,13 @@ const FrameworkImplementationView: React.FC = () => {
                             {getGuidanceMutation.isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-16 space-y-4">
                                     <div className="relative">
-                                        <div className="absolute inset-0 rounded-full blur-xl bg-purple-500/20 animate-pulse"></div>
-                                        <Loader2 className="w-12 h-12 text-purple-600 animate-spin relative z-10" />
+                                        <div className="absolute inset-0 rounded-full blur-xl bg-indigo-500/20 animate-pulse"></div>
+                                        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin relative z-10" />
                                     </div>
-                                    <p className="text-purple-600 font-bold animate-pulse">Synthesizing Contextual Guidance...</p>
+                                    <p className="text-indigo-600 font-bold animate-pulse">Synthesizing Contextual Guidance...</p>
                                 </div>
                             ) : (
-                                <div className="prose prose-sm md:prose-base prose-slate max-w-none prose-headings:font-black prose-headings:text-slate-900 prose-a:text-purple-600 prose-strong:text-slate-800 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                <div className="prose prose-sm md:prose-base prose-slate max-w-none prose-headings:font-black prose-headings:text-slate-900 prose-a:text-indigo-600 prose-strong:text-slate-800 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                                     <ReactMarkdown>{guidanceContent}</ReactMarkdown>
                                 </div>
                             )}

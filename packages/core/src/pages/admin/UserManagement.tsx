@@ -196,7 +196,7 @@ export default function UserManagement() {
                                             <TableCell className="py-4">
                                                 <Badge
                                                     variant={user.role === 'admin' || user.role === 'owner' || user.role === 'super_admin' ? 'default' : 'secondary'}
-                                                    className={user.role === 'admin' ? "bg-purple-500 hover:bg-purple-600" : user.role === 'super_admin' ? "bg-red-600 hover:bg-red-700 font-bold animate-pulse" : ""}
+                                                    className={user.role === 'admin' ? "bg-indigo-600 hover:bg-indigo-700" : user.role === 'super_admin' ? "bg-red-600 hover:bg-red-700 font-bold animate-pulse" : ""}
                                                 >
                                                     {user.role === 'admin' ? 'Global Admin' : user.role === 'super_admin' ? 'Super Admin' : user.role === 'user' ? 'Org Admin' : user.role}
                                                 </Badge>

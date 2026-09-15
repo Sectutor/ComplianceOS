@@ -1044,10 +1044,10 @@ const AIGovernance = () => {
                             <div className="text-3xl font-bold">{systems?.length || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20 shadow-lg">
+                    <Card className="bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border-teal-500/20 shadow-lg">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <ShieldCheck className="h-4 w-4 text-purple-500" /> NIST Compliance
+                                <ShieldCheck className="h-4 w-4 text-teal-500" /> NIST Compliance
                             </CardTitle>
                         </CardHeader>
                         <CardContent>

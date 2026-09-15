@@ -93,7 +93,7 @@ export default function BCPProgramGuide() {
             icon: FileText,
             color: 'text-indigo-600',
             bgColor: 'bg-indigo-50',
-            accent: 'from-indigo-600 to-purple-600',
+            accent: 'from-indigo-600 to-cyan-600',
             bestPractices: [
                 'Ensure plans are concise, actionable, and checklist-based during a crisis.',
                 'Designate alternate processing facilities and backup infrastructure.',
@@ -129,9 +129,9 @@ export default function BCPProgramGuide() {
             subtitle: 'Testing & Maintenance',
             description: 'A plan is only as good as its last test. Regularly conduct tabletop exercises and simulations to validate the effectiveness of your BCP and train personnel.',
             icon: PlayCircle,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
-            accent: 'from-purple-600 to-fuchsia-600',
+            color: 'text-cyan-600',
+            bgColor: 'bg-cyan-50',
+            accent: 'from-cyan-600 to-teal-600',
             bestPractices: [
                 'Schedule tabletop exercises at least annually involving key executives.',
                 'Use realistic, dynamic scenarios that test the limits of your recovery procedures.',

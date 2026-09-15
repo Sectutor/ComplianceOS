@@ -16,7 +16,7 @@ interface AIAssessmentWizardProps {
 
 const steps = [
     { title: "Safety & Reliability", icon: Shield, color: "text-blue-500", key: "safetyImpact", scoreKey: "safetyScore" },
-    { title: "Bias & Fairness", icon: Scale, color: "text-purple-500", key: "biasImpact", scoreKey: "biasScore" },
+    { title: "Bias & Fairness", icon: Scale, color: "text-indigo-500", key: "biasImpact", scoreKey: "biasScore" },
     { title: "Privacy & Data", icon: Lock, color: "text-emerald-500", key: "privacyImpact", scoreKey: "privacyScore" },
     { title: "Security & Robustness", icon: AlertTriangle, color: "text-orange-500", key: "securityImpact", scoreKey: "securityScore" }
 ];

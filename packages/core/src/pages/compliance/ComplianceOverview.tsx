@@ -46,9 +46,9 @@ export default function ComplianceOverview() {
             headerTitle: "Automated Gap Analysis",
             description: "Leverage AI-powered questionnaires to conduct automated gap analyses across frameworks, identifying control deficiencies and remediation priorities.",
             icon: Sparkles,
-            color: "from-purple-600 to-indigo-500",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-indigo-600 to-cyan-500",
+            textColor: "text-indigo-600",
+            bgLight: "bg-indigo-50",
             path: `/clients/${clientId}/questionnaires`,
             benefits: [
                 "AI-powered gap detection",
@@ -269,7 +269,7 @@ export default function ComplianceOverview() {
 
                         {[
                             { step: "1", title: "Assess", desc: "Gap analysis", icon: Sparkles, color: "text-blue-600", bg: "bg-blue-100" },
-                            { step: "2", title: "Map", desc: "Framework alignment", icon: Link, color: "text-purple-600", bg: "bg-purple-100" },
+                            { step: "2", title: "Map", desc: "Framework alignment", icon: Link, color: "text-cyan-600", bg: "bg-cyan-100" },
                             { step: "3", title: "Remediate", desc: "Close gaps", icon: Calendar, color: "text-amber-600", bg: "bg-amber-100" },
                             { step: "4", title: "Validate", desc: "Evidence review", icon: ClipboardCheck, color: "text-orange-600", bg: "bg-orange-100" },
                             { step: "5", title: "Certify", desc: "Audit success", icon: Star, color: "text-emerald-600", bg: "bg-emerald-100" }

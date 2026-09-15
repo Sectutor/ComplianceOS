@@ -85,9 +85,9 @@ export default function ComplianceJourneyDashboard() {
             description: "Connect cloud integrations (AWS, GitHub, Google) and upload automated control verification proof.",
             icon: ClipboardCheck,
             path: `/clients/${clientId}/evidence`,
-            color: "text-purple-600 dark:text-purple-400",
-            bgAccent: "bg-purple-500/10 border-purple-500/20",
-            glowColor: "hover:shadow-purple-500/10",
+            color: "text-cyan-600 dark:text-cyan-400",
+            bgAccent: "bg-cyan-500/10 border-cyan-500/20",
+            glowColor: "hover:shadow-cyan-500/10",
             buttonText: "Collect Evidence",
             progress: evidenceProgress,
             status: isEvidenceUnlocked ? (evidenceProgress >= 80 ? 'completed' : 'in-progress') : 'locked',
@@ -407,7 +407,7 @@ export default function ComplianceJourneyDashboard() {
                     </div>
 
                     <div className="p-4 rounded-xl border border-border/70 bg-card/50 backdrop-blur-xs flex gap-3.5 items-start">
-                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
+                        <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shrink-0">
                             <ShieldCheck className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">

@@ -268,7 +268,7 @@ export default function ContactDetail() {
         switch (type) {
             case 'call': return <PhoneCall className="h-4 w-4 text-green-500" />;
             case 'email': return <Mail className="h-4 w-4 text-blue-500" />;
-            case 'meeting': return <Video className="h-4 w-4 text-purple-500" />;
+            case 'meeting': return <Video className="h-4 w-4 text-cyan-500" />;
             case 'task': return <CheckCircle2 className="h-4 w-4 text-orange-500" />;
             default: return <MessageSquare className="h-4 w-4 text-gray-500" />;
         }
@@ -277,7 +277,7 @@ export default function ContactDetail() {
     const getStatusColor = (status: string | null) => {
         switch (status) {
             case 'lead': return 'bg-primary/20 text-primary border-primary/30';
-            case 'prospect': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+            case 'prospect': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
             case 'customer': return 'bg-green-500/20 text-green-400 border-green-500/30';
             case 'churned': return 'bg-red-500/20 text-red-400 border-red-500/30';
             default: return 'bg-gray-500/20 text-gray-400';

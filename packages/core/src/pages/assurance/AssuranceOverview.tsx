@@ -48,9 +48,9 @@ export default function AssuranceOverview() {
             headerTitle: "MSP Client Collection",
             description: "Streamlined evidence collection portal for managed service providers to gather evidence from clients with automated organization and validation.",
             icon: Inbox,
-            color: "from-purple-600 to-indigo-500",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-cyan-600 to-indigo-500",
+            textColor: "text-cyan-600",
+            bgLight: "bg-cyan-50",
             path: `/clients/${clientId}/intake`,
             benefits: [
                 "Client upload portal",
@@ -449,8 +449,8 @@ export default function AssuranceOverview() {
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                                        <Layers className="w-5 h-5 text-purple-400" />
+                                    <div className="p-2 bg-cyan-500/20 rounded-lg">
+                                        <Layers className="w-5 h-5 text-cyan-400" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold">Cross-Framework Mapping</h3>

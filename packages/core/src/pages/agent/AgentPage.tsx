@@ -614,7 +614,7 @@ export function AgentPage() {
             <Brain size={14} />
             Memory Cortex (VFS)
             <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
-              activeMainTab === 'memory' ? "border-primary-foreground/40 text-primary-foreground" : "border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/10"
+              activeMainTab === 'memory' ? "border-primary-foreground/40 text-primary-foreground" : "border-cyan-500/40 text-cyan-600 dark:text-cyan-400 bg-cyan-500/10"
             }`}>
               OpenViking
             </Badge>

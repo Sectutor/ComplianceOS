@@ -299,7 +299,7 @@ export default function Dashboard() {
         {/* Ambient Light Mode Background Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
-          <div className="absolute top-[20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-purple-500/10 blur-[120px]" />
+          <div className="absolute top-[20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-cyan-500/10 blur-[120px]" />
           <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[50%] rounded-full bg-indigo-500/10 blur-[120px]" />
           <div className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none"></div>
         </div>
@@ -500,10 +500,10 @@ export default function Dashboard() {
               )}
 
               {/* Light Standard Selector */}
-              <div className="flex items-center gap-3 bg-card/70 backdrop-blur-md border border-border rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-muted/60 focus-within:ring-2 focus-within:ring-purple-500/50 group">
+              <div className="flex items-center gap-3 bg-card/70 backdrop-blur-md border border-border rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-muted/60 focus-within:ring-2 focus-within:ring-primary/50 group">
                 <span className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">{t("dashboard.protocol", "Protocol:")}</span>
                 <select
-                  className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-foreground focus:text-purple-600 outline-none appearance-none transition-colors"
+                  className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-foreground focus:text-primary outline-none appearance-none transition-colors"
                   value={framework || ""}
                   onChange={(e) => setFramework(e.target.value || undefined)}
                 >
@@ -618,7 +618,7 @@ export default function Dashboard() {
 
                 {/* Compliance Trend Chart */}
                 <Card className="col-span-full bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border" id="dash-compliance-trend">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-50 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-50 pointer-events-none" />
                   <CardHeader className="pb-4 relative z-10 border-b border-border">
                     <CardTitle className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
                       <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm shadow-blue-500/20">
@@ -784,10 +784,10 @@ export default function Dashboard() {
 
                   {/* Recent Activity Mini */}
                   <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/activity rounded-2xl border-border">
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500" />
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 to-indigo-500" />
                     <CardHeader className="pb-4 relative z-10 border-b border-border">
                       <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
+                        <div className="p-2 rounded-xl bg-teal-500/10 text-teal-600">
                           <Activity className="h-5 w-5" />
                         </div>
                         {t("dashboard.recentSignals", "Recent Signals")}
@@ -841,7 +841,7 @@ export default function Dashboard() {
                   </Card>
 
                   <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden group/metric rounded-2xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-border">
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 to-fuchsia-500" />
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 to-cyan-500" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -854,7 +854,7 @@ export default function Dashboard() {
                             </h3>
                           )}
                         </div>
-                        <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white">
+                        <div className="p-3 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white">
                           <Shield className="w-6 h-6" />
                         </div>
                       </div>

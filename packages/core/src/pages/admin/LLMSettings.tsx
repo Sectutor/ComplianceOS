@@ -851,7 +851,7 @@ export default function LLMSettings() {
                                                             model.tier === 'workstation'
                                                                 ? "bg-sky-50 text-sky-700 border-sky-200"
                                                                 : model.tier === 'pro_workstation'
-                                                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                                                    ? "bg-indigo-50 text-indigo-700 border-indigo-200"
                                                                     : "bg-amber-50 text-amber-700 border-amber-200"
                                                         }`}
                                                     >

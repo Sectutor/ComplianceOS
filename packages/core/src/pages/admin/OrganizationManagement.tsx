@@ -291,7 +291,7 @@ export default function OrganizationManagement() {
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <Badge variant="outline" className={
-                                                    client.planTier === 'enterprise' ? 'border-purple-200 bg-purple-50 text-purple-700' :
+                                                    client.planTier === 'enterprise' ? 'border-amber-200 bg-amber-50 text-amber-700' :
                                                         client.planTier === 'consultant' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'text-slate-600'
                                                 }>
                                                     {client.planTier ? client.planTier.toUpperCase() : 'FREE'}

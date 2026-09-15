@@ -516,7 +516,7 @@ function RequirementCard({ requirement, clientId, frameworkId, assessment, onUpd
                                         "border-none text-[10px] font-black px-2 py-0 h-5 tracking-tight uppercase",
                                         requirement.level === 1 ? "bg-blue-50 text-blue-600" :
                                             requirement.level === 2 ? "bg-primary/10 text-primary" :
-                                                "bg-purple-50 text-purple-600"
+                                                "bg-amber-50 text-amber-600"
                                     )}>
                                         MIL {requirement.level}: {levelInfo.name}
                                     </Badge>

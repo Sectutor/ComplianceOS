@@ -456,7 +456,7 @@ export const EuAiActTab = ({ aiSystemId, clientId }: EuAiActTabProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Classification Card */}
         <Card className="lg:col-span-1 border-muted/30 shadow-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-muted/20 pb-4">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-cyan-50 border-b border-muted/20 pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="h-4 w-4 text-indigo-600" />
               Classification
