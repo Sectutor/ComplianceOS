@@ -18,7 +18,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
     list: clientProcedure
       .input(z.object({
         clientId: z.number(),
-        module: z.enum(["general", "privacy", "cyber"]).optional()
+        module: z.string().optional()
       }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
@@ -26,8 +26,6 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         if (input.module) {
           conditions.push(eq(clientPolicies.module, input.module));
-        } else {
-          conditions.push(or(eq(clientPolicies.module, 'general'), isNull(clientPolicies.module))!);
         }
 
         const results = await dbConn.select({
