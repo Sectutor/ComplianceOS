@@ -175,7 +175,7 @@ export function ISOLayout({ clientId, children, fullWidth = false }: ISOLayoutPr
                         })}
                     </nav>
                 </div>
-                <div className="flex-1 w-full py-2 px-0">
+                <div className="flex-1 w-full min-w-0 max-w-full py-2 px-0">
                     {children}
                 </div>
             </div>

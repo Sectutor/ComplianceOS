@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination';
 import { trpc } from '@/lib/trpc';
-import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal } from 'lucide-react';
+import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@complianceos/ui/ui/input';
 import { Button } from '@complianceos/ui/ui/button';
@@ -75,6 +75,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuCheckboxItem,
 } from "@complianceos/ui/ui/dropdown-menu";
 
 import {
@@ -117,6 +118,41 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 50;
+
+    // Optional column visibility toggle state
+    const [visibleColumns, setVisibleColumns] = useState<{
+        assessmentId: boolean;
+        threatDescription: boolean;
+        likelihood: boolean;
+        impact: boolean;
+        inherentRisk: boolean;
+        residualRisk: boolean;
+        treatmentOption: boolean;
+    }>(() => {
+        try {
+            const saved = localStorage.getItem(`risk_register_columns_${clientId}`);
+            if (saved) return JSON.parse(saved);
+        } catch (e) { /* ignore */ }
+        return {
+            assessmentId: true,
+            threatDescription: true,
+            likelihood: true,
+            impact: true,
+            inherentRisk: true,
+            residualRisk: true,
+            treatmentOption: true,
+        };
+    });
+
+    const toggleColumn = (key: keyof typeof visibleColumns) => {
+        setVisibleColumns(prev => {
+            const updated = { ...prev, [key]: !prev[key] };
+            try {
+                localStorage.setItem(`risk_register_columns_${clientId}`, JSON.stringify(updated));
+            } catch (e) { /* ignore */ }
+            return updated;
+        });
+    };
 
     // Fetch risk assessments with treatment counts
     // Fetch risk assessments with treatment counts
@@ -448,33 +484,121 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             <SelectItem value="Low">Low</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {/* Columns Selector Dropdown */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="default" className="gap-2 ml-auto text-slate-700 hover:bg-slate-50 border-slate-200 shadow-2xs">
+                                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+                                <span>Columns</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 p-2 shadow-lg border-slate-200">
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                Visible Columns
+                            </div>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.assessmentId}
+                                onCheckedChange={() => toggleColumn('assessmentId')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Risk ID
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.threatDescription}
+                                onCheckedChange={() => toggleColumn('threatDescription')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Description
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.likelihood}
+                                onCheckedChange={() => toggleColumn('likelihood')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Likelihood
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.impact}
+                                onCheckedChange={() => toggleColumn('impact')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Impact
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.inherentRisk}
+                                onCheckedChange={() => toggleColumn('inherentRisk')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Inherent Risk
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.residualRisk}
+                                onCheckedChange={() => toggleColumn('residualRisk')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Residual Risk
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.treatmentOption}
+                                onCheckedChange={() => toggleColumn('treatmentOption')}
+                                className="text-xs cursor-pointer"
+                            >
+                                Treatment
+                            </DropdownMenuCheckboxItem>
+                            <div className="px-2 py-1 text-[11px] text-slate-400 border-t border-slate-100 mt-1">
+                                Status & Actions are always pinned
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white m-4">
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1200px]">
+            {/* Table Container */}
+            <div className="rounded-xl border border-slate-200 shadow-xs overflow-hidden bg-white m-4 min-w-0">
+                <div className="w-full overflow-x-auto">
+                    <table className="w-full min-w-[760px] border-collapse text-left">
                         <thead>
-                            <tr className="bg-brand">
-                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
-                                <SortableHeader field="assessmentId" className="text-left text-white">Risk ID</SortableHeader>
-                                <SortableHeader field="threatDescription" className="text-left max-w-[250px] text-white">Description</SortableHeader>
-                                <SortableHeader field="likelihood" className="text-center text-white">Likelihood</SortableHeader>
-                                <SortableHeader field="impact" className="text-center text-white">Impact</SortableHeader>
-                                <SortableHeader field="inherentRisk" className="text-center text-white">Inherent</SortableHeader>
-                                <SortableHeader field="residualRisk" className="text-center text-white">Residual</SortableHeader>
-                                <SortableHeader field="treatmentOption" className="text-left text-white">Treatment</SortableHeader>
-                                {/* <SortableHeader field="priority" className="text-center text-white">Priority</SortableHeader> */}
-                                <SortableHeader field="status" className="text-center text-white">Status</SortableHeader>
-                                {/* <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">Policies</th> */}
-                                <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider min-w-[120px]">Actions</th>
+                            <tr className="bg-brand border-b border-brand text-white text-xs">
+                                <th className="px-3 py-3.5 text-center text-white w-10 shrink-0"></th>
+                                {visibleColumns.assessmentId && (
+                                    <SortableHeader field="assessmentId" className="text-left text-white whitespace-nowrap min-w-[100px]">Risk ID</SortableHeader>
+                                )}
+                                {visibleColumns.threatDescription && (
+                                    <SortableHeader field="threatDescription" className="text-left text-white min-w-[220px]">Description</SortableHeader>
+                                )}
+                                {visibleColumns.likelihood && (
+                                    <SortableHeader field="likelihood" className="text-center text-white whitespace-nowrap w-24">Likelihood</SortableHeader>
+                                )}
+                                {visibleColumns.impact && (
+                                    <SortableHeader field="impact" className="text-center text-white whitespace-nowrap w-24">Impact</SortableHeader>
+                                )}
+                                {visibleColumns.inherentRisk && (
+                                    <SortableHeader field="inherentRisk" className="text-center text-white whitespace-nowrap w-28">Inherent</SortableHeader>
+                                )}
+                                {visibleColumns.residualRisk && (
+                                    <SortableHeader field="residualRisk" className="text-center text-white whitespace-nowrap w-28">Residual</SortableHeader>
+                                )}
+                                {visibleColumns.treatmentOption && (
+                                    <SortableHeader field="treatmentOption" className="text-left text-white whitespace-nowrap min-w-[130px]">Treatment</SortableHeader>
+                                )}
+                                {/* Sticky Status Header */}
+                                <SortableHeader
+                                    field="status"
+                                    className="text-center text-white whitespace-nowrap sticky right-[84px] z-20 bg-brand shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.15)] w-28 min-w-[100px]"
+                                >
+                                    Status
+                                </SortableHeader>
+                                {/* Sticky Actions Header */}
+                                <th className="px-3 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider sticky right-0 z-20 bg-brand w-[84px] min-w-[84px]">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-200/80">
                             {paginatedRisks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={13} className="px-4 py-12 text-center bg-white">
+                                    <td colSpan={10} className="px-4 py-12 text-center bg-white">
                                         <Shield className="w-12 h-12 mx-auto text-gray-400 opacity-30 mb-4" />
                                         <p className="text-gray-500">No risks found matching your criteria.</p>
                                     </td>
@@ -484,14 +608,15 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                     <React.Fragment key={risk.id}>
                                         {/* Main Row */}
                                         <tr
-                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer group"
+                                            className="bg-white hover:bg-slate-50 transition-colors duration-150 cursor-pointer group text-sm"
                                             onDoubleClick={() => onEditRisk(risk)}
                                             title="Double-click to edit"
                                         >
-                                            <td className="px-4 py-4">
+                                            <td className="px-3 py-3 text-center w-10">
                                                 <button
                                                     onClick={() => toggleRowExpand(risk.id)}
-                                                    className="p-1 hover:bg-gray-100 rounded text-gray-500"
+                                                    className="p-1 hover:bg-slate-200/70 rounded text-slate-500 transition-colors"
+                                                    title={expandedRows.has(risk.id) ? "Collapse details" : "Expand details"}
                                                 >
                                                     {expandedRows.has(risk.id) ? (
                                                         <ChevronUp className="w-4 h-4" />
@@ -500,92 +625,101 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                     )}
                                                 </button>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <span className="font-mono text-sm font-medium text-black">{risk.assessmentId}</span>
-                                            </td>
-                                            <td className="px-4 py-4 max-w-[250px]">
-                                                <div className="truncate text-sm text-gray-600" title={risk.contextSnapshot?.description || risk.description || risk.threatDescription || ''}>
-                                                    {risk.contextSnapshot?.description || risk.description || risk.threatDescription || '-'}
-                                                </div>
-                                            </td>
 
-                                            <td className="px-4 py-4 text-center">
-                                                <span className="text-sm text-gray-600">{risk.likelihood || '-'}</span>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <span className="text-sm text-gray-600">{risk.impact || '-'}</span>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                {(() => {
-                                                    // Calculate Inherent Risk Level dynamically to match Heatmap
-                                                    const l = normalizeValue(risk.likelihood);
-                                                    const i = normalizeValue(risk.impact);
-                                                    const score = l * i;
+                                            {visibleColumns.assessmentId && (
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <span className="font-mono text-xs font-semibold text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                                                        {risk.assessmentId}
+                                                    </span>
+                                                </td>
+                                            )}
 
-                                                    let level = 'Low';
-                                                    let color = 'bg-gray-100 text-gray-800';
+                                            {visibleColumns.threatDescription && (
+                                                <td className="px-3 py-3 min-w-[220px] max-w-[420px]">
+                                                    <div
+                                                        className="line-clamp-2 text-xs font-normal text-slate-700 leading-relaxed"
+                                                        title={risk.contextSnapshot?.description || risk.description || risk.threatDescription || ''}
+                                                    >
+                                                        {risk.contextSnapshot?.description || risk.description || risk.threatDescription || '-'}
+                                                    </div>
+                                                </td>
+                                            )}
 
-                                                    if (score >= 15) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; }
-                                                    else if (score >= 8) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; }
-                                                    else if (score >= 4) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-sm'; }
-                                                    else { level = 'Low'; color = 'bg-green-400 text-black shadow-sm'; } // score < 4
+                                            {visibleColumns.likelihood && (
+                                                <td className="px-3 py-3 text-center whitespace-nowrap">
+                                                    <span className="text-xs font-medium text-slate-700">{risk.likelihood || '-'}</span>
+                                                </td>
+                                            )}
 
-                                                    return (
-                                                        <Badge className={`${color} border-0 font-semibold px-2.5 py-0.5`}>
-                                                            {level}
-                                                        </Badge>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                {(() => {
-                                                    // Normalize Residual Risk Level dynamically to match Heatmap logic
-                                                    // For residual, we map the single value to a score/level directly
-                                                    const score = normalizeValue(risk.residualRisk);
+                                            {visibleColumns.impact && (
+                                                <td className="px-3 py-3 text-center whitespace-nowrap">
+                                                    <span className="text-xs font-medium text-slate-700">{risk.impact || '-'}</span>
+                                                </td>
+                                            )}
 
-                                                    let level = 'Low';
-                                                    let color = 'bg-gray-100 text-gray-800';
-                                                    // Use same thresholds as Inherent, or direct Level mapping?
-                                                    // normalizeValue returns 1-5.
-                                                    // Inherent uses L*I (1-25).
-                                                    // Residual heatmap plots normalized score (1-5) on diagonal.
-                                                    // So we should map 1-5 to colors directly.
+                                            {visibleColumns.inherentRisk && (
+                                                <td className="px-3 py-3 text-center whitespace-nowrap">
+                                                    {(() => {
+                                                        const l = normalizeValue(risk.likelihood);
+                                                        const i = normalizeValue(risk.impact);
+                                                        const score = l * i;
 
-                                                    if (score >= 5) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; }
-                                                    else if (score === 4) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; } // View=4 -> Score 16 (Red in HMap) -> No, mapped back to level
-                                                    // Wait, if I want to match Heatmap diagonal color:
-                                                    // 5*5=25(Red), 4*4=16(Red), 3*3=9(Orange), 2*2=4(Yellow). 
-                                                    // So:
+                                                        let level = 'Low';
+                                                        let color = 'bg-gray-100 text-gray-800';
 
-                                                    if (score >= 4) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; } // 4*4=16(Red)
-                                                    else if (score === 3) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; } // 3*3=9(Orange)
-                                                    else if (score === 2) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-sm'; } // 2*2=4(Yellow)
-                                                    else { level = 'Low'; color = 'bg-green-400 text-black shadow-sm'; }
-                                                    // Wait, score 2 is Low? In heatmap: 
-                                                    // 5=Critical(Red), 4=High(Orange), 3=Medium(Yellow), 2=Low(Green), 1=Low(Green).
+                                                        if (score >= 15) { level = 'Very High'; color = 'bg-red-600 text-white shadow-xs'; }
+                                                        else if (score >= 8) { level = 'High'; color = 'bg-orange-500 text-white shadow-xs'; }
+                                                        else if (score >= 4) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-xs'; }
+                                                        else { level = 'Low'; color = 'bg-green-400 text-black shadow-xs'; }
 
-                                                    // Let's use the normalized text if available, or the level name
-                                                    // Actually `risk.residualRisk` IS text usually. 
-                                                    // But we want to enforce the color consistency.
+                                                        return (
+                                                            <Badge className={`${color} border-0 font-bold text-[11px] px-2 py-0.5`}>
+                                                                {level}
+                                                            </Badge>
+                                                        );
+                                                    })()}
+                                                </td>
+                                            )}
 
-                                                    return (
-                                                        <Badge className={`${color} border-0 font-semibold px-2.5 py-0.5`}>
-                                                            {risk.contextSnapshot?.residualRisk || risk.residualRisk || level}
-                                                        </Badge>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm capitalize text-gray-700">{risk.contextSnapshot?.treatmentStrategy || risk.treatmentOption || '-'}</span>
-                                                    {(risk as any).treatmentCount > 0 && (
-                                                        <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                                            {(risk as any).treatmentCount}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
+                                            {visibleColumns.residualRisk && (
+                                                <td className="px-3 py-3 text-center whitespace-nowrap">
+                                                    {(() => {
+                                                        const score = normalizeValue(risk.residualRisk);
+
+                                                        let level = 'Low';
+                                                        let color = 'bg-gray-100 text-gray-800';
+
+                                                        if (score >= 4) { level = 'Very High'; color = 'bg-red-600 text-white shadow-xs'; }
+                                                        else if (score === 3) { level = 'High'; color = 'bg-orange-500 text-white shadow-xs'; }
+                                                        else if (score === 2) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-xs'; }
+                                                        else { level = 'Low'; color = 'bg-green-400 text-black shadow-xs'; }
+
+                                                        return (
+                                                            <Badge className={`${color} border-0 font-bold text-[11px] px-2 py-0.5`}>
+                                                                {risk.contextSnapshot?.residualRisk || risk.residualRisk || level}
+                                                            </Badge>
+                                                        );
+                                                    })()}
+                                                </td>
+                                            )}
+
+                                            {visibleColumns.treatmentOption && (
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs capitalize font-medium text-slate-700">
+                                                            {risk.contextSnapshot?.treatmentStrategy || risk.treatmentOption || '-'}
+                                                        </span>
+                                                        {(risk as any).treatmentCount > 0 && (
+                                                            <Badge variant="secondary" className="text-[10px] font-bold bg-green-50 text-green-700 border-green-200 px-1.5 py-0">
+                                                                {(risk as any).treatmentCount}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
+
+                                            {/* Sticky Status Column */}
+                                            <td className="px-3 py-3 text-center whitespace-nowrap sticky right-[84px] z-10 bg-white group-hover:bg-slate-50 transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-100">
                                                 <Badge
                                                     variant={
                                                         risk.status === 'approved' ? 'success' :
@@ -593,21 +727,14 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                 risk.status === 'closed' ? 'secondary' :
                                                                     'default'
                                                     }
-                                                    className="capitalize text-[10px] font-bold px-2.5"
+                                                    className="capitalize text-[10px] font-bold px-2 py-0.5"
                                                 >
                                                     {risk.status || '-'}
                                                 </Badge>
                                             </td>
-                                            {/* <td className="px-4 py-4 text-center">
-                                                {(risk as any).policyCount > 0 ? (
-                                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 whitespace-nowrap">
-                                                        {(risk as any).policyCount} Policies
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400">-</span>
-                                                )}
-                                            </td> */}
-                                            <td className="px-4 py-4 text-center">
+
+                                            {/* Sticky Actions Column */}
+                                            <td className="px-2 py-3 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Button
                                                         variant="ghost"
@@ -616,10 +743,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                             e.stopPropagation();
                                                             setSelectedRisk(risk);
                                                         }}
-                                                        className="h-8 w-8 p-0 hover:bg-brand/10 hover:text-brand"
+                                                        className="h-7 w-7 p-0 hover:bg-brand/10 hover:text-brand rounded-md"
                                                         title="View details"
                                                     >
-                                                        <Eye className="w-4 h-4" />
+                                                        <Eye className="w-3.5 h-3.5" />
                                                     </Button>
 
                                                     <DropdownMenu>
@@ -628,9 +755,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="h-8 w-8 p-0 hover:bg-slate-100"
+                                                                className="h-7 w-7 p-0 hover:bg-slate-200/70 rounded-md"
                                                             >
-                                                                <MoreHorizontal className="w-4 h-4" />
+                                                                <MoreHorizontal className="w-3.5 h-3.5" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" className="w-48">
@@ -639,9 +766,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                     e.stopPropagation();
                                                                     onEditRisk(risk);
                                                                 }}
-                                                                className="gap-2 cursor-pointer"
+                                                                className="gap-2 cursor-pointer text-xs"
                                                             >
-                                                                <Pencil className="w-4 h-4" />
+                                                                <Pencil className="w-3.5 h-3.5" />
                                                                 Edit Risk
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
@@ -662,9 +789,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                         toast.error(`Failed: ${err.message}`);
                                                                     }
                                                                 }}
-                                                                className="gap-2 cursor-pointer"
+                                                                className="gap-2 cursor-pointer text-xs"
                                                             >
-                                                                {createdTaskIds.has(risk.id) ? <Check className="w-4 h-4 text-green-600" /> : <Hammer className="w-4 h-4" />}
+                                                                {createdTaskIds.has(risk.id) ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Hammer className="w-3.5 h-3.5" />}
                                                                 {createdTaskIds.has(risk.id) ? 'Task Created' : 'Create Task'}
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
@@ -672,9 +799,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                     e.stopPropagation();
                                                                     setRiskToDelete(risk);
                                                                 }}
-                                                                className="gap-2 text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                                                                className="gap-2 text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer text-xs"
                                                             >
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <Trash2 className="w-3.5 h-3.5" />
                                                                 Delete Risk
                                                             </DropdownMenuItem>
                                                             <div className="border-t my-1" />
@@ -684,9 +811,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                     setAiActionRisk(risk);
                                                                     setAiTriageResults(null);
                                                                 }}
-                                                                className="gap-2 text-purple-700 focus:text-purple-800 focus:bg-purple-50 cursor-pointer"
+                                                                className="gap-2 text-purple-700 focus:text-purple-800 focus:bg-purple-50 cursor-pointer text-xs"
                                                             >
-                                                                <Wand2 className="w-4 h-4" />
+                                                                <Wand2 className="w-3.5 h-3.5" />
                                                                 AI Smart Insights
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
@@ -699,45 +826,45 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                         {
                                             expandedRows.has(risk.id) && (
                                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <td colSpan={12} className="px-8 py-6">
+                                                    <td colSpan={10} className="px-8 py-5">
                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Vulnerability</h4>
-                                                                <p className="text-gray-600">{risk.vulnerabilityDescription || 'Not specified'}</p>
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Vulnerability</h4>
+                                                                <p className="text-gray-600 text-xs leading-relaxed">{risk.vulnerabilityDescription || 'Not specified'}</p>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Existing Controls</h4>
-                                                                <p className="text-gray-600">{risk.existingControls || 'None documented'}</p>
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Existing Controls</h4>
+                                                                <p className="text-gray-600 text-xs leading-relaxed">{risk.existingControls || 'None documented'}</p>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Recommended Actions</h4>
-                                                                <p className="text-gray-600">{risk.recommendedActions || 'None specified'}</p>
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Recommended Actions</h4>
+                                                                <p className="text-gray-600 text-xs leading-relaxed">{risk.recommendedActions || 'None specified'}</p>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Control Effectiveness</h4>
-                                                                <p className="text-gray-600 capitalize">{risk.controlEffectiveness || 'Not evaluated'}</p>
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Control Effectiveness</h4>
+                                                                <p className="text-gray-600 text-xs capitalize">{risk.controlEffectiveness || 'Not evaluated'}</p>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Assessment Date</h4>
-                                                                <p className="text-gray-600">
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Assessment Date</h4>
+                                                                <p className="text-gray-600 text-xs">
                                                                     {risk.assessmentDate ? new Date(risk.assessmentDate).toLocaleDateString() : 'Not set'}
                                                                 </p>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Next Review</h4>
-                                                                <p className="text-gray-600">
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Next Review</h4>
+                                                                <p className="text-gray-600 text-xs">
                                                                     {risk.nextReviewDate ? new Date(risk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
                                                                 </p>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Source</h4>
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Source</h4>
                                                                 <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
                                                                     {risk.contextSnapshot?.source || 'Manual'}
                                                                 </Badge>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Asset</h4>
-                                                                <div className="text-gray-600">
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Asset</h4>
+                                                                <div className="text-gray-600 text-xs">
                                                                     {(() => {
                                                                         const assetId = risk.contextSnapshot?.assetId || (risk as any).assetId;
                                                                         if (assetId && assets) {
@@ -767,13 +894,13 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-2">Owner</h4>
-                                                                <p className="text-gray-600">{risk.contextSnapshot?.riskOwner || risk.riskOwner || 'Unassigned'}</p>
+                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Owner</h4>
+                                                                <p className="text-gray-600 text-xs">{risk.contextSnapshot?.riskOwner || risk.riskOwner || 'Unassigned'}</p>
                                                             </div>
                                                             {risk.notes && (
                                                                 <div className="md:col-span-3">
-                                                                    <h4 className="font-semibold text-gray-900 mb-2">Notes</h4>
-                                                                    <p className="text-gray-600">{risk.notes}</p>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Notes</h4>
+                                                                    <p className="text-gray-600 text-xs leading-relaxed">{risk.notes}</p>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -786,20 +913,20 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             )}
                         </tbody>
                     </table>
-
-                    {/* Pagination */}
-                    {totalRisks > 0 && (
-                        <div className="mt-4">
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                totalItems={totalRisks}
-                                pageSize={pageSize}
-                                onPageChange={setCurrentPage}
-                            />
-                        </div>
-                    )}
                 </div>
+
+                {/* Pagination outside horizontal scroll */}
+                {totalRisks > 0 && (
+                    <div className="border-t border-slate-200 bg-white">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={totalRisks}
+                            pageSize={pageSize}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Summary Footer */}

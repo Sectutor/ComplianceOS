@@ -252,13 +252,13 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
     };
 
     const content = (
-        <div className="relative min-h-[calc(100vh-3.5rem)] bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
+        <div className="relative min-h-[calc(100vh-3.5rem)] bg-slate-50/50 text-slate-900 page-transition w-full min-w-0 max-w-full">
             {/* Ambient Light Mode Background Glows */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
             </div>
-            <div className="relative z-10 space-y-6 w-full max-w-[98%] ml-0">
+            <div className="relative z-10 space-y-6 w-full min-w-0 max-w-full">
                 {!hideBreadcrumb && (
                     <Breadcrumb>
                         <BreadcrumbList>
@@ -406,7 +406,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                 </div>
 
                 {riskAssessments && riskAssessments.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4 mb-8 min-h-[300px]">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8 min-h-[300px]">
                         <div id="risk-reg-heatmap">
                             <RiskHeatmap
                                 assessments={riskAssessments || []}
