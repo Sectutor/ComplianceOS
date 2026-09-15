@@ -192,13 +192,13 @@ export default function MetricsPage() {
                             </div>
                         </DomainCard>
 
-                        <DomainCard title="NIS2 & Privacy" icon={ShieldAlert} color="text-purple-600">
+                        <DomainCard title="NIS2 & Privacy" icon={ShieldAlert} color="text-cyan-600">
                             <div className="space-y-1.5">
-                                <div className="p-1.5 bg-purple-50 rounded border border-purple-100 flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-purple-800 uppercase">Timeliness</span>
+                                <div className="p-1.5 bg-teal-50 rounded border border-cyan-100 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-indigo-800 uppercase">Timeliness</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-base font-black text-purple-900">{ops.reportingTimeliness}%</span>
-                                        <Progress value={ops.reportingTimeliness} className="w-12 h-1 bg-purple-200" indicatorClassName="bg-purple-600" />
+                                        <span className="text-base font-black text-indigo-900">{ops.reportingTimeliness}%</span>
+                                        <Progress value={ops.reportingTimeliness} className="w-12 h-1 bg-teal-200" indicatorClassName="bg-teal-600" />
                                     </div>
                                 </div>
 

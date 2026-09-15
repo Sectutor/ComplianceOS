@@ -198,7 +198,7 @@ export default function VendorContractTemplates() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
+                                        className="h-7 text-xs text-teal-600 border-teal-200 hover:bg-teal-50"
                                         onClick={() => {
                                             toast.promise(
                                                 generateAIContent(newTemplate.name),

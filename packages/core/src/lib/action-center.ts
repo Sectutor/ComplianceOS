@@ -1,6 +1,6 @@
 import { getDb } from '../db';
 import * as schema from '../schema';
-import { eq, and, lt, gte, desc, sql } from 'drizzle-orm';
+import { eq, and, lt, gte, desc, sql, ne, inArray } from 'drizzle-orm';
 
 export interface ActionItem {
   id: string;
@@ -143,7 +143,7 @@ export async function getActionItems(clientId: number, userId: number): Promise<
         and(
           eq(schema.implementationPlans.clientId, clientId),
           lt(schema.implementationTasks.plannedEndDate, now),
-          sql`${schema.implementationTasks.status} != 'done'`
+          ne(schema.implementationTasks.status, 'done')
         )
       );
 
@@ -221,7 +221,7 @@ export async function getActionItems(clientId: number, userId: number): Promise<
       .where(
         and(
           eq(schema.vendorAssessmentRequests.clientId, clientId),
-          sql`${schema.vendorAssessmentRequests.status} IN ('sent', 'in_progress')`,
+          inArray(schema.vendorAssessmentRequests.status, ['sent', 'in_progress']),
           lt(schema.vendorAssessmentRequests.expiresAt, now)
         )
       );
@@ -354,7 +354,7 @@ export async function getActionItems(clientId: number, userId: number): Promise<
         and(
           eq(schema.riskTreatments.clientId, clientId),
           eq(schema.riskTreatments.priority, 'critical'),
-          sql`${schema.riskTreatments.status} IN ('planned', 'in_progress')`
+          inArray(schema.riskTreatments.status, ['planned', 'in_progress'])
         )
       )
       .limit(5);

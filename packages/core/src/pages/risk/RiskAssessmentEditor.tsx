@@ -542,7 +542,7 @@ export default function RiskAssessmentEditor() {
                                                     <div
                                                         key={proc.id}
                                                         className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer transition-colors ${isSelected
-                                                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                                            ? 'bg-teal-100 text-indigo-800 border-teal-200'
                                                             : 'hover:bg-slate-100'
                                                             }`}
                                                         onClick={() => toggleProcess(proc.id)}

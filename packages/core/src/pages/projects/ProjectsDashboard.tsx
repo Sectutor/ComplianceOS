@@ -112,7 +112,7 @@ export const ProjectsDashboard = () => {
 
     const getProjectIcon = (type: string) => {
         switch (type) {
-            case 'ai': return <Brain className="h-5 w-5 text-purple-500" />;
+            case 'ai': return <Brain className="h-5 w-5 text-teal-500" />;
             case 'infra': return <Server className="h-5 w-5 text-blue-500" />;
             case 'privacy': return <Lock className="h-5 w-5 text-emerald-500" />;
             default: return <Shield className="h-5 w-5 text-slate-500" />;

@@ -349,7 +349,7 @@ export default function RegulationDetail() {
                         className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white border border-white/40 bg-white/60 backdrop-blur-xl shadow-premium rounded-2xl group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                         onClick={() => setLocation(`/clients/${clientId}/compliance-obligations`)}
                     >
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
+                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
                             <FileText className="h-6 w-6" />
                         </div>
                         <div>

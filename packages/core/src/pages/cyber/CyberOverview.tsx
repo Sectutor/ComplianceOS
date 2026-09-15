@@ -73,9 +73,9 @@ export default function CyberOverview() {
             headerTitle: "Policies & Procedures",
             description: "Maintain required cybersecurity policies, procedures, and documentation to demonstrate NIS2 compliance.",
             icon: FileText,
-            color: "from-purple-600 to-indigo-500",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-teal-600 to-indigo-500",
+            textColor: "text-teal-600",
+            bgLight: "bg-teal-50",
             path: `/clients/${clientId}/cyber/documents`,
             benefits: [
                 "Policy template library",

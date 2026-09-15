@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISO/IEC 27001:2022 Lead Implementer Field Guide | ComplianceOS</title>
+  <meta name="description" content="The definitive 7-pillar operational playbook for CISOs, vCISOs, and MSP compliance leaders. From zero to accredited ISO 27001 certification in 90 days.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --emerald-600: #059669;
+      --emerald-50: #ecfdf5;
+      --amber-600: #d97706;
+      --amber-50: #fffbeb;
+      --rose-600: #e11d48;
+      --rose-50: #fff1f2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-800);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    .hero {
+      background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%);
+      color: #ffffff;
+      padding: 4.5rem 1.5rem 3.5rem;
+      position: relative;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(37, 99, 235, 0.2);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      color: #93c5fd;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .subtitle {
+      font-size: 1.15rem;
+      color: #cbd5e1;
+      max-width: 720px;
+      margin-bottom: 2rem;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 0.875rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.75rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.15);
+    }
+    .meta-bar {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .meta-bar strong { color: #f8fafc; }
+    .content {
+      padding: 3.5rem 0;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .pillar-num {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #ffffff;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin: 1.5rem 0 0.75rem;
+    }
+    p { margin-bottom: 1rem; color: var(--slate-700); }
+    .callout {
+      background: var(--amber-50);
+      border-left: 4px solid var(--amber-600);
+      padding: 1.25rem;
+      border-radius: 0 0.75rem 0.75rem 0;
+      margin: 1.5rem 0;
+    }
+    .callout-danger {
+      background: var(--rose-50);
+      border-left-color: var(--rose-600);
+    }
+    .callout-title {
+      font-weight: 800;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+    .callout-danger .callout-title { color: var(--rose-600); }
+    .callout .callout-title { color: var(--amber-600); }
+    ul, ol {
+      margin: 0.75rem 0 1.25rem 1.5rem;
+      color: var(--slate-700);
+    }
+    li { margin-bottom: 0.5rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--slate-200);
+    }
+    th {
+      background: var(--slate-100);
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+    .cta-banner {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+      color: #ffffff;
+      padding: 3rem 2rem;
+      border-radius: 1.5rem;
+      text-align: center;
+      margin-top: 3rem;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    }
+    .cta-banner h2 { color: #ffffff; margin-bottom: 1rem; }
+    .cta-banner p { color: #cbd5e1; max-width: 600px; margin: 0 auto 1.5rem; }
+    @media print {
+      body { background: #fff; color: #000; }
+      .hero { background: none; color: #000; border: none; padding: 1rem 0; }
+      .hero h1 { color: #000; font-size: 2rem; }
+      .subtitle, .meta-bar { color: #333; }
+      .hero-actions, .cta-banner { display: none; }
+      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+      .callout { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero Header -->
+  <header class="hero">
+    <div class="container">
+      <div class="badge">ISO/IEC 27001:2022 • Official Whitepaper</div>
+      <h1>Lead Implementer Field Guide</h1>
+      <p class="subtitle">
+        The pragmatic, field-tested 7-pillar blueprint for CISOs, vCISOs, and MSP leaders. Take your organization from zero to accredited certification in 90 days.
+      </p>
+
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="window.print()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          Download / Save as PDF
+        </button>
+        <a href="/clients/1/iso27001/guide" class="btn btn-outline">
+          Explore Live In ComplianceOS →
+        </a>
+      </div>
+
+      <div class="meta-bar">
+        <div>Framework: <strong>ISO/IEC 27001:2022</strong></div>
+        <div>Scope: <strong>Clauses 4–10 & 93 Annex A Controls</strong></div>
+        <div>Author: <strong>ComplianceOS Security Architecture Team</strong></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="content">
+    <div class="container">
+
+      <!-- Executive Overview -->
+      <section class="card">
+        <h2>The "Cloud Scanner Trap" & Stage 1 Reality</h2>
+        <p>
+          Most companies attempting ISO 27001 certification purchase automated compliance scanners like Vanta or Drata. They connect their AWS, GCP, or GitHub accounts, resolve automated checks, and assume they are ready for certification.
+        </p>
+        <p>
+          Then comes the accredited <strong>Stage 1 Documentation Review</strong>.
+        </p>
+        <div class="callout-danger callout">
+          <div class="callout-title">The Auditor Reality</div>
+          Accredited auditors (BSI, TÜV, SGS, Schellman) do not inspect cloud settings first. They open <strong>Clauses 4 through 10</strong>: Scope definition (4.3), ISO 27005 risk treatment (6.1), Statement of Applicability (6.1.3), Internal Audit reports (9.2), and signed Management Review minutes (9.3). Missing these causes immediate Stage 1 failure.
+        </div>
+      </section>
+
+      <!-- 7 Pillars -->
+      <section>
+        <h2 style="margin-bottom: 1.5rem;">The 7 Pillars of ISMS Implementation</h2>
+
+        <!-- Pillar 1 -->
+        <div class="card">
+          <div class="pillar-num">1</div>
+          <div class="card-header">
+            <div>
+              <h3>ISMS Scope & Context (Clauses 4 & 5)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 1–2</p>
+            </div>
+          </div>
+          <p>
+            Define the physical, cloud, and organizational perimeter of the Information Security Management System. Identify interested parties (customers requiring SOC 2/ISO, regulators like GDPR/NIS2) and publish the executive Security Policy signed by the CEO.
+          </p>
+          <ul>
+            <li><strong>Clause 4.3:</strong> Explicit scope statement with justified exclusions.</li>
+            <li><strong>Clause 4.2:</strong> Interested parties & legal obligations register.</li>
+            <li><strong>Clause 5.2:</strong> Formal information security policy.</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div class="card">
+          <div class="pillar-num">2</div>
+          <div class="card-header">
+            <div>
+              <h3>Asset Register & CIA Classification (Clause 8 / A.5.9)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 2–3</p>
+            </div>
+          </div>
+          <p>
+            You cannot assess risks on assets you have not cataloged. Register production VPCs, GitHub codebases, customer databases, and employee laptops with named owners and Confidentiality, Integrity, and Availability (CIA 1–5) scores.
+          </p>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div class="card">
+          <div class="pillar-num">3</div>
+          <div class="card-header">
+            <div>
+              <h3>ISO 27005 Risk Assessment & Treatment (Clause 6.1)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 3–4</p>
+            </div>
+          </div>
+          <p>
+            Eliminate subjective heatmaps. Model concrete cyber threats (Ransomware, S3 Bucket exposure, Credential Stuffing, Vendor Outages) with Inherent Likelihood & Impact ($1\text{--}25$). Assign treatments: <strong>Mitigate, Transfer, Avoid, or Accept</strong> into an actionable Risk Treatment Plan (RTP).
+          </p>
+        </div>
+
+        <!-- Pillar 4 -->
+        <div class="card">
+          <div class="pillar-num">4</div>
+          <div class="card-header">
+            <div>
+              <h3>Statement of Applicability — 93 Controls (Clause 6.1.3 & Annex A)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 5–6</p>
+            </div>
+          </div>
+          <p>
+            The master deliverable. Evaluate the 93 controls from the 2022 revision across 4 themes: <strong>Organizational (37)</strong>, <strong>People (8)</strong>, <strong>Physical (14)</strong>, and <strong>Technological (34)</strong>. Document formal business justifications for every applicable and excluded control.
+          </p>
+        </div>
+
+        <!-- Pillar 5 -->
+        <div class="card">
+          <div class="pillar-num">5</div>
+          <div class="card-header">
+            <div>
+              <h3>Documented Information & Awareness (Clauses 7.2, 7.3, 7.5)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 6–8</p>
+            </div>
+          </div>
+          <p>
+            Deploy the 10 mandatory version-controlled policies (Access Control, Incident Response, Cryptography, SDLC, Backup). Collect 100% staff policy read-and-sign acknowledgments via an employee compliance portal.
+          </p>
+        </div>
+
+        <!-- Pillar 6 -->
+        <div class="card">
+          <div class="pillar-num">6</div>
+          <div class="card-header">
+            <div>
+              <h3>Internal Audit & CAPA (Clauses 9.2 & 10.2)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 9–10</p>
+            </div>
+          </div>
+          <p>
+            Execute an independent internal audit across all clauses and active Annex A controls. Classify findings into Major Nonconformities, Minor Nonconformities, and OFIs. Perform Root Cause Analysis (RCA) and verify corrective actions before scheduling Stage 1.
+          </p>
+        </div>
+
+        <!-- Pillar 7 -->
+        <div class="card">
+          <div class="pillar-num">7</div>
+          <div class="card-header">
+            <div>
+              <h3>Management Review & Clean Room (Clause 9.3 & Stage 1/2)</h3>
+              <p style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Timeline: Weeks 11–12</p>
+            </div>
+          </div>
+          <p>
+            Convene C-level executives to review ISMS telemetry, risk results, and audit findings. Produce signed Management Review meeting minutes. Deliver the complete Audit Dossier to your external certification body.
+          </p>
+        </div>
+      </section>
+
+      <!-- 90 Day Schedule Table -->
+      <section class="card">
+        <h2>The 90-Day Implementation Timeline</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Weeks</th>
+              <th>Phase</th>
+              <th>Key Deliverables</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Weeks 1–2</td>
+              <td>Foundation & Scope</td>
+              <td>Scope Statement (4.3), Top Security Policy (5.2), Interested Parties (4.2)</td>
+            </tr>
+            <tr>
+              <td>Weeks 3–4</td>
+              <td>Assets & Risk</td>
+              <td>Asset Register with CIA ratings, ISO 27005 Risk Register, Risk Treatment Plan</td>
+            </tr>
+            <tr>
+              <td>Weeks 5–6</td>
+              <td>Statement of Applicability</td>
+              <td>93 Annex A control justifications, formal SoA export</td>
+            </tr>
+            <tr>
+              <td>Weeks 7–8</td>
+              <td>Policies & Awareness</td>
+              <td>10 mandatory policies approved, 100% employee sign-offs</td>
+            </tr>
+            <tr>
+              <td>Weeks 9–10</td>
+              <td>Internal Audit & CAPA</td>
+              <td>Full scope internal audit report, verified corrective action log</td>
+            </tr>
+            <tr>
+              <td>Weeks 11–12</td>
+              <td>Management Review</td>
+              <td>Executive meeting minutes, Auditor Clean Room Dossier, Stage 1 review</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta-banner">
+        <h2>Automate This Playbook with ComplianceOS</h2>
+        <p>
+          Pre-seed your assets and risks in 10 seconds, track your 90-day progress, and generate your auditor dossier with one click.
+        </p>
+        <a href="/clients/1/iso27001/guide" class="btn btn-primary" style="background:#3b82f6;">
+          Open ComplianceOS ISO 27001 Hub
+        </a>
+      </section>
+
+    </div>
+  </main>
+
+</body>
+</html>

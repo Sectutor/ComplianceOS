@@ -70,8 +70,8 @@ export default function RiskAlignmentPage() {
             title: 'Monitoring & Review',
             standard: 'ISO 27005 Clause 12',
             icon: TrendingUp,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Continuously monitor risk factors and residual risks',
                 'Monitor the effectiveness of risk treatment',
@@ -145,8 +145,8 @@ export default function RiskAlignmentPage() {
             title: 'Maintain',
             standard: 'NIST 800-30 Step 4',
             icon: TrendingUp,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Monitor risk factors',
                 'Update risk assessment',
@@ -251,8 +251,8 @@ export default function RiskAlignmentPage() {
                                     <div className="text-3xl font-bold text-green-600">Full</div>
                                     <div className="text-sm text-muted-foreground">Framework Support</div>
                                 </div>
-                                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                    <div className="text-3xl font-bold text-purple-600">Auto</div>
+                                <div className="text-center p-4 bg-teal-50 rounded-lg">
+                                    <div className="text-3xl font-bold text-teal-600">Auto</div>
                                     <div className="text-sm text-muted-foreground">Score Calculation</div>
                                 </div>
                             </div>

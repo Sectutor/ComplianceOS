@@ -137,7 +137,7 @@ export function BillingSettings({ clientId }: BillingSettingsProps) {
                         </Card>
 
                         {/* Partially Managed */}
-                        <Card className="flex flex-col border-purple-500/20">
+                        <Card className="flex flex-col border-teal-500/20">
                             <CardHeader>
                                 <CardTitle className="text-lg">Partially Managed</CardTitle>
                                 <div className="mt-2 text-2xl font-bold">Custom</div>

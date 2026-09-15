@@ -7,19 +7,57 @@ import {
     CheckCircle2, Database, FileText, Activity, Users, AlertTriangle,
     ArrowRight, BookOpen, ArrowLeft, Info, Calendar,
     Globe, Shield, Scale, Clock, Lock, Sparkles, Copy, ChevronRight,
-    Check, Target, Layers, Compass, Award, ExternalLink
+    Check, Target, Layers, Compass, Award, ExternalLink, Printer,
+    CheckSquare, CalendarClock, ListTodo
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ISOLayout } from './ISOLayout';
+import { AuditDossierModal } from './AuditDossierModal';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getIso27001Roadmap } from '@/data/frameworkRoadmaps';
 
 export default function ISOProgramGuide() {
     const params = useParams();
     const clientId = parseInt(params.id || params.clientId || "0");
     const [location, setLocation] = useLocation();
-    const [activeTab, setActiveTab] = useState<'tutorials' | 'architecture' | 'auditor'>('tutorials');
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>('tutorials');
+    const [dossierOpen, setDossierOpen] = useState(false);
+
+    const utils = trpc.useUtils();
+    const seedStarterKit = trpc.iso27001.seedStarterKit.useMutation({
+        onSuccess: (res) => {
+            toast.success(res.message);
+            utils.iso27001.getSoA.invalidate({ clientId });
+            utils.risks.getRiskAssessments.invalidate({ clientId });
+            utils.clientPolicies.list.invalidate({ clientId });
+        },
+        onError: (err) => {
+            toast.error("Failed to initialize starter kit: " + err.message);
+        }
+    });
+
+    // Local checklist progress state
+    const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(() => {
+        try {
+            const stored = localStorage.getItem(`iso27001_tasks_${clientId}`);
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {};
+        }
+    });
+
+    const toggleTask = (taskId: string) => {
+        setCompletedTasks((prev) => {
+            const next = { ...prev, [taskId]: !prev[taskId] };
+            try {
+                localStorage.setItem(`iso27001_tasks_${clientId}`, JSON.stringify(next));
+            } catch {}
+            return next;
+        });
+    };
 
     // Fetch live system telemetry safely
     const { data: soaData } = trpc.iso27001.getSoA.useQuery({ clientId }, { enabled: !!clientId });
@@ -269,12 +307,12 @@ export default function ISOProgramGuide() {
 
                             <div className="flex items-center gap-3">
                                 <Button
-                                    onClick={copyMasterManual}
-                                    variant="outline"
-                                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl h-11"
+                                    onClick={() => setActiveTab('roadmap')}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-11 px-5 shadow-lg flex items-center gap-2"
                                 >
-                                    <Copy className="w-4 h-4 mr-2" />
-                                    Copy ISMS Operations Manual
+                                    <CalendarClock className="w-4 h-4" />
+                                    Continue 90-Day Roadmap
+                                    <ArrowRight className="w-4 h-4" />
                                 </Button>
                             </div>
                         </div>
@@ -309,15 +347,47 @@ export default function ISOProgramGuide() {
                     </div>
                 </div>
 
+                {/* Conditional Initial Setup Banner for Brand New / 0% Clients */}
+                {totalRisks === 0 && implementedSoaControls === 0 && (
+                    <div className="bg-gradient-to-r from-blue-950/60 via-indigo-950/40 to-slate-900/60 border border-blue-500/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-amber-400" />
+                                <h4 className="font-bold text-sm text-foreground">New ISMS Setup: Seed Cloud Baseline</h4>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Starting from scratch? Automatically pre-populate standard cloud assets (AWS, GitHub, Google Workspace, Laptops, DB) and initial ISO 27005 threat scenarios.
+                            </p>
+                        </div>
+                        <Button
+                            size="sm"
+                            onClick={() => seedStarterKit.mutate({ clientId })}
+                            disabled={seedStarterKit.isPending}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shrink-0 rounded-xl h-9 shadow"
+                        >
+                            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                            {seedStarterKit.isPending ? "Setting up..." : "Initialize Baseline Data"}
+                        </Button>
+                    </div>
+                )}
+
                 {/* Navigation Tabs */}
-                <div className="flex gap-2 border-b border-border pb-2">
+                <div className="flex flex-wrap gap-2 border-b border-border pb-2">
                     <Button
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         onClick={() => setActiveTab('tutorials')}
                         className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <BookOpen className="w-4 h-4 mr-2" />
-                        Step-by-Step Operating Manual
+                        7-Pillar Operating Manual
+                    </Button>
+                    <Button
+                        variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('roadmap')}
+                        className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                    >
+                        <CalendarClock className="w-4 h-4 mr-2" />
+                        90-Day Implementation Roadmap
                     </Button>
                     <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
@@ -333,7 +403,7 @@ export default function ISOProgramGuide() {
                         className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                     >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Auditor & Stage 1/2 Clean Room
+                        Auditor Clean Room
                     </Button>
                 </div>
 
@@ -348,37 +418,37 @@ export default function ISOProgramGuide() {
                                         key={pillar.id}
                                         className="border-border shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card"
                                     >
-                                        <CardHeader className={`${pillar.bgLight} border-b border-border p-6`}>
-                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-white shadow-md bg-gradient-to-br", pillar.gradient)}>
+                                        <CardHeader className={`${pillar.bgLight} border-b border-border p-4 sm:p-6`}>
+                                            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                                                <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
+                                                    <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md shrink-0 bg-gradient-to-br", pillar.gradient)}>
                                                         {pillar.number}
                                                     </div>
-                                                    <div>
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <CardTitle className="text-xl font-bold text-foreground">
+                                                            <CardTitle className="text-lg sm:text-xl font-bold text-foreground">
                                                                 {pillar.title}
                                                             </CardTitle>
-                                                            <Badge className="bg-card border-border text-foreground/80 text-[10px] font-bold">
+                                                            <Badge className="bg-card border-border text-foreground/80 text-[10px] font-bold shrink-0">
                                                                 {pillar.clauseRef}
                                                             </Badge>
                                                         </div>
-                                                        <CardDescription className="text-foreground/80 text-sm font-medium mt-0.5">
+                                                        <CardDescription className="text-foreground/80 text-xs sm:text-sm font-medium mt-1 leading-relaxed">
                                                             {pillar.summary}
                                                         </CardDescription>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-3">
-                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
+                                                <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 self-start xl:self-center flex-wrap sm:flex-nowrap">
+                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none shrink-0", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
                                                         {pillar.countLabel}
                                                     </Badge>
                                                     <Button
                                                         onClick={() => setLocation(pillar.link)}
-                                                        className="bg-primary hover:bg-brand-bright text-primary-foreground font-bold rounded-xl h-10 px-4 transition-all"
+                                                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 shadow-sm"
                                                     >
                                                         {pillar.cta}
-                                                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                                                        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 shrink-0" />
                                                     </Button>
                                                 </div>
                                             </div>
@@ -416,7 +486,18 @@ export default function ISOProgramGuide() {
                     </div>
                 )}
 
-                {/* TAB 2: ISMS PDCA Architecture */}
+                {/* TAB: 90-Day Implementation Roadmap */}
+                {activeTab === 'roadmap' && (
+                    <Framework90DayRoadmap
+                        spec={getIso27001Roadmap(clientId)}
+                        clientId={clientId}
+                        onCustomAction={(action) => {
+                            if (action === 'open_dossier') setDossierOpen(true);
+                        }}
+                    />
+                )}
+
+                {/* TAB 3: ISMS PDCA Architecture */}
                 {activeTab === 'architecture' && (
                     <div className="space-y-6">
                         <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
@@ -510,6 +591,26 @@ export default function ISOProgramGuide() {
                                 </p>
                             </div>
 
+                            {/* Dossier Generator Banner */}
+                            <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-indigo-800/40">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Shield className="w-5 h-5 text-emerald-400" />
+                                        <h4 className="text-lg font-black text-white">Full ISO/IEC 27001:2022 Audit Dossier</h4>
+                                    </div>
+                                    <p className="text-xs text-slate-300 max-w-xl">
+                                        Instantly compile Scope (Clause 4), 93 SoA Controls (Annex A), Risk Assessments (Clause 6), Documented Information Index (Clause 7), and Audit/Review status into an audit-ready package.
+                                    </p>
+                                </div>
+                                <Button
+                                    onClick={() => setDossierOpen(true)}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-10 px-5 rounded-xl shadow-md shrink-0"
+                                >
+                                    <Printer className="w-4 h-4 mr-2" />
+                                    Generate & Print Audit Dossier
+                                </Button>
+                            </div>
+
                             <div className="divide-y divide-border">
                                 <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
@@ -585,6 +686,13 @@ export default function ISOProgramGuide() {
                     </div>
                 )}
             </div>
+
+            {/* Audit Dossier Modal */}
+            <AuditDossierModal
+                clientId={clientId}
+                open={dossierOpen}
+                onOpenChange={setDossierOpen}
+            />
         </ISOLayout>
     );
 }

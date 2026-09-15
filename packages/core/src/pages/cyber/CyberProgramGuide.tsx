@@ -143,7 +143,7 @@ export default function CyberProgramGuide() {
             color: 'text-blue-600',
             bgLight: 'bg-blue-50',
             borderColor: 'border-blue-200',
-            gradient: 'from-indigo-500 to-purple-600',
+            gradient: 'from-indigo-500 to-indigo-600',
             summary: 'Deploy the 10 core cybersecurity safeguards (MFA, Zero Trust, Cryptography, Incident Handling, and Air-Gapped Backups).',
             whyItMatters: 'Article 21 mandates that entities take "appropriate and proportionate technical, operational and organizational measures" to manage risks.',
             howToExecute: [
@@ -215,10 +215,10 @@ export default function CyberProgramGuide() {
             countLabel: 'Vulnerability Register',
             isCompleted: true,
             icon: AlertTriangle,
-            color: 'text-purple-600',
-            bgLight: 'bg-purple-50',
-            borderColor: 'border-purple-200',
-            gradient: 'from-purple-600 to-indigo-600',
+            color: 'text-teal-600',
+            bgLight: 'bg-teal-50',
+            borderColor: 'border-teal-200',
+            gradient: 'from-teal-600 to-indigo-600',
             summary: 'Maintain continuous vulnerability discovery, automated patch management SLAs, and regular penetration testing routines.',
             whyItMatters: 'Unpatched known exploited vulnerabilities (KEVs) are the primary vector for automated ransomware and nation-state intrusion.',
             howToExecute: [

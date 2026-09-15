@@ -212,7 +212,7 @@ export default function Fips140Page() {
             case 'Level 1': return 'bg-slate-100 text-slate-700 border-slate-200';
             case 'Level 2': return 'bg-blue-50 text-blue-700 border-blue-200';
             case 'Level 3': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-            case 'Level 4': return 'bg-purple-50 text-purple-700 border-purple-200';
+            case 'Level 4': return 'bg-teal-50 text-indigo-700 border-teal-200';
             default: return 'bg-slate-100 text-slate-700';
         }
     };

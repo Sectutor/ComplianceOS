@@ -71,7 +71,7 @@ const getStatusColor = (status: string) => {
         case 'Planned': return 'bg-muted text-muted-foreground';
         case 'Sent': return 'bg-blue-50 text-blue-600';
         case 'In Progress': return 'bg-amber-50 text-amber-600';
-        case 'In Review': return 'bg-purple-50 text-purple-600';
+        case 'In Review': return 'bg-teal-50 text-teal-600';
         case 'Completed': return 'bg-emerald-50 text-emerald-600';
         default: return 'bg-muted text-muted-foreground';
     }
@@ -241,7 +241,7 @@ export default function SecurityReviews() {
                         <div className="pt-2 flex justify-between items-center text-xs text-muted-foreground border-t mt-2">
                             <div className="flex -space-x-1.5">
                                 <div className="w-5 h-5 rounded-full bg-blue-100 border border-white flex items-center justify-center text-[8px] text-blue-700 font-bold">JD</div>
-                                <div className="w-5 h-5 rounded-full bg-purple-100 border border-white flex items-center justify-center text-[8px] text-purple-700 font-bold">ME</div>
+                                <div className="w-5 h-5 rounded-full bg-teal-100 border border-white flex items-center justify-center text-[8px] text-indigo-700 font-bold">ME</div>
                             </div>
                             <Link href={`/clients/${clientId}/vendors/${assessment.vendorId}?tab=assessments`}>
                                 <ArrowRight className="w-3.5 h-3.5 hover:text-blue-600 dark:text-blue-400 cursor-pointer" />
@@ -346,7 +346,7 @@ export default function SecurityReviews() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
+                        <Button variant="outline" className="border-teal-200 text-indigo-700 hover:bg-teal-50">
                             <BrainCircuit className="w-4 h-4 mr-2" />
                             AI Review Assistant
                         </Button>

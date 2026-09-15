@@ -45,9 +45,9 @@ export default function VendorOverview() {
             headerTitle: "Risk Tiering & Classification",
             description: "Assess vendor criticality based on data access, business impact, and regulatory requirements to determine appropriate due diligence levels.",
             icon: Building2,
-            color: "from-purple-600 to-indigo-500",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-teal-600 to-indigo-500",
+            textColor: "text-teal-600",
+            bgLight: "bg-teal-50",
             path: `/clients/${clientId}/vendors/all`,
             benefits: [
                 "4-tier risk classification",
@@ -122,18 +122,18 @@ export default function VendorOverview() {
 
             {/* Hero Section */}
             <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-8 md:p-16 text-white shadow-2xl">
-                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
                 <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl" />
 
                 <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-6">
                         <div className="inline-flex items-center space-x-2 bg-sidebar-foreground/10 px-3 py-1 rounded-full border border-sidebar-foreground/20">
-                            <Globe className="w-4 h-4 text-purple-400" />
-                            <span className="text-xs font-bold uppercase tracking-wider text-purple-100">Third-Party Risk</span>
+                            <Globe className="w-4 h-4 text-teal-400" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-teal-100">Third-Party Risk</span>
                         </div>
                         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
                             Vendor Risk <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">
                                 Management
                             </span>
                         </h1>
@@ -160,15 +160,15 @@ export default function VendorOverview() {
                             <div className="grid grid-cols-2 gap-4">
                                 {[Search, Building2, ShieldAlert, Activity].map((Icon, i) => (
                                     <div key={i} className="p-4 bg-sidebar-foreground/5 rounded-2xl border border-sidebar-foreground/10 flex items-center justify-center">
-                                        <Icon className="w-8 h-8 text-purple-400" />
+                                        <Icon className="w-8 h-8 text-teal-400" />
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl border border-sidebar-foreground/10">
+                            <div className="mt-6 p-4 bg-gradient-to-r from-teal-500/20 to-indigo-500/20 rounded-xl border border-sidebar-foreground/10">
                                 <div className="h-2 w-full bg-sidebar-foreground/10 rounded-full overflow-hidden">
-                                    <div className="h-full w-3/4 bg-purple-400 rounded-full" />
+                                    <div className="h-full w-3/4 bg-teal-400 rounded-full" />
                                 </div>
-                                <p className="text-[10px] mt-2 text-purple-200 font-mono">VENDOR COVERAGE: 75%</p>
+                                <p className="text-[10px] mt-2 text-teal-200 font-mono">VENDOR COVERAGE: 75%</p>
                             </div>
                         </div>
                     </div>
@@ -216,7 +216,7 @@ export default function VendorOverview() {
             </div>
 
             {/* TPRM Lifecycle */}
-            <div className="bg-gradient-to-br from-muted to-purple-50 rounded-3xl p-12 border border-border">
+            <div className="bg-gradient-to-br from-muted to-teal-50 rounded-3xl p-12 border border-border">
                 <div className="text-center space-y-4 mb-12">
                     <h2 className="text-3xl font-extrabold tracking-tight">The Vendor Lifecycle</h2>
                     <p className="text-muted-foreground mx-auto">
@@ -225,11 +225,11 @@ export default function VendorOverview() {
                 </div>
                 <div className="grid md:grid-cols-5 gap-6 relative">
                     {/* Connector Line */}
-                    <div className="hidden md:block absolute top-8 left-12 right-12 h-0.5 bg-gradient-to-r from-blue-300 via-purple-300 to-emerald-300" />
+                    <div className="hidden md:block absolute top-8 left-12 right-12 h-0.5 bg-gradient-to-r from-blue-300 via-teal-300 to-emerald-300" />
 
                     {[
                         { step: "1", title: "Discover", desc: "Identify vendors", icon: Search, color: "text-blue-600", bg: "bg-blue-100" },
-                        { step: "2", title: "Profile", desc: "Assess criticality", icon: Building2, color: "text-purple-600", bg: "bg-purple-100" },
+                        { step: "2", title: "Profile", desc: "Assess criticality", icon: Building2, color: "text-teal-600", bg: "bg-teal-100" },
                         { step: "3", title: "Assess", desc: "Security review", icon: ShieldAlert, color: "text-orange-600", bg: "bg-orange-100" },
                         { step: "4", title: "Analyze", desc: "Risk findings", icon: FileCheck, color: "text-rose-600", bg: "bg-rose-100" },
                         { step: "5", title: "Monitor", desc: "Continuous", icon: Activity, color: "text-emerald-600", bg: "bg-emerald-100" }
@@ -273,10 +273,10 @@ export default function VendorOverview() {
             </div>
 
             {/* Quick Start Guide */}
-            <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
+            <Card className="border-2 border-dashed border-teal-300 bg-teal-50/50">
                 <CardContent className="p-8">
                     <div className="flex items-start gap-4">
-                        <div className="p-3 bg-purple-600 rounded-xl">
+                        <div className="p-3 bg-teal-600 rounded-xl">
                             <Globe className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1">
@@ -286,30 +286,30 @@ export default function VendorOverview() {
                             </p>
                             <ol className="space-y-2 text-sm">
                                 <li className="flex items-start gap-2">
-                                    <span className="font-bold text-purple-600 min-w-[20px]">1.</span>
+                                    <span className="font-bold text-teal-600 min-w-[20px]">1.</span>
                                     <span><strong>Discover Vendors</strong> - Import your vendor list or use automated discovery tools</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="font-bold text-purple-600 min-w-[20px]">2.</span>
+                                    <span className="font-bold text-teal-600 min-w-[20px]">2.</span>
                                     <span><strong>Classify by Tier</strong> - Assign Critical/High/Medium/Low tiers based on data access and business impact</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="font-bold text-purple-600 min-w-[20px]">3.</span>
+                                    <span className="font-bold text-teal-600 min-w-[20px]">3.</span>
                                     <span><strong>Send Questionnaires</strong> - Use SIG Lite for low-risk, SIG Standard for high-risk vendors</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="font-bold text-purple-600 min-w-[20px]">4.</span>
+                                    <span className="font-bold text-teal-600 min-w-[20px]">4.</span>
                                     <span><strong>Review Responses</strong> - Analyze findings and create remediation plans for gaps</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="font-bold text-purple-600 min-w-[20px]">5.</span>
+                                    <span className="font-bold text-teal-600 min-w-[20px]">5.</span>
                                     <span><strong>Set Monitoring</strong> - Configure alerts for contract renewals and security incidents</span>
                                 </li>
                             </ol>
                             <div className="mt-6">
                                 <Button
                                     onClick={() => setLocation(`/clients/${clientId}/vendors/discovery`)}
-                                    className="bg-purple-600 hover:bg-purple-700"
+                                    className="bg-teal-600 hover:bg-indigo-700"
                                 >
                                     Start Vendor Discovery
                                     <ArrowRight className="w-4 h-4 ml-2" />

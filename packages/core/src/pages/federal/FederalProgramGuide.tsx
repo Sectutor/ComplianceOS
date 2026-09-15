@@ -11,9 +11,13 @@ import {
     CheckCircle2, Lock, ArrowRight, BookOpen, ArrowLeft,
     Shield, Cloud, Clock, DollarSign, GitMerge, AlertTriangle, Users, Calendar,
     Building, Target, Search, ShieldCheck, RefreshCw, Layers,
-    Settings, ClipboardCheck, CheckSquare, ActivitySquare, Server, Flame, Activity, Stethoscope, BarChart3, Globe, Award, CircleDashed
+    Settings, ClipboardCheck, CheckSquare, ActivitySquare, Server, Flame, Activity, Stethoscope, BarChart3, Globe, Award, CircleDashed,
+    CalendarClock
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getFederalRoadmap } from '@/data/frameworkRoadmaps';
 
 // ─── Framework Data ───────────────────────────────────────────────────────────
 
@@ -88,7 +92,7 @@ const FRAMEWORKS = {
                 icon: ClipboardCheck,
                 color: 'text-violet-600',
                 bgColor: 'bg-violet-50',
-                accent: 'from-violet-600 to-purple-600',
+                accent: 'from-violet-600 to-teal-600',
                 link: 'federal/gap-report',
                 cta: 'Go to Gap Analysis',
                 bestPractices: [
@@ -106,9 +110,9 @@ const FRAMEWORKS = {
                 subtitle: 'Document Your Plan',
                 description: 'The System Security Plan (SSP) describes how you meet each control. The Plan of Action and Milestones (POA&M) tracks how you will fix unmet controls.',
                 icon: FileTextIcon,
-                color: 'text-purple-600',
-                bgColor: 'bg-purple-50',
-                accent: 'from-purple-600 to-fuchsia-600',
+                color: 'text-teal-600',
+                bgColor: 'bg-teal-50',
+                accent: 'from-teal-600 to-fuchsia-600',
                 link: 'federal/ssp-171',
                 cta: 'Go to SSP Editor',
                 bestPractices: [
@@ -309,7 +313,7 @@ const FRAMEWORKS = {
                 icon: ShieldCheck,
                 color: 'text-violet-600',
                 bgColor: 'bg-violet-50',
-                accent: 'from-violet-600 to-purple-600',
+                accent: 'from-violet-600 to-teal-600',
                 link: 'federal/poam',
                 cta: 'Go to POA&M Tracker',
                 bestPractices: [
@@ -530,7 +534,7 @@ const FRAMEWORKS = {
                 icon: CheckCircle2,
                 color: 'text-violet-600',
                 bgColor: 'bg-violet-50',
-                accent: 'from-violet-600 to-purple-600',
+                accent: 'from-violet-600 to-teal-600',
                 link: 'federal/fedramp',
                 cta: 'Go to FedRAMP Packages',
                 bestPractices: [
@@ -548,9 +552,9 @@ const FRAMEWORKS = {
                 subtitle: 'Maintain Authorization',
                 description: 'FedRAMP requires ongoing monthly security reporting, annual assessments, and change management via ConMon. Failure to report can result in ATO revocation.',
                 icon: ActivitySquare,
-                color: 'text-purple-600',
-                bgColor: 'bg-purple-50',
-                accent: 'from-purple-600 to-rose-600',
+                color: 'text-teal-600',
+                bgColor: 'bg-teal-50',
+                accent: 'from-teal-600 to-rose-600',
                 link: 'federal/poam',
                 cta: 'Go to POA&M Tracker',
                 bestPractices: [
@@ -584,8 +588,8 @@ const OVERLAP_NOTES = [
         icon: GitMerge,
         title: 'CMMC + FedRAMP Overlap',
         desc: 'If both are required, start with FedRAMP (stricter) — it covers all CMMC Level 2 controls and more.',
-        color: 'text-purple-600',
-        bg: 'bg-purple-50 border-purple-200',
+        color: 'text-teal-600',
+        bg: 'bg-teal-50 border-teal-200',
     },
 ];
 
@@ -598,6 +602,7 @@ export default function FederalProgramGuide() {
     const params = useParams();
     const clientId = parseInt(params.id || "0");
     const [activeFw, setActiveFw] = useState<'nist' | 'cmmc' | 'fedramp'>('nist');
+    const [activeView, setActiveView] = useState<'playbook' | 'roadmap'>('playbook');
 
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedStep, setSelectedStep] = useState<any>(null);
@@ -643,8 +648,11 @@ export default function FederalProgramGuide() {
                             return (
                                 <button
                                     key={key}
-                                    onClick={() => setActiveFw(key as any)}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${isActive ? f.tabActive : f.tabInactive}`}
+                                    onClick={() => {
+                                        setActiveFw(key as any);
+                                        setActiveView('playbook');
+                                    }}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${isActive && activeView === 'playbook' ? f.tabActive : f.tabInactive}`}
                                 >
                                     {f.shortLabel}
                                 </button>
@@ -654,7 +662,36 @@ export default function FederalProgramGuide() {
                 </div>
 
                 <div className="flex-1 overflow-auto p-6 md:p-10 xl:px-12">
-                    <div className="w-full mx-auto">
+                    <div className="w-full mx-auto space-y-8">
+                        {/* View Switcher */}
+                        <div className="flex gap-2 border-b border-slate-200 pb-3 flex-wrap">
+                            <Button
+                                variant={activeView === 'playbook' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setActiveView('playbook')}
+                                className={cn("font-bold rounded-xl", activeView === 'playbook' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                            >
+                                <BookOpen className="w-4 h-4 mr-2" />
+                                Framework Implementation Playbook
+                            </Button>
+                            <Button
+                                variant={activeView === 'roadmap' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setActiveView('roadmap')}
+                                className={cn("font-bold rounded-xl", activeView === 'roadmap' ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                            >
+                                <CalendarClock className="w-4 h-4 mr-2" />
+                                90-Day Federal Roadmap (CMMC & FedRAMP)
+                            </Button>
+                        </div>
+
+                        {activeView === 'roadmap' ? (
+                            <Framework90DayRoadmap
+                                spec={getFederalRoadmap(clientId)}
+                                clientId={clientId}
+                            />
+                        ) : (
+                            <>
                         <div className="flex flex-col lg:flex-row gap-8 mb-12">
                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shrink-0 text-white mb-4 lg:mb-0 bg-gradient-to-br ${fw.accent}`} style={{ backgroundImage: `var(--tw-gradient-stops)` }}>
                                 <FwIcon className="w-8 h-8" />
@@ -825,6 +862,8 @@ export default function FederalProgramGuide() {
                                 ))}
                             </div>
                         </div>
+                        </>
+                        )}
 
                     </div>
                 </div>

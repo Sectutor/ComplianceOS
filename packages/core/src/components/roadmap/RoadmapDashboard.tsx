@@ -46,6 +46,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { PageGuide } from "@/components/PageGuide";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import ReportGeneratorDialog from "./ReportGeneratorDialog";
+import { StrategicFastTrackWidget } from "./StrategicFastTrackWidget";
 
 // Type definition for Roadmap data
 interface RoadmapData {
@@ -470,6 +471,9 @@ export default function RoadmapDashboard() {
                         </div>
                     </div>
                 )}
+
+                {/* 90-DAY IMPLEMENTATION FAST-TRACK SPRINTS (Tactical Execution Layer) */}
+                <StrategicFastTrackWidget clientId={clientId} />
 
                 {/* ACTION LANES */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

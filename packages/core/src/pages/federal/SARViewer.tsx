@@ -190,8 +190,8 @@ export default function SARViewer() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <div className="bg-purple-50 p-2 rounded-lg">
-                                                    <User className="h-4 w-4 text-purple-600" />
+                                                <div className="bg-teal-50 p-2 rounded-lg">
+                                                    <User className="h-4 w-4 text-teal-600" />
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground">Assessor</p>

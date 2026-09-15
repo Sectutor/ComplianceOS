@@ -413,7 +413,7 @@ export default function GapAnalysisEditor() {
                                         id="gap-ai-prioritize"
                                         onClick={handlePrioritize}
                                         disabled={prioritizing}
-                                        className="h-11 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none font-bold shadow-sm hover:scale-[1.01] active:scale-[0.98] transition-all"
+                                        className="h-11 bg-gradient-to-r from-indigo-600 to-indigo-600 text-white border-none font-bold shadow-sm hover:scale-[1.01] active:scale-[0.98] transition-all"
                                     >
                                         {prioritizing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                                         AI Prioritize

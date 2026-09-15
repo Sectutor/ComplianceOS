@@ -40,8 +40,8 @@ export default function ISO22301CompliancePage() {
             title: 'BC Strategy Development',
             clause: 'Clause 8.3',
             icon: Shield,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Develop strategies to maintain/recover critical activities',
                 'Link strategies to specific scenarios and BIAs'
@@ -225,8 +225,8 @@ export default function ISO22301CompliancePage() {
                                     <div className="text-3xl font-bold text-green-600">{metrics?.approvedPlans || 0}/{metrics?.totalPlans || 0}</div>
                                     <div className="text-sm text-muted-foreground">Plans Approved</div>
                                 </div>
-                                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                    <div className="text-3xl font-bold text-purple-600">{metrics?.completedExercises || 0}</div>
+                                <div className="text-center p-4 bg-teal-50 rounded-lg">
+                                    <div className="text-3xl font-bold text-teal-600">{metrics?.completedExercises || 0}</div>
                                     <div className="text-sm text-muted-foreground">Tests Completed</div>
                                 </div>
                                 <div className="text-center p-4 bg-orange-50 rounded-lg">

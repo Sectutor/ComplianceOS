@@ -41,7 +41,7 @@ import {
 const CATEGORIES = [
     { value: "general", label: "General", color: "bg-blue-100 text-blue-700" },
     { value: "security", label: "Security", color: "bg-red-100 text-red-700" },
-    { value: "hr", label: "HR & Culture", color: "bg-purple-100 text-purple-700" },
+    { value: "hr", label: "HR & Culture", color: "bg-teal-100 text-indigo-700" },
     { value: "compliance", label: "Compliance", color: "bg-amber-100 text-amber-700" },
     { value: "it", label: "IT & Systems", color: "bg-green-100 text-green-700" },
     { value: "legal", label: "Legal", color: "bg-indigo-100 text-indigo-700" },
@@ -316,7 +316,7 @@ export default function OnboardingSettings({ hideLayout = false, clientId: propC
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-100 rounded-lg"><Users className="h-5 w-5 text-purple-600" /></div>
+                            <div className="p-2 bg-teal-100 rounded-lg"><Users className="h-5 w-5 text-teal-600" /></div>
                             <div>
                                 <p className="text-2xl font-bold">{analytics.totalEmployees}</p>
                                 <p className="text-xs text-muted-foreground">Employees</p>
@@ -520,7 +520,7 @@ export default function OnboardingSettings({ hideLayout = false, clientId: propC
                                     {(trainingModules as any[]).map((mod: any) => (
                                         <div key={mod.id} className="flex items-center justify-between p-3 border rounded-lg">
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-lg ${mod.type === 'video' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                <div className={`p-2 rounded-lg ${mod.type === 'video' ? 'bg-teal-100 text-teal-600' : 'bg-blue-100 text-blue-600'}`}>
                                                     {mod.type === 'video' ? <GraduationCap className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                                                 </div>
                                                 <div>
@@ -573,7 +573,7 @@ export default function OnboardingSettings({ hideLayout = false, clientId: propC
                                 </div>
                                 <div className="flex items-center justify-between p-4 border rounded-lg">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-purple-100 rounded-lg"><Shield className="h-5 w-5 text-purple-600" /></div>
+                                        <div className="p-2 bg-teal-100 rounded-lg"><Shield className="h-5 w-5 text-teal-600" /></div>
                                         <div>
                                             <p className="font-medium">Password Manager Setup</p>
                                             <p className="text-sm text-muted-foreground">Employee must configure approved password manager</p>

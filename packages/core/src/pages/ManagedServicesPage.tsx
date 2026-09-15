@@ -96,7 +96,7 @@ export default function ManagedServicesPage() {
                             className="grid md:grid-cols-3 gap-8"
                         >
                             <motion.div variants={item} className="bg-[#002a40]/50 p-8 rounded-3xl border border-white/10 hover:border-emerald-500/50 transition-colors group">
-                                <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                                <div className="h-14 w-14 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
                                     <Users className="h-7 w-7 text-white" />
                                 </div>
                                 <h3 className="text-2xl font-bold mb-4">Fractional CISO Team</h3>
@@ -131,7 +131,7 @@ export default function ManagedServicesPage() {
                 {/* Tiers Detail */}
                 <section id="tiers" className="py-32 relative">
                     {/* Decorative elements */}
-                    <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-teal-500/20 rounded-full blur-[100px] pointer-events-none" />
                     <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
 
                     <div className="container relative z-10">
@@ -154,13 +154,13 @@ export default function ManagedServicesPage() {
                                     </div>
 
                                     <div className="relative z-10">
-                                        <div className="inline-block p-3 rounded-xl bg-purple-500/20 text-purple-300 font-bold mb-6">
+                                        <div className="inline-block p-3 rounded-xl bg-teal-500/20 text-cyan-300 font-bold mb-6">
                                             TIER 1
                                         </div>
                                         <h3 className="text-4xl font-bold mb-2 text-white">Partially Managed</h3>
-                                        <p className="text-xl text-purple-300 font-medium mb-8">"We Guide, You Execute"</p>
+                                        <p className="text-xl text-cyan-300 font-medium mb-8">"We Guide, You Execute"</p>
 
-                                        <div className="h-px w-full bg-gradient-to-r from-purple-500/50 to-transparent mb-8" />
+                                        <div className="h-px w-full bg-gradient-to-r from-cyan-500/50 to-transparent mb-8" />
 
                                         <p className="text-lg text-slate-300 mb-8 leading-relaxed">
                                             Perfect for teams that have an internal ops person who can do the work, but lacks the specific security compliance expertise to know <em>what</em> to do.
@@ -174,7 +174,7 @@ export default function ManagedServicesPage() {
                                                 "Audit Liaison Support (We verify your evidence)"
                                             ].map((feature, i) => (
                                                 <li key={i} className="flex items-start gap-4">
-                                                    <div className="mt-1 h-6 w-6 rounded-full bg-purple-500 flex items-center justify-center shrink-0">
+                                                    <div className="mt-1 h-6 w-6 rounded-full bg-teal-500 flex items-center justify-center shrink-0">
                                                         <Check className="h-3.5 w-3.5 text-white" />
                                                     </div>
                                                     <span className="text-slate-200 text-lg">{feature}</span>
@@ -184,7 +184,7 @@ export default function ManagedServicesPage() {
                                     </div>
 
                                     <div className="mt-auto">
-                                        <Button className="w-full h-14 text-lg bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/25 transition-all" asChild>
+                                        <Button className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/25 transition-all" asChild>
                                             <a href="mailto:sales@grcompliance.com?subject=Inquiry%20about%20Partially%20Managed%20Service">Get Started</a>
                                         </Button>
                                     </div>
@@ -256,7 +256,7 @@ export default function ManagedServicesPage() {
                                 <thead>
                                     <tr className="border-b border-white/10">
                                         <th className="p-6 md:p-8 font-semibold text-lg text-slate-300">Feature Deliverable</th>
-                                        <th className="p-6 md:p-8 font-bold text-xl text-purple-400 border-l border-white/10 w-1/3">Partially Managed</th>
+                                        <th className="p-6 md:p-8 font-bold text-xl text-cyan-400 border-l border-white/10 w-1/3">Partially Managed</th>
                                         <th className="p-6 md:p-8 font-bold text-xl text-emerald-400 border-l border-white/10 w-1/3 bg-emerald-500/5">Fully Managed</th>
                                     </tr>
                                 </thead>

@@ -394,7 +394,7 @@ export default function FrameworksDashboard() {
           </Card>
 
           <Card className="p-4 flex items-center gap-4 border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl">
-            <div className="h-12 w-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+            <div className="h-12 w-12 rounded-xl bg-teal-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
               <Shield className="h-5 w-5" />
             </div>
             <div>

@@ -735,9 +735,9 @@ export default function VendorDetails() {
                         size="sm"
                         onClick={handleExportToRisk}
                         disabled={exportToRiskMutation.isPending}
-                        className="text-xs font-semibold text-purple-700 bg-purple-50/50 hover:bg-purple-100 border-purple-200"
+                        className="text-xs font-semibold text-indigo-700 bg-teal-50/50 hover:bg-teal-100 border-teal-200"
                     >
-                        <ShieldAlert className="mr-1.5 h-3.5 w-3.5 text-purple-600" />
+                        <ShieldAlert className="mr-1.5 h-3.5 w-3.5 text-teal-600" />
                         {exportToRiskMutation.isPending ? "Exporting..." : "Export to Risk Register (DORA / NIS2)"}
                     </Button>
                 </div>
@@ -758,7 +758,7 @@ export default function VendorDetails() {
                             {vendor.status}
                         </Badge>
                         {vendor.isSubprocessor && (
-                            <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                            <Badge className="bg-teal-100 text-indigo-800 border-teal-200">
                                 Approved Subprocessor
                             </Badge>
                         )}

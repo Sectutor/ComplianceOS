@@ -316,7 +316,7 @@ export default function Notifications() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-purple-500" />
+                  <FileText className="h-4 w-4 text-cyan-500" />
                   <div className="space-y-0.5">
                     <Label htmlFor="policyRenewals">Policy Renewals</Label>
                     <p className="text-sm text-muted-foreground">Policy renewal deadlines</p>

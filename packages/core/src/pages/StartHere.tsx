@@ -119,7 +119,7 @@ const WORKFLOWS: Workflow[] = [
         title: 'ISO 27001 Certification',
         description: 'The end-to-end journey to achieving ISO 27001 certification.',
         icon: <Award className="h-8 w-8" />,
-        color: 'text-purple-400',
+        color: 'text-cyan-400',
         goal: 'Prepare your organization for a successful external audit.',
         primaryActionLink: '/learning/iso-27001/checklist',
         infographicSteps: [

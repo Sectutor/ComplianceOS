@@ -69,8 +69,8 @@ export default function VendorAlignmentPage() {
             title: 'Cloud Services',
             standard: 'ISO 27001 Clause 5.23',
             icon: TrendingUp,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Specify acquisition requirements for cloud services',
                 'Define information security roles and responsibilities',
@@ -144,8 +144,8 @@ export default function VendorAlignmentPage() {
             title: 'Monitor',
             standard: 'NIST 800-161 (Monitor)',
             icon: BarChart3,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'ID.SC-5: Response and recovery planning and testing',
                 'Continuous monitoring of supplier performance',
@@ -176,7 +176,7 @@ export default function VendorAlignmentPage() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-600 text-white mb-4">
                         <Users className="w-8 h-8" />
                     </div>
-                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
                         Third-Party Risk Management
                     </h1>
                     <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -202,7 +202,7 @@ export default function VendorAlignmentPage() {
                                 className={cn(
                                     "px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200",
                                     framework === 'nist'
-                                        ? "bg-white text-purple-600 shadow-sm ring-1 ring-slate-200"
+                                        ? "bg-white text-teal-600 shadow-sm ring-1 ring-slate-200"
                                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                 )}
                             >
@@ -214,7 +214,7 @@ export default function VendorAlignmentPage() {
 
                 {/* Overview Card */}
                 <Card className="border-2 border-indigo-200 bg-white shadow-lg">
-                    <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                    <CardHeader className="bg-gradient-to-r from-indigo-50 to-teal-50">
                         <CardTitle className="text-2xl">
                             {framework === 'iso' ? 'Supplier Relationship Security' : 'Supply Chain Risk Management (SCRM)'}
                         </CardTitle>
@@ -235,8 +235,8 @@ export default function VendorAlignmentPage() {
                                 <div className="text-3xl font-bold text-green-600">Full</div>
                                 <div className="text-sm text-muted-foreground">Audit Trail</div>
                             </div>
-                            <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                <div className="text-3xl font-bold text-purple-600">Auto</div>
+                            <div className="text-center p-4 bg-teal-50 rounded-lg">
+                                <div className="text-3xl font-bold text-teal-600">Auto</div>
                                 <div className="text-sm text-muted-foreground">Due Diligence</div>
                             </div>
                         </div>
@@ -324,7 +324,7 @@ export default function VendorAlignmentPage() {
                 </Tabs>
 
                 {/* Benefits Section */}
-                <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-lg">
+                <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-teal-50 shadow-lg">
                     <CardHeader>
                         <CardTitle className="text-2xl flex items-center gap-2">
                             <TrendingUp className="w-6 h-6 text-indigo-600" />

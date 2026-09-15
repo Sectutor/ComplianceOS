@@ -88,6 +88,7 @@ import { createGovernanceRouter } from "./server/routers/governance";
 import { createAutopilotRouter } from "./server/routers/autopilot";
 import { createSentinelRouter } from "./server/routers/sentinel";
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
+import { createFrameworkRoadmapGatesRouter } from "./server/routers/frameworkRoadmapGates";
 import { createAuditorsRouter } from "./server/routers/auditors";
 import { createPolicyReviewRouter } from "./server/routers/policyReview";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
@@ -301,6 +302,7 @@ export const appRouter = router({
   sentinel: createSentinelRouter(t, premiumClientProcedure, adminProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
   programGuides: createProgramGuidesRouter(t, clientProcedure),
+  frameworkRoadmapGates: createFrameworkRoadmapGatesRouter(t, clientProcedure),
   auditors: createAuditorsRouter(t, adminProcedure, premiumClientProcedure),
   policyReview: createPolicyReviewRouter(t, clientProcedure, protectedProcedure),
   requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),

@@ -205,7 +205,7 @@ const MATURITY_LEVELS = {
   'repeatable': { score: 40, label: 'Repeatable', color: 'bg-yellow-100 text-yellow-800' },
   'defined': { score: 60, label: 'Defined', color: 'bg-blue-100 text-blue-800' },
   'managed': { score: 80, label: 'Managed', color: 'bg-indigo-100 text-indigo-800' },
-  'measured': { score: 90, label: 'Measured', color: 'bg-purple-100 text-purple-800' },
+  'measured': { score: 90, label: 'Measured', color: 'bg-teal-100 text-indigo-800' },
   'optimized': { score: 100, label: 'Optimized', color: 'bg-green-100 text-green-800' }
 };
 

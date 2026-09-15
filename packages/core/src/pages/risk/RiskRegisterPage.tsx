@@ -259,33 +259,55 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
             </div>
             <div className="relative z-10 space-y-6 w-full min-w-0 max-w-full">
-                {!hideBreadcrumb && (
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            <BreadcrumbItem>
-                                <BreadcrumbLink asChild>
-                                    <Link href={`/clients/${clientId}`}>
-                                        <Home className="w-4 h-4" />
-                                    </Link>
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator>
-                                <ChevronRight className="w-4 h-4" />
-                            </BreadcrumbSeparator>
-                            <BreadcrumbItem>
-                                <BreadcrumbLink asChild>
-                                    <Link href={`/clients/${clientId}/risks`}>Risk Management</Link>
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator>
-                                <ChevronRight className="w-4 h-4" />
-                            </BreadcrumbSeparator>
-                            <BreadcrumbItem>
-                                <BreadcrumbPage>Risk Register</BreadcrumbPage>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
-                )}
+                {!hideBreadcrumb && (() => {
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const returnTo = searchParams.get('returnTo');
+                    const returnLabel = searchParams.get('returnLabel');
+                    return (
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink asChild>
+                                        <Link href={`/clients/${clientId}`}>
+                                            <Home className="w-4 h-4" />
+                                        </Link>
+                                    </BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator>
+                                    <ChevronRight className="w-4 h-4" />
+                                </BreadcrumbSeparator>
+                                {returnTo ? (
+                                    <>
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink asChild>
+                                                <Link href={returnTo} className="font-bold text-blue-600 dark:text-blue-400">
+                                                    {returnLabel || '90-Day Roadmap'}
+                                                </Link>
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbSeparator>
+                                            <ChevronRight className="w-4 h-4" />
+                                        </BreadcrumbSeparator>
+                                    </>
+                                ) : (
+                                    <>
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink asChild>
+                                                <Link href={`/clients/${clientId}/risks`}>Risk Management</Link>
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbSeparator>
+                                            <ChevronRight className="w-4 h-4" />
+                                        </BreadcrumbSeparator>
+                                    </>
+                                )}
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Risk Register</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    );
+                })()}
 
                 {/* AI Threat Intel Banner */}
                 {pendingThreats.length > 0 ? (
@@ -342,15 +364,32 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                 )}
 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium">
-                    <div className="flex items-center gap-4">
-                        <div className="mb-2 md:hidden">
-                            <Link href={`/clients/${clientId}/risks`}>
-                                <Button variant="ghost" size="sm" className="pl-0 gap-1 text-slate-500 hover:text-slate-900">
-                                    <ChevronLeft className="w-4 h-4" />
-                                    Back to Dashboard
-                                </Button>
-                            </Link>
-                        </div>
+                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                        {(() => {
+                            const searchParams = new URLSearchParams(window.location.search);
+                            const returnTo = searchParams.get('returnTo');
+                            const returnLabel = searchParams.get('returnLabel');
+                            return (
+                                <div className="shrink-0">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            if (returnTo) {
+                                                sessionStorage.removeItem('cos_roadmap_return_nav');
+                                                setLocation(returnTo);
+                                            } else {
+                                                setLocation(`/clients/${clientId}/risks`);
+                                            }
+                                        }}
+                                        className="gap-1.5 text-xs font-bold text-slate-700 hover:text-blue-600 bg-white/90 hover:bg-white border-slate-200 rounded-xl shadow-xs h-9 px-3"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                        <span>{returnTo ? `Back to ${returnLabel || 'Roadmap'}` : 'Back to Risks'}</span>
+                                    </Button>
+                                </div>
+                            );
+                        })()}
                         <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-bright to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                             <Shield className="h-7 w-7 text-white" />
                         </div>
@@ -561,8 +600,8 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                                                     {threat.severity} (CVSS {threat.cvssScore})
                                                 </span>
                                                 {threat.cisaKev && (
-                                                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1 shadow-xs">
-                                                        <Zap className="w-3 h-3 text-purple-600" />
+                                                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-indigo-700 border border-teal-200 flex items-center gap-1 shadow-xs">
+                                                        <Zap className="w-3 h-3 text-teal-600" />
                                                         CISA KEV Active
                                                     </span>
                                                 )}

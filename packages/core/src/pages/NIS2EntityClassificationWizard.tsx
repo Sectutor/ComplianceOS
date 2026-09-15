@@ -445,7 +445,7 @@ export default function NIS2EntityClassificationWizard() {
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <TrendingUp className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                  <TrendingUp className="h-8 w-8 text-cyan-600 mx-auto mb-2" />
                   <h3 className="font-semibold mb-2">Revenue</h3>
                   <p className="text-sm text-gray-600">{annualRevenue}</p>
                 </CardContent>

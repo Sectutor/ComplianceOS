@@ -93,6 +93,7 @@ const PolicyAcknowledgmentPortal = lazyLoad(() => import("./pages/PolicyAcknowle
 
 const NIS2EntityClassificationWizard = lazyLoad(() => import("./pages/NIS2EntityClassificationWizard"));
 const NIS2CyberResilienceHub = lazyLoad(() => import("./pages/nis2/NIS2CyberResilienceHub"));
+const DORAHub = lazyLoad(() => import("./pages/dora/DORAHub"));
 const NIS2ManagementLiability = lazyLoad(() => import("./pages/nis2/NIS2ManagementLiability"));
 const NIS2CrossBorderCompliance = lazyLoad(() => import("./pages/nis2/NIS2CrossBorderCompliance"));
 const NIS2AuditBundle = lazyLoad(() => import("./pages/nis2/NIS2AuditBundle"));
@@ -188,6 +189,7 @@ const RoadmapDashboard = lazyLoad(() => import("@/components/roadmap/RoadmapDash
 const MsspPartnerPortal = lazyLoad(() => import("./pages/MsspPartnerPortal"));
 const FrameworkMarketplacePage = lazyLoad(() => import("./pages/FrameworkMarketplacePage"));
 const FrameworkStudio = lazyLoad(() => import("./pages/studio/FrameworkStudio"));
+const RoadmapOverview = lazyLoad(() => import("./pages/roadmap/RoadmapOverview"));
 const RoadmapCreatePage = lazyLoad(() => import("@/components/roadmap/RoadmapCreatePage"));
 const RoadmapTemplates = lazyLoad(() => import("@/components/roadmap/RoadmapTemplates"));
 const StrategicReportsPage = lazyLoad(() => import("./pages/roadmap/StrategicReportsPage"));
@@ -1012,11 +1014,14 @@ function Router() {
         <Route path="/clients/:id/readiness/wizard/:standardId?">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
+        <Route path="/clients/:id/roadmap">
+          {(_params) => <ProtectedRoute component={RoadmapDashboard} />}
+        </Route>
         <Route path="/clients/:id/roadmap/dashboard">
           {(_params) => <ProtectedRoute component={RoadmapDashboard} />}
         </Route>
         <Route path="/clients/:id/roadmap/overview">
-          {(_params) => <Redirect to={`/clients/${_params.id}/roadmap`} />}
+          {(_params) => <ProtectedRoute component={RoadmapOverview} />}
         </Route>
         <Route path="/clients/:id/roadmap/create">
           {(_params) => <ProtectedRoute component={RoadmapCreatePage} />}
@@ -1025,7 +1030,7 @@ function Router() {
           {(_params) => <ProtectedRoute component={RoadmapTemplates} />}
         </Route>
         <Route path="/clients/:id/roadmap/reports">
-          {(_params) => <Redirect to={`/clients/${_params.id}/reports`} />}
+          {(_params) => <ProtectedRoute component={StrategicReportsPage} />}
         </Route>
         <Route path="/clients/:id/roadmap/:roadmapId">
           {(_params) => <ProtectedRoute component={RoadmapDetailsPage} />}
@@ -1118,6 +1123,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/nis2">
           {(_params) => <ProtectedRoute component={NIS2CyberResilienceHub} />}
+        </Route>
+        <Route path="/clients/:id/dora">
+          {(_params) => <ProtectedRoute component={DORAHub} />}
         </Route>
 
         {/* Legacy NIS2 route redirect }}

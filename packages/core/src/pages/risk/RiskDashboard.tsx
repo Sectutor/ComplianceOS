@@ -214,8 +214,8 @@ export default function RiskDashboard(props?: RiskDashboardProps) {
                                     desc: "Track ROI and risk reduction.",
                                     link: `/clients/${clientId}/risks/report`,
                                     icon: BarChart3,
-                                    color: "text-purple-400",
-                                    bg: "bg-purple-900/50"
+                                    color: "text-teal-400",
+                                    bg: "bg-indigo-900/50"
                                 },
                             ].map((item, i) => (
                                 <Link key={i} href={item.link}>

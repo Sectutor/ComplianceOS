@@ -71,8 +71,8 @@ export default function GovernanceAlignmentPage() {
             title: 'Performance Evaluation',
             standard: 'ISO 27001 Clause 9',
             icon: TrendingUp,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Monitor, measure, analyze and evaluate',
                 'Internal audit',
@@ -146,8 +146,8 @@ export default function GovernanceAlignmentPage() {
             title: 'Oversight',
             standard: 'NIST CSF GV.OV',
             icon: TrendingUp,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Outcomes are reviewed',
                 'Performance is measured',
@@ -255,8 +255,8 @@ export default function GovernanceAlignmentPage() {
                                     <div className="text-3xl font-bold text-green-600">Full</div>
                                     <div className="text-sm text-muted-foreground">Framework Support</div>
                                 </div>
-                                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                    <div className="text-3xl font-bold text-purple-600">Auto</div>
+                                <div className="text-center p-4 bg-teal-50 rounded-lg">
+                                    <div className="text-3xl font-bold text-teal-600">Auto</div>
                                     <div className="text-sm text-muted-foreground">Score Calculation</div>
                                 </div>
                             </div>

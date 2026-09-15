@@ -13,6 +13,14 @@ export default function Guides() {
 
     const guides = [
         {
+            id: 'iso27001',
+            title: 'ISO/IEC 27001:2022 ISMS',
+            description: 'The complete 7-pillar operational guide: Clauses 4–10, 93 Annex A controls, 90-day roadmap, and auditor clean room.',
+            icon: Shield,
+            badge: 'ISO 27001',
+            href: `${base}/iso27001/guide`
+        },
+        {
             id: 'ai-governance',
             title: 'AI Governance',
             description: 'Inventory AI systems, assess risk, map NIST AI RMF, and run safe deployment gates.',
@@ -63,10 +71,26 @@ export default function Guides() {
         {
             id: 'federal',
             title: 'Federal Compliance',
-            description: 'Navigate federal workflows and artifacts (RMF, SSP, SAR, POA&M) with a structured guide.',
+            description: 'Navigate federal workflows and artifacts (RMF, SSP, SAR, POA&M) with a structured guide and 90-day roadmap.',
             icon: Building2,
             badge: 'Federal',
             href: `${base}/federal/program-guide`
+        },
+        {
+            id: 'dora',
+            title: 'DORA Digital Operational Resilience',
+            description: 'Regulation (EU) 2022/2554: ICT risk, incident reporting, resilience testing, TPRM, and 90-day roadmap.',
+            icon: Shield,
+            badge: 'DORA',
+            href: `${base}/dora`
+        },
+        {
+            id: 'nis2',
+            title: 'NIS2 Cyber Resilience',
+            description: 'Directive (EU) 2022/2555: Entity classification, Art. 21 security measures, CSIRT 24h reporting, and 90-day roadmap.',
+            icon: Shield,
+            badge: 'NIS2',
+            href: `${base}/nis2`
         }
     ];
 

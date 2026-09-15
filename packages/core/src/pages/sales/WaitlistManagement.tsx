@@ -262,7 +262,7 @@ export default function WaitlistManagement() {
                                                 className={
                                                     lead.status === 'contacted' ? 'bg-amber-100 text-amber-700 border-amber-200' :
                                                         lead.status === 'converted' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                                                            lead.status === 'invited' ? 'bg-purple-100 text-purple-700 border-purple-200' : ''
+                                                            lead.status === 'invited' ? 'bg-teal-100 text-indigo-700 border-teal-200' : ''
                                                 }
                                             >
                                                 {lead.status?.toUpperCase()}

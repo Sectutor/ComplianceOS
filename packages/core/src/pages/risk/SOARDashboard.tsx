@@ -88,7 +88,7 @@ export default function SOARDashboard() {
                                 <Search className="h-4 w-4 mr-2" />
                                 Search Cases
                             </Button>
-                            <Button id="soar-create-case-btn" className="bg-purple-600 hover:bg-purple-700">
+                            <Button id="soar-create-case-btn" className="bg-teal-600 hover:bg-indigo-700">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Create Case
                             </Button>
@@ -103,7 +103,7 @@ export default function SOARDashboard() {
                                         <p className="text-slate-500 text-sm">Open Cases</p>
                                         <p className="text-3xl font-bold text-slate-900">{mockCases.filter(c => c.status !== 'resolved').length}</p>
                                     </div>
-                                    <FileText className="h-8 w-8 text-purple-500" />
+                                    <FileText className="h-8 w-8 text-teal-500" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -144,9 +144,9 @@ export default function SOARDashboard() {
 
                     <Tabs defaultValue="cases" className="space-y-4">
                         <TabsList id="soar-tabs-list" className="bg-white border-slate-200">
-                            <TabsTrigger value="cases" className="data-[state=active]:bg-purple-600">Cases</TabsTrigger>
-                            <TabsTrigger id="soar-playbooks-tab" value="playbooks" className="data-[state=active]:bg-purple-600">Playbooks</TabsTrigger>
-                            <TabsTrigger id="soar-metrics-tab" value="metrics" className="data-[state=active]:bg-purple-600">Metrics</TabsTrigger>
+                            <TabsTrigger value="cases" className="data-[state=active]:bg-teal-600">Cases</TabsTrigger>
+                            <TabsTrigger id="soar-playbooks-tab" value="playbooks" className="data-[state=active]:bg-teal-600">Playbooks</TabsTrigger>
+                            <TabsTrigger id="soar-metrics-tab" value="metrics" className="data-[state=active]:bg-teal-600">Metrics</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="cases">
@@ -237,7 +237,7 @@ export default function SOARDashboard() {
                                 <CardContent>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="p-6 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                                            <p className="text-4xl font-bold text-purple-600">156</p>
+                                            <p className="text-4xl font-bold text-teal-600">156</p>
                                             <p className="text-slate-500">Total Cases</p>
                                         </div>
                                         <div className="p-6 bg-slate-50 rounded-lg border border-slate-100 text-center">

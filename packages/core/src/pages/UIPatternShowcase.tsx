@@ -45,7 +45,7 @@ export default function UIPatternShowcase() {
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 border rounded-lg hover-lift cursor-pointer">
-              <FileText className="w-6 h-6 text-purple-600" />
+              <FileText className="w-6 h-6 text-cyan-600" />
               <div>
                 <p className="font-medium">SOC 2</p>
                 <p className="text-sm text-muted-foreground">Service Organization Control</p>

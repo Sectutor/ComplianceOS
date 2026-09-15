@@ -526,13 +526,13 @@ export default function RiskAssetsPage({
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-card border-border/70 shadow-sm hover:border-purple-500/40 transition-colors col-span-2 md:col-span-1">
+                    <Card className="bg-card border-border/70 shadow-sm hover:border-teal-500/40 transition-colors col-span-2 md:col-span-1">
                         <CardContent className="p-4 flex items-center justify-between">
                             <div>
                                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Linked Risks</p>
-                                <p className="text-2xl font-bold text-purple-600 mt-1">{metrics.totalRisks}</p>
+                                <p className="text-2xl font-bold text-teal-600 mt-1">{metrics.totalRisks}</p>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-600">
+                            <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-600">
                                 <ShieldAlert className="w-5 h-5" />
                             </div>
                         </CardContent>
@@ -735,7 +735,7 @@ export default function RiskAssetsPage({
                                             if (t.includes('database') || t.includes('data')) return <Database className="w-4 h-4 text-blue-500" />;
                                             if (t.includes('cloud') || t.includes('infra') || t.includes('server')) return <Server className="w-4 h-4 text-indigo-500" />;
                                             if (t.includes('saas') || t.includes('identity')) return <Globe className="w-4 h-4 text-emerald-500" />;
-                                            if (t.includes('app') || t.includes('portal')) return <Code2 className="w-4 h-4 text-purple-500" />;
+                                            if (t.includes('app') || t.includes('portal')) return <Code2 className="w-4 h-4 text-teal-500" />;
                                             if (t.includes('hardware') || t.includes('device') || t.includes('endpoint')) return <Laptop className="w-4 h-4 text-amber-500" />;
                                             return <HardDrive className="w-4 h-4 text-slate-500" />;
                                         };
@@ -943,7 +943,7 @@ export default function RiskAssetsPage({
                                                         }}
                                                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all shadow-sm ${
                                                             Number(asset.riskCount) > 0
-                                                                ? 'bg-purple-600 text-white hover:bg-purple-700 border border-purple-700'
+                                                                ? 'bg-teal-600 text-white hover:bg-indigo-700 border border-indigo-700'
                                                                 : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
                                                         }`}
                                                     >

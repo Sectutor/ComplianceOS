@@ -68,9 +68,9 @@ export default function CyberDashboard() {
             headerTitle: "Article 21 (c)",
             description: "Ensure continuity of essential services with BIA, recovery plans, and crisis management.",
             icon: Activity,
-            color: "from-purple-500 to-violet-400",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-teal-500 to-violet-400",
+            textColor: "text-teal-600",
+            bgLight: "bg-teal-50",
             path: `/clients/${selectedClientId}/business-continuity`,
             benefits: [
                 "Business Impact Analysis",

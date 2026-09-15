@@ -72,8 +72,8 @@ export default function FederalAlignmentPage() {
             title: 'Audit & Accountability',
             standard: 'CMMC 2.0 / NIST 800-171 3.3',
             icon: FileKey,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Create and retain system audit logs and records',
                 'Ensure the actions of individual system users can be uniquely traced',
@@ -147,8 +147,8 @@ export default function FederalAlignmentPage() {
             title: 'Audit & Accountability',
             standard: 'NIST 800-53 AU Family',
             icon: FileKey,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'AU-2: Event Logging - Determine that the information system is capable of auditing',
                 'AU-6: Audit Review, Analysis, and Reporting - Review and analyze information system audit records',

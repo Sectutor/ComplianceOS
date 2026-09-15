@@ -27,7 +27,7 @@ export default function TotalBcpWizard() {
         { id: 1, title: "Governance", icon: Shield, color: "text-blue-500", bg: "bg-blue-50" },
         { id: 2, title: "Inventory", icon: Activity, color: "text-emerald-500", bg: "bg-emerald-50" },
         { id: 3, title: "Impact", icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-50" },
-        { id: 4, title: "Strategies", icon: Layers, color: "text-purple-500", bg: "bg-purple-50" },
+        { id: 4, title: "Strategies", icon: Layers, color: "text-teal-500", bg: "bg-teal-50" },
         { id: 5, title: "Finalize", icon: CheckCircle, color: "text-green-500", bg: "bg-green-50" },
     ];
 
@@ -264,9 +264,9 @@ function StrategiesStep({ clientId }: { clientId: number }) {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 {strategies?.slice(0, 4).map(s => (
-                    <div key={s.id} className="p-4 border rounded-lg hover:border-purple-200 hover:bg-purple-50/10 transition-colors">
+                    <div key={s.id} className="p-4 border rounded-lg hover:border-teal-200 hover:bg-teal-50/10 transition-colors">
                         <h4 className="font-medium flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-purple-500" /> {s.title}
+                            <Layers className="w-4 h-4 text-teal-500" /> {s.title}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</p>
                     </div>

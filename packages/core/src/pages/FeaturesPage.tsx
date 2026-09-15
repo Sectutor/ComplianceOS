@@ -236,9 +236,9 @@ function FeatureCard({ feature }: { feature: Feature }) {
         premium: {
             badge: feature.planRequired === 'enterprise'
                 ? <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100"><Crown className="w-3 h-3 mr-1" /> Enterprise</Badge>
-                : <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100"><Zap className="w-3 h-3 mr-1" /> Pro</Badge>,
-            border: 'border-purple-200',
-            bg: 'bg-purple-50/50'
+                : <Badge className="bg-teal-100 text-indigo-700 hover:bg-teal-100"><Zap className="w-3 h-3 mr-1" /> Pro</Badge>,
+            border: 'border-cyan-200',
+            bg: 'bg-teal-50/50'
         },
         coming_soon: {
             badge: <Badge variant="outline" className="border-slate-300 text-slate-500"><Clock className="w-3 h-3 mr-1" /> Coming Soon</Badge>,
@@ -342,25 +342,25 @@ export default function FeaturesPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-2 border-purple-300 relative shadow-xl">
+                    <Card className="border-2 border-cyan-300 relative shadow-xl">
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                            <Badge className="bg-purple-600 text-white">Most Popular</Badge>
+                            <Badge className="bg-teal-600 text-white">Most Popular</Badge>
                         </div>
                         <CardHeader className="text-center pb-2">
-                            <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
-                                <Zap className="w-6 h-6 text-purple-600" />
+                            <div className="mx-auto w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mb-3">
+                                <Zap className="w-6 h-6 text-cyan-600" />
                             </div>
                             <CardTitle className="text-xl">Pro</CardTitle>
                             <CardDescription>AI-Powered</CardDescription>
-                            <div className="text-3xl font-bold mt-2 text-purple-600">$299<span className="text-sm font-normal">/mo</span></div>
+                            <div className="text-3xl font-bold mt-2 text-cyan-600">$299<span className="text-sm font-normal">/mo</span></div>
                         </CardHeader>
                         <CardContent className="text-center">
                             <p className="text-sm text-slate-600 mb-4">Per organization, AI included</p>
                             <ul className="text-sm text-left space-y-2">
-                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-500" /> Everything in Community</li>
-                                <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-500" /> AI Advisor & Automation</li>
-                                <li className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-purple-500" /> Professional Reports</li>
-                                <li className="flex items-center gap-2"><Plug className="w-4 h-4 text-purple-500" /> Pre-built Integrations</li>
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-500" /> Everything in Community</li>
+                                <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-cyan-500" /> AI Advisor & Automation</li>
+                                <li className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-cyan-500" /> Professional Reports</li>
+                                <li className="flex items-center gap-2"><Plug className="w-4 h-4 text-cyan-500" /> Pre-built Integrations</li>
                             </ul>
                         </CardContent>
                     </Card>

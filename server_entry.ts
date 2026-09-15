@@ -81,6 +81,8 @@ const APP_VERSION = (() => {
     } catch {
         return '0.0.0';
     }
+})();
+
 import compression from 'compression';
 
 export const app = express();

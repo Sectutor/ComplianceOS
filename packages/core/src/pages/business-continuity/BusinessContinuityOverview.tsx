@@ -44,9 +44,9 @@ export default function BusinessContinuityOverview() {
             headerTitle: "RTO & RPO Definition",
             description: "Assess the impact of disruptions to determine Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO) for each process.",
             icon: FileText,
-            color: "from-purple-600 to-indigo-500",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-teal-600 to-indigo-500",
+            textColor: "text-teal-600",
+            bgLight: "bg-teal-50",
             path: `/clients/${clientId}/business-continuity/bia`,
             benefits: [
                 "Financial impact analysis",
@@ -236,7 +236,7 @@ export default function BusinessContinuityOverview() {
                         {[
                             { step: "1", title: "Analyze", desc: "BIA & dependencies", icon: Database, color: "text-blue-600", bg: "bg-blue-100" },
                             { step: "2", title: "Strategize", desc: "Recovery options", icon: Shield, color: "text-emerald-600", bg: "bg-emerald-100" },
-                            { step: "3", title: "Plan", desc: "Document procedures", icon: FileText, color: "text-purple-600", bg: "bg-purple-100" },
+                            { step: "3", title: "Plan", desc: "Document procedures", icon: FileText, color: "text-teal-600", bg: "bg-teal-100" },
                             { step: "4", title: "Test", desc: "Exercises & drills", icon: Zap, color: "text-orange-600", bg: "bg-orange-100" },
                             { step: "5", title: "Maintain", desc: "Review & update", icon: Activity, color: "text-indigo-600", bg: "bg-indigo-100" }
                         ].map((item, i) => (

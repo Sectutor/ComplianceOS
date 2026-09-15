@@ -48,7 +48,7 @@ const linkedEvidenceSources = [
         description: 'Implemented controls and their evidence',
         icon: ShieldCheck,
         path: '/client-controls',
-        color: 'text-purple-600 bg-purple-50'
+        color: 'text-teal-600 bg-teal-50'
     }
 ];
 

@@ -352,11 +352,11 @@ export default function VendorDashboard() {
 
                 {/* Workflow Introduction Section */}
                 <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl overflow-hidden relative mb-6 animate-fade-in delay-200" id="vendor-lifecycle-workflow">
-                    <div className="absolute top-0 right-0 p-32 bg-purple-500/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 p-32 bg-teal-500/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 p-32 bg-blue-500/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
                     <CardHeader className="relative z-10 pb-2">
                         <CardTitle className="flex items-center gap-3 text-2xl font-black tracking-tight">
-                            <Globe className="w-7 h-7 text-purple-400" />
+                            <Globe className="w-7 h-7 text-teal-400" />
                             Getting Started with Vendor Risks
                         </CardTitle>
                         <CardDescription className="text-sidebar-foreground/80 font-medium text-base">
@@ -366,7 +366,7 @@ export default function VendorDashboard() {
                     <CardContent className="relative z-10 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
                             {/* Connector Line (Desktop) */}
-                            <div className="hidden md:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/0 via-purple-500/50 to-emerald-500/0 -z-10"></div>
+                            <div className="hidden md:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/0 via-teal-500/50 to-emerald-500/0 -z-10"></div>
 
                             {[
                                 {
@@ -405,9 +405,9 @@ export default function VendorDashboard() {
                                     desc: "Review findings and gaps.",
                                     link: `/clients/${clientId}/vendors/reviews`,
                                     icon: FileCheck,
-                                    color: "text-purple-300",
-                                    bg: "bg-purple-900/60 border-purple-500/30",
-                                    shadow: "shadow-purple-900/50"
+                                    color: "text-teal-300",
+                                    bg: "bg-indigo-900/60 border-teal-500/30",
+                                    shadow: "shadow-indigo-900/50"
                                 },
                                 {
                                     step: "5. Monitor",

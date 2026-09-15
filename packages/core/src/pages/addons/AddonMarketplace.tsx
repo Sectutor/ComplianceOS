@@ -40,7 +40,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 const CATEGORY_BG: Record<string, string> = {
   scanner: 'bg-blue-500/10 text-blue-500',
-  siem: 'bg-purple-500/10 text-purple-500',
+  siem: 'bg-teal-500/10 text-cyan-500',
   dependency: 'bg-emerald-500/10 text-emerald-500',
 };
 

@@ -698,7 +698,7 @@ function TrainingStep({
                     <div className="flex items-start justify-between">
                         <div>
                             <CardTitle className="flex items-center gap-2">
-                                <GraduationCap className="h-5 w-5 text-purple-500" />
+                                <GraduationCap className="h-5 w-5 text-cyan-500" />
                                 Security Awareness Training
                             </CardTitle>
                             <CardDescription>Complete required training modules</CardDescription>
@@ -851,7 +851,7 @@ function SecurityStep({
                             checked={security.passwordManagerSetup || false}
                             onChange={(v) => handleSecuritySetup('passwordManagerSetup', v)}
                             isLoading={isLoading}
-                            icon={<Shield className="h-5 w-5 text-purple-500" />}
+                            icon={<Shield className="h-5 w-5 text-cyan-500" />}
                         />
                         <SecurityToggle
                             label="Security Questions Configured"

@@ -20,7 +20,7 @@ function getCategoryBadge(category: string) {
         case 'high_risk':
             return { label: 'EDPB High-Risk', icon: ShieldAlert, className: 'bg-rose-100 text-rose-800 border-rose-200' };
         case 'ai_governance':
-            return { label: 'AI & Automated Decision', icon: Cpu, className: 'bg-purple-100 text-purple-800 border-purple-200' };
+            return { label: 'AI & Automated Decision', icon: Cpu, className: 'bg-teal-100 text-indigo-800 border-teal-200' };
         case 'special_category':
             return { label: 'Special Category & Biometric', icon: ShieldCheck, className: 'bg-amber-100 text-amber-800 border-amber-200' };
         case 'workplace_monitoring':
@@ -138,9 +138,9 @@ export default function DPIAManager() {
                         variant="outline"
                         onClick={() => seedMutation.mutate({ clientId })}
                         disabled={seedMutation.isPending}
-                        className="border-purple-300 text-purple-800 bg-purple-50/50 hover:bg-purple-100 font-bold rounded-xl h-11 px-5"
+                        className="border-teal-300 text-indigo-800 bg-teal-50/50 hover:bg-teal-100 font-bold rounded-xl h-11 px-5"
                     >
-                        {seedMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-purple-600" />}
+                        {seedMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-teal-600" />}
                         Seed Standard GDPR Templates
                     </Button>
                     <Button

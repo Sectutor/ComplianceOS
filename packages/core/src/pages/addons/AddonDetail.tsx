@@ -46,7 +46,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 const FEATURE_ICONS: Record<string, React.ReactNode> = {
   'Multi-cloud support': <Cloud className="h-4 w-4 text-blue-400" />,
-  'Real-time endpoint event collection': <Server className="h-4 w-4 text-purple-400" />,
+  'Real-time endpoint event collection': <Server className="h-4 w-4 text-cyan-400" />,
   'Multi-language dependency scanning': <Terminal className="h-4 w-4 text-emerald-400" />,
 };
 

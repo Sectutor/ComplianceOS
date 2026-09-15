@@ -187,7 +187,7 @@ export default function MSPOnboarding() {
                     </div>
                     <div className="h-2 bg-sidebar-muted/10 rounded-full overflow-hidden">
                         <div 
-                            className="h-full bg-gradient-to-r from-sidebar-accent to-purple-500 transition-all duration-500 ease-out rounded-full"
+                            className="h-full bg-gradient-to-r from-sidebar-accent to-cyan-500 transition-all duration-500 ease-out rounded-full"
                             style={{ width: `${(step / STEPS.length) * 100}%` }}
                         />
                     </div>
@@ -295,8 +295,8 @@ export default function MSPOnboarding() {
                             {step === 2 && (
                                 <div className="space-y-6">
                                     <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-400/30 mb-4">
-                                            <Shield className="h-7 w-7 text-purple-300" />
+                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/20 border border-cyan-400/30 mb-4">
+                                            <Shield className="h-7 w-7 text-cyan-300" />
                                         </div>
                                         <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">Compliance frameworks</h1>
                                         <p className="text-sidebar-foreground/70">Which standards does {company.name || "your client"} need to meet?</p>
@@ -574,7 +574,7 @@ export default function MSPOnboarding() {
                                         </div>
                                         {/* Frameworks summary */}
                                         <div className="flex items-start gap-4 pb-4 border-b border-sidebar-border">
-                                            <Shield className="h-5 w-5 text-purple-300 mt-0.5" />
+                                            <Shield className="h-5 w-5 text-cyan-300 mt-0.5" />
                                             <div>
                                                 <div className="text-sm font-semibold text-sidebar-foreground">{selectedFrameworks.length} Frameworks</div>
                                                 <div className="text-xs text-sidebar-foreground/60">{selectedFrameworks.map(id => FRAMEWORKS.find(f => f.id === id)?.name).join(', ')}</div>

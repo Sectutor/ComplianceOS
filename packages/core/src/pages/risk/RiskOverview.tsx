@@ -130,9 +130,9 @@ export default function RiskOverview() {
             headerTitle: "ISO 27005 Risk Analysis",
             description: "Conduct structured risk assessments by combining assets, threats, and vulnerabilities. Calculate inherent and residual risk using likelihood × impact matrices.",
             icon: Activity,
-            color: "from-purple-600 to-indigo-500",
-            textColor: "text-purple-600",
-            bgLight: "bg-purple-50",
+            color: "from-teal-600 to-indigo-500",
+            textColor: "text-teal-600",
+            bgLight: "bg-teal-50",
             path: `/clients/${clientId}/risks/assessments`,
             benefits: [
                 "Guided assessment workflow",
@@ -256,9 +256,9 @@ export default function RiskOverview() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setLocation(`/clients/${clientId}/nis2/security-measures`)}
-                        className="h-8 text-xs font-semibold hover:bg-purple-50 hover:text-purple-700 text-slate-700 rounded-xl"
+                        className="h-8 text-xs font-semibold hover:bg-teal-50 hover:text-indigo-700 text-slate-700 rounded-xl"
                     >
-                        <Shield className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
+                        <Shield className="w-3.5 h-3.5 mr-1.5 text-teal-600" />
                         NIS2 Art. 21 Controls
                     </Button>
                 </div>
@@ -396,7 +396,7 @@ export default function RiskOverview() {
                     </div>
                     <div className="grid md:grid-cols-5 gap-6 relative">
                         {/* Connector Line */}
-                        <div className="hidden md:block absolute top-8 left-12 right-12 h-0.5 bg-gradient-to-r from-blue-300 via-purple-300 to-orange-300" />
+                        <div className="hidden md:block absolute top-8 left-12 right-12 h-0.5 bg-gradient-to-r from-blue-300 via-teal-300 to-orange-300" />
 
                         {[
                             {
@@ -420,8 +420,8 @@ export default function RiskOverview() {
                                 title: "Analyze Risks",
                                 desc: "Assess likelihood and impact",
                                 icon: Activity,
-                                color: "text-purple-600",
-                                bg: "bg-purple-100"
+                                color: "text-teal-600",
+                                bg: "bg-teal-100"
                             },
                             {
                                 step: "4",

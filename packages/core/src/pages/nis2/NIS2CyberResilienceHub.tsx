@@ -8,7 +8,7 @@
  * NIS2 Directive (EU) 2022/2555
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useClientContext } from '@/contexts/ClientContext';
 import { trpc } from '@/lib/trpc';
@@ -31,7 +31,8 @@ import {
     Zap,
     TrendingUp,
     ShieldAlert,
-    Network
+    Network,
+    CalendarClock
 } from 'lucide-react';
 import { useCyberIncidents, useCyberNis2Mappings } from '@/pages/cyber/cyberApi';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -39,11 +40,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@comp
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
+import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getNis2Roadmap } from '@/data/frameworkRoadmaps';
 
 export default function NIS2CyberResilienceHub() {
     const params = useParams<{ id?: string }>();
     const { selectedClientId } = useClientContext();
     const [, setLocation] = useLocation();
+    const [activeTab, setActiveTab] = useState<'hub' | 'roadmap'>('hub');
     
     // Dynamically resolve active clientId with fallbacks
     const clientId = params.id
@@ -212,8 +217,37 @@ export default function NIS2CyberResilienceHub() {
                     </div>
                 </div>
 
-                {/* Primary High-Level Compliance Score Cards */}
-                <div className="grid gap-4 md:grid-cols-4">
+                {/* Tab Navigation */}
+                <div className="flex gap-2 border-b border-border pb-2 flex-wrap">
+                    <Button
+                        variant={activeTab === 'hub' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('hub')}
+                        className={cn("font-bold rounded-xl", activeTab === 'hub' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                    >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Resilience Hub & Telemetry Bridge
+                    </Button>
+                    <Button
+                        variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('roadmap')}
+                        className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                    >
+                        <CalendarClock className="w-4 h-4 mr-2" />
+                        90-Day NIS2 Roadmap
+                    </Button>
+                </div>
+
+                {activeTab === 'roadmap' && (
+                    <Framework90DayRoadmap
+                        spec={getNis2Roadmap(clientId)}
+                        clientId={clientId}
+                    />
+                )}
+
+                {activeTab === 'hub' && (
+                    <>
+                        {/* Primary High-Level Compliance Score Cards */}
+                        <div className="grid gap-4 md:grid-cols-4">
                     <Card className="border-border/80 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="pb-2">
                             <CardDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground">NIS2 Readiness Score</CardDescription>
@@ -428,6 +462,8 @@ export default function NIS2CyberResilienceHub() {
                         ))}
                     </div>
                 </div>
+                </>
+                )}
             </div>
         </DashboardLayout>
     );

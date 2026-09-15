@@ -67,7 +67,7 @@ const FRAMEWORKS = {
                 icon: Search,
                 color: 'text-violet-600',
                 bgColor: 'bg-violet-50',
-                accent: 'from-violet-500 to-purple-500',
+                accent: 'from-violet-500 to-teal-500',
                 bestPractices: [
                     'Involve cross-functional teams to identify risks.',
                     'Use both top-down (strategic) and bottom-up (operational) approaches.',
@@ -294,8 +294,8 @@ const OVERLAP_NOTES = [
         icon: GitMerge,
         title: 'Hybridizing ISO & NIST',
         desc: 'Many organizations use ISO 27005 for flexible risk assessment (Steps 1-5), informing NIST\'s Categorize, Select, and Assess steps.',
-        color: 'text-purple-600',
-        bg: 'bg-purple-50 border-purple-200',
+        color: 'text-teal-600',
+        bg: 'bg-teal-50 border-teal-200',
     },
     {
         icon: Target,

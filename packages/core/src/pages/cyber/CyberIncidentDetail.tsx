@@ -295,7 +295,7 @@ export default function CyberIncidentDetail() {
                         disabled={createRiskMutation.isPending}
                         className="h-10 text-xs font-semibold hover:bg-slate-50"
                     >
-                        <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
+                        <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-teal-600" />
                         {createRiskMutation.isPending ? "Exporting..." : "Export to Risk Register"}
                     </Button>
                     <Button

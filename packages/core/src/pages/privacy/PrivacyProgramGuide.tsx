@@ -6,18 +6,20 @@ import { Button } from '@complianceos/ui/ui/button';
 import {
     CheckCircle2, Database, FileText, Activity, Users, AlertTriangle,
     ArrowRight, BookOpen, ArrowLeft, Info, Calendar,
-    Globe, Shield, Scale, Clock, Sparkles, Copy, Layers
+    Globe, Shield, Scale, Clock, Sparkles, Copy, Layers, CalendarClock
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getGdprRoadmap } from '@/data/frameworkRoadmaps';
 
 export default function PrivacyProgramGuide() {
     const params = useParams();
     const clientId = parseInt(params.id || params.clientId || "0");
     const [location, setLocation] = useLocation();
-    const [activeTab, setActiveTab] = useState<'tutorials' | 'architecture' | 'auditor'>('tutorials');
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>('tutorials');
     const [selectedFramework, setSelectedFramework] = useState<'gdpr' | 'ccpa' | 'iso27701'>('gdpr');
     const [selectedPillarId, setSelectedPillarId] = useState<string | null>(null);
 
@@ -86,7 +88,7 @@ export default function PrivacyProgramGuide() {
             color: 'text-blue-600',
             bgLight: 'bg-blue-50',
             borderColor: 'border-blue-200',
-            gradient: 'from-indigo-500 to-purple-600',
+            gradient: 'from-indigo-500 to-teal-600',
             summary: 'Document every business activity that processes personal data, including the legal basis, purpose, and retention.',
             whyItMatters: 'Mandated by European DPAs. In an audit, you must present an up-to-date Article 30 record within 48–72 hours or face fines up to €10M.',
             howToExecute: [
@@ -297,7 +299,7 @@ export default function PrivacyProgramGuide() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 border-b border-border pb-2">
+            <div className="flex gap-2 border-b border-border pb-2 flex-wrap">
                 <Button
                     variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                     onClick={() => setActiveTab('tutorials')}
@@ -305,6 +307,14 @@ export default function PrivacyProgramGuide() {
                 >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Step-by-Step Operating Manual
+                </Button>
+                <Button
+                    variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('roadmap')}
+                    className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                >
+                    <CalendarClock className="w-4 h-4 mr-2" />
+                    90-Day Privacy Roadmap
                 </Button>
                 <Button
                     variant={activeTab === 'architecture' ? 'default' : 'ghost'}
@@ -596,6 +606,14 @@ export default function PrivacyProgramGuide() {
                     </div>
 
                 </div>
+            )}
+
+            {/* TAB: 90-Day Implementation Roadmap */}
+            {activeTab === 'roadmap' && (
+                <Framework90DayRoadmap
+                    spec={getGdprRoadmap(clientId)}
+                    clientId={clientId}
+                />
             )}
 
             {/* TAB 2: Architecture & Data Flow */}

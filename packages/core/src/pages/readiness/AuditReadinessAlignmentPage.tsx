@@ -69,8 +69,8 @@ export default function AuditReadinessAlignmentPage() {
             title: 'Corrective Action',
             standard: 'ISO 27001 Clause 10.1',
             icon: ClipboardCheck,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'React to the nonconformity and restore service',
                 'Evaluate the need for action to eliminate the cause',
@@ -144,8 +144,8 @@ export default function AuditReadinessAlignmentPage() {
             title: 'System Deviations',
             standard: 'SOC 2 CC5.1 (COSO Principle 12)',
             icon: ClipboardCheck,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50',
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
             requirements: [
                 'Identifies and assesses changes that could effectively impact the system',
                 'Addresses deviations from established policies',

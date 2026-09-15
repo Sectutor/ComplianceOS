@@ -210,7 +210,7 @@ export function CompanyMemoryCenter() {
               ) : n.nodeType === "web_intel" ? (
                 <Globe className="w-3.5 h-3.5 shrink-0 text-sky-500" />
               ) : n.nodeType === "fact" ? (
-                <Brain className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+                <Brain className="w-3.5 h-3.5 shrink-0 text-teal-500" />
               ) : (
                 <FileText className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
               )}
@@ -218,7 +218,7 @@ export function CompanyMemoryCenter() {
               <span className="truncate flex-1">{n.title}</span>
 
               {n.nodeType === "fact" && (
-                <Badge variant="outline" className="text-[9px] py-0 px-1 border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10">
+                <Badge variant="outline" className="text-[9px] py-0 px-1 border-teal-500/30 text-teal-600 dark:text-cyan-400 bg-teal-500/10">
                   Fact
                 </Badge>
               )}
@@ -284,7 +284,7 @@ export function CompanyMemoryCenter() {
             size="sm"
             variant="outline"
             onClick={() => setShowFactModal(true)}
-            className="text-xs gap-1.5 font-medium border-purple-500/30 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400"
+            className="text-xs gap-1.5 font-medium border-teal-500/30 hover:bg-teal-500/10 text-teal-600 dark:text-cyan-400"
           >
             <Sparkles className="w-3.5 h-3.5" />
             + Extract Facts (AI)
@@ -610,7 +610,7 @@ export function CompanyMemoryCenter() {
           <div className="bg-card border border-border rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-500" />
+                <Sparkles className="w-4 h-4 text-teal-500" />
                 <h3 className="font-bold text-sm text-foreground">Adaptive Fact Extraction (Mem0 Engine)</h3>
               </div>
               <Button size="sm" variant="ghost" onClick={() => setShowFactModal(false)} className="h-6 w-6 p-0 text-xs">

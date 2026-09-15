@@ -709,7 +709,7 @@ export default function RiskFramework() {
                         <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
                             <div>
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                                    <Activity className="w-5 h-5 text-purple-600" />
+                                    <Activity className="w-5 h-5 text-teal-600" />
                                     Key Risk Indicators (KRIs)
                                 </h2>
                                 <p className="text-sm text-muted-foreground">Monitor leading indicators to predict potential risks.</p>

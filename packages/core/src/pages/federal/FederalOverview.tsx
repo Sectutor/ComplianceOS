@@ -124,7 +124,7 @@ export default function FederalOverview() {
             headerTitle: "NIST 800-171 & 800-172",
             description: "Document your system's security controls, implementation details, and operational procedures required for CMMC Level 2 and DoD contractor compliance.",
             icon: FileText,
-            color: "from-indigo-500 to-purple-400",
+            color: "from-indigo-500 to-teal-400",
             textColor: "text-indigo-600",
             bgLight: "bg-indigo-50",
             path: `/clients/${clientId}/federal/ssp-171`,
@@ -312,12 +312,12 @@ export default function FederalOverview() {
                     </div>
                     <div className="grid md:grid-cols-7 gap-4 relative">
                         {/* Connector Line */}
-                        <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300" />
+                        <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gradient-to-r from-blue-300 via-indigo-300 to-teal-300" />
 
                         {[
                             { step: "1", title: "Prepare", desc: "Essential activities", icon: ClipboardList, color: "text-blue-600", bg: "bg-blue-100" },
                             { step: "2", title: "Categorize", desc: "FIPS 199", icon: Lock, color: "text-indigo-600", bg: "bg-indigo-100" },
-                            { step: "3", title: "Select", desc: "Control baseline", icon: Shield, color: "text-purple-600", bg: "bg-purple-100" },
+                            { step: "3", title: "Select", desc: "Control baseline", icon: Shield, color: "text-teal-600", bg: "bg-teal-100" },
                             { step: "4", title: "Implement", desc: "Deploy controls", icon: Zap, color: "text-pink-600", bg: "bg-pink-100" },
                             { step: "5", title: "Assess", desc: "Test controls", icon: ScrollText, color: "text-rose-600", bg: "bg-rose-100" },
                             { step: "6", title: "Authorize", desc: "ATO decision", icon: ShieldCheck, color: "text-orange-600", bg: "bg-orange-100" },

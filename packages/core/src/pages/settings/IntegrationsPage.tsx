@@ -24,7 +24,7 @@ export default function IntegrationsPage() {
             {/* Ambient Light Mode Background Glows */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
-                <div className="absolute top-[20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-purple-500/10 blur-[120px]" />
+                <div className="absolute top-[20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-teal-500/10 blur-[120px]" />
                 <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[50%] rounded-full bg-indigo-500/10 blur-[120px]" />
             </div>
 

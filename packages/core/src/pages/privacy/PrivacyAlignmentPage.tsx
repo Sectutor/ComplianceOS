@@ -81,7 +81,7 @@ export default function PrivacyAlignmentPage() {
                 switch (clauseId) {
                     case 'pims': return 'text-blue-600';
                     case 'controllers': return 'text-indigo-600';
-                    case 'processors': return 'text-purple-600';
+                    case 'processors': return 'text-teal-600';
                     default: return 'text-gray-600';
                 }
             case 'hipaa':
@@ -113,7 +113,7 @@ export default function PrivacyAlignmentPage() {
                 switch (clauseId) {
                     case 'pims': return 'bg-blue-50';
                     case 'controllers': return 'bg-indigo-50';
-                    case 'processors': return 'bg-purple-50';
+                    case 'processors': return 'bg-teal-50';
                     default: return 'bg-gray-50';
                 }
             case 'hipaa':

@@ -91,9 +91,9 @@ export default function Home() {
               </CardHeader>
             </Card>
 
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-purple-500" onClick={() => setLocation('/mappings')}>
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-teal-500" onClick={() => setLocation('/mappings')}>
               <CardHeader>
-                <Link2 className="h-10 w-10 text-purple-500 mb-2" />
+                <Link2 className="h-10 w-10 text-cyan-500 mb-2" />
                 <CardTitle>Control Mapping</CardTitle>
                 <CardDescription>Link controls to standard frameworks</CardDescription>
               </CardHeader>
@@ -348,7 +348,7 @@ export default function Home() {
 
               {/* SIEM & SOAR */}
               <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-border hover:border-[#003366] hover:shadow-xl transition-all duration-300">
-                <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <ShieldAlert className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground mb-3">SIEM & SOAR</h3>

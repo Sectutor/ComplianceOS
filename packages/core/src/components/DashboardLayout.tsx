@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag, Bot, UserCheck, Webhook
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag, Bot, UserCheck, Webhook, ArrowLeft
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -412,6 +412,45 @@ function DashboardLayoutContent({
 
   // Use selectedClientId from context if available, otherwise fall back to URL
   const persistentClientId = selectedClientId || activeClientId;
+
+  // Roadmap return navigation tracking
+  const [returnContext, setReturnContext] = useState<{ url: string; label: string } | null>(null);
+  const [dismissedReturnUrl, setDismissedReturnUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnTo = searchParams.get('returnTo');
+      const returnLabel = searchParams.get('returnLabel');
+
+      if (returnTo && returnTo !== location) {
+        setReturnContext({
+          url: returnTo,
+          label: returnLabel || '90-Day Roadmap'
+        });
+        return;
+      }
+
+      // Check session storage if not directly in query params
+      const stored = sessionStorage.getItem('cos_roadmap_return_nav');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.url && parsed.url !== location && (Date.now() - (parsed.timestamp || 0)) < 2 * 60 * 60 * 1000) {
+          setReturnContext({
+            url: parsed.url,
+            label: parsed.label || '90-Day Roadmap'
+          });
+          return;
+        } else if (parsed.url === location) {
+          sessionStorage.removeItem('cos_roadmap_return_nav');
+        }
+      }
+
+      setReturnContext(null);
+    } catch (e) {
+      setReturnContext(null);
+    }
+  }, [location]);
 
 
 
@@ -1404,6 +1443,21 @@ function DashboardLayoutContent({
         <div className="flex border-b border-border/80 h-14 items-center justify-between bg-background/80 backdrop-blur-md sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-4 md:px-8">
           <div className="flex items-center gap-3 min-w-0">
             {isMobile && <SidebarTrigger className="h-9 w-9 rounded-lg bg-background shadow-sm border border-border shrink-0" />}
+            {returnContext && dismissedReturnUrl !== returnContext.url && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  sessionStorage.removeItem('cos_roadmap_return_nav');
+                  setLocation(returnContext.url);
+                }}
+                className="h-8 gap-1.5 px-2.5 bg-blue-50/90 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center shrink-0"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Back to {returnContext.label}</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+            )}
             <div className="flex items-center gap-2 min-w-0">
               <div className="h-6 w-1 bg-primary rounded-full hidden md:block shrink-0" />
               <span className="tracking-tight text-foreground font-bold text-sm md:text-base truncate">
@@ -1471,7 +1525,51 @@ function DashboardLayoutContent({
             <GlobalNotificationCenter />
           </div>
         </div>
-        <div className={`flex-1 bg-background w-full max-w-full ${fullWidth ? "px-4 md:px-8 py-4" : "px-4 md:px-8 py-8"}`}>{children}</div>
+        <div className={`flex-1 bg-background w-full max-w-full ${fullWidth ? "px-4 md:px-8 py-4" : "px-4 md:px-8 py-8"}`}>
+          {returnContext && dismissedReturnUrl !== returnContext.url && (
+            <div className="mb-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-slate-50 dark:from-blue-950/50 dark:via-indigo-950/30 dark:to-slate-900/50 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-3.5 px-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-foreground flex items-center gap-2 flex-wrap">
+                    <span>Roadmap Navigation Active</span>
+                    <span className="text-[10px] py-0.5 px-2 font-bold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      {returnContext.label}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    You opened this page from the 90-day roadmap. Complete your tasks here and return when ready.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    sessionStorage.removeItem('cos_roadmap_return_nav');
+                    setLocation(returnContext.url);
+                  }}
+                  className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to {returnContext.label}
+                </Button>
+                <button
+                  onClick={() => {
+                    setDismissedReturnUrl(returnContext.url);
+                  }}
+                  className="h-7 w-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-muted-foreground hover:text-foreground flex items-center justify-center text-xs transition-colors"
+                  title="Dismiss notice"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+          {children}
+        </div>
 
         {/* AI Copilot Extension Slots - Decoupled from Core */}
         <ExtensionSlot name="global.copilot" props={{ clientId: persistentClientId || undefined }} />

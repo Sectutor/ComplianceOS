@@ -186,8 +186,8 @@ export default function BusinessContinuityDashboard() {
                                     desc: "Define mitigation and recovery strategies.",
                                     link: `/clients/${clientId}/business-continuity/scenarios`,
                                     icon: AlertTriangle,
-                                    color: "text-purple-400",
-                                    bg: "bg-purple-900/50",
+                                    color: "text-teal-400",
+                                    bg: "bg-indigo-900/50",
                                     isComplete: (metrics?.totalStrategies || 0) > 0
                                 },
                                 {
@@ -259,14 +259,14 @@ export default function BusinessContinuityDashboard() {
                     </Card>
 
                     {/* Exercises Card - Enhanced with real data */}
-                    <Card id="bcm-exercises-card" className="card-enhanced border-l-4 border-l-purple-600 bg-purple-50/50 cursor-pointer hover:bg-purple-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/business-continuity/exercises`}>
+                    <Card id="bcm-exercises-card" className="card-enhanced border-l-4 border-l-teal-600 bg-teal-50/50 cursor-pointer hover:bg-teal-100/50 transition-colors" onClick={() => window.location.href = `/clients/${clientId}/business-continuity/exercises`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-purple-900">Plan Exercises</CardTitle>
-                            <FlaskConical className="h-4 w-4 text-purple-600" />
+                            <CardTitle className="text-sm font-medium text-indigo-900">Plan Exercises</CardTitle>
+                            <FlaskConical className="h-4 w-4 text-teal-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-purple-700">{metrics?.totalExercises || 0}</div>
-                            <p className="text-xs text-purple-600 mt-1">
+                            <div className="text-3xl font-bold text-indigo-700">{metrics?.totalExercises || 0}</div>
+                            <p className="text-xs text-teal-600 mt-1">
                                 {metrics?.completedExercises || 0} Completed
                                 {recentExercises?.[0]?.startDate && (
                                     <span className="ml-2">• Last: {new Date(recentExercises[0].startDate).toLocaleDateString()}</span>
