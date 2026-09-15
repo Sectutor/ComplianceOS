@@ -421,20 +421,36 @@ export default function Dashboard() {
                     value={overallComplianceRate}
                     size={220}
                     strokeWidth={16}
-                    color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
+                    color={
+                      overallComplianceRate >= 80
+                        ? '#10b981' // Green (Compliant / Optimal)
+                        : overallComplianceRate >= 65
+                        ? '#eab308' // Yellow (Good / Needs Attention)
+                        : overallComplianceRate >= 40
+                        ? '#f97316' // Orange (Caution / Significant Gaps)
+                        : '#ef4444' // Red (Critical / At Risk)
+                    }
                   >
                     <div className="flex flex-col items-center justify-center">
                       <span className={`text-4xl font-extrabold tracking-tight transition-colors duration-500 ${
                         overallComplianceRate >= 80
                           ? 'text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                          : overallComplianceRate >= 50
-                          ? 'text-amber-500 dark:text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                          : overallComplianceRate >= 65
+                          ? 'text-yellow-500 dark:text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.25)]'
+                          : overallComplianceRate >= 40
+                          ? 'text-orange-500 dark:text-orange-400 drop-shadow-[0_0_12px_rgba(249,115,22,0.25)]'
                           : 'text-rose-500 dark:text-rose-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.25)]'
                       }`}>
                         {Math.round(overallComplianceRate)}%
                       </span>
                       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">
-                        {overallComplianceRate >= 80 ? 'Optimal' : overallComplianceRate >= 50 ? 'Moderate' : 'At Risk'}
+                        {overallComplianceRate >= 80
+                          ? 'Optimal'
+                          : overallComplianceRate >= 65
+                          ? 'Attention'
+                          : overallComplianceRate >= 40
+                          ? 'Caution'
+                          : 'Critical'}
                       </span>
                     </div>
                   </CircularProgress>

@@ -22,6 +22,7 @@ export function CircularProgress({
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (value / 100) * circumference;
+  const isHexOrRgb = color.startsWith("#") || color.startsWith("rgb");
 
   return (
     <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
@@ -32,7 +33,7 @@ export function CircularProgress({
       >
         {/* Background Circle */}
         <circle
-          className="text-slate-100"
+          className="text-muted/40 dark:text-muted/20"
           strokeWidth={strokeWidth}
           stroke="currentColor"
           fill="transparent"
@@ -42,12 +43,12 @@ export function CircularProgress({
         />
         {/* Progress Circle */}
         <circle
-          className={`${color} transition-all duration-1000 ease-out`}
+          className={`${!isHexOrRgb ? color : ""} transition-all duration-1000 ease-out`}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          stroke="currentColor"
+          stroke={isHexOrRgb ? color : "currentColor"}
           fill="transparent"
           r={radius}
           cx={size / 2}
