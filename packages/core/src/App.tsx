@@ -851,6 +851,9 @@ function Router() {
         <Route path="/clients/:id/governance/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} /></UnifiedClientGuard>}
         </Route>
+        <Route path="/clients/:id/federal">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} /></UnifiedClientGuard>}
+        </Route>
         <Route path="/clients/:id/federal/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} /></UnifiedClientGuard>}
         </Route>
@@ -859,6 +862,24 @@ function Router() {
         </Route>
         <Route path="/clients/:id/vendors/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={VendorProgramGuide} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/privacy">
+          {(_params) => (
+            <UnifiedClientGuard requirePremium>
+              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+                <PrivacyProgramGuide />
+              </PrivacyLayout>
+            </UnifiedClientGuard>
+          )}
+        </Route>
+        <Route path="/clients/:id/gdpr">
+          {(_params) => (
+            <UnifiedClientGuard requirePremium>
+              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
+                <PrivacyProgramGuide />
+              </PrivacyLayout>
+            </UnifiedClientGuard>
+          )}
         </Route>
         <Route path="/clients/:id/privacy/guide">
           {(_params) => (
@@ -1899,6 +1920,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/iso27001/documents">
           {(_params) => <ProtectedRoute component={ISODocumentTracker} />}
+        </Route>
+        <Route path="/clients/:id/iso27001">
+          {(_params) => <ProtectedRoute component={ISOProgramGuide} />}
         </Route>
         <Route path="/clients/:id/iso27001/guide">
           {(_params) => <ProtectedRoute component={ISOProgramGuide} />}

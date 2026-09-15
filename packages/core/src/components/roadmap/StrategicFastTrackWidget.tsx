@@ -45,7 +45,7 @@ const FRAMEWORKS: FastTrackFrameworkConfig[] = [
         title: 'ISO/IEC 27001:2022',
         badge: 'Global ISMS Benchmark',
         tagline: 'ISMS scope, threat modeling, Annex A 93 controls, and stage 1/2 clean room.',
-        route: '/iso27001/program-guide',
+        route: '/iso27001',
         accentColor: 'border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50/40 to-indigo-50/20',
         badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
         progressColor: 'bg-blue-600',
@@ -65,7 +65,7 @@ const FRAMEWORKS: FastTrackFrameworkConfig[] = [
         title: 'GDPR & EU Privacy',
         badge: 'EU 2016/679 • Privacy',
         tagline: 'Art 30 ROPA, 30-day DSAR SLAs, transfer impact assessments, and DPIA risk models.',
-        route: '/privacy/guide',
+        route: '/privacy',
         accentColor: 'border-sky-200 hover:border-sky-400 bg-gradient-to-br from-sky-50/40 to-cyan-50/20',
         badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
         progressColor: 'bg-sky-600',
@@ -75,7 +75,7 @@ const FRAMEWORKS: FastTrackFrameworkConfig[] = [
         title: 'Federal CMMC & FedRAMP',
         badge: 'DFARS 7012 • NIST 800-171',
         tagline: 'CUI boundary isolation, 110 NIST controls, SPRS scoring (-203 to +110), and SSP packages.',
-        route: '/federal/program-guide',
+        route: '/federal',
         accentColor: 'border-cyan-200 hover:border-cyan-400 bg-gradient-to-br from-cyan-50/40 to-blue-50/20',
         badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-300',
         progressColor: 'bg-cyan-600',
@@ -230,7 +230,7 @@ export function StrategicFastTrackWidget({ clientId }: { clientId: number }) {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setLocation(`/clients/${clientId}/iso27001/program-guide`)}
+                            onClick={() => setLocation(`/clients/${clientId}/iso27001`)}
                             className="text-xs font-semibold h-8 rounded-lg"
                         >
                             <Shield className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
