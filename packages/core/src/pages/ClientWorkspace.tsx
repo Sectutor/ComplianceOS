@@ -316,8 +316,8 @@ export default function ClientWorkspace() {
                     desc: "Create policies using AI templates.",
                     link: `/clients/${clientId}/policies`,
                     icon: BookOpen,
-                    color: "text-purple-400",
-                    bg: "bg-purple-900/50"
+                    color: "text-cyan-400",
+                    bg: "bg-cyan-900/50"
                   },
                   {
                     step: "4. Implement",
@@ -418,7 +418,7 @@ export default function ClientWorkspace() {
             </div>
           </div>
 
-          <div className="p-4 rounded-xl border-none shadow-lg shadow-purple-200 dark:shadow-none bg-purple-600 text-white flex items-center justify-between">
+          <div className="p-4 rounded-xl border-none shadow-lg shadow-emerald-200 dark:shadow-none bg-emerald-600 text-white flex items-center justify-between">
             <div>
               <p className="text-sm text-white/80 font-medium">Evidence Collected</p>
               <p className="text-2xl font-bold mt-1 text-white">-</p>

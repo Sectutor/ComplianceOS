@@ -283,7 +283,7 @@ export default function ClientCompliancePage(props?: ClientCompliancePageProps) 
                         </div>
                     </div>
 
-                    <div className="p-4 rounded-xl border-none shadow-lg shadow-purple-200 dark:shadow-none bg-purple-600 text-white flex items-center justify-between">
+                    <div className="p-4 rounded-xl border-none shadow-lg shadow-teal-200 dark:shadow-none bg-teal-600 text-white flex items-center justify-between">
                         <div>
                             <p className="text-sm text-white/80 font-medium">Frameworks</p>
                             {controlsLoading ? (

@@ -88,7 +88,7 @@ export default function AdvisorWorkbench() {
                                 <h1 className="text-3xl font-bold flex items-center gap-3">
                                     <Sparkles className="h-8 w-8 text-indigo-600" />
                                     Advisor Workbench
-                                    <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-none px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg shadow-indigo-200 uppercase">
+                                    <Badge className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white border-none px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg shadow-indigo-200 uppercase">
                                         Premium
                                     </Badge>
                                 </h1>

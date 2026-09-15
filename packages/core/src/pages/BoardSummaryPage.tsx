@@ -68,9 +68,9 @@ const REPORT_PRESETS: ReportPreset[] = [
         badge: 'ISO 22301 / NIS2',
         description: 'Critical business processes, RTO/RPO targets, disaster recovery test logs, air-gapped backup validation, and crisis management protocols.',
         icon: Activity,
-        color: 'text-purple-600',
-        bgLight: 'bg-purple-50/70',
-        borderColor: 'border-purple-200',
+        color: 'text-teal-600',
+        bgLight: 'bg-teal-50/70',
+        borderColor: 'border-teal-200',
         sections: ['executive_summary', 'bia', 'bcp', 'risks', 'assets'],
         defaultTitle: 'Business Impact Analysis & Continuity Master Plan',
         targetAudience: 'Operations, IT & Disaster Recovery Teams'

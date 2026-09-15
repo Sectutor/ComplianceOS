@@ -224,7 +224,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             id="bulk-generate-btn"
                             variant="outline"
                             onClick={() => setIsBulkGenerateOpen(true)}
-                            className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300"
                         >
                             <Layers className="mr-2 h-4 w-4" />
                             Bulk Generate

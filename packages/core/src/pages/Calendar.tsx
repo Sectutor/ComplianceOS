@@ -151,7 +151,7 @@ export default function Calendar() {
       case 'control_review':
         return 'bg-primary';
       case 'policy_renewal':
-        return 'bg-purple-500';
+        return 'bg-indigo-500';
       case 'evidence_expiration':
         return 'bg-orange-500';
       case 'project_task':
@@ -383,7 +383,7 @@ export default function Calendar() {
                     <span>Control Reviews</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-purple-500"></div>
+                    <div className="w-3 h-3 rounded bg-indigo-500"></div>
                     <span>Policy Renewals</span>
                   </div>
                   <div className="flex items-center gap-2">

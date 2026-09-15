@@ -73,8 +73,18 @@ export default function ChecklistsPage() {
                       const text = typeof item === "string" ? item : item.text || item.description || "";
                       return (
                         <div key={key} className="flex items-start gap-3 py-1.5">
-                          <Checkbox checked={checkedItems.has(key)} onCheckedChange={() => toggleItem(key)} className="mt-0.5" />
-                          <span className={`text-sm ${checkedItems.has(key) ? "line-through text-muted-foreground" : ""}`}>{text}</span>
+                          <Checkbox
+                            id={key}
+                            checked={checkedItems.has(key)}
+                            onCheckedChange={() => toggleItem(key)}
+                            className="mt-0.5"
+                          />
+                          <label
+                            htmlFor={key}
+                            className={`text-sm cursor-pointer select-none ${checkedItems.has(key) ? "line-through text-muted-foreground" : "text-foreground"}`}
+                          >
+                            {text}
+                          </label>
                         </div>
                       );
                     })}

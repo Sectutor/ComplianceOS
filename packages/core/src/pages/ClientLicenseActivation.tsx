@@ -159,7 +159,7 @@ export default function ClientLicenseActivation() {
   const getLicenseTypeBadge = (type: string) => {
     switch (type?.toLowerCase()) {
       case "enterprise":
-        return <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-100">Enterprise</Badge>;
+        return <Badge variant="default" className="bg-amber-100 text-amber-800 hover:bg-amber-100 border border-amber-300">Enterprise</Badge>;
       case "trial":
         return <Badge variant="outline" className="border-blue-200 text-blue-800">Trial</Badge>;
       case "community":
