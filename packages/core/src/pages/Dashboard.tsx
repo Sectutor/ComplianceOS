@@ -439,6 +439,18 @@ export default function Dashboard() {
               {/* View Mode Toggle */}
               <div className="flex items-center bg-muted rounded-lg p-1">
                 <button
+                  onClick={() => setViewMode('operator')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'operator'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground/80'
+                    }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="w-4 h-4" />
+                    {t("dashboard.operator", "Operator")}
+                  </span>
+                </button>
+                <button
                   onClick={() => setViewMode('executive')}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'executive'
                     ? 'bg-card text-foreground shadow-sm'

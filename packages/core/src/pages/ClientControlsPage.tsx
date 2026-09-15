@@ -843,6 +843,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                             <TableHead className="w-[130px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Implementation Date</TableHead>
                                             <TableHead className="w-[140px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Owner (RACI)</TableHead>
                                             <TableHead className="w-[130px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Last Updated</TableHead>
+                                            <TableHead className="w-[90px] py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider sticky right-0 bg-muted/95 backdrop-blur z-20 text-right pr-4">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -961,6 +962,28 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                         ? new Date(item.clientControl.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
                                                         : <span className="text-muted-foreground italic">Unknown</span>
                                                     }
+                                                </TableCell>
+                                                <TableCell className="py-3 sticky right-0 bg-card/95 backdrop-blur z-10 text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7"
+                                                            onClick={() => setSelectedControl(item)}
+                                                            title="View details & add evidence"
+                                                        >
+                                                            <ClipboardList className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-destructive hover:text-destructive"
+                                                            onClick={() => setDeleteControlId(item.clientControl.id)}
+                                                            title="Delete control"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
