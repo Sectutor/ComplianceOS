@@ -115,7 +115,7 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
     return (
         <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-transparent">
-                <div className="bg-transparent border-b border-slate-200 py-3 sticky top-0 z-30 shadow-none space-y-3">
+                <div className="bg-background/80 backdrop-blur-md border-b border-border/60 py-3 sticky top-0 z-30 space-y-3">
                     {/* Breadcrumb Section */}
                     <Breadcrumb className="mb-0">
                         <BreadcrumbList>
@@ -125,12 +125,12 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                                     <React.Fragment key={idx}>
                                         <BreadcrumbItem>
                                             {isLast ? (
-                                                <BreadcrumbPage className="font-bold text-brand">
+                                                <BreadcrumbPage className="font-semibold text-foreground">
                                                     {item.label}
                                                 </BreadcrumbPage>
                                             ) : (
                                                 <BreadcrumbLink asChild>
-                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-brand-bright transition-colors">
+                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
                                                         {item.icon && <item.icon className="h-3.5 w-3.5" />}
                                                         {item.label}
                                                     </Link>
@@ -139,7 +139,7 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                                         </BreadcrumbItem>
                                         {!isLast && (
                                             <BreadcrumbSeparator>
-                                                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
                                             </BreadcrumbSeparator>
                                         )}
                                     </React.Fragment>
@@ -148,40 +148,42 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    {/* Navigation Pills */}
-                    <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 py-1" aria-label="Tabs">
-                        {navItems.map((item) => {
-                            const active = isActive(item.href);
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={cn(
-                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0 cursor-pointer",
-                                        active
-                                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 ring-1 ring-primary/20 font-bold"
-                                            : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 font-medium"
-                                    )}
-                                >
-                                    <item.icon className={cn(
-                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-200",
-                                        active ? "scale-105 text-primary-foreground" : "text-muted-foreground"
-                                    )} />
-                                    <span>{item.label}</span>
-                                    {!!item.badge && (
-                                        <span className={cn(
-                                            "ml-2 px-1.5 py-0.2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md border shrink-0",
+                    {/* Navigation Bar / Tabs */}
+                    <div className="w-full overflow-x-auto pb-0.5 no-scrollbar">
+                        <nav className="inline-flex items-center gap-1 p-1 bg-muted/60 dark:bg-muted/40 backdrop-blur-sm border border-border/60 rounded-xl" aria-label="Privacy Navigation Tabs">
+                            {navItems.map((item) => {
+                                const active = isActive(item.href);
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={cn(
+                                            "relative px-3.5 py-1.5 rounded-lg transition-all duration-200 flex items-center whitespace-nowrap text-xs sm:text-sm font-medium shrink-0 cursor-pointer select-none",
                                             active
-                                                ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
-                                                : "bg-muted text-muted-foreground border-border"
-                                        )}>
-                                            {item.badge}
-                                        </span>
-                                    )}
-                                </Link>
-                            );
-                        })}
-                    </nav>
+                                                ? "bg-card text-foreground font-semibold shadow-xs border border-border/60 dark:bg-card/95"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-card/50 border border-transparent"
+                                        )}
+                                    >
+                                        <item.icon className={cn(
+                                            "mr-2 h-4 w-4 shrink-0 transition-colors",
+                                            active ? "text-primary" : "text-muted-foreground"
+                                        )} />
+                                        <span>{item.label}</span>
+                                        {!!item.badge && (
+                                            <span className={cn(
+                                                "ml-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border shrink-0",
+                                                active
+                                                    ? "bg-primary/10 text-primary border-primary/20"
+                                                    : "bg-background/80 text-muted-foreground border-border/60"
+                                            )}>
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    </div>
                 </div>
 
                 <div className="flex-1 w-full py-6">

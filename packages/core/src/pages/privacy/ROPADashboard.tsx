@@ -305,24 +305,24 @@ export default function ROPADashboard() {
                             document.body.removeChild(link);
                             toast.success("Article 30 ROPA CSV exported successfully!");
                         }}
-                        className="border-border text-foreground hover:bg-muted font-semibold h-11 px-4 rounded-xl"
+                        className="border-border/70 text-foreground hover:bg-muted font-medium h-10 px-4 rounded-xl shadow-xs transition-all"
                     >
-                        <FileText className="mr-2 h-4 w-4 text-brand-bright" />
-                        Export Article 30 Register (CSV)
+                        <FileText className="mr-2 h-4 w-4 text-primary" />
+                        Export Article 30 (CSV)
                     </Button>
                     <Button
                         variant="outline"
                         onClick={() => setLocation(`/clients/${clientId}/subprocessors`)}
-                        className="border-purple-300 text-purple-800 bg-purple-50/50 hover:bg-purple-100 font-semibold h-11 px-4 rounded-xl"
+                        className="border-border/70 text-foreground hover:bg-muted font-medium h-10 px-4 rounded-xl shadow-xs transition-all"
                     >
-                        <Shield className="mr-2 h-4 w-4 text-purple-600" />
+                        <Shield className="mr-2 h-4 w-4 text-primary" />
                         Verify Subprocessors (Art. 28)
                     </Button>
                     <Button
                         onClick={() => setCreateOpen(true)}
-                        className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-10 px-5 rounded-xl shadow-sm transition-all active:scale-98"
                     >
-                        <Plus className="mr-2 h-5 w-5" /> Add Business Process
+                        <Plus className="mr-2 h-4 w-4" /> Add Business Process
                     </Button>
                 </div>
             </div>
@@ -330,24 +330,31 @@ export default function ROPADashboard() {
             {/* Process Table */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-24 space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-brand-bright" />
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
                     <p className="text-muted-foreground font-medium animate-pulse">Loading ROPA registry...</p>
                 </div>
             ) : (
-                <div className="rounded-xl border border-border shadow-lg overflow-hidden bg-card">
-                    <div className="bg-brand px-6 py-4">
-                        <h3 className="text-lg font-semibold text-white">Processing Activities</h3>
-                        <p className="text-white/70 text-sm">Manage your ROPA registry (Article 30 GDPR)</p>
+                <div className="rounded-2xl border border-border/70 shadow-sm overflow-hidden bg-card">
+                    <div className="px-6 py-4.5 border-b border-border/60 bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <div className="flex items-center gap-2.5">
+                                <h3 className="text-base font-semibold text-foreground">Processing Activities</h3>
+                                <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5 rounded-md border-border/70 bg-background text-muted-foreground">
+                                    {processes?.length ?? 0} {processes?.length === 1 ? 'activity' : 'activities'}
+                                </Badge>
+                            </div>
+                            <p className="text-muted-foreground text-xs mt-0.5">Manage and audit your ROPA registry pursuant to Article 30 GDPR</p>
+                        </div>
                     </div>
                     <Table>
-                        <TableHeader className="bg-brand">
-                            <TableRow className="hover:bg-transparent border-0">
-                                <TableHead className="font-bold text-white h-14">Process Name</TableHead>
-                                <TableHead className="font-bold text-white h-14">Department</TableHead>
-                                <TableHead className="font-bold text-white h-14">Criticality</TableHead>
-                                <TableHead className="font-bold text-white h-14">RTO</TableHead>
-                                <TableHead className="font-bold text-white h-14">RPO</TableHead>
-                                <TableHead className="text-right font-bold text-white h-14 px-6">Actions</TableHead>
+                        <TableHeader>
+                            <TableRow className="border-b border-border/60 bg-muted/30 hover:bg-muted/30">
+                                <TableHead className="font-semibold text-xs text-muted-foreground uppercase tracking-wider h-11">Process Name</TableHead>
+                                <TableHead className="font-semibold text-xs text-muted-foreground uppercase tracking-wider h-11">Department</TableHead>
+                                <TableHead className="font-semibold text-xs text-muted-foreground uppercase tracking-wider h-11">Criticality</TableHead>
+                                <TableHead className="font-semibold text-xs text-muted-foreground uppercase tracking-wider h-11">RTO</TableHead>
+                                <TableHead className="font-semibold text-xs text-muted-foreground uppercase tracking-wider h-11">RPO</TableHead>
+                                <TableHead className="text-right font-semibold text-xs text-muted-foreground uppercase tracking-wider h-11 px-6">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -355,49 +362,49 @@ export default function ROPADashboard() {
                                 processes.map((proc: Process, idx: number) => (
                                     <TableRow
                                         key={proc.id}
-                                        className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm"
+                                        className="border-b border-border/40 transition-colors hover:bg-muted/40"
                                     >
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-3.5">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-sky-50 flex items-center justify-center text-brand-bright font-bold">
+                                                <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-semibold text-xs shrink-0">
                                                     {proc.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-foreground">{proc.name}</p>
+                                                    <p className="font-medium text-sm text-foreground">{proc.name}</p>
                                                     {proc.description && (
-                                                        <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={proc.description}>
+                                                        <p className="text-xs text-muted-foreground truncate max-w-[240px]" title={proc.description}>
                                                             {proc.description}
                                                         </p>
                                                     )}
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4">
-                                            <Badge className="bg-muted text-muted-foreground border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1">
+                                        <TableCell className="py-3.5">
+                                            <Badge variant="outline" className="bg-muted/60 text-muted-foreground border-border/60 font-medium text-[11px] px-2 py-0.5 rounded-md">
                                                 {proc.department || 'General'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-3.5">
                                             {proc.criticalityTier ? (
-                                                <Badge className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 border ${CRITICALITY_COLOR[proc.criticalityTier] || 'bg-muted text-muted-foreground'}`}>
+                                                <Badge className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border ${CRITICALITY_COLOR[proc.criticalityTier] || 'bg-muted text-muted-foreground'}`}>
                                                     {CRITICALITY_LABEL[proc.criticalityTier] || proc.criticalityTier}
                                                 </Badge>
                                             ) : (
-                                                <span className="text-muted-foreground/70 text-sm italic">—</span>
+                                                <span className="text-muted-foreground/60 text-xs italic">—</span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="py-4 text-muted-foreground text-sm">
-                                            {proc.rto || <span className="text-muted-foreground/70 italic">—</span>}
+                                        <TableCell className="py-3.5 text-muted-foreground text-xs font-mono">
+                                            {proc.rto || <span className="text-muted-foreground/60 font-sans italic">—</span>}
                                         </TableCell>
-                                        <TableCell className="py-4 text-muted-foreground text-sm">
-                                            {proc.rpo || <span className="text-muted-foreground/70 italic">—</span>}
+                                        <TableCell className="py-3.5 text-muted-foreground text-xs font-mono">
+                                            {proc.rpo || <span className="text-muted-foreground/60 font-sans italic">—</span>}
                                         </TableCell>
-                                        <TableCell className="text-right py-4 px-6">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <TableCell className="text-right py-3.5 px-6">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-brand-bright hover:bg-sky-50"
+                                                    className="h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg"
                                                     title="Launch DPIA for this activity"
                                                     onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new`)}
                                                 >
@@ -406,26 +413,26 @@ export default function ROPADashboard() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 w-8 p-0 hover:bg-sky-50"
+                                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg"
                                                     onClick={() => handleOpenEdit(proc)}
                                                 >
-                                                    <Edit2 className="h-4 w-4 text-brand-bright" />
+                                                    <Edit2 className="h-3.5 w-3.5" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 w-8 p-0 hover:bg-red-50"
+                                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
                                                     onClick={() => setProcessToDelete(proc)}
                                                 >
-                                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                                    <Trash2 className="h-3.5 w-3.5" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                                    className="text-primary hover:text-primary hover:bg-primary/10 font-medium text-xs rounded-lg transition-colors ml-1"
                                                     onClick={() => handleOpenFlows(proc)}
                                                 >
-                                                    Configure Flows <ArrowRight className="ml-2 h-4 w-4" />
+                                                    Configure Flows <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                                                 </Button>
                                             </div>
                                         </TableCell>
