@@ -173,24 +173,27 @@ export default function Mappings() {
                   <SelectTrigger className={!selectedControlId ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select control" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {clientControls?.map((item, idx) => {
-                      // Fallback to master control name if not found in join
-                      // Get the control name - prefer the joined control data, fallback to master controls lookup
-                      const controlName = item.control?.name ||
-                        masterControls?.find(c => c.id === item.clientControl.controlId)?.name ||
-                        `${item.clientControl.clientControlId} - Unknown`;
+                  <SelectContent className="max-h-72">
+                    {clientControls && clientControls.length > 0 ? (
+                      clientControls.map((item) => {
+                        const code = item.clientControl.clientControlId ||
+                          item.control?.controlId ||
+                          (item.control?.id ? `CTL-${item.control.id}` : `CTL-${item.clientControl.id}`);
+                        const name = item.control?.name ||
+                          masterControls?.find(c => c.id === item.clientControl.controlId)?.name ||
+                          'Unnamed Control';
+                        const framework = item.control?.framework ? ` [${item.control.framework}]` : '';
+                        const displayText = `${code} - ${name}${framework}`;
 
-                      // Display the control with its name
-                      const displayText = item.control?.name ?
-                        `${item.clientControl.clientControlId} - ${controlName}` :
-                        controlName;
-                      return (
-                        <SelectItem key={item.clientControl.id} value={item.clientControl.id.toString()}>
-                          {displayText}
-                        </SelectItem>
-                      );
-                    })}
+                        return (
+                          <SelectItem key={item.clientControl.id} value={item.clientControl.id.toString()}>
+                            {displayText}
+                          </SelectItem>
+                        );
+                      })
+                    ) : (
+                      <div className="p-2 text-sm text-muted-foreground">No controls available</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -253,13 +256,17 @@ export default function Mappings() {
                 <div className="grid gap-2">
                   <Label>Control</Label>
                   <div className="p-2 border rounded bg-muted/50 text-sm">
-                    {editingMapping.control?.name || editingMapping.clientControl?.clientControlId}
+                    {editingMapping.control?.name
+                      ? `${editingMapping.clientControl?.clientControlId || editingMapping.control?.controlId || 'CTL'} - ${editingMapping.control.name}`
+                      : (editingMapping.clientControl?.clientControlId || 'Selected Control')}
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label>Policy</Label>
                   <div className="p-2 border rounded bg-muted/50 text-sm">
-                    {editingMapping.clientPolicy?.name || editingMapping.clientPolicy?.clientPolicyId}
+                    {editingMapping.clientPolicy?.name
+                      ? `${editingMapping.clientPolicy?.clientPolicyId || 'POL'} - ${editingMapping.clientPolicy.name}`
+                      : (editingMapping.clientPolicy?.clientPolicyId || 'Selected Policy')}
                   </div>
                 </div>
                 <div className="grid gap-2">
@@ -304,31 +311,38 @@ export default function Mappings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mappings.map((item) => (
-                    <TableRow
-                      key={`mapping-${item.mapping.id}`}
-                      className="bg-white border-b border-slate-200 cursor-pointer transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group"
-                      onDoubleClick={() => setEditingMapping(item)}
-                    >
-                      <TableCell className="py-4">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-mono text-sm text-black">{item.clientControl?.clientControlId}</p>
-                            {(item.mapping as any).isAiGenerated && (
-                              <div className="p-0.5 rounded bg-purple-100 text-purple-600" title="AI Suggested Mapping">
-                                <Sparkles className="h-3 w-3" />
-                              </div>
-                            )}
+                  {mappings.map((item) => {
+                    const controlCode = item.clientControl?.clientControlId ||
+                      item.control?.controlId ||
+                      (item.control?.id ? `CTL-${item.control.id}` : '-');
+                    const policyCode = item.clientPolicy?.clientPolicyId ||
+                      (item.clientPolicy?.id ? `POL-${item.clientPolicy.id}` : '-');
+
+                    return (
+                      <TableRow
+                        key={`mapping-${item.mapping.id}`}
+                        className="bg-white border-b border-slate-200 cursor-pointer transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group"
+                        onDoubleClick={() => setEditingMapping(item)}
+                      >
+                        <TableCell className="py-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-mono text-sm text-black">{controlCode}</p>
+                              {(item.mapping as any).isAiGenerated && (
+                                <div className="p-0.5 rounded bg-teal-100 text-cyan-600" title="AI Suggested Mapping">
+                                  <Sparkles className="h-3 w-3" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">{item.control?.name}</p>
                           </div>
-                          <p className="text-sm text-gray-500">{item.control?.name}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <div>
-                          <p className="font-mono text-sm text-black">{item.clientPolicy?.clientPolicyId}</p>
-                          <p className="text-sm text-gray-500">{item.clientPolicy?.name}</p>
-                        </div>
-                      </TableCell>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div>
+                            <p className="font-mono text-sm text-black">{policyCode}</p>
+                            <p className="text-sm text-gray-500">{item.clientPolicy?.name}</p>
+                          </div>
+                        </TableCell>
                       <TableCell className="max-w-xs truncate text-gray-600 py-4">
                         {item.mapping.evidenceReference || '-'}
                       </TableCell>
