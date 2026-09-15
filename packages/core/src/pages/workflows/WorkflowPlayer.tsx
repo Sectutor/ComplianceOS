@@ -177,12 +177,17 @@ export default function WorkflowPlayer() {
                                                 {currentStep.tasks.map((task, i) => (
                                                     <div key={i} className="flex items-start gap-4 p-6 hover:bg-slate-50/50 transition-all group">
                                                         <div className="mt-1 flex-shrink-0">
-                                                            <input type="checkbox" className="h-5 w-5 rounded-md border-slate-300 text-blue-600 focus:ring-blue-600 transition-all cursor-pointer shadow-sm" />
+                                                            <input
+                                                                id={`workflow-task-${i}`}
+                                                                type="checkbox"
+                                                                aria-label={`Objective: ${task.title}`}
+                                                                className="h-5 w-5 rounded-md border-slate-300 text-blue-600 focus:ring-blue-600 transition-all cursor-pointer shadow-sm"
+                                                            />
                                                         </div>
-                                                        <div className="flex flex-col gap-1.5">
+                                                        <label htmlFor={`workflow-task-${i}`} className="flex flex-col gap-1.5 cursor-pointer">
                                                             <span className="text-base font-black text-slate-900 leading-none group-hover:text-blue-600 transition-colors uppercase tracking-tight">{task.title}</span>
                                                             <span className="text-xs font-medium text-slate-500 leading-relaxed italic">{task.description}</span>
-                                                        </div>
+                                                        </label>
                                                     </div>
                                                 ))}
                                             </div>

@@ -159,7 +159,9 @@ export default function GapQuestionnaire() {
                                 </div>
                                 {/* Mock Input */}
                                 <input
+                                    id="gap-evidence-file-input"
                                     type="file"
+                                    aria-label="Upload evidence file"
                                     className="hidden"
                                     onChange={(e) => {
                                         if (e.target.files?.length) {

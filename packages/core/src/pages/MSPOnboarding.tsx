@@ -430,16 +430,18 @@ export default function MSPOnboarding() {
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sidebar-foreground/80 text-sm font-medium">Accent colour</Label>
+                                            <Label htmlFor="msp-accent-color-picker" className="text-sidebar-foreground/80 text-sm font-medium">Accent colour</Label>
                                             <div className="flex items-center gap-3 mt-2">
                                                 <input
+                                                    id="msp-accent-color-picker"
                                                     type="color"
+                                                    aria-label="Brand accent color picker"
                                                     value={branding.accentColor}
                                                     onChange={e => setBranding({ ...branding, accentColor: e.target.value })}
                                                     className="h-10 w-10 rounded-lg border border-sidebar-border bg-transparent cursor-pointer"
                                                 />
                                                 <div className="flex gap-2">
-                                                    {["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"].map(color => (
+                                                    {["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#0284c7"].map(color => (
                                                         <button
                                                             key={color}
                                                             onClick={() => setBranding({ ...branding, accentColor: color })}

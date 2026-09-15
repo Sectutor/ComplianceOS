@@ -805,7 +805,8 @@ export default function PolicyTemplates() {
                     <TableHead className="w-[50px]">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        aria-label="Select all policy templates"
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                         checked={selectedTemplates.length > 0 && selectedTemplates.length === filteredTemplates?.length}
                         onChange={(e) => {
                           if (e.target.checked) setSelectedTemplates(filteredTemplates?.map(t => t.id) || []);
@@ -828,7 +829,8 @@ export default function PolicyTemplates() {
                         <TableCell>
                           <input
                             type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            aria-label={`Select template ${template.name}`}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                             checked={selectedTemplates.includes(template.id)}
                             onChange={(e) => {
                               if (e.target.checked) setSelectedTemplates(prev => [...prev, template.id]);

@@ -243,7 +243,7 @@ export const LicenseManagement: React.FC = () => {
             <CardFooter className="pt-0 border-t border-border/50 flex justify-between items-center pt-3">
               <span className="text-[11px] text-muted-foreground">Air-gapped file:</span>
               <label className="inline-flex">
-                <input type="file" accept=".lic,.json" onChange={handleFileUpload} className="hidden" />
+                <input id="license-file-upload-input" type="file" aria-label="Upload license key file" accept=".lic,.json" onChange={handleFileUpload} className="hidden" />
                 <Button type="button" variant="ghost" size="sm" className="text-xs gap-1 text-primary cursor-pointer" asChild>
                   <span><Upload className="h-3.5 w-3.5" /> Upload .lic</span>
                 </Button>

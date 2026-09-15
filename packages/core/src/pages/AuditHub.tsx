@@ -1030,6 +1030,7 @@ export default function AuditHub() {
                                                                 <input
                                                                     type="file"
                                                                     multiple
+                                                                    aria-label="Upload evidence files"
                                                                     className="hidden"
                                                                     id="audit-hub-upload-input"
                                                                     onChange={handleFileSelect}

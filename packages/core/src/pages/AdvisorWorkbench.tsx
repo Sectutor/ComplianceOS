@@ -296,15 +296,19 @@ export default function AdvisorWorkbench() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Primary Color</Label>
+                                <Label htmlFor="primary-color-picker">Primary Color</Label>
                                 <div className="flex gap-2">
                                     <input
+                                        id="primary-color-picker"
                                         type="color"
+                                        aria-label="Primary Brand Color Picker"
                                         className="h-9 w-12 rounded-lg border-2 border-slate-200 p-0.5 cursor-pointer bg-white transition-all hover:scale-105"
                                         value={brandingForm.brandPrimaryColor?.startsWith('#') ? brandingForm.brandPrimaryColor : `#${brandingForm.brandPrimaryColor || '4f46e5'}`}
                                         onChange={e => setBrandingForm({ ...brandingForm, brandPrimaryColor: e.target.value })}
                                     />
                                     <Input
+                                        id="primary-color-hex"
+                                        aria-label="Primary Brand Color Hex"
                                         value={brandingForm.brandPrimaryColor}
                                         onChange={e => setBrandingForm({ ...brandingForm, brandPrimaryColor: e.target.value })}
                                         placeholder="#4f46e5"
@@ -313,15 +317,19 @@ export default function AdvisorWorkbench() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label>Secondary Color</Label>
+                                <Label htmlFor="secondary-color-picker">Secondary Color</Label>
                                 <div className="flex gap-2">
                                     <input
+                                        id="secondary-color-picker"
                                         type="color"
+                                        aria-label="Secondary Brand Color Picker"
                                         className="h-9 w-12 rounded-lg border-2 border-slate-200 p-0.5 cursor-pointer bg-white transition-all hover:scale-105"
                                         value={brandingForm.brandSecondaryColor?.startsWith('#') ? brandingForm.brandSecondaryColor : `#${brandingForm.brandSecondaryColor || 'eef2ff'}`}
                                         onChange={e => setBrandingForm({ ...brandingForm, brandSecondaryColor: e.target.value })}
                                     />
                                     <Input
+                                        id="secondary-color-hex"
+                                        aria-label="Secondary Brand Color Hex"
                                         value={brandingForm.brandSecondaryColor}
                                         onChange={e => setBrandingForm({ ...brandingForm, brandSecondaryColor: e.target.value })}
                                         placeholder="#eef2ff"

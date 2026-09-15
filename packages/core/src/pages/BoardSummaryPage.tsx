@@ -424,11 +424,13 @@ export default function BoardSummaryPage() {
                             {/* Document Title & Action Bar */}
                             <Card className="border-border shadow-md rounded-2xl bg-card p-6 space-y-5">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    <label htmlFor="board-summary-report-title" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                         Report Title (Header on Document)
                                     </label>
                                     <input
+                                        id="board-summary-report-title"
                                         type="text"
+                                        aria-label="Report Title (Header on Document)"
                                         value={reportTitle}
                                         onChange={(e) => setReportTitle(e.target.value)}
                                         className="w-full text-base font-bold text-foreground px-4 py-2.5 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-ring"

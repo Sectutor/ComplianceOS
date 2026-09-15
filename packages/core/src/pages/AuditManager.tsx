@@ -389,17 +389,19 @@ export default function AuditManager() {
 
                                     {/* Calendar Option */}
                                     <div className="border-t pt-4">
-                                        <label className="flex items-center gap-2 cursor-pointer">
+                                        <div className="flex items-center gap-2">
                                             <input
+                                                id="create-calendar-event-checkbox"
                                                 type="checkbox"
+                                                aria-label="Create calendar event"
                                                 checked={auditForm.createCalendarEvent}
                                                 onChange={(e) => setAuditForm({ ...auditForm, createCalendarEvent: e.target.checked })}
-                                                className="rounded border-border text-primary-cta focus:ring-indigo-500"
+                                                className="rounded border-border text-primary-cta focus:ring-indigo-500 cursor-pointer"
                                             />
-                                            <span className="text-sm text-foreground">
+                                            <label htmlFor="create-calendar-event-checkbox" className="text-sm text-foreground cursor-pointer">
                                                 Create calendar event (appears in Tasks/Calendar)
-                                            </span>
-                                        </label>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                                 <DialogFooter>

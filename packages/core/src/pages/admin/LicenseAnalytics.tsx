@@ -555,10 +555,12 @@ export default function LicenseAnalyticsPage() {
                     <h3 className="font-medium mb-4">Renewal Settings</h3>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">First Reminder</label>
+                        <label htmlFor="first-reminder-days" className="text-sm font-medium">First Reminder</label>
                         <div className="flex items-center gap-2">
                           <input
+                            id="first-reminder-days"
                             type="number"
+                            aria-label="First reminder days before expiry"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={30}
                           />
@@ -566,10 +568,12 @@ export default function LicenseAnalyticsPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Second Reminder</label>
+                        <label htmlFor="second-reminder-days" className="text-sm font-medium">Second Reminder</label>
                         <div className="flex items-center gap-2">
                           <input
+                            id="second-reminder-days"
                             type="number"
+                            aria-label="Second reminder days before expiry"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={7}
                           />
@@ -577,10 +581,12 @@ export default function LicenseAnalyticsPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Final Reminder</label>
+                        <label htmlFor="final-reminder-days" className="text-sm font-medium">Final Reminder</label>
                         <div className="flex items-center gap-2">
                           <input
+                            id="final-reminder-days"
                             type="number"
+                            aria-label="Final reminder day before expiry"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={1}
                           />
@@ -588,10 +594,12 @@ export default function LicenseAnalyticsPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Expiry Follow-up</label>
+                        <label htmlFor="expiry-followup-days" className="text-sm font-medium">Expiry Follow-up</label>
                         <div className="flex items-center gap-2">
                           <input
+                            id="expiry-followup-days"
                             type="number"
+                            aria-label="Expiry follow-up days after expiry"
                             className="w-20 border rounded px-2 py-1"
                             defaultValue={7}
                           />

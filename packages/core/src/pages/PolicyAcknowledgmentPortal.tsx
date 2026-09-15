@@ -155,9 +155,11 @@ export default function PolicyAcknowledgmentPortal() {
                   <div className="space-y-4 pt-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                        <label htmlFor="policy-ack-employee-name" className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
                         <input
+                          id="policy-ack-employee-name"
                           type="text"
+                          aria-label="Full Name"
                           value={employeeName}
                           onChange={(e) => setEmployeeName(e.target.value)}
                           placeholder="e.g. Jane Doe"
@@ -165,9 +167,11 @@ export default function PolicyAcknowledgmentPortal() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">Work Email</label>
+                        <label htmlFor="policy-ack-employee-email" className="block text-xs font-medium text-slate-300 mb-1">Work Email</label>
                         <input
+                          id="policy-ack-employee-email"
                           type="email"
+                          aria-label="Work Email"
                           value={employeeEmail}
                           onChange={(e) => setEmployeeEmail(e.target.value)}
                           placeholder="e.g. jane.doe@company.com"
@@ -176,17 +180,19 @@ export default function PolicyAcknowledgmentPortal() {
                       </div>
                     </div>
 
-                    <label className="flex items-start space-x-3 cursor-pointer pt-2">
+                    <div className="flex items-start space-x-3 pt-2">
                       <input
+                        id="policy-ack-has-read-checkbox"
                         type="checkbox"
+                        aria-label="Confirm read and understood policy"
                         checked={hasRead}
                         onChange={(e) => setHasRead(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700 focus:ring-0"
+                        className="mt-1 w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700 focus:ring-0 cursor-pointer"
                       />
-                      <span className="text-xs text-slate-300 leading-normal">
+                      <label htmlFor="policy-ack-has-read-checkbox" className="text-xs text-slate-300 leading-normal cursor-pointer">
                         I confirm that I have read, understood, and agree to comply with the terms of this policy. I understand that compliance is a condition of my employment/engagement.
-                      </span>
-                    </label>
+                      </label>
+                    </div>
 
                     <button
                       type="submit"

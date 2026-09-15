@@ -382,9 +382,10 @@ export default function OnboardingSettings({ hideLayout = false, clientId: propC
                                         >
                                             <input
                                                 type="checkbox"
+                                                aria-label={`Select requirement ${req.title}`}
                                                 checked={selectedItems.has(req.id)}
                                                 onChange={() => toggleSelect(req.id)}
-                                                className="h-4 w-4 rounded border-gray-300"
+                                                className="h-4 w-4 rounded border-gray-300 cursor-pointer"
                                             />
                                             <div className="flex flex-col gap-1 cursor-grab">
                                                 <button
