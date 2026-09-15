@@ -857,7 +857,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-bold tracking-tight">Policy Editor</h1>
                             {(policy as any).isAiGenerated && (
-                                <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                                <Badge variant="secondary" className="bg-teal-100 text-cyan-700 border-cyan-200">
                                     <Sparkles className="mr-1 h-3 w-3" />
                                     AI Generated Draft
                                 </Badge>
@@ -1303,18 +1303,18 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                             {/* Version History Column */}
                                             <div className="space-y-4">
                                                 <h3 className="text-lg font-bold text-foreground flex items-center gap-2 pb-2 border-b">
-                                                    <History className="h-5 w-5 text-purple-600" />
+                                                    <History className="h-5 w-5 text-cyan-600" />
                                                     Version History
                                                 </h3>
                                                 <div className="space-y-3">
                                                     {versionHistory && versionHistory.length > 0 ? (
                                                         versionHistory.map((v: any) => (
                                                             <div key={v.version.id} className="relative group">
-                                                                <div className="flex items-start justify-between p-4 border rounded-xl bg-card hover:border-purple-200 hover:shadow-sm transition-all">
+                                                                <div className="flex items-start justify-between p-4 border rounded-xl bg-card hover:border-cyan-200 hover:shadow-sm transition-all">
                                                                     <div className="space-y-1.5 flex-1 pr-4">
                                                                         <div className="flex items-center gap-2 flex-wrap">
                                                                             <span className="font-bold text-foreground bg-muted px-2 py-0.5 rounded text-sm">{v.version.version}</span>
-                                                                            <Badge variant="outline" className="text-xs uppercase tracking-wider font-semibold border-purple-200 text-purple-700 bg-purple-50">
+                                                                            <Badge variant="outline" className="text-xs uppercase tracking-wider font-semibold border-cyan-200 text-cyan-700 bg-teal-50">
                                                                                 {v.version.status}
                                                                             </Badge>
                                                                             <span className="text-xs text-muted-foreground ml-auto sm:ml-0">
@@ -1375,7 +1375,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                                 case 'approve_policy': Icon = CheckCircle2; bgClass = "bg-green-50 text-green-600 border-green-100"; break;
                                                                 case 'reject_policy': Icon = X; bgClass = "bg-red-50 text-red-600 border-red-100"; break;
                                                                 case 'request_review': Icon = Users; bgClass = "bg-primary/undefined text-primary border-primary/30"; break;
-                                                                case 'publish': Icon = Save; bgClass = "bg-purple-50 text-purple-600 border-purple-100"; break;
+                                                                case 'publish': Icon = Save; bgClass = "bg-teal-50 text-cyan-600 border-cyan-100"; break;
                                                                 case 'update': Icon = FileText; bgClass = "bg-muted text-muted-foreground border-border"; break;
                                                                 case 'restore': Icon = RotateCcw; bgClass = "bg-amber-50 text-amber-600 border-amber-100"; break;
                                                                 case 'create': Icon = Plus; bgClass = "bg-emerald-50 text-emerald-600 border-emerald-100"; break;
@@ -1634,17 +1634,17 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                             </div>
 
                                             {/* Implementation Rate */}
-                                            <div className="bg-gradient-to-br from-purple-50 to-violet-100/50 border border-purple-200 rounded-xl p-4">
+                                            <div className="bg-gradient-to-br from-cyan-50 to-violet-100/50 border border-cyan-200 rounded-xl p-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm font-medium text-purple-800">Implementation</span>
-                                                    <Target className="h-4 w-4 text-purple-600" />
+                                                    <span className="text-sm font-medium text-foreground">Implementation</span>
+                                                    <Target className="h-4 w-4 text-cyan-600" />
                                                 </div>
-                                                <div className="text-2xl font-bold text-purple-900">
+                                                <div className="text-2xl font-bold text-foreground">
                                                     {controlMetrics?.implementationRate || 0}%
                                                 </div>
-                                                <div className="mt-2 h-2 bg-purple-200 rounded-full overflow-hidden">
+                                                <div className="mt-2 h-2 bg-teal-200 rounded-full overflow-hidden">
                                                     <div
-                                                        className="h-full bg-purple-600 transition-all duration-500"
+                                                        className="h-full bg-teal-600 transition-all duration-500"
                                                         style={{ width: `${controlMetrics?.implementationRate || 0}%` }}
                                                     />
                                                 </div>
@@ -2324,12 +2324,12 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {(policy as any).isAiGenerated && (
-                                    <div className="mb-2 p-3 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-900 flex flex-col gap-2">
+                                    <div className="mb-2 p-3 bg-teal-50 border border-cyan-200 rounded-md text-sm text-foreground flex flex-col gap-2">
                                         <div className="flex items-center font-medium">
-                                            <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                                            <Sparkles className="h-4 w-4 mr-2 text-cyan-600" />
                                             Review Required
                                         </div>
-                                        <p className="text-purple-800/80 text-xs">
+                                        <p className="text-muted-foreground text-xs">
                                             This policy was drafted by AI. Please review carefully before publishing.
                                         </p>
                                     </div>

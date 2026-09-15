@@ -6,6 +6,8 @@ interface CircularProgressProps {
   strokeWidth?: number;
   className?: string;
   color?: string;
+  textClassName?: string;
+  children?: React.ReactNode;
 }
 
 export function CircularProgress({
@@ -14,6 +16,8 @@ export function CircularProgress({
   strokeWidth = 6,
   className = "",
   color = "text-primary",
+  textClassName = "text-xs font-bold text-slate-700",
+  children,
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -51,7 +55,9 @@ export function CircularProgress({
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-slate-700">{Math.round(value)}%</span>
+        {children ? children : (
+          <span className={textClassName}>{Math.round(value)}%</span>
+        )}
       </div>
     </div>
   );

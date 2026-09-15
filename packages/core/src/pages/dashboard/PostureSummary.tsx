@@ -100,7 +100,23 @@ export function PostureSummary({ clientId, framework, enhancedStats, complianceS
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pt-4 pb-6">
-            <CircularProgress value={summary.postureScore} size={150} strokeWidth={12} color={status.ring} />
+            <CircularProgress
+              value={summary.postureScore}
+              size={150}
+              strokeWidth={12}
+              color={status.ring}
+            >
+              <span className={cn(
+                "text-2xl font-extrabold tracking-tight transition-colors duration-500",
+                summary.status === "strong"
+                  ? "text-emerald-500 dark:text-emerald-400"
+                  : summary.status === "attention"
+                  ? "text-amber-500 dark:text-amber-400"
+                  : "text-rose-500 dark:text-rose-400"
+              )}>
+                {Math.round(summary.postureScore)}%
+              </span>
+            </CircularProgress>
             <Badge variant={status.variant} className="mt-4">
               {statusLabel}
             </Badge>

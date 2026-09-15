@@ -421,9 +421,23 @@ export default function Dashboard() {
                     value={overallComplianceRate}
                     size={220}
                     strokeWidth={16}
-                    showValue={true}
                     color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
-                  />
+                  >
+                    <div className="flex flex-col items-center justify-center">
+                      <span className={`text-4xl font-extrabold tracking-tight transition-colors duration-500 ${
+                        overallComplianceRate >= 80
+                          ? 'text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                          : overallComplianceRate >= 50
+                          ? 'text-amber-500 dark:text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                          : 'text-rose-500 dark:text-rose-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.25)]'
+                      }`}>
+                        {Math.round(overallComplianceRate)}%
+                      </span>
+                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">
+                        {overallComplianceRate >= 80 ? 'Optimal' : overallComplianceRate >= 50 ? 'Moderate' : 'At Risk'}
+                      </span>
+                    </div>
+                  </CircularProgress>
                   <div className="mt-8 flex items-center justify-center gap-2">
                     <StatusIndicator rate={overallComplianceRate} />
                   </div>
@@ -978,10 +992,10 @@ export default function Dashboard() {
 
                   {/* Policy Status Chart */}
                   <Card className="bg-card/70 backdrop-blur-xl relative overflow-hidden rounded-2xl border-border">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-fuchsia-500/5 opacity-50 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-fuchsia-500/5 opacity-50 pointer-events-none" />
                     <CardHeader className="pb-4 relative z-10 border-b border-border">
                       <CardTitle className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
+                        <div className="p-2 rounded-xl bg-teal-500/10 text-cyan-600">
                           <FileText className="h-5 w-5" />
                         </div>
                         {t("dashboard.policiesByStatus", "Policy Status")}
@@ -1155,7 +1169,7 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <Card className="bg-card/70 backdrop-blur-xl rounded-2xl overflow-hidden relative group/qa border-border">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-50 pointer-events-none group-hover/qa:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-cyan-500/5 opacity-50 pointer-events-none group-hover/qa:opacity-100 transition-opacity duration-500" />
             <CardHeader className="pb-4 relative z-10 border-b border-border">
               <CardTitle className="text-2xl font-black text-foreground tracking-tight">{t("dashboard.quickActions", "Quick Actions")}</CardTitle>
               <CardDescription className="text-muted-foreground font-medium">{t("dashboard.quickActionsDesc", "Common tasks to manage compliance")}</CardDescription>
