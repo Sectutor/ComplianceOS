@@ -166,7 +166,12 @@ export function MilestoneGateModal({
                                         </div>
                                         <Badge
                                             variant="outline"
-                                            className={cn("text-[10px] shrink-0 font-bold", hasProof ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200")}
+                                            className={cn(
+                                                "text-xs shrink-0 font-semibold px-2.5 py-0.5 rounded-full shadow-2xs",
+                                                hasProof
+                                                    ? "bg-emerald-100/90 text-emerald-950 border-emerald-400/90 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-700/80"
+                                                    : "bg-amber-100/90 text-amber-950 border-amber-300/90 dark:bg-amber-950/80 dark:text-amber-100 dark:border-amber-700/90"
+                                            )}
                                         >
                                             {hasProof ? "Live Proof" : "External Rationale"}
                                         </Badge>

@@ -13,12 +13,13 @@ import {
     Shield, Cloud, Clock, DollarSign, GitMerge, AlertTriangle, Users, Calendar,
     Building, Target, Search, ShieldCheck, RefreshCw, Layers,
     Settings, ClipboardCheck, CheckSquare, ActivitySquare, Server, Flame, Activity, Stethoscope, BarChart3, Globe, Award, CircleDashed,
-    CalendarClock, Download, ExternalLink, FileText
+    CalendarClock, Download, ExternalLink, FileText, FileCheck
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
 import { getFederalRoadmap } from '@/data/frameworkRoadmaps';
+import { FrameworkDocumentTracker } from '@/components/documents/FrameworkDocumentTracker';
 
 // ─── Framework Data ───────────────────────────────────────────────────────────
 
@@ -607,9 +608,9 @@ export default function FederalProgramGuide() {
     // Read ?tab= query parameter
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const tabParam = searchParams?.get('tab');
-    const validTabs: Array<'playbook' | 'roadmap' | 'architecture' | 'auditor'> = ['playbook', 'roadmap', 'architecture', 'auditor'];
+    const validTabs: Array<'playbook' | 'roadmap' | 'documents' | 'architecture' | 'auditor'> = ['playbook' , 'roadmap', 'documents', 'architecture', 'auditor'];
     const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'playbook';
-    const [activeTab, setActiveTab] = useState<'playbook' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'playbook' | 'roadmap' | 'documents' | 'architecture' | 'auditor'>(initialTab);
 
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedStep, setSelectedStep] = useState<any>(null);
@@ -759,6 +760,15 @@ export default function FederalProgramGuide() {
                     >
                         <CalendarClock className="w-4 h-4 mr-1.5" />
                         90-Day Federal & CMMC Roadmap
+                    </Button>
+                    <Button
+                        variant={activeTab === 'documents' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('documents')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'documents' ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <FileCheck className="w-4 h-4 mr-1.5" />
+                        Mandatory Documents
                     </Button>
                     <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
@@ -963,6 +973,13 @@ export default function FederalProgramGuide() {
                             spec={getFederalRoadmap(clientId)}
                             clientId={clientId}
                         />
+                    </div>
+                )}
+
+                {/* TAB: Mandatory Documents */}
+                {activeTab === 'documents' && (
+                    <div className="space-y-6">
+                        <FrameworkDocumentTracker framework="federal" clientId={clientId} />
                     </div>
                 )}
 

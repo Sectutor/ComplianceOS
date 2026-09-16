@@ -8,7 +8,7 @@ import {
     CheckCircle2, Shield, ShieldCheck, Target, FileText, Zap, AlertTriangle,
     ArrowRight, BookOpen, ArrowLeft, Info, Calendar, Download,
     Sparkles, Copy, Layers, Clock, Globe, Lock, Activity, Server, Users, Award,
-    CalendarClock, CheckSquare, ListTodo, ExternalLink, HeartPulse
+    CalendarClock, CheckSquare, ListTodo, ExternalLink, HeartPulse, FileCheck
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
 import { getHipaaRoadmap } from '@/data/frameworkRoadmaps';
+import { FrameworkDocumentTracker } from '@/components/documents/FrameworkDocumentTracker';
 
 export default function HIPAAProgramGuide() {
     const params = useParams();
@@ -25,10 +26,10 @@ export default function HIPAAProgramGuide() {
     // Read ?tab= query parameter
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const tabParam = searchParams?.get('tab');
-    const validTabs: Array<'tutorials' | 'roadmap' | 'architecture' | 'auditor'> = ['tutorials', 'roadmap', 'architecture', 'auditor'];
+    const validTabs: Array<'tutorials' | 'roadmap' | 'documents' | 'architecture' | 'auditor'> = ['tutorials', 'roadmap', 'documents', 'architecture', 'auditor'];
     const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'tutorials';
 
-    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'documents' | 'architecture' | 'auditor'>(initialTab);
 
     // Fetch real system telemetry
     const { data: clientPolicies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
@@ -228,6 +229,15 @@ export default function HIPAAProgramGuide() {
                         90-Day Implementation Roadmap
                     </Button>
                     <Button
+                        variant={activeTab === 'documents' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('documents')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'documents' ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <FileCheck className="w-4 h-4 mr-1.5" />
+                        Mandatory Documents
+                    </Button>
+                    <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveTab('architecture')}
@@ -307,6 +317,13 @@ export default function HIPAAProgramGuide() {
                             spec={getHipaaRoadmap(clientId)}
                             clientId={clientId}
                         />
+                    </div>
+                )}
+
+                {/* TAB: Mandatory Documents */}
+                {activeTab === 'documents' && (
+                    <div className="space-y-6">
+                        <FrameworkDocumentTracker framework="hipaa" clientId={clientId} />
                     </div>
                 )}
 

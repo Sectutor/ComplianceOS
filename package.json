@@ -30,6 +30,8 @@
     "cli": "tsx scripts/cli.ts",
     "import:csv": "tsx scripts/seed/importCsv.ts",
     "smoke": "tsx scripts/smoke.ts",
+    "crawl": "node scripts/crawl-app.cjs",
+    "audit:routes": "node scripts/crawl-app.cjs",
     "validate-env": "tsx scripts/setup/validate-env.ts",
     "index-embeddings": "tsx scripts/seed/index-embeddings.ts",
     "seed:risk": "tsx scripts/seed/seedRiskData.ts",

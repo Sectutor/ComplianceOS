@@ -8,7 +8,7 @@ import {
     CalendarClock, ArrowRight, CheckCircle2, RotateCcw,
     Shield, ExternalLink, Sparkles, Award, ShieldCheck,
     AlertCircle, Printer, Lock, Target, Download, CalendarDays,
-    Clock, AlertTriangle, Zap
+    Clock, AlertTriangle, Zap, FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -437,29 +437,38 @@ export function Framework90DayRoadmap({
                                                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary mt-1 shrink-0 cursor-pointer"
                                                 />
                                                 <label htmlFor={task.id} className="cursor-pointer flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
                                                         <span className={cn('text-sm font-bold', isDone ? 'line-through text-muted-foreground' : 'text-foreground')}>
                                                             {task.title}
                                                         </span>
                                                         {task.articleRef && (
-                                                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-muted-foreground/30 text-muted-foreground font-semibold">
+                                                            <Badge variant="outline" className="text-[11px] py-0 px-2 border-border/80 text-muted-foreground font-medium bg-background/50">
                                                                 {task.articleRef}
                                                             </Badge>
                                                         )}
                                                         {/* Live Telemetry / Auto-Verified Badge */}
                                                         {isAutoVerified ? (
-                                                            <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-100/70 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-300">
-                                                                <Zap className="w-2.5 h-2.5 mr-1" />
+                                                            <span 
+                                                                title="Live database proof verified & task completed"
+                                                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-950 dark:text-emerald-200 bg-emerald-100/90 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-400/90 dark:border-emerald-700/80 shadow-2xs tracking-tight"
+                                                            >
+                                                                <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                                 Auto-Verified by Evidence
                                                             </span>
                                                         ) : hasLiveProof ? (
-                                                            <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-100/70 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-300">
-                                                                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
+                                                            <span 
+                                                                title="Live telemetry proof hook detected"
+                                                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-950 dark:text-sky-200 bg-sky-100/90 dark:bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-400/90 dark:border-sky-700/80 shadow-2xs tracking-tight"
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
                                                                 {proof.label}
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center text-[10px] font-medium text-amber-700 bg-amber-100/70 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-300">
-                                                                <AlertCircle className="w-2.5 h-2.5 mr-1" />
+                                                            <span 
+                                                                title="Evidence for this task must be provided manually or uploaded as an audit workpaper"
+                                                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-950 dark:text-amber-100 bg-amber-100 dark:bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-300/90 dark:border-amber-700/90 shadow-2xs tracking-tight"
+                                                            >
+                                                                <FileText className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
                                                                 Manual / External Proof
                                                             </span>
                                                         )}
@@ -477,11 +486,30 @@ export function Framework90DayRoadmap({
                                                     if (task.action && onCustomAction) {
                                                         onCustomAction(task.action);
                                                     } else if (task.link && task.link !== '#') {
-                                                        const currentUrl = window.location.pathname + (window.location.search || '');
+                                                        const targetUrl = task.link;
+                                                        const targetPath = targetUrl.split('?')[0];
+                                                        const isSamePage = targetPath === window.location.pathname;
+
+                                                        if (isSamePage) {
+                                                            setLocation(targetUrl);
+                                                            return;
+                                                        }
+
+                                                        let cleanCurrentUrl = window.location.pathname;
+                                                        try {
+                                                            const u = new URL(window.location.href);
+                                                            u.searchParams.delete('returnTo');
+                                                            u.searchParams.delete('returnLabel');
+                                                            u.searchParams.delete('frameworkId');
+                                                            u.searchParams.delete('taskId');
+                                                            u.searchParams.delete('taskTitle');
+                                                            cleanCurrentUrl = u.pathname + (u.search ? u.search : '');
+                                                        } catch {}
+
                                                         const roadmapLabel = spec.shortTitle || spec.title || '90-Day Roadmap';
                                                         try {
                                                             sessionStorage.setItem('cos_roadmap_return_nav', JSON.stringify({
-                                                                url: currentUrl,
+                                                                url: cleanCurrentUrl,
                                                                 label: roadmapLabel,
                                                                 frameworkId: spec.id,
                                                                 taskId: task.id,
@@ -490,9 +518,8 @@ export function Framework90DayRoadmap({
                                                             }));
                                                         } catch (e) {}
 
-                                                        const targetUrl = task.link;
                                                         const separator = targetUrl.includes('?') ? '&' : '?';
-                                                        const destination = `${targetUrl}${separator}returnTo=${encodeURIComponent(currentUrl)}&returnLabel=${encodeURIComponent(roadmapLabel)}&frameworkId=${encodeURIComponent(spec.id)}&taskId=${encodeURIComponent(task.id)}&taskTitle=${encodeURIComponent(task.title)}`;
+                                                        const destination = `${targetUrl}${separator}returnTo=${encodeURIComponent(cleanCurrentUrl)}&returnLabel=${encodeURIComponent(roadmapLabel)}&frameworkId=${encodeURIComponent(spec.id)}&taskId=${encodeURIComponent(task.id)}&taskTitle=${encodeURIComponent(task.title)}`;
                                                         setLocation(destination);
                                                     }
                                                 }}

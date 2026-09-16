@@ -1,9 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Button } from "@complianceos/ui/ui/button";
 import { Checkbox } from "@complianceos/ui/ui/checkbox";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Progress } from "@complianceos/ui/ui/progress";
+import { Input } from "@complianceos/ui/ui/input";
+import { Label } from "@complianceos/ui/ui/label";
+import { Textarea } from "@complianceos/ui/ui/textarea";
+import { Switch } from "@complianceos/ui/ui/switch";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -13,19 +17,38 @@ import {
     CheckCircle2,
     AlertCircle,
     Loader2,
-    ChevronRight,
     Layers,
     ArrowLeft,
+    Shield,
+    Check,
+    Search,
+    Eye,
+    ChevronDown,
+    ChevronUp,
+    ExternalLink,
+    Building,
+    FileCheck
 } from "lucide-react";
+import {
+    FRAMEWORK_POLICY_SUITES,
+    ALL_FRAMEWORK_SUITES,
+    FrameworkSuite,
+    FrameworkPolicyDefinition
+} from "@/data/frameworkPolicySuites";
 
-type Step = "select" | "confirm" | "generating" | "complete";
-
-interface GenerationResult {
-    created: number;
-    skipped: number;
-    total: number;
-    message: string;
+export interface BulkGenerateDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    clientId: number;
+    clientName: string;
+    onComplete: () => void;
+    initialFramework?: string;
+    returnTo?: string | null;
+    returnLabel?: string | null;
+    taskId?: string | null;
 }
+
+type Step = "select" | "generating" | "complete";
 
 export function BulkGenerateDialog({
     open,
@@ -33,201 +56,196 @@ export function BulkGenerateDialog({
     clientId,
     clientName,
     onComplete,
+    initialFramework,
+    returnTo,
+    returnLabel,
+    taskId,
 }: BulkGenerateDialogProps) {
-    const [step, setStep] = useState<Step>("select");
-    const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<number>>(new Set());
-    const [result, setResult] = useState<GenerationResult | null>(null);
-    const [progress, setProgress] = useState(0);
     const [, setLocation] = useLocation();
 
-    // Fetch templates
-    const { data: policyTemplates } = trpc.policyTemplates.list.useQuery();
+    // Map initialFramework alias (e.g. 'iso' -> 'iso27001', 'federal' -> 'nis2')
+    const resolveFrameworkKey = (raw?: string): string => {
+        if (!raw) return "nis2";
+        const clean = raw.toLowerCase().trim();
+        if (clean.includes("nis2")) return "nis2";
+        if (clean.includes("iso")) return "iso27001";
+        if (clean.includes("soc")) return "soc2";
+        if (clean.includes("dora")) return "dora";
+        if (clean.includes("gdpr") || clean.includes("privacy")) return "gdpr";
+        if (clean.includes("hipaa")) return "hipaa";
+        return FRAMEWORK_POLICY_SUITES[clean] ? clean : "nis2";
+    };
+
+    const [activeFrameworkKey, setActiveFrameworkKey] = useState<string>(() => resolveFrameworkKey(initialFramework));
+    const [step, setStep] = useState<Step>("select");
+    const [selectedPolicyIds, setSelectedPolicyIds] = useState<Set<string>>(new Set());
+    const [companyName, setCompanyName] = useState(clientName || "Company");
+    const [tailorToIndustry, setTailorToIndustry] = useState(true);
+    const [customInstruction, setCustomInstruction] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [previewPolicy, setPreviewPolicy] = useState<FrameworkPolicyDefinition | null>(null);
+    const [copiedPreview, setCopiedPreview] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [result, setResult] = useState<{ created: number; skipped: number; total: number; message: string } | null>(null);
+
+    const handleCopyPreview = (content: string) => {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(content);
+            setCopiedPreview(true);
+            toast.success("Policy draft copied to clipboard!");
+            setTimeout(() => setCopiedPreview(false), 2000);
+        }
+    };
+
+    // Synchronize clientName if updated
+    useEffect(() => {
+        if (clientName) setCompanyName(clientName);
+    }, [clientName]);
+
+    // Synchronize initialFramework when opened
+    useEffect(() => {
+        if (initialFramework) {
+            setActiveFrameworkKey(resolveFrameworkKey(initialFramework));
+        }
+    }, [initialFramework, open]);
 
     // Fetch existing policies for this client
-    const { data: clientPolicies } = trpc.clientPolicies.list.useQuery(
+    const { data: clientPolicies, refetch: refetchClientPolicies } = trpc.clientPolicies.list.useQuery(
         { clientId },
-        { enabled: clientId > 0 }
+        { enabled: clientId > 0 && open }
     );
 
-    // Get existing template IDs that already have a policy
-    const existingTemplateIds = useMemo(() => {
-        if (!clientPolicies) return new Set<number>();
+    // Map existing policy titles for quick deduplication
+    const existingPolicyNames = useMemo(() => {
+        if (!clientPolicies || !Array.isArray(clientPolicies)) return new Set<string>();
         return new Set(
-            clientPolicies
-                .filter((p: any) => p.templateId)
-                .map((p: any) => p.templateId as number)
+            clientPolicies.map((item: any) =>
+                (item?.clientPolicy?.name || "").toLowerCase().trim()
+            )
         );
     }, [clientPolicies]);
 
-    // Separate templates into available vs already generated
-    const { availableTemplates, existingTemplates } = useMemo(() => {
-        if (!policyTemplates) return { availableTemplates: [], existingTemplates: [] };
-        const available = policyTemplates.filter((t: any) => !existingTemplateIds.has(t.id));
-        const existing = policyTemplates.filter((t: any) => existingTemplateIds.has(t.id));
-        return { availableTemplates: available, existingTemplates: existing };
-    }, [policyTemplates, existingTemplateIds]);
+    const activeSuite: FrameworkSuite = FRAMEWORK_POLICY_SUITES[activeFrameworkKey] || FRAMEWORK_POLICY_SUITES.nis2;
 
-    // Bulk generate mutation
-    const bulkGenerateMutation = trpc.clientPolicies.generateBulk.useMutation({
-        onSuccess: (data: any) => {
+    // Filter policies by search query
+    const filteredPolicies = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return activeSuite.policies;
+        return activeSuite.policies.filter(
+            p =>
+                p.name.toLowerCase().includes(q) ||
+                p.statutoryRef.toLowerCase().includes(q) ||
+                p.description.toLowerCase().includes(q)
+        );
+    }, [activeSuite, searchQuery]);
+
+    // Count existing policies in current suite
+    const existingInSuiteCount = useMemo(() => {
+        return activeSuite.policies.filter(p => existingPolicyNames.has(p.name.toLowerCase().trim())).length;
+    }, [activeSuite, existingPolicyNames]);
+
+    // Automatically select missing policies when framework changes or modal opens
+    useEffect(() => {
+        if (open && activeSuite) {
+            const missing = activeSuite.policies
+                .filter(p => !existingPolicyNames.has(p.name.toLowerCase().trim()))
+                .map(p => p.id);
+            setSelectedPolicyIds(new Set(missing));
+        }
+    }, [activeFrameworkKey, open, existingPolicyNames]);
+
+    // Framework bulk generation mutation
+    const bulkMutation = trpc.clientPolicies.generateBulkByFramework.useMutation({
+        onSuccess: (data) => {
             setResult(data);
             setStep("complete");
             setProgress(100);
+            refetchClientPolicies();
             onComplete();
-            // Navigate to the new policy if exactly one was created, otherwise go to list
-            setTimeout(() => {
-                if (data?.ids && data.ids.length === 1) {
-                    setLocation(`/clients/${clientId}/policies/${data.ids[0]}`);
-                } else {
-                    setLocation(`/clients/${clientId}/policies`);
-                }
-                onOpenChange(false);
-            }, 1000);
+            toast.success(data.message || `Generated ${data.created} policies!`);
         },
-        onError: (error: Error) => {
-            toast.error(error.message || "Bulk generation failed");
+        onError: (err) => {
             setStep("select");
             setProgress(0);
-        },
+            toast.error("Generation failed: " + err.message);
+        }
     });
 
-    const handleToggleTemplate = (id: number) => {
-        setSelectedTemplateIds((prev) => {
+    const handleTogglePolicy = (id: string) => {
+        setSelectedPolicyIds(prev => {
             const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
             return next;
         });
     };
 
-    const handleSelectAll = () => {
-        if (selectedTemplateIds.size === availableTemplates.length) {
-            setSelectedTemplateIds(new Set());
-        } else {
-            setSelectedTemplateIds(new Set(availableTemplates.map((t: any) => t.id)));
-        }
+    const handleSelectAllMissing = () => {
+        const missing = activeSuite.policies
+            .filter(p => !existingPolicyNames.has(p.name.toLowerCase().trim()))
+            .map(p => p.id);
+        setSelectedPolicyIds(new Set(missing));
     };
 
-    const handleGenerate = () => {
-        setStep("generating");
-        setProgress(15);
+    const handleSelectAll = () => {
+        setSelectedPolicyIds(new Set(activeSuite.policies.map(p => p.id)));
+    };
 
-        // Animate progress while waiting for backend
-        const interval = setInterval(() => {
-            setProgress((prev) => {
+    const handleDeselectAll = () => {
+        setSelectedPolicyIds(new Set());
+    };
+
+    const handleStartGeneration = () => {
+        const selectedDefs = activeSuite.policies.filter(p => selectedPolicyIds.has(p.id));
+        if (selectedDefs.length === 0) {
+            toast.error("Please select at least one policy to generate.");
+            return;
+        }
+
+        setStep("generating");
+        setProgress(20);
+
+        const timer = setInterval(() => {
+            setProgress(prev => {
                 if (prev >= 90) {
-                    clearInterval(interval);
+                    clearInterval(timer);
                     return 90;
                 }
-                return prev + Math.random() * 8;
+                return prev + Math.random() * 12;
             });
-        }, 600);
+        }, 400);
 
-        bulkGenerateMutation.mutate({
+        bulkMutation.mutate({
             clientId,
-            companyName: clientName,
+            companyName: companyName.trim() || clientName,
+            frameworkId: activeSuite.frameworkId,
+            policies: selectedDefs.map(p => ({
+                id: p.id,
+                name: p.name,
+                statutoryRef: p.statutoryRef,
+                content: p.defaultContent(companyName.trim() || clientName),
+            })),
+            tailorToIndustry,
+            customInstruction: customInstruction.trim() || undefined,
         });
     };
 
-    const handleReset = () => {
+    const handleClose = () => {
         setStep("select");
         setResult(null);
         setProgress(0);
-    };
-
-    const handleClose = () => {
-        handleReset();
         onOpenChange(false);
     };
 
-    const selectedCount = selectedTemplateIds.size;
-    const allSelected = selectedCount === availableTemplates.length && availableTemplates.length > 0;
-
-    const getStepTitle = () => {
-        switch (step) {
-            case "select":
-                return "Bulk Generate Policies";
-            case "confirm":
-                return "Confirm Generation";
-            case "generating":
-                return "Generating Policies...";
-            case "complete":
-                return "Generation Complete";
+    const handleReturnToRoadmap = () => {
+        handleClose();
+        if (returnTo) {
+            setLocation(returnTo);
         }
     };
 
-    const getStepDescription = () => {
-        switch (step) {
-            case "select":
-                return `Select policy templates to generate for ${clientName}. Templates already in use are shown separately.`;
-            case "confirm":
-                return `Review your selection before generating ${selectedCount} policies.`;
-            case "generating":
-                return "AI is generating your policies from templates. This may take a moment.";
-            case "complete":
-                return "Your policies have been generated and are ready for review.";
-        }
-    };
-
-    const footer = (
-        <div className="flex justify-between items-center w-full">
-            <div className="text-xs text-muted-foreground">
-                {step === "select" && availableTemplates.length > 0 && (
-                    <span>{selectedCount} of {availableTemplates.length} selected</span>
-                )}
-                {step === "confirm" && (
-                    <span>{selectedCount} policies will be created</span>
-                )}
-            </div>
-            <div className="flex gap-2">
-                {step === "select" && (
-                    <>
-                        <Button variant="outline" onClick={handleClose}>
-                            Cancel
-                        </Button>
-                        <Button
-                            disabled={availableTemplates.length === 0}
-                            onClick={() => {
-                                if (selectedCount === 0) {
-                                    // Auto-select all if none selected
-                                    setSelectedTemplateIds(new Set(availableTemplates.map((t: any) => t.id)));
-                                }
-                                setStep("confirm");
-                            }}
-                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
-                        >
-                            <ChevronRight className="mr-1 h-4 w-4" />
-                            Continue
-                        </Button>
-                    </>
-                )}
-                {step === "confirm" && (
-                    <>
-                        <Button variant="outline" onClick={() => setStep("select")}>
-                            <ArrowLeft className="mr-1 h-4 w-4" />
-                            Back
-                        </Button>
-                        <Button
-                            onClick={handleGenerate}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
-                        >
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Generate {selectedCount} Policies
-                        </Button>
-                    </>
-                )}
-                {step === "complete" && (
-                    <Button onClick={handleClose}>
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Done
-                    </Button>
-                )}
-            </div>
-        </div>
-    );
+    const selectedCount = selectedPolicyIds.size;
+    const totalInSuite = activeSuite.policies.length;
 
     return (
         <EnhancedDialog
@@ -236,236 +254,374 @@ export function BulkGenerateDialog({
                 if (!o) handleClose();
                 else onOpenChange(o);
             }}
-            title={getStepTitle()}
-            description={getStepDescription()}
-            size="lg"
-            footer={step !== "generating" ? footer : undefined}
+            title="Build Policy Suite by Framework"
+            description="Generate comprehensive, statutory-compliant policy suites tailored for specific regulatory frameworks at once."
+            size="2xl"
+            footer={
+                step === "select" ? (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+                        <div className="text-xs text-muted-foreground">
+                            <span className="font-semibold text-foreground">{selectedCount}</span> of {totalInSuite} policies selected for <span className="font-bold text-foreground">{activeSuite.shortName}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleStartGeneration}
+                                disabled={selectedCount === 0 || bulkMutation.isPending}
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold gap-1.5 shadow-sm"
+                            >
+                                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                Generate {selectedCount} {activeSuite.shortName} Policies
+                            </Button>
+                        </div>
+                    </div>
+                ) : undefined
+            }
         >
-            {/* ── Step 1: Select Templates ── */}
+            {/* STEP 1: SELECT & CONFIGURE */}
             {step === "select" && (
-                <div className="space-y-4">
-                    {/* Available Templates */}
-                    {availableTemplates.length > 0 ? (
-                        <>
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-semibold flex items-center gap-2">
-                                    <Layers className="h-4 w-4 text-purple-500" />
-                                    Available Templates
-                                    <Badge variant="secondary" className="text-xs">
-                                        {availableTemplates.length}
-                                    </Badge>
-                                </h4>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleSelectAll}
-                                    className="text-xs"
+                <div className="space-y-5">
+                    {/* Framework Tabs */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-border text-xs">
+                        {ALL_FRAMEWORK_SUITES.map((suite) => {
+                            const isSelected = suite.frameworkId === activeFrameworkKey;
+                            return (
+                                <button
+                                    key={suite.frameworkId}
+                                    type="button"
+                                    onClick={() => {
+                                        setActiveFrameworkKey(suite.frameworkId);
+                                        setSearchQuery("");
+                                    }}
+                                    className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+                                        isSelected
+                                            ? `${suite.color} text-white shadow-sm ring-2 ring-primary/20`
+                                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                                    }`}
                                 >
-                                    {allSelected ? "Deselect All" : "Select All"}
-                                </Button>
-                            </div>
-                            <div className="grid gap-2 max-h-[350px] overflow-y-auto pr-2">
-                                {availableTemplates.map((template: any) => (
-                                    <div
-                                        key={template.id}
-                                        className={`
-                      flex items-center gap-3 p-3 rounded-lg border cursor-pointer
-                      transition-all duration-200
-                      ${selectedTemplateIds.has(template.id)
-                                                ? "border-purple-300 bg-purple-50/70 ring-1 ring-purple-200"
-                                                : "border-border hover:border-purple-200 hover:bg-purple-50/30"
-                                            }
-                    `}
-                                        onClick={() => handleToggleTemplate(template.id)}
-                                    >
-                                        <Checkbox
-                                            checked={selectedTemplateIds.has(template.id)}
-                                            onCheckedChange={() => handleToggleTemplate(template.id)}
-                                            className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-                                        />
-                                        <div className="p-1.5 rounded-md bg-purple-100">
-                                            <FileText className="h-4 w-4 text-purple-600" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{template.name}</p>
-                                            <p className="text-xs text-muted-foreground truncate">
-                                                {template.framework || "General"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="h-14 w-14 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                                <CheckCircle2 className="h-7 w-7 text-green-600" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-green-900">All Policies Generated</h3>
-                            <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                                Every available template has already been used to create a policy for this client.
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Already Existing Templates */}
-                    {existingTemplates.length > 0 && (
-                        <div className="pt-3 border-t">
-                            <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-2">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                Already Generated
-                                <Badge variant="outline" className="text-xs text-green-700 border-green-200 bg-green-50">
-                                    {existingTemplates.length} policies
-                                </Badge>
-                            </h4>
-                            <div className="grid gap-1.5 max-h-[120px] overflow-y-auto pr-2">
-                                {existingTemplates.map((template: any) => (
-                                    <div
-                                        key={template.id}
-                                        className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 opacity-60"
-                                    >
-                                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm truncate">{template.name}</p>
-                                        </div>
-                                        <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                            Exists
-                                        </Badge>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ── Step 2: Confirm ── */}
-            {step === "confirm" && (
-                <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="h-12 w-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-200">
-                                <Sparkles className="h-6 w-6 text-white" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold">Ready to Generate</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {selectedCount} policies for <strong>{clientName}</strong>
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <div className="flex flex-col items-center px-4 py-3 bg-white/80 rounded-lg border border-purple-100 flex-1">
-                                <span className="text-2xl font-bold text-purple-700">{selectedCount}</span>
-                                <span className="text-xs text-purple-600 font-medium">New Policies</span>
-                            </div>
-                            <div className="flex flex-col items-center px-4 py-3 bg-white/80 rounded-lg border border-purple-100 flex-1">
-                                <span className="text-2xl font-bold text-green-700">{existingTemplates.length}</span>
-                                <span className="text-xs text-green-600 font-medium">Already Exist</span>
-                            </div>
-                            <div className="flex flex-col items-center px-4 py-3 bg-white/80 rounded-lg border border-purple-100 flex-1">
-                                <span className="text-2xl font-bold text-indigo-700">
-                                    {selectedCount + existingTemplates.length}
-                                </span>
-                                <span className="text-xs text-indigo-600 font-medium">Total After</span>
-                            </div>
-                        </div>
+                                    <span>{suite.shortName}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                                        isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                    }`}>
+                                        {suite.policies.length}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
 
-                    <div>
-                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-purple-500" />
-                            Policies to Generate
-                        </h4>
-                        <div className="grid gap-1.5 max-h-[200px] overflow-y-auto pr-2">
-                            {availableTemplates
-                                .filter((t: any) => selectedTemplateIds.has(t.id))
-                                .map((template: any) => (
-                                    <div
-                                        key={template.id}
-                                        className="flex items-center gap-3 p-2.5 rounded-lg bg-purple-50/50 border border-purple-100"
-                                    >
-                                        <div className="p-1 rounded-md bg-purple-100">
-                                            <FileText className="h-3.5 w-3.5 text-purple-600" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{template.name}</p>
-                                        </div>
-                                        <Badge variant="outline" className="text-xs text-purple-600 border-purple-200">
-                                            {template.framework || "General"}
-                                        </Badge>
-                                    </div>
-                                ))}
+                    {/* Active Framework Header Banner */}
+                    <div className={`p-4 rounded-xl border ${activeSuite.borderColor} ${activeSuite.bgLight} space-y-2`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <Shield className={`w-5 h-5 ${activeSuite.textColor}`} />
+                                <h3 className="text-base font-bold text-foreground">
+                                    {activeSuite.frameworkName}
+                                </h3>
+                            </div>
+                            <Badge variant="outline" className={`text-xs font-bold border ${activeSuite.borderColor} ${activeSuite.textColor} bg-background/80`}>
+                                {activeSuite.badge}
+                            </Badge>
                         </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-amber-800">
-                            Policies will be created as drafts with placeholders replaced using <strong>{clientName}</strong>.
-                            You can edit and refine each policy individually afterward.
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            {activeSuite.description}
                         </p>
+                        <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-muted-foreground">
+                            <span>Statutory Body: <strong className="text-foreground">{activeSuite.statutoryBody}</strong></span>
+                            <span>•</span>
+                            <span>
+                                Active in Register: <strong className={existingInSuiteCount > 0 ? "text-emerald-600 font-bold" : "text-foreground"}>
+                                    {existingInSuiteCount} / {totalInSuite}
+                                </strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Filter & Selection Shortcuts */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="relative w-full sm:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                                placeholder={`Filter ${activeSuite.shortName} policies...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-8 text-xs h-8"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end text-xs">
+                            <Button type="button" variant="ghost" size="sm" onClick={handleSelectAllMissing} className="text-xs h-7 px-2">
+                                Select Missing ({totalInSuite - existingInSuiteCount})
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={handleSelectAll} className="text-xs h-7 px-2">
+                                Select All
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={handleDeselectAll} className="text-xs h-7 px-2 text-muted-foreground">
+                                Clear
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Policy Items List */}
+                    <div className="border border-border rounded-xl divide-y divide-border overflow-hidden max-h-[290px] overflow-y-auto">
+                        {filteredPolicies.map((policy) => {
+                            const isAlreadyActive = existingPolicyNames.has(policy.name.toLowerCase().trim());
+                            const isChecked = selectedPolicyIds.has(policy.id);
+
+                            return (
+                                <div
+                                    key={policy.id}
+                                    className={`p-3.5 flex items-start gap-3 transition-colors ${
+                                        isChecked ? "bg-primary/5" : "hover:bg-muted/30"
+                                    }`}
+                                >
+                                    <Checkbox
+                                        id={`pol-${policy.id}`}
+                                        checked={isChecked}
+                                        onCheckedChange={() => handleTogglePolicy(policy.id)}
+                                        className="mt-1"
+                                    />
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Label
+                                                htmlFor={`pol-${policy.id}`}
+                                                className="text-xs font-bold text-foreground cursor-pointer"
+                                            >
+                                                {policy.name}
+                                            </Label>
+                                            <Badge variant="outline" className="text-[10px] font-semibold px-1.5 py-0">
+                                                {policy.clauseBadge}
+                                            </Badge>
+                                            {isAlreadyActive && (
+                                                <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 text-[10px] font-bold">
+                                                    <Check className="w-2.5 h-2.5 mr-1 text-emerald-600" />
+                                                    Already Active
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground line-clamp-1 leading-relaxed">
+                                            {policy.description}
+                                        </p>
+                                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                            {policy.keyControls.map((ctrl, i) => (
+                                                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                                    {ctrl}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setPreviewPolicy(policy)}
+                                        className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground shrink-0"
+                                    >
+                                        <Eye className="w-3.5 h-3.5 mr-1" />
+                                        Preview
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Tailoring & Custom Directives Box */}
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <Label className="text-xs font-bold">Organization Entity Name</Label>
+                                <Input
+                                    value={companyName}
+                                    onChange={(e) => setCompanyName(e.target.value)}
+                                    placeholder="Company Legal Name"
+                                    className="text-xs h-8"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between sm:justify-end gap-3 pt-4 sm:pt-6">
+                                <div className="space-y-0.5 text-right">
+                                    <Label className="text-xs font-bold cursor-pointer" htmlFor="tailor-switch">
+                                        Tailor to Industry
+                                    </Label>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Auto-align terminology to client profile
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="tailor-switch"
+                                    checked={tailorToIndustry}
+                                    onCheckedChange={setTailorToIndustry}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1 pt-1">
+                            <Label className="text-xs font-semibold text-muted-foreground">
+                                Optional Custom Directives / Cloud Scope (appended to all generated policies)
+                            </Label>
+                            <Input
+                                value={customInstruction}
+                                onChange={(e) => setCustomInstruction(e.target.value)}
+                                placeholder="e.g. Include specific AWS EU-Central-1 boundary and Slack notification webhooks"
+                                className="text-xs h-8"
+                            />
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* ── Step 3: Generating ── */}
+            {/* STEP 2: GENERATING ANIMATION */}
             {step === "generating" && (
-                <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
+                <div className="flex flex-col items-center justify-center py-14 text-center space-y-5">
                     <div className="relative">
-                        <div className="absolute inset-0 h-20 w-20 bg-purple-200 rounded-full animate-ping opacity-20" />
-                        <div className="relative h-20 w-20 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center shadow-xl shadow-purple-200">
-                            <Loader2 className="h-10 w-10 text-white animate-spin" />
+                        <div className="absolute inset-0 h-16 w-16 bg-blue-400 rounded-full animate-ping opacity-20" />
+                        <div className="relative h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                            <Loader2 className="h-8 w-8 text-white animate-spin" />
                         </div>
                     </div>
-                    <div>
-                        <h3 className="text-xl font-semibold">Generating Policies</h3>
-                        <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                            Creating {selectedCount} policies from templates for <strong>{clientName}</strong>.
-                            This usually takes a few seconds.
+                    <div className="space-y-1">
+                        <h3 className="text-base font-bold text-foreground">
+                            Generating {selectedCount} {activeSuite.shortName} Policies...
+                        </h3>
+                        <p className="text-xs text-muted-foreground max-w-sm">
+                            Authoring statutory policy drafts for <strong>{companyName}</strong> with tailored clauses and version snapshots.
                         </p>
                     </div>
-                    <div className="w-64 space-y-2">
+                    <div className="w-64 space-y-1.5">
                         <Progress value={progress} className="h-2" />
-                        <p className="text-xs text-muted-foreground">{Math.round(progress)}% complete</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold">
+                            {Math.round(progress)}% complete
+                        </p>
                     </div>
                 </div>
             )}
 
-            {/* ── Step 4: Complete ── */}
+            {/* STEP 3: COMPLETE */}
             {step === "complete" && result && (
-                <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 h-20 w-20 bg-green-200 rounded-full animate-ping opacity-20" />
-                        <div className="relative h-20 w-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
-                            <CheckCircle2 className="h-10 w-10 text-white" />
-                        </div>
+                <div className="flex flex-col items-center justify-center py-10 text-center space-y-5">
+                    <div className="h-14 w-14 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
+                        <CheckCircle2 className="h-8 w-8 text-white" />
                     </div>
-                    <div>
-                        <h3 className="text-xl font-semibold text-green-900">Policies Generated Successfully</h3>
-                        <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                    <div className="space-y-1 max-w-md">
+                        <h3 className="text-lg font-bold text-foreground">
+                            {activeSuite.shortName} Policy Suite Generated!
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
                             {result.message}
                         </p>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex flex-col items-center px-5 py-3 bg-green-50 rounded-xl border border-green-200">
-                            <span className="text-3xl font-bold text-green-700">{result.created}</span>
-                            <span className="text-xs text-green-600 font-medium">Created</span>
+
+                    <div className="flex items-center gap-4">
+                        <div className="px-5 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                            <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{result.created}</div>
+                            <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Created Drafts</div>
                         </div>
-                        <div className="flex flex-col items-center px-5 py-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <span className="text-3xl font-bold text-slate-500">{result.skipped}</span>
-                            <span className="text-xs text-slate-500 font-medium">Skipped</span>
+                        <div className="px-5 py-3 rounded-xl bg-muted/60 border border-border">
+                            <div className="text-2xl font-bold text-foreground">{result.skipped}</div>
+                            <div className="text-[11px] font-semibold text-muted-foreground">Pre-Existing</div>
                         </div>
-                        <div className="flex flex-col items-center px-5 py-3 bg-indigo-50 rounded-xl border border-indigo-200">
-                            <span className="text-3xl font-bold text-indigo-700">{result.total}</span>
-                            <span className="text-xs text-indigo-600 font-medium">Total Templates</span>
+                        <div className="px-5 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+                            <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{result.total}</div>
+                            <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Suite Total</div>
                         </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        All new policies are saved as drafts. Open each policy to review and customize.
-                    </p>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2.5 pt-3">
+                        {returnTo && (
+                            <Button
+                                onClick={handleReturnToRoadmap}
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs gap-1.5 shadow-sm"
+                            >
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                Return to {returnLabel || "Roadmap"}
+                            </Button>
+                        )}
+                        <Button
+                            variant="outline"
+                            onClick={handleClose}
+                            className="text-xs font-bold"
+                        >
+                            View Policy Register
+                        </Button>
+                    </div>
                 </div>
             )}
+
+            {/* PREVIEW MODAL */}
+            {previewPolicy && (() => {
+                const content = previewPolicy.defaultContent(companyName || clientName);
+                const wordCount = content.split(/\s+/).filter(Boolean).length;
+                return (
+                    <EnhancedDialog
+                        open={!!previewPolicy}
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setPreviewPolicy(null);
+                                setCopiedPreview(false);
+                            }
+                        }}
+                        title={previewPolicy.name}
+                        description={`${previewPolicy.statutoryRef} • Complete Statutory Compliance Specification`}
+                        size="2xl"
+                        footer={
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Badge variant="outline" className="font-mono text-[10px] bg-muted/50 border-border">
+                                        {previewPolicy.clauseBadge}
+                                    </Badge>
+                                    <span>~{wordCount} words</span>
+                                    <span>•</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">8 Full Sections • Audit-Ready</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleCopyPreview(content)}
+                                        className="gap-1.5 text-xs font-semibold"
+                                    >
+                                        {copiedPreview ? (
+                                            <>
+                                                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FileText className="w-3.5 h-3.5" />
+                                                Copy Draft Text
+                                            </>
+                                        )}
+                                    </Button>
+                                    <Button size="sm" onClick={() => setPreviewPolicy(null)}>
+                                        Close Preview
+                                    </Button>
+                                </div>
+                            </div>
+                        }
+                    >
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/60 text-xs">
+                                <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <span className="text-blue-950 dark:text-blue-200 font-semibold">
+                                    Mandated Controls:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {previewPolicy.keyControls.map((ctrl, i) => (
+                                        <Badge key={i} variant="secondary" className="text-[10px] font-normal bg-white/90 dark:bg-slate-900/90 border-border shadow-xs">
+                                            {ctrl}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl border border-border bg-muted/20 font-mono text-xs whitespace-pre-wrap max-h-[520px] overflow-y-auto leading-relaxed text-foreground select-text selection:bg-blue-200 dark:selection:bg-blue-900 shadow-inner">
+                                {content}
+                            </div>
+                        </div>
+                    </EnhancedDialog>
+                );
+            })()}
         </EnhancedDialog>
     );
 }

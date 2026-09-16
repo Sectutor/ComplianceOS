@@ -529,6 +529,88 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .mutation(async ({ input }: any) => {
         return await db.bulkGeneratePolicies(input.clientId, input.companyName);
       }),
+    generateBulkByFramework: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        companyName: z.string(),
+        frameworkId: z.string(),
+        policies: z.array(z.object({
+          id: z.string(),
+          name: z.string(),
+          statutoryRef: z.string(),
+          content: z.string(),
+        })),
+        tailorToIndustry: z.boolean().optional(),
+        customInstruction: z.string().optional()
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        const dbConn = await db.getDb();
+        const clientId = input.clientId;
+        const companyName = input.companyName;
+
+        // 1. Get existing policies to prevent exact duplicates
+        const existing = await dbConn.select({
+          id: clientPolicies.id,
+          name: clientPolicies.name
+        }).from(clientPolicies).where(eq(clientPolicies.clientId, clientId));
+
+        const existingNames = new Set(existing.map((p: any) => p.name.trim().toLowerCase()));
+
+        const createdPolicies: any[] = [];
+        let skipped = 0;
+
+        for (let i = 0; i < input.policies.length; i++) {
+          const p = input.policies[i];
+          if (existingNames.has(p.name.trim().toLowerCase())) {
+            skipped++;
+            continue;
+          }
+
+          const policyNumber = `POL-${String(existing.length + createdPolicies.length + 1).padStart(3, '0')}`;
+
+          let content = p.content || '';
+          content = content.replace(/\[COMPANY NAME\]/g, companyName);
+          content = content.replace(/\[DATE\]/g, new Date().toLocaleDateString());
+
+          if (input.customInstruction) {
+            content += `\n\n### Custom Organizational Directives\n${input.customInstruction}`;
+          }
+
+          const [newPolicy] = await dbConn.insert(clientPolicies).values({
+            clientId: clientId,
+            name: p.name,
+            policyNumber: policyNumber,
+            content: content,
+            status: 'draft',
+            version: 1,
+            tailorToIndustry: input.tailorToIndustry ?? true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }).returning();
+
+          if (newPolicy) {
+            createdPolicies.push(newPolicy);
+            try {
+              await dbConn.insert(policyVersions).values({
+                clientPolicyId: newPolicy.id,
+                version: 'v1.0',
+                content: content,
+                status: 'draft',
+                description: `Initial statutory draft generated for ${input.frameworkId.toUpperCase()} (${p.statutoryRef})`,
+                publishedBy: (ctx?.user as any)?.id || null
+              });
+            } catch {}
+          }
+        }
+
+        return {
+          created: createdPolicies.length,
+          skipped,
+          total: input.policies.length,
+          createdPolicies,
+          message: `Generated ${createdPolicies.length} statutory policies for ${input.frameworkId.toUpperCase()} (${skipped} already existed)`
+        };
+      }),
     getRACI: clientProcedure
       .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {

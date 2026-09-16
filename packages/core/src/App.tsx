@@ -859,6 +859,9 @@ function Router() {
         <Route path="/clients/:id/federal/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} /></UnifiedClientGuard>}
         </Route>
+        <Route path="/clients/:id/federal/documents">
+          {(_params) => <UnifiedClientGuard requirePremium><Redirect to={`/clients/${_params.id}/federal/program-guide?tab=documents`} /></UnifiedClientGuard>}
+        </Route>
         <Route path="/clients/:id/risks/program-guide">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={RiskProgramGuide} /></UnifiedClientGuard>}
         </Route>
@@ -1046,11 +1049,20 @@ function Router() {
         <Route path="/clients/:id/soc2/program-guide">
           {(_params) => <ProtectedRoute component={SOC2ProgramGuide} />}
         </Route>
+        <Route path="/clients/:id/soc2/documents">
+          {(_params) => <Redirect to={`/clients/${_params.id}/soc2/program-guide?tab=documents`} />}
+        </Route>
+        <Route path="/clients/:id/soc2/system-description">
+          {(_params) => <Redirect to={`/clients/${_params.id}/soc2/program-guide?tab=system-description`} />}
+        </Route>
         <Route path="/clients/:id/readiness/wizard/:standardId?">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
         <Route path="/clients/:id/hipaa/program-guide">
           {(_params) => <ProtectedRoute component={HIPAAProgramGuide} />}
+        </Route>
+        <Route path="/clients/:id/hipaa/documents">
+          {(_params) => <Redirect to={`/clients/${_params.id}/hipaa/program-guide?tab=documents`} />}
         </Route>
         <Route path="/clients/:id/start-here">
           {(_params) => <ProtectedRoute component={StartHere} />}

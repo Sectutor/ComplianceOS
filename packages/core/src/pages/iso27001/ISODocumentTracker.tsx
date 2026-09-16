@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useClientContext } from "@/contexts/ClientContext";
@@ -53,115 +54,386 @@ import {
 } from "lucide-react";
 import { Separator } from "@complianceos/ui/ui/separator";
 
-interface DocumentItem {
+export interface DocumentItem {
     id: string;
+    category: "management" | "policy" | "record";
+    categoryLabel: string;
     clause: string;
     title: string;
     description: string;
     status: "not_started" | "draft" | "review" | "approved";
     owner: string;
+    actionLink: string;
+    actionLabel: string;
     lastUpdated?: string;
     version?: string;
 }
 
-const MANDATORY_DOCUMENTS: DocumentItem[] = [
+export const getMandatoryDocuments = (clientId: number): DocumentItem[] => [
+    // 1. Management System Documents (Clauses 4-10)
     {
-        id: "doc-1",
-        clause: "4.3",
+        id: "doc-scope",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 4.3",
         title: "Scope of the ISMS",
-        description: "Document defining the boundaries and applicability of the ISMS.",
+        description: "Official boundaries, organizational context, inclusions, exclusions, and external interfaces.",
         status: "approved",
         owner: "CISO",
-        lastUpdated: "2024-05-15",
+        actionLink: `/clients/${clientId}/iso27001/governance`,
+        actionLabel: "Open Scope",
+        lastUpdated: "2025-01-10",
         version: "1.0"
     },
     {
-        id: "doc-2",
-        clause: "5.2",
-        title: "Information Security Policy",
-        description: "High-level policy regarding information security objectives.",
+        id: "doc-core-policy",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 5.2",
+        title: "Master Information Security Policy",
+        description: "Top management's high-level commitment, executive security mandate, and governance framework.",
         status: "review",
         owner: "Leadership",
-        lastUpdated: "2024-06-01",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Open Policy Center",
+        lastUpdated: "2025-01-15",
         version: "0.9"
     },
     {
-        id: "doc-3",
-        clause: "6.1.2",
-        title: "Risk Assessment Methodology",
-        description: "Process for identifying, analyzing, and evaluating information security risks.",
-        status: "approved",
-        owner: "Risk Manager",
-        lastUpdated: "2024-05-20",
-        version: "1.0"
-    },
-    {
-        id: "doc-4",
-        clause: "6.1.3",
-        title: "Statement of Applicability (SoA)",
-        description: "List of Annex A controls and their inclusion/exclusion justification.",
+        id: "doc-objectives",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 6.2",
+        title: "Information Security Objectives & KPIs",
+        description: "Measurable security targets, evaluation plans, timelines, and accountability metrics.",
         status: "draft",
         owner: "CISO",
-        lastUpdated: "2024-06-10",
+        actionLink: `/clients/${clientId}/iso27001/governance`,
+        actionLabel: "Set Objectives",
+        lastUpdated: "2025-01-20",
         version: "0.5"
     },
     {
-        id: "doc-5",
-        clause: "6.1.3",
-        title: "Risk Treatment Plan",
-        description: "Plan for modifying risks to acceptable levels.",
-        status: "not_started",
+        id: "doc-risk-methodology",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 6.1.2",
+        title: "Risk Assessment Methodology & Criteria",
+        description: "Standardized process for identifying, analyzing, and evaluating information security risks.",
+        status: "approved",
         owner: "Risk Manager",
+        actionLink: `/clients/${clientId}/iso27001/risks`,
+        actionLabel: "Risk Methodology",
+        lastUpdated: "2025-01-12",
+        version: "1.0"
     },
     {
-        id: "doc-6",
-        clause: "6.2",
-        title: "Information Security Objectives",
-        description: "Measurable security goals consistent with the policy.",
-        status: "not_started",
-        owner: "Leadership",
+        id: "doc-risk-report",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 6.1.2 & 8.2",
+        title: "Information Security Risk Assessment Report",
+        description: "Current registry of evaluated asset threats, likelihood/impact scoring, and residual risk.",
+        status: "approved",
+        owner: "Risk Manager",
+        actionLink: `/clients/${clientId}/iso27001/risks`,
+        actionLabel: "Risk Register",
+        lastUpdated: "2025-02-01",
+        version: "1.0"
     },
     {
-        id: "doc-7",
-        clause: "7.2",
-        title: "Evidence of Competence",
-        description: "Records of education, training, skills, and experience.",
+        id: "doc-rtp",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 6.1.3 & 8.3",
+        title: "Risk Treatment Plan (RTP)",
+        description: "Formal actions (Mitigate, Transfer, Avoid, Accept) with assigned owners and remediation target dates.",
         status: "draft",
+        owner: "Risk Manager",
+        actionLink: `/clients/${clientId}/iso27001/risks`,
+        actionLabel: "Manage RTP",
+        lastUpdated: "2025-02-05",
+        version: "0.8"
+    },
+    {
+        id: "doc-soa",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 6.1.3 d",
+        title: "Statement of Applicability (SoA)",
+        description: "Document evaluating all 93 Annex A controls with business justifications and implementation status.",
+        status: "draft",
+        owner: "CISO",
+        actionLink: `/clients/${clientId}/iso27001/soa`,
+        actionLabel: "Manage SoA",
+        lastUpdated: "2025-02-10",
+        version: "0.7"
+    },
+    {
+        id: "doc-control-procedure",
+        category: "management",
+        categoryLabel: "Management Clauses",
+        clause: "Clause 7.5",
+        title: "Documented Information Control Procedure",
+        description: "Standard procedure governing document drafting, approvals, versioning, review cadence, and retention.",
+        status: "approved",
+        owner: "Compliance Mgr",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Open Policy Center",
+        lastUpdated: "2025-01-08",
+        version: "1.0"
+    },
+
+    // 2. Mandatory Topic-Specific Policies (Annex A / Control A.5.1)
+    {
+        id: "doc-access-control",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.15, A.8.2",
+        title: "Access Control & Authentication Policy",
+        description: "Rules for user access provisioning, least privilege, privileged access management, and revocation.",
+        status: "approved",
+        owner: "IT / SecOps",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-18",
+        version: "1.0"
+    },
+    {
+        id: "doc-password-mfa",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.17",
+        title: "Password & Authentication Security Policy",
+        description: "Enforcement criteria for Multi-Factor Authentication (MFA), password complexity, and API credential storage.",
+        status: "approved",
+        owner: "IT / SecOps",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-18",
+        version: "1.0"
+    },
+    {
+        id: "doc-data-classification",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.12, A.5.13",
+        title: "Information Classification & Handling Policy",
+        description: "Taxonomy of Public, Internal, Confidential, and Restricted data, with handling and disposal rules.",
+        status: "review",
+        owner: "Data Protection",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-22",
+        version: "0.9"
+    },
+    {
+        id: "doc-clean-desk",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.7.7",
+        title: "Clear Desk & Clear Screen Policy",
+        description: "Physical workplace security rules, screen timeout locks, and secure print/paper handling.",
+        status: "approved",
+        owner: "Facilities / SecOps",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-15",
+        version: "1.0"
+    },
+    {
+        id: "doc-crypto",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.8.24",
+        title: "Cryptography & Key Management Policy",
+        description: "Mandated cryptographic standards (AES-256, TLS 1.3), KMS key rotation, and encryption in transit/at rest.",
+        status: "approved",
+        owner: "SecOps / Dev",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-20",
+        version: "1.0"
+    },
+    {
+        id: "doc-backup",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.8.13",
+        title: "Backup & Data Recovery Policy",
+        description: "Recovery Point Objective (RPO) and Recovery Time Objective (RTO) requirements, immutable backup storage, and restore testing.",
+        status: "approved",
+        owner: "DevOps",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-25",
+        version: "1.0"
+    },
+    {
+        id: "doc-incident-response",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.24–A.5.28",
+        title: "Incident Management & Breach Response Plan",
+        description: "Severity classification, containment runbooks, communication hierarchy, and regulatory notification procedures.",
+        status: "review",
+        owner: "SecOps",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-02-02",
+        version: "0.9"
+    },
+    {
+        id: "doc-vendor-security",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.19–A.5.23",
+        title: "Supplier & Third-Party Security Policy",
+        description: "Due diligence criteria, mandatory contractual security clauses, DPAs, and recurring vendor reassessments.",
+        status: "draft",
+        owner: "Procurement / Legal",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-02-05",
+        version: "0.8"
+    },
+    {
+        id: "doc-sdlc",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.8.25–A.8.33",
+        title: "Secure Development Lifecycle (SDLC) Policy",
+        description: "Security architecture, branch protection, code review guidelines, SAST/DAST testing, and segregation of dev/prod.",
+        status: "approved",
+        owner: "Engineering",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-30",
+        version: "1.0"
+    },
+    {
+        id: "doc-bcdr",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.29, A.5.30",
+        title: "Business Continuity & Disaster Recovery (BC/DR) Plan",
+        description: "Procedures for maintaining ICT readiness during disruptions, multi-region failover, and annual drill schedules.",
+        status: "draft",
+        owner: "Ops / Leadership",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-02-08",
+        version: "0.5"
+    },
+    {
+        id: "doc-acceptable-use",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.5.9, A.5.10",
+        title: "Asset Management & Acceptable Use Policy",
+        description: "Rules for authorized computer/mobile usage, prohibited software, BYOD boundaries, and asset return upon offboarding.",
+        status: "approved",
+        owner: "HR / IT",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-14",
+        version: "1.0"
+    },
+    {
+        id: "doc-teleworking",
+        category: "policy",
+        categoryLabel: "Topic-Specific Policy",
+        clause: "A.6.7",
+        title: "Remote Working & Teleworking Policy",
+        description: "Security safeguards for work-from-home, public Wi-Fi usage, VPN requirements, and physical environment precautions.",
+        status: "approved",
+        owner: "HR / IT",
+        actionLink: `/clients/${clientId}/policies`,
+        actionLabel: "Edit Policy",
+        lastUpdated: "2025-01-16",
+        version: "1.0"
+    },
+
+    // 3. Mandatory Operational Records & Audit Evidence
+    {
+        id: "rec-competence",
+        category: "record",
+        categoryLabel: "Mandatory Record",
+        clause: "Clause 7.2 & 7.3",
+        title: "Evidence of Competence & Training Records",
+        description: "Logs of employee security awareness training, phishing simulation tests, and role-based certifications.",
+        status: "approved",
         owner: "HR Director",
-        lastUpdated: "2024-06-05",
-        version: "0.1"
+        actionLink: `/clients/${clientId}/training/management`,
+        actionLabel: "Open Training",
+        lastUpdated: "2025-02-01",
+        version: "1.0"
     },
     {
-        id: "doc-8",
-        clause: "8.1",
-        title: "Operational Planning & Control",
-        description: "Procedures to ensure processes are carried out as planned.",
+        id: "rec-monitoring",
+        category: "record",
+        categoryLabel: "Mandatory Record",
+        clause: "Clause 9.1",
+        title: "Monitoring, Measurement & Telemetry Records",
+        description: "Operational uptime metrics, vulnerability scan summaries, access review sign-offs, and security event logs.",
+        status: "review",
+        owner: "SecOps",
+        actionLink: `/evidence`,
+        actionLabel: "View Evidence",
+        lastUpdated: "2025-02-12",
+        version: "1.0"
+    },
+    {
+        id: "rec-audit-program",
+        category: "record",
+        categoryLabel: "Mandatory Record",
+        clause: "Clause 9.2",
+        title: "Internal Audit Programme & Schedule",
+        description: "Documented annual audit schedule covering all ISMS clauses (4-10) and active Annex A controls.",
+        status: "draft",
+        owner: "Lead Internal Auditor",
+        actionLink: `/clients/${clientId}/iso27001/audit`,
+        actionLabel: "Open Audit Program",
+        lastUpdated: "2025-02-10",
+        version: "0.6"
+    },
+    {
+        id: "rec-audit-report",
+        category: "record",
+        categoryLabel: "Mandatory Record",
+        clause: "Clause 9.2",
+        title: "Internal Audit Report & Finding Evidence",
+        description: "Completed audit report documenting scope, sample evidence reviewed, non-conformities, and observations.",
         status: "not_started",
-        owner: "Ops Manager",
+        owner: "Lead Internal Auditor",
+        actionLink: `/clients/${clientId}/iso27001/audit`,
+        actionLabel: "View Findings",
     },
     {
-        id: "doc-9",
-        clause: "9.2",
-        title: "Internal Audit Program",
-        description: "Schedule and scope of internal audits.",
-        status: "not_started",
-        owner: "Internal Auditor",
-    },
-    {
-        id: "doc-10",
-        clause: "9.3",
-        title: "Management Review Minutes",
-        description: "Records of management reviews of the ISMS.",
+        id: "rec-mgmt-review",
+        category: "record",
+        categoryLabel: "Mandatory Record",
+        clause: "Clause 9.3",
+        title: "Management Review Meeting Minutes & Actions",
+        description: "Signed executive meeting minutes reviewing ISMS performance, audit results, resources, and improvement decisions.",
         status: "not_started",
         owner: "Leadership",
+        actionLink: `/clients/${clientId}/iso27001/management-review`,
+        actionLabel: "Open Review",
     },
     {
-        id: "doc-11",
-        clause: "10.1",
-        title: "Nonconformity & Corrective Action",
-        description: "Procedure for handling nonconformities and corrective actions.",
-        status: "not_started",
+        id: "rec-capa",
+        category: "record",
+        categoryLabel: "Mandatory Record",
+        clause: "Clause 10.2",
+        title: "Nonconformity & Corrective Action (CAPA) Log",
+        description: "Log of identified non-conformities, 5-Why root cause investigations, corrective action assignments, and closure approvals.",
+        status: "draft",
         owner: "Compliance Mgr",
+        actionLink: `/clients/${clientId}/iso27001/audit`,
+        actionLabel: "Manage CAPA",
+        lastUpdated: "2025-02-14",
+        version: "0.4"
     }
 ];
 
@@ -170,38 +442,82 @@ import { ISOLayout } from "./ISOLayout";
 export default function ISODocumentTracker({ params }: { params?: { id: string } }) {
     const { selectedClientId } = useClientContext();
     const clientId = parseInt(params?.id || selectedClientId?.toString() || "0");
+    const [location, setLocation] = useLocation();
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState<"all" | "management" | "policy" | "record">("all");
     const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null);
+
+    // Load persisted state or fallback to default template list
+    const [documents, setDocuments] = useState<DocumentItem[]>(() => {
+        try {
+            const stored = localStorage.getItem(`iso27001_docs_${clientId}`);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch {}
+        return getMandatoryDocuments(clientId);
+    });
+
+    const updateDocumentStatus = (docId: string, status: DocumentItem["status"]) => {
+        setDocuments(prev => {
+            const next = prev.map(d => d.id === docId ? { ...d, status, lastUpdated: new Date().toISOString().split("T")[0] } : d);
+            try {
+                localStorage.setItem(`iso27001_docs_${clientId}`, JSON.stringify(next));
+            } catch {}
+            toast.success("Document status updated");
+            return next;
+        });
+        if (selectedDoc && selectedDoc.id === docId) {
+            setSelectedDoc(prev => prev ? { ...prev, status } : null);
+        }
+    };
 
     // Status Badge Helper
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "approved":
-                return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">Approved</Badge>;
+                return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 font-bold">Approved</Badge>;
             case "review":
-                return <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100">In Review</Badge>;
+                return <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20 font-bold">In Review</Badge>;
             case "draft":
-                return <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100">Draft</Badge>;
+                return <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/20 font-bold">Draft</Badge>;
             default:
-                return <Badge variant="outline" className="text-muted-foreground border-border">Not Started</Badge>;
+                return <Badge variant="outline" className="text-muted-foreground border-border font-medium">Not Started</Badge>;
         }
     };
 
-    const filteredDocs = MANDATORY_DOCUMENTS.filter(doc =>
-        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.clause.includes(searchQuery)
-    );
+    const getCategoryBadge = (category: string) => {
+        switch (category) {
+            case "management":
+                return <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[10px] font-bold">Management Clause</Badge>;
+            case "policy":
+                return <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-[10px] font-bold">Annex A Policy</Badge>;
+            case "record":
+                return <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold">Mandatory Record</Badge>;
+            default:
+                return null;
+        }
+    };
+
+    const filteredDocs = documents.filter(doc => {
+        const matchesCategory = selectedCategory === "all" || doc.category === selectedCategory;
+        const matchesSearch = 
+            doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            doc.clause.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            doc.description.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
 
     const handleOpenDocument = (doc: DocumentItem) => {
         setSelectedDoc(doc);
-        toast.info(`Opening ${doc.title}`, {
-            description: `Loading document for clause ${doc.clause}`,
-        });
     };
 
-    const completionPercentage = Math.round(
-        (MANDATORY_DOCUMENTS.filter(d => d.status === "approved").length / MANDATORY_DOCUMENTS.length) * 100
-    );
+    const approvedCount = documents.filter(d => d.status === "approved").length;
+    const reviewCount = documents.filter(d => d.status === "review").length;
+    const draftCount = documents.filter(d => d.status === "draft").length;
+    const missingCount = documents.filter(d => d.status === "not_started").length;
+    const completionPercentage = Math.round((approvedCount / documents.length) * 100);
 
     return (
         <ISOLayout clientId={clientId} fullWidth={true}>
@@ -209,17 +525,29 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+                                ISO/IEC 27001:2022 Required
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                                26 Documented Items
+                            </Badge>
+                        </div>
                         <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                             <FileCheck className="h-8 w-8 text-primary" />
-                            Mandatory Document Tracker
+                            Mandatory Document & Record Tracker
                         </h1>
-                        <p className="text-lg text-muted-foreground max-w-3xl">
-                            Track the status of documented information required explicitly by ISO 27001:2022.
+                        <p className="text-sm text-muted-foreground max-w-3xl">
+                            Complete catalog of all 26 mandatory governance documents, topic-specific policies (Control A.5.1), and operational audit records required for official ISO 27001:2022 certification.
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" className="border-border">
-                            <ExternalLink className="mr-2 h-4 w-4" /> Export Requirements
+                    <div className="flex items-center gap-2.5">
+                        <Button 
+                            variant="default" 
+                            className="bg-primary hover:bg-primary/90 font-bold shadow"
+                            onClick={() => setLocation(`/clients/${clientId}/policies`)}
+                        >
+                            <FileText className="mr-2 h-4 w-4" /> Open Policy Center
                         </Button>
                     </div>
                 </div>
@@ -229,67 +557,100 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <div className="space-y-1">
-                                <h3 className="font-semibold text-foreground">Readiness Progress</h3>
-                                <p className="text-sm text-muted-foreground">{completionPercentage}% of mandatory documents are approved</p>
+                                <h3 className="font-semibold text-foreground text-sm sm:text-base">ISMS Audit Document Readiness</h3>
+                                <p className="text-xs text-muted-foreground">{approvedCount} of {documents.length} mandatory documents approved ({completionPercentage}%)</p>
                             </div>
-                            <span className="text-2xl font-bold text-primary">{completionPercentage}%</span>
+                            <span className="text-2xl font-black text-primary">{completionPercentage}%</span>
                         </div>
                         <Progress value={completionPercentage} className="h-3" />
-                        <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
                             <div className="text-center">
-                                <p className="text-2xl font-bold text-foreground">{MANDATORY_DOCUMENTS.length}</p>
-                                <p className="text-xs text-muted-foreground uppercase font-bold mt-1">Required</p>
+                                <p className="text-2xl font-bold text-foreground">{documents.length}</p>
+                                <p className="text-xs text-muted-foreground uppercase font-bold mt-1">Total Required</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-2xl font-bold text-emerald-600">
-                                    {MANDATORY_DOCUMENTS.filter(d => d.status === "approved").length}
+                                    {approvedCount}
                                 </p>
                                 <p className="text-xs text-muted-foreground uppercase font-bold mt-1">Approved</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-2xl font-bold text-amber-600">
-                                    {MANDATORY_DOCUMENTS.filter(d => d.status === "review").length}
+                                    {reviewCount}
                                 </p>
                                 <p className="text-xs text-muted-foreground uppercase font-bold mt-1">In Review</p>
                             </div>
                             <div className="text-center">
-                                <p className="text-2xl font-bold text-muted-foreground">
-                                    {MANDATORY_DOCUMENTS.filter(d => d.status === "not_started").length}
+                                <p className="text-2xl font-bold text-rose-500">
+                                    {missingCount}
                                 </p>
-                                <p className="text-xs text-muted-foreground uppercase font-bold mt-1">Missing</p>
+                                <p className="text-xs text-muted-foreground uppercase font-bold mt-1">Not Started</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
+                {/* Filter Pills & Search */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant={selectedCategory === "all" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedCategory("all")}
+                            className="rounded-xl text-xs font-bold"
+                        >
+                            All Documents ({documents.length})
+                        </Button>
+                        <Button
+                            variant={selectedCategory === "management" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedCategory("management")}
+                            className="rounded-xl text-xs font-bold"
+                        >
+                            Management Clauses ({documents.filter(d => d.category === "management").length})
+                        </Button>
+                        <Button
+                            variant={selectedCategory === "policy" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedCategory("policy")}
+                            className="rounded-xl text-xs font-bold"
+                        >
+                            Annex A Policies ({documents.filter(d => d.category === "policy").length})
+                        </Button>
+                        <Button
+                            variant={selectedCategory === "record" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedCategory("record")}
+                            className="rounded-xl text-xs font-bold"
+                        >
+                            Mandatory Records ({documents.filter(d => d.category === "record").length})
+                        </Button>
+                    </div>
+
+                    <div className="relative max-w-sm w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search document title, clause, or owner..."
+                            className="pl-9 bg-card rounded-xl text-xs"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
+
                 {/* Documents Table Component */}
-                <Card className="bg-card border-border shadow-sm">
-                    <CardHeader className="border-b border-border bg-muted/50">
-                        <div className="flex items-center justify-between">
-                            <div className="relative max-w-sm w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search documents or clauses..."
-                                    className="pl-10 bg-card"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <Filter className="h-4 w-4" /> Filter
-                            </Button>
-                        </div>
-                    </CardHeader>
+                <Card className="bg-card border-border shadow-sm overflow-hidden">
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[100px]">ISO Clause</TableHead>
-                                    <TableHead>Document Title</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Owner</TableHead>
-                                    <TableHead>Last Updated</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                <TableRow className="bg-muted/50">
+                                    <TableHead className="w-[120px]">ISO Clause</TableHead>
+                                    <TableHead>Document Title & Scope</TableHead>
+                                    <TableHead className="w-[140px]">Category</TableHead>
+                                    <TableHead className="w-[120px]">Status</TableHead>
+                                    <TableHead className="w-[140px]">Owner</TableHead>
+                                    <TableHead className="w-[110px]">Version</TableHead>
+                                    <TableHead className="text-right w-[160px]">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -299,55 +660,79 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                                         className="group hover:bg-muted/50 cursor-pointer select-none"
                                         onDoubleClick={() => handleOpenDocument(doc)}
                                     >
-                                        <TableCell className="font-mono text-xs font-medium text-muted-foreground">
+                                        <TableCell className="font-mono text-xs font-bold text-primary">
                                             {doc.clause}
                                         </TableCell>
                                         <TableCell>
-                                            <div className="space-y-1">
-                                                <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                            <div className="space-y-0.5">
+                                                <p className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
                                                     {doc.title}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground line-clamp-1">{doc.description}</p>
                                             </div>
                                         </TableCell>
-                                        <TableCell>{getStatusBadge(doc.status)}</TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                                                    {doc.owner.charAt(0)}
-                                                </div>
-                                                {doc.owner}
-                                            </div>
+                                        <TableCell>
+                                            {getCategoryBadge(doc.category)}
                                         </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {doc.lastUpdated ? (
-                                                <div className="flex flex-col">
-                                                    <span>{doc.lastUpdated}</span>
-                                                    <span className="text-[10px] text-muted-foreground">v{doc.version}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted-foreground">-</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                    </Button>
+                                                    <button className="cursor-pointer">
+                                                        {getStatusBadge(doc.status)}
+                                                    </button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleOpenDocument(doc)}>
-                                                        <FileText className="mr-2 h-4 w-4" /> View Document
+                                                <DropdownMenuContent align="start">
+                                                    <DropdownMenuItem onClick={() => updateDocumentStatus(doc.id, "approved")}>
+                                                        Mark Approved
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
-                                                        <Upload className="mr-2 h-4 w-4" /> Upload New Version
+                                                    <DropdownMenuItem onClick={() => updateDocumentStatus(doc.id, "review")}>
+                                                        Mark In Review
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-rose-600">
-                                                        <AlertCircle className="mr-2 h-4 w-4" /> Flag as Missing
+                                                    <DropdownMenuItem onClick={() => updateDocumentStatus(doc.id, "draft")}>
+                                                        Mark Draft
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => updateDocumentStatus(doc.id, "not_started")}>
+                                                        Mark Not Started
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
+                                        </TableCell>
+                                        <TableCell className="text-xs text-muted-foreground font-medium">
+                                            {doc.owner}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-muted-foreground font-mono">
+                                            {doc.version ? `v${doc.version}` : "-"}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-8 text-xs font-bold text-primary hover:bg-primary/10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setLocation(doc.actionLink);
+                                                    }}
+                                                >
+                                                    {doc.actionLabel}
+                                                    <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                                                </Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleOpenDocument(doc)}>
+                                                            <FileText className="mr-2 h-4 w-4" /> View Details
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => setLocation(doc.actionLink)}>
+                                                            <ExternalLink className="mr-2 h-4 w-4" /> Go to Module
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -489,12 +874,41 @@ export default function ISODocumentTracker({ params }: { params?: { id: string }
                             Close Viewer
                         </Button>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" className="gap-2">
-                                <MessageSquare className="h-4 w-4" /> Add Comment
-                            </Button>
-                            <Button className="bg-primary hover:bg-primary/90 gap-2">
-                                Edit Document
-                            </Button>
+                            {selectedDoc && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="gap-2">
+                                            Status: {selectedDoc.status.replace('_', ' ')}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => updateDocumentStatus(selectedDoc.id, "approved")}>
+                                            Mark Approved
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => updateDocumentStatus(selectedDoc.id, "review")}>
+                                            Mark In Review
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => updateDocumentStatus(selectedDoc.id, "draft")}>
+                                            Mark Draft
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => updateDocumentStatus(selectedDoc.id, "not_started")}>
+                                            Mark Not Started
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                            {selectedDoc?.actionLink && (
+                                <Button 
+                                    className="bg-primary hover:bg-primary/90 font-bold gap-2"
+                                    onClick={() => {
+                                        setLocation(selectedDoc.actionLink);
+                                        setSelectedDoc(null);
+                                    }}
+                                >
+                                    {selectedDoc.actionLabel}
+                                    <ExternalLink className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </SheetContent>

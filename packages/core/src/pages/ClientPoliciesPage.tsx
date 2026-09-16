@@ -64,6 +64,12 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
     const [templateFrameworkFilter, setTemplateFrameworkFilter] = useState("all");
     const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
 
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const urlFrameworkId = searchParams?.get('frameworkId');
+    const returnTo = searchParams?.get('returnTo');
+    const returnLabel = searchParams?.get('returnLabel');
+    const taskId = searchParams?.get('taskId');
+
     useEffect(() => {
         const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
         if (params?.get('create') === 'true') {
@@ -72,6 +78,8 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
             newParams.delete('create');
             const newSearch = newParams.toString();
             setLocation(`/clients/${clientId}/policies${newSearch ? '?' + newSearch : ''}`, { replace: true });
+        } else if (params?.get('bulk') === 'true' || params?.get('frameworkId')) {
+            setIsBulkGenerateOpen(true);
         }
     }, [clientId, setLocation]);
 
@@ -164,6 +172,23 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                 />
             )}
 
+            {returnTo && (
+                <div className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-sm animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 text-blue-950 dark:text-blue-100 font-medium">
+                        <ArrowLeft className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span>Navigated from: <strong>{returnLabel || "Roadmap"}</strong></span>
+                    </div>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setLocation(returnTo)}
+                        className="bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 text-xs font-semibold shadow-xs"
+                    >
+                        Return to {returnLabel || "Roadmap"}
+                    </Button>
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">{hideLayout ? "Policies" : "Client Policies"}</h2>
@@ -222,15 +247,15 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             Load Policy for Review
                         </Button>
                     )}
-                    {(user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin') && !hideLayout && (
+                    {!hideLayout && (
                         <Button
                             id="bulk-generate-btn"
                             variant="outline"
                             onClick={() => setIsBulkGenerateOpen(true)}
-                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300"
+                            className="bg-blue-50/80 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-semibold gap-1.5"
                         >
-                            <Layers className="mr-2 h-4 w-4" />
-                            Bulk Generate
+                            <Layers className="mr-1.5 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            Build Policies by Framework
                         </Button>
                     )}
                     <Button id="create-policy-btn" onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} >
@@ -643,6 +668,10 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     onOpenChange={setIsBulkGenerateOpen}
                     clientId={clientId}
                     clientName={client?.name || "Client"}
+                    initialFramework={urlFrameworkId || undefined}
+                    returnTo={returnTo}
+                    returnLabel={returnLabel}
+                    taskId={taskId}
                     onComplete={() => refetchPolicies()}
                 />
             )}
@@ -791,12 +820,12 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     </Table>
                 </div>
             ) : (
-                            <EmptyState
-                icon={FileText}
-                title="No policies created yet"
-                description="Create your first policy from a framework template, or start from scratch with AI assistance."
-                action={{ label: "Create First Policy", onClick: () => setIsAddPolicyOpen(true) }}
-            />
+                <EmptyState
+                    icon={FileText}
+                    title="No policies created yet"
+                    description="Build a complete statutory policy suite for NIS2, ISO 27001, SOC 2, DORA, or create individual policies."
+                    action={{ label: "Build Policy Suite by Framework", onClick: () => setIsBulkGenerateOpen(true) }}
+                />
             )}
         </div>
     );

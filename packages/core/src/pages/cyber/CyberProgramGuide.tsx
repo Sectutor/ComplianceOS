@@ -14,7 +14,7 @@ import { Progress } from '@complianceos/ui/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
-import { getNis2Roadmap } from '@/data/frameworkRoadmaps';
+import { getNis2Roadmap, getDoraRoadmap } from '@/data/frameworkRoadmaps';
 
 /* ------------------------------------------------------------------ */
 /* Step downloads — generate real artifacts client-side               */
@@ -85,7 +85,8 @@ export default function CyberProgramGuide() {
     const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'tutorials';
 
     const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
-    const [selectedFramework, setSelectedFramework] = useState<'nis2' | 'nist_csf' | 'dora'>('nis2');
+    const initialFramework: 'nis2' | 'nist_csf' | 'dora' = typeof window !== 'undefined' && window.location.pathname.includes('/dora') ? 'dora' : 'nis2';
+    const [selectedFramework, setSelectedFramework] = useState<'nis2' | 'nist_csf' | 'dora'>(initialFramework);
     const [selectedPillarId, setSelectedPillarId] = useState<string | null>(null);
 
     // Fetch live system telemetry
@@ -379,7 +380,7 @@ export default function CyberProgramGuide() {
                     className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-blue-600 text-white shadow-sm" : "text-muted-foreground")}
                 >
                     <CalendarClock className="w-4 h-4 mr-2" />
-                    90-Day NIS2 Roadmap
+                    {selectedFramework === 'dora' ? '90-Day DORA Roadmap' : '90-Day NIS2 Roadmap'}
                 </Button>
                 <Button
                     variant={activeTab === 'architecture' ? 'default' : 'ghost'}
@@ -683,11 +684,11 @@ export default function CyberProgramGuide() {
                 </div>
             )}
 
-            {/* TAB: 90-Day NIS2 Implementation Roadmap */}
+            {/* TAB: 90-Day NIS2 / DORA Implementation Roadmap */}
             {activeTab === 'roadmap' && (
                 <div className="space-y-4">
                     <Framework90DayRoadmap
-                        spec={getNis2Roadmap(clientId)}
+                        spec={selectedFramework === 'dora' ? getDoraRoadmap(clientId) : getNis2Roadmap(clientId)}
                         clientId={clientId}
                     />
                 </div>

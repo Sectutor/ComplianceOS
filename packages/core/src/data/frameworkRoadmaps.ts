@@ -45,8 +45,8 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
         {
             month: 1,
             weeks: 'Weeks 1 to 4',
-            title: 'Foundation, Scope, Asset Inventory & Risk Strategy',
-            clauseRef: 'Clauses 4.1–4.3, 5.1–5.3, 6.1, 8.2',
+            title: 'Foundation, Scope, Governance & Risk Strategy',
+            clauseRef: 'Clauses 4.1–4.3, 5.1–5.3, 6.1–6.2, 8.2',
             badgeColor: 'bg-blue-600 text-white',
             badgeText: 'Month 1 • Weeks 1 to 4',
             bgLight: 'bg-blue-50/70',
@@ -56,10 +56,26 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                 {
                     id: 'm1_scope',
                     title: 'Define ISMS Scope Statement & Interested Parties',
-                    desc: 'Identify organizational boundaries, regulatory requirements (GDPR/NIS2), and publish executive commitment.',
+                    desc: 'Identify organizational boundaries, regulatory requirements (GDPR/NIS2), and publish executive scope statement.',
                     link: `/clients/${clientId}/iso27001/governance`,
                     cta: 'Go to Scope',
                     articleRef: 'Clauses 4.1–4.3'
+                },
+                {
+                    id: 'm1_policy',
+                    title: 'Draft & Publish Master Information Security Policy',
+                    desc: 'Formalize executive leadership commitment, core security principles, and publish the organization-wide Information Security Policy.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Create Policy',
+                    articleRef: 'Clause 5.2'
+                },
+                {
+                    id: 'm1_objectives',
+                    title: 'Establish Measurable Security Objectives & KPIs',
+                    desc: 'Define measurable information security objectives aligned with business goals and establish metrics to track fulfillment.',
+                    link: `/clients/${clientId}/iso27001/governance`,
+                    cta: 'Set Objectives',
+                    articleRef: 'Clause 6.2'
                 },
                 {
                     id: 'm1_assets',
@@ -91,7 +107,7 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
             month: 2,
             weeks: 'Weeks 5 to 8',
             title: 'Controls, Policies & Statement of Applicability (SoA)',
-            clauseRef: 'Clause 6.1.3, 7.2–7.5, Annex A (93 Controls)',
+            clauseRef: 'Clause 6.1.3, 7.2–7.5, Annex A (A.5–A.8)',
             badgeColor: 'bg-purple-600 text-white',
             badgeText: 'Month 2 • Weeks 5 to 8',
             bgLight: 'bg-purple-50/70',
@@ -108,10 +124,18 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                 },
                 {
                     id: 'm2_policies',
-                    title: 'Publish & Approve Mandatory ISMS Policies',
-                    desc: 'Customize and approve Access Control, Cryptography, Incident Response, Backup, and Vendor Security policies.',
+                    title: 'Author & Approve Topic-Specific Annex A Policies',
+                    desc: 'Draft and approve mandatory operational policies: Access Control, Incident Response, Cryptography, Backup, BC/DR, and Vendor Security.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Generate Policies',
+                    articleRef: 'Clause 7.5 & A.5.1'
+                },
+                {
+                    id: 'm2_docs',
+                    title: 'Maintain Mandatory Document Tracker & Version Control',
+                    desc: 'Track document approval dates, annual review intervals, document owners, and version history in the ISMS Document Register.',
                     link: `/clients/${clientId}/iso27001/documents`,
-                    cta: 'Go to Policies',
+                    cta: 'Document Register',
                     articleRef: 'Clause 7.5'
                 },
                 {
@@ -128,7 +152,7 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     desc: 'Collect configuration evidence (MFA enforcement, EDR telemetry, backup test logs) and map to controls.',
                     link: `/evidence`,
                     cta: 'Go to Evidence',
-                    articleRef: 'Clause 9.1'
+                    articleRef: 'Clause 8.1 & 9.1'
                 }
             ]
         },
@@ -195,8 +219,8 @@ export const getGdprRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
         {
             month: 1,
             weeks: 'Weeks 1 to 4',
-            title: 'PII Discovery, Data Mapping & Article 30 ROPA',
-            clauseRef: 'Articles 5, 6, 9, 30',
+            title: 'PII Discovery, Policy Baseline & Article 30 ROPA',
+            clauseRef: 'Articles 5, 6, 9, 13, 14, 24, 30',
             badgeColor: 'bg-sky-600 text-white',
             badgeText: 'Month 1 • Weeks 1 to 4',
             bgLight: 'bg-sky-50/70',
@@ -210,6 +234,14 @@ export const getGdprRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/privacy/inventory`,
                     cta: 'Data Inventory',
                     articleRef: 'Art. 30(1)'
+                },
+                {
+                    id: 'gdpr_m1_policy',
+                    title: 'Draft & Publish Master Data Protection Policy',
+                    desc: 'Formalize organizational privacy governance, data protection principles, and staff handling obligations.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Create Policy',
+                    articleRef: 'Art. 24'
                 },
                 {
                     id: 'gdpr_m1_ropa',
@@ -258,10 +290,10 @@ export const getGdprRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                 },
                 {
                     id: 'gdpr_m2_privacy_notice',
-                    title: 'Update External Privacy Policies & Employee Notices',
+                    title: 'Publish External Privacy Notices & Employee Disclosures',
                     desc: 'Publish transparent, plain-language privacy notices detailing controller info, DPO contact, and user rights.',
-                    link: `/clients/${clientId}/privacy/program-guide`,
-                    cta: 'View Guide',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Author Notices',
                     articleRef: 'Art. 13 & 14'
                 },
                 {
@@ -344,7 +376,7 @@ export const getDoraRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
         {
             month: 1,
             weeks: 'Weeks 1 to 4',
-            title: 'ICT Governance, Asset Architecture & Risk Framework',
+            title: 'ICT Governance, Policy Baseline & Risk Architecture',
             clauseRef: 'DORA Articles 5–7, 8–9',
             badgeColor: 'bg-emerald-600 text-white',
             badgeText: 'Month 1 • Weeks 1 to 4',
@@ -359,6 +391,14 @@ export const getDoraRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/dora`,
                     cta: 'Resilience Mandate',
                     articleRef: 'Art. 5'
+                },
+                {
+                    id: 'dora_m1_rmf_policy',
+                    title: 'Author Board-Approved ICT Risk Management Framework Policy',
+                    desc: 'Draft and formalize the core DORA ICT security strategy, risk tolerance limits, and operational governance rules.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Create Policy',
+                    articleRef: 'Art. 5 & 6'
                 },
                 {
                     id: 'dora_m1_assets',
@@ -390,7 +430,7 @@ export const getDoraRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
             month: 2,
             weeks: 'Weeks 5 to 8',
             title: 'Resilience Testing, Protection & Incident Reporting Hub',
-            clauseRef: 'DORA Articles 10–14, 17–23, 24–27',
+            clauseRef: 'DORA Articles 9, 10–14, 17–23, 24–27',
             badgeColor: 'bg-blue-600 text-white',
             badgeText: 'Month 2 • Weeks 5 to 8',
             bgLight: 'bg-blue-50/70',
@@ -404,6 +444,14 @@ export const getDoraRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/controls`,
                     cta: 'Security Controls',
                     articleRef: 'Art. 9'
+                },
+                {
+                    id: 'dora_m2_incident_policy',
+                    title: 'Draft Major ICT Incident Management & Reporting SOP',
+                    desc: 'Document statutory classification criteria for major incidents, escalation triggers, and regulatory notification templates.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Author SOP',
+                    articleRef: 'Art. 17 & 18'
                 },
                 {
                     id: 'dora_m2_incident_protocol',
@@ -442,6 +490,14 @@ export const getDoraRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
             borderColor: 'border-purple-200',
             textColor: 'text-purple-700',
             tasks: [
+                {
+                    id: 'dora_m3_tprm_policy',
+                    title: 'Author Policy on Use of ICT Third-Party Providers',
+                    desc: 'Establish formal governance rules for engaging, assessing, and monitoring third-party cloud and IT services.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'TPRM Policy',
+                    articleRef: 'Art. 28(2)'
+                },
                 {
                     id: 'dora_m3_vendor_register',
                     title: 'Register All ICT Third-Party Providers in Information Register',
@@ -493,7 +549,7 @@ export const getNis2Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
         {
             month: 1,
             weeks: 'Weeks 1 to 4',
-            title: 'Entity Scope, Governance Mandate & All-Hazards Risk',
+            title: 'Entity Scope, Governance Mandate & Risk Policies',
             clauseRef: 'NIS2 Articles 2, 3, 20, 21.2.a',
             badgeColor: 'bg-amber-600 text-white',
             badgeText: 'Month 1 • Weeks 1 to 4',
@@ -526,8 +582,16 @@ export const getNis2Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     articleRef: 'Art. 27'
                 },
                 {
+                    id: 'nis2_m1_policy',
+                    title: 'Draft Article 21 Master Cybersecurity Risk Policies',
+                    desc: 'Establish the written organizational cybersecurity governance framework, all-hazards risk analysis policy, and statutory compliance objectives.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Create Policy',
+                    articleRef: 'Art. 21(2)(a)'
+                },
+                {
                     id: 'nis2_m1_risk_policy',
-                    title: 'Deploy All-Hazards Cyber Risk Analysis Policies',
+                    title: 'Deploy All-Hazards Cyber Risk Analysis Workflows',
                     desc: 'Establish systematic risk assessment workflows addressing physical security, system vulnerabilities, and human factors.',
                     link: `/clients/${clientId}/risks/register`,
                     cta: 'Risk Register',
@@ -538,7 +602,7 @@ export const getNis2Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
         {
             month: 2,
             weeks: 'Weeks 5 to 8',
-            title: 'Operational Baseline, Supply Chain & Cryptography',
+            title: 'Operational Baseline, Policy Suite & Supply Chain',
             clauseRef: 'NIS2 Article 21(2)(b)–(j)',
             badgeColor: 'bg-orange-600 text-white',
             badgeText: 'Month 2 • Weeks 5 to 8',
@@ -546,6 +610,14 @@ export const getNis2Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
             borderColor: 'border-orange-200',
             textColor: 'text-orange-700',
             tasks: [
+                {
+                    id: 'nis2_m2_policies',
+                    title: 'Author Article 21 Minimum Security Policy Suite',
+                    desc: 'Publish mandatory topic policies: Incident Handling (b), Backup & Crisis (c), Supply Chain (d), CVD Vulnerabilities (e), Crypto (h), and Access/MFA (i, j).',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Generate Policies',
+                    articleRef: 'Art. 21(2)'
+                },
                 {
                     id: 'nis2_m2_sec_measures',
                     title: 'Implement Article 21 10-Point Technical Security Measures',
@@ -675,6 +747,14 @@ export const getFederalRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     articleRef: 'NIST §3.1.3'
                 },
                 {
+                    id: 'fed_m1_policies',
+                    title: 'Author 14 NIST SP 800-171 Family Security Policies',
+                    desc: 'Draft and formally approve governance policies across all 14 NIST families (Access Control, Identification, Audit, Media Protection, Incident Response, etc.).',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Policy Center',
+                    articleRef: 'NIST §3.1–3.14'
+                },
+                {
                     id: 'fed_m1_gap',
                     title: 'Execute Baseline Gap Analysis Against 110 NIST 800-171 Controls',
                     desc: 'Assess implementation status across Access Control, Identification, Incident Response, and Media Protection.',
@@ -715,7 +795,7 @@ export const getFederalRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     id: 'fed_m2_ssp',
                     title: 'Author & Publish System Security Plan (SSP)',
                     desc: 'Draft comprehensive technical narratives documenting control implementation for all 110 controls.',
-                    link: `/clients/${clientId}/federal/ssp`,
+                    link: `/clients/${clientId}/federal/ssp-171`,
                     cta: 'SSP Editor',
                     articleRef: 'NIST §3.12.4'
                 },
@@ -726,6 +806,14 @@ export const getFederalRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/federal/poam`,
                     cta: 'POA&M Tracker',
                     articleRef: 'NIST §3.12.2'
+                },
+                {
+                    id: 'fed_m2_irp',
+                    title: 'Draft Incident Response Plan with DoD 72-Hour DC3 Reporting SOP',
+                    desc: 'Document cyber incident handling procedures, evidence preservation protocols, and mandatory 72-hour reporting to DoD Cyber Crime Center (DC3).',
+                    link: `/clients/${clientId}/cyber/incidents`,
+                    cta: 'Incident SOP',
+                    articleRef: 'DFARS 7012(c)'
                 }
             ]
         },
@@ -810,10 +898,18 @@ export const getSoc2Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                 {
                     id: 'soc2_m1_policies',
                     title: 'Author & Publish 14 Mandatory SOC 2 Security Policies',
-                    desc: 'Draft and executive-approve Access Control, Change Management, Incident Response, Cryptography, and Vendor Risk policies.',
+                    desc: 'Draft, executive-approve, and publish the 14 mandatory SOC 2 governance policies: Information Security, Access Control, Change Management, Incident Response, Cryptography, Vendor Management, Code of Conduct, and Whistleblower.',
                     link: `/clients/${clientId}/policies`,
                     cta: 'Policy Center',
                     articleRef: 'TSC CC2.1'
+                },
+                {
+                    id: 'soc2_m1_system_desc',
+                    title: 'Draft Section III System Description & Principal Service Commitments',
+                    desc: 'Document system architecture, boundaries, infrastructure components, software, people, data flows, and subservice organization carve-outs per AICPA DC 200.',
+                    link: `/clients/${clientId}/soc2/program-guide?tab=system-description`,
+                    cta: 'System Description Studio',
+                    articleRef: 'AICPA DC 200'
                 },
                 {
                     id: 'soc2_m1_roles',
@@ -851,6 +947,14 @@ export const getSoc2Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/people`,
                     cta: 'Access Reviews',
                     articleRef: 'TSC CC6.2'
+                },
+                {
+                    id: 'soc2_m2_change_mgmt',
+                    title: 'Establish Formal Change Management SOP & CI/CD Deployment Gates',
+                    desc: 'Enforce peer code review requirements, automated unit/integration test gates, segregation of duties between dev and prod, and change approval tickets.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'Change SOP',
+                    articleRef: 'TSC CC8.1'
                 },
                 {
                     id: 'soc2_m2_evidence',
@@ -965,6 +1069,14 @@ export const getHipaaRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     articleRef: '§164.308(a)(1)(ii)(A)'
                 },
                 {
+                    id: 'hipaa_m1_sra_doc',
+                    title: 'Formalize Security Risk Analysis (SRA) Report & Remediation Plan',
+                    desc: 'Compile comprehensive NIST SP 800-30 based risk analysis report identifying all technical, administrative, and physical vulnerabilities affecting ePHI.',
+                    link: `/clients/${clientId}/risks/assessments`,
+                    cta: 'SRA Documentation',
+                    articleRef: '§164.308(a)(1)'
+                },
+                {
                     id: 'hipaa_m1_officers',
                     title: 'Designate Privacy & Security Officers & Governance Hierarchy',
                     desc: 'Formally assign statutory HIPAA Privacy and Security Officers with documented executive authority.',
@@ -975,7 +1087,7 @@ export const getHipaaRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                 {
                     id: 'hipaa_m1_policies',
                     title: 'Publish Core HIPAA Security & Privacy Policies',
-                    desc: 'Enforce written policies covering Sanction Policy, Information System Activity Review, Minimum Necessary, and Access Control.',
+                    desc: 'Enforce written statutory policies: Sanction Policy, Information System Activity Review, Minimum Necessary, Access Authorization, and Notice of Privacy Practices.',
                     link: `/clients/${clientId}/policies`,
                     cta: 'HIPAA Policies',
                     articleRef: '§164.316'
@@ -1021,9 +1133,17 @@ export const getHipaaRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     id: 'hipaa_m2_training',
                     title: 'Administer Mandatory Workforce HIPAA & Security Awareness Training',
                     desc: 'Train all staff on ePHI handling, password security, social engineering, and the corporate sanction policy.',
-                    link: `/clients/${clientId}/people`,
-                    cta: 'Training Roster',
+                    link: `/clients/${clientId}/training/management`,
+                    cta: 'Training Management',
                     articleRef: '§164.308(a)(5)'
+                },
+                {
+                    id: 'hipaa_m2_access_review',
+                    title: 'Execute Information System Activity & Audit Trail Review Procedure',
+                    desc: 'Implement formal procedures for regularly reviewing audit logs, access reports, and security incident tracking reports per §164.308(a)(1)(ii)(D).',
+                    link: `/clients/${clientId}/evidence`,
+                    cta: 'Audit Trail SOP',
+                    articleRef: '§164.308(a)(1)'
                 }
             ]
         },
@@ -1112,6 +1232,14 @@ export const getBcpRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/business-continuity/processes`,
                     cta: 'Set RTO/RPO',
                     articleRef: 'Clause 8.2.2'
+                },
+                {
+                    id: 'bcp_m1_policy',
+                    title: 'Author & Publish Business Continuity Policy & Governance Charter',
+                    desc: 'Formulate organizational policy establishing executive BCP sponsorship, testing frequencies, crisis management roles, and departmental compliance duties per ISO 22301 Clause 5.2.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'BCP Policy',
+                    articleRef: 'Clause 5.2'
                 },
                 {
                     id: 'bcp_m1_dependencies',
@@ -1370,6 +1498,14 @@ export const getErmRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     link: `/clients/${clientId}/risks/framework`,
                     cta: 'Taxonomy',
                     articleRef: 'Classification'
+                },
+                {
+                    id: 'erm_m1_policy',
+                    title: 'Author & Publish Enterprise Risk Management Policy',
+                    desc: 'Formulate organizational policy establishing executive risk oversight, risk reporting cadences, escalation trigger levels, and line-of-defense governance per ISO 31000 §5.2.',
+                    link: `/clients/${clientId}/policies`,
+                    cta: 'ERM Policy',
+                    articleRef: 'ISO 31000 §5.2'
                 }
             ]
         },

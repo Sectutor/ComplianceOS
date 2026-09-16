@@ -205,13 +205,13 @@ export default function ISOProgramGuide() {
             summary: 'Author, review, approve, and maintain version-controlled policies and mandatory records mandated by ISO 27001.',
             whyItMatters: 'Missing mandatory documented information (such as Access Control Policy, Incident Response Procedure, or Cryptography Policy) triggers immediate Major Non-Conformities in Stage 1.',
             howToExecute: [
-                '1. Open Documents & Policies to review mandatory ISO 27001 policy templates.',
+                '1. Open Policy Center to author and customize mandatory ISO 27001 policies using pre-built templates or AI generation.',
                 '2. Customize policies to reflect your technical environment (MFA enforcement, AWS/GCP access controls, data retention).',
                 '3. Route policies for formal C-Level approval and distribute to employees for annual acknowledgment.',
-                '4. Track review cadences to ensure all policies are refreshed at least annually.'
+                '4. Track document review cadences, owners, and version history in the ISMS Document Register (/iso27001/documents).'
             ],
-            link: `/clients/${clientId}/iso27001/documents`,
-            cta: 'Manage ISMS Documents'
+            link: `/clients/${clientId}/policies`,
+            cta: 'Open Policy Center'
         },
         {
             id: 'audit',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
@@ -8,7 +8,7 @@ import {
     CheckCircle2, Shield, ShieldCheck, Target, FileText, Zap, AlertTriangle,
     ArrowRight, BookOpen, ArrowLeft, Info, Calendar, Download,
     Sparkles, Copy, Layers, Clock, Globe, Lock, Activity, Server, Users, Award,
-    CalendarClock, CheckSquare, ListTodo, ExternalLink
+    CalendarClock, CheckSquare, ListTodo, ExternalLink, FileCheck
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
@@ -16,19 +16,50 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
 import { getSoc2Roadmap } from '@/data/frameworkRoadmaps';
+import { FrameworkDocumentTracker } from '@/components/documents/FrameworkDocumentTracker';
+import { SOC2SystemDescriptionStudio } from '@/components/soc2/SOC2SystemDescriptionStudio';
 
 export default function SOC2ProgramGuide() {
-    const params = useParams();
+    const params = useParams<{ id?: string; clientId?: string }>();
     const clientId = parseInt(params.id || params.clientId || "0", 10);
     const [, setLocation] = useLocation();
 
     // Read ?tab= query parameter
+    const validTabs = ['tutorials', 'roadmap', 'documents', 'system-description', 'architecture', 'auditor'] as const;
+    type ValidTab = typeof validTabs[number];
+
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const tabParam = searchParams?.get('tab');
-    const validTabs: Array<'tutorials' | 'roadmap' | 'architecture' | 'auditor'> = ['tutorials', 'roadmap', 'architecture', 'auditor'];
-    const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'tutorials';
+    const initialTab: ValidTab = (tabParam && (validTabs as readonly string[]).includes(tabParam))
+        ? (tabParam as ValidTab)
+        : 'tutorials';
 
-    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
+    const [activeTab, setActiveTab] = useState<ValidTab>(initialTab);
+
+    // Keep activeTab in sync if URL query parameter changes
+    useEffect(() => {
+        try {
+            const currentTab = new URLSearchParams(window.location.search).get('tab');
+            if (currentTab && (validTabs as readonly string[]).includes(currentTab) && currentTab !== activeTab) {
+                setActiveTab(currentTab as ValidTab);
+            }
+        } catch {}
+    }, [window.location.search]);
+
+    const handleTabChange = (tab: ValidTab) => {
+        setActiveTab(tab);
+        try {
+            const u = new URL(window.location.href);
+            u.searchParams.set('tab', tab);
+            // Clean up any lingering returnTo on tab switch inside program guide
+            u.searchParams.delete('returnTo');
+            u.searchParams.delete('returnLabel');
+            u.searchParams.delete('frameworkId');
+            u.searchParams.delete('taskId');
+            u.searchParams.delete('taskTitle');
+            window.history.replaceState({}, '', u.toString());
+        } catch {}
+    };
 
     // Fetch real system telemetry
     const { data: clientPolicies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
@@ -212,7 +243,7 @@ export default function SOC2ProgramGuide() {
                     <Button
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setActiveTab('tutorials')}
+                        onClick={() => handleTabChange('tutorials')}
                         className={cn("font-bold text-xs rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <BookOpen className="w-4 h-4 mr-1.5" />
@@ -221,16 +252,34 @@ export default function SOC2ProgramGuide() {
                     <Button
                         variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setActiveTab('roadmap')}
+                        onClick={() => handleTabChange('roadmap')}
                         className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <CalendarClock className="w-4 h-4 mr-1.5" />
                         90-Day Implementation Roadmap
                     </Button>
                     <Button
+                        variant={activeTab === 'documents' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => handleTabChange('documents')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'documents' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <FileCheck className="w-4 h-4 mr-1.5" />
+                        Mandatory Documents
+                    </Button>
+                    <Button
+                        variant={activeTab === 'system-description' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => handleTabChange('system-description')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'system-description' ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <FileText className="w-4 h-4 mr-1.5" />
+                        Section III System Description
+                    </Button>
+                    <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setActiveTab('architecture')}
+                        onClick={() => handleTabChange('architecture')}
                         className={cn("font-bold text-xs rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <Layers className="w-4 h-4 mr-1.5" />
@@ -239,7 +288,7 @@ export default function SOC2ProgramGuide() {
                     <Button
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setActiveTab('auditor')}
+                        onClick={() => handleTabChange('auditor')}
                         className={cn("font-bold text-xs rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <ShieldCheck className="w-4 h-4 mr-1.5" />
@@ -310,6 +359,23 @@ export default function SOC2ProgramGuide() {
                     </div>
                 )}
 
+                {/* TAB: Mandatory Documents */}
+                {activeTab === 'documents' && (
+                    <div className="space-y-6">
+                        <FrameworkDocumentTracker framework="soc2" clientId={clientId} />
+                    </div>
+                )}
+
+                {/* TAB: Section III System Description Studio */}
+                {activeTab === 'system-description' && (
+                    <div className="space-y-6">
+                        <SOC2SystemDescriptionStudio
+                            clientId={clientId}
+                            onBackToRoadmap={() => setActiveTab('roadmap')}
+                        />
+                    </div>
+                )}
+
                 {/* TAB 3: Architecture Boundary */}
                 {activeTab === 'architecture' && (
                     <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
@@ -372,8 +438,9 @@ export default function SOC2ProgramGuide() {
                             <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
                                 <h4 className="font-bold text-sm text-slate-900">Section III: Management System Description</h4>
                                 <p className="text-xs text-slate-600">Complete architectural description, principal service commitments, and system requirements ready for the audit report body.</p>
-                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("System description template generated!")}>
-                                    Generate System Description
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => setActiveTab('system-description')}>
+                                    Open System Description Studio
+                                    <ArrowRight className="w-3.5 h-3.5 ml-1" />
                                 </Button>
                             </div>
                             <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
