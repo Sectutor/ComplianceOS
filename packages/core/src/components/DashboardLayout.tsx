@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag, Bot, UserCheck, Webhook, ArrowLeft
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag, Bot, UserCheck, Webhook, ArrowLeft, HeartPulse
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -172,7 +172,7 @@ const globalMenuItems = [
   { icon: Shield, label: "Global Control Library", path: "/controls" },
   { icon: FileText, label: "Policy Templates", path: "/policy-templates" },
   { icon: Scale, label: "Compliance Obligations", path: "/compliance-obligations" },
-  { icon: Target, label: "Strategic Roadmaps", path: "/roadmap" },
+  { icon: Target, label: "Strategic Roadmaps", path: "/start-here" },
   { icon: Calendar, label: "Implementation Plans", path: "/implementation" },
 ];
 
@@ -414,19 +414,47 @@ function DashboardLayoutContent({
   const persistentClientId = selectedClientId || activeClientId;
 
   // Roadmap return navigation tracking
-  const [returnContext, setReturnContext] = useState<{ url: string; label: string } | null>(null);
+  const [returnContext, setReturnContext] = useState<{
+    url: string;
+    label: string;
+    frameworkId?: string;
+    taskId?: string;
+    taskTitle?: string;
+  } | null>(null);
   const [dismissedReturnUrl, setDismissedReturnUrl] = useState<string | null>(null);
+  const [markingComplete, setMarkingComplete] = useState(false);
+
 
   useEffect(() => {
     try {
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get('returnTo');
       const returnLabel = searchParams.get('returnLabel');
+      const taskId = searchParams.get('taskId') || undefined;
+      const taskTitle = searchParams.get('taskTitle') || undefined;
+      const frameworkIdParam = searchParams.get('frameworkId') || undefined;
+
+      // Extract frameworkId from returnTo path if not explicit (e.g., /clients/18/iso27001/program-guide)
+      let detectedFrameworkId = frameworkIdParam;
+      if (!detectedFrameworkId && returnTo) {
+        const fwMatch = returnTo.match(/\/clients\/\d+\/([a-zA-Z0-9_-]+)\/program-guide/);
+        if (fwMatch) detectedFrameworkId = fwMatch[1];
+      }
 
       if (returnTo && returnTo !== location) {
+        // Also check if sessionStorage has richer data for this URL
+        let storedFw: string | undefined;
+        try {
+          const s = sessionStorage.getItem('cos_roadmap_return_nav');
+          if (s) storedFw = JSON.parse(s)?.frameworkId;
+        } catch {}
+
         setReturnContext({
           url: returnTo,
-          label: returnLabel || '90-Day Roadmap'
+          label: returnLabel || '90-Day Roadmap',
+          frameworkId: detectedFrameworkId || storedFw,
+          taskId,
+          taskTitle,
         });
         return;
       }
@@ -438,7 +466,10 @@ function DashboardLayoutContent({
         if (parsed.url && parsed.url !== location && (Date.now() - (parsed.timestamp || 0)) < 2 * 60 * 60 * 1000) {
           setReturnContext({
             url: parsed.url,
-            label: parsed.label || '90-Day Roadmap'
+            label: parsed.label || '90-Day Roadmap',
+            frameworkId: parsed.frameworkId,
+            taskId: parsed.taskId,
+            taskTitle: parsed.taskTitle,
           });
           return;
         } else if (parsed.url === location) {
@@ -451,6 +482,9 @@ function DashboardLayoutContent({
       setReturnContext(null);
     }
   }, [location]);
+
+
+
 
 
 
@@ -470,6 +504,23 @@ function DashboardLayoutContent({
       retry: false
     }
   );
+
+  const toggleRoadmapTaskMutation = trpc.frameworkRoadmapGates.toggleRoadmapTask.useMutation({
+    onSuccess: () => {
+      toast.success('Task marked complete!', { description: 'Returning to roadmap...' });
+      setMarkingComplete(false);
+      sessionStorage.removeItem('cos_roadmap_return_nav');
+      if (returnContext) setLocation(returnContext.url);
+    },
+    onError: () => {
+      toast.error('Failed to save. Returning anyway.');
+      setMarkingComplete(false);
+      sessionStorage.removeItem('cos_roadmap_return_nav');
+      if (returnContext) setLocation(returnContext.url);
+    },
+  });
+
+
 
   const { data: clientsData } = trpc.clients.list.useQuery(undefined, { retry: false });
 
@@ -679,7 +730,6 @@ function DashboardLayoutContent({
     {
       label: "Platform & Overview",
       items: [
-        { icon: Rocket, label: "Start Here", path: "/start-here" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Bot, label: "Agent", path: "/agent" },
         { icon: Users, label: "Clients", path: "/clients" },
@@ -690,6 +740,33 @@ function DashboardLayoutContent({
       ]
     },
     {
+      label: "Start Here & Roadmaps",
+      items: [
+        { icon: Rocket, label: "Start Here Launchpad", path: "/start-here" },
+        { icon: Target, label: "Strategic Roadmaps", path: "/start-here" },
+        ...(persistentClientId ? [
+          {
+            icon: Compass,
+            label: "Framework Program Guides",
+            path: `/clients/${persistentClientId}/iso27001/program-guide`,
+            submenu: [
+              { label: "ISO 27001 ISMS Guide", path: `/clients/${persistentClientId}/iso27001/program-guide` },
+              { label: "SOC 2 Type II Guide", path: `/clients/${persistentClientId}/soc2/program-guide` },
+              { label: "HIPAA Compliance Guide", path: `/clients/${persistentClientId}/hipaa/program-guide` },
+              { label: "NIS2 & Cyber Resilience Guide", path: `/clients/${persistentClientId}/cyber/program-guide` },
+              { label: "GDPR & Privacy Guide", path: `/clients/${persistentClientId}/privacy/program-guide` },
+              { label: "Business Continuity (BCP) Guide", path: `/clients/${persistentClientId}/business-continuity/program-guide` },
+              { label: "Vendor Risk (TPRM) Guide", path: `/clients/${persistentClientId}/vendors/program-guide` },
+              { label: "Enterprise Risk (ERM) Guide", path: `/clients/${persistentClientId}/risks/program-guide` },
+              { label: "Federal & CMMC Guide", path: `/clients/${persistentClientId}/federal/program-guide` },
+            ]
+          }
+        ] : []),
+        { icon: Calendar, label: "Implementation Plans", path: "/implementation/dashboard" },
+        { icon: BookOpen, label: "Roadmap Templates", path: "/roadmap/templates" },
+      ]
+    },
+    {
       label: "Libraries & Knowledge",
       items: [
         { icon: Shield, label: "Global Control Library", path: "/controls" },
@@ -697,15 +774,14 @@ function DashboardLayoutContent({
         ...(persistentClientId ? [
           { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
         ] : []),
-        { icon: LayoutGrid, label: "Frameworks Library", path: "/frameworks" },
-        learningZoneMenuItem
+        { icon: BookOpen, label: "Compliance Guides", path: "/guides" },
       ]
     },
   ];
 
+  // In Client Mode: Inject client-scoped framework sections
   if (persistentClientId) {
-    // Add Workflows to Platform & Overview group
-    const platformGroup = groups.find(g => g.label === "Platform & Overview");
+    const platformGroup = groups.find((g) => g.label === "Platform & Overview");
     if (platformGroup) {
       platformGroup.items.push({ icon: Zap, label: "Workflows", path: "/workflows" });
     }
@@ -715,6 +791,8 @@ function DashboardLayoutContent({
         label: "Compliance Journey",
         items: [
           { icon: Compass, label: "Overview", path: `/clients/${persistentClientId}/compliance-journey` },
+          { icon: BookOpen, label: "SOC 2 Program Guide & Roadmap", path: `/clients/${persistentClientId}/soc2/program-guide` },
+          { icon: HeartPulse, label: "HIPAA Program Guide & Roadmap", path: `/clients/${persistentClientId}/hipaa/program-guide` },
           {
             icon: Star,
             label: "Discovery & Scoping",
@@ -735,6 +813,7 @@ function DashboardLayoutContent({
         label: "ISO 27001 ISMS",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/iso27001" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/iso27001/program-guide` },
           { icon: ShieldCheck, label: "Organization Context", path: "/iso27001/governance" },
           { icon: ClipboardList, label: "Statement of Applicability", path: "/iso27001/soa" },
           { icon: AlertTriangle, label: "Risk Management", path: "/iso27001/risks" },
@@ -753,9 +832,9 @@ function DashboardLayoutContent({
           {
             icon: Target,
             label: "Strategic Roadmaps",
-            path: "/roadmap",
+            path: "/start-here",
             submenu: [
-              { label: "Roadmap Dashboard", path: "/roadmap/dashboard" },
+              { label: "Command Center", path: "/start-here" },
               { label: "Implementation Plans", path: "/implementation/dashboard" },
               { label: "Roadmap Templates", path: "/roadmap/templates" }
             ]
@@ -778,6 +857,7 @@ function DashboardLayoutContent({
         label: "Risk Management",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/risks" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/risks/program-guide` },
           { icon: LayoutGrid, label: "Risk Framework", path: "/risks/framework" },
           { icon: ClipboardCheck, label: "Risk Assessments", path: "/risks/assessments" },
           { icon: Compass, label: "Guided Assessment", path: "/risks/guided" },
@@ -814,10 +894,23 @@ function DashboardLayoutContent({
 
 
     groups.push({
-      label: "AI & App Security",
+      label: "Autonomous AI Agents",
       items: [
-        { icon: Shield, label: "Security Projects", path: "/projects" },
+        {
+          icon: Bot,
+          label: "Agent Command Center",
+          path: "/agent",
+          submenu: [
+            { label: "Multi-Agent Cockpit", path: "/agent" },
+            { label: "Sentinel & Action Inbox", path: "/agent?tab=sentinel" },
+            { label: "Fleet Directory", path: "/agent?tab=teammates" },
+            { label: "Approval Inbox", path: "/agent?tab=approvals" },
+            { label: "Scheduled Routines", path: "/agent?tab=routines" },
+            { label: "Memory Cortex (VFS)", path: "/agent?tab=memory" },
+          ]
+        },
         { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
+        { icon: Shield, label: "Security Projects", path: "/projects" },
         { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
       ]
     });
@@ -829,6 +922,7 @@ function DashboardLayoutContent({
         label: "Vendor Management",
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/vendors/overview" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/vendors/program-guide` },
           { icon: Building2, label: "All Vendors", path: "/vendors/all" },
           { icon: Search, label: "Discovery", path: "/vendors/discovery" },
           { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
@@ -855,6 +949,7 @@ function DashboardLayoutContent({
         label: "Federal Compliance",
         items: [
           { icon: Building2, label: "Overview", path: "/federal" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/federal/program-guide` },
           { icon: FileText, label: "Contract Tracker", path: "/federal/contracts" },
           { icon: Cloud, label: "FedRAMP Packages", path: "/federal/fedramp" },
           { icon: ShieldCheck, label: "NIST 800-53 Rev 5", path: "/federal/800-53" },
@@ -878,6 +973,7 @@ function DashboardLayoutContent({
         label: "Business Continuity",
         items: [
           { icon: Activity, label: "Overview", path: "/business-continuity" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/business-continuity/program-guide` },
           { icon: Database, label: "Business Processes", path: "/business-continuity/processes" },
           { icon: Shield, label: "Strategies", path: "/business-continuity/strategies" },
           { icon: ClipboardList, label: "Plans", path: "/business-continuity/plans" },
@@ -890,6 +986,7 @@ function DashboardLayoutContent({
         label: "Privacy",
         items: [
           { icon: Lock, label: "Overview", path: "/privacy" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/privacy/program-guide` },
           { icon: Database, label: "Data Inventory", path: "/privacy/inventory" },
           { icon: FileText, label: "ROPA", path: "/privacy/ropa" },
           { icon: ShieldAlert, label: "Data Breaches", path: "/privacy/breaches" },
@@ -902,6 +999,7 @@ function DashboardLayoutContent({
         label: "NIS2 & Cyber Resilience",
         items: [
           { icon: ShieldCheck, label: "Overview", path: "/cyber" },
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/cyber/program-guide` },
           { icon: Building2, label: "Cyber Resilience Hub", path: `/clients/${persistentClientId}/nis2` },
           { icon: Shield, label: "Security Measures", path: `/clients/${persistentClientId}/nis2/security-measures` },
           { icon: AlertTriangle, label: "Incident Reporting", path: `/clients/${persistentClientId}/nis2/incident-reporting` },
@@ -1451,7 +1549,7 @@ function DashboardLayoutContent({
                   sessionStorage.removeItem('cos_roadmap_return_nav');
                   setLocation(returnContext.url);
                 }}
-                className="h-8 gap-1.5 px-2.5 bg-blue-50/90 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center shrink-0"
+                className="h-8 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white border-blue-500 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center shrink-0"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Back to {returnContext.label}</span>
@@ -1521,46 +1619,93 @@ function DashboardLayoutContent({
             {/* Language switcher: hidden pending full i18n page coverage */}
             {/* <LanguageSwitcher compact /> */}
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
+            <button
+              onClick={() => setLocation('/agent?tab=sentinel')}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all cursor-pointer text-xs font-bold shadow-xs shrink-0"
+              title="Autonomous Sentinel AI Patrol Active"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden md:inline font-semibold">AI Sentinel</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-200/80 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200 font-extrabold">
+                Active
+              </span>
+            </button>
             <ExtensionSlot name="topbar.copilot-help" />
             <GlobalNotificationCenter />
           </div>
         </div>
         <div className={`flex-1 bg-background w-full max-w-full ${fullWidth ? "px-4 md:px-8 py-4" : "px-4 md:px-8 py-8"}`}>
           {returnContext && dismissedReturnUrl !== returnContext.url && (
-            <div className="mb-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-slate-50 dark:from-blue-950/50 dark:via-indigo-950/30 dark:to-slate-900/50 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-3.5 px-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="mb-6 bg-slate-900 text-white border border-slate-700/80 rounded-2xl p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-md">
                   <Compass className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-foreground flex items-center gap-2 flex-wrap">
-                    <span>Roadmap Navigation Active</span>
-                    <span className="text-[10px] py-0.5 px-2 font-bold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  <div className="text-xs font-bold flex items-center gap-2 flex-wrap">
+                    <span className="text-white font-extrabold tracking-tight">Roadmap Navigation Active</span>
+                    <span className="text-[10px] py-0.5 px-2.5 font-bold rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
                       {returnContext.label}
                     </span>
+                    {returnContext.taskTitle && (
+                      <span className="text-[10px] py-0.5 px-2.5 font-bold rounded-full bg-slate-800 text-white border border-slate-600 truncate max-w-[280px]">
+                        Task: {returnContext.taskTitle}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    You opened this page from the 90-day roadmap. Complete your tasks here and return when ready.
+                  <p className="text-[11px] text-slate-300 mt-0.5 truncate font-normal">
+                    {returnContext.taskId
+                      ? 'Complete the task on this page, then mark it done to return to your roadmap.'
+                      : 'You opened this page from the 90-day roadmap. Complete your tasks here and return when ready.'}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+                {returnContext.taskId && persistentClientId && returnContext.frameworkId && (
+                  <Button
+                    size="sm"
+                    disabled={markingComplete}
+                    onClick={() => {
+                      setMarkingComplete(true);
+                      toggleRoadmapTaskMutation.mutate({
+                        clientId: persistentClientId as number,
+                        frameworkId: returnContext.frameworkId!,
+                        taskId: returnContext.taskId!,
+                        completed: true,
+                        taskTitle: returnContext.taskTitle,
+                      });
+                    }}
+                    className="h-8 text-xs font-bold gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-md transition-colors"
+                  >
+                    {markingComplete ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    )}
+                    {markingComplete ? 'Saving...' : '✓ Mark Complete & Return'}
+                  </Button>
+                )}
                 <Button
                   size="sm"
+                  variant="outline"
                   onClick={() => {
                     sessionStorage.removeItem('cos_roadmap_return_nav');
                     setLocation(returnContext.url);
                   }}
-                  className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  className="h-8 text-xs font-bold gap-1.5 bg-slate-800 hover:bg-slate-700 text-white border-slate-600 shadow-sm"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  Back to {returnContext.label}
+                  {returnContext.taskId ? 'Return without Completing' : `Back to ${returnContext.label}`}
                 </Button>
                 <button
                   onClick={() => {
                     setDismissedReturnUrl(returnContext.url);
                   }}
-                  className="h-7 w-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-muted-foreground hover:text-foreground flex items-center justify-center text-xs transition-colors"
+                  className="h-7 w-7 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition-colors"
                   title="Dismiss notice"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1613,15 +1758,16 @@ function CollapsibleGroup({
     return false;
   });
 
-  // Initialize open state based on whether group contains active item
-  const [isOpen, setIsOpen] = useState(forceOpen || containsActiveItem);
+  // Initialize open state based on whether group contains active item or is a primary group
+  const isDefaultOpen = group.label === "Platform & Overview" || group.label === "Start Here & Roadmaps";
+  const [isOpen, setIsOpen] = useState(forceOpen || containsActiveItem || isDefaultOpen);
 
   // Update open state when the active item changes (e.g., during navigation)
   useEffect(() => {
-    if (forceOpen || containsActiveItem) {
+    if (forceOpen || containsActiveItem || isDefaultOpen) {
       setIsOpen(true);
     }
-  }, [forceOpen, containsActiveItem]);
+  }, [forceOpen, containsActiveItem, isDefaultOpen]);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="group/collapsible">

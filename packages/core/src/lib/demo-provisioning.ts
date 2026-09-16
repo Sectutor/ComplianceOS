@@ -18,7 +18,8 @@ import {
   clientFrameworks, clientControls, vendors, vendorAssessments,
   evidence, incidents, riskTreatments, complianceCertificates,
   clientPolicies, assets, riskScenarios, processingActivities,
-  dsarRequests, businessProcesses, reportLogs
+  dsarRequests, businessProcesses, reportLogs, employees, vulnerabilities,
+  orgRoles
 } from '../schema';
 import { eq, asc } from 'drizzle-orm';
 
@@ -355,6 +356,92 @@ export async function provisionLaTorreDemo(newClientId: number): Promise<void> {
         certificateNumber: `${c.certificateNumber}-C${newClientId}`,
         issueDate: c.issueDate,
         expiryDate: c.expiryDate,
+      }))
+    );
+  }
+
+  // 16. Organizational Roles
+  const srcOrgRoles = await db
+    .select()
+    .from(orgRoles)
+    .where(eq(orgRoles.clientId, LATORRE_CLIENT_ID));
+  const roleIdMap = new Map<number, number>();
+  if (srcOrgRoles.length > 0) {
+    for (const r of srcOrgRoles) {
+      const inserted = await db
+        .insert(orgRoles)
+        .values({
+          clientId: newClientId,
+          title: r.title,
+          description: r.description,
+          responsibilities: r.responsibilities,
+          department: r.department,
+          reportingRoleId: null, // set in second pass to preserve hierarchy
+        })
+        .returning({ id: orgRoles.id });
+      roleIdMap.set(r.id, inserted[0].id);
+    }
+
+    // Update reportingRoleId links
+    for (const r of srcOrgRoles) {
+      if (r.reportingRoleId && roleIdMap.has(r.reportingRoleId)) {
+        const newRoleId = roleIdMap.get(r.id)!;
+        const newReportingRoleId = roleIdMap.get(r.reportingRoleId)!;
+        await db
+          .update(orgRoles)
+          .set({ reportingRoleId: newReportingRoleId })
+          .where(eq(orgRoles.id, newRoleId));
+      }
+    }
+  }
+
+  // 17. Corporate Employees
+  const srcEmployees = await db
+    .select()
+    .from(employees)
+    .where(eq(employees.clientId, LATORRE_CLIENT_ID));
+  if (srcEmployees.length > 0) {
+    await db.insert(employees).values(
+      srcEmployees.map((e) => ({
+        clientId: newClientId,
+        firstName: e.firstName,
+        lastName: e.lastName,
+        email: e.email,
+        jobTitle: e.jobTitle,
+        department: e.department,
+        role: e.role,
+        orgRoleId: e.orgRoleId && roleIdMap.has(e.orgRoleId) ? roleIdMap.get(e.orgRoleId) : null,
+        employmentStatus: e.employmentStatus,
+        startDate: e.startDate,
+      }))
+    );
+  }
+
+  // 18. Security Vulnerabilities
+  const srcVulns = await db
+    .select()
+    .from(vulnerabilities)
+    .where(eq(vulnerabilities.clientId, LATORRE_CLIENT_ID));
+  if (srcVulns.length > 0) {
+    await db.insert(vulnerabilities).values(
+      srcVulns.map((v) => ({
+        clientId: newClientId,
+        vulnerabilityId: v.vulnerabilityId,
+        name: v.name,
+        description: v.description,
+        cveId: v.cveId,
+        cvssScore: v.cvssScore,
+        severity: v.severity,
+        affectedAssets: v.affectedAssets,
+        discoveryDate: v.discoveryDate,
+        source: v.source,
+        exploitability: v.exploitability,
+        impact: v.impact,
+        status: v.status,
+        owner: v.owner,
+        remediationPlan: v.remediationPlan,
+        dueDate: v.dueDate,
+        lastReviewDate: v.lastReviewDate,
       }))
     );
   }

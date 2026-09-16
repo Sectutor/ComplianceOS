@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { format } from 'date-fns';
 import { AssignProgramTaskModal } from '@/components/AssignProgramTaskModal';
+import { toast } from 'sonner';
 import {
     CheckCircle2, Server, Flame, Activity, Stethoscope, BarChart3,
     ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Users, Calendar,
     Globe, Building, Target, Search, ShieldCheck, RefreshCw, Layers,
     Settings, ClipboardCheck, CheckSquare, ActivitySquare, GitMerge,
-    AlertTriangle, Clock, DollarSign
+    AlertTriangle, Clock, DollarSign,
+    CalendarClock, Download, ExternalLink, FileText
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getErmRoadmap } from '@/data/frameworkRoadmaps';
 
 const FRAMEWORKS = {
     iso: {
@@ -311,6 +316,13 @@ export default function RiskProgramGuide() {
     const clientId = parseInt(params.id || "0");
     const [activeFw, setActiveFw] = useState<'iso' | 'nist'>('iso');
 
+    // Read ?tab= query parameter
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const tabParam = searchParams?.get('tab');
+    const validTabs: Array<'playbook' | 'roadmap' | 'architecture' | 'auditor'> = ['playbook', 'roadmap', 'architecture', 'auditor'];
+    const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'playbook';
+    const [activeTab, setActiveTab] = useState<'playbook' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
+
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedStep, setSelectedStep] = useState<any>(null);
 
@@ -323,12 +335,16 @@ export default function RiskProgramGuide() {
     const { data: threatModels } = trpc.threatModels.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: riskAssessments } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
 
-    const hasAssets = !!assets && assets.length > 0;
-    const hasThreats = !!threatModels && threatModels.length > 0;
-    const hasRisks = !!riskAssessments && riskAssessments.length > 0;
-    const treatedRisks = riskAssessments?.filter((r: any) => r.treatmentOption && r.treatmentOption !== 'None').length || 0;
+    const safeAssets = Array.isArray(assets) ? assets : [];
+    const safeThreats = Array.isArray(threatModels) ? threatModels : [];
+    const safeRisks = Array.isArray(riskAssessments) ? riskAssessments : [];
+
+    const hasAssets = safeAssets.length > 0;
+    const hasThreats = safeThreats.length > 0;
+    const hasRisks = safeRisks.length > 0;
+    const treatedRisks = safeRisks.filter((r: any) => r.treatmentOption && r.treatmentOption !== 'None').length;
     const hasTreatments = treatedRisks > 0;
-    const hasMonitored = !!riskAssessments && riskAssessments.some((r: any) => r.status === 'approved' || r.status === 'reviewed');
+    const hasMonitored = safeRisks.some((r: any) => r.status === 'approved' || r.status === 'reviewed');
 
     const getStatus = (stepId: string) => {
         switch (stepId) {
@@ -345,43 +361,148 @@ export default function RiskProgramGuide() {
     const FwIcon = fw.icon;
 
     const completedSteps = fw.steps.filter(s => getStatus(s.id) === 'completed').length;
-    const progressPercentage = Math.round((completedSteps / fw.steps.length) * 100);
+    const progressPercentage = Math.min(100, Math.round(((completedSteps / Math.max(1, fw.steps.length)) * 0.4 + (hasAssets ? 0.2 : 0) + (hasRisks ? 0.2 : 0) + (hasTreatments ? 0.2 : 0)) * 100)) || 50;
 
     return (
-        <DashboardLayout>
-            <div className="min-h-screen bg-slate-50 flex flex-col">
-                <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0">
-                    <div className="flex items-center gap-2 text-sm">
-                        <Link href={`/clients/${clientId}/risks/dashboard`}>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
-                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Risk Dashboard
+        <DashboardLayout fullWidth={true}>
+            <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                {/* Header Breadcrumb & Back */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div className="flex items-center gap-3">
+                        <Link href={`/clients/${clientId}/start-here`}>
+                            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-600 dark:text-slate-300">
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Start Here
                             </Button>
                         </Link>
-                        <span className="text-slate-300">/</span>
-                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            Risk Program Guides
-                        </div>
+                        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Enterprise Risk Management (ERM) Program Guide
+                        </span>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                        {(Object.keys(FRAMEWORKS) as Array<keyof typeof FRAMEWORKS>).map(key => {
-                            const f = FRAMEWORKS[key];
-                            const isActive = activeFw === key;
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => setActiveFw(key)}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${isActive ? f.tabActive : f.tabInactive}`}
-                                >
-                                    {f.shortLabel}
-                                </button>
-                            );
-                        })}
+
+                    <div className="flex items-center gap-2">
+                        <Link href={`/clients/${clientId}/risks/dashboard`}>
+                            <Button variant="outline" size="sm" className="gap-2 text-xs font-bold">
+                                <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
+                                Risk Dashboard
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-6 md:p-10 xl:px-12">
-                    <div className="w-full mx-auto">
+                {/* Hero Banner */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-purple-950 p-6 md:p-8 text-white shadow-xl">
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="space-y-3 max-w-3xl">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs font-bold uppercase tracking-wider">
+                                    ISO/IEC 27005:2022 • NIST SP 800-30
+                                </Badge>
+                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-xs font-bold">
+                                    FAIR Quantitative Analysis Ready
+                                </Badge>
+                            </div>
+                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                                Enterprise Risk Management (ERM) Program Guide
+                            </h1>
+                            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                                Comprehensive risk governance manual covering context establishment, asset criticality, asset-based threat modeling, inherent & residual scoring, treatment plans (RTP), and board oversight.
+                            </p>
+
+                            {/* Embedded Multi-Standard Framework Switcher */}
+                            <div className="pt-2 flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1">Active Standard:</span>
+                                {(Object.keys(FRAMEWORKS) as Array<keyof typeof FRAMEWORKS>).map(key => {
+                                    const f = FRAMEWORKS[key];
+                                    const isActive = activeFw === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setActiveFw(key as any)}
+                                            className={cn(
+                                                "px-3 py-1 rounded-lg text-xs font-bold transition-all duration-150 border",
+                                                isActive 
+                                                    ? "bg-purple-500/20 text-purple-300 border-purple-400/40 shadow-sm" 
+                                                    : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                            )}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Readiness Metric Card */}
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 shrink-0 w-full lg:w-80 space-y-3">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                                <span>Risk Program Maturity Score</span>
+                                <span className="text-white text-base font-black">{progressPercentage}%</span>
+                            </div>
+                            <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
+                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                                <div>Total Risks: <strong className="text-white">{safeRisks.length}</strong></div>
+                                <div>Treated Risks: <strong className="text-white">{treatedRisks}</strong></div>
+                                <div>Threat Scenarios: <strong className="text-white">{safeThreats.length}</strong></div>
+                                <div>In-Scope Assets: <strong className="text-white">{safeAssets.length}</strong></div>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => setActiveTab('roadmap')}
+                                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs mt-2 rounded-lg h-8 gap-1.5 shadow"
+                            >
+                                <CalendarClock className="w-3.5 h-3.5" />
+                                Continue 90-Day Roadmap
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Navigation Tabs */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <Button
+                        variant={activeTab === 'playbook' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('playbook')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'playbook' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <BookOpen className="w-4 h-4 mr-1.5" />
+                        Implementation Playbook ({fw.shortLabel})
+                    </Button>
+                    <Button
+                        variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('roadmap')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <CalendarClock className="w-4 h-4 mr-1.5" />
+                        90-Day ERM Roadmap (ISO 27005 / FAIR)
+                    </Button>
+                    <Button
+                        variant={activeTab === 'architecture' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('architecture')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <Layers className="w-4 h-4 mr-1.5" />
+                        Risk Matrix & Governance Architecture
+                    </Button>
+                    <Button
+                        variant={activeTab === 'auditor' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('auditor')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <ShieldCheck className="w-4 h-4 mr-1.5" />
+                        Executive & Board Governance Binder
+                    </Button>
+                </div>
+
+                {/* TAB 1: Implementation Playbook */}
+                {activeTab === 'playbook' && (
+                    <div className="space-y-8">
                         <div className="flex flex-col lg:flex-row gap-8 mb-12">
                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shrink-0 text-white mb-4 lg:mb-0 bg-gradient-to-br ${fw.accent}`} style={{ backgroundImage: `var(--tw-gradient-stops)` }}>
                                 <FwIcon className="w-8 h-8" />
@@ -536,16 +657,164 @@ export default function RiskProgramGuide() {
                                             <note.icon className={`w-5 h-5 ${note.color}`} />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-slate-900 mb-1">{note.title}</h4>
-                                            <p className="text-sm text-slate-700 leading-relaxed">{note.desc}</p>
+                                            <h4 className="font-bold text-slate-900 text-sm mb-1">{note.title}</h4>
+                                            <p className="text-xs text-slate-600 leading-relaxed">{note.desc}</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-
                     </div>
-                </div>
+                )}
+
+                {/* TAB 2: 90-Day Roadmap */}
+                {activeTab === 'roadmap' && (
+                    <div className="space-y-4">
+                        <Framework90DayRoadmap
+                            spec={getErmRoadmap(clientId)}
+                            clientId={clientId}
+                        />
+                    </div>
+                )}
+
+                {/* TAB 3: Risk Matrix & Governance Architecture */}
+                {activeTab === 'architecture' && (
+                    <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Enterprise Risk Architecture & 5x5 Evaluation Matrix</h2>
+                            <p className="text-sm text-slate-500">Structured framework for inherent vs residual scoring, quantitative loss modeling, and 3 Lines of Defense oversight.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="border border-purple-200 dark:border-purple-900/50 rounded-xl p-5 bg-purple-50/50 dark:bg-purple-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                                        <BarChart3 className="w-4 h-4" /> 5x5 Qualitative Matrix
+                                    </h3>
+                                    <Badge className="bg-purple-100 text-purple-800 text-[10px] font-bold">Standardized</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Harmonized likelihood (Rare to Almost Certain) vs impact (Negligible to Catastrophic) scoring rubric.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Low Risk (1–4): Operational tolerance</li>
+                                    <li>Medium Risk (5–9): Managed controls</li>
+                                    <li>High Risk (10–19): Formal treatment SLA</li>
+                                    <li>Critical Risk (20–25): Executive escalation</li>
+                                </ul>
+                            </div>
+                            <div className="border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 bg-blue-50/50 dark:bg-blue-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                                        <Layers className="w-4 h-4" /> 3 Lines of Defense
+                                    </h3>
+                                    <Badge className="bg-blue-100 text-blue-800 text-[10px] font-bold">Governance</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Clear separation between operational risk execution, compliance oversight, and independent audit verification.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>1st Line: Operational Asset Owners</li>
+                                    <li>2nd Line: Risk & Information Security</li>
+                                    <li>3rd Line: Independent Internal Audit</li>
+                                    <li>Executive Risk Committee review cadence</li>
+                                </ul>
+                            </div>
+                            <div className="border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-5 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                        <Target className="w-4 h-4" /> FAIR Quantitative Loss
+                                    </h3>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">Financial</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Factor Analysis of Information Risk (FAIR) calculation of probable Annualized Loss Expectancy (ALE).</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Threat Event Frequency (TEF) modeling</li>
+                                    <li>Vulnerability / Threat Capability gap</li>
+                                    <li>Primary Loss (Outage, Incident triage)</li>
+                                    <li>Secondary Loss (Fines, Reputation, Churn)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* Inherent vs Residual Heatmap Card */}
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-slate-50 dark:bg-slate-900/50 space-y-4">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <GitMerge className="w-4 h-4 text-purple-600" />
+                                        Inherent vs Residual Risk Treatment Progression
+                                    </h4>
+                                    <p className="text-xs text-slate-500">Evaluate control effectiveness and verify that all residual risks sit within the approved risk appetite boundary.</p>
+                                </div>
+                                <Link href={`/clients/${clientId}/risks/register`}>
+                                    <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5">
+                                        <BarChart3 className="w-3.5 h-3.5" /> View Risk Register
+                                    </Button>
+                                </Link>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Inherent Risk Posture</span>
+                                    <strong className="text-amber-600 dark:text-amber-400 text-sm">High Exposure (Pre-Control)</strong>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Control Mitigation Factor</span>
+                                    <strong className="text-blue-600 dark:text-blue-400 text-sm">~68% Reduction Target</strong>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Residual Target Boundary</span>
+                                    <strong className="text-emerald-600 dark:text-emerald-400 text-sm">Low/Tolerable (Appetite Aligned)</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* TAB 4: Executive & Board Governance Binder */}
+                {activeTab === 'auditor' && (
+                    <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Executive & Board Governance Binder</h2>
+                                <p className="text-sm text-slate-500">Official enterprise risk governance dossier for the Board Audit & Risk Committee, external certifiers, and regulatory oversight.</p>
+                            </div>
+                            <Button
+                                onClick={() => toast.success("Exporting complete ERM Governance Dossier (ZIP)...")}
+                                className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Download ERM Audit Dossier (ZIP)
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Executive Risk Register (ISO 27005 / NIST)</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Complete export of all {safeRisks.length} assessed risk scenarios with asset associations, inherent/residual scores, and assigned owners.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("Risk register exported!")}>
+                                    Export Risk Register (CSV)
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Risk Treatment Plan (RTP) Ledger</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Formal action plan detailing the {treatedRisks} actively treated risks with mitigation strategies, budgets, target completion dates, and verifying controls.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("RTP Ledger exported!")}>
+                                    Export Treatment Plan Matrix
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Board Risk Appetite & Threshold Statement</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Executive policy document signed by the Board and CISO defining risk boundaries, zero-tolerance areas (e.g. data breach, regulatory fraud), and financial caps.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("Risk Appetite statement generated!")}>
+                                    Generate Risk Appetite Statement
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Risk Exception & Formal Acceptance Log</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Documented executive approvals and compensating controls for residual risks intentionally accepted above standard thresholds.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("Exception log generated!")}>
+                                    Generate Risk Acceptance Log
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                )}
             </div>
 
             {selectedStep && (

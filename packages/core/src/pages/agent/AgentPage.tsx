@@ -541,7 +541,24 @@ export function AgentPage() {
     ? groupedRecent.map(g => ({ ...g, items: g.items.filter(c => c.title.toLowerCase().includes(searchQ.toLowerCase())) })).filter(g => g.items.length > 0)
     : groupedRecent;
 
-  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'sentinel' | 'memory' | 'teammates' | 'approvals' | 'routines' | 'chat'>('cockpit');
+  const [activeMainTab, setActiveMainTab] = useState<'cockpit' | 'sentinel' | 'memory' | 'teammates' | 'approvals' | 'routines' | 'chat'>(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p && ['cockpit', 'sentinel', 'memory', 'teammates', 'approvals', 'routines', 'chat'].includes(p)) {
+        return p as any;
+      }
+    } catch {}
+    return 'cockpit';
+  });
+
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p && ['cockpit', 'sentinel', 'memory', 'teammates', 'approvals', 'routines', 'chat'].includes(p)) {
+        setActiveMainTab(p as any);
+      }
+    } catch {}
+  }, []);
 
   const { selectedClientId } = useClientContext();
   const { data: clients } = trpc.clients.list.useQuery();

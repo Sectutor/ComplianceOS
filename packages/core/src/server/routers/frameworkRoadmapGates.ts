@@ -80,7 +80,7 @@ export const createFrameworkRoadmapGatesRouter = (t: any, clientProcedure: any) 
                     controlCount = Number(ctrlRes[0]?.count || 0);
 
                     const implCtrlRes = await db.select({ count: count() }).from(clientControls).where(
-                        and(eq(clientControls.clientId, clientId), or(eq(clientControls.status, 'implemented'), eq(clientControls.status, 'active')))
+                        and(eq(clientControls.clientId, clientId), eq(clientControls.status, 'implemented'))
                     );
                     implementedControlCount = Number(implCtrlRes[0]?.count || 0);
                 } catch {}
@@ -414,6 +414,193 @@ export const createFrameworkRoadmapGatesRouter = (t: any, clientProcedure: any) 
                     issuedAt: new Date().toISOString(),
                     milestoneGates,
                     allPassed: milestoneGates.every(m => m.passed)
+                };
+            }),
+
+        /**
+         * Get server-synced roadmap task completion progress & target audit date
+         */
+        getRoadmapProgress: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                frameworkId: z.string(),
+            }))
+            .query(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const clientId = input.clientId || ctx.clientId;
+                const entityType = `roadmap_progress_${input.frameworkId}`;
+
+                const existing = await db.select().from(approvalRequests).where(and(
+                    eq(approvalRequests.clientId, clientId),
+                    eq(approvalRequests.entityType, entityType),
+                    eq(approvalRequests.entityId, 0)
+                ));
+
+                if (existing.length === 0) {
+                    return {
+                        completedTasks: {},
+                        targetAuditDate: null,
+                        lastUpdated: null
+                    };
+                }
+
+                try {
+                    const data = JSON.parse(existing[0].description || '{}');
+                    return {
+                        completedTasks: data.completedTasks || {},
+                        targetAuditDate: data.targetAuditDate || null,
+                        lastUpdated: existing[0].updatedAt || null
+                    };
+                } catch {
+                    return {
+                        completedTasks: {},
+                        targetAuditDate: null,
+                        lastUpdated: null
+                    };
+                }
+            }),
+
+        /**
+         * Toggle or update a roadmap task completion state
+         */
+        toggleRoadmapTask: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                frameworkId: z.string(),
+                taskId: z.string(),
+                completed: z.boolean().optional(),
+                taskTitle: z.string().optional(),
+                batchTasks: z.record(z.boolean()).optional()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const clientId = input.clientId || ctx.clientId;
+                const userId = ctx.user?.id || 1;
+                const userName = ctx.user?.name || "Implementer";
+                const entityType = `roadmap_progress_${input.frameworkId}`;
+
+                const existing = await db.select().from(approvalRequests).where(and(
+                    eq(approvalRequests.clientId, clientId),
+                    eq(approvalRequests.entityType, entityType),
+                    eq(approvalRequests.entityId, 0)
+                ));
+
+                let progressData: any = { completedTasks: {}, targetAuditDate: null };
+                let requestId: number;
+
+                if (existing.length > 0) {
+                    requestId = existing[0].id;
+                    try {
+                        progressData = JSON.parse(existing[0].description || '{}');
+                        if (!progressData.completedTasks) progressData.completedTasks = {};
+                    } catch {}
+                } else {
+                    const [created] = await db.insert(approvalRequests).values({
+                        clientId,
+                        title: `${input.frameworkId.toUpperCase()} 90-Day Roadmap Progress Tracking`,
+                        description: JSON.stringify(progressData),
+                        entityType,
+                        entityId: 0,
+                        status: 'approved',
+                        submitterId: userId,
+                        requiredRoles: ['Implementer']
+                    }).returning();
+                    requestId = created.id;
+                }
+
+                if (input.batchTasks) {
+                    Object.entries(input.batchTasks).forEach(([tid, isDone]) => {
+                        if (isDone) {
+                            progressData.completedTasks[tid] = {
+                                completed: true,
+                                completedAt: new Date().toISOString(),
+                                completedBy: userName
+                            };
+                        }
+                    });
+                } else {
+                    const current = !!progressData.completedTasks[input.taskId]?.completed;
+                    const next = input.completed !== undefined ? input.completed : !current;
+
+                    if (next) {
+                        progressData.completedTasks[input.taskId] = {
+                            completed: true,
+                            completedAt: new Date().toISOString(),
+                            completedBy: userName,
+                            taskTitle: input.taskTitle || input.taskId
+                        };
+                    } else {
+                        delete progressData.completedTasks[input.taskId];
+                    }
+                }
+
+                await db.update(approvalRequests)
+                    .set({
+                        description: JSON.stringify(progressData),
+                        updatedAt: new Date()
+                    })
+                    .where(eq(approvalRequests.id, requestId));
+
+                return {
+                    success: true,
+                    completedTasks: progressData.completedTasks,
+                    targetAuditDate: progressData.targetAuditDate
+                };
+            }),
+
+        /**
+         * Set Target Audit Date for the framework 90-day sprint
+         */
+        setTargetAuditDate: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                frameworkId: z.string(),
+                targetAuditDate: z.string().nullable()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const clientId = input.clientId || ctx.clientId;
+                const userId = ctx.user?.id || 1;
+                const entityType = `roadmap_progress_${input.frameworkId}`;
+
+                const existing = await db.select().from(approvalRequests).where(and(
+                    eq(approvalRequests.clientId, clientId),
+                    eq(approvalRequests.entityType, entityType),
+                    eq(approvalRequests.entityId, 0)
+                ));
+
+                let progressData: any = { completedTasks: {}, targetAuditDate: input.targetAuditDate };
+                let requestId: number;
+
+                if (existing.length > 0) {
+                    requestId = existing[0].id;
+                    try {
+                        progressData = JSON.parse(existing[0].description || '{}');
+                    } catch {}
+                    progressData.targetAuditDate = input.targetAuditDate;
+
+                    await db.update(approvalRequests)
+                        .set({
+                            description: JSON.stringify(progressData),
+                            updatedAt: new Date()
+                        })
+                        .where(eq(approvalRequests.id, requestId));
+                } else {
+                    await db.insert(approvalRequests).values({
+                        clientId,
+                        title: `${input.frameworkId.toUpperCase()} 90-Day Roadmap Progress Tracking`,
+                        description: JSON.stringify(progressData),
+                        entityType,
+                        entityId: 0,
+                        status: 'approved',
+                        submitterId: userId,
+                        requiredRoles: ['Implementer']
+                    });
+                }
+
+                return {
+                    success: true,
+                    targetAuditDate: input.targetAuditDate
                 };
             })
     });

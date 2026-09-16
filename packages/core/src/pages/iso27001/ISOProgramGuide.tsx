@@ -23,7 +23,14 @@ export default function ISOProgramGuide() {
     const params = useParams();
     const clientId = parseInt(params.id || params.clientId || "0");
     const [location, setLocation] = useLocation();
-    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>('tutorials');
+    
+    // Read optional ?tab= query parameter
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const tabParam = searchParams?.get('tab');
+    const validTabs: Array<'tutorials' | 'roadmap' | 'architecture' | 'auditor'> = ['tutorials', 'roadmap', 'architecture', 'auditor'];
+    const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'tutorials';
+
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
     const [dossierOpen, setDossierOpen] = useState(false);
 
     const utils = trpc.useUtils();

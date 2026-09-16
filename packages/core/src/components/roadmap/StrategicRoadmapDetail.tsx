@@ -41,6 +41,96 @@ export default function StrategicRoadmapDetail({ roadmapId, clientId, onEdit }: 
     // Fallback if detailedObjectives are missing but standard objectives exist
     const objectives = detailedObjectives || (roadmap.objectives || []).map((t: string) => ({ title: t, priority: 'Medium' }));
 
+    // Resolve dedicated enterprise program guide info if available
+    const getProgramGuideInfo = () => {
+        const titleLower = (roadmap.title || '').toLowerCase();
+        const frameworkLower = (roadmap.framework || '').toLowerCase();
+
+        if (titleLower.includes('iso 27001') || frameworkLower.includes('iso 27001') || frameworkLower.includes('iso')) {
+            return {
+                title: "Interactive ISO 27001 ISMS Program Guide & 90-Day Roadmap",
+                desc: "Explore the comprehensive Clauses 4–10 ISMS manual, 93 Statement of Applicability controls, and Auditor Clean Room.",
+                url: `/clients/${clientId}/iso27001/program-guide?tab=roadmap`,
+                badge: "ISMS Certified"
+            };
+        }
+        if (titleLower.includes('nis2') || frameworkLower.includes('nis2') || titleLower.includes('cyber resilience')) {
+            return {
+                title: "NIS2 & Cyber Resilience Program Guide & 90-Day Roadmap",
+                desc: "Execute Article 21 cybersecurity measures, 24h early warning, 72h incident notification, and supply chain audits.",
+                url: `/clients/${clientId}/cyber/program-guide?tab=roadmap`,
+                badge: "EU Directive"
+            };
+        }
+        if (titleLower.includes('privacy') || frameworkLower.includes('gdpr') || titleLower.includes('gdpr')) {
+            return {
+                title: "EU GDPR & Global Privacy Program Guide & 90-Day Roadmap",
+                desc: "Manage Article 30 RoPA records, Transfer Impact Assessments (TIAs), DPIAs, and DSAR automated workflows.",
+                url: `/clients/${clientId}/privacy/program-guide?tab=roadmap`,
+                badge: "Privacy by Design"
+            };
+        }
+        if (titleLower.includes('continuity') || frameworkLower.includes('bcp') || frameworkLower.includes('22301') || titleLower.includes('business continuity')) {
+            return {
+                title: "Business Continuity (ISO 22301) Program Guide & 90-Day Roadmap",
+                desc: "Complete Business Impact Analysis (BIA), define RTO/RPO targets, call trees, and execute disaster tabletop drills.",
+                url: `/clients/${clientId}/business-continuity/program-guide?tab=roadmap`,
+                badge: "Operational Resilience"
+            };
+        }
+        if (titleLower.includes('vendor') || frameworkLower.includes('tprm') || titleLower.includes('third-party')) {
+            return {
+                title: "Third-Party & Vendor Risk (TPRM) Program Guide & 90-Day Roadmap",
+                desc: "Tier critical vendors, issue SIG/CAIQ questionnaires, inspect SOC 2 reports, and track DPAs.",
+                url: `/clients/${clientId}/vendors/program-guide?tab=roadmap`,
+                badge: "Supply Chain Security"
+            };
+        }
+        if (titleLower.includes('soc 2') || frameworkLower.includes('soc 2') || titleLower.includes('soc2')) {
+            return {
+                title: "SOC 2 Type II Program Guide & 90-Day Implementation Roadmap",
+                desc: "Explore AICPA Trust Services Criteria (CC1–CC9), continuous automated evidence collection, and CPA Auditor Clean Room.",
+                url: `/clients/${clientId}/soc2/program-guide?tab=roadmap`,
+                badge: "AICPA Attestation"
+            };
+        }
+        if (titleLower.includes('cmmc') || frameworkLower.includes('cmmc') || titleLower.includes('defense') || frameworkLower.includes('federal')) {
+            return {
+                title: "Defense Federal & CMMC 2.0 Program Guide & 90-Day Roadmap",
+                desc: "Track 110 NIST SP 800-171 controls, compute official SPRS scores, and generate System Security Plans (SSP).",
+                url: `/clients/${clientId}/federal/program-guide?tab=roadmap`,
+                badge: "DoD C3PAO Ready"
+            };
+        }
+        if (titleLower.includes('hipaa') || frameworkLower.includes('hipaa')) {
+            return {
+                title: "HIPAA Compliance Program Guide & 90-Day Implementation Roadmap",
+                desc: "Step-by-step statutory scoping, ePHI technical safeguards, BAA ledger, and HHS OCR audit clean room.",
+                url: `/clients/${clientId}/hipaa/program-guide?tab=roadmap`,
+                badge: "HHS OCR Compliant"
+            };
+        }
+        if (titleLower.includes('risk') || frameworkLower.includes('31000') || frameworkLower.includes('rmf')) {
+            return {
+                title: "Enterprise Risk Management (ISO 27005 / ISO 31000) Program Guide & Roadmap",
+                desc: "Establish risk context, assess inherent vs residual scores, and track executive risk treatment plans.",
+                url: `/clients/${clientId}/risks/program-guide?tab=roadmap`,
+                badge: "Risk Architecture"
+            };
+        }
+        if (titleLower.includes('incident') || titleLower.includes('csirt')) {
+            return {
+                title: "Cyber Incident Response Center & CSIRT Playbooks",
+                desc: "Operational incident triage, containment playbooks, forensic evidence preservation, and 72-hour notifications.",
+                url: `/clients/${clientId}/cyber/incidents`,
+                badge: "CSIRT Response"
+            };
+        }
+        return null;
+    };
+
+    const programGuide = getProgramGuideInfo();
+
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-12">
             {/* Header Section */}
@@ -63,6 +153,30 @@ export default function StrategicRoadmapDetail({ roadmapId, clientId, onEdit }: 
                     Edit Configuration
                 </Button>
             </div>
+
+            {/* Dedicated Enterprise Program Guide Banner */}
+            {programGuide && (
+                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 border border-indigo-800/60 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                    <div className="flex items-center gap-3.5">
+                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl text-blue-400">
+                            <Shield className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-base text-white">{programGuide.title}</h3>
+                                <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30 text-[10px] font-bold">{programGuide.badge}</Badge>
+                            </div>
+                            <p className="text-xs text-slate-300 mt-0.5">{programGuide.desc}</p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={() => window.location.href = programGuide.url}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 shadow-lg text-xs h-10 px-4"
+                    >
+                        Launch Comprehensive Guide <ArrowRight className="w-4 h-4 ml-1.5" />
+                    </Button>
+                </div>
+            )}
 
             <div className="grid grid-cols-12 gap-6">
                 {/* Main Content Column */}

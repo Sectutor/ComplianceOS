@@ -75,6 +75,18 @@ async function tick(isBoot: boolean): Promise<void> {
     const db = await getDb();
     if (!db) return;
 
+    // Auto-enroll clients without an autopilot config row so all workspaces are monitored
+    await db.execute(sql`
+      INSERT INTO autopilot_configs (client_id, enabled, schedule, modules, approval_mode)
+      SELECT c.id, true, 'daily',
+        '{"complianceSentinel":true,"slaHound":true,"riskWatchdog":true,"vulnerabilitySentinel":true,"policySteward":true,"bcGuardian":true,"anomalySpotter":false}'::jsonb,
+        'manual'
+      FROM clients c
+      LEFT JOIN autopilot_configs ac ON ac.client_id = c.id
+      WHERE ac.id IS NULL
+      ON CONFLICT DO NOTHING
+    `).catch(() => {});
+
     const configs = (await db.execute(sql`
       SELECT id, client_id, enabled, schedule, modules, approval_mode, last_run_at
       FROM autopilot_configs

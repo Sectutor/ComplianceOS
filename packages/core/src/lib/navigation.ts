@@ -64,8 +64,10 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
     if (purePath === "/ai-governance") return `/clients/${clientId}/ai-governance${queryStr}`;
     if (purePath === "/guides") return `/clients/${clientId}/guides${queryStr}`;
     if (purePath === "/activity") return `/clients/${clientId}/activity${queryStr}`;
-    if (purePath === "/readiness/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
-    if (purePath === "/roadmap") return `/clients/${clientId}/roadmap/dashboard${queryStr}`;
+    if (purePath === "/start-here") return `/clients/${clientId}/start-here${queryStr}`;
+    if (purePath === "/readiness/roadmap") return `/clients/${clientId}/start-here${queryStr}`;
+    if (purePath === "/roadmap") return `/clients/${clientId}/start-here${queryStr}`;
+    if (purePath === "/roadmap/dashboard") return `/clients/${clientId}/start-here${queryStr}`;
     if (purePath === "/implementation") return `/clients/${clientId}/implementation${queryStr}`;
     if (purePath === "/implementation/dashboard") return `/clients/${clientId}/implementation${queryStr}`;
     if (purePath === "/evidence") return `/clients/${clientId}/evidence${queryStr}`;

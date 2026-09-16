@@ -328,18 +328,18 @@ export const DEFAULT_DEMO_CLIENTS = [
   },
   {
     id: 7,
-    name: 'Acme Enterprise Corp',
-    description: 'Enterprise Defense & Cloud Infrastructure Enclave',
-    industry: 'Defense & Aerospace',
-    size: '1000+',
+    name: 'LaTorre LTD',
+    description: 'Enterprise Cloud & Managed Services Provider — Global Showcase Demo Workspace',
+    industry: 'Technology',
+    size: '50-200',
     status: 'active',
     planTier: 'enterprise',
-    activeModules: ['frameworks', 'risks', 'vendors', 'federal', 'audits'],
+    activeModules: ['soc2', 'iso27001', 'gdpr', 'tprm', 'bcp', 'risk', 'policies', 'incident', 'board_summary', 'dsar'],
     updatedAt: new Date(),
     createdAt: new Date(),
     requireMfa: false,
-    targetComplianceScore: 98,
-    cisoName: 'Col. Marcus Vance',
+    targetComplianceScore: 95,
+    cisoName: 'Marco LaTorre',
     role: 'owner'
   }
 ];

@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
-import { CheckCircle2, Activity, AlertTriangle, FileText, PhoneCall, PlayCircle, ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Users, Calendar, Globe } from 'lucide-react';
+import {
+    CheckCircle2, Activity, AlertTriangle, FileText, PhoneCall, PlayCircle,
+    ArrowRight, BookOpen, ArrowLeft, Info, CircleDashed, Users, Calendar,
+    Globe, CalendarClock, Download, ExternalLink, ShieldCheck, Layers,
+    Lock, Server, GitMerge, Building, Target, CheckSquare, RefreshCw, BarChart3, Database, ShieldAlert, Cpu
+} from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { format } from 'date-fns';
 import { AssignProgramTaskModal } from '@/components/AssignProgramTaskModal';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getBcpRoadmap } from '@/data/frameworkRoadmaps';
 
 export default function BCPProgramGuide() {
     const params = useParams();
     const clientId = parseInt(params.id || "0");
+
+    // Read ?tab= query parameter
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const tabParam = searchParams?.get('tab');
+    const validTabs: Array<'playbook' | 'roadmap' | 'architecture' | 'auditor'> = ['playbook', 'roadmap', 'architecture', 'auditor'];
+    const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'playbook';
+    const [activeTab, setActiveTab] = useState<'playbook' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
 
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedStep, setSelectedStep] = useState<any>(null);
@@ -118,7 +134,7 @@ export default function BCPProgramGuide() {
                 'Determine predefined spokespeople for internal and external communications.',
                 'Implement an alternate communication channel if standard systems (like email) are down.'
             ],
-            link: `/clients/${clientId}/business-continuity/call-trees`,
+            link: `/clients/${clientId}/business-continuity/call-tree`,
             cta: 'Configure Comm. Trees',
             downloadText: 'Download Call Tree Template'
         },
@@ -147,67 +163,144 @@ export default function BCPProgramGuide() {
     const progressPercentage = Math.round((completedSteps / steps.length) * 100);
 
     return (
-        <DashboardLayout>
-            <div className="min-h-screen bg-slate-50 flex flex-col">
-                <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0">
-                    <div className="flex items-center gap-2 text-sm">
-                        <Link href={`/clients/${clientId}/business-continuity`}>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
-                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Continuity Dashboard
+        <DashboardLayout fullWidth={true}>
+            <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                {/* Breadcrumb & Navigation bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div className="flex items-center gap-3">
+                        <Link href={`/clients/${clientId}/start-here`}>
+                            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-600 dark:text-slate-300">
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Start Here
                             </Button>
                         </Link>
-                        <span className="text-slate-300">/</span>
-                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            Program Guide
-                        </div>
+                        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Business Continuity Program (BCP) Guide
+                        </span>
                     </div>
-                    <div className="flex gap-2 flex-wrap items-center">
-                        {progressPercentage === 100 && (
-                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                Program Fully Initialized
-                            </Badge>
-                        )}
-                        <button className="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100">
-                            ISO 22301
-                        </button>
+
+                    <div className="flex items-center gap-2">
+                        <Link href={`/clients/${clientId}/business-continuity`}>
+                            <Button variant="outline" size="sm" className="gap-2 text-xs font-bold">
+                                <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                                Continuity Dashboard
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
-                <div className="p-6 lg:p-10 space-y-8">
-                    <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl">
-                                    <Globe className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Business Continuity Program</h1>
-                                    <p className="text-indigo-200 font-medium">Resilience and Disruption Recovery</p>
-                                </div>
+                {/* Hero Banner */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 p-6 md:p-8 text-white shadow-xl">
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="space-y-3 max-w-3xl">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-xs font-bold uppercase tracking-wider">
+                                    ISO 22301:2019 Security & Resilience
+                                </Badge>
+                                <Badge className="bg-teal-500/20 text-teal-300 border-teal-400/30 text-xs font-bold">
+                                    Disaster Recovery & BIA Ready
+                                </Badge>
                             </div>
+                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                                Business Continuity Program (BCP) Guide
+                            </h1>
+                            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                                End-to-end resilience and disruption recovery manual covering Business Impact Analysis (BIA), RTO/RPO tiering, disaster recovery procedures, crisis call tree escalation, and tabletop validation.
+                            </p>
 
-                            <div className="grid md:grid-cols-3 gap-6 mt-8">
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Timeline</p>
-                                    <p className="text-2xl font-black">2 – 6 months</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Standard</p>
-                                    <p className="text-2xl font-black">ISO 22301 Aligned</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Phases</p>
-                                    <p className="text-2xl font-black">5 Key Phases</p>
-                                </div>
+                            <div className="pt-2 flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1">Resilience Standard:</span>
+                                <span className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm">
+                                    ISO 22301:2019 (Business Continuity Management)
+                                </span>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="w-full mx-auto">
-                        <div className="space-y-6">
+                        {/* Readiness Metric Card */}
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 shrink-0 w-full lg:w-80 space-y-3">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                                <span>BCP Program Maturity Score</span>
+                                <span className="text-white text-base font-black">{progressPercentage}%</span>
+                            </div>
+                            <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
+                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                                <div>Critical Processes: <strong className="text-white">{processes?.length || 0}</strong></div>
+                                <div>Recovery Plans: <strong className="text-white">{plans?.length || 0}</strong></div>
+                                <div>Threat Scenarios: <strong className="text-white">{scenarios?.length || 0}</strong></div>
+                                <div>Tabletop Drills: <strong className="text-white">{exercises?.length || 0}</strong></div>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => setActiveTab('roadmap')}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs mt-2 rounded-lg h-8 gap-1.5 shadow"
+                            >
+                                <CalendarClock className="w-3.5 h-3.5" />
+                                Continue 90-Day Roadmap
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4 Tabs Navigation Bar */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <Button
+                        variant={activeTab === 'playbook' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('playbook')}
+                        className={cn(
+                            "gap-2 font-bold text-xs rounded-lg transition-all",
+                            activeTab === 'playbook' ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        )}
+                    >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        Continuity Implementation Playbook
+                    </Button>
+
+                    <Button
+                        variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('roadmap')}
+                        className={cn(
+                            "gap-2 font-bold text-xs rounded-lg transition-all",
+                            activeTab === 'roadmap' ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        )}
+                    >
+                        <CalendarClock className="w-3.5 h-3.5" />
+                        90-Day BCP Roadmap
+                    </Button>
+
+                    <Button
+                        variant={activeTab === 'architecture' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('architecture')}
+                        className={cn(
+                            "gap-2 font-bold text-xs rounded-lg transition-all",
+                            activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        )}
+                    >
+                        <Layers className="w-3.5 h-3.5" />
+                        Failover & DR Architecture
+                    </Button>
+
+                    <Button
+                        variant={activeTab === 'auditor' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('auditor')}
+                        className={cn(
+                            "gap-2 font-bold text-xs rounded-lg transition-all",
+                            activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900" : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        )}
+                    >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Executive Resilience & Audit Binder
+                    </Button>
+                </div>
+
+                {/* Tab 1 Content: Playbook */}
+                {activeTab === 'playbook' && (
+                    <div className="space-y-6">
                             <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 shadow-sm">
                                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                                     <Globe className="w-5 h-5 text-indigo-600" />
@@ -333,14 +426,187 @@ export default function BCPProgramGuide() {
                             <div className="mt-12 text-center pb-8">
                                 <Link href={`/clients/${clientId}/business-continuity`}>
                                     <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-14 rounded-full shadow-lg hover:shadow-xl transition-all">
-                                        Return to Dashboard
+                                        Return to Continuity Dashboard
                                     </Button>
                                 </Link>
                             </div>
-
                         </div>
+                )}
+
+                {/* TAB 2: 90-Day Roadmap */}
+                {activeTab === 'roadmap' && (
+                    <div className="space-y-4">
+                        <Framework90DayRoadmap
+                            spec={getBcpRoadmap(clientId)}
+                            clientId={clientId}
+                        />
                     </div>
-                </div>
+                )}
+
+                {/* TAB 3: Failover & DR Architecture */}
+                {activeTab === 'architecture' && (
+                    <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Failover & Disaster Recovery Architecture</h2>
+                            <p className="text-sm text-slate-500">High-availability deployment topology, multi-region failover channels, RTO/RPO tolerance tiers, and crisis communication trees.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-5 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                        <Server className="w-4 h-4" /> Multi-Region Failover
+                                    </h3>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">Active / Hot-Standby</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Automated DNS failover routing with synthetic health checks across secondary cold/warm DR regions.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Primary Region: Multi-AZ Synchronous DB</li>
+                                    <li>Secondary Region: Asynchronous WAL Replica</li>
+                                    <li>Automated Route 53 latency/failover routing</li>
+                                    <li>Container auto-scaling on backup cluster</li>
+                                </ul>
+                            </div>
+
+                            <div className="border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 bg-blue-50/50 dark:bg-blue-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                                        <Target className="w-4 h-4" /> RTO & RPO Tiers
+                                    </h3>
+                                    <Badge className="bg-blue-100 text-blue-800 text-[10px] font-bold">BIA Aligned</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Strict SLA benchmarks based on organizational business impact analysis downtime cost.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Tier 0 (Core App): RTO &lt; 1h, RPO &lt; 15m</li>
+                                    <li>Tier 1 (Client Services): RTO &lt; 4h, RPO &lt; 1h</li>
+                                    <li>Tier 2 (Admin/Internal): RTO &lt; 24h, RPO &lt; 12h</li>
+                                    <li>Tier 3 (Archival/BI): RTO &lt; 72h, RPO &lt; 24h</li>
+                                </ul>
+                            </div>
+
+                            <div className="border border-cyan-200 dark:border-cyan-900/50 rounded-xl p-5 bg-cyan-50/50 dark:bg-cyan-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-cyan-800 dark:text-cyan-300 flex items-center gap-2">
+                                        <Database className="w-4 h-4" /> Immutable Backups
+                                    </h3>
+                                    <Badge className="bg-cyan-100 text-cyan-800 text-[10px] font-bold">WORM Storage</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Ransomware-resilient Write Once Read Many (WORM) storage vaults with air-gapped cryptographic signing.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Daily encrypted snapshots (30-day retention)</li>
+                                    <li>Weekly cold air-gapped glacier archive</li>
+                                    <li>Monthly automated restore validation drills</li>
+                                    <li>Role separation: Backups cannot be purged</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* Crisis Escalation Call Tree Protocol */}
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-slate-50 dark:bg-slate-900/50 space-y-4">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <PhoneCall className="w-4 h-4 text-emerald-600" />
+                                        Crisis Communications & Incident Escalation Hierarchy
+                                    </h4>
+                                    <p className="text-xs text-slate-500">Established incident command system (ICS) and emergency notification roster during catastrophic system outages.</p>
+                                </div>
+                                <Link href={`/clients/${clientId}/business-continuity/call-tree`}>
+                                    <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5">
+                                        <PhoneCall className="w-3.5 h-3.5" /> View Call Trees
+                                    </Button>
+                                </Link>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Incident Commander</span>
+                                    <strong className="text-slate-900 dark:text-white text-sm">CISO / VP Eng</strong>
+                                    <span className="text-slate-400 block text-[10px] mt-0.5">Overall triage, disaster declaration</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Technical Recovery Lead</span>
+                                    <strong className="text-slate-900 dark:text-white text-sm">Infrastructure Lead</strong>
+                                    <span className="text-slate-400 block text-[10px] mt-0.5">Runbook execution, DB restore</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Communications & PR</span>
+                                    <strong className="text-slate-900 dark:text-white text-sm">General Counsel / PR</strong>
+                                    <span className="text-slate-400 block text-[10px] mt-0.5">Customer advisory, regulators</span>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">People & Facilities</span>
+                                    <strong className="text-slate-900 dark:text-white text-sm">People Ops Lead</strong>
+                                    <span className="text-slate-400 block text-[10px] mt-0.5">Employee safety, alternate site</span>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* TAB 4: Executive Resilience & Audit Binder */}
+                {activeTab === 'auditor' && (
+                    <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Executive Resilience & Governance Audit Binder</h2>
+                                <p className="text-sm text-slate-500">Official ISO 22301 compliance package, disaster recovery evidence, tabletop drill after-action reports, and BIA register.</p>
+                            </div>
+                            <Button
+                                onClick={() => toast.success("Exporting complete BCP & DR Audit Dossier (ZIP)...")}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Download BCP Audit Dossier (ZIP)
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">Master BCP & DR Policy (BCP-POL-01)</h4>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">Verified</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Formal ISO 22301 Clause 5.2 compliant policy outlining leadership commitment, disaster roles, testing intervals, and governance cadence.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("BCP Policy exported!")}>
+                                    Export BCP Policy (PDF)
+                                </Button>
+                            </div>
+
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">BIA Criticality & RTO/RPO Register (BIA-REG-01)</h4>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">{processes?.length || 0} Processes</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Granular analysis of organizational functions, financial disruption curves, maximum tolerable downtime (MTD), and minimum recovery staffing.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("BIA Register exported!")}>
+                                    Export BIA Matrix (CSV)
+                                </Button>
+                            </div>
+
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">Technical Disaster Recovery Runbooks (DR-PROC-02)</h4>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">{plans?.length || 0} Active Plans</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Step-by-step engineering recovery runbooks for database failover, cloud infrastructure spin-up, certificate rotation, and sanity checks.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("DR Runbooks exported!")}>
+                                    Export Runbooks Dossier
+                                </Button>
+                            </div>
+
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">Tabletop Simulation After-Action Report (TTX-AAR-2026)</h4>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">{exercises?.length || 0} Drills</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Documented drill results simulating ransomware and cloud outage, including executive participation logs, observed gaps, and corrective action items.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("After-Action Report exported!")}>
+                                    Export AAR Summary (PDF)
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                )}
             </div>
 
             {selectedStep && (

@@ -354,6 +354,8 @@ const ISOAuditManager = lazyLoad(() => import("./pages/iso27001/ISOAuditManager"
 const AuditManager = lazyLoad(() => import("./pages/AuditManager"));
 const ISOManagementReview = lazyLoad(() => import("./pages/iso27001/ISOManagementReview"));
 const ISOProgramGuide = lazyLoad(() => import("./pages/iso27001/ISOProgramGuide"));
+const SOC2ProgramGuide = lazyLoad(() => import("./pages/soc2/SOC2ProgramGuide"));
+const HIPAAProgramGuide = lazyLoad(() => import("./pages/hipaa/HIPAAProgramGuide"));
 import { ISOLayout } from "./pages/iso27001/ISOLayout";
 
 
@@ -908,6 +910,15 @@ function Router() {
         <Route path="/clients/:clientId/training/management">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={TrainingManagement} /></UnifiedClientGuard>}
         </Route>
+        <Route path="/clients/:id/training">
+          {(_params) => <Redirect to={`/clients/${_params.id}/training/management`} />}
+        </Route>
+        <Route path="/clients/:id/assets">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/assets`} />}
+        </Route>
+        <Route path="/clients/:id/vulnerabilities">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/vulnerabilities`} />}
+        </Route>
         <Route path="/clients/:id/personnel-compliance">
           {(_params) => <UnifiedClientGuard requirePremium requireManagement><ProtectedRoute component={PersonnelComplianceHub} /></UnifiedClientGuard>}
         </Route>
@@ -1032,14 +1043,23 @@ function Router() {
         <Route path="/clients/:id/compliance-journey">
           {(_params) => <ProtectedRoute component={ComplianceJourneyDashboard} />}
         </Route>
+        <Route path="/clients/:id/soc2/program-guide">
+          {(_params) => <ProtectedRoute component={SOC2ProgramGuide} />}
+        </Route>
         <Route path="/clients/:id/readiness/wizard/:standardId?">
           {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
         </Route>
+        <Route path="/clients/:id/hipaa/program-guide">
+          {(_params) => <ProtectedRoute component={HIPAAProgramGuide} />}
+        </Route>
+        <Route path="/clients/:id/start-here">
+          {(_params) => <ProtectedRoute component={StartHere} />}
+        </Route>
         <Route path="/clients/:id/roadmap">
-          {(_params) => <ProtectedRoute component={RoadmapDashboard} />}
+          {(_params) => <Redirect to={`/clients/${_params.id}/start-here`} />}
         </Route>
         <Route path="/clients/:id/roadmap/dashboard">
-          {(_params) => <ProtectedRoute component={RoadmapDashboard} />}
+          {(_params) => <Redirect to={`/clients/${_params.id}/start-here`} />}
         </Route>
         <Route path="/clients/:id/roadmap/overview">
           {(_params) => <ProtectedRoute component={RoadmapOverview} />}
@@ -1269,6 +1289,24 @@ function Router() {
         <Route path="/clients/:id/risks/treatment-plan">
           {(params) => <ProtectedRoute component={RiskTreatmentPlanPage} {...params} />}
         </Route>
+        <Route path="/clients/:id/risks/treatment-plans">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/treatment-plan`} />}
+        </Route>
+        <Route path="/clients/:id/risks/reports">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/report`} />}
+        </Route>
+        <Route path="/clients/:id/risks/context">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/framework`} />}
+        </Route>
+        <Route path="/clients/:id/risks/taxonomy">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/framework`} />}
+        </Route>
+        <Route path="/clients/:id/risks/scenarios">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/threats`} />}
+        </Route>
+        <Route path="/clients/:id/risks/kri">
+          {(_params) => <Redirect to={`/clients/${_params.id}/risks/heatmap`} />}
+        </Route>
         <Route path="/clients/:id/risks/heatmap">
           {(params) => <ProtectedRoute component={RiskHeatmapPage} {...params} />}
         </Route>
@@ -1429,7 +1467,17 @@ function Router() {
           {(_params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernanceProgramGuide /></PremiumGuard>} />}
         </Route>
 
-        {/* Privacy routes are handled below in the dedicated section */}
+        {/* TPRM Subroute Safeguards (prevent param capture by :vendorId) */}
+        <Route path="/clients/:id/vendors/tiering">
+          {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
+        </Route>
+        <Route path="/clients/:id/vendors/assessments">
+          {(_params) => <Redirect to={`/clients/${_params.id}/vendors/templates`} />}
+        </Route>
+        <Route path="/clients/:id/vendors/risk-matrix">
+          {(_params) => <Redirect to={`/clients/${_params.id}/vendors/overview`} />}
+        </Route>
+
         <Route path="/clients/:id/vendors/:vendorId">
           {(_params) => (
             <PremiumGuard>
@@ -1545,6 +1593,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/federal">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalComplianceDashboard} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/federal/dashboard">
+          {(_params) => <Redirect to={`/clients/${_params.id}/federal`} />}
         </Route>
 
         <Route path="/clients/:id/compliance-obligations">
@@ -1688,6 +1739,9 @@ function Router() {
               <PrivacyAlignmentPage />
             </PrivacyLayout>
           )}
+        </Route>
+        <Route path="/clients/:id/privacy/data-flow">
+          {(_params) => <Redirect to={`/clients/${_params.id}/privacy/inventory`} />}
         </Route>
         <Route path="/clients/:id/privacy/inventory">
           {(_params) => (
@@ -2167,6 +2221,12 @@ function Router() {
         </Route>
         <Route path="/clients/:id/business-continuity/call-tree">
           {(_params) => <ProtectedRoute component={CallTreeManager} />}
+        </Route>
+        <Route path="/clients/:id/business-continuity/call-trees">
+          {(_params) => <Redirect to={`/clients/${_params.id}/business-continuity/call-tree`} />}
+        </Route>
+        <Route path="/clients/:id/business-continuity/overview">
+          {(_params) => <Redirect to={`/clients/${_params.id}/business-continuity`} />}
         </Route>
         <Route path="/clients/:id/business-continuity/exercises">
           {(_params) => <ProtectedRoute component={BCExercisesPage} />}

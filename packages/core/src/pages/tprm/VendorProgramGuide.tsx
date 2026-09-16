@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Button } from '@complianceos/ui/ui/button';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { format } from 'date-fns';
 import { AssignProgramTaskModal } from '@/components/AssignProgramTaskModal';
+import { toast } from 'sonner';
 import {
     CheckCircle2, Lock, ArrowRight, BookOpen, ArrowLeft,
     Shield, Clock, DollarSign, GitMerge, AlertTriangle, Users, Calendar,
     Building, Target, Search, ShieldCheck, RefreshCw, Layers,
-    Settings, ClipboardCheck, CheckSquare, ActivitySquare, Server, Flame, Activity, Stethoscope, BarChart3, Globe, Award, CircleDashed
+    Settings, ClipboardCheck, CheckSquare, ActivitySquare, Server, Flame, Activity, Stethoscope, BarChart3, Globe, Award, CircleDashed,
+    CalendarClock, Download, ExternalLink, FileText
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getTprmRoadmap } from '@/data/frameworkRoadmaps';
 
 // ─── Framework Data ───────────────────────────────────────────────────────────
 
@@ -557,6 +562,13 @@ export default function VendorProgramGuide() {
     const clientId = parseInt(params.id || "0");
     const [activeFw, setActiveFw] = useState<'nist' | 'iso' | 'hybrid'>('nist');
 
+    // Read ?tab= query parameter
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const tabParam = searchParams?.get('tab');
+    const validTabs: Array<'playbook' | 'roadmap' | 'architecture' | 'auditor'> = ['playbook', 'roadmap', 'architecture', 'auditor'];
+    const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'playbook';
+    const [activeTab, setActiveTab] = useState<'playbook' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
+
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedStep, setSelectedStep] = useState<any>(null);
 
@@ -569,14 +581,19 @@ export default function VendorProgramGuide() {
     const { data: vendors } = trpc.vendors.list.useQuery({ clientId }, { enabled: !!clientId });
     const { data: dpas } = trpc.vendors.listDpas.useQuery({ clientId }, { enabled: !!clientId });
 
-    const hasVendors = !!vendors && vendors.length > 0;
-    const hasAssessedVendors = !!vendors && vendors.some((v: any) => v.securityScore > 0);
-    const hasDpas = !!dpas && dpas.length > 0;
+    const safeVendors = Array.isArray(vendors) ? vendors : [];
+    const safeDpas = Array.isArray(dpas) ? dpas : [];
+    const criticalVendorsCount = safeVendors.filter((v: any) => v.criticality === 'Tier 1' || v.criticality === 'critical' || v.tier === '1' || v.tier === 'critical').length;
+    const assessedVendorsCount = safeVendors.filter((v: any) => (v.securityScore && v.securityScore > 0) || v.status === 'assessed' || v.status === 'active').length;
+
+    const hasVendors = safeVendors.length > 0;
+    const hasAssessedVendors = assessedVendorsCount > 0;
+    const hasDpas = safeDpas.length > 0;
 
     // Simplistic completion logic mapping step id to status
     const getStatus = (stepId: string) => {
         switch (stepId) {
-            case 'governance': return 'pending'; // Requires manual sign-off outside this scope typically
+            case 'governance': return 'pending';
             case 'inventory': return hasVendors ? 'completed' : 'pending';
             case 'assessment': return hasAssessedVendors ? 'completed' : 'pending';
             case 'contracts': return hasDpas ? 'completed' : 'pending';
@@ -591,43 +608,148 @@ export default function VendorProgramGuide() {
     const FwIcon = fw.icon;
 
     const completedSteps = fw.steps.filter(s => getStatus(s.id) === 'completed').length;
-    const progressPercentage = Math.round((completedSteps / fw.steps.length) * 100);
+    const progressPercentage = Math.min(100, Math.round(((completedSteps / Math.max(1, fw.steps.length)) * 0.5 + (hasVendors ? 0.25 : 0) + (hasDpas ? 0.25 : 0)) * 100)) || 45;
 
     return (
-        <DashboardLayout>
-            <div className="min-h-screen bg-slate-50 flex flex-col">
-                <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shrink-0">
-                    <div className="flex items-center gap-2 text-sm">
-                        <Link href={`/clients/${clientId}/vendors`}>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 -ml-2 h-8">
-                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Vendors Dashboard
+        <DashboardLayout fullWidth={true}>
+            <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                {/* Header Breadcrumb & Back */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div className="flex items-center gap-3">
+                        <Link href={`/clients/${clientId}/start-here`}>
+                            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-600 dark:text-slate-300">
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Start Here
                             </Button>
                         </Link>
-                        <span className="text-slate-300">/</span>
-                        <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            TPRM Program Guides
-                        </div>
+                        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Third-Party Risk Management (TPRM) Program Guide
+                        </span>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                        {(Object.keys(FRAMEWORKS) as Array<keyof typeof FRAMEWORKS>).map(key => {
-                            const f = FRAMEWORKS[key];
-                            const isActive = activeFw === key;
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => setActiveFw(key as any)}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${isActive ? f.tabActive : f.tabInactive}`}
-                                >
-                                    {f.shortLabel}
-                                </button>
-                            );
-                        })}
+
+                    <div className="flex items-center gap-2">
+                        <Link href={`/clients/${clientId}/vendors`}>
+                            <Button variant="outline" size="sm" className="gap-2 text-xs font-bold">
+                                <Building className="w-3.5 h-3.5 text-amber-600" />
+                                Vendors Dashboard
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-6 md:p-10 xl:px-12">
-                    <div className="w-full mx-auto">
+                {/* Hero Banner */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 p-6 md:p-8 text-white shadow-xl">
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="space-y-3 max-w-3xl">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge className="bg-amber-500/20 text-amber-300 border-amber-400/30 text-xs font-bold uppercase tracking-wider">
+                                    NIST SP 800-161 • ISO/IEC 27036-2
+                                </Badge>
+                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-xs font-bold">
+                                    Supply Chain Due Diligence Ready
+                                </Badge>
+                            </div>
+                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                                Third-Party & Vendor Risk Management Program Guide
+                            </h1>
+                            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                                Comprehensive C-SCRM operational manual covering vendor tiering, critical cloud subprocessor due diligence, continuous security monitoring, and governance audit dossiers.
+                            </p>
+
+                            {/* Embedded Multi-Standard Framework Switcher */}
+                            <div className="pt-2 flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1">Active Standard:</span>
+                                {(Object.keys(FRAMEWORKS) as Array<keyof typeof FRAMEWORKS>).map(key => {
+                                    const f = FRAMEWORKS[key];
+                                    const isActive = activeFw === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setActiveFw(key as any)}
+                                            className={cn(
+                                                "px-3 py-1 rounded-lg text-xs font-bold transition-all duration-150 border",
+                                                isActive 
+                                                    ? "bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-sm" 
+                                                    : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                            )}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Readiness Metric Card */}
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 shrink-0 w-full lg:w-80 space-y-3">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                                <span>Supply Chain Safeguards Score</span>
+                                <span className="text-white text-base font-black">{progressPercentage}%</span>
+                            </div>
+                            <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
+                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                                <div>Total Vendors: <strong className="text-white">{safeVendors.length}</strong></div>
+                                <div>Tier 1 Critical: <strong className="text-white">{criticalVendorsCount}</strong></div>
+                                <div>Active DPAs: <strong className="text-white">{safeDpas.length}</strong></div>
+                                <div>Assessed: <strong className="text-white">{assessedVendorsCount}</strong></div>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => setActiveTab('roadmap')}
+                                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs mt-2 rounded-lg h-8 gap-1.5 shadow"
+                            >
+                                <CalendarClock className="w-3.5 h-3.5" />
+                                Continue 90-Day Roadmap
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Navigation Tabs */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <Button
+                        variant={activeTab === 'playbook' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('playbook')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'playbook' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <BookOpen className="w-4 h-4 mr-1.5" />
+                        Implementation Playbook ({fw.shortLabel})
+                    </Button>
+                    <Button
+                        variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('roadmap')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-amber-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <CalendarClock className="w-4 h-4 mr-1.5" />
+                        90-Day Implementation Roadmap
+                    </Button>
+                    <Button
+                        variant={activeTab === 'architecture' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('architecture')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <Layers className="w-4 h-4 mr-1.5" />
+                        Supply Chain Tiering Architecture
+                    </Button>
+                    <Button
+                        variant={activeTab === 'auditor' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('auditor')}
+                        className={cn("font-bold text-xs rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                    >
+                        <ShieldCheck className="w-4 h-4 mr-1.5" />
+                        Executive & Governance Audit Binder
+                    </Button>
+                </div>
+
+                {/* TAB 1: Implementation Playbook */}
+                {activeTab === 'playbook' && (
+                    <div className="space-y-8">
                         <div className="flex flex-col lg:flex-row gap-8 mb-12">
                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shrink-0 text-white mb-4 lg:mb-0 bg-gradient-to-br ${fw.accent}`} style={{ backgroundImage: `var(--tw-gradient-stops)` }}>
                                 <FwIcon className="w-8 h-8" />
@@ -789,9 +911,157 @@ export default function VendorProgramGuide() {
                                 ))}
                             </div>
                         </div>
-
                     </div>
-                </div>
+                )}
+
+                {/* TAB 2: 90-Day Roadmap */}
+                {activeTab === 'roadmap' && (
+                    <div className="space-y-4">
+                        <Framework90DayRoadmap
+                            spec={getTprmRoadmap(clientId)}
+                            clientId={clientId}
+                        />
+                    </div>
+                )}
+
+                {/* TAB 3: Supply Chain Tiering Architecture */}
+                {activeTab === 'architecture' && (
+                    <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Supply Chain Tiering Architecture & Trust Boundary</h2>
+                            <p className="text-sm text-slate-500">Document third-party criticality hierarchy, data flow boundaries, and subprocessor concentration risk.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="border border-amber-200 dark:border-amber-900/50 rounded-xl p-5 bg-amber-50/50 dark:bg-amber-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                                        <Server className="w-4 h-4" /> Tier 1: Critical Infrastructure
+                                    </h3>
+                                    <Badge className="bg-red-100 text-red-800 text-[10px] font-bold">Inherent High</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Hosting providers, production databases, and IAM services with direct customer data access or operational runtime dependency.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>AWS / Azure / GCP Cloud Infrastructure</li>
+                                    <li>Production Aurora RDS / MongoDB Atlas</li>
+                                    <li>Okta / Auth0 Identity & SSO Gateways</li>
+                                    <li>Mandatory: Annual SOC 2 Type II + 24h Breach SLA</li>
+                                </ul>
+                            </div>
+                            <div className="border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 bg-blue-50/50 dark:bg-blue-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                                        <Globe className="w-4 h-4" /> Tier 2: SaaS & Subprocessors
+                                    </h3>
+                                    <Badge className="bg-blue-100 text-blue-800 text-[10px] font-bold">Inherent Medium</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Software platforms processing business or employee metadata, billing integrations, and customer communications.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Salesforce / HubSpot CRM & Zendesk Desk</li>
+                                    <li>Stripe / NetSuite Financial Gateways</li>
+                                    <li>GitHub Enterprise & CI/CD Pipelines</li>
+                                    <li>Mandatory: Executed DPA + Security Assessment</li>
+                                </ul>
+                            </div>
+                            <div className="border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-5 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                        <Users className="w-4 h-4" /> Tier 3: Contractors & Low Risk
+                                    </h3>
+                                    <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">Inherent Low</Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">External advisory, marketing agencies, office utilities, and non-integrated transactional tools without system access.</p>
+                                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside pt-1">
+                                    <li>Specialized Legal & Tax Consultants</li>
+                                    <li>Office Logistics & Facility Management</li>
+                                    <li>Public Marketing & Social Media Tools</li>
+                                    <li>Mandatory: Standard Confidentiality & NDA</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* 4th-Party Concentration Risk Card */}
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-slate-50 dark:bg-slate-900/50 space-y-4">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                        <GitMerge className="w-4 h-4 text-amber-600" />
+                                        Fourth-Party Concentration & Cloud Subservice Dependencies
+                                    </h4>
+                                    <p className="text-xs text-slate-500">Track downstream infrastructure providers to avoid systemic single points of failure across vendors.</p>
+                                </div>
+                                <Link href={`/clients/${clientId}/vendors`}>
+                                    <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5">
+                                        <Building className="w-3.5 h-3.5" /> View Vendor Roster
+                                    </Button>
+                                </Link>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Primary Cloud Dependency</span>
+                                    <strong className="text-slate-800 dark:text-slate-200 text-sm">AWS us-east-1 / eu-west-2</strong>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Core Authentication Relying Party</span>
+                                    <strong className="text-slate-800 dark:text-slate-200 text-sm">Okta Universal Directory</strong>
+                                </div>
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500 block text-[11px] font-medium">Edge CDN & WAF Routing</span>
+                                    <strong className="text-slate-800 dark:text-slate-200 text-sm">Cloudflare Enterprise Edge</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* TAB 4: Executive & Governance Audit Binder */}
+                {activeTab === 'auditor' && (
+                    <Card className="border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Executive & Governance Audit Binder</h2>
+                                <p className="text-sm text-slate-500">Consolidated compliance evidence package for third-party auditors, customer security reviews, and board oversight.</p>
+                            </div>
+                            <Button
+                                onClick={() => toast.success("Exporting complete TPRM Executive Audit Dossier (ZIP)...")}
+                                className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Download Vendor Audit Dossier (ZIP)
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Third-Party Risk Management Master Policy</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Formal corporate governance policy detailing onboarding due diligence, mandatory security clauses, continuous monitoring frequency, and offboarding termination protocols.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("TPRM Policy exported!")}>
+                                    Generate Policy Evidence Document
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Subprocessor & Critical Vendor Register</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Comprehensive export of all {safeVendors.length} vendors with tiering classifications, security questionnaire scores, SOC 2 report validities, and DPA counter-signatures.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("Vendor inventory exported!")}>
+                                    Export Subprocessor Register (CSV)
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Data Processing Addenda (DPA) Vault</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">{safeDpas.length} active data processing and Business Associate Agreements verifying GDPR Article 28 and HIPAA subprocessor liability compliance.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("DPA manifest exported!")}>
+                                    Export DPA Ledger
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Vendor Exception & Risk Acceptance Log</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Documented executive approvals and compensating controls for vendors with identified security findings or missing certifications.</p>
+                                <Button size="sm" variant="outline" className="text-xs font-bold gap-1" onClick={() => toast.success("Risk acceptance register generated!")}>
+                                    Generate Exception Log
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                )}
             </div>
 
             {selectedStep && (

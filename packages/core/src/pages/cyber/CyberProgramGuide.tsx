@@ -6,12 +6,15 @@ import { Button } from '@complianceos/ui/ui/button';
 import {
     CheckCircle2, Shield, ShieldCheck, ShieldAlert, Target, FileText, Zap, AlertTriangle,
     ArrowRight, BookOpen, ArrowLeft, Info, Calendar, Download,
-    Sparkles, Copy, Layers, Clock, Globe, Lock, Activity, Server, Users, Award
+    Sparkles, Copy, Layers, Clock, Globe, Lock, Activity, Server, Users, Award,
+    CalendarClock
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
+import { getNis2Roadmap } from '@/data/frameworkRoadmaps';
 
 /* ------------------------------------------------------------------ */
 /* Step downloads — generate real artifacts client-side               */
@@ -75,8 +78,13 @@ CRM & Support SaaS,Customer Support Desk,Tier 2 (High),No,ISO 27001,Data Process
 export default function CyberProgramGuide() {
     const params = useParams();
     const clientId = parseInt(params.id || params.clientId || "0");
-    const [location, setLocation] = useLocation();
-    const [activeTab, setActiveTab] = useState<'tutorials' | 'architecture' | 'auditor'>('tutorials');
+    // Read optional ?tab= query parameter
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const tabParam = searchParams?.get('tab');
+    const validTabs: Array<'tutorials' | 'roadmap' | 'architecture' | 'auditor'> = ['tutorials', 'roadmap', 'architecture', 'auditor'];
+    const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'tutorials';
+
+    const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'architecture' | 'auditor'>(initialTab);
     const [selectedFramework, setSelectedFramework] = useState<'nis2' | 'nist_csf' | 'dora'>('nis2');
     const [selectedPillarId, setSelectedPillarId] = useState<string | null>(null);
 
@@ -364,6 +372,14 @@ export default function CyberProgramGuide() {
                 >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Step-by-Step Operating Manual
+                </Button>
+                <Button
+                    variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('roadmap')}
+                    className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-blue-600 text-white shadow-sm" : "text-muted-foreground")}
+                >
+                    <CalendarClock className="w-4 h-4 mr-2" />
+                    90-Day NIS2 Roadmap
                 </Button>
                 <Button
                     variant={activeTab === 'architecture' ? 'default' : 'ghost'}
@@ -664,6 +680,16 @@ export default function CyberProgramGuide() {
                         })}
                     </div>
 
+                </div>
+            )}
+
+            {/* TAB: 90-Day NIS2 Implementation Roadmap */}
+            {activeTab === 'roadmap' && (
+                <div className="space-y-4">
+                    <Framework90DayRoadmap
+                        spec={getNis2Roadmap(clientId)}
+                        clientId={clientId}
+                    />
                 </div>
             )}
 

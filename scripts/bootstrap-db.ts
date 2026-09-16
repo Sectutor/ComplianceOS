@@ -38,6 +38,9 @@ import {
     clientPolicies,
     riskScenarios,
     assets,
+    employees,
+    vulnerabilities,
+    orgRoles,
     processingActivities,
     dsarRequests,
     businessProcesses,
@@ -98,6 +101,18 @@ async function applySchema(sql: postgres.Sql) {
         }
     }
     console.log(`[BootstrapDB] Schema applied (${applied} statements, ${skipped} already-exists skipped).`);
+
+    // Ensure backwards-compatible columns on tables that may have been created earlier
+    try {
+        await sql.unsafe(`
+            ALTER TABLE federal_contracts 
+            ADD COLUMN IF NOT EXISTS section_889_status varchar(50) DEFAULT 'not_required',
+            ADD COLUMN IF NOT EXISTS section_889_representative varchar(255),
+            ADD COLUMN IF NOT EXISTS section_889_date timestamp;
+        `);
+    } catch (err: any) {
+        // Table might not exist or already updated
+    }
 }
 
 
@@ -159,11 +174,14 @@ async function main() {
 
     const existing = await db.select().from(clients).where(eq(clients.id, LATORRE_CLIENT_ID));
     if (existing.length > 0) {
-        // Completeness check: check if policies and certs are present
+        // Completeness check: check if policies, certs, employees, roles, and vulns are present
         const seededCerts = await db.select({ id: complianceCertificates.id }).from(complianceCertificates).where(eq(complianceCertificates.clientId, LATORRE_CLIENT_ID));
         const seededPolicies = await db.select({ id: clientPolicies.id }).from(clientPolicies).where(eq(clientPolicies.clientId, LATORRE_CLIENT_ID));
         const seededRisks = await db.select({ id: riskScenarios.id }).from(riskScenarios).where(eq(riskScenarios.clientId, LATORRE_CLIENT_ID));
-        if (seededCerts.length > 0 && seededPolicies.length >= 10 && seededRisks.length >= 8) {
+        const seededEmployees = await db.select({ id: employees.id }).from(employees).where(eq(employees.clientId, LATORRE_CLIENT_ID));
+        const seededVulns = await db.select({ id: vulnerabilities.id }).from(vulnerabilities).where(eq(vulnerabilities.clientId, LATORRE_CLIENT_ID));
+        const seededRoles = await db.select({ id: orgRoles.id }).from(orgRoles).where(eq(orgRoles.clientId, LATORRE_CLIENT_ID));
+        if (seededCerts.length > 0 && seededPolicies.length >= 10 && seededRisks.length >= 8 && seededEmployees.length >= 10 && seededVulns.length >= 10 && seededRoles.length >= 10) {
             console.log("[BootstrapDB] LaTorre source client already fully enriched — skipping seed.");
             await sql.end();
             process.exit(0);
@@ -174,6 +192,9 @@ async function main() {
         await db.delete(dsarRequests).where(eq(dsarRequests.clientId, LATORRE_CLIENT_ID));
         await db.delete(processingActivities).where(eq(processingActivities.clientId, LATORRE_CLIENT_ID));
         await db.delete(businessProcesses).where(eq(businessProcesses.clientId, LATORRE_CLIENT_ID));
+        await db.delete(vulnerabilities).where(eq(vulnerabilities.clientId, LATORRE_CLIENT_ID));
+        await db.delete(employees).where(eq(employees.clientId, LATORRE_CLIENT_ID));
+        await db.delete(orgRoles).where(eq(orgRoles.clientId, LATORRE_CLIENT_ID));
         await db.delete(riskScenarios).where(eq(riskScenarios.clientId, LATORRE_CLIENT_ID));
         await db.delete(assets).where(eq(assets.clientId, LATORRE_CLIENT_ID));
         await db.delete(clientPolicies).where(eq(clientPolicies.clientId, LATORRE_CLIENT_ID));
@@ -463,6 +484,72 @@ async function main() {
             valuationA: 3,
             description: "MDM-enrolled corporate laptops with FileVault/BitLocker encryption and CrowdStrike EDR.",
         },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            name: "Stripe Billing & Payments Gateway",
+            type: "SaaS",
+            category: "Financial Infrastructure",
+            criticality: "critical",
+            owner: "Finance & Operations Lead",
+            vendor: "Stripe, Inc.",
+            location: "Cloud",
+            status: "active",
+            isPersonalData: true,
+            dataSensitivity: "Restricted",
+            valuationC: 5,
+            valuationI: 5,
+            valuationA: 4,
+            description: "PCI-DSS Level 1 payment gateway processing customer subscription renewals and invoice webhooks.",
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            name: "Corporate ERP & Financial Accounting System",
+            type: "Application",
+            category: "Enterprise Systems",
+            criticality: "high",
+            owner: "Financial Controller",
+            vendor: "NetSuite / Oracle",
+            location: "Cloud",
+            status: "active",
+            isPersonalData: true,
+            dataSensitivity: "Confidential",
+            valuationC: 4,
+            valuationI: 5,
+            valuationA: 4,
+            description: "General ledger, vendor payables, payroll reconciliation, and statutory financial reporting repository.",
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            name: "London Corporate Office SD-WAN & Meraki Gateway",
+            type: "Hardware",
+            category: "Network Infrastructure",
+            criticality: "medium",
+            owner: "Network Operations",
+            vendor: "Cisco Meraki",
+            location: "London HQ (100 Bishopsgate)",
+            status: "active",
+            valuationC: 3,
+            valuationI: 4,
+            valuationA: 4,
+            description: "HQ office router, redundant fiber uplinks, 802.1X RADIUS authenticated corporate Wi-Fi, and site-to-cloud VPN.",
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            name: "AWS S3 Compliance Archives & Cold Backups",
+            type: "Database",
+            category: "Backup & Storage",
+            criticality: "high",
+            owner: "DevOps Lead",
+            vendor: "Amazon Web Services",
+            location: "eu-west-1 (Ireland)",
+            status: "active",
+            isPersonalData: true,
+            dataSensitivity: "Confidential",
+            valuationC: 4,
+            valuationI: 5,
+            valuationA: 4,
+            description: "Encrypted S3 Glacier Vault with Object Lock (WORM compliance) holding 7-year audit logs and database snapshots.",
+        },
     ];
     await db.insert(assets).values(assetRows);
     console.log(`[BootstrapDB] Inserted ${assetRows.length} corporate assets.`);
@@ -613,11 +700,480 @@ async function main() {
             owner: "IT Helpdesk",
             customMitigationPlan: "MDM DLP policy disabling removable media storage write permissions and blocking unapproved cloud storage URLs.",
         },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            title: "Supply-chain dependency compromise via malicious open-source library update",
+            category: "Supply Chain",
+            assessmentType: "Enterprise",
+            likelihood: 4,
+            impact: 5,
+            inherentScore: 20,
+            inherentRisk: "High",
+            residualLikelihood: 1,
+            residualImpact: 4,
+            residualScore: 4,
+            residualRisk: "Low",
+            inherentRiskScore: 20,
+            status: "mitigated",
+            owner: "Head of Engineering",
+            customMitigationPlan: "Automated Dependabot / Snyk SCA vulnerability scanning, private NPM mirror with quarantine, and mandatory PR signature verification.",
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            title: "DDoS volumetric attack targeting client portal and API endpoints",
+            category: "Availability",
+            assessmentType: "Enterprise",
+            likelihood: 3,
+            impact: 4,
+            inherentScore: 12,
+            inherentRisk: "Medium",
+            residualLikelihood: 1,
+            residualImpact: 3,
+            residualScore: 3,
+            residualRisk: "Low",
+            inherentRiskScore: 12,
+            status: "mitigated",
+            owner: "DevOps Lead",
+            customMitigationPlan: "Cloudflare Magic Transit & WAF rate-limiting, redundant AWS Anycast routing, and synthetic health probe failover.",
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            title: "Unencrypted backup tape or snapshot loss during cross-region transit",
+            category: "Disaster Recovery",
+            assessmentType: "Enterprise",
+            likelihood: 2,
+            impact: 5,
+            inherentScore: 10,
+            inherentRisk: "Medium",
+            residualLikelihood: 1,
+            residualImpact: 3,
+            residualScore: 3,
+            residualRisk: "Low",
+            inherentRiskScore: 10,
+            status: "mitigated",
+            owner: "DevOps Lead",
+            customMitigationPlan: "KMS envelope encryption enforced on all AWS EBS/RDS snapshots prior to cross-region copy, with strict IAM deny policies on unencrypted volumes.",
+        },
     ];
     await db.insert(riskScenarios).values(riskData);
     console.log(`[BootstrapDB] Inserted ${riskData.length} quantified risk scenarios.`);
 
-    // 8. Processing Activities (RoPA - GDPR Article 30)
+    // 8. Organizational Roles (10 structured corporate roles with reporting lines)
+    const role1 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Chief Information Security Officer (CISO)",
+        department: "Executive & Security",
+        description: "Executive accountable for information security governance, regulatory compliance, and risk appetite.",
+        responsibilities: "- Formulate and enforce information security strategy across enterprise assets\n- Report cybersecurity posture and audit readiness to the Board of Directors\n- Approve risk treatment plans and budget allocation for security controls",
+        reportingRoleId: null,
+    }).returning({ id: orgRoles.id });
+
+    const role2 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Data Protection Officer (DPO) & Legal Counsel",
+        department: "Legal & Compliance",
+        description: "Statutory officer monitoring GDPR/data protection compliance and acting as supervisory authority contact.",
+        responsibilities: "- Oversee compliance with GDPR, UK Data Protection Act, and EU NIS2\n- Conduct Transfer Impact Assessments (TIAs) and manage RoPA registers\n- Advise executive leadership on privacy-by-design requirements",
+        reportingRoleId: role1[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role3 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Lead Security Operations & CSIRT Commander",
+        department: "Cybersecurity Operations",
+        description: "Operational lead directing 24/7 SIEM monitoring, threat triage, vulnerability management, and incident response.",
+        responsibilities: "- Lead the Computer Security Incident Response Team (CSIRT)\n- Manage SIEM rules, automated SOAR playbooks, and EDR containment policies\n- Conduct post-mortem root cause analyses and statutory 24h breach notifications",
+        reportingRoleId: role1[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role4 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Senior Compliance & Audit Manager",
+        department: "Legal & Compliance",
+        description: "Manager responsible for ISO 27001 ISMS, SOC 2 Type II evidence collection, and external audits.",
+        responsibilities: "- Coordinate annual ISO 27001:2022 surveillance and SOC 2 Type II audit cycles\n- Maintain Statement of Applicability (SoA) and continuous control testing\n- Perform third-party vendor risk assessments and DPA compliance reviews",
+        reportingRoleId: role2[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role5 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Principal DevOps & Cloud Infrastructure Lead",
+        department: "DevOps & Cloud",
+        description: "Technical authority for AWS cloud architecture, Kubernetes clusters, and infrastructure-as-code security.",
+        responsibilities: "- Architect and maintain high-availability, multi-AZ Kubernetes infrastructure\n- Enforce zero-trust network segmentation and KMS encryption across cloud services\n- Manage automated CI/CD deployment pipelines and disaster recovery replication",
+        reportingRoleId: role1[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role6 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Senior IT Systems & IAM Administrator",
+        department: "Information Technology",
+        description: "Lead administrator for Okta identity federation, endpoint MDM fleet, and access governance.",
+        responsibilities: "- Administer Okta IAM, SAML/OIDC federations, and FIDO2 MFA enforcement\n- Manage corporate laptop MDM profiles, FileVault/BitLocker, and patch distribution\n- Coordinate quarterly access review campaigns and offboarding de-provisioning",
+        reportingRoleId: role3[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role7 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Senior Backend & API Engineer",
+        department: "Engineering",
+        description: "Senior developer responsible for microservice APIs, database tenancy isolation, and secure SDLC.",
+        responsibilities: "- Implement secure REST/tRPC APIs adhering to OWASP Top 10 guidelines\n- Design tenant isolation guardrails, row-level security, and data sanitization\n- Remediate static and dynamic security vulnerabilities identified in CI/CD pipelines",
+        reportingRoleId: role5[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role8 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Head of Product Management",
+        department: "Product Management",
+        description: "Product leader driving client-facing compliance software development and user privacy features.",
+        responsibilities: "- Define product roadmap aligning with customer compliance requirements\n- Ensure privacy-by-design and security features are prioritized in backlog grooming\n- Collaborate with enterprise customers on feature requests and compliance reporting",
+        reportingRoleId: role1[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role9 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "Financial Controller & Operations Director",
+        department: "Finance & Operations",
+        description: "Finance leader ensuring SOX/internal controls over financial reporting, payroll, and vendor contracts.",
+        responsibilities: "- Oversee financial ledgers, Stripe billing integrations, and ERP system controls\n- Authorize significant vendor capital expenditures and third-party contracts\n- Validate fraud-prevention controls and segregation of duties in payment approvals",
+        reportingRoleId: role1[0].id,
+    }).returning({ id: orgRoles.id });
+
+    const role10 = await db.insert(orgRoles).values({
+        clientId: LATORRE_CLIENT_ID,
+        title: "HR Director & People Operations",
+        department: "Human Resources",
+        description: "People Operations leader overseeing employee screening, onboarding compliance, and security training.",
+        responsibilities: "- Manage background verification screening for all incoming technical staff\n- Track mandatory employee security awareness training completion and policy acknowledgments\n- Enforce rapid offboarding workflows with IT and legal upon employee separation",
+        reportingRoleId: role1[0].id,
+    }).returning({ id: orgRoles.id });
+
+    console.log(`[BootstrapDB] Inserted 10 corporate organizational roles.`);
+
+    // 9. Employees (10 enterprise corporate personnel linked to organizational roles)
+    const employeeRows = [
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Marco",
+            lastName: "LaTorre",
+            email: "marco@latorre.local",
+            jobTitle: "Chief Information Security Officer",
+            department: "Executive & Security",
+            role: "CISO",
+            orgRoleId: role1[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-01-15"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Elena",
+            lastName: "Rostova",
+            email: "elena.rostova@latorre.local",
+            jobTitle: "Data Protection Officer & Legal Counsel",
+            department: "Legal & Compliance",
+            role: "DPO",
+            orgRoleId: role2[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-03-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Sarah",
+            lastName: "Chen",
+            email: "sarah.chen@latorre.local",
+            jobTitle: "Lead Security Operations & CSIRT Commander",
+            department: "Cybersecurity Operations",
+            role: "Security Lead",
+            orgRoleId: role3[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-05-10"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Michael",
+            lastName: "Okafor",
+            email: "michael.okafor@latorre.local",
+            jobTitle: "Senior Compliance & Audit Manager",
+            department: "Legal & Compliance",
+            role: "Compliance Manager",
+            orgRoleId: role4[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-06-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "David",
+            lastName: "Kowalski",
+            email: "david.k@latorre.local",
+            jobTitle: "Principal DevOps & Cloud Infrastructure Lead",
+            department: "DevOps & Cloud",
+            role: "DevOps Lead",
+            orgRoleId: role5[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-02-15"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Priya",
+            lastName: "Sharma",
+            email: "priya.sharma@latorre.local",
+            jobTitle: "Senior IT Systems & IAM Administrator",
+            department: "Information Technology",
+            role: "IT Admin",
+            orgRoleId: role6[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-07-20"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Thomas",
+            lastName: "Becker",
+            email: "thomas.becker@latorre.local",
+            jobTitle: "Senior Backend & API Engineer",
+            department: "Engineering",
+            role: "Software Engineer",
+            orgRoleId: role7[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-08-15"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Amina",
+            lastName: "Diallo",
+            email: "amina.diallo@latorre.local",
+            jobTitle: "Head of Product Management",
+            department: "Product Management",
+            role: "Product Lead",
+            orgRoleId: role8[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-04-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Julian",
+            lastName: "Vance",
+            email: "julian.vance@latorre.local",
+            jobTitle: "Financial Controller & Operations Director",
+            department: "Finance & Operations",
+            role: "Finance Director",
+            orgRoleId: role9[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-01-20"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            firstName: "Rachel",
+            lastName: "Adams",
+            email: "rachel.adams@latorre.local",
+            jobTitle: "HR Director & People Operations",
+            department: "Human Resources",
+            role: "HR Director",
+            orgRoleId: role10[0].id,
+            employmentStatus: "active",
+            startDate: new Date("2023-03-15"),
+        },
+    ];
+    await db.insert(employees).values(employeeRows);
+    console.log(`[BootstrapDB] Inserted ${employeeRows.length} corporate employees.`);
+
+    // 9. Vulnerabilities (10 enterprise CVEs and configuration issues mapped to assets)
+    const vulnRows = [
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-001",
+            name: "Apache Log4j2 Remote Code Execution (Log4Shell)",
+            description: "JNDI LDAP injection vulnerability in legacy analytics ingestion pipeline.",
+            cveId: "CVE-2021-44228",
+            cvssScore: 98,
+            severity: "Critical",
+            affectedAssets: ["AWS EKS Production Cluster", "Corporate ERP & Financial Accounting System"],
+            discoveryDate: new Date("2026-01-10"),
+            source: "Automated Container Scanner",
+            exploitability: "Remote Code Execution (RCE)",
+            impact: "Complete Compromise (Confidentiality/Integrity/Availability)",
+            status: "remediated" as const,
+            owner: "David Kowalski (DevOps Lead)",
+            remediationPlan: "Upgraded all JVM base images to log4j 2.17.1+ and applied environment variable LOG4J_FORMAT_MSG_NO_LOOKUPS=true.",
+            dueDate: new Date("2026-01-15"),
+            lastReviewDate: new Date("2026-06-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-002",
+            name: "Spring Framework Remote Code Execution (Spring4Shell)",
+            description: "Data binding vulnerability in Spring MVC applications deployed on Tomcat via WAR packaging.",
+            cveId: "CVE-2022-22965",
+            cvssScore: 98,
+            severity: "Critical",
+            affectedAssets: ["LaTorre Customer Portal Web App"],
+            discoveryDate: new Date("2026-02-14"),
+            source: "SAST Pipeline Scan",
+            exploitability: "Remote Code Execution (RCE)",
+            impact: "System Takeover",
+            status: "remediated" as const,
+            owner: "Thomas Becker (Software Engineer)",
+            remediationPlan: "Migrated microservices to Spring Boot 3.2+ executable JAR format; patched ClassLoader access controls.",
+            dueDate: new Date("2026-02-20"),
+            lastReviewDate: new Date("2026-07-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-003",
+            name: "Fortinet FortiOS SSL-VPN Pre-Authentication RCE",
+            description: "Heap-based buffer overflow in FortiOS SSL-VPN web portal allowing unauthenticated remote command execution.",
+            cveId: "CVE-2024-21762",
+            cvssScore: 96,
+            severity: "Critical",
+            affectedAssets: ["London Corporate Office SD-WAN & Meraki Gateway"],
+            discoveryDate: new Date("2026-03-02"),
+            source: "CISA Known Exploited Vulnerabilities (KEV)",
+            exploitability: "Unauthenticated RCE",
+            impact: "Perimeter Network Intrusion",
+            status: "remediated" as const,
+            owner: "Priya Sharma (IT Admin)",
+            remediationPlan: "Applied vendor emergency firmware patch v7.4.3; disabled legacy web SSL-VPN portals in favor of IPsec IKEv2.",
+            dueDate: new Date("2026-03-04"),
+            lastReviewDate: new Date("2026-07-15"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-004",
+            name: "PostgreSQL Aurora Authentication Bypass / Stale IAM Tokens",
+            description: "Stale AWS IAM database authentication tokens allowed access beyond intended session timeout windows.",
+            cveId: null,
+            cvssScore: 84,
+            severity: "High",
+            affectedAssets: ["AWS RDS Aurora Postgres Cluster"],
+            discoveryDate: new Date("2026-04-18"),
+            source: "Internal Security Audit",
+            exploitability: "Credential Reuse",
+            impact: "Unauthorized Read/Write Access to Tenancy Database",
+            status: "mitigated" as const,
+            owner: "Marco LaTorre (CISO)",
+            remediationPlan: "Enforced 15-minute token TTL via AWS STS and activated pgAudit logging with automated CloudWatch alarms.",
+            dueDate: new Date("2026-05-01"),
+            lastReviewDate: new Date("2026-08-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-005",
+            name: "AWS S3 Bucket ACL Public Listing Misconfiguration",
+            description: "Auxiliary staging bucket configured with public READ access on object metadata.",
+            cveId: null,
+            cvssScore: 75,
+            severity: "High",
+            affectedAssets: ["AWS S3 Compliance Archives & Cold Backups"],
+            discoveryDate: new Date("2026-05-12"),
+            source: "AWS Security Hub / GuardDuty",
+            exploitability: "Information Disclosure",
+            impact: "Confidentiality Breach of File Names",
+            status: "remediated" as const,
+            owner: "David Kowalski (DevOps Lead)",
+            remediationPlan: "Enabled AWS S3 Block Public Access at the organization root level and attached SCP guardrails.",
+            dueDate: new Date("2026-05-15"),
+            lastReviewDate: new Date("2026-07-20"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-006",
+            name: "Legacy TLS 1.0/1.1 Enabled on Customer Portal Subdomain",
+            description: "SSL Labs scan detected weak cipher suites and deprecated TLS 1.0 support on legacy API proxy.",
+            cveId: "CVE-2026-10999",
+            cvssScore: 55,
+            severity: "Medium",
+            affectedAssets: ["LaTorre Customer Portal Web App"],
+            discoveryDate: new Date("2026-06-05"),
+            source: "External Attack Surface Monitor",
+            exploitability: "Cryptographic Downgrade Attack",
+            impact: "Session Eavesdropping",
+            status: "remediated" as const,
+            owner: "Sarah Chen (Security Lead)",
+            remediationPlan: "Updated Cloudflare edge SSL cipher profile to Strict TLS 1.3 only with HSTS preload.",
+            dueDate: new Date("2026-06-15"),
+            lastReviewDate: new Date("2026-08-10"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-007",
+            name: "Broken Object Level Authorization (BOLA) in User Profile Endpoint",
+            description: "API endpoint `/api/v1/users/:id/preferences` allowed authenticated users to query arbitrary user metadata.",
+            cveId: null,
+            cvssScore: 82,
+            severity: "High",
+            affectedAssets: ["LaTorre Customer Portal Web App"],
+            discoveryDate: new Date("2026-06-22"),
+            source: "Annual Penetration Test (PwC)",
+            exploitability: "IDOR / BOLA",
+            impact: "Unauthorized PII Access (GDPR Article 32 violation)",
+            status: "remediated" as const,
+            owner: "Thomas Becker (Software Engineer)",
+            remediationPlan: "Enforced tenant tenancy isolation middleware and ABAC authorization decorators on all profile endpoints.",
+            dueDate: new Date("2026-07-05"),
+            lastReviewDate: new Date("2026-08-15"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-008",
+            name: "Outdated Node.js Runtime in Microservices Container",
+            description: "Container base image running End-of-Life Node.js 18.x with multiple unpatched libuv HTTP parsing flaws.",
+            cveId: "CVE-2024-22019",
+            cvssScore: 68,
+            severity: "Medium",
+            affectedAssets: ["AWS EKS Production Cluster"],
+            discoveryDate: new Date("2026-07-01"),
+            source: "GitHub Dependabot Alert",
+            exploitability: "HTTP Request Smuggling",
+            impact: "Integrity / Cache Poisoning",
+            status: "remediated" as const,
+            owner: "David Kowalski (DevOps Lead)",
+            remediationPlan: "Updated Dockerfile base image to node:22-alpine; established automated monthly base image rebuild pipeline.",
+            dueDate: new Date("2026-07-20"),
+            lastReviewDate: new Date("2026-08-01"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-009",
+            name: "Okta Admin Session Inactivity Timeout Exceeds Recommended SLA",
+            description: "Admin session timeout policy configured for 8 hours without step-up re-authentication challenge.",
+            cveId: null,
+            cvssScore: 50,
+            severity: "Medium",
+            affectedAssets: ["Okta Identity Cloud (SSO & MFA)"],
+            discoveryDate: new Date("2026-07-15"),
+            source: "SOC 2 Type II Pre-Audit Review",
+            exploitability: "Session Hijacking via Unlocked Endpoint",
+            impact: "Privilege Escalation",
+            status: "remediated" as const,
+            owner: "Priya Sharma (IT Admin)",
+            remediationPlan: "Reduced administrator session timeout to 15 minutes; mandated FIDO2 biometric step-up for all privileged role elevations.",
+            dueDate: new Date("2026-07-25"),
+            lastReviewDate: new Date("2026-08-15"),
+        },
+        {
+            clientId: LATORRE_CLIENT_ID,
+            vulnerabilityId: "VULN-2026-010",
+            name: "OpenSSL Denial of Service in Edge Envoy Proxy",
+            description: "Excessive CPU consumption flaw in X.509 general certificate verification algorithm.",
+            cveId: "CVE-2023-0286",
+            cvssScore: 74,
+            severity: "High",
+            affectedAssets: ["AWS EKS Production Cluster"],
+            discoveryDate: new Date("2026-08-02"),
+            source: "Trivy Cluster Vulnerability Operator",
+            exploitability: "Denial of Service (DoS)",
+            impact: "Service Availability Degradation",
+            status: "remediated" as const,
+            owner: "Sarah Chen (Security Lead)",
+            remediationPlan: "Rolling restart with upgraded Envoy Gateway v1.28.1; verified zero cluster downtime during rollout.",
+            dueDate: new Date("2026-08-12"),
+            lastReviewDate: new Date("2026-08-25"),
+        },
+    ];
+    await db.insert(vulnerabilities).values(vulnRows);
+    console.log(`[BootstrapDB] Inserted ${vulnRows.length} corporate vulnerabilities.`);
+
+    // 10. Processing Activities (RoPA - GDPR Article 30)
     const ropaData = [
         {
             clientId: LATORRE_CLIENT_ID,
