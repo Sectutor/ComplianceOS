@@ -1,18 +1,24 @@
-# GRCompliance
+# ComplianceOS
 
 <div align="center">
 
-![GRCompliance Dashboard](./docs/assets/screenshots/dashboard.png)
+![ComplianceOS Dashboard](./docs/assets/screenshots/dashboard.png)
 
 **The Open Source Operating System for Governance, Risk, and Compliance.**
 
 [![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![CI](https://github.com/sectutor/ComplianceOS/actions/workflows/ci.yml/badge.svg)](https://github.com/sectutor/ComplianceOS/actions/workflows/ci.yml)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://github.com/Sectutor/ComplianceOS)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.0-61DAFB.svg)](https://reactjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-[Features](#-key-features) • [Why GRCompliance?](#-why-grcompliance) • [Getting Started](#-getting-started) • [Architecture](#-architecture) • [Contributing](#-contributing)
+```bash
+# ⚡ 60-Second One-Line Docker Install (Linux & macOS)
+curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash
+```
+
+[Quickstart](#-getting-started) • [Features](#-key-features) • [Why ComplianceOS?](#-why-complianceos) • [Architecture](#-architecture) • [Contributing](#-contributing)
 
 </div>
 
@@ -20,7 +26,7 @@
 
 ## 🚀 Overview
 
-**GRCompliance** is a comprehensive, open-source GRC (Governance, Risk, and Compliance) platform designed to democratize security compliance. It replaces fragmented spreadsheets and expensive enterprise tools with a modern, unified operating system for security teams.
+**ComplianceOS** (formerly GRCompliance) is a comprehensive, open-source GRC (Governance, Risk, and Compliance) platform designed to democratize security compliance. It replaces fragmented spreadsheets and expensive enterprise tools with a modern, unified operating system for security teams.
 
 Whether you are a startup aiming for **SOC 2 Type I** or an enterprise managing complex **ISO 27001** and **GDPR** frameworks, GRCompliance provides the primitives to build, manage, and automate your compliance program.
 
